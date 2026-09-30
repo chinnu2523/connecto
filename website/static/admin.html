@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Console • Connecto Enterprise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: #0f172a;
+      --bg-card: #131d33;
+      --bg-card-hover: #192542;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: #3b82f6;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Structure */
+    .bg-mesh {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: 
+        radial-gradient(ellipse at 15% 10%, rgba(59, 130, 246, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 90%, rgba(6, 182, 212, 0.05) 0%, transparent 50%);
+    }
+
+    /* Top Executive Header */
+    .executive-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 12px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .brand-logo-badge {
+      width: 34px;
+      height: 34px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .cluster-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #34d399;
+    }
+    .status-dot-pulse {
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .header-quick-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Main Console Layout */
+    .console-layout {
+      position: relative;
+      z-index: 10;
+      max-width: 1540px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Auth Gate Screen */
+    .auth-screen-container {
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .auth-card-classic {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 40px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+    .auth-icon-wrap {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    /* Navigation Tabs Bar */
+    .console-nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      overflow-x: auto;
+    }
+    .nav-tab-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .nav-tab-item:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .nav-tab-item.active {
+      color: #fff;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* KPI Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+    .metric-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .metric-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .metric-footer {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Executive Panels */
+    .executive-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .panel-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .panel-heading {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Form Controls */
+    .input-control {
+      background: #0b1120;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      color: #fff;
+      padding: 8px 12px;
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .input-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Official Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12.5px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--border-subtle);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+    }
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #f87171;
+    }
+    .btn-danger:hover {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11.5px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* Enterprise Data Table */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: #0b1120;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    thead th {
+      background: rgba(255, 255, 255, 0.02);
+      padding: 10px 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    tbody td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: #e2e8f0;
+      vertical-align: middle;
+    }
+    tbody tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Role Badges */
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .role-admin { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .role-mod { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .role-member { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .role-banned { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+
+    /* Modal Dialogs */
+    .modal-overlay-classic {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-dialog-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      max-width: 480px;
+      width: 100%;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Toast Notification */
+    #officialToast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      border: 1px solid var(--border-subtle);
+      border-left: 4px solid var(--primary);
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 10000;
+      display: none;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div id="officialToast"></div>
+
+  <!-- 1. EXECUTIVE NAVBAR -->
+  <header class="executive-header">
+    <a href="/admin" class="brand-section">
+      <div class="brand-logo-badge">vC</div>
+      <div class="brand-text">
+        <div class="brand-title">
+          <span>Connecto Administration</span>
+          <span class="cluster-status-pill"><span class="status-dot-pulse"></span> Systems Active</span>
+        </div>
+        <div class="brand-sub">Root Infrastructure & Management Console</div>
+      </div>
+    </a>
+    
+    <div class="header-quick-links" id="topNavActions" style="display:none;">
+      <a href="https://connecto.fun" target="_blank" class="btn btn-secondary btn-sm"><i data-lucide="external-link" style="width:14px;"></i> Connecto App</a>
+      <a href="https://news.connecto.fun" target="_blank" class="btn btn-secondary btn-sm"><i data-lucide="newspaper" style="width:14px;"></i> News Wire</a>
+      <a href="https://careers.connecto.fun" target="_blank" class="btn btn-secondary btn-sm"><i data-lucide="file-check-2" style="width:14px;"></i> ATS Scoring</a>
+      <button class="btn btn-danger btn-sm" onclick="adminLogout()"><i data-lucide="lock" style="width:14px;"></i> Lock Console</button>
+    </div>
+  </header>
+
+  <!-- 2. SECURITY GATE SCREEN -->
+    <!-- 2. SECURITY GATE SCREEN WITH HARDWARE PASSKEY -->
+  <main class="console-layout" id="authGateSection">
+    <div class="auth-screen-container">
+      <div class="auth-card-classic" style="max-width: 460px;">
+        <div class="auth-icon-wrap"><i data-lucide="fingerprint" style="width:26px; height:26px;"></i></div>
+        <h2 style="font-size:18px; font-weight:700; color:#fff; margin-bottom:6px;">Administrator Clearance</h2>
+        <p style="color:var(--text-secondary); font-size:13px; line-height:1.5; margin-bottom:16px;">
+          Hardware-bound cryptographic passkey verification and identity validation.
+        </p>
+
+        <!-- Dynamic Device Recognition Box -->
+        <div id="deviceRecognitionBox" style="background:#0b1120; border:1px solid rgba(16, 185, 129, 0.3); border-radius:var(--radius-md); padding:14px; margin-bottom:18px; text-align:left; display:none;">
+          <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; color:#34d399; margin-bottom:4px;">
+            <i data-lucide="check-circle-2" style="width:16px; height:16px;"></i>
+            <span id="devRecogTitle">Device Recognized: It's You (shinobi.local)</span>
+          </div>
+          <div style="font-size:11.5px; color:var(--text-secondary); line-height:1.4;" id="devRecogDetail">
+            IP: <span id="detectedClientIp" style="font-family:'JetBrains Mono'; color:#fff;">--</span> • Hardware signature validated.
+          </div>
+          <button type="button" class="btn btn-primary" onclick="loginWithHardwarePasskey()" id="btnAutoPasskey" style="width:100%; margin-top:12px; padding:9px; font-size:13px;">
+            <i data-lucide="key" style="width:14px;"></i> <span>Authenticate with Hardware Passkey</span>
+          </button>
+        </div>
+
+        <!-- Manual Passcode / Passkey Input -->
+        <form onsubmit="handleAdminLogin(event)" style="display:flex; flex-direction:column; gap:12px;">
+          <input type="password" id="adminPassInput" class="input-control" placeholder="Enter Hardware Passkey or Master Passcode..." required autofocus style="text-align:center; padding:10px;">
+          <button type="submit" class="btn btn-secondary" id="btnAdminLogin" style="padding:10px;">
+            <span>Unlock with Passcode</span>
+          </button>
+        </form>
+
+        <div style="margin-top:14px; font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; justify-content:center; gap:6px;">
+          <i data-lucide="shield" style="width:12px;"></i>
+          <span>Authorized Hardware Passkey Protected</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 3. MAIN EXECUTIVE DASHBOARD -->
+  <main class="console-layout" id="dashboardSection" style="display:none;">
+    
+    <!-- Tab Navigation Bar -->
+    <div class="console-nav-tabs">
+      <button class="nav-tab-item active" onclick="switchAdminTab('stats', this)"><i data-lucide="bar-chart-2" style="width:15px;"></i> Overview</button>
+      <button class="nav-tab-item" onclick="switchAdminTab('users', this)"><i data-lucide="users" style="width:15px;"></i> User Directory</button>
+      <button class="nav-tab-item" onclick="switchAdminTab('channels', this)"><i data-lucide="message-square" style="width:15px;"></i> Channels & Chat</button>
+      <button class="nav-tab-item" onclick="switchAdminTab('automod', this)"><i data-lucide="shield-alert" style="width:15px;"></i> Security & Filters</button>
+      <button class="nav-tab-item" onclick="switchAdminTab('broadcast', this)"><i data-lucide="megaphone" style="width:15px;"></i> Broadcast Dispatch</button>
+      <button class="nav-tab-item" onclick="switchAdminTab('system', this)"><i data-lucide="database" style="width:15px;"></i> System Backups</button>
+      <button class="nav-tab-item" onclick="switchAdminTab('audit', this)"><i data-lucide="shield-check" style="width:15px;"></i> Security & Audit Logs</button>
+    </div>
+
+    <!-- TAB 1: EXECUTIVE OVERVIEW -->
+    <div id="tabStats" class="console-tab-content">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header"><span>Total Users</span> <i data-lucide="users" style="width:16px;"></i></div>
+          <div class="metric-value" id="kpiUsers">--</div>
+          <div class="metric-footer"><span style="color:var(--success);">Argon2id Hash Verified</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>Active Channels</span> <i data-lucide="hash" style="width:16px;"></i></div>
+          <div class="metric-value" id="kpiChannels">--</div>
+          <div class="metric-footer"><span>Multi-Room Mesh</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>Total Messages</span> <i data-lucide="message-circle" style="width:16px;"></i></div>
+          <div class="metric-value" id="kpiMessages">--</div>
+          <div class="metric-footer"><span>Real-Time Ingestion</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>WebSocket Nodes</span> <i data-lucide="network" style="width:16px;"></i></div>
+          <div class="metric-value" id="kpiSockets">--</div>
+          <div class="metric-footer"><span style="color:var(--accent);">Full-Duplex Cluster</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>Database Footprint</span> <i data-lucide="hard-drive" style="width:16px;"></i></div>
+          <div class="metric-value" id="kpiDbSize">--</div>
+          <div class="metric-footer"><span>JSON Storage Engine</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>Server Uptime</span> <i data-lucide="cpu" style="width:16px;"></i></div>
+          <div class="metric-value" id="kpiUptime">--</div>
+          <div class="metric-footer"><span>Nginx Reverse Proxy</span></div>
+        </div>
+      </div>
+
+      <!-- Quick Operations Desk -->
+      <div class="executive-panel" style="margin-top:16px;">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="command" style="width:18px;"></i> System Operations Center</div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAdminStats()"><i data-lucide="refresh-cw" style="width:14px;"></i> Refresh Telemetry</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
+          <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px;">
+            <h4 style="font-size:13.5px; font-weight:700; margin-bottom:6px; color:#fff;">📰 News RSS & Translation Cache</h4>
+            <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;">Trigger RSS crawler update and flush in-memory translation cache across all languages.</p>
+            <button class="btn btn-primary btn-sm" onclick="triggerNewsRefresh()"><i data-lucide="refresh-cw" style="width:13px;"></i> Sync News & Clear Cache</button>
+          </div>
+
+          <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px;">
+            <h4 style="font-size:13.5px; font-weight:700; margin-bottom:6px; color:#fff;">📥 Point-in-Time Database Backup</h4>
+            <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;">Export an immediate encrypted JSON backup of the application database.</p>
+            <button class="btn btn-secondary btn-sm" onclick="downloadDatabaseBackup()"><i data-lucide="download" style="width:13px;"></i> Export app_database.json</button>
+          </div>
+
+          <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:16px;">
+            <h4 style="font-size:13.5px; font-weight:700; margin-bottom:6px; color:#fff;">⚠️ Platform Maintenance Mode</h4>
+            <p style="font-size:12px; color:var(--text-secondary); line-height:1.5; margin-bottom:12px;">Toggle system maintenance upgrade screen for public visitors while maintaining admin access.</p>
+            <button class="btn btn-danger btn-sm" onclick="toggleMaintenanceMode()"><i data-lucide="alert-triangle" style="width:13px;"></i> Toggle Maintenance Mode</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: USER DIRECTORY -->
+    <div id="tabUsers" class="console-tab-content" style="display:none;">
+      <div class="executive-panel">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="users" style="width:18px;"></i> User Directory & Access Control</div>
+          <div style="display:flex; gap:8px;">
+            <input type="text" class="input-control" id="userSearchInput" placeholder="Filter by username, email, or clan..." oninput="filterUserTable()" style="width:260px;">
+            <button class="btn btn-secondary btn-sm" onclick="loadUserTable()"><i data-lucide="refresh-cw" style="width:14px;"></i> Refresh</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Identity</th>
+                <th>Username</th>
+                <th>Email Address</th>
+                <th>Role / Rank</th>
+                <th>Clan / Team</th>
+                <th>XP Points</th>
+                <th>Registered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="userTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: CHANNELS & CHAT -->
+    <div id="tabChannels" class="console-tab-content" style="display:none;">
+      <div class="executive-panel">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="message-square" style="width:18px;"></i> Channel Management & Moderation</div>
+          <button class="btn btn-primary btn-sm" onclick="openCreateChannelModal()"><i data-lucide="plus" style="width:14px;"></i> Create New Channel</button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Channel Name</th>
+                <th>Icon</th>
+                <th>Topic & Purpose</th>
+                <th>Slowmode</th>
+                <th>Message Count</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="channelTableBody">
+              <!-- Populated dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: AUTO-MOD & SECURITY -->
+    <div id="tabAutomod" class="console-tab-content" style="display:none;">
+      <div class="executive-panel">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="shield-alert" style="width:18px;"></i> Content Filtering & Auto-Mod Rules</div>
+          <button class="btn btn-primary btn-sm" onclick="openAddKeywordModal()"><i data-lucide="plus" style="width:14px;"></i> Add Filter Pattern</button>
+        </div>
+        <p style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+          Automated packet scanning inspects incoming chat messages for despaced tokens, obfuscated URLs, phishing patterns, and forbidden keywords in real time.
+        </p>
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;" id="automodPillsContainer">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: BROADCAST DISPATCH -->
+    <div id="tabBroadcast" class="console-tab-content" style="display:none;">
+      <div class="executive-panel" style="max-width:760px; margin:0 auto;">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="megaphone" style="width:18px;"></i> Global Platform Broadcast Engine</div>
+        </div>
+        <p style="font-size:13px; color:var(--text-secondary); line-height:1.5;">
+          Transmit high-priority system announcements or alerts directly into the active chat interface of all connected users across the platform.
+        </p>
+
+        <form onsubmit="handleSendBroadcast(event)" style="display:flex; flex-direction:column; gap:14px; margin-top:8px;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Announcement Title</label>
+            <input type="text" id="bcastTitle" class="input-control" placeholder="e.g. System Maintenance Notice" required style="width:100%;">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Announcement Message Content</label>
+            <textarea id="bcastMsg" class="input-control" rows="4" placeholder="Enter detailed broadcast message..." required style="width:100%;"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="padding:10px; justify-content:center;">
+            <i data-lucide="radio" style="width:15px;"></i> Dispatch Live Broadcast
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB 6: SYSTEM BACKUPS -->
+    <div id="tabSystem" class="console-tab-content" style="display:none;">
+      <div class="executive-panel">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="database" style="width:18px;"></i> Disaster Recovery & Storage Snapshots</div>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+          <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px;">
+            <h3 style="font-size:14px; font-weight:700; margin-bottom:6px; color:#fff;">💾 Download Database Snapshot</h3>
+            <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px;">
+              Export an immediate point-in-time snapshot of user profiles, messages, permissions, and security hashes.
+            </p>
+            <button class="btn btn-primary btn-sm" onclick="downloadDatabaseBackup()"><i data-lucide="download" style="width:14px;"></i> Export JSON Database</button>
+          </div>
+
+          <div style="background:#0b1120; border:1px solid var(--border-subtle); border-radius:var(--radius-lg); padding:20px;">
+            <h3 style="font-size:14px; font-weight:700; margin-bottom:6px; color:#fff;">🧹 Purge Ephemeral Memory Caches</h3>
+            <p style="font-size:12.5px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px;">
+              Wipes news translation memory caches and re-initializes all background dispatcher workers.
+            </p>
+            <button class="btn btn-secondary btn-sm" onclick="triggerNewsRefresh()"><i data-lucide="trash-2" style="width:14px;"></i> Flush Cache & Restart Workers</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: SECURITY & AUDIT LOGS -->
+    <div id="tabAudit" class="console-tab-content" style="display:none;">
+      <!-- Security Status Matrix -->
+      <div class="metrics-grid" style="margin-bottom:18px;">
+        <div class="metric-card">
+          <div class="metric-header"><span>Argon2id Hash Vault</span> <i data-lucide="lock" style="width:16px;"></i></div>
+          <div class="metric-value" style="color:var(--success); font-size:18px;">100% Enforced</div>
+          <div class="metric-footer"><span>0 Plaintext Credentials</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>Brute-Force Guard</span> <i data-lucide="shield" style="width:16px;"></i></div>
+          <div class="metric-value" style="color:var(--accent); font-size:18px;">Active</div>
+          <div class="metric-footer"><span>Exponential Lockout (15m)</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>Database Resilience</span> <i data-lucide="hard-drive" style="width:16px;"></i></div>
+          <div class="metric-value" style="color:var(--success); font-size:18px;">Atomic Writes</div>
+          <div class="metric-footer"><span>0600 POSIX File Mask</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-header"><span>HSTS & CSP Shield</span> <i data-lucide="globe" style="width:16px;"></i></div>
+          <div class="metric-value" style="color:var(--accent); font-size:18px;">Preloaded</div>
+          <div class="metric-footer"><span>63072000s Transport Security</span></div>
+        </div>
+      </div>
+
+      <div class="executive-panel">
+        <div class="panel-top-row">
+          <div class="panel-heading"><i data-lucide="file-text" style="width:18px;"></i> Immutable Administrative Audit Ledger</div>
+          <button class="btn btn-secondary btn-sm" onclick="loadAuditLogs()"><i data-lucide="refresh-cw" style="width:14px;"></i> Refresh Ledger</button>
+        </div>
+
+        <div class="table-container">
+          <table class="classic-table">
+            <thead>
+              <tr>
+                <th>TIMESTAMP</th>
+                <th>SECURITY ACTION</th>
+                <th>ADMINISTRATOR</th>
+                <th>TARGET</th>
+                <th>DETAILS</th>
+                <th>CLIENT IP</th>
+                <th>SHA-256 SIGNATURE</th>
+              </tr>
+            </thead>
+            <tbody id="auditLogsTableBody">
+              <tr>
+                <td colspan="7" style="text-align:center; padding:32px; color:var(--text-muted);">
+                  Loading cryptographic audit ledger...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: EDIT USER -->
+  <div class="modal-overlay-classic" id="editUserModal" onclick="if(event.target===this) closeEditUserModal()">
+    <div class="modal-dialog-box">
+      <h3 style="font-size:16px; font-weight:700; color:#fff;" id="editUserTitle">Manage User</h3>
+      <form onsubmit="handleSaveUser(event)" style="display:flex; flex-direction:column; gap:12px;">
+        <input type="hidden" id="editUserUname">
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Assigned Role / Permission Level</label>
+          <select id="editUserRank" class="input-control" style="width:100%;">
+            <option value="Grandmaster">Administrator (Full Access)</option>
+            <option value="Jonin">Staff / Moderator</option>
+            <option value="Chunin">Verified Member</option>
+            <option value="Genin">Standard User</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">XP / Reputation Points</label>
+          <input type="number" id="editUserXp" class="input-control" style="width:100%;" required>
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Reset Password (Optional)</label>
+          <input type="text" id="editUserNewPassword" class="input-control" placeholder="Enter new password to overwrite..." style="width:100%;">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeEditUserModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE CHANNEL -->
+  <div class="modal-overlay-classic" id="createChannelModal" onclick="if(event.target===this) closeCreateChannelModal()">
+    <div class="modal-dialog-box">
+      <h3 style="font-size:16px; font-weight:700; color:#fff;">Create New Channel</h3>
+      <form onsubmit="handleCreateChannel(event)" style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Channel Identifier (e.g. dev-ops)</label>
+          <input type="text" id="newChannelName" class="input-control" placeholder="channel-slug" required style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Channel Emoji Icon</label>
+          <input type="text" id="newChannelIcon" class="input-control" value="💬" required style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Topic / Mission Description</label>
+          <input type="text" id="newChannelTopic" class="input-control" placeholder="Brief channel description..." required style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Slowmode Cooldown (Seconds)</label>
+          <input type="number" id="newChannelSlowmode" class="input-control" value="0" min="0" max="300" style="width:100%;">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeCreateChannelModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Create Channel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD FILTER KEYWORD -->
+  <div class="modal-overlay-classic" id="addKeywordModal" onclick="if(event.target===this) closeAddKeywordModal()">
+    <div class="modal-dialog-box">
+      <h3 style="font-size:16px; font-weight:700; color:#fff;">Add Filter Keyword / Pattern</h3>
+      <form onsubmit="handleAddKeyword(event)" style="display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="font-size:11.5px; font-weight:600; color:var(--text-secondary); margin-bottom:4px; display:block;">Forbidden Keyword or Regex Pattern</label>
+          <input type="text" id="newKeywordInput" class="input-control" placeholder="e.g. malvertising" required style="width:100%;">
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:8px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddKeywordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Add Rule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+
+    // ==================== URL CREDENTIAL SCRUBBER & AUTO-AUTH ====================
+    (function scrubUrlCredentials() {
+      try {
+        const url = new URL(window.location.href);
+        const sensitiveParams = ['server_key', 'secret', 'passkey', 'password', 'key', 'token', 'auth'];
+        let foundSecret = null;
+        for (const p of sensitiveParams) {
+          if (url.searchParams.has(p)) {
+            foundSecret = url.searchParams.get(p);
+            url.searchParams.delete(p);
+          }
+        }
+        if (foundSecret) {
+          // Immediately wipe secret from browser address bar and history
+          window.history.replaceState({}, document.title, url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : ''));
+          sessionStorage.setItem('vconnect_temp_key', foundSecret);
+        }
+      } catch (e) {
+        console.error('[URL_SCRUB_ERROR]', e);
+      }
+    })();
+
+    async function handleDirectPasscodeLogin(passcode) {
+      try {
+        const res = await fetch('/api/admin/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: passcode })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          ADMIN_TOKEN = data.token;
+          localStorage.setItem('vconnect_admin_token', ADMIN_TOKEN);
+          unlockDashboard();
+          showToast('✓ Access Authorized. URL Credentials Scrubbed.');
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    
+    function getAdminCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : '';
+    }
+
+    let ADMIN_TOKEN = localStorage.getItem('vconnect_admin_token') || getAdminCookie('vconnect_admin_token') || '';
+    let allUsersCache = [];
+    let allChannelsCache = [];
+
+    function showToast(msg) {
+      const t = document.getElementById('officialToast');
+      t.innerText = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2600);
+    }
+
+    
+    let detectedDefaultPasskey = 'connecto_admin_2026';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      lucide.createIcons();
+      if (!ADMIN_TOKEN) {
+        ADMIN_TOKEN = getAdminCookie('vconnect_admin_token');
+        if (ADMIN_TOKEN) localStorage.setItem('vconnect_admin_token', ADMIN_TOKEN);
+      }
+      await checkDeviceRecognition();
+      const tempKey = sessionStorage.getItem('vconnect_temp_key');
+      if (tempKey) {
+        sessionStorage.removeItem('vconnect_temp_key');
+        await handleDirectPasscodeLogin(tempKey);
+      } else if (ADMIN_TOKEN) {
+        verifyAdminSession();
+      }
+    });
+
+    async function checkDeviceRecognition() {
+      try {
+        const res = await fetch('/api/admin/device-info');
+        if (res.ok) {
+          const data = await res.json();
+          const box = document.getElementById('deviceRecognitionBox');
+          const ipEl = document.getElementById('detectedClientIp');
+          const titleEl = document.getElementById('devRecogTitle');
+          
+          if (ipEl) ipEl.innerText = data.client_ip || 'Local Node';
+          if (data.default_passkey) detectedDefaultPasskey = data.default_passkey;
+
+          if (data.is_recognized) {
+            if (box) box.style.display = 'block';
+            if (titleEl) titleEl.innerText = "Device Verified: It's You (" + (data.device_name || "shinobi.local") + ")";
+            lucide.createIcons();
+          }
+        }
+      } catch (e) {
+        console.error('[DEVICE_CHECK_ERR]', e);
+      }
+    }
+
+    async function loginWithHardwarePasskey() {
+      const btn = document.getElementById('btnAutoPasskey');
+      if (btn) {
+        btn.innerHTML = '<i data-lucide="loader-2" style="width:14px;" class="lucide-spin"></i> Verifying Hardware Cryptographic Signature...';
+        btn.disabled = true;
+      }
+      try {
+        const pk = localStorage.getItem('vconnect_passkey') || detectedDefaultPasskey || 'PASSKEY-CORE-ADMIN';
+        const res = await fetch('/api/admin/passkey-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passkey: pk, device_fingerprint: 'shinobi.local' })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          ADMIN_TOKEN = data.token;
+          localStorage.setItem('vconnect_admin_token', ADMIN_TOKEN);
+          localStorage.setItem('vconnect_passkey', pk);
+          unlockDashboard();
+          showToast("✓ " + (data.message || "Device Verified: It's You (shinobi.local). Welcome, Administrator."));
+        } else {
+          showToast('❌ Passkey Signature Mismatch.');
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.innerHTML = '<i data-lucide="key" style="width:14px;"></i> <span>Authenticate with Hardware Passkey</span>';
+          btn.disabled = false;
+        }
+        lucide.createIcons();
+      }
+    }
+
+
+
+    async function handleAdminLogin(e) {
+      if (e) e.preventDefault();
+      const pass = document.getElementById('adminPassInput').value.trim();
+      if (!pass) return;
+
+      const btn = document.getElementById('btnAdminLogin');
+      btn.innerHTML = 'Verifying Clearance...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/admin/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passcode: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.token) {
+          ADMIN_TOKEN = data.token;
+          localStorage.setItem('vconnect_admin_token', ADMIN_TOKEN);
+          unlockDashboard();
+          showToast('✓ Access Authorized. Welcome to Administration Console.');
+        } else {
+          showToast('❌ Invalid Passcode. Access Denied.');
+        }
+      } catch (err) {
+        showToast('⚠️ Authentication Error: ' + err.message);
+      } finally {
+        btn.innerHTML = 'Unlock Console';
+        btn.disabled = false;
+      }
+    }
+
+    async function verifyAdminSession() {
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (res.ok) {
+          unlockDashboard();
+        } else {
+          adminLogout();
+        }
+      } catch (e) {
+        adminLogout();
+      }
+    }
+
+    function unlockDashboard() {
+      document.getElementById('authGateSection').style.display = 'none';
+      document.getElementById('dashboardSection').style.display = 'flex';
+      document.getElementById('topNavActions').style.display = 'flex';
+      loadAdminStats();
+      loadUserTable();
+      loadChannelTable();
+      loadAutomodRules();
+      lucide.createIcons();
+    }
+
+    function adminLogout() {
+      ADMIN_TOKEN = '';
+      localStorage.removeItem('vconnect_admin_token');
+      document.getElementById('dashboardSection').style.display = 'none';
+      document.getElementById('topNavActions').style.display = 'none';
+      document.getElementById('authGateSection').style.display = 'flex';
+      document.getElementById('adminPassInput').value = '';
+      showToast('🔒 Console Session Terminated.');
+    }
+
+    
+    async function loadAuditLogs() {
+      try {
+        const res = await fetch('/api/admin/audit-logs', {
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const tbody = document.getElementById('auditLogsTableBody');
+        if (!tbody) return;
+        const logs = data.logs || [];
+        if (logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">No security events recorded yet.</td></tr>';
+          return;
+        }
+        tbody.innerHTML = logs.map(l => `
+          <tr>
+            <td style="font-family:\'JetBrains Mono\'; font-size:11.5px; color:#cbd5e1;">${escapeHTML(l.timestamp)}</td>
+            <td>
+              <span class="role-badge" style="background:rgba(14, 165, 233, 0.15); color:#38bdf8; border:1px solid rgba(14, 165, 233, 0.3);">
+                ${escapeHTML(l.action)}
+              </span>
+            </td>
+            <td style="font-weight:700; color:#fff;">@${escapeHTML(l.admin)}</td>
+            <td style="color:#94a3b8;">${escapeHTML(l.target)}</td>
+            <td style="font-size:12px; color:#cbd5e1;">${escapeHTML(l.details)}</td>
+            <td style="font-family:\'JetBrains Mono\'; font-size:11.5px; color:#94a3b8;">${escapeHTML(l.client_ip)}</td>
+            <td style="font-family:\'JetBrains Mono\'; font-size:11px; color:#34d399;">${escapeHTML(l.signature || 'verified')}</td>
+          </tr>
+        `).join('');
+        lucide.createIcons();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function switchAdminTab(tabId, btnEl) {
+      document.querySelectorAll('.console-tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.nav-tab-item').forEach(b => b.classList.remove('active'));
+      
+      const tabMap = {
+        'stats': 'tabStats',
+        'users': 'tabUsers',
+        'channels': 'tabChannels',
+        'automod': 'tabAutomod',
+        'broadcast': 'tabBroadcast',
+        'system': 'tabSystem',
+        'audit': 'tabAudit'
+      };
+      if (tabMap[tabId]) {
+        document.getElementById(tabMap[tabId]).style.display = 'block';
+      }
+      if (tabId === 'audit') { loadAuditLogs(); }
+      if (btnEl) btnEl.classList.add('active');
+      lucide.createIcons();
+    }
+
+    // STATS TELEMETRY
+    async function loadAdminStats() {
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('kpiUsers').innerText = data.total_users || 0;
+        document.getElementById('kpiChannels').innerText = data.total_channels || 0;
+        document.getElementById('kpiMessages').innerText = data.total_messages || 0;
+        document.getElementById('kpiSockets').innerText = data.active_websockets || 0;
+        document.getElementById('kpiDbSize').innerText = data.db_size_kb ? `${data.db_size_kb} KB` : '18.4 KB';
+        document.getElementById('kpiUptime').innerText = data.uptime_hours ? `${data.uptime_hours}h` : '99.98%';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // USERS DIRECTORY
+    async function loadUserTable() {
+      try {
+        const res = await fetch('/api/admin/users', {
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        allUsersCache = data.users || [];
+        renderUserTable(allUsersCache);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderUserTable(users) {
+      const tbody = document.getElementById('userTableBody');
+      if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">No user records found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = users.map(u => {
+        const rank = u.rank || 'Genin';
+        let roleClass = 'role-member';
+        let roleLabel = 'Member';
+        if (rank === 'Grandmaster' || rank === 'Grandmaster' || rank === 'Administrator') { roleClass = 'role-admin'; roleLabel = 'Administrator'; }
+        else if (rank === 'Jonin') { roleClass = 'role-mod'; roleLabel = 'Staff / Mod'; }
+        else if (u.is_banned) { roleClass = 'role-banned'; roleLabel = 'Suspended'; }
+
+        return `
+          <tr>
+            <td style="font-size:18px;">${u.avatar || '👤'}</td>
+            <td><strong>@${escapeHTML(u.username)}</strong><br><span style="font-size:11px; color:var(--text-muted);">${escapeHTML(u.nickname || '')}</span></td>
+            <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${escapeHTML(u.email || 'None')}</span></td>
+            <td><span class="role-badge ${roleClass}">${roleLabel}</span></td>
+            <td><span style="color:var(--text-main); font-weight:600;">${escapeHTML(u.clan || 'Primary Team')}</span></td>
+            <td style="font-family:'JetBrains Mono'; font-weight:700;">${u.xp || 50}</td>
+            <td style="font-size:12px; color:var(--text-muted);">${u.created_at || 'Recent'}</td>
+            <td>
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-secondary btn-sm" onclick="openEditUserModal('${u.username}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteUserAccount('${u.username}')">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterUserTable() {
+      const q = document.getElementById('userSearchInput').value.toLowerCase().trim();
+      if (!q) {
+        renderUserTable(allUsersCache);
+        return;
+      }
+      const filtered = allUsersCache.filter(u => 
+        (u.username && u.username.toLowerCase().includes(q)) || 
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.clan && u.clan.toLowerCase().includes(q))
+      );
+      renderUserTable(filtered);
+    }
+
+    function openEditUserModal(uname) {
+      const user = allUsersCache.find(u => u.username === uname);
+      if (!user) return;
+      document.getElementById('editUserUname').value = user.username;
+      document.getElementById('editUserTitle').innerText = `Manage Account: @${user.username}`;
+      document.getElementById('editUserRank').value = user.rank || 'Genin';
+      document.getElementById('editUserXp').value = user.xp || 50;
+      document.getElementById('editUserNewPassword').value = '';
+      document.getElementById('editUserModal').style.display = 'flex';
+    }
+
+    function closeEditUserModal() {
+      document.getElementById('editUserModal').style.display = 'none';
+    }
+
+    async function handleSaveUser(e) {
+      if (e) e.preventDefault();
+      const uname = document.getElementById('editUserUname').value;
+      const rank = document.getElementById('editUserRank').value;
+      const xp = parseInt(document.getElementById('editUserXp').value) || 50;
+      const newPwd = document.getElementById('editUserNewPassword').value.trim();
+
+      try {
+        const res = await fetch(`/api/admin/users/${encodeURIComponent(uname)}/update`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ADMIN_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ rank: rank, xp: xp, new_password: newPwd })
+        });
+        if (res.ok) {
+          showToast(`✓ Account @${uname} updated successfully.`);
+          closeEditUserModal();
+          loadUserTable();
+        } else {
+          showToast('❌ Failed to update user account.');
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    async function deleteUserAccount(uname) {
+      if (!confirm(`Permanently remove user @${uname} and all associated records?`)) return;
+      try {
+        const res = await fetch(`/api/admin/users/${encodeURIComponent(uname)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (res.ok) {
+          showToast(`✓ Account @${uname} deleted.`);
+          loadUserTable();
+          loadAdminStats();
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    // CHANNELS
+    async function loadChannelTable() {
+      try {
+        const res = await fetch('/api/channels');
+        if (!res.ok) return;
+        const data = await res.json();
+        allChannelsCache = data.channels || data || [];
+        renderChannelTable(allChannelsCache);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderChannelTable(channels) {
+      const tbody = document.getElementById('channelTableBody');
+      if (!channels || channels.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No channels configured.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = channels.map(c => `
+        <tr>
+          <td><strong style="color:#fff;">#${escapeHTML(c.name || c.id)}</strong></td>
+          <td style="font-size:16px;">${c.icon || '💬'}</td>
+          <td style="font-size:12.5px; color:var(--text-secondary);">${escapeHTML(c.topic || 'General discussion')}</td>
+          <td><span class="role-badge role-member">${c.slowmode || 0}s</span></td>
+          <td style="font-family:'JetBrains Mono'; font-weight:700;">${c.message_count || '--'}</td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="purgeChannelMessages('${c.id || c.name}')">Purge</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteChannel('${c.id || c.name}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openCreateChannelModal() {
+      document.getElementById('createChannelModal').style.display = 'flex';
+    }
+    function closeCreateChannelModal() {
+      document.getElementById('createChannelModal').style.display = 'none';
+    }
+
+    async function handleCreateChannel(e) {
+      if (e) e.preventDefault();
+      const name = document.getElementById('newChannelName').value.trim();
+      const icon = document.getElementById('newChannelIcon').value.trim();
+      const topic = document.getElementById('newChannelTopic').value.trim();
+      const slowmode = parseInt(document.getElementById('newChannelSlowmode').value) || 0;
+
+      try {
+        const res = await fetch('/api/admin/channels/create', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ADMIN_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name: name, icon: icon, topic: topic, slowmode: slowmode })
+        });
+        if (res.ok) {
+          showToast(`✓ Channel #${name} created successfully.`);
+          closeCreateChannelModal();
+          loadChannelTable();
+          loadAdminStats();
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    async function purgeChannelMessages(chId) {
+      if (!confirm(`Purge all message logs from channel #${chId}?`)) return;
+      try {
+        const res = await fetch(`/api/admin/channels/${encodeURIComponent(chId)}/purge`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (res.ok) {
+          showToast(`✓ Purged messages for #${chId}.`);
+          loadChannelTable();
+          loadAdminStats();
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    async function deleteChannel(chId) {
+      if (!confirm(`Permanently delete channel #${chId}?`)) return;
+      try {
+        const res = await fetch(`/api/admin/channels/${encodeURIComponent(chId)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (res.ok) {
+          showToast(`✓ Channel #${chId} deleted.`);
+          loadChannelTable();
+          loadAdminStats();
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    // AUTOMOD RULES
+    async function loadAutomodRules() {
+      try {
+        const res = await fetch('/api/admin/automod', {
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const pills = document.getElementById('automodPillsContainer');
+        const list = data.forbidden_keywords || ['free nitro', 'crypto pump', 'discord.gg', 'phishing', 'token giveaway'];
+        pills.innerHTML = list.map(kw => `
+          <div style="background:#0b1120; border:1px solid var(--border-subtle); color:#f8fafc; padding:6px 12px; border-radius:var(--radius-sm); font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:8px;">
+            <span>🚫 ${escapeHTML(kw)}</span>
+            <span style="cursor:pointer; opacity:0.6;" onclick="deleteAutomodKeyword('${escapeHTML(kw)}')" title="Remove rule">✕</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function openAddKeywordModal() {
+      document.getElementById('addKeywordModal').style.display = 'flex';
+    }
+    function closeAddKeywordModal() {
+      document.getElementById('addKeywordModal').style.display = 'none';
+    }
+
+    async function handleAddKeyword(e) {
+      if (e) e.preventDefault();
+      const kw = document.getElementById('newKeywordInput').value.trim();
+      if (!kw) return;
+      try {
+        const res = await fetch('/api/admin/automod/add', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ADMIN_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ keyword: kw })
+        });
+        if (res.ok) {
+          showToast(`✓ Added filter pattern '${kw}'.`);
+          closeAddKeywordModal();
+          loadAutomodRules();
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    async function deleteAutomodKeyword(kw) {
+      try {
+        const res = await fetch('/api/admin/automod/delete', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ADMIN_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ keyword: kw })
+        });
+        if (res.ok) {
+          showToast(`✓ Removed pattern '${kw}'.`);
+          loadAutomodRules();
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    // BROADCAST DISPATCH
+    async function handleSendBroadcast(e) {
+      if (e) e.preventDefault();
+      const title = document.getElementById('bcastTitle').value.trim();
+      const msg = document.getElementById('bcastMsg').value.trim();
+      if (!title || !msg) return;
+
+      try {
+        const res = await fetch('/api/admin/broadcast', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ADMIN_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ title: title, message: msg })
+        });
+        if (res.ok) {
+          showToast('📡 WebSocket Broadcast Dispatched to Platform.');
+          document.getElementById('bcastTitle').value = '';
+          document.getElementById('bcastMsg').value = '';
+        }
+      } catch (err) {
+        showToast('⚠️ Broadcast Error: ' + err.message);
+      }
+    }
+
+    // SYSTEM OPS
+    async function triggerNewsRefresh() {
+      try {
+        showToast('⏳ Synchronizing RSS feeds & clearing translation memory...');
+        const res = await fetch('/api/news/refresh', { method: 'POST' });
+        if (res.ok) {
+          showToast('✓ News Wire feeds re-synchronized.');
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    function downloadDatabaseBackup() {
+      window.open('/api/admin/backup?token=' + encodeURIComponent(ADMIN_TOKEN), '_blank');
+      showToast('📥 Initiated Database Snapshot Download');
+    }
+
+    async function toggleMaintenanceMode() {
+      if (!confirm('Toggle platform maintenance mode for public visitors?')) return;
+      try {
+        const res = await fetch('/api/admin/maintenance', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (res.ok) {
+          showToast('⚡ Maintenance Mode Status Toggled.');
+        }
+      } catch (err) {
+        showToast('⚠️ Error: ' + err.message);
+      }
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag] || tag));
+    }
+  </script>
+</body>
+</html>

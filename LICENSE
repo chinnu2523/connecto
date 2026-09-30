@@ -1,0 +1,87 @@
+CONNECTO PROPRIETARY SOFTWARE AND INVENTIONS PATENT LICENSE
+==================================================================
+Version 1.0 — October 2026
+Copyright (c) 2026 Connecto Technologies / Vivek (@chinnu2523).
+All Rights Reserved.
+
+NOTICE OF PROPRIETARY INTELLECTUAL PROPERTY AND PATENT PENDING STATUS
+---------------------------------------------------------------------
+
+IMPORTANT — READ CAREFULLY: This software, associated source code, binary
+distributions, documentation, architectural blueprints, communications protocols,
+and cryptographic methodologies (collectively referred to as the "Software") are
+the exclusive proprietary intellectual property of Vivek (@chinnu2523) and Connecto
+Technologies ("Licensor").
+
+Certain technologies, systems, algorithms, architectures, and methods embodied
+within or utilized by this Software are protected by copyright law, international
+treaties, trade secret protections, and are the subject of one or more issued
+patents and/or pending patent applications in the United States, India, and
+internationally ("Patent Rights").
+
+1. RESERVATION OF ALL RIGHTS
+----------------------------
+Except as expressly permitted by written authorization executed by Licensor:
+(a) No license, right, or title to any Patent Rights, patent claims, inventions,
+    or patent-pending technological methods is granted, conveyed, or implied
+    herein.
+(b) Licensor retains full and exclusive ownership of all copyrights, patents,
+    patent applications, trademarks, trade secrets, and other intellectual
+    property rights in and to the Software.
+
+2. PATENT RESTRICTIONS & SCOPE OF PROTECTION
+--------------------------------------------
+Without limiting the generality of Section 1, the following novel engineering
+inventions and technological methods are explicitly protected and reserved:
+
+(a) Thread-Synchronized WebRTC Teardown & Mutex Architecture:
+    The method and state machine for preventing race-condition SIGSEGV/SIGBUS
+    native memory corruption during asynchronous WebRTC peer connection disposal
+    across multi-threaded mobile runtime environments.
+
+(b) Dynamic Adaptive TURN Relay Routing & Single-Pass ICE Policy:
+    The network routing architecture utilizing 16,384 dynamic allocation ports
+    combined with single-pass (GATHER_ONCE) candidate resolution, removing
+    inter-relay round-trip time overhead in mobile and browser voice lounges.
+
+(c) Hardware-Backed Biometric Vault with Zero-Bypass Screen Lock:
+    The security protocol binding biometric cryptographic key authentication
+    with Android OS screen lock keyguards for zero-bypass offline vault access
+    in decentralized messaging clients.
+
+(d) Dual-Tier Rust Audio & Real-Time Broadcast Relay Architecture:
+    The concurrent high-throughput message routing methodology interfacing
+    a Python application layer with a Rust asynchronous WebSocket engine
+    via internal cryptographic secret header validation.
+
+(e) Sliding-Window Stateless Session Renewal with Multi-Alias Synchronization:
+    The persistence and recovery mechanism maintaining real-time communication
+    integrity and bidirectional SQLite message preservation across transient
+    network disconnects and multi-participant channel aliasing.
+
+3. PROHIBITED USES
+------------------
+Any unauthorized copying, modification, decompilation, disassembly, reverse
+engineering, sublicensing, distribution, extraction of patented designs, or
+commercial exploitation of the Software, in whole or in part, without the prior
+express written consent of the Licensor is strictly prohibited and constitutes
+willful copyright infringement, trade secret misappropriation, and patent
+infringement.
+
+4. PATENT INFRINGEMENT AND TERMINATION
+--------------------------------------
+If any individual, corporation, or entity initiates, threatens, or participates
+in any patent infringement litigation or legal claim against Licensor alleging
+that the Software or any portion thereof infringes any patent claim, all rights
+granted under any agreement between such party and Licensor shall terminate
+immediately and automatically with retroactive effect.
+
+5. DISCLAIMER OF WARRANTY
+-------------------------
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS, PATENT HOLDERS, OR COPYRIGHT OWNERS BE LIABLE FOR ANY CLAIM, DAMAGES,
+OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
+FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

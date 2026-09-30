@@ -1,0 +1,48 @@
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+.secrets/
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa*
+
+# SQLite Database & Backups
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+backups/
+connecto_staging.db*
+connecto.db*
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+.pytest_cache/
+
+# User uploads & temporary files
+uploads/
+downloads/
+*.log
+logs/
+.DS_Store
+*.swp
+*.swo
+
+# Build & Distribution artifacts
+dist/
+build/
+*.tar.gz
+*.zip

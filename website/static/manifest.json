@@ -1,0 +1,26 @@
+{
+  "name": "Connecto - Gamers Hub and Community Platform",
+  "short_name": "Connecto",
+  "description": "Real-time chat, voice, esports tournaments, and cyber gaming platform.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#6c5ce7",
+  "icons": [
+    {
+      "src": "/static/icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

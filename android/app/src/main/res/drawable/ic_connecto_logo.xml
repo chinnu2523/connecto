@@ -1,0 +1,71 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Hexagonal Speech Bubble Path with Gradient Fill -->
+    <path
+        android:pathData="M 48,16 L 78,28 L 78,60 L 56,72 L 32,82 L 34,70 L 22,50 L 24,32 Z"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="20"
+                android:startY="50"
+                android:endX="80"
+                android:endY="50"
+                android:type="linear">
+                <item android:color="#FF6C5CE7" android:offset="0.0"/>
+                <item android:color="#FF00CEC9" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Network Connection Lines -->
+    <path
+        android:pathData="M 46,45 L 48,16 M 46,45 L 78,28 M 46,45 L 78,60 M 46,45 L 56,72 M 46,45 L 22,50 M 46,45 L 24,32 M 22,50 L 34,70 M 56,72 L 34,70"
+        android:strokeWidth="4"
+        android:strokeLineCap="round">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="20"
+                android:startY="50"
+                android:endX="80"
+                android:endY="50"
+                android:type="linear">
+                <item android:color="#FF6C5CE7" android:offset="0.0"/>
+                <item android:color="#FF00CEC9" android:offset="1.0"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Node Circles -->
+    <!-- Center Node -->
+    <path
+        android:pathData="M 46,45 m -6,0 a 6,6 0 1,0 12,0 a 6,6 0 1,0 -12,0"
+        android:fillColor="#FF00CEC9"/>
+    <!-- Top Node -->
+    <path
+        android:pathData="M 48,16 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0"
+        android:fillColor="#FF38EF7D"/>
+    <!-- Top Right Node -->
+    <path
+        android:pathData="M 78,28 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0"
+        android:fillColor="#FF00CEC9"/>
+    <!-- Bottom Right Node -->
+    <path
+        android:pathData="M 78,60 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0"
+        android:fillColor="#FF00CEC9"/>
+    <!-- Bottom Node -->
+    <path
+        android:pathData="M 56,72 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0"
+        android:fillColor="#FF00CEC9"/>
+    <!-- Middle Left Node -->
+    <path
+        android:pathData="M 22,50 m -5,0 a 5,5 0 1,0 10,0 a 5,5 0 1,0 -10,0"
+        android:fillColor="#FF6C5CE7"/>
+
+</vector>

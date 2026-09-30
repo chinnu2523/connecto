@@ -1,0 +1,154 @@
+{
+  "users": {
+    "demo": {
+      "id": "usr_demo",
+      "username": "demo",
+      "password": "password",
+      "avatar": "\ud83d\udc7e",
+      "status": "online"
+    },
+    "vivek": {
+      "id": "usr_vivek",
+      "username": "vivek",
+      "password": "password",
+      "avatar": "\u26a1",
+      "status": "online"
+    },
+    "vance": {
+      "id": "usr_madara",
+      "username": "vance",
+      "password": "password",
+      "avatar": "\ud83d\udd25",
+      "status": "online"
+    },
+    "chinnu": {
+      "id": "usr_d83391d8",
+      "username": "chinnu",
+      "password": "chinnu",
+      "avatar": "\ud83d\udc7e",
+      "status": "online"
+    }
+  },
+  "channels": [
+    {
+      "id": "general",
+      "name": "general",
+      "topic": "General community chat & discussion",
+      "type": "text"
+    },
+    {
+      "id": "announcements",
+      "name": "announcements",
+      "topic": "Official announcements & updates",
+      "type": "text"
+    },
+    {
+      "id": "dev-chat",
+      "name": "dev-chat",
+      "topic": "Code, APIs, Burp Suite & debugging",
+      "type": "text"
+    },
+    {
+      "id": "gaming",
+      "name": "gaming",
+      "topic": "Gaming, memes & fun",
+      "type": "text"
+    },
+    {
+      "id": "voice-lounge",
+      "name": "voice-lounge",
+      "topic": "Voice & WebRTC testing room",
+      "type": "voice"
+    }
+  ],
+  "messages": {
+    "general": [
+      {
+        "id": "m1",
+        "user": "vivek",
+        "avatar": "\u26a1",
+        "content": "Welcome to connecto.fun! \ud83d\ude80",
+        "timestamp": "12:00 PM"
+      },
+      {
+        "id": "m2",
+        "user": "vance",
+        "avatar": "\ud83d\udd25",
+        "content": "FastAPI backend & WebSocket are fully wired up and running.",
+        "timestamp": "12:05 PM"
+      },
+      {
+        "id": "msg_afcd8e61",
+        "user": "vance",
+        "avatar": "\ud83d\udc64",
+        "content": "Test message from Antigravity live deployment!",
+        "timestamp": "03:11 PM"
+      },
+      {
+        "id": "msg_66cd8ca8",
+        "user": "vance",
+        "avatar": "\ud83d\udd25",
+        "content": "hi",
+        "timestamp": "03:20 PM"
+      },
+      {
+        "id": "msg_90bde822",
+        "user": "chinnu",
+        "avatar": "\ud83d\udc7e",
+        "content": "hi",
+        "timestamp": "03:31 PM"
+      }
+    ],
+    "announcements": [
+      {
+        "id": "m3",
+        "user": "vivek",
+        "avatar": "\u26a1",
+        "content": "Connecto Server is now live on Cloudflare Tunnel.",
+        "timestamp": "12:01 PM"
+      }
+    ],
+    "dev-chat": [
+      {
+        "id": "m4",
+        "user": "vance",
+        "avatar": "\ud83d\udd25",
+        "content": "Burp Suite captures /api/login, /api/messages, and wss:// WebSocket stream cleanly.",
+        "timestamp": "12:06 PM"
+      }
+    ],
+    "gaming": [
+      {
+        "id": "m5",
+        "user": "demo",
+        "avatar": "\ud83d\udc7e",
+        "content": "Ready for some matches later today!",
+        "timestamp": "12:10 PM"
+      }
+    ],
+    "voice-lounge": [
+      {
+        "id": "msg_28a3d49f",
+        "user": "vance",
+        "avatar": "\ud83d\udd25",
+        "content": "hi",
+        "timestamp": "03:20 PM"
+      },
+      {
+        "id": "msg_afc65104",
+        "user": "vance",
+        "avatar": "\ud83d\udd25",
+        "content": "hi",
+        "timestamp": "03:22 PM"
+      },
+      {
+        "id": "msg_4b160119",
+        "user": "chinnu",
+        "avatar": "\ud83d\udc7e",
+        "content": "hi",
+        "timestamp": "03:22 PM"
+      }
+    ]
+  },
+  "dms": {}
+}

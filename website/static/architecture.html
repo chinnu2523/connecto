@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture & Security Specifications — Connecto</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    :root {
+      --bg-primary: #05070d;
+      --bg-surface: #0a0e1a;
+      --bg-card: rgba(15, 23, 42, 0.65);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(6, 182, 212, 0.3);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-purple: #a855f7;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .nav-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5, 7, 13, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 18px;
+      color: #fff;
+      text-decoration: none;
+    }
+    .nav-logo-badge {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font-weight: 900;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: #fff; }
+    .btn-action {
+      background: var(--accent-cyan);
+      color: #041018;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: opacity 0.2s;
+    }
+    .btn-action:hover { opacity: 0.9; }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 60px 24px 100px;
+    }
+    .page-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(6, 182, 212, 0.1);
+      border: 1px solid var(--border-accent);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+    .page-title {
+      font-size: 40px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .page-sub {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 760px;
+      margin-bottom: 48px;
+    }
+
+    .spec-section {
+      margin-bottom: 56px;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+    }
+
+    .arch-nodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .arch-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: border-color 0.2s;
+    }
+    .arch-card:hover {
+      border-color: var(--border-accent);
+    }
+    .arch-card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .arch-icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+    }
+    .arch-card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .arch-card-status {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .arch-card-desc {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .table-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+    th {
+      background: rgba(255, 255, 255, 0.03);
+      padding: 14px 18px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    tr:last-child td { border-bottom: none; }
+    .code-chip {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--accent-cyan);
+    }
+
+    .footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: 40px 24px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="nav-header">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-badge"><i data-lucide="zap" style="width:16px; height:16px;"></i></div>
+      <span>Connecto</span>
+    </a>
+    <nav class="nav-links">
+      <a href="/"><i data-lucide="home" style="width:14px; display:inline-block; vertical-align:middle;"></i> Home</a>
+      <a href="/architecture" style="color:var(--accent-cyan); font-weight:700;"><i data-lucide="cpu" style="width:14px; display:inline-block; vertical-align:middle;"></i> Architecture</a>
+      <a href="/careers"><i data-lucide="briefcase" style="width:14px; display:inline-block; vertical-align:middle;"></i> Careers</a>
+      <a href="/download/apk"><i data-lucide="smartphone" style="width:14px; display:inline-block; vertical-align:middle;"></i> Android APK</a>
+      <a href="/" class="btn-action">Launch Web App</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="page-eyebrow">
+      <i data-lucide="shield-check" style="width:14px;"></i> System Architecture & Technical Specifications
+    </div>
+    <h1 class="page-title">High-Performance Stack & Cryptographic Specifications</h1>
+    <p class="page-sub">
+      Connecto is engineered with asynchronous non-blocking Python, peer-to-peer WebRTC mesh infrastructure, and audited cryptographic authentication standards.
+    </p>
+
+    <!-- Architecture Breakdown -->
+    <section class="spec-section">
+      <h2 class="section-title"><i data-lucide="layers" style="color:var(--accent-cyan);"></i> Multi-Tier System Topology</h2>
+      
+      <div class="arch-nodes-grid">
+        <div class="arch-card">
+          <div class="arch-card-header">
+            <div class="arch-icon-wrap" style="color:var(--accent-cyan);"><i data-lucide="monitor"></i></div>
+            <div>
+              <div class="arch-card-title">Client Tier (PWA & Native Android)</div>
+              <span class="arch-card-status">Hardware Accelerated</span>
+            </div>
+          </div>
+          <p class="arch-card-desc">
+            Responsive vanilla JS & CSS3 web app powered by Service Workers (v4.0.5) alongside a native Jetpack Compose Android client with hardware-backed biometric keystore.
+          </p>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-card-header">
+            <div class="arch-icon-wrap" style="color:#ff7675;"><i data-lucide="shield"></i></div>
+            <div>
+              <div class="arch-card-title">Edge & Anycast Ingress</div>
+              <span class="arch-card-status">DDoS Protected</span>
+            </div>
+          </div>
+          <p class="arch-card-desc">
+            Global Cloudflare Anycast edge layer enforcing TLS 1.3 strict encryption, automatic DDoS rate limiting, HTTP/2 proxying, and zero open port forwarding.
+          </p>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-card-header">
+            <div class="arch-icon-wrap" style="color:var(--accent-emerald);"><i data-lucide="server"></i></div>
+            <div>
+              <div class="arch-card-title">Asynchronous Application Core</div>
+              <span class="arch-card-status">Non-Blocking I/O</span>
+            </div>
+          </div>
+          <p class="arch-card-desc">
+            FastAPI and Uvicorn runtime powered by Python 3.13 asyncio event loop. Handles bi-directional WebSockets, RESTful endpoints, and background workers concurrently.
+          </p>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-card-header">
+            <div class="arch-icon-wrap" style="color:#38bdf8;"><i data-lucide="radio"></i></div>
+            <div>
+              <div class="arch-card-title">Real-Time Messaging & Voice Mesh</div>
+              <span class="arch-card-status">Low-Latency Relay</span>
+            </div>
+          </div>
+          <p class="arch-card-desc">
+            Full-duplex WebSocket broadcast channel manager coupled with decentralized WebRTC mesh audio lounges utilizing dynamic STUN/TURN ICE candidate exchange.
+          </p>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-card-header">
+            <div class="arch-icon-wrap" style="color:#f59e0b;"><i data-lucide="database"></i></div>
+            <div>
+              <div class="arch-card-title">ACID Data Engine</div>
+              <span class="arch-card-status">WAL Mode Tuned</span>
+            </div>
+          </div>
+          <p class="arch-card-desc">
+            SQLAlchemy AsyncSession with SQLite WAL (Write-Ahead Logging), 64MB page cache, 10s busy timeout, non-blocking online backups, and covering indexes.
+          </p>
+        </div>
+
+        <div class="arch-card">
+          <div class="arch-card-header">
+            <div class="arch-icon-wrap" style="color:var(--accent-purple);"><i data-lucide="bot"></i></div>
+            <div>
+              <div class="arch-card-title">AI Intelligence Pipeline</div>
+              <span class="arch-card-status">Multi-Modal AI</span>
+            </div>
+          </div>
+          <p class="arch-card-desc">
+            Autonomous multi-modal career screening and rubric evaluation powered by Google Gemini API with structured JSON output and n8n webhook automation.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cryptographic Specifications -->
+    <section class="spec-section">
+      <h2 class="section-title"><i data-lucide="lock" style="color:var(--accent-emerald);"></i> Protocol & Cryptographic Specifications</h2>
+
+      <div class="table-card">
+        <table>
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Protocol / Standard</th>
+              <th>Key Length & Parameters</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Edge Transport</strong></td>
+              <td>TLS 1.3 / HTTP/2</td>
+              <td><span class="code-chip">ECDHE-ECDSA-AES256-GCM</span></td>
+              <td>Edge-to-origin transit encryption and forward secrecy.</td>
+            </tr>
+            <tr>
+              <td><strong>Voice Media</strong></td>
+              <td>DTLS 1.2 + SRTP</td>
+              <td><span class="code-chip">AES-256-CTR / HMAC-SHA1-80</span></td>
+              <td>Peer-to-peer mesh audio encryption with ICE candidate negotiation.</td>
+            </tr>
+            <tr>
+              <td><strong>Password Storage</strong></td>
+              <td>Argon2id (RFC 9106)</td>
+              <td><span class="code-chip">m=65536, t=3, p=4</span></td>
+              <td>OWASP-recommended memory-hard hashing resistant to GPU/ASIC attacks.</td>
+            </tr>
+            <tr>
+              <td><strong>Session Tokens</strong></td>
+              <td>Cryptographic Bearer Nonce</td>
+              <td><span class="code-chip">256-bit CSPRNG entropy</span></td>
+              <td>Stateful session identification with instant revocation capabilities.</td>
+            </tr>
+            <tr>
+              <td><strong>Android Keystore</strong></td>
+              <td>AndroidKeyStore Hardware Biometrics</td>
+              <td><span class="code-chip">AES-256-GCM hardware-backed</span></td>
+              <td>Connecto Vault biometric app lock and device credential protection.</td>
+            </tr>
+            <tr>
+              <td><strong>Data Integrity</strong></td>
+              <td>SHA-256 + HMAC</td>
+              <td><span class="code-chip">SHA-256 (32 bytes)</span></td>
+              <td>Message nonces, APK download verification, and anti-tamper validation.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Connecto Platform. Engineered for privacy, performance, and independent communications.</p>
+  </footer>
+
+  <script>
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

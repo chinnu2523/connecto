@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service • Connecto</title>
+  <meta name="description" content="Connecto Platform Terms of Service, user rights, and community standards.">
+  <link rel="icon" type="image/svg+xml" href="/static/icon.svg">
+  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <meta name="theme-color" content="#090A0F">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-base: #090A0F;
+      --bg-surface: #111319;
+      --bg-card: #181B24;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(0, 229, 255, 0.3);
+      --text-primary: #F0F0F5;
+      --text-secondary: #908FA0;
+      --accent-cyan: #00E5FF;
+      --accent-green: #10B981;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      padding: 0;
+    }
+
+    .nav-bar {
+      height: 64px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(17, 19, 25, 0.85);
+      backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(16px, 5vw, 64px);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #00E5FF, #10B981);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      color: #090A0F;
+      font-size: 14px;
+    }
+
+    .brand-text {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn-portal {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(0, 229, 255, 0.1);
+      border: 1px solid var(--border-accent);
+      color: var(--accent-cyan);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .btn-portal:hover {
+      background: rgba(0, 229, 255, 0.2);
+      transform: translateY(-1px);
+    }
+
+    .page-container {
+      max-width: 840px;
+      margin: 0 auto;
+      padding: clamp(32px, 6vw, 64px) clamp(16px, 4vw, 32px);
+    }
+
+    .doc-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-green);
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      padding: 4px 10px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      color: #FFFFFF;
+    }
+
+    .last-updated {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .legal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: clamp(20px, 3vw, 32px);
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #FFFFFF;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2 span.num {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent-cyan);
+      background: rgba(0, 229, 255, 0.1);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    p {
+      color: var(--text-secondary);
+      font-size: 14.5px;
+      margin-bottom: 14px;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin-top: 10px;
+      margin-bottom: 10px;
+    }
+
+    li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    li::before {
+      content: "•";
+      position: absolute;
+      left: 6px;
+      color: var(--accent-cyan);
+      font-weight: bold;
+    }
+
+    .footer {
+      border-top: 1px solid var(--border);
+      padding: 32px clamp(16px, 5vw, 64px);
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+    }
+
+    .footer a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+      margin: 0 8px;
+    }
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header class="nav-bar">
+    <a href="/" class="brand-group">
+      <div class="brand-icon">C</div>
+      <span class="brand-text">Connecto</span>
+    </a>
+    <div class="nav-links">
+      <a href="/" class="btn-portal" style="background:transparent; border-color:var(--border); color:var(--text-secondary);">Home</a>
+      <a href="/privacy" class="btn-portal" style="background:transparent; border-color:var(--border); color:var(--text-secondary);">Privacy</a>
+      <a href="/downloads/connecto.apk" class="btn-portal">Download APK ↓</a>
+    </div>
+  </header>
+
+  <main class="page-container">
+    <div class="doc-badge">Official Legal Document</div>
+    <h1>Terms of Service</h1>
+    <div class="last-updated">Last Updated: September 29, 2026 • Effective Date: January 1, 2026</div>
+
+    <div class="legal-card">
+      <h2><span class="num">01</span> Agreement to Terms</h2>
+      <p>
+        These Terms of Service ("Terms") constitute a legally binding agreement between you and Connecto Network ("Connecto", "we", "us", or "our") concerning your access to and use of the Connecto platform, website, native applications, and real-time WebSocket communications services.
+      </p>
+      <p>
+        By accessing or using Connecto at connecto.fun, creating an account, or downloading the Connecto Android client, you agree to be bound by all of these Terms. If you do not agree with all of these terms, you are explicitly prohibited from using the platform.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">02</span> Description of Service</h2>
+      <p>
+        Connecto is a high-performance, real-time communication platform providing:
+      </p>
+      <ul>
+        <li>Ultra-low latency text messaging and channel coordination powered by WebSocket protocols.</li>
+        <li>Lossless, spatial audio voice stages and WebRTC voice lounges.</li>
+        <li>Collaborative developer workspaces, syntax-highlighted compute shader sharing, and artifacts.</li>
+        <li>Hands-on cybersecurity education, interactive protocols, and CTF challenges.</li>
+      </ul>
+      <p>
+        Connecto is provided free of charge without paywalls, subscription tiers, or advertisements.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">03</span> User Conduct & Acceptable Use</h2>
+      <p>
+        Users are required to adhere to community safety standards and security ethics. You agree NOT to:
+      </p>
+      <ul>
+        <li>Deploy automated bots, denial-of-service tools, or packet flooding attacks against Connecto WebSocket nodes.</li>
+        <li>Attempt unauthorized access to other users' private rooms, direct messages, or cryptographic vaults.</li>
+        <li>Distribute malicious payloads, spyware, phishing links, or unauthorized exploit code through channel attachments.</li>
+        <li>Transmit unlawful, harassing, defamatory, abusive, or infringing materials.</li>
+        <li>Reverse-engineer, decompile, or compromise the underlying infrastructure without explicit prior authorization through our security bug bounty disclosure program.</li>
+      </ul>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">04</span> Account Security & Credentials</h2>
+      <p>
+        You are responsible for maintaining the confidentiality of your account credentials, passkeys, and biometric key tokens. You agree to notify us immediately of any unauthorized use of your account or security breach.
+      </p>
+      <p>
+        Connecto utilizes cryptographic hashing (Argon2id / bcrypt) and hardware key multi-factor authentication to secure accounts at rest and in transit.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">05</span> Intellectual Property & User Content</h2>
+      <p>
+        You retain all ownership rights to the original content, messages, and code snippets you transmit on Connecto. By posting content in public guild channels, you grant Connecto a limited, worldwide license solely to distribute, render, and display your content to other channel participants as necessary to provide the service.
+      </p>
+      <p>
+        The Connecto brand, interface designs, logos, sound engines, and software architecture are the exclusive property of Connecto Network.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">06</span> Limitation of Liability</h2>
+      <p>
+        Connecto is provided on an "AS-IS" and "AS-AVAILABLE" basis. To the maximum extent permitted by applicable law, Connecto Network disclaims all warranties, express or implied, including merchantability, fitness for a particular purpose, and non-infringement.
+      </p>
+      <p>
+        In no event shall Connecto be liable for any indirect, incidental, special, consequential, or punitive damages arising out of your access to or inability to use the platform.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">07</span> Termination & Account Deletion</h2>
+      <p>
+        We reserve the right to suspend or terminate accounts that violate these Terms or threaten platform integrity. You may delete your account and all associated messages at any time directly through your profile settings or by contacting our engineering team.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">08</span> Contact & Inquiries</h2>
+      <p>
+        If you have questions regarding these Terms of Service or wish to report a security vulnerability, please contact our team:
+      </p>
+      <p style="font-family:var(--font-mono); color:var(--accent-cyan); font-size:13px; margin-top:8px;">
+        legal@connecto.fun • support@connecto.fun
+      </p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>© 2026 Connecto Network. All rights reserved.</p>
+    <p style="margin-top:8px;">
+      <a href="/">Home</a>
+      <a href="/downloads/connecto.apk">Download APK</a>
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/terms">Terms of Service</a>
+      <a href="/status">Status Page</a>
+    </p>
+  </footer>
+</body>
+</html>

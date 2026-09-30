@@ -1,0 +1,2323 @@
+<!DOCTYPE html>
+<html lang="te">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>vConnect Chronicle | లైవ్ తెలుగు వార్తా సంకలనం & Live Wire</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗞️</text></svg>">
+  
+  <!-- Premium Editorial & Telugu Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Serif+Telugu:wght@600;700;800;900&family=Noto+Sans+Telugu:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    /* ==========================================================================
+       AUTHENTIC EDITORIAL NEWSPAPER DESIGN SYSTEM (news.connecto.fun)
+       Light-mode paper background, authoritative crimson red accents, 
+       and distinct category color codings.
+       ========================================================================== */
+    :root {
+      --bg-page: #f8f9fa;
+      --bg-card: #ffffff;
+      --bg-card-alt: #f1f5f9;
+      --border-main: #e2e8f0;
+      --border-dark: #cbd5e1;
+      
+      /* Primary Brand / Breaking News Red (BBC / NYT / CNN Inspired) */
+      --primary-red: #dc2626;
+      --primary-red-hover: #b91c1c;
+      --primary-red-soft: #fee2e2;
+      
+      /* Typography Colors */
+      --text-headline: #111827;
+      --text-body: #374151;
+      --text-muted: #6b7280;
+      --text-caption: #9ca3af;
+      
+      /* Editorial Font Stacks */
+      --font-headline: 'Playfair Display', 'Noto Serif Telugu', Georgia, serif;
+      --font-body: 'Plus Jakarta Sans', 'Noto Sans Telugu', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      
+      /* Smooth transitions */
+      --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-body);
+      font-family: var(--font-body);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* 1. TOP UTILITY BAR */
+    .top-utility-bar {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-main);
+      padding: 7px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .utility-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .edition-tag {
+      font-weight: 700;
+      color: var(--primary-red);
+      background: var(--primary-red-soft);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      letter-spacing: 0.2px;
+    }
+
+    .utility-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Google Translate Dropdown */
+    .translate-dropdown-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .btn-translate-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #f1f5f9;
+      border: 1px solid var(--border-dark);
+      color: var(--text-headline);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+    }
+
+    .btn-translate-trigger:hover, .btn-translate-trigger.active {
+      background: #e2e8f0;
+      border-color: #94a3b8;
+    }
+
+    .google-translate-card {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      width: 280px;
+      background: #ffffff;
+      border: 1px solid var(--border-dark);
+      border-radius: 10px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      text-align: left;
+    }
+
+    .gt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-main);
+      background: #f8f9fa;
+    }
+
+    .gt-tabs {
+      display: flex;
+      gap: 4px;
+      background: #e2e8f0;
+      padding: 2px;
+      border-radius: 6px;
+    }
+
+    .gt-tab {
+      background: transparent;
+      border: none;
+      color: #475569;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .gt-tab.active {
+      background: var(--primary-red);
+      color: #ffffff;
+    }
+
+    .gt-close-btn {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 2px 6px;
+    }
+
+    .gt-body {
+      padding: 12px;
+    }
+
+    .gt-checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-body);
+      cursor: pointer;
+    }
+
+    .gt-footer {
+      padding: 6px 12px;
+      border-top: 1px solid var(--border-main);
+      font-size: 11px;
+      color: var(--text-muted);
+      background: #f8f9fa;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .search-input-wrap {
+      position: relative;
+      width: 220px;
+    }
+
+    .search-input-wrap input {
+      width: 100%;
+      background: #f8f9fa;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 5px 10px 5px 28px;
+      color: var(--text-headline);
+      font-size: 12px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .search-input-wrap input:focus {
+      background: #ffffff;
+      border-color: var(--primary-red);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .btn-header-link {
+      background: #f1f5f9;
+      border: 1px solid var(--border-dark);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      color: var(--text-headline);
+      font-size: 11.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-header-link:hover {
+      background: #e2e8f0;
+    }
+
+    /* 2. EDITORIAL MASTHEAD */
+    .news-masthead {
+      background: #ffffff;
+      padding: 22px 24px 16px 24px;
+      border-bottom: 2px solid #111827;
+      text-align: center;
+    }
+
+    .masthead-title {
+      font-family: var(--font-headline);
+      font-size: 42px;
+      font-weight: 900;
+      color: #111827;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+
+    .masthead-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.4px;
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    /* 3. CATEGORY NAVIGATION BAR */
+    .category-navbar {
+      background: #ffffff;
+      border-bottom: 1px solid var(--border-main);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+
+    .category-nav-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      overflow-x: auto;
+    }
+
+    .nav-tabs-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .nav-cat-tab {
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--text-body);
+      font-weight: 700;
+      font-size: 13px;
+      padding: 12px 14px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-cat-tab:hover {
+      color: var(--primary-red);
+      background: #f8f9fa;
+    }
+
+    .nav-cat-tab.active {
+      color: var(--primary-red);
+      border-bottom-color: var(--primary-red);
+      font-weight: 800;
+    }
+
+    .view-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #f1f5f9;
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border-main);
+    }
+
+    .btn-view-toggle {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .btn-view-toggle.active {
+      background: #ffffff;
+      color: var(--text-headline);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* 4. BREAKING NEWS BAR */
+    .breaking-news-bar {
+      background: #111827;
+      color: #ffffff;
+      display: flex;
+      align-items: stretch;
+      height: 38px;
+      overflow: hidden;
+      border-bottom: 1px solid #1f2937;
+    }
+
+    .breaking-badge-wrap {
+      background: var(--primary-red);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 16px;
+      font-size: 11.5px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      z-index: 2;
+    }
+
+    .ticker-viewport {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: #1e293b;
+    }
+
+    .ticker-track {
+      display: inline-flex;
+      white-space: nowrap;
+      animation: tickerMarquee 50s linear infinite;
+      cursor: pointer;
+    }
+
+    .ticker-track:hover {
+      animation-play-state: paused;
+    }
+
+    @keyframes tickerMarquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    .ticker-item {
+      color: #f1f5f9;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 0 28px;
+      display: inline-flex;
+      align-items: center;
+      transition: color 0.15s ease;
+    }
+
+    .ticker-item:hover {
+      color: #fca5a5;
+      text-decoration: underline;
+    }
+
+    /* 5. MAIN CONTENT WRAPPER */
+    .main-container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* CATEGORY COLOR CODING BADGES */
+    .cat-badge {
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cat-badge-telugu-top { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; }
+    .cat-badge-cinema { background: #f3e8ff; color: #7c3aed; border: 1px solid #d8b4fe; }
+    .cat-badge-state { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .cat-badge-sports { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .cat-badge-tech { background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4; }
+    .cat-badge-global { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .cat-badge-general { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* 6. LEAD STORY / HERO EDITORIAL SECTION */
+    .lead-story-section {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 900px) {
+      .lead-story-section {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .lead-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-main);
+      border-top: 4px solid var(--primary-red);
+      border-radius: 8px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transition: box-shadow 0.2s ease;
+    }
+
+    .lead-card:hover {
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    .lead-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .lead-headline {
+      font-family: var(--font-headline);
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-headline);
+      line-height: 1.3;
+      margin-bottom: 14px;
+      cursor: pointer;
+    }
+
+    .lead-headline:hover {
+      color: var(--primary-red);
+    }
+
+    .lead-excerpt {
+      font-size: 15px;
+      color: var(--text-body);
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+
+    .lead-actions-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid var(--border-main);
+      padding-top: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .source-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text-headline);
+    }
+
+    .btn-linkout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-red);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 12.5px;
+      padding: 7px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+
+    .btn-linkout:hover {
+      background: var(--primary-red-hover);
+    }
+
+    .btn-preview-modal {
+      background: #f1f5f9;
+      border: 1px solid var(--border-dark);
+      color: var(--text-headline);
+      font-weight: 700;
+      font-size: 12.5px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-preview-modal:hover {
+      background: #e2e8f0;
+    }
+
+    /* Side Lead Stories Column */
+    .side-lead-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .side-lead-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-main);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+      flex: 1;
+      transition: all 0.15s ease;
+    }
+
+    .side-lead-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    }
+
+    .side-lead-title {
+      font-family: var(--font-headline);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-headline);
+      line-height: 1.4;
+      margin: 8px 0 10px 0;
+      cursor: pointer;
+    }
+
+    .side-lead-title:hover {
+      color: var(--primary-red);
+    }
+
+    /* 7. STREAM SECTION HEADER */
+    .stream-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #111827;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+
+    .stream-title {
+      font-family: var(--font-headline);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-headline);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stream-count-tag {
+      font-size: 12px;
+      font-family: var(--font-body);
+      font-weight: 700;
+      background: #f1f5f9;
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 12px;
+      border: 1px solid var(--border-main);
+    }
+
+    /* 8. ARTICLE GRID & LIST VIEWS */
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .news-grid.list-view {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .news-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-main);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: all 0.18s ease;
+    }
+
+    .news-card:hover {
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      border-color: #cbd5e1;
+    }
+
+    .news-grid.list-view .news-card {
+      flex-direction: row;
+      align-items: center;
+      padding: 14px 18px;
+      gap: 20px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .news-grid.list-view .card-top {
+      margin-bottom: 4px;
+    }
+
+    .card-time {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .card-title {
+      font-family: var(--font-headline);
+      font-size: 17.5px;
+      font-weight: 700;
+      color: var(--text-headline);
+      line-height: 1.35;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .card-title:hover {
+      color: var(--primary-red);
+    }
+
+    .news-grid.list-view .card-title {
+      font-size: 15.5px;
+      margin-bottom: 2px;
+    }
+
+    .card-snippet {
+      font-size: 13.5px;
+      color: var(--text-body);
+      line-height: 1.6;
+      margin-bottom: 16px;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .news-grid.list-view .card-snippet {
+      display: none;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .news-grid.list-view .card-footer {
+      border-top: none;
+      padding-top: 0;
+      flex-direction: row;
+      white-space: nowrap;
+    }
+
+    .source-label {
+      font-weight: 700;
+      color: var(--text-headline);
+    }
+
+    .card-btn-linkout {
+      color: var(--primary-red);
+      font-weight: 800;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .card-btn-linkout:hover {
+      text-decoration: underline;
+    }
+
+    /* 9. ARTICLE PREVIEW MODAL (CLEAN LIGHT EDITORIAL) */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(17, 24, 39, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .article-modal-box {
+      background: #ffffff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 720px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 32px;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: var(--primary-red);
+      width: 0%;
+      transition: width 0.1s ease;
+    }
+
+    .modal-top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-main);
+    }
+
+    .modal-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-tool {
+      background: #f1f5f9;
+      border: 1px solid var(--border-dark);
+      color: var(--text-headline);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .btn-tool:hover {
+      background: #e2e8f0;
+    }
+
+    .modal-close-btn {
+      background: #f1f5f9;
+      border: none;
+      color: #64748b;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close-btn:hover {
+      background: var(--primary-red);
+      color: #ffffff;
+    }
+
+    .modal-headline {
+      font-family: var(--font-headline);
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-headline);
+      line-height: 1.3;
+      margin-bottom: 14px;
+    }
+
+    .modal-publisher-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f8f9fa;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-main);
+      margin-bottom: 20px;
+    }
+
+    .publisher-info {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-headline);
+    }
+
+    .highlights-box {
+      background: #fef2f2;
+      border-left: 4px solid var(--primary-red);
+      padding: 14px 18px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 20px;
+    }
+
+    .highlights-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--primary-red);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .highlights-list {
+      list-style-type: disc;
+      padding-left: 20px;
+      font-size: 13.5px;
+      color: var(--text-body);
+      line-height: 1.6;
+    }
+
+    .modal-body-excerpt {
+      font-size: 16px;
+      color: var(--text-body);
+      line-height: 1.75;
+      margin-bottom: 24px;
+    }
+
+    /* FAIR-USE COPYRIGHT & DIRECT LINKOUT NOTICE */
+    .fairuse-callout-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .fairuse-callout-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-headline);
+      margin-bottom: 6px;
+    }
+
+    .fairuse-callout-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .btn-modal-linkout {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--primary-red);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 14px;
+      padding: 10px 22px;
+      border-radius: 6px;
+      text-decoration: none;
+      box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25);
+    }
+
+    .btn-modal-linkout:hover {
+      background: var(--primary-red-hover);
+    }
+
+    /* 10. NEWSLETTER & FOOTER */
+    .newsletter-section {
+      background: #ffffff;
+      border: 1px solid var(--border-main);
+      border-top: 3px solid #111827;
+      border-radius: 8px;
+      padding: 28px;
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .newsletter-title {
+      font-family: var(--font-headline);
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-headline);
+      margin-bottom: 6px;
+    }
+
+    .newsletter-subtitle {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .newsletter-form {
+      display: flex;
+      max-width: 480px;
+      margin: 0 auto;
+      gap: 8px;
+    }
+
+    .newsletter-input {
+      flex: 1;
+      padding: 9px 14px;
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .newsletter-input:focus {
+      border-color: var(--primary-red);
+    }
+
+    .btn-subscribe {
+      background: #111827;
+      color: #ffffff;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-subscribe:hover {
+      background: var(--primary-red);
+    }
+
+    .editorial-footer {
+      background: #ffffff;
+      border-top: 1px solid var(--border-main);
+      padding: 28px 24px;
+      text-align: center;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .editorial-footer a {
+      color: var(--primary-red);
+      font-weight: 700;
+    }
+
+    /* Toast Notification */
+    .toast-box {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111827;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+      z-index: 2000;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+  
+    @media (max-width: 768px) {
+      .top-utility-bar {
+        padding: 8px 12px !important;
+        gap: 8px !important;
+        flex-wrap: wrap !important;
+      }
+      .utility-left {
+        gap: 6px !important;
+        font-size: 11px !important;
+      }
+      .utility-right {
+        gap: 6px !important;
+      }
+      .btn-translate-trigger {
+        padding: 4px 8px !important;
+        font-size: 11.5px !important;
+      }
+      .breaking-news-bar {
+        padding: 6px 10px !important;
+        gap: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+      }
+      .ticker-badge {
+        font-size: 11px !important;
+        padding: 3px 8px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+      }
+      .ticker-track {
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        font-size: 12px !important;
+      }
+      .category-nav-bar {
+        overflow-x: auto !important;
+        white-space: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 6px 10px !important;
+        scrollbar-width: none !important;
+      }
+      .category-nav-bar::-webkit-scrollbar {
+        display: none !important;
+      }
+      .newspaper-masthead {
+        padding: 16px 12px 10px !important;
+      }
+      .masthead-title {
+        font-size: 26px !important;
+      }
+      .masthead-subtitle {
+        font-size: 11px !important;
+      }
+    }
+
+</style>
+<style>
+    *, *::before, *::after {
+      -webkit-tap-highlight-color: transparent !important;
+    }
+    button, a, input, select, .nav-pill-link, .gt-tab, .card-btn-linkout, .btn-preview-modal {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:active, .nav-pill-link:active, .card-btn-linkout:active {
+      transform: scale(0.975);
+      transition: transform 0.08s ease;
+    }
+    .ticker-wrapper {
+      will-change: transform;
+      transform: translate3d(0, 0, 0);
+    }
+</style>
+
+<style id="newsMobilePerfectionFix">
+html, body {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+}
+
+@media (max-width: 768px) {
+  .top-utility-bar {
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+  
+  .utility-left {
+    justify-content: space-between !important;
+    width: 100% !important;
+    font-size: 11px !important;
+  }
+  
+  .utility-right {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    justify-content: space-between !important;
+  }
+
+  .search-input-wrap {
+    flex: 1 !important;
+    max-width: calc(100vw - 160px) !important;
+    min-width: 120px !important;
+  }
+  
+  .search-input-wrap input {
+    width: 100% !important;
+    font-size: 12px !important;
+    padding: 6px 8px 6px 26px !important;
+  }
+
+  .category-navbar {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+  }
+  
+  .category-nav-inner {
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 6px 8px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .nav-tabs-group {
+    display: flex !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    flex: 1 !important;
+    white-space: nowrap !important;
+  }
+  .nav-tabs-group::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .nav-cat-tab {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .view-controls {
+    display: none !important;
+  }
+
+  .breaking-news-bar {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 6px 10px !important;
+  }
+  
+  .ticker-viewport {
+    flex: 1 !important;
+    overflow: hidden !important;
+    position: relative !important;
+    max-width: calc(100vw - 120px) !important;
+  }
+
+  .main-container {
+    padding: 12px 10px !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  .lead-story-section {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+
+  .lead-card {
+    padding: 14px !important;
+  }
+
+  .news-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  /* Touch target sizes */
+  button, .btn-header-link, .btn-translate-trigger, .nav-cat-tab {
+    min-height: 38px !important;
+    touch-action: manipulation !important;
+  }
+}
+</style>
+
+
+<style id="newsInstantTransUI">
+  /* Real-time Progress Bar */
+  #transProgressBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0%;
+    background: linear-gradient(90deg, #22d3ee, #ec4899, #10b981);
+    z-index: 99999;
+    transition: width 0.3s ease, opacity 0.4s ease;
+    box-shadow: 0 0 10px rgba(34, 211, 238, 0.8);
+    pointer-events: none;
+  }
+
+  /* Skeleton Loading Cards */
+  .news-skeleton-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: newsSkeletonPulse 1.5s infinite ease-in-out;
+  }
+  @keyframes newsSkeletonPulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 0.25; }
+  }
+  .sk-line {
+    height: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+  }
+  .sk-line.title { height: 22px; width: 85%; }
+  .sk-line.subtitle { height: 14px; width: 60%; }
+  .sk-line.body1 { width: 100%; }
+  .sk-line.body2 { width: 90%; }
+  .sk-line.body3 { width: 75%; }
+
+  /* Modal Translate Bar */
+  .modal-translate-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(34, 211, 238, 0.06);
+    border: 1px solid rgba(34, 211, 238, 0.25);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-bottom: 20px;
+  }
+  .btn-modal-trans {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #22d3ee, #3b82f6);
+    color: #ffffff;
+    font-size: 12.5px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-modal-trans:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 211, 238, 0.4);
+  }
+</style>
+
+</head>
+<body>
+  <div id="transProgressBar"></div>
+
+  <!-- 1. TOP UTILITY BAR -->
+  <div class="top-utility-bar">
+    <div class="utility-left">
+      <span class="edition-tag">🔴 LIVE EDITION</span>
+      <span id="currentDateText">శనివారం, 29 ఆగస్టు 2026</span>
+      <span>•</span>
+      <span>☀️ ఆంధ్రప్రదేశ్ & తెలంగాణ ఎడిషన్</span>
+    </div>
+
+    <div class="utility-right">
+      <!-- Google Translate Popover Trigger -->
+      <div class="translate-dropdown-wrapper" id="translateDropdownWrapper">
+        <button class="btn-translate-trigger" id="topTranslateBtn" onclick="toggleTranslateDropdown(event)">
+          <span>🌐</span>
+          <span id="translateBtnLabel">Translate</span>
+          <span style="font-size:10px;">▾</span>
+        </button>
+
+        <!-- Floating Google Translate Popover Card -->
+        <div class="google-translate-card" id="googleTranslateCard" onclick="event.stopPropagation()">
+          <div class="gt-header">
+            <div style="font-size:12px; font-weight:800; color:var(--text-headline); display:flex; align-items:center; gap:6px;">
+              <span>🌐</span> <span>Instant Wire Translation</span>
+            </div>
+            <button class="gt-close-btn" onclick="closeTranslateDropdown()" title="Close">✕</button>
+          </div>
+                    <div style="padding:8px 12px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+            <button class="gt-tab active" id="gtTabTe" onclick="selectTranslateLanguage('te')">🇮🇳 తెలుగు (Telugu)</button>
+            <button class="gt-tab" id="gtTabEn" onclick="selectTranslateLanguage('en')">🇬🇧 English</button>
+            <button class="gt-tab" id="gtTabHi" onclick="selectTranslateLanguage('hi')">🇮🇳 हिन्दी (Hindi)</button>
+            <button class="gt-tab" id="gtTabTa" onclick="selectTranslateLanguage('ta')">🇮🇳 தமிழ் (Tamil)</button>
+            <button class="gt-tab" id="gtTabKn" onclick="selectTranslateLanguage('kn')">🇮🇳 ಕನ್ನಡ (Kannada)</button>
+            <button class="gt-tab" id="gtTabMl" onclick="selectTranslateLanguage('ml')">🇮🇳 മലയാളം (Malayalam)</button>
+          </div>
+
+          <div class="gt-body">
+            <label class="gt-checkbox-label">
+              <input type="checkbox" id="alwaysTranslateCheckbox" onchange="toggleAlwaysTranslate(this.checked)">
+              <span>Always translate Telugu</span>
+            </label>
+          </div>
+
+          <div class="gt-footer">
+            <span>Google Translate</span>
+            <span style="color:var(--primary-red); font-weight:700;">vConnect Wire</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Box -->
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="newsSearchInput" placeholder="వార్తలు శోధించండి (Search)..." oninput="handleSearchInput()">
+      </div>
+
+      <!-- Quick Actions -->
+      <button class="btn-header-link" onclick="refreshLiveNewsFeed()" id="refreshBtn">🔄 రిఫ్రెష్</button>
+      <a href="https://connecto.fun" class="btn-header-link" style="color:var(--primary-red); border-color:var(--primary-red-soft);">🥷 Chat App</a>
+    </div>
+  </div>
+
+  <!-- 2. EDITORIAL MASTHEAD -->
+  <header class="news-masthead">
+    <h1 class="masthead-title">vConnect Chronicle</h1>
+    <div class="masthead-subtitle">లైవ్ తెలుగు వార్తా సంకలనం • Real-Time Daily Wire (AP, Telangana & Global)</div>
+  </header>
+
+  <!-- 3. CATEGORY NAVIGATION BAR -->
+  <nav class="category-navbar">
+    <div class="category-nav-inner">
+      <div class="nav-tabs-group" id="categoryNavGroup">
+        <button class="nav-cat-tab active" onclick="switchCategory('all', this)">🔥 అన్నీ (All News)</button>
+        <button class="nav-cat-tab" onclick="switchCategory('telugu_top', this)">📰 తెలుగు తాజా వార్తలు</button>
+        <button class="nav-cat-tab" onclick="switchCategory('telugu_cinema', this)">🎬 సినిమా</button>
+        <button class="nav-cat-tab" onclick="switchCategory('telugu_state', this)">🏛️ ఆంధ్రప్రదేశ్ & తెలంగాణ</button>
+        <button class="nav-cat-tab" onclick="switchCategory('telugu_sports', this)">🏏 క్రీడలు</button>
+        <button class="nav-cat-tab" onclick="switchCategory('telugu_tech', this)">💻 తెలుగు టెక్</button>
+        <button class="nav-cat-tab" onclick="switchCategory('tech_ai', this)">🌐 Global Tech & AI</button>
+      </div>
+
+      <!-- View Controls -->
+      <div class="view-controls">
+        <button class="btn-view-toggle active" id="viewModeGrid" onclick="setViewMode('grid', this)">⊞ Grid</button>
+        <button class="btn-view-toggle" id="viewModeList" onclick="setViewMode('list', this)">☰ List</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 4. BREAKING NEWS BAR -->
+  <div class="breaking-news-bar">
+    <div class="breaking-badge-wrap">
+      <span>🚨 తాజా వార్తలు</span>
+    </div>
+    <div class="ticker-viewport">
+      <div class="ticker-track" id="breakingTickerTrack">
+        <span class="ticker-item">లైవ్ సమాచారం లోడ్ అవుతోంది...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MAIN CONTAINER -->
+  <main class="main-container">
+
+    <!-- LEAD / HERO EDITORIAL SECTION -->
+    <section class="lead-story-section">
+      <!-- Main Lead Card -->
+      <div class="lead-card" id="mainLeadCard">
+        <div>
+          <div class="lead-meta">
+            <span class="cat-badge cat-badge-telugu-top" id="leadCategoryBadge">📰 తెలుగు తాజా వార్తలు</span>
+            <span class="card-time" id="leadTimeText">ఈ రోజు • లైవ్</span>
+          </div>
+          <h2 class="lead-headline" id="leadHeadline" onclick="openLeadModal()">ప్రధాన వార్తా శీర్షిక లోడ్ అవుతోంది...</h2>
+          <p class="lead-excerpt" id="leadExcerpt">తాజా ముఖ్య సమాచారం మరియు ప్రత్యక్ష వివరాలు...</p>
+        </div>
+
+        <div class="lead-actions-row">
+          <div class="source-pill">
+            <span>📰</span>
+            <span id="leadSourceText">Eenadu / TV9 / Sakshi</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button class="btn-preview-modal" onclick="openLeadModal()">👁️ సారాంశం (Summary)</button>
+            <a href="#" target="_blank" rel="noopener noreferrer" class="btn-linkout" id="leadLinkoutBtn">
+              <span>పూర్తి వార్తను చదవండి ↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Side Lead Stories Column -->
+      <div class="side-lead-column" id="sideLeadColumn">
+        <!-- Injected via JavaScript -->
+      </div>
+    </section>
+
+    <!-- STREAM SECTION HEADER -->
+    <div class="stream-header">
+      <div class="stream-title">
+        <span id="streamSectionTitle">తాజా వార్తా ప్రవాహం (Live News Stream)</span>
+        <span class="stream-count-tag" id="streamCountTag">0 వార్తలు</span>
+      </div>
+    </div>
+
+    <!-- 6. NEWS GRID / LIST -->
+    <div class="news-grid" id="newsGrid">
+      <!-- Article cards injected via JS -->
+    </div>
+
+    <!-- 7. NEWSLETTER SECTION -->
+    <section class="newsletter-section">
+      <h3 class="newsletter-title">రోజూ తాజా వార్తలను మీ ఈమెయిల్‌లో పొందండి</h3>
+      <p class="newsletter-subtitle">Get daily Telugu & Global top news summaries delivered directly to your inbox.</p>
+      <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+        <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+          <input type="email" class="newsletter-input" id="newsletterEmail" placeholder="మీ ఈమెయిల్ ఎంటర్ చేయండి (Enter your email)..." oninput="handleNewsletterEmailInput(this.value)" required>
+          <div id="newsletterEmailFeedback" style="font-size:11.5px; font-weight:700; margin-top:4px; display:none;"></div>
+        </div>
+        <button type="submit" class="btn-subscribe">సబ్‌స్క్రైబ్ ➔</button>
+      </form>
+    </section>
+
+  
+    <!-- Breaking News Dispatch Subscriber Modal/Bar -->
+    <div style="margin: 32px 0 20px; background: rgba(15, 20, 36, 0.95); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 20px 24px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-weight:800; font-size:15px; color:#fff; display:flex; align-items:center; gap:8px;">
+            <span>⚡ Subscribe to Breaking News Dispatches</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Get real-time Telugu, national, and global tech alerts delivered to your inbox.</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:4px; min-width:280px; flex:1; max-width:420px;">
+          <div style="display:flex; gap:8px;">
+            <input type="email" id="newsSubscriberEmail" placeholder="Enter your email address..." class="auth-input-field" style="flex:1; padding:8px 12px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:#fff;" oninput="handleNewsEmailInput(this.value)">
+            <button class="nav-pill-link" style="padding:8px 16px; font-weight:700;" onclick="handleNewsSubscribe()">Subscribe</button>
+          </div>
+          <div id="newsEmailFeedback" style="font-size:11.5px; font-weight:600; display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+</main>
+
+  <!-- 8. ARTICLE PREVIEW MODAL (CLEAN LIGHT EDITORIAL) -->
+  <div class="modal-overlay" id="articleModal" onclick="closeArticleModal()">
+    <div class="article-modal-box" id="articleModalBox" onclick="event.stopPropagation()">
+      <div class="modal-progress-bar" id="modalProgressBar"></div>
+
+      <div class="modal-top-bar">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="cat-badge cat-badge-telugu-top" id="modalCategoryBadge">వార్తలు</span>
+          <span class="card-time" id="modalTimeText">Live</span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-tool" onclick="changeFontSize(-1)">A-</button>
+          <button class="btn-tool" onclick="changeFontSize(1)">A+</button>
+          <button class="btn-tool" id="modalBookmarkBtn" onclick="toggleBookmarkCurrentStory()">⭐ Save</button>
+          <button class="btn-tool" onclick="copyStoryText()">📋 Copy</button>
+          <button class="modal-close-btn" onclick="closeArticleModal()">✕</button>
+        </div>
+      </div>
+
+      <h2 class="modal-headline" id="modalHeadline">Article Headline</h2>
+
+      <div class="modal-publisher-row">
+        <div class="publisher-info">
+          <span>📰</span>
+          <span id="modalPublisherName">Eenadu / TV9 / Sakshi</span>
+          <span style="font-size:11px; color:#16a34a; font-weight:700;">✓ Verified Wire</span>
+        </div>
+        <button class="btn-tool" onclick="toggleModalTranslation()" id="modalTransBtn">🌐 Translate to English</button>
+      </div>
+
+      <!-- Speech Audio Player -->
+      <div style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid var(--border-main); padding:8px 14px; border-radius:6px; margin-bottom:18px;">
+        <button class="btn-tool" id="modalAudioBtn" onclick="toggleAudioSpeech()" style="background:var(--primary-red-soft); color:var(--primary-red); border-color:#fca5a5;">
+          <span id="modalAudioIcon">🔊</span>
+          <span id="modalAudioText">వార్త వినండి (Listen)</span>
+        </button>
+        <span style="font-size:11px; color:var(--text-muted);">Web Speech Engine</span>
+      </div>
+
+      <!-- Key Takeaways -->
+      <div class="highlights-box" id="modalHighlightsBox">
+        <div class="highlights-title" id="modalHighlightsTitle">⚡ ముఖ్య ముఖ్యాంశాలు (Key Highlights)</div>
+        <ul class="highlights-list" id="modalHighlightsList">
+          <!-- Injected via JS -->
+        </ul>
+      </div>
+
+      <!-- Excerpt Body -->
+      <div class="modal-body-excerpt" id="modalBodyExcerpt">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Direct Publisher Linkout & Fair Use Notice -->
+      <div class="fairuse-callout-card">
+        <div class="fairuse-callout-title" id="modalFairuseTitle">పూర్తి కథనం కోసం అధికారిక వార్తా సైట్‌ను సందర్శించండి</div>
+        <div class="fairuse-callout-desc" id="modalFairuseDesc">
+          ఇది సంక్షిప్త ప్రివ్యూ మాత్రమే. పూర్తి వార్తా పాఠం మరియు సమగ్ర వివరాలను తెలుసుకోవడానికి సంబంధిత మూల ప్రచురణకర్త పేజీని సందర్శించండి.
+        </div>
+        <a href="#" target="_blank" rel="noopener noreferrer" class="btn-modal-linkout" id="modalDirectLinkBtn">
+          <span id="modalDirectLinkText">🔗 పూర్తి వార్తను చదవండి (Read on Source) ↗</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-box" id="toastBox"></div>
+
+  <!-- 9. EDITORIAL FOOTER -->
+  <footer class="editorial-footer">
+    <p><strong>vConnect Chronicle</strong> • లైవ్ తెలుగు వార్తా సంకలన వేదిక (Real-Time News Aggregator).</p>
+    <p style="margin-top:6px;">
+      వార్తా శీర్షికలు మరియు సంక్షిప్త సారాంశాలు పబ్లిక్ RSS ఫీడ్స్ ద్వారా సేకరించబడుతున్నాయి. పూర్తి వార్తా హక్కులు మరియు కాపీరైట్ సంబంధిత మూల ప్రచురణకర్తలకు (<a href="https://eenadu.net" target="_blank">ఈనాడు</a>, <a href="https://sakshi.com" target="_blank">సాక్షి</a>, <a href="https://tv9telugu.com" target="_blank">TV9</a>, <a href="https://andhrajyothy.com" target="_blank">ఆంధ్రజ్యోతి</a>, <a href="https://bbc.com/telugu" target="_blank">BBC తెలుగు</a> మొదలైనవి) మాత్రమే చెందుతాయి.
+    </p>
+    <p style="margin-top:8px; color:var(--text-caption);">© 2026 <a href="https://connecto.fun">vConnect Networks</a>. All rights reserved.</p>
+  </footer>
+
+  <!-- ==================== CLIENT ENGINE SCRIPT ==================== -->
+  <script>
+
+    // ==================== UNIVERSAL EMAIL & PHONE VALIDATOR ====================
+    function isValidEmail(email) {
+      if (!email || typeof email !== 'string') return false;
+      const clean = email.trim();
+      const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+      return re.test(clean);
+    }
+
+    function isValidPhone(phone) {
+      if (!phone || typeof phone !== 'string') return false;
+      const clean = phone.trim();
+      if (!/^\+?[0-9\s\-\(\)\.]{7,20}$/.test(clean)) return false;
+      const digits = clean.replace(/\D/g, '');
+      if (digits.length < 7 || digits.length > 15) return false;
+      // Disallow all identical digits
+      if (/^(\d)\1+$/.test(digits)) return false;
+      return true;
+    }
+
+    let currentCategory = 'all';
+    let currentLangMode = 'all'; // 'all', 'english_only', 'telugu_only'
+    let currentViewMode = 'grid'; // 'grid', 'list'
+    let allArticles = [];
+    let currentLeadStory = null;
+    let currentOpenStory = null;
+    let isModalTranslated = false;
+    let currentModalFontSize = 16;
+    let isSpeaking = false;
+    let searchDebounce = null;
+    const speechSynth = window.speechSynthesis;
+
+    // Sub-millisecond in-memory cache
+    let FEED_CACHE = {};
+    const BOOKMARKS = JSON.parse(localStorage.getItem('vconnect_news_bookmarks') || '[]');
+
+    // Category Color Class Mapping
+    const CATEGORY_MAP = {
+      'telugu_top': { badgeClass: 'cat-badge-telugu-top', label: 'తెలుగు తాజా వార్తలు', labelEn: 'Telugu Top' },
+      'telugu_cinema': { badgeClass: 'cat-badge-cinema', label: 'సినిమా', labelEn: 'Cinema' },
+      'telugu_state': { badgeClass: 'cat-badge-state', label: 'ఆంధ్రప్రదేశ్ & తెలంగాణ', labelEn: 'AP & Telangana' },
+      'telugu_sports': { badgeClass: 'cat-badge-sports', label: 'క్రీడలు', labelEn: 'Sports' },
+      'telugu_tech': { badgeClass: 'cat-badge-tech', label: 'తెలుగు టెక్', labelEn: 'Telugu Tech' },
+      'tech_ai': { badgeClass: 'cat-badge-global', label: 'Global Tech & AI', labelEn: 'Global Tech & AI' }
+    };
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toastBox');
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2400);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDateDisplay();
+      setInterval(updateDateDisplay, 60000);
+
+      // Check saved translation preference
+      const alwaysEn = localStorage.getItem('vconnect_always_translate_te') === 'true';
+      if (alwaysEn) {
+        const checkbox = document.getElementById('alwaysTranslateCheckbox');
+        if (checkbox) checkbox.checked = true;
+        selectTranslateLanguage('en');
+      } else {
+        loadNewsFeed();
+      }
+
+      // Close dropdown when clicking outside
+      document.addEventListener('click', (e) => {
+        const wrapper = document.getElementById('translateDropdownWrapper');
+        if (wrapper && !wrapper.contains(e.target)) {
+          closeTranslateDropdown();
+        }
+      });
+
+      // Scroll progress tracking inside modal
+      const modalBox = document.getElementById('articleModalBox');
+      modalBox.addEventListener('scroll', () => {
+        const scrollTop = modalBox.scrollTop;
+        const scrollHeight = modalBox.scrollHeight - modalBox.clientHeight;
+        const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+        document.getElementById('modalProgressBar').style.width = `${progress}%`;
+      });
+    });
+
+    function updateDateDisplay() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const dateStr = currentLangMode === 'english_only' ?
+        now.toLocaleDateString('en-US', options) :
+        now.toLocaleDateString('te-IN', options);
+      document.getElementById('currentDateText').innerText = dateStr;
+    }
+
+    // LOAD NEWS FEED
+    async function loadNewsFeed(isBackground = false) {
+      const cacheKey = `${currentCategory}_${currentLangMode}`;
+
+      if (FEED_CACHE[cacheKey]) {
+        allArticles = FEED_CACHE[cacheKey];
+        renderEditorialFeed(allArticles);
+        loadBreakingTicker(allArticles);
+        if (!isBackground) return;
+      }
+
+      try {
+        const res = await fetch(`/api/news/feed?category=${encodeURIComponent(currentCategory)}&lang_mode=${encodeURIComponent(currentLangMode)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        allArticles = data.articles || [];
+        FEED_CACHE[cacheKey] = allArticles;
+        renderEditorialFeed(allArticles);
+        loadBreakingTicker(allArticles);
+      } catch (e) {
+        console.error('[LOAD_NEWS_ERR]', e);
+      }
+    }
+
+    function loadBreakingTicker(articles) {
+      if (!articles || articles.length === 0) return;
+      const track = document.getElementById('breakingTickerTrack');
+      const topItems = articles.slice(0, 8);
+      track.innerHTML = topItems.map(item => `
+        <span class="ticker-item" onclick="openStoryById('${item.id}')">⚡ ${escapeHTML(item.title)}</span>
+      `).join('') + topItems.map(item => `
+        <span class="ticker-item" onclick="openStoryById('${item.id}')">⚡ ${escapeHTML(item.title)}</span>
+      `).join('');
+    }
+
+    // RENDER EDITORIAL NEWSROOM
+    function renderEditorialFeed(articles) {
+      const storyUnit = currentLangMode === 'english_only' ? 'Stories' : 'వార్తలు';
+      document.getElementById('streamCountTag').innerText = `${articles.length} ${storyUnit}`;
+
+      if (articles.length === 0) {
+        document.getElementById('newsGrid').innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:48px; color:var(--text-muted);">ఎటువంటి వార్తలు కనుగొనబడలేదు (No news found).</div>';
+        return;
+      }
+
+      // 1. Lead Hero Story
+      const lead = articles[0];
+      currentLeadStory = lead;
+      document.getElementById('leadHeadline').innerText = lead.title;
+      document.getElementById('leadExcerpt').innerText = lead.summary || '';
+      document.getElementById('leadTimeText').innerText = lead.published_time || 'Live';
+      document.getElementById('leadSourceText').innerText = lead.author || lead.source_name || 'Verified Wire';
+      document.getElementById('leadLinkoutBtn').href = lead.url || '#';
+      document.getElementById('leadLinkoutBtn').title = `Read complete story on ${lead.source_name || lead.author}`;
+
+      const catInfo = CATEGORY_MAP[lead.category] || { badgeClass: 'cat-badge-general', label: lead.category_label || 'వార్తలు', labelEn: 'News' };
+      const leadBadge = document.getElementById('leadCategoryBadge');
+      leadBadge.className = `cat-badge ${catInfo.badgeClass}`;
+      leadBadge.innerText = currentLangMode === 'english_only' ? catInfo.labelEn : catInfo.label;
+
+      // 2. Side Lead Column
+      const sideItems = articles.slice(1, 3);
+      const sideCol = document.getElementById('sideLeadColumn');
+      sideCol.innerHTML = sideItems.map(item => {
+        const itemCat = CATEGORY_MAP[item.category] || { badgeClass: 'cat-badge-general', label: item.category_label || 'వార్తలు', labelEn: 'News' };
+        return `
+          <div class="side-lead-card">
+            <div>
+              <div class="card-top">
+                <span class="cat-badge ${itemCat.badgeClass}">${currentLangMode === 'english_only' ? itemCat.labelEn : itemCat.label}</span>
+                <span class="card-time">${escapeHTML(item.published_time || 'Live')}</span>
+              </div>
+              <h3 class="side-lead-title" onclick="openStoryById('${item.id}')">${escapeHTML(item.title)}</h3>
+            </div>
+            <div class="card-footer">
+              <span class="source-label">${escapeHTML(item.author || item.source_name || 'News Wire')}</span>
+              <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="card-btn-linkout">
+                ${currentLangMode === 'english_only' ? 'Read ↗' : 'చదవండి ↗'}
+              </a>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 3. Grid Stream Stories
+      const gridItems = articles.slice(3);
+      const grid = document.getElementById('newsGrid');
+      grid.innerHTML = gridItems.map(item => {
+        const itemCat = CATEGORY_MAP[item.category] || { badgeClass: 'cat-badge-general', label: item.category_label || 'వార్తలు', labelEn: 'News' };
+        return `
+          <div class="news-card" id="card-${item.id}">
+            <div>
+              <div class="card-top">
+                <span class="cat-badge ${itemCat.badgeClass}">${currentLangMode === 'english_only' ? itemCat.labelEn : itemCat.label}</span>
+                <span class="card-time">${escapeHTML(item.published_time || 'Live')}</span>
+              </div>
+              <h3 class="card-title" onclick="openStoryById('${item.id}')">${escapeHTML(item.title)}</h3>
+              <p class="card-snippet">${escapeHTML(item.summary || '')}</p>
+            </div>
+            <div class="card-footer">
+              <span class="source-label">📰 ${escapeHTML(item.author || item.source_name || 'Verified Wire')}</span>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-preview-modal" style="padding:3px 8px; font-size:11.5px;" onclick="openStoryById('${item.id}')">👁️ ${currentLangMode === 'english_only' ? 'Preview' : 'సారాంశం'}</button>
+                <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="card-btn-linkout">
+                  ${currentLangMode === 'english_only' ? 'Read Full ↗' : 'పూర్తి వార్త ↗'}
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openLeadModal() {
+      if (currentLeadStory) openStoryById(currentLeadStory.id);
+    }
+
+    // ARTICLE PREVIEW MODAL
+    function openStoryById(id) {
+      const story = allArticles.find(a => a.id === id);
+      if (!story) return;
+
+      currentOpenStory = story;
+      isModalTranslated = false;
+      stopAudioSpeech();
+
+      renderModalStory(story, false);
+      updateBookmarkBtnState();
+      document.getElementById('articleModal').style.display = 'flex';
+      document.getElementById('modalProgressBar').style.width = '0%';
+      document.getElementById('articleModalBox').scrollTop = 0;
+    }
+
+    function renderModalStory(story, isTranslated) {
+      const title = (isTranslated && story.title_en) ? story.title_en : story.title;
+      const summary = (isTranslated && story.summary_en) ? story.summary_en : (story.summary || '');
+      const takeaways = (isTranslated && story.takeaways_en) ? story.takeaways_en : (story.takeaways || [
+        "తాజా సమాచారం మరియు అధికారిక ప్రకటనల వివరాలు.",
+        "సంబంధిత ప్రతినిధుల ద్వారా ధృవీకరించబడిన తాజా ముఖ్యాంశాలు.",
+        "vConnect లైవ్ న్యూస్‌రూమ్ ద్వారా నిరంతర పరిశీలన."
+      ]);
+
+      document.getElementById('modalHeadline').innerText = title;
+      document.getElementById('modalTimeText').innerText = `${story.published_time || 'Live'} • ${story.read_time || '1 min excerpt'}`;
+      document.getElementById('modalPublisherName').innerText = story.author || story.source_name || 'Verified News Wire';
+
+      const catInfo = CATEGORY_MAP[story.category] || { badgeClass: 'cat-badge-general', label: story.category_label || 'వార్తలు', labelEn: 'News' };
+      const modalBadge = document.getElementById('modalCategoryBadge');
+      modalBadge.className = `cat-badge ${catInfo.badgeClass}`;
+      modalBadge.innerText = (isTranslated || currentLangMode === 'english_only') ? catInfo.labelEn : catInfo.label;
+
+      // Highlights
+      document.getElementById('modalHighlightsTitle').innerText = isTranslated ? '⚡ KEY HIGHLIGHTS' : '⚡ ముఖ్య ముఖ్యాంశాలు (KEY HIGHLIGHTS)';
+      const list = document.getElementById('modalHighlightsList');
+      list.innerHTML = takeaways.map(t => `<li>${escapeHTML(t)}</li>`).join('');
+
+      // Body Excerpt
+      document.getElementById('modalBodyExcerpt').innerText = summary;
+
+      // Linkout Direct
+      const pubName = story.source_name || story.author || 'Original Source';
+      document.getElementById('modalDirectLinkBtn').href = story.url || '#';
+      document.getElementById('modalDirectLinkText').innerText = isTranslated ? 
+        `🔗 Read Full Story on ${pubName} ↗` : 
+        `🔗 పూర్తి కథనం చదవండి (${pubName}) ↗`;
+
+      document.getElementById('modalFairuseTitle').innerText = isTranslated ?
+        `Visit ${pubName} for the Full Unabridged Report` :
+        `పూర్తి కథనం కోసం ${pubName} అధికారిక పేజీని సందర్శించండి`;
+
+      document.getElementById('modalFairuseDesc').innerText = isTranslated ?
+        `This is an aggregated preview excerpt under fair use. To read the complete investigative article and support the original journalists, click below.` :
+        `ఇది సంక్షిప్త ప్రివ్యూ సారాంశం మాత్రమే. పూర్తి కథన పాఠం మరియు అన్ని వివరాల కోసం మూల ప్రచురణకర్త వెబ్‌సైట్‌ను సందర్శించండి.`;
+
+      document.getElementById('modalTransBtn').innerText = isTranslated ? '🇮🇳 View Original (తెలుగు)' : '🌐 Translate to English';
+    }
+
+    async function toggleModalTranslation() {
+      if (!currentOpenStory) return;
+      if (isModalTranslated) {
+        isModalTranslated = false;
+        renderModalStory(currentOpenStory, false);
+        return;
+      }
+
+      if (!currentOpenStory.title_en) {
+        showToast('⏳ Translating preview...');
+        try {
+          const res = await fetch('/api/news/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ article: currentOpenStory, target_lang: 'en' })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            currentOpenStory.title_en = data.article.title_en;
+            currentOpenStory.summary_en = data.article.summary_en;
+            currentOpenStory.takeaways_en = data.article.takeaways_en;
+          }
+        } catch (e) {}
+      }
+      isModalTranslated = true;
+      renderModalStory(currentOpenStory, true);
+    }
+
+    function closeArticleModal() {
+      document.getElementById('articleModal').style.display = 'none';
+      stopAudioSpeech();
+    }
+
+    // AUDIO SPEECH SYNTHESIS
+    function toggleAudioSpeech() {
+      if (!currentOpenStory) return;
+      if (isSpeaking) {
+        stopAudioSpeech();
+      } else {
+        startAudioSpeech();
+      }
+    }
+
+    function startAudioSpeech() {
+      if (!('speechSynthesis' in window)) {
+        showToast('Speech synthesis not supported on this browser');
+        return;
+      }
+      stopAudioSpeech();
+
+      const text = `${document.getElementById('modalHeadline').innerText}. ${document.getElementById('modalBodyExcerpt').innerText}`;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = isModalTranslated ? 'en-US' : 'te-IN';
+      utterance.rate = 1.0;
+
+      utterance.onend = () => stopAudioSpeech();
+      utterance.onerror = () => stopAudioSpeech();
+
+      speechSynth.speak(utterance);
+      isSpeaking = true;
+      document.getElementById('modalAudioIcon').innerText = '⏸️';
+      document.getElementById('modalAudioText').innerText = isModalTranslated ? 'Pause Audio' : 'ఆపండి (Pause)';
+    }
+
+    function stopAudioSpeech() {
+      if (speechSynth) speechSynth.cancel();
+      isSpeaking = false;
+      const icon = document.getElementById('modalAudioIcon');
+      const text = document.getElementById('modalAudioText');
+      if (icon) icon.innerText = '🔊';
+      if (text) text.innerText = isModalTranslated ? 'Listen to Story' : 'వార్త వినండి (Listen)';
+    }
+
+    // FONT RESIZER
+    function changeFontSize(delta) {
+      currentModalFontSize = Math.min(24, Math.max(13, currentModalFontSize + delta));
+      document.getElementById('modalBodyExcerpt').style.fontSize = `${currentModalFontSize}px`;
+    }
+
+    // BOOKMARKS
+    function toggleBookmarkCurrentStory() {
+      if (!currentOpenStory) return;
+      const idx = BOOKMARKS.findIndex(b => b.id === currentOpenStory.id);
+      if (idx >= 0) {
+        BOOKMARKS.splice(idx, 1);
+        showToast('Removed from saved articles');
+      } else {
+        BOOKMARKS.push(currentOpenStory);
+        showToast('⭐ Article saved for later reading!');
+      }
+      localStorage.setItem('vconnect_news_bookmarks', JSON.stringify(BOOKMARKS));
+      updateBookmarkBtnState();
+    }
+
+    function updateBookmarkBtnState() {
+      if (!currentOpenStory) return;
+      const isSaved = BOOKMARKS.some(b => b.id === currentOpenStory.id);
+      const btn = document.getElementById('modalBookmarkBtn');
+      if (btn) {
+        btn.innerText = isSaved ? '⭐ Saved' : '⭐ Save';
+        btn.style.color = isSaved ? 'var(--primary-red)' : 'inherit';
+      }
+    }
+
+    // COPY
+    function copyStoryText() {
+      if (!currentOpenStory) return;
+      const headline = document.getElementById('modalHeadline').innerText;
+      const summary = document.getElementById('modalBodyExcerpt').innerText;
+      const link = currentOpenStory.url || 'https://news.connecto.fun';
+      const text = `${headline}\n\n${summary}\n\nRead full story: ${link}`;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('📋 Summary & link copied to clipboard!');
+      });
+    }
+
+    // GOOGLE TRANSLATE POPOVER LOGIC
+    function toggleTranslateDropdown(e) {
+      if (e) e.stopPropagation();
+      const card = document.getElementById('googleTranslateCard');
+      const btn = document.getElementById('topTranslateBtn');
+      const isOpen = card.style.display === 'flex';
+
+      if (isOpen) {
+        closeTranslateDropdown();
+      } else {
+        card.style.display = 'flex';
+        if (btn) btn.classList.add('active');
+      }
+    }
+
+    function closeTranslateDropdown() {
+      const card = document.getElementById('googleTranslateCard');
+      const btn = document.getElementById('topTranslateBtn');
+      if (card) card.style.display = 'none';
+      if (btn) btn.classList.remove('active');
+    }
+
+    
+    // Smooth Progress Bar Controller
+    function setProgress(pct) {
+      const bar = document.getElementById('transProgressBar');
+      if (!bar) return;
+      if (pct >= 100) {
+        bar.style.width = '100%';
+        setTimeout(() => { bar.style.opacity = '0'; setTimeout(() => { bar.style.width = '0%'; bar.style.opacity = '1'; }, 400); }, 300);
+      } else {
+        bar.style.opacity = '1';
+        bar.style.width = pct + '%';
+      }
+    }
+
+    function showSkeletons() {
+      const grid = document.getElementById('newsGrid');
+      if (!grid) return;
+      let skHtml = '';
+      for (let i = 0; i < 6; i++) {
+        skHtml += `
+          <div class="news-skeleton-card">
+            <div class="sk-line subtitle"></div>
+            <div class="sk-line title"></div>
+            <div class="sk-line body1"></div>
+            <div class="sk-line body2"></div>
+            <div class="sk-line body3"></div>
+          </div>
+        `;
+      }
+      grid.innerHTML = skHtml;
+    }
+
+    async function selectTranslateLanguage(lang) {
+      document.querySelectorAll('.gt-tab').forEach(t => t.classList.remove('active'));
+      const btnLabel = document.getElementById('translateBtnLabel');
+      
+      const tabMap = { 'te': 'gtTabTe', 'en': 'gtTabEn', 'hi': 'gtTabHi', 'ta': 'gtTabTa', 'kn': 'gtTabKn', 'ml': 'gtTabMl' };
+      if (tabMap[lang]) {
+        const el = document.getElementById(tabMap[lang]);
+        if (el) el.classList.add('active');
+      }
+
+      FEED_CACHE = {};
+      closeTranslateDropdown();
+      localStorage.setItem('vconnect_news_lang', lang);
+
+      setProgress(30);
+
+      if (lang === 'en') {
+        if (btnLabel) btnLabel.innerText = 'English ✓';
+        showToast('🌐 Translating Wire to English...');
+        await setLanguageMode('english_only');
+      } else if (lang === 'hi') {
+        if (btnLabel) btnLabel.innerText = 'Hindi ✓';
+        showToast('🇮🇳 Translating Wire to Hindi...');
+        await setLanguageMode('hindi_only');
+      } else if (lang === 'ta') {
+        if (btnLabel) btnLabel.innerText = 'Tamil ✓';
+        showToast('🇮🇳 Translating Wire to Tamil...');
+        await setLanguageMode('tamil_only');
+      } else if (lang === 'kn') {
+        if (btnLabel) btnLabel.innerText = 'Kannada ✓';
+        showToast('🇮🇳 Translating Wire to Kannada...');
+        await setLanguageMode('kannada_only');
+      } else if (lang === 'ml') {
+        if (btnLabel) btnLabel.innerText = 'Malayalam ✓';
+        showToast('🇮🇳 Translating Wire to Malayalam...');
+        await setLanguageMode('malayalam_only');
+      } else {
+        if (btnLabel) btnLabel.innerText = 'Translate';
+        showToast('🇮🇳 Original Telugu Wire Active');
+        await setLanguageMode('all');
+      }
+      setProgress(100);
+    }
+
+    async function setLanguageMode(mode) {
+      currentLangMode = mode;
+      const searchInput = document.getElementById('newsSearchInput');
+      if (mode === 'english_only') {
+        searchInput.placeholder = 'Search wire in English...';
+        document.getElementById('streamSectionTitle').innerText = 'Live Editorial Intelligence Wire';
+      } else if (mode === 'hindi_only') {
+        searchInput.placeholder = 'समाचार खोजें (Search)...';
+        document.getElementById('streamSectionTitle').innerText = 'लाइव समाचार धारा (Live News Stream)';
+      } else if (mode === 'tamil_only') {
+        searchInput.placeholder = 'செய்திகளைத் தேடுங்கள் (Search)...';
+        document.getElementById('streamSectionTitle').innerText = 'நேரலை செய்தி ஓடை (Live News Stream)';
+      } else if (mode === 'kannada_only') {
+        searchInput.placeholder = 'ಸುದ್ದಿ ಹುಡುಕಿ (Search)...';
+        document.getElementById('streamSectionTitle').innerText = 'ಲೈವ್ ಸುದ್ದಿ ವಾಹಿನಿ (Live News Stream)';
+      } else if (mode === 'malayalam_only') {
+        searchInput.placeholder = 'വാർത്തകൾ തിരയുക (Search)...';
+        document.getElementById('streamSectionTitle').innerText = 'തത്സമയ വാർത്താ പ്രവാഹം (Live News Stream)';
+      } else {
+        searchInput.placeholder = 'వార్తలు శోధించండి (Search)...';
+        document.getElementById('streamSectionTitle').innerText = 'తాజా వార్తా ప్రవాహం (Live News Stream)';
+      }
+      updateDateDisplay();
+      showSkeletons();
+      await loadNewsFeed();
+    }
+
+    async function toggleModalStoryTranslation() {
+      if (!currentOpenStory) return;
+      const btn = document.getElementById('btnModalTranslateToggle');
+      const label = document.getElementById('btnModalTransLabel');
+      const status = document.getElementById('modalLangStatus');
+      
+      if (isModalTranslated) {
+        // Switch back to original
+        isModalTranslated = false;
+        renderModalStory(currentOpenStory, false);
+        if (label) label.innerText = 'Translate to English';
+        if (status) status.innerText = 'Original Language: Telugu';
+        showToast('🔄 Restored Original Telugu Text');
+        return;
+      }
+
+      // Translate
+      if (btn) btn.disabled = true;
+      if (label) label.innerText = 'Translating... ⏳';
+      setProgress(40);
+
+      try {
+        if (!currentOpenStory.title_en || !currentOpenStory.summary_en) {
+          const res = await fetch('/api/news/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ article: currentOpenStory, target_lang: 'en' })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            currentOpenStory.title_en = data.article.title_en;
+            currentOpenStory.summary_en = data.article.summary_en;
+            currentOpenStory.takeaways_en = data.article.takeaways_en;
+          }
+        }
+        setProgress(100);
+        isModalTranslated = true;
+        renderModalStory(currentOpenStory, true);
+        if (label) label.innerText = 'View Original (Telugu)';
+        if (status) status.innerText = 'Translated Language: English';
+        showToast('✓ Translated to English');
+      } catch (err) {
+        showToast('⚠️ Translation error. Please try again.');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+
+    function switchCategory(cat, btnEl) {
+      currentCategory = cat;
+      document.querySelectorAll('.nav-cat-tab').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      loadNewsFeed();
+    }
+
+    function setViewMode(mode, btnEl) {
+      currentViewMode = mode;
+      document.querySelectorAll('.btn-view-toggle').forEach(b => b.classList.remove('active'));
+      if (btnEl) btnEl.classList.add('active');
+      const grid = document.getElementById('newsGrid');
+      if (mode === 'list') {
+        grid.classList.add('list-view');
+      } else {
+        grid.classList.remove('list-view');
+      }
+    }
+
+    function handleSearchInput() {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        const query = (document.getElementById('newsSearchInput').value || '').toLowerCase().trim();
+        if (!query) {
+          renderEditorialFeed(allArticles);
+          return;
+        }
+        const filtered = allArticles.filter(a => 
+          a.title.toLowerCase().includes(query) || 
+          (a.summary && a.summary.toLowerCase().includes(query)) ||
+          (a.author && a.author.toLowerCase().includes(query))
+        );
+        renderEditorialFeed(filtered);
+      }, 80);
+    }
+
+    async function refreshLiveNewsFeed() {
+      const btn = document.getElementById('refreshBtn');
+      btn.innerText = '⏳ రిఫ్రెష్ అవుతోంది...';
+      try {
+        await fetch('/api/news/refresh', { method: 'POST' });
+        delete FEED_CACHE[`${currentCategory}_${currentLangMode}`];
+        await loadNewsFeed();
+        showToast('✅ Live Wire Updated!');
+      } catch(e) {}
+      btn.innerText = '🔄 రిఫ్రెష్';
+    }
+
+    
+    function handleNewsletterEmailInput(val) {
+      const fb = document.getElementById('newsletterEmailFeedback');
+      const inp = document.getElementById('newsletterEmail');
+      if (!fb || !inp) return;
+      const raw = (val || '').trim();
+      if (!raw) {
+        fb.style.display = 'none';
+        inp.style.borderColor = '';
+        return;
+      }
+      if (!isValidEmail(raw)) {
+        fb.style.display = 'block';
+        fb.style.color = '#f87171';
+        fb.innerText = '❌ Invalid email ID. Please enter a valid email address (e.g. reader@domain.com)';
+        inp.style.borderColor = '#f87171';
+      } else {
+        fb.style.display = 'block';
+        fb.style.color = '#4ade80';
+        fb.innerText = '✓ Valid email ID format';
+        inp.style.borderColor = '#4ade80';
+      }
+    }
+
+    function handleNewsletterSubmit(e) {
+      if (e) e.preventDefault();
+      const inp = document.getElementById('newsletterEmail');
+      const email = inp ? inp.value.trim() : '';
+      const fb = document.getElementById('newsletterEmailFeedback');
+      if (!isValidEmail(email)) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#f87171';
+          fb.innerText = '❌ Invalid email ID. Please enter a valid email address (e.g. reader@domain.com)';
+        }
+        if (inp) {
+          inp.style.borderColor = '#f87171';
+          inp.focus();
+        }
+        return;
+      }
+      if (typeof showToast === 'function') {
+        showToast(`🎉 Subscribed: ${email}`);
+      } else {
+        alert(`🎉 Subscribed: ${email}`);
+      }
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = '#4ade80';
+        fb.innerText = '🎉 Successfully subscribed to daily news summaries!';
+      }
+      if (inp) {
+        inp.value = '';
+        inp.style.borderColor = '#4ade80';
+      }
+    }
+
+  </script>
+<script>
+    function handleNewsEmailInput(val) {
+      const fb = document.getElementById('newsEmailFeedback');
+      const inp = document.getElementById('newsSubscriberEmail');
+      if (!fb || !inp) return;
+      const raw = (val || '').trim();
+      if (!raw) {
+        fb.style.display = 'none';
+        inp.style.borderColor = '';
+        return;
+      }
+      if (!isValidEmail(raw)) {
+        fb.style.display = 'block';
+        fb.style.color = '#f87171';
+        fb.innerText = '❌ Invalid email ID. Please enter a valid email address (e.g. reader@domain.com)';
+        inp.style.borderColor = '#f87171';
+      } else {
+        fb.style.display = 'block';
+        fb.style.color = '#4ade80';
+        fb.innerText = '✓ Valid email ID format';
+        inp.style.borderColor = '#4ade80';
+      }
+    }
+
+    function handleNewsSubscribe() {
+      const inp = document.getElementById('newsSubscriberEmail');
+      const email = inp ? inp.value.trim() : '';
+      const fb = document.getElementById('newsEmailFeedback');
+      if (!isValidEmail(email)) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#f87171';
+          fb.innerText = '❌ Invalid email ID. Please enter a valid email address (e.g. reader@domain.com)';
+        }
+        if (inp) {
+          inp.style.borderColor = '#f87171';
+          inp.focus();
+        }
+        return;
+      }
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = '#4ade80';
+        fb.innerText = '🎉 Successfully subscribed to Breaking News Dispatches!';
+      }
+      if (inp) {
+        inp.value = '';
+        inp.style.borderColor = '#4ade80';
+      }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,438 @@
+{
+  "id": "cv_screening_multi_role_ai_v2",
+  "name": "Automated Multi-Position CV Screening with AI Candidate Analysis",
+  "active": true,
+  "meta": {
+    "instanceId": "f230a542ff7e8110500e02e584e98cd66f8a922485dc0d875a2e022900b4e5da"
+  },
+  "nodes": [
+    {
+      "id": "704e43dd-ee85-4514-8a41-cb3daaf71eee",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Sticky Note - Workflow Goal",
+      "type": "n8n-nodes-base.stickyNote",
+      "notes": "vConnect Enterprise Recruiting AI",
+      "position": [
+        368,
+        240
+      ],
+      "parameters": {
+        "width": 448,
+        "height": 592,
+        "content": "## Multi-Position Automated CV Scanner & Screening Intelligence\n\nThis workflow powers automated enterprise hiring across **8 target positions**:\n1. **Collects** candidate applications via a responsive web form or `/api/cv/screen` API endpoint.\n2. **Extracts** high-fidelity text from resumes (PDF/TXT) using **Mistral OCR**.\n3. **Dynamically Analyzes** candidate CVs against target role rubrics using **Gemini 2.5 Flash**.\n4. **Stores** multi-role evaluations (`qualificationRate`, `status`, `targetRole`, `coreChecks`, `explanation`) in Google Sheets & Postgres.\n5. **Dispatches** position-tailored follow-up communications.\n\n*Supported Roles*:\n• Senior Frontend Dev (React/TS)\n• Senior Backend Engineer (Python/FastAPI)\n• Fullstack Security Engineer (AppSec)\n• Real-Time WebRTC Architect (WSS)\n• DevOps & Cloud Infrastructure (K8s/CI-CD)\n• AI & Machine Learning Engineer (LLMs/RAG)\n• UI/UX Product Designer (Design Systems)\n• Mobile App Engineer (Flutter/React Native)"
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "8af8707e-de1b-4687-8d7a-c853dfec2b31",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Start Here",
+      "type": "n8n-nodes-base.manualTrigger",
+      "notes": "Manual Test Trigger",
+      "position": [
+        592,
+        656
+      ],
+      "parameters": {},
+      "typeVersion": 1
+    },
+    {
+      "id": "7f185e06-146b-4949-a2b9-c840f1fbf556",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Create 'CVs' Spreadsheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "notes": "Initializes Google Sheets with multi-role columns",
+      "position": [
+        912,
+        656
+      ],
+      "parameters": {
+        "title": "vConnect_Candidate_Screening_Pipeline",
+        "options": {},
+        "resource": "spreadsheet",
+        "sheetsUi": {
+          "sheetValues": [
+            {
+              "title": "FullName"
+            },
+            {
+              "title": "Email"
+            },
+            {
+              "title": "TargetPosition"
+            },
+            {
+              "title": "QualificationRate"
+            },
+            {
+              "title": "Status"
+            },
+            {
+              "title": "CoreChecksMet"
+            },
+            {
+              "title": "QualificationDescription"
+            },
+            {
+              "title": "SubmissionDate"
+            }
+          ]
+        }
+      },
+      "credentials": {},
+      "typeVersion": 4.6
+    },
+    {
+      "id": "cb5ef831-79f7-4129-9642-6ece79a3603e",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Application Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "notes": "Candidate Application Form with multi-role selector",
+      "position": [
+        1312,
+        656
+      ],
+      "webhookId": "230e09f7-33df-4266-917d-ce3398cae141",
+      "parameters": {
+        "options": {
+          "path": "230e09f7-33df-4266-917d-ce3398cae141",
+          "buttonLabel": "Submit Application",
+          "appendAttribution": false
+        },
+        "formTitle": "vConnect Careers • Multi-Position Candidate Application",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Full Name",
+              "placeholder": "e.g., Alex Mercer",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "placeholder": "e.g., alex.mercer@gmail.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Target Position",
+              "fieldType": "dropdown",
+              "requiredField": true,
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Senior Frontend Developer (React/TS)"
+                  },
+                  {
+                    "option": "Senior Backend Engineer (Python/FastAPI/Distributed Systems)"
+                  },
+                  {
+                    "option": "Fullstack Security Engineer (FastAPI/React/AppSec)"
+                  },
+                  {
+                    "option": "Real-Time Systems & WebRTC Architect (WSS/Voice-Video)"
+                  },
+                  {
+                    "option": "DevOps & Cloud Infrastructure Engineer (K8s/Cloudflare/CI-CD)"
+                  },
+                  {
+                    "option": "AI & Machine Learning Engineer (LLMs/Agents/Vector RAG)"
+                  },
+                  {
+                    "option": "UI/UX Product Designer & Motion Architect"
+                  },
+                  {
+                    "option": "Mobile Application Engineer (Flutter/React Native/iOS)"
+                  }
+                ]
+              }
+            },
+            {
+              "fieldType": "file",
+              "fieldLabel": "Upload CV / Resume (PDF)",
+              "requiredField": true,
+              "acceptFileTypes": ".pdf,.txt,.md"
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "formDescription": "Select your target role and upload your CV for instant AI qualification scoring."
+      },
+      "typeVersion": 2.2
+    },
+    {
+      "id": "3b04b67b-d4dc-44e6-90e1-d239dbbc40d1",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Extract CV Text (Mistral OCR)",
+      "type": "n8n-nodes-base.mistralAi",
+      "notes": "High-accuracy PDF OCR extraction",
+      "position": [
+        1600,
+        656
+      ],
+      "parameters": {
+        "options": {},
+        "binaryProperty": "={{ $('Application Form').last().binary.keys()[0] }}"
+      },
+      "credentials": {},
+      "typeVersion": 1
+    },
+    {
+      "id": "483377db-ede2-4dcb-8ce0-a77b9f9d1b09",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Log Candidate Initial Submission",
+      "type": "n8n-nodes-base.googleSheets",
+      "notes": "Logs applicant details before AI analysis",
+      "position": [
+        1616,
+        320
+      ],
+      "parameters": {
+        "columns": {
+          "value": {
+            "Email": "={{ $json.Email }}",
+            "FullName": "={{ $json[\"Full Name\"] }}",
+            "TargetPosition": "={{ $json[\"Target Position\"] }}",
+            "SubmissionDate": "={{ $now.toISO() }}"
+          },
+          "schema": [
+            {
+              "id": "FullName",
+              "type": "string",
+              "displayName": "FullName"
+            },
+            {
+              "id": "Email",
+              "type": "string",
+              "displayName": "Email"
+            },
+            {
+              "id": "TargetPosition",
+              "type": "string",
+              "displayName": "TargetPosition"
+            },
+            {
+              "id": "SubmissionDate",
+              "type": "string",
+              "displayName": "SubmissionDate"
+            }
+          ],
+          "mappingMode": "defineBelow"
+        },
+        "options": {},
+        "operation": "append",
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "vConnect_Candidate_Screening_Pipeline"
+        }
+      },
+      "credentials": {},
+      "typeVersion": 4.6
+    },
+    {
+      "id": "e94d6fac-a882-4573-a52d-11a90b15302f",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Gemini 2.5 Flash",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "notes": "Google Gemini 2.5 Flash for fast, reasoning-driven scoring",
+      "position": [
+        1728,
+        896
+      ],
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        },
+        "modelName": "models/gemini-2.5-flash"
+      },
+      "credentials": {},
+      "typeVersion": 1
+    },
+    {
+      "id": "05672977-b212-4dc6-9315-9d2c191c43a6",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "JSON Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "notes": "Structured JSON schema validation",
+      "position": [
+        2064,
+        912
+      ],
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"qualificationRate\": {\n      \"type\": \"number\",\n      \"description\": \"Qualification score between 0.0 and 1.0\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"enum\": [\"Qualified\", \"Borderline\", \"Unqualified\"],\n      \"description\": \"Recommendation status\"\n    },\n    \"targetRole\": {\n      \"type\": \"string\",\n      \"description\": \"The evaluated position title\"\n    },\n    \"core_checks\": {\n      \"type\": \"object\",\n      \"description\": \"Map of core criteria titles to boolean true/false\"\n    },\n    \"preferred_checks\": {\n      \"type\": \"object\",\n      \"description\": \"Map of preferred criteria titles to boolean true/false\"\n    },\n    \"explanation\": {\n      \"type\": \"string\",\n      \"description\": \"Detailed point-by-point evidence breakdown\"\n    }\n  },\n  \"required\": [\n    \"qualificationRate\",\n    \"status\",\n    \"targetRole\",\n    \"explanation\"\n  ],\n  \"additionalProperties\": false\n}"
+      },
+      "typeVersion": 1.3
+    },
+    {
+      "id": "d75d53de-6040-4620-b102-0621829c0666",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Multi-Role AI Qualification Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "notes": "Evaluates candidate against selected target position rubric",
+      "position": [
+        1824,
+        656
+      ],
+      "parameters": {
+        "text": "=<goal>\nEvaluate candidate CV against the selected Target Position criteria. Produce structured JSON output containing qualificationRate (0.0 to 1.0), status (Qualified >= 0.75, Borderline 0.55-0.74, Unqualified < 0.55), core_checks, preferred_checks, and a detailed justification citing evidence from the CV.\n</goal>\n\n<candidate_submission>\nCandidate Name: {{ $('Application Form').last().json['Full Name'] }}\nCandidate Email: {{ $('Application Form').last().json['Email'] }}\nTarget Position: {{ $('Application Form').last().json['Target Position'] || 'Senior Frontend Developer (React/TS)' }}\n\nCV Text Extracted by OCR:\n{{ $json.text || $json.body || $('Extract CV Text (Mistral OCR)').last().json.text }}\n</candidate_submission>\n\n<position_rubrics>\n1. Senior Frontend Developer (React/TS):\n   - Core: 5+ Years Frontend Experience, Project Leadership, JavaScript/TypeScript, React Framework, State Management (Redux/Zustand), Modern Styling (Tailwind/CSS-in-JS), API Integration (REST/GraphQL), Testing (Jest/RTL), Git/Version Control, Communication.\n   - Preferred: Next.js/Remix, Node.js/APIs, CI/CD, Figma/Design Acumen, Performance/Core Web Vitals.\n\n2. Senior Backend Engineer (Python/FastAPI/Distributed Systems):\n   - Core: 4+ Years Backend Experience, Python & Asyncio, FastAPI/Django, Databases (PostgreSQL/Redis), API Architecture (REST/WebSockets), Microservices & Concurrency, Data Integrity & ACID, Testing (Pytest), Git/CI-CD, Documentation.\n   - Preferred: Message Queues (Kafka/RabbitMQ), Docker/Kubernetes, Cloud (AWS/GCP), Security/Auth (JWT/OAuth2), Prometheus/Telemetry.\n\n3. Fullstack Security Engineer (FastAPI/React/AppSec):\n   - Core: 3+ Years Fullstack Experience, Frontend (React/TS), Backend (Python/Node), Auth & RBAC (OAuth2/JWT), OWASP Top 10 Mitigation, Cryptography & TLS 1.3, API Security & Rate Limiting, SAST/DAST Testing, Git & Secure CI/CD, Incident Response.\n   - Preferred: CTF/Penetration Testing, Cloud IAM Governance, Stream Protection (WSS/WebRTC), SOC2/ISO27001, Zero Trust Architecture.\n\n4. Real-Time Systems & WebRTC Architect (WSS/Voice-Video):\n   - Core: 4+ Years Real-Time Experience, WebRTC PeerConnections/SDP/ICE, WebSocket Architecture, Network Protocols (UDP/TCP/QUIC), Async Concurrency, Audio/Video Codecs (Opus/H.264), State Sync & Presence, Network Drop Resilience, Git, Documentation.\n   - Preferred: SFU/MCU (Mediasoup/LiveKit/Pion), WebAssembly DSP, Distributed Redis Clusters, Mobile WebRTC, Low-Latency Anycast.\n\n5. DevOps & Cloud Infrastructure Engineer (K8s/Cloudflare/CI-CD):\n   - Core: 4+ Years DevOps/SRE, Linux Administration & Shell, Docker Containers, Kubernetes Orchestration, Terraform/Ansible IaC, CI/CD Automation (GitHub Actions), Cloud Platforms (AWS/GCP/Cloudflare), Monitoring (Prometheus/Grafana), GitOps, SLA/Post-Mortems.\n   - Preferred: Blue/Green Deployments, Service Mesh (Istio), Cloudflare Tunnels/Workers, CIS Hardening, FinOps.\n\n6. AI & Machine Learning Engineer (LLMs/Agents/Vector RAG):\n   - Core: 3+ Years AI/ML Experience, Python/PyTorch, LLM Integration & Prompt Engineering (Gemini/OpenAI), Vector DBs & RAG (Pinecone/Milvus), Agentic Workflows & Tool Calling, OCR & Multimodal Extraction, Scalable APIs (FastAPI/vLLM), Evaluation Metrics, MLOps, Documentation.\n   - Preferred: Fine-Tuning/LoRA, Multi-Agent Swarms (AGY SDK/CrewAI), Quantization (GGUF), Knowledge Graphs, Edge AI.\n\n7. UI/UX Product Designer & Motion Architect:\n   - Core: 3+ Years Product Design, Figma & Design Systems, User Research & User Flows, Visual Hierarchy & Typography, Interactive Motion & Prototyping, Accessibility (WCAG 2.1 AA), HTML/CSS Collaboration, Responsive Layouts, DesignOps, Portfolio Rationales.\n   - Preferred: 3D Spatial UI (Spline/Three.js), Micro-Interactions (Framer Motion), A/B Testing, Custom Iconography, Design Mentorship.\n\n8. Mobile Application Engineer (Flutter/React Native/iOS):\n   - Core: 3+ Years Mobile Development, Cross-Platform (Flutter/React Native), State Management & Offline Caching, Native iOS/Android Tooling (Xcode/Gradle), Real-Time API Integration, 60fps Mobile Animations, Mobile Testing, App/Play Store Deployment, Mobile CI/CD, Documentation.\n   - Preferred: Push Notifications (FCM/APNs), Mobile VoIP/WebRTC (CallKit), Biometric Security, Deep Linking, Profiling (Memory/FPS).\n</position_rubrics>\n\n<evaluation_rules>\n- If all core requirements for the candidate's target position are satisfied, base score is >= 0.75.\n- Preferred criteria add bonuses up to 1.0.\n- If any core requirement is missing, score cannot exceed 0.60.\n- Provide an unambiguous evidence explanation detailing which criteria were met or missing.\n</evaluation_rules>",
+        "batching": {},
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are the vConnect AI Recruitment Evaluation Engine. You assess candidates objectively against precise target position requirements and return strictly valid JSON."
+            }
+          ]
+        },
+        "promptType": "define",
+        "hasOutputParser": true
+      },
+      "typeVersion": 1.7
+    },
+    {
+      "id": "d4aa8091-6577-44b5-9541-c0cc87f83e93",
+      "cid": "Ikx1Y2FzIFBleXJpbiI",
+      "name": "Update Candidate Analysis Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "notes": "Updates spreadsheet with score, status, and AI explanation",
+      "position": [
+        2176,
+        656
+      ],
+      "parameters": {
+        "columns": {
+          "value": {
+            "Email": "={{ $('Application Form').last().json.Email }}",
+            "TargetPosition": "={{ $json.output.targetRole || $('Application Form').last().json['Target Position'] }}",
+            "QualificationRate": "={{ $json.output.qualificationRate }}",
+            "Status": "={{ $json.output.status }}",
+            "QualificationDescription": "={{ $json.output.explanation }}"
+          },
+          "schema": [
+            {
+              "id": "Email",
+              "type": "string",
+              "displayName": "Email"
+            },
+            {
+              "id": "TargetPosition",
+              "type": "string",
+              "displayName": "TargetPosition"
+            },
+            {
+              "id": "QualificationRate",
+              "type": "string",
+              "displayName": "QualificationRate"
+            },
+            {
+              "id": "Status",
+              "type": "string",
+              "displayName": "Status"
+            },
+            {
+              "id": "QualificationDescription",
+              "type": "string",
+              "displayName": "QualificationDescription"
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Email"
+          ]
+        },
+        "options": {},
+        "operation": "update",
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0"
+        },
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "cachedResultName": "vConnect_Candidate_Screening_Pipeline"
+        }
+      },
+      "credentials": {},
+      "typeVersion": 4.6
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start Here": {
+      "main": [
+        [
+          {
+            "node": "Create 'CVs' Spreadsheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Application Form": {
+      "main": [
+        [
+          {
+            "node": "Extract CV Text (Mistral OCR)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log Candidate Initial Submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract CV Text (Mistral OCR)": {
+      "main": [
+        [
+          {
+            "node": "Multi-Role AI Qualification Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Multi-Role AI Qualification Chain": {
+      "main": [
+        [
+          {
+            "node": "Update Candidate Analysis Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Multi-Role AI Qualification Chain",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini 2.5 Flash": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Multi-Role AI Qualification Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

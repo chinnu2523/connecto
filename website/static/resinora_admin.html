@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resinora Atelier — Master Artisan Management Console</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Icons & Tailwind -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            atelier: {
+              cream: '#FAF6F0',
+              ivory: '#FFFDF9',
+              sand: '#F4ECE1',
+              linen: '#EDE4D8',
+              charcoal: '#1C1917',
+              espresso: '#14110E',
+              rose: '#C9707A',
+              roseDeep: '#9F3A46',
+              roseSoft: '#F8D7DA',
+              gold: '#C5A880',
+              goldDeep: '#9E7E56',
+              border: '#E8DEC8'
+            }
+          },
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            playfair: ['Playfair Display', 'serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          },
+          boxShadow: {
+            atelier: '0 10px 30px -10px rgba(201, 112, 122, 0.12), 0 4px 6px -2px rgba(28, 25, 23, 0.04)',
+            atelierDeep: '0 20px 40px -15px rgba(28, 25, 23, 0.15)'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-atelier-cream text-stone-900 font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- ==================== ADMIN LOGIN MODAL ==================== -->
+  <div id="adminLoginOverlay" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl p-8 shadow-atelierDeep border border-atelier-border">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-atelier-rose to-atelier-gold p-[1.5px] mx-auto mb-3 shadow-sm">
+          <div class="w-full h-full bg-white rounded-[14px] flex items-center justify-center">
+            <span class="font-cinzel font-black text-2xl text-atelier-roseDeep">R</span>
+          </div>
+        </div>
+        <h2 class="font-cinzel text-xl font-bold text-stone-900">Atelier Master Director</h2>
+        <p class="text-xs text-stone-500 mt-1">Authorized Artisan & Order Dispatch Console</p>
+      </div>
+
+      <div id="adminLoginError" class="hidden mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs text-center"></div>
+
+      <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">Admin Username or Email</label>
+          <input type="text" id="adminUserInput" required placeholder="Enter username or email" class="w-full px-4 py-3 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-sm focus:border-atelier-rose focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1.5">Master Password</label>
+          <input type="password" id="adminPassInput" required placeholder="Enter password" class="w-full px-4 py-3 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-sm focus:border-atelier-rose focus:outline-none">
+        </div>
+        <button type="submit" id="adminLoginBtn" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-atelier-rose via-rose-500 to-atelier-roseDeep text-white font-cinzel font-bold text-xs uppercase tracking-widest shadow-sm hover:brightness-105 active:scale-95 transition-all">
+          Authorize Management Session
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN ADMIN DASHBOARD CONTAINER ==================== -->
+  <div id="adminDashboardContainer" class="hidden flex-1 flex flex-col">
+    
+    <!-- Top Navigation Bar -->
+    <header class="bg-white/90 backdrop-blur-md border-b border-atelier-border sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-atelier-rose to-atelier-gold p-[1px] shadow-sm">
+            <div class="w-full h-full bg-white rounded-[9px] flex items-center justify-center">
+              <span class="font-cinzel font-extrabold text-base text-atelier-roseDeep">R</span>
+            </div>
+          </div>
+          <div>
+            <h1 class="font-cinzel text-base font-bold text-stone-900 tracking-wider">RESINORA <span class="text-xs font-normal text-atelier-roseDeep ml-1 uppercase font-mono">Console</span></h1>
+            <span class="text-[10px] text-stone-500 block">Master Order Management & Artisan Queue</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <!-- Notification Bell -->
+          <div class="relative">
+            <button onclick="toggleNotificationPanel()" class="p-2.5 rounded-xl bg-atelier-sand/60 text-stone-700 hover:text-stone-900 relative">
+              <i data-lucide="bell" class="w-5 h-5"></i>
+              <span id="notifBadge" class="hidden absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center animate-pulse">0</span>
+            </button>
+
+            <!-- Notifications Flyout -->
+            <div id="notifPanel" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl p-3 shadow-atelierDeep border border-atelier-border space-y-2 z-50">
+              <div class="flex items-center justify-between pb-2 border-b border-stone-100">
+                <span class="font-cinzel text-xs font-bold text-stone-900">Notifications</span>
+                <button onclick="markAllNotificationsRead()" class="text-[10px] text-atelier-rose hover:underline">Mark all read</button>
+              </div>
+              <div id="notifList" class="max-h-64 overflow-y-auto space-y-2 text-xs">
+                <p class="text-stone-400 text-center py-3 text-[11px]">No new notifications</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Public Storefront link -->
+          <a href="/" target="_blank" class="hidden sm:flex items-center gap-1 text-xs font-cinzel text-stone-600 hover:text-atelier-roseDeep px-3 py-2 rounded-xl bg-atelier-sand/50">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Live Atelier
+          </a>
+
+          <!-- Admin Avatar & Logout -->
+          <div class="flex items-center gap-3 pl-3 border-l border-atelier-border">
+            <div class="text-right hidden sm:block">
+              <strong id="adminNameDisplay" class="block text-xs text-stone-900">Atelier Master</strong>
+              <span class="text-[10px] text-emerald-700 font-bold uppercase">Director Role</span>
+            </div>
+            <button onclick="handleAdminLogout()" class="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium flex items-center gap-1.5 transition-colors">
+              <i data-lucide="log-out" class="w-3.5 h-3.5"></i> Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 space-y-8">
+      
+      <!-- KPI Stats Banner -->
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="p-5 rounded-2xl bg-white border border-atelier-border shadow-sm">
+          <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Total Orders</span>
+          <h3 id="statTotalOrders" class="font-cinzel text-2xl font-black text-stone-900">0</h3>
+          <span class="text-[10px] text-stone-400 mt-1 block">Lifetime Atelier</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-atelier-border shadow-sm">
+          <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Total Revenue</span>
+          <h3 id="statRevenue" class="font-cinzel text-2xl font-black text-atelier-roseDeep">₹0</h3>
+          <span class="text-[10px] text-emerald-700 font-bold mt-1 block">INR Settled</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-atelier-border shadow-sm">
+          <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">In Production</span>
+          <h3 id="statInProd" class="font-cinzel text-2xl font-black text-amber-600">0</h3>
+          <span class="text-[10px] text-stone-400 mt-1 block">Curing in Chamber</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-atelier-border shadow-sm">
+          <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Shipped & Delivered</span>
+          <h3 id="statShipped" class="font-cinzel text-2xl font-black text-emerald-700">0</h3>
+          <span class="text-[10px] text-stone-400 mt-1 block">Completed Craft</span>
+        </div>
+        <div class="p-5 rounded-2xl bg-white border border-atelier-border shadow-sm col-span-2 lg:col-span-1">
+          <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">New Inquiries</span>
+          <h3 id="statInquiries" class="font-cinzel text-2xl font-black text-atelier-goldDeep">0</h3>
+          <span class="text-[10px] text-stone-400 mt-1 block">Custom Consultations</span>
+        </div>
+      </div>
+
+      <!-- Main Navigation Tabs -->
+      <div class="flex border-b border-atelier-border space-x-6 text-xs font-cinzel font-bold">
+        <button onclick="switchAdminTab('orders')" id="tabNavOrders" class="pb-3 border-b-2 border-atelier-rose text-atelier-roseDeep tracking-wider">
+          ARTWORK ORDERS (<span id="tabCountOrders">0</span>)
+        </button>
+        <button onclick="switchAdminTab('inquiries')" id="tabNavInquiries" class="pb-3 border-b-2 border-transparent text-stone-500 hover:text-stone-900 tracking-wider">
+          GIFTING & BRIDAL INQUIRIES (<span id="tabCountInquiries">0</span>)
+        </button>
+      </div>
+
+      <!-- SECTION: ORDERS -->
+      <section id="sectionOrders" class="space-y-4">
+        <!-- Filter Controls -->
+        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button onclick="filterOrdersByStatus('ALL')" class="order-status-pill active px-3 py-1.5 rounded-xl bg-atelier-rose text-white font-cinzel font-bold">ALL</button>
+            <button onclick="filterOrdersByStatus('CONFIRMED')" class="order-status-pill px-3 py-1.5 rounded-xl bg-white text-stone-700 border border-atelier-border font-cinzel font-medium">CONFIRMED</button>
+            <button onclick="filterOrdersByStatus('IN_PRODUCTION')" class="order-status-pill px-3 py-1.5 rounded-xl bg-white text-stone-700 border border-atelier-border font-cinzel font-medium">IN PRODUCTION</button>
+            <button onclick="filterOrdersByStatus('SHIPPED')" class="order-status-pill px-3 py-1.5 rounded-xl bg-white text-stone-700 border border-atelier-border font-cinzel font-medium">SHIPPED</button>
+            <button onclick="filterOrdersByStatus('DELIVERED')" class="order-status-pill px-3 py-1.5 rounded-xl bg-white text-stone-700 border border-atelier-border font-cinzel font-medium">DELIVERED</button>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input type="text" id="orderSearchInput" oninput="debounceOrderSearch()" placeholder="Search customer, order #, initial..." class="px-3.5 py-2 rounded-xl bg-white border border-atelier-border text-xs text-stone-900 focus:border-atelier-rose focus:outline-none w-full sm:w-64">
+            <select id="orderSortSelect" onchange="fetchAdminOrders()" class="px-3 py-2 rounded-xl bg-white border border-atelier-border text-xs text-stone-700 focus:border-atelier-rose focus:outline-none">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="price_high">Highest Price</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Orders List -->
+        <div id="ordersListContainer" class="space-y-4">
+          <div class="p-12 text-center text-xs text-stone-400 bg-white rounded-2xl border border-atelier-border">
+            Loading active atelier orders...
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION: INQUIRIES -->
+      <section id="sectionInquiries" class="hidden space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="font-cinzel text-sm font-bold text-stone-900 uppercase tracking-wider">Custom Gifting & Floral Preservation Consultations</h2>
+          <span class="text-xs text-stone-500">1-Click Conversion to Active Order</span>
+        </div>
+
+        <div id="inquiriesListContainer" class="space-y-4">
+          <div class="p-12 text-center text-xs text-stone-400 bg-white rounded-2xl border border-atelier-border">
+            Loading consultations...
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ==================== ORDER STATUS TRANSITION MODAL ==================== -->
+  <div id="transitionModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-atelierDeep border border-atelier-border">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <h3 class="font-cinzel text-lg font-bold text-stone-900" id="transitionModalTitle">Update Order Lifecycle</h3>
+          <span class="text-xs font-mono text-stone-500" id="transitionOrderNum">RN-XXXXXX</span>
+        </div>
+        <button onclick="closeTransitionModal()" class="p-2 rounded-xl text-stone-400 hover:text-stone-900 bg-stone-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="submitTransition(event)" class="space-y-4">
+        <input type="hidden" id="transitionOrderId">
+        
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">Target Next State *</label>
+          <select id="transitionTargetStatus" onchange="handleTargetStatusChange()" required class="w-full px-4 py-2.5 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-xs font-bold focus:border-atelier-rose focus:outline-none">
+            <option value="IN_PRODUCTION">IN_PRODUCTION (Resin Pouring & UV Curing)</option>
+            <option value="SHIPPED">SHIPPED (Inspected & Dispatched with Tracking)</option>
+            <option value="DELIVERED">DELIVERED (Signed by Customer)</option>
+            <option value="CANCELLED">CANCELLED (Refunded / Aborted)</option>
+          </select>
+        </div>
+
+        <div id="shippingFields" class="hidden space-y-3 p-4 rounded-xl bg-amber-50/60 border border-amber-200">
+          <span class="text-[10px] font-bold text-amber-900 uppercase tracking-wider block">Luxury Fragile Courier Details:</span>
+          <div>
+            <label class="block text-[11px] font-medium text-stone-700 mb-1">Courier / Carrier</label>
+            <input type="text" id="transitionCarrier" placeholder="e.g. BlueDart Express Fragile / FedEx Luxury" class="w-full px-3.5 py-2 rounded-lg bg-white border border-atelier-border text-xs">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-stone-700 mb-1">Tracking Consignment Number</label>
+            <input type="text" id="transitionTrackingNum" placeholder="e.g. BD-RESIN-994812" class="w-full px-3.5 py-2 rounded-lg bg-white border border-atelier-border text-xs">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">Artisan Progress Note</label>
+          <textarea id="transitionNote" rows="2" placeholder="e.g. Letter V cast in diamond resin; curing 72h..." class="w-full px-4 py-2.5 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-xs focus:border-atelier-rose focus:outline-none"></textarea>
+        </div>
+
+        <button type="submit" id="transitionSubmitBtn" class="w-full py-3 rounded-xl bg-atelier-rose text-white font-cinzel font-bold text-xs uppercase tracking-widest hover:bg-atelier-roseDeep transition-colors shadow-sm">
+          Advance Order State
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== INQUIRY CONVERT MODAL ==================== -->
+  <div id="convertModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-atelierDeep border border-atelier-border">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <h3 class="font-cinzel text-lg font-bold text-stone-900">Convert Consultation</h3>
+          <span class="text-xs text-stone-500" id="convertClientName">Client Name</span>
+        </div>
+        <button onclick="closeConvertModal()" class="p-2 rounded-xl text-stone-400 hover:text-stone-900 bg-stone-100">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="submitInquiryConversion(event)" class="space-y-4">
+        <input type="hidden" id="convertInquiryId">
+        
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">Custom Artwork Title *</label>
+          <input type="text" id="convertTitle" required placeholder="e.g. Bespoke Bridal Monogram Set (4 Initial Letters)" class="w-full px-4 py-2.5 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-xs focus:border-atelier-rose focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">Quoted Price (₹ INR) *</label>
+          <input type="number" step="1" id="convertAmount" required placeholder="e.g. 2400" class="w-full px-4 py-2.5 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-xs font-bold focus:border-atelier-rose focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 uppercase tracking-wider mb-1">Artisan Director Approval Notes</label>
+          <textarea id="convertNotes" rows="2" placeholder="Custom dried flowers reserved in atelier inventory..." class="w-full px-4 py-2.5 rounded-xl bg-atelier-ivory border border-atelier-border text-stone-900 text-xs focus:border-atelier-rose focus:outline-none"></textarea>
+        </div>
+
+        <button type="submit" id="convertSubmitBtn" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-cinzel font-bold text-xs uppercase tracking-widest shadow-sm hover:brightness-105 transition-all">
+          Spawn Confirmed Reservation
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    let adminToken = localStorage.getItem("resinora_admin_token") || "";
+    let currentAdmin = null;
+    let cachedOrders = [];
+    let cachedInquiries = [];
+    let activeFilterStatus = "ALL";
+    let searchDebounceTimer = null;
+    let pollingInterval = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      verifyAdminSession();
+    });
+
+    async function verifyAdminSession() {
+      if (!adminToken) {
+        showLoginOverlay();
+        return;
+      }
+
+      try {
+        const resp = await fetch("/api/resinora/auth/me", {
+          headers: { "X-Resinora-Token": adminToken }
+        });
+        const data = await resp.json();
+        
+        if (resp.ok && data.user && data.user.role === "admin") {
+          currentAdmin = data.user;
+          showDashboardUI();
+          loadAdminData();
+          startBackgroundPolling();
+        } else {
+          localStorage.removeItem("resinora_admin_token");
+          showLoginOverlay();
+        }
+      } catch (err) {
+        showLoginOverlay();
+      }
+    }
+
+    function showLoginOverlay() {
+      document.getElementById("adminLoginOverlay").classList.remove("hidden");
+      document.getElementById("adminDashboardContainer").classList.add("hidden");
+      if (pollingInterval) clearInterval(pollingInterval);
+    }
+
+    function showDashboardUI() {
+      document.getElementById("adminLoginOverlay").classList.add("hidden");
+      document.getElementById("adminDashboardContainer").classList.remove("hidden");
+      document.getElementById("adminNameDisplay").innerText = currentAdmin.full_name || currentAdmin.username;
+      lucide.createIcons();
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById("adminLoginBtn");
+      const err = document.getElementById("adminLoginError");
+      err.classList.add("hidden");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin mr-2">⚙️</span> Verifying Admin Access...`;
+
+      try {
+        const resp = await fetch("/api/resinora/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            login: document.getElementById("adminUserInput").value,
+            password: document.getElementById("adminPassInput").value
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Authentication failed");
+
+        if (data.user.role !== "admin") {
+          throw new Error("Access Forbidden: Your account does not have Admin Director privileges.");
+        }
+
+        adminToken = data.token;
+        currentAdmin = data.user;
+        localStorage.setItem("resinora_admin_token", adminToken);
+        showDashboardUI();
+        loadAdminData();
+        startBackgroundPolling();
+      } catch (errObj) {
+        err.innerText = errObj.message;
+        err.classList.remove("hidden");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Authorize Management Session";
+      }
+    }
+
+    function handleAdminLogout() {
+      localStorage.removeItem("resinora_admin_token");
+      adminToken = "";
+      currentAdmin = null;
+      if (pollingInterval) clearInterval(pollingInterval);
+      showLoginOverlay();
+    }
+
+    async function loadAdminData() {
+      await Promise.all([
+        fetchAdminOverview(),
+        fetchAdminOrders(),
+        fetchAdminInquiries(),
+        fetchAdminNotifications()
+      ]);
+    }
+
+    function startBackgroundPolling() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      pollingInterval = setInterval(() => {
+        fetchAdminOverview();
+        fetchAdminOrders(true); // quiet update
+        fetchAdminNotifications();
+      }, 8000);
+    }
+
+    // --- Overview & KPIs ---
+    async function fetchAdminOverview() {
+      try {
+        const resp = await fetch("/api/resinora/admin/overview", {
+          headers: { "X-Resinora-Token": adminToken }
+        });
+        if (resp.status === 403 || resp.status === 401) {
+          handleAdminLogout();
+          return;
+        }
+        const data = await resp.json();
+        document.getElementById("statTotalOrders").innerText = data.total_orders || 0;
+        document.getElementById("statRevenue").innerText = "₹" + Math.round(data.total_revenue || 0).toLocaleString('en-IN');
+        document.getElementById("statInProd").innerText = data.in_production_count || 0;
+        document.getElementById("statShipped").innerText = (data.shipped_count + data.delivered_count) || 0;
+        document.getElementById("statInquiries").innerText = data.new_inquiries_count || 0;
+        document.getElementById("tabCountOrders").innerText = data.total_orders || 0;
+        document.getElementById("tabCountInquiries").innerText = data.new_inquiries_count || 0;
+      } catch (e) {}
+    }
+
+    // --- Orders ---
+    async function fetchAdminOrders(isQuiet = false) {
+      const sort = document.getElementById("orderSortSelect").value;
+      const search = document.getElementById("orderSearchInput").value;
+      
+      try {
+        let url = `/api/resinora/admin/orders?sort=${sort}`;
+        if (activeFilterStatus !== 'ALL') url += `&status=${activeFilterStatus}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        const resp = await fetch(url, {
+          headers: { "X-Resinora-Token": adminToken }
+        });
+        const data = await resp.json();
+        cachedOrders = data.orders || [];
+        renderOrdersList(cachedOrders);
+      } catch (e) {}
+    }
+
+    function renderOrdersList(orders) {
+      const container = document.getElementById("ordersListContainer");
+      if (orders.length === 0) {
+        container.innerHTML = `<div class="p-12 text-center text-xs text-stone-400 bg-white rounded-2xl border border-atelier-border">No orders found matching criteria.</div>`;
+        return;
+      }
+
+      const statusColors = {
+        PENDING: "bg-amber-100 text-amber-800 border-amber-300",
+        CONFIRMED: "bg-blue-100 text-blue-800 border-blue-300",
+        IN_PRODUCTION: "bg-purple-100 text-purple-800 border-purple-300",
+        SHIPPED: "bg-indigo-100 text-indigo-800 border-indigo-300",
+        DELIVERED: "bg-emerald-100 text-emerald-800 border-emerald-300",
+        CANCELLED: "bg-red-100 text-red-800 border-red-300"
+      };
+
+      container.innerHTML = orders.map(ord => {
+        const isCompleted = ord.current_status === 'DELIVERED' || ord.current_status === 'CANCELLED';
+        
+        return `
+          <div class="bg-white rounded-2xl p-5 border border-atelier-border shadow-sm hover:border-atelier-rose/50 transition-all space-y-4">
+            
+            <!-- Top Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <strong class="font-mono text-sm text-stone-900">${ord.order_number}</strong>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusColors[ord.current_status] || 'bg-stone-100 text-stone-800'}">
+                    ${ord.current_status}
+                  </span>
+                </div>
+                <span class="text-[11px] text-stone-500 mt-0.5 block">
+                  Customer: <strong>${ord.customer_name}</strong> (${ord.customer_email}) · ${new Date(ord.created_at).toLocaleString()}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <span class="font-cinzel text-lg font-bold text-stone-900">₹${Math.round(ord.total_amount).toLocaleString('en-IN')}</span>
+                ${!isCompleted ? `
+                  <button onclick="openTransitionModal('${ord.id}', '${ord.order_number}', '${ord.current_status}')" class="px-3.5 py-1.5 rounded-xl bg-atelier-rose text-white text-xs font-cinzel font-bold hover:bg-atelier-roseDeep transition-all flex items-center gap-1 shadow-sm">
+                    <i data-lucide="chevrons-right" class="w-3.5 h-3.5"></i> Advance Status
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Items & Monogram Specs -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div class="space-y-2 bg-atelier-sand/30 p-3.5 rounded-xl border border-atelier-border/50">
+                <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Handcrafted Pieces (${ord.items.length}):</span>
+                ${ord.items.map(item => `
+                  <div class="flex items-center gap-3">
+                    <img src="${item.image || '/static/images/resinora/keychain_letter_v.jpg'}" class="w-10 h-10 rounded-lg object-cover border border-atelier-border">
+                    <div>
+                      <strong class="text-stone-900 block">${item.quantity}x ${item.title}</strong>
+                      <span class="text-[11px] text-stone-600">
+                        ${item.custom_letter ? `<span class="font-bold text-atelier-roseDeep">Initial '${item.custom_letter}'</span> · ` : ''}
+                        ${item.custom_finish ? `${item.custom_finish} · ` : ''}
+                        ${item.custom_inclusions ? `${item.custom_inclusions}` : ''}
+                        ${item.custom_phone_model ? `Phone Model: ${item.custom_phone_model}` : ''}
+                      </span>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+
+              <div class="space-y-2 bg-atelier-sand/30 p-3.5 rounded-xl border border-atelier-border/50">
+                <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Delivery & Logistics:</span>
+                <p class="text-stone-700 text-[11px]"><strong>Address:</strong> ${ord.shipping_address}</p>
+                <p class="text-stone-700 text-[11px]"><strong>Est. Dispatch:</strong> ${ord.estimated_dispatch || 'Standard'}</p>
+                ${ord.tracking_number ? `
+                  <p class="text-emerald-800 text-[11px] font-mono"><strong>Courier:</strong> ${ord.tracking_carrier} — #${ord.tracking_number}</p>
+                ` : '<p class="text-stone-400 text-[10px]">No tracking number assigned yet.</p>'}
+                ${ord.gift_message ? `
+                  <div class="p-2 rounded-lg bg-white border border-atelier-border text-[11px] text-stone-800 italic">
+                    💌 "${ord.gift_message}"
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Lifecycle Timeline History -->
+            <div class="pt-2 border-t border-stone-100">
+              <span class="text-[10px] font-bold text-stone-400 uppercase tracking-wider block mb-1">State Machine Audit Trail:</span>
+              <div class="flex flex-wrap gap-2 text-[11px]">
+                ${ord.status_history ? ord.status_history.map(h => `
+                  <span class="px-2.5 py-1 rounded-lg bg-stone-100 border border-stone-200 text-stone-700">
+                    <strong>${h.status}</strong> · ${new Date(h.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} (${h.updated_by || 'Artisan'})
+                  </span>
+                `).join("") : ''}
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function filterOrdersByStatus(st) {
+      activeFilterStatus = st;
+      document.querySelectorAll(".order-status-pill").forEach(p => {
+        if (p.innerText.trim() === st) {
+          p.className = "order-status-pill active px-3 py-1.5 rounded-xl bg-atelier-rose text-white font-cinzel font-bold";
+        } else {
+          p.className = "order-status-pill px-3 py-1.5 rounded-xl bg-white text-stone-700 border border-atelier-border font-cinzel font-medium";
+        }
+      });
+      fetchAdminOrders();
+    }
+
+    function debounceOrderSearch() {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(fetchAdminOrders, 300);
+    }
+
+    // --- State Machine Transition ---
+    function openTransitionModal(orderId, orderNum, currentStatus) {
+      document.getElementById("transitionOrderId").value = orderId;
+      document.getElementById("transitionOrderNum").innerText = orderNum;
+      document.getElementById("transitionModal").classList.remove("hidden");
+      document.getElementById("transitionModal").classList.add("flex");
+      
+      const select = document.getElementById("transitionTargetStatus");
+      if (currentStatus === 'CONFIRMED') select.value = 'IN_PRODUCTION';
+      else if (currentStatus === 'IN_PRODUCTION') select.value = 'SHIPPED';
+      else if (currentStatus === 'SHIPPED') select.value = 'DELIVERED';
+      
+      handleTargetStatusChange();
+      lucide.createIcons();
+    }
+
+    function closeTransitionModal() {
+      document.getElementById("transitionModal").classList.add("hidden");
+      document.getElementById("transitionModal").classList.remove("flex");
+    }
+
+    function handleTargetStatusChange() {
+      const st = document.getElementById("transitionTargetStatus").value;
+      const shipBox = document.getElementById("shippingFields");
+      if (st === 'SHIPPED') {
+        shipBox.classList.remove("hidden");
+        document.getElementById("transitionCarrier").value = "BlueDart Express Fragile";
+      } else {
+        shipBox.classList.add("hidden");
+      }
+    }
+
+    async function submitTransition(e) {
+      e.preventDefault();
+      const orderId = document.getElementById("transitionOrderId").value;
+      const targetStatus = document.getElementById("transitionTargetStatus").value;
+      const carrier = document.getElementById("transitionCarrier").value;
+      const tracking = document.getElementById("transitionTrackingNum").value;
+      const note = document.getElementById("transitionNote").value;
+
+      const btn = document.getElementById("transitionSubmitBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin mr-2">⚙️</span> Advancing State...`;
+
+      try {
+        const resp = await fetch(`/api/resinora/admin/orders/${orderId}/transition`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Resinora-Token": adminToken
+          },
+          body: JSON.stringify({
+            new_status: targetStatus,
+            tracking_carrier: carrier || null,
+            tracking_number: tracking || null,
+            note: note || null
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Transition failed");
+
+        closeTransitionModal();
+        loadAdminData();
+      } catch (err) {
+        alert("State Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Advance Order State";
+      }
+    }
+
+    // --- Inquiries ---
+    async function fetchAdminInquiries() {
+      try {
+        const resp = await fetch("/api/resinora/admin/inquiries", {
+          headers: { "X-Resinora-Token": adminToken }
+        });
+        const data = await resp.json();
+        cachedInquiries = data.inquiries || [];
+        renderInquiriesList(cachedInquiries);
+      } catch (e) {}
+    }
+
+    function renderInquiriesList(inquiries) {
+      const container = document.getElementById("inquiriesListContainer");
+      if (inquiries.length === 0) {
+        container.innerHTML = `<div class="p-12 text-center text-xs text-stone-400 bg-white rounded-2xl border border-atelier-border">No consultations in queue.</div>`;
+        return;
+      }
+
+      container.innerHTML = inquiries.map(inq => {
+        const isConverted = inq.status === 'CONVERTED_TO_ORDER';
+        
+        return `
+          <div class="bg-white rounded-2xl p-5 border border-atelier-border shadow-sm space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <strong class="font-cinzel text-sm text-stone-900">${inq.occasion_type}</strong>
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${isConverted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">
+                    ${inq.status}
+                  </span>
+                </div>
+                <span class="text-[11px] text-stone-500">
+                  Client: <strong>${inq.name}</strong> (${inq.email}) · ${new Date(inq.created_at).toLocaleDateString()}
+                </span>
+              </div>
+
+              ${!isConverted ? `
+                <button onclick="openConvertModal('${inq.id}', '${inq.name}', '${inq.occasion_type}')" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-cinzel font-bold hover:bg-emerald-700 transition-all flex items-center gap-1 shadow-sm">
+                  <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Convert to Order
+                </button>
+              ` : `
+                <span class="text-xs text-emerald-800 font-mono font-bold">Order #${inq.converted_order_id}</span>
+              `}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs bg-atelier-sand/30 p-3.5 rounded-xl">
+              <div>
+                <span class="text-[10px] font-bold text-stone-500 uppercase">Monogram Initials / Specs:</span>
+                <p class="text-stone-800 font-medium">${inq.details || 'Not specified'}</p>
+                <span class="text-[10px] font-bold text-stone-500 uppercase mt-2 block">Client Budget Tier:</span>
+                <p class="text-atelier-roseDeep font-bold">${inq.budget}</p>
+              </div>
+              <div>
+                <span class="text-[10px] font-bold text-stone-500 uppercase">Client Notes & Floral Preferences:</span>
+                <p class="text-stone-700 italic">${inq.notes || 'None provided'}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+    }
+
+    function openConvertModal(inqId, name, occasion) {
+      document.getElementById("convertInquiryId").value = inqId;
+      document.getElementById("convertClientName").innerText = `${name} — ${occasion}`;
+      document.getElementById("convertTitle").value = `Bespoke Consultation: ${occasion}`;
+      document.getElementById("convertAmount").value = "2400";
+      document.getElementById("convertModal").classList.remove("hidden");
+      document.getElementById("convertModal").classList.add("flex");
+      lucide.createIcons();
+    }
+
+    function closeConvertModal() {
+      document.getElementById("convertModal").classList.add("hidden");
+      document.getElementById("convertModal").classList.remove("flex");
+    }
+
+    async function submitInquiryConversion(e) {
+      e.preventDefault();
+      const inqId = document.getElementById("convertInquiryId").value;
+      const title = document.getElementById("convertTitle").value;
+      const amt = parseFloat(document.getElementById("convertAmount").value);
+      const notes = document.getElementById("convertNotes").value;
+
+      const btn = document.getElementById("convertSubmitBtn");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-spin mr-2">⚙️</span> Converting...`;
+
+      try {
+        const resp = await fetch(`/api/resinora/admin/inquiries/${inqId}/convert`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Resinora-Token": adminToken
+          },
+          body: JSON.stringify({
+            quote_amount: amt,
+            custom_title: title,
+            notes: notes
+          })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.detail || "Conversion failed");
+
+        alert(`✨ Successfully converted to confirmed custom order: ${data.order_number} for ₹${data.total_amount}`);
+        closeConvertModal();
+        loadAdminData();
+        switchAdminTab('orders');
+      } catch (err) {
+        alert("Convert Error: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Spawn Confirmed Reservation";
+      }
+    }
+
+    // --- Notifications ---
+    async function fetchAdminNotifications() {
+      try {
+        const resp = await fetch("/api/resinora/admin/notifications", {
+          headers: { "X-Resinora-Token": adminToken }
+        });
+        const data = await resp.json();
+        const badge = document.getElementById("notifBadge");
+        if (data.unread_count > 0) {
+          badge.innerText = data.unread_count;
+          badge.classList.remove("hidden");
+        } else {
+          badge.classList.add("hidden");
+        }
+
+        const list = document.getElementById("notifList");
+        if (data.notifications && data.notifications.length > 0) {
+          list.innerHTML = data.notifications.map(n => `
+            <div class="p-2 rounded-xl ${n.read ? 'bg-stone-50' : 'bg-rose-50 border border-rose-200'}">
+              <strong class="block text-stone-900 font-medium">${n.title}</strong>
+              <p class="text-[11px] text-stone-600">${n.details}</p>
+              <span class="text-[9px] text-stone-400 block mt-1">${new Date(n.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </div>
+          `).join("");
+        }
+      } catch (e) {}
+    }
+
+    function toggleNotificationPanel() {
+      document.getElementById("notifPanel").classList.toggle("hidden");
+    }
+
+    async function markAllNotificationsRead() {
+      try {
+        await fetch("/api/resinora/admin/notifications/mark-read", {
+          method: "POST",
+          headers: { "X-Resinora-Token": adminToken }
+        });
+        fetchAdminNotifications();
+      } catch (e) {}
+    }
+
+    // --- Tab Switching ---
+    function switchAdminTab(tab) {
+      const tabO = document.getElementById("tabNavOrders");
+      const tabI = document.getElementById("tabNavInquiries");
+      const secO = document.getElementById("sectionOrders");
+      const secI = document.getElementById("sectionInquiries");
+
+      if (tab === 'orders') {
+        tabO.className = "pb-3 border-b-2 border-atelier-rose text-atelier-roseDeep tracking-wider";
+        tabI.className = "pb-3 border-b-2 border-transparent text-stone-500 hover:text-stone-900 tracking-wider";
+        secO.classList.remove("hidden");
+        secI.classList.add("hidden");
+      } else {
+        tabI.className = "pb-3 border-b-2 border-atelier-rose text-atelier-roseDeep tracking-wider";
+        tabO.className = "pb-3 border-b-2 border-transparent text-stone-500 hover:text-stone-900 tracking-wider";
+        secI.classList.remove("hidden");
+        secO.classList.add("hidden");
+      }
+    }
+  </script>
+</body>
+</html>
