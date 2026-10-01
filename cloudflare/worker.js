@@ -193,35 +193,127 @@ export default {
       }
     }
 
-    // Pass-through for origin health probes if origin comes back online
-    if (url.pathname === "/api/v1/health" || url.pathname === "/healthz") {
+    // 3. Edge AI Text Generation Gateway (Cloudflare Workers AI - Llama 3.2 3B)
+    if (url.pathname === "/api/v1/ai/generate" || url.pathname === "/api/v1/ai/chat") {
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed. Use POST." }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      }
       try {
-        const originResponse = await fetch(request);
-        if (originResponse.status === 200) {
-          return originResponse;
+        if (!env.AI) {
+          return new Response(JSON.stringify({ error: "Cloudflare Workers AI binding not available" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          });
         }
-      } catch (e) {
-        // Origin is unreachable, fall back to maintenance
+        const aiBody = await request.json();
+        const prompt = aiBody.prompt || "Hello";
+        const system = aiBody.system || "You are an AI assistant for Connecto real-time community platform.";
+
+        const result = await env.AI.run("@cf/meta/llama-3.2-3b-instruct", {
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 512
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          engine: "Cloudflare Workers AI",
+          model: "@cf/meta/llama-3.2-3b-instruct",
+          response: result.response || result
+        }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-store"
+          }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
       }
     }
 
-    // Route maintenance page based on subdomain
-    let body = CONNECTO_MAIN_HTML;
-    if (host.startsWith("news.")) {
-      body = NEWS_HTML;
-    } else if (host.startsWith("resinora.")) {
-      body = RESINORA_HTML;
+    // 4. Edge AI Content Moderation Gateway (Cloudflare Workers AI - Llama Guard 3)
+    if (url.pathname === "/api/v1/ai/moderate") {
+      if (request.method !== "POST") {
+        return new Response(JSON.stringify({ error: "Method not allowed. Use POST." }), {
+          status: 405,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      }
+      try {
+        if (!env.AI) {
+          return new Response(JSON.stringify({ error: "Cloudflare Workers AI binding not available" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+          });
+        }
+        const { text } = await request.json();
+        const result = await env.AI.run("@cf/meta/llama-guard-3-8b", {
+          messages: [{ role: "user", content: text || "" }]
+        });
+
+        return new Response(JSON.stringify({
+          success: true,
+          engine: "Cloudflare Workers AI",
+          model: "@cf/meta/llama-guard-3-8b",
+          response: result.response || result
+        }), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-store"
+          }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, error: err.message }), {
+          status: 500,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+        });
+      }
     }
 
-    return new Response(body, {
-      status: 503,
-      statusText: "Service Unavailable",
-      headers: {
-        "Content-Type": "text/html;charset=UTF-8",
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "Retry-After": "60",
-        "X-Maintenance": "true"
+    // 5. Intelligent Origin Proxy with Automated Cloudflare Maintenance Failover
+    try {
+      const originResponse = await fetch(request);
+      // If origin returns a gateway error (502, 503, 504), gracefully failover to maintenance
+      if (originResponse.status === 502 || originResponse.status === 503 || originResponse.status === 504) {
+        return getMaintenanceResponse(host);
       }
-    });
+      return originResponse;
+    } catch (e) {
+      // Origin is unreachable, failover to maintenance page
+      return getMaintenanceResponse(host);
+    }
   }
 };
+
+function getMaintenanceResponse(host) {
+  let body = CONNECTO_MAIN_HTML;
+  if (host.startsWith("news.")) {
+    body = NEWS_HTML;
+  } else if (host.startsWith("resinora.")) {
+    body = RESINORA_HTML;
+  }
+
+  return new Response(body, {
+    status: 503,
+    statusText: "Service Unavailable",
+    headers: {
+      "Content-Type": "text/html;charset=UTF-8",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      "Retry-After": "60",
+      "X-Maintenance": "true"
+    }
+  });
+}
+

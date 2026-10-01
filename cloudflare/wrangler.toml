@@ -11,3 +11,7 @@ routes = [
 binding = "DB"
 database_name = "connecto-db"
 database_id = "c95366cb-6dde-4bfe-8a3e-f466969f1a16"
+
+[ai]
+binding = "AI"
+
