@@ -6,3 +6,8 @@ routes = [
   { pattern = "connecto.fun/*", zone_name = "connecto.fun" },
   { pattern = "*.connecto.fun/*", zone_name = "connecto.fun" }
 ]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "connecto-db"
+database_id = "c95366cb-6dde-4bfe-8a3e-f466969f1a16"
