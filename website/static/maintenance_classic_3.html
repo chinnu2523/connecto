@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Connecto • Routine Maintenance</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23111827'/><path d='M30 35h40a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H45L30 78V41a6 6 0 0 1 6-6z' fill='%23FFFFFF'/><circle cx='42' cy='52' r='4' fill='%236366F1'/><circle cx='58' cy='52' r='4' fill='%236366F1'/></svg>">
+  <style>
+    :root {
+      --bg: #0e1117;
+      --text-title: #ffffff;
+      --text-sub: #9ca3af;
+      --text-muted: #6b7280;
+      --border: #1f2937;
+      --button-bg: #f3f4f6;
+      --button-text: #111827;
+      --button-hover: #e5e7eb;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-sub);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 48px 24px 32px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      text-align: center;
+    }
+
+    /* Top Brand */
+    .brand-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text-title);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+    .brand-symbol {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand-symbol svg { width: 18px; height: 18px; fill: #ffffff; }
+
+    /* Center Content Container */
+    main.center-box {
+      max-width: 500px;
+      margin: 40px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .maintenance-icon-wrap {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+    .maintenance-icon-wrap svg {
+      width: 26px;
+      height: 26px;
+      stroke: #9ca3af;
+    }
+
+    h1.heading {
+      color: var(--text-title);
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+      line-height: 1.25;
+      margin-bottom: 16px;
+    }
+
+    p.body-text {
+      font-size: 16px;
+      color: var(--text-sub);
+      margin-bottom: 32px;
+    }
+
+    .button-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-refresh {
+      background: var(--button-bg);
+      color: var(--button-text);
+      border: none;
+      padding: 12px 28px;
+      border-radius: 24px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-refresh:hover { background: var(--button-hover); transform: translateY(-1px); }
+
+    .btn-status-link {
+      background: transparent;
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+      padding: 11px 22px;
+      border-radius: 24px;
+      font-size: 14.5px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-status-link:hover { color: var(--text-title); border-color: #374151; }
+
+    .auto-reload-status {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f59e0b;
+    }
+
+    /* Footer */
+    footer.bottom-bar {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    footer.bottom-bar a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.15s ease;
+    }
+    footer.bottom-bar a:hover { color: var(--text-sub); }
+
+    /* Toast */
+    #minimal-toast {
+      position: fixed;
+      bottom: 24px;
+      background: #181c24;
+      border: 1px solid #2d3748;
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+    #minimal-toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 520px) {
+      h1.heading { font-size: 26px; }
+      p.body-text { font-size: 15px; }
+      .button-group { flex-direction: column; width: 100%; }
+      .btn-refresh, .btn-status-link { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Brand -->
+  <a href="#" class="brand-link">
+    <div class="brand-symbol">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+    </div>
+    <span>Connecto</span>
+  </a>
+
+  <!-- Content -->
+  <main class="center-box">
+    <div class="maintenance-icon-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="12 6 12 12 16 14"></polyline>
+      </svg>
+    </div>
+
+    <h1 class="heading">Temporarily down for maintenance</h1>
+
+    <p class="body-text">
+      We are performing routine server upgrades to keep Connecto fast, secure, and reliable. We expect to be back online in just a few minutes.
+    </p>
+
+    <div class="button-group">
+      <button class="btn-refresh" id="btn-refresh" onclick="handleRefresh()">
+        <span id="refresh-label">Refresh Page</span>
+      </button>
+      <a href="/static/status.html" class="btn-status-link">View System Status</a>
+    </div>
+
+    <div class="auto-reload-status">
+      <div class="status-dot"></div>
+      <span>Auto-refreshing in <span id="time-left">30</span> seconds</span>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bottom-bar">
+    <span>Need help? <a href="mailto:support@connecto.fun">support@connecto.fun</a></span>
+    <span>&bull;</span>
+    <a href="https://t.me/connecto" target="_blank" rel="noopener">Telegram Channel</a>
+    <span>&bull;</span>
+    <span>&copy; 2026 Connecto</span>
+  </footer>
+
+  <div id="minimal-toast"></div>
+
+  <script>
+    let remaining = 30;
+    const timeLeft = document.getElementById('time-left');
+    const toast = document.getElementById('minimal-toast');
+    const refreshLabel = document.getElementById('refresh-label');
+
+    setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        remaining = 30;
+        handleRefresh(true);
+      }
+      timeLeft.innerText = remaining;
+    }, 1000);
+
+    function handleRefresh(silent = false) {
+      if (!silent) refreshLabel.innerText = 'Checking...';
+
+      fetch('/api/v1/health', { method: 'GET', cache: 'no-store' })
+        .then(res => {
+          if (res.status === 200) {
+            showToast('Service is restored! Reloading...');
+            setTimeout(() => window.location.reload(), 800);
+          } else {
+            if (!silent) showToast('Maintenance is still ongoing. Will recheck automatically.');
+            refreshLabel.innerText = 'Refresh Page';
+            remaining = 30;
+          }
+        })
+        .catch(() => {
+          if (!silent) showToast('Maintenance is still ongoing. Will recheck automatically.');
+          refreshLabel.innerText = 'Refresh Page';
+          remaining = 30;
+        });
+    }
+
+    function showToast(msg) {
+      toast.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+  </script>
+</body>
+</html>

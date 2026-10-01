@@ -3,37 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connecto Maintenance Templates • Interactive Showcase</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='28' fill='%236366F1'/><path d='M30 35h40a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H45L30 78V41a6 6 0 0 1 6-6z' fill='%23FFFFFF'/><circle cx='42' cy='52' r='4' fill='%236366F1'/><circle cx='58' cy='52' r='4' fill='%236366F1'/></svg>">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+  <title>Connecto Classic Maintenance Templates • Showcase</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%234F46E5'/><path d='M30 35h40a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H45L30 78V41a6 6 0 0 1 6-6z' fill='%23FFFFFF'/><circle cx='42' cy='52' r='4' fill='%234F46E5'/><circle cx='58' cy='52' r='4' fill='%234F46E5'/></svg>">
   <style>
     :root {
-      --bar-bg: rgba(10, 14, 24, 0.92);
-      --indigo: #6366f1;
-      --cyan: #38bdf8;
-      --emerald: #10b981;
-      --border: rgba(255, 255, 255, 0.1);
+      --bar-bg: #0c1017;
+      --border: #1f2937;
+      --text-1: #f9fafb;
+      --text-2: #9ca3af;
+      --primary: #4f46e5;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: #06080e;
       color: #fff;
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
-    /* Master Top Switcher Bar */
+    /* Top Switcher Bar */
     header.switch-bar {
-      height: 64px;
+      height: 60px;
       padding: 0 24px;
       background: var(--bar-bg);
       border-bottom: 1px solid var(--border);
-      backdrop-filter: blur(20px);
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -47,30 +43,27 @@
       gap: 12px;
     }
     .logo-badge {
-      width: 32px;
-      height: 32px;
-      border-radius: 9px;
-      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .logo-badge svg { width: 17px; height: 17px; fill: #fff; }
+    .logo-badge svg { width: 16px; height: 16px; fill: #fff; }
     .brand-name {
-      font-family: 'Outfit', sans-serif;
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: -0.3px;
-    }
-    .brand-name span { color: var(--cyan); }
-    .template-badge {
-      font-size: 11px;
+      font-size: 16px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 6px;
-      background: rgba(99, 102, 241, 0.15);
-      border: 1px solid rgba(99, 102, 241, 0.35);
-      color: #a5b4fc;
+      color: var(--text-1);
+    }
+    .category-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #1f2937;
+      color: #cbd5e1;
     }
 
     /* Template Tabs */
@@ -79,36 +72,30 @@
       align-items: center;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 4px;
+      border-radius: 8px;
+      padding: 3px;
       gap: 4px;
     }
     .tab-btn {
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: var(--text-2);
       font-family: inherit;
       font-size: 13px;
-      font-weight: 600;
-      padding: 7px 16px;
-      border-radius: 8px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
+      gap: 6px;
+      transition: all 0.15s ease;
     }
     .tab-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
     .tab-btn.active {
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      background: #1f2937;
       color: #fff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-    }
-    .tab-btn.active.term-style {
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid #10b981;
-      color: #34d399;
-      box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+      font-weight: 600;
     }
 
     /* Actions */
@@ -121,44 +108,40 @@
       display: flex;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 2px;
     }
     .dev-btn {
       background: none;
       border: none;
-      color: #94a3b8;
-      padding: 6px 10px;
+      color: var(--text-2);
+      padding: 5px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: all 0.15s;
+    }
+    .dev-btn:hover { color: #fff; }
+    .dev-btn.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .dev-btn svg { width: 15px; height: 15px; }
+
+    .btn-action-primary {
+      background: #f3f4f6;
+      color: #111827;
+      border: none;
+      font-family: inherit;
+      font-size: 12.5px;
+      font-weight: 600;
+      padding: 7px 14px;
       border-radius: 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      transition: all 0.2s;
-    }
-    .dev-btn:hover { color: #fff; }
-    .dev-btn.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
-    .dev-btn svg { width: 16px; height: 16px; }
-
-    .btn-action-primary {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      padding: 8px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
       gap: 6px;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-      transition: all 0.2s;
+      transition: background 0.15s ease;
     }
-    .btn-action-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
-    }
+    .btn-action-primary:hover { background: #e5e7eb; }
 
     /* Viewport Area */
     .viewport-container {
@@ -166,7 +149,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #020408;
+      background: #07090e;
       overflow: hidden;
       position: relative;
     }
@@ -174,20 +157,21 @@
       width: 100%;
       height: 100%;
       border: none;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      transition: all 0.25s ease;
     }
     .viewport-frame.tablet {
       width: 768px;
       height: 94%;
-      border-radius: 20px;
+      border-radius: 14px;
       border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
     }
     .viewport-frame.mobile {
       width: 390px;
       height: 92%;
-      border-radius: 36px;
+      border-radius: 24px;
       border: 1px solid var(--border);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
     }
   </style>
 </head>
@@ -199,20 +183,20 @@
       <div class="logo-badge">
         <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
       </div>
-      <div class="brand-name">connecto<span>.fun</span></div>
-      <span class="template-badge">TEMPLATE STUDIO</span>
+      <div class="brand-name">Connecto</div>
+      <span class="category-badge">CLASSIC TEMPLATES</span>
     </div>
 
     <!-- Switcher Tabs -->
     <div class="tabs-group">
-      <button class="tab-btn active" id="tab-1" onclick="switchTemplate(1)">
-        <span>✨ Template 1: Cyber Aurora</span>
+      <button class="tab-btn active" id="tab-c1" onclick="switchTemplate('c1')">
+        <span>Classic 1: Clean Standard</span>
       </button>
-      <button class="tab-btn" id="tab-2" onclick="switchTemplate(2)">
-        <span>⚡ Template 2: Mission Control</span>
+      <button class="tab-btn" id="tab-c2" onclick="switchTemplate('c2')">
+        <span>Classic 2: Structured Incident</span>
       </button>
-      <button class="tab-btn" id="tab-3" onclick="switchTemplate(3)">
-        <span>💎 Template 3: Studio Luxury</span>
+      <button class="tab-btn" id="tab-c3" onclick="switchTemplate('c3')">
+        <span>Classic 3: Minimal Editorial</span>
       </button>
     </div>
 
@@ -230,8 +214,8 @@
         </button>
       </div>
 
-      <button class="btn-action-primary" onclick="openCurrentTemplateStandalone()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+      <button class="btn-action-primary" onclick="openStandalone()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
         <span>Open Standalone</span>
       </button>
     </div>
@@ -239,33 +223,26 @@
 
   <!-- Viewport -->
   <main class="viewport-container">
-    <iframe class="viewport-frame" id="preview-frame" src="/static/maintenance_template_1.html"></iframe>
+    <iframe class="viewport-frame" id="preview-frame" src="/static/maintenance_classic_1.html"></iframe>
   </main>
 
   <script>
-    let activeTpl = 1;
-    let activeDev = 'desktop';
+    let activeTpl = 'c1';
 
     const tplUrls = {
-      1: '/static/maintenance_template_1.html',
-      2: '/static/maintenance_template_2.html',
-      3: '/static/maintenance_template_3.html'
+      'c1': '/static/maintenance_classic_1.html',
+      'c2': '/static/maintenance_classic_2.html',
+      'c3': '/static/maintenance_classic_3.html'
     };
 
     function switchTemplate(id) {
       activeTpl = id;
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('active', 'term-style');
-      });
-      const btn = document.getElementById('tab-' + id);
-      btn.classList.add('active');
-      if (id === 2) btn.classList.add('term-style');
-
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + id).classList.add('active');
       document.getElementById('preview-frame').src = tplUrls[id];
     }
 
     function setDevice(device) {
-      activeDev = device;
       document.querySelectorAll('.dev-btn').forEach(b => b.classList.remove('active'));
       document.getElementById('dev-' + device).classList.add('active');
 
@@ -273,7 +250,7 @@
       frame.className = 'viewport-frame ' + (device === 'desktop' ? '' : device);
     }
 
-    function openCurrentTemplateStandalone() {
+    function openStandalone() {
       window.open(tplUrls[activeTpl], '_blank');
     }
   </script>
