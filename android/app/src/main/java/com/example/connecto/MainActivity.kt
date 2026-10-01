@@ -91,6 +91,7 @@ enum class AppFlowState {
 class MainActivity : FragmentActivity() {
     companion object {
         var pendingIntentAction by mutableStateOf<String?>(null)
+        var pendingOpenChatTarget by mutableStateOf<String?>(null)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -144,8 +145,23 @@ class MainActivity : FragmentActivity() {
 
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
-        intent.getStringExtra(ConnectoNotificationManager.EXTRA_NOTIFICATION_ACTION)?.let {
-            pendingIntentAction = it
+        val action = intent.getStringExtra(ConnectoNotificationManager.EXTRA_NOTIFICATION_ACTION)
+        val type = intent.getStringExtra("type")
+        val target = intent.getStringExtra(ConnectoNotificationManager.EXTRA_CHANNEL_ID)
+            ?: intent.getStringExtra("reference_id")
+            ?: intent.getStringExtra("channel_id")
+            ?: intent.getStringExtra("room_id")
+            ?: intent.getStringExtra("sender_username")
+            ?: intent.getStringExtra("sender")
+
+        if (!action.isNullOrBlank()) {
+            pendingIntentAction = action
+        }
+        if (action == ConnectoNotificationManager.ACTION_OPEN_CHAT || type in listOf("dm", "message", "new_dm_alert")) {
+            pendingIntentAction = ConnectoNotificationManager.ACTION_OPEN_CHAT
+            if (!target.isNullOrBlank()) {
+                pendingOpenChatTarget = target
+            }
         }
         if (intent.getBooleanExtra("test_in_app_banner", false)) {
             val sender = intent.getStringExtra("sender") ?: "CyberValkyrie"
@@ -565,7 +581,11 @@ fun ConnectoApp(
                                                 isDirectChatOpen = isOpen
                                             },
                                             onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount
+                                            unreadNotificationsCount = unreadNotifCount,
+                                            targetChatUserOrChannel = MainActivity.pendingOpenChatTarget,
+                                            onTargetChatHandled = {
+                                                MainActivity.pendingOpenChatTarget = null
+                                            }
                                         )
                                     }
                                     ConnectoTab.CHANNELS -> {

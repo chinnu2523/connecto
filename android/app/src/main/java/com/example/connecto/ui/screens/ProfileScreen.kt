@@ -155,6 +155,8 @@ import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.rotatingGlowHalo
+import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
+import com.example.connecto.ui.designsystem.getAvatarGradient
 import kotlinx.coroutines.delay
 
 /**
@@ -534,36 +536,28 @@ fun ProfileScreen(
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    val hasValidAvatar = !profilePhotoUri.isNullOrEmpty() && profilePhotoUri != "null"
-                                    if (hasValidAvatar) {
-                                        AsyncImage(
-                                            model = profilePhotoUri,
-                                            contentDescription = "Profile Photo",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape)
+                                    val sanitizedProfilePhoto = sanitizeAvatarUrl(profilePhotoUri)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(CircleShape)
+                                            .background(getAvatarGradient(username)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = userInitial,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 36.sp
                                         )
-                                    } else {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .clip(CircleShape)
-                                                .background(
-                                                    Brush.linearGradient(
-                                                        listOf(
-                                                            MaterialTheme.colorScheme.primary,
-                                                            MaterialTheme.colorScheme.secondary
-                                                        )
-                                                    )
-                                                ),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = userInitial,
-                                                color = Color.White,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 36.sp
+                                        if (sanitizedProfilePhoto != null) {
+                                            AsyncImage(
+                                                model = sanitizedProfilePhoto,
+                                                contentDescription = "Profile Photo",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape)
                                             )
                                         }
                                     }

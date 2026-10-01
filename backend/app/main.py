@@ -504,21 +504,34 @@ from app.core.storage import process_and_save_banner, process_and_save_avatar
 # =============================================================================
 _SITE_BASE = "https://connecto.fun"
 
-def _normalize_avatar_url(url: str) -> str:
-    """Returns full URL for avatar_url so APK gets correct src without needing base URL."""
+def _normalize_avatar_url(url: Optional[str]) -> str:
+    """Returns full URL for avatar_url so APK gets correct src without needing base URL.
+    Returns empty string if null, none, undefined, or not a valid URL/path.
+    """
     if not url:
-        return url
-    if url.startswith('/uploads/') or url.startswith('uploads/'):
-        return _SITE_BASE + '/' + url.lstrip('/')
-    return url
+        return ""
+    clean = str(url).strip()
+    if clean.lower() in ("null", "none", "undefined", "nil", "false", ""):
+        return ""
+    # Filter out emoji/raw characters that are not image paths or URLs
+    if not (clean.startswith("/") or clean.startswith("http://") or clean.startswith("https://") or clean.startswith("data:")):
+        return ""
+    if clean.startswith('/uploads/') or clean.startswith('uploads/'):
+        return _SITE_BASE + '/' + clean.lstrip('/')
+    return clean
 
-def _normalize_banner_url(url: str) -> str:
+def _normalize_banner_url(url: Optional[str]) -> str:
     """Returns full URL for banner_url."""
     if not url:
-        return url
-    if url.startswith('/uploads/') or url.startswith('uploads/'):
-        return _SITE_BASE + '/' + url.lstrip('/')
-    return url
+        return ""
+    clean = str(url).strip()
+    if clean.lower() in ("null", "none", "undefined", "nil", "false", ""):
+        return ""
+    if not (clean.startswith("/") or clean.startswith("http://") or clean.startswith("https://") or clean.startswith("data:")):
+        return ""
+    if clean.startswith('/uploads/') or clean.startswith('uploads/'):
+        return _SITE_BASE + '/' + clean.lstrip('/')
+    return clean
 
 def is_user_strictly_online(user_obj) -> bool:
     """Returns True ONLY if user is currently connected via WebSocket and not stealth."""
@@ -1840,9 +1853,9 @@ async def get_channel_messages_compat(
             "sender_username": user.username if user else "gamer",
             "nickname": (user.display_name or user.username) if user else "Gamer",
             "sender_display_name": (user.display_name or user.username) if user else "Gamer",
-            "avatar_url": user.avatar_url if user else None,
-            "sender_avatar_url": user.avatar_url if user else None,
-            "avatar": user.avatar_url if user else None,
+            "avatar_url": (_normalize_avatar_url(user.avatar_url) or None) if user else None,
+            "sender_avatar_url": (_normalize_avatar_url(user.avatar_url) or None) if user else None,
+            "avatar": (_normalize_avatar_url(user.avatar_url) or None) if user else None,
             "content": msg.content,
             "text": msg.content,
             "type": msg_type,
@@ -2041,6 +2054,7 @@ async def post_channel_message_compat(
                         participants.append(du.id)
                 await db.commit()
 
+    norm_user_avatar = _normalize_avatar_url(user.avatar_url) or None
     # Broadcast WebSocket event with both channel UUID and human-readable channel name
     event_data = {
         "id": new_msg.id,
@@ -2049,7 +2063,7 @@ async def post_channel_message_compat(
         "sender_id": user.id,
         "sender_username": user.username,
         "sender_display_name": user.display_name or user.username,
-        "sender_avatar_url": user.avatar_url,
+        "sender_avatar_url": norm_user_avatar,
         "content": new_msg.content,
         "text": new_msg.content,
         "attachments": attachments_data,
@@ -2061,8 +2075,8 @@ async def post_channel_message_compat(
         "nonce": None,
         "user": user.username,
         "nickname": user.display_name or user.username,
-        "avatar": user.avatar_url,
-        "avatar_url": user.avatar_url,
+        "avatar": norm_user_avatar,
+        "avatar_url": norm_user_avatar,
         "timestamp": str(new_msg.created_at) if new_msg.created_at else "Just now",
         "created_at": str(new_msg.created_at) if new_msg.created_at else ""
     }
@@ -2129,8 +2143,10 @@ async def post_channel_message_compat(
                             "body": new_msg.content,
                             "reference_id": ch_name_str,
                             "room_id": channel.id,
-                            "sender_avatar": user.avatar_url or "",
-                            "avatar": user.avatar_url or ""
+                            "channel_id": channel.id,
+                            "sender_avatar": norm_user_avatar or "",
+                            "avatar": norm_user_avatar or "",
+                            "extra_notification_action": "com.example.connecto.ACTION_OPEN_CHAT"
                         },
                         notification_type="dm"
                     ))
@@ -3689,7 +3705,9 @@ async def update_user_profile_compat(
 
     if avatar_url is not None:
         clean_av = str(avatar_url).strip()
-        if not clean_av.lower().startswith("javascript:") and not clean_av.lower().startswith("data:text/html"):
+        if clean_av.lower() in ("null", "none", "undefined", "nil", "false", ""):
+            user.avatar_url = None
+        elif not clean_av.lower().startswith("javascript:") and not clean_av.lower().startswith("data:text/html"):
             user.avatar_url = clean_av[:512]
     if is_stealth is not None:
         user.is_stealth = bool(is_stealth)
@@ -3848,6 +3866,7 @@ async def get_friends_compat(
         is_online = is_user_strictly_online(friend_u)
         presence_status = "offline" if (is_stealth or not is_online) else "online"
         f_rank = "Hokage" if (getattr(friend_u, "is_admin", False) or friend_u.username.lower() in ("chinnu", "admin", "connecto_admin")) else "Chunin"
+        norm_friend_avatar = _normalize_avatar_url(friend_u.avatar_url)
         friends_list.append({
             "id": friend_u.id,
             "user_id": user.id,
@@ -3857,10 +3876,10 @@ async def get_friends_compat(
             "nickname": friend_u.display_name or friend_u.username,
             "display_name": friend_u.display_name or friend_u.username,
             "friend_display_name": friend_u.display_name or friend_u.username,
-            "avatar": friend_u.avatar_url or "🥷",
-            "avatar_url": friend_u.avatar_url or "🥷",
-            "friend_avatar_url": friend_u.avatar_url or "🥷",
-            "banner_url": getattr(friend_u, "banner_url", "") or "",
+            "avatar": norm_friend_avatar or "👤",
+            "avatar_url": norm_friend_avatar or None,
+            "friend_avatar_url": norm_friend_avatar or None,
+            "banner_url": _normalize_banner_url(getattr(friend_u, "banner_url", "") or "") or None,
             "status": presence_status,
             "is_online": is_online,
             "is_stealth": False,

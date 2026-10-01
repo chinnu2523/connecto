@@ -92,12 +92,20 @@ def process_and_save_banner(file_bytes: bytes) -> str:
         image = image.convert("RGB")
 
     banner_dir = os.path.join(settings.UPLOAD_DIR, "banners")
-    os.makedirs(banner_dir, exist_ok=True)
+    os.makedirs(banner_dir, mode=0o755, exist_ok=True)
+    try:
+        os.chmod(banner_dir, 0o755)
+    except Exception:
+        pass
 
     filename = f"{uuid.uuid4().hex}.webp"
     filepath = os.path.join(banner_dir, filename)
 
     image.save(filepath, "WEBP", quality=82, optimize=True)
+    try:
+        os.chmod(filepath, 0o644)
+    except Exception:
+        pass
 
     return f"/uploads/banners/{filename}"
 
@@ -126,15 +134,24 @@ def process_and_save_avatar(file_bytes: bytes) -> str:
     # Resize image preserving aspect ratio (max 512x512)
     image.thumbnail((512, 512), Image.Resampling.LANCZOS)
 
-    # Create destination dir
+    # Create destination dir with explicit read & traverse permissions
     avatar_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
-    os.makedirs(avatar_dir, exist_ok=True)
+    os.makedirs(avatar_dir, mode=0o755, exist_ok=True)
+    try:
+        os.chmod(avatar_dir, 0o755)
+    except Exception:
+        pass
 
     # Generate unique filename
     filename = f"{uuid.uuid4().hex}.webp"
     filepath = os.path.join(avatar_dir, filename)
 
-    # Save compressed WebP image
+    # Save compressed WebP image and enforce 0644 read permissions
     image.save(filepath, "WEBP", quality=85, optimize=True)
+    try:
+        os.chmod(filepath, 0o644)
+    except Exception:
+        pass
 
     return f"/uploads/avatars/{filename}"
+

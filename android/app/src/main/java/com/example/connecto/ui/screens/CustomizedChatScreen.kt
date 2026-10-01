@@ -143,6 +143,8 @@ import com.example.connecto.network.ConnectoApiClient
 import java.util.UUID
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
+import com.example.connecto.ui.designsystem.ConnectoAvatar
+import com.example.connecto.ui.designsystem.ConnectoPresenceStatus
 import com.example.connecto.ui.theme.isAppInLightTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -220,6 +222,8 @@ fun CustomizedChatScreen(
     onDirectChatStateChanged: (Boolean) -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
+    targetChatUserOrChannel: String? = null,
+    onTargetChatHandled: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedFriend by remember { mutableStateOf<FriendItem?>(null) }
@@ -271,6 +275,37 @@ fun CustomizedChatScreen(
     // Friends List State - start empty, populated by IO LaunchedEffect below for 0ms Main-thread blocking
     val friendsList = remember { mutableStateListOf<FriendItem>() }
     var isFriendsLoadedOnce by remember { mutableStateOf(false) }
+
+    // Auto-select chat when opened from push notification intent
+    LaunchedEffect(targetChatUserOrChannel, friendsList.size) {
+        val target = targetChatUserOrChannel?.trim()
+        if (!target.isNullOrBlank()) {
+            val clean = target.lowercase().removePrefix("@").removePrefix("dm-").removePrefix("dm_")
+            val matchingFriend = friendsList.firstOrNull {
+                it.id.equals(clean, ignoreCase = true) ||
+                it.handle.removePrefix("@").equals(clean, ignoreCase = true) ||
+                it.name.equals(clean, ignoreCase = true) ||
+                (target.startsWith("dm-") && target.contains(it.handle.removePrefix("@").lowercase()))
+            }
+            if (matchingFriend != null) {
+                selectedFriend = matchingFriend
+            } else {
+                val displayName = clean.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+                selectedFriend = FriendItem(
+                    id = clean,
+                    name = displayName,
+                    handle = "@$clean",
+                    initial = clean.take(1).uppercase(),
+                    status = "Online",
+                    bio = "Connecto Member",
+                    lastMessage = "",
+                    isOnline = true,
+                    avatarUrl = null
+                )
+            }
+            onTargetChatHandled?.invoke()
+        }
+    }
 
     // Load cached friends from SQLite on IO thread on first composition
     LaunchedEffect(Unit) {
@@ -924,33 +959,14 @@ fun CustomizedChatScreen(
                     }
 
                     // Avatar Circle
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Brush.sweepGradient(gradientColors), CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        val friendAvatar = selectedFriend?.avatarUrl
-                        if (!friendAvatar.isNullOrBlank()) {
-                            AsyncImage(
-                                model = friendAvatar,
-                                contentDescription = selectedFriend?.name,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Text(
-                                text = selectedFriend!!.initial,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
+                    ConnectoAvatar(
+                        name = selectedFriend?.name ?: "Friend",
+                        avatarUrl = selectedFriend?.avatarUrl,
+                        customSizeDp = 80.dp,
+                        customFontSizeSp = 30,
+                        borderWidth = 2.5.dp,
+                        borderBrush = Brush.sweepGradient(gradientColors)
+                    )
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
@@ -1244,33 +1260,14 @@ fun CustomizedChatScreen(
                                 .weight(1f)
                                 .clickable { showFriendProfileDialog = true }
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                    .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val topBarAvatar = selectedFriend?.avatarUrl
-                                if (!topBarAvatar.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = topBarAvatar,
-                                        contentDescription = selectedFriend?.name,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(CircleShape)
-                                    )
-                                } else {
-                                    Text(
-                                        text = selectedFriend!!.initial,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 17.sp
-                                    )
-                                }
-                            }
+                            ConnectoAvatar(
+                                name = selectedFriend?.name ?: "Friend",
+                                avatarUrl = selectedFriend?.avatarUrl,
+                                customSizeDp = 42.dp,
+                                customFontSizeSp = 16,
+                                borderWidth = 1.5.dp,
+                                borderColor = MaterialTheme.colorScheme.primary
+                            )
 
                             Spacer(modifier = Modifier.width(10.dp))
 
@@ -1578,44 +1575,15 @@ fun CustomizedChatScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     // Avatar with online status ring
-                                    Box(contentAlignment = Alignment.BottomEnd) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                                .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (!friend.avatarUrl.isNullOrBlank()) {
-                                                AsyncImage(
-                                                    model = friend.avatarUrl,
-                                                    contentDescription = friend.name,
-                                                    contentScale = ContentScale.Crop,
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .clip(CircleShape)
-                                                )
-                                            } else {
-                                                Text(
-                                                    text = friend.initial,
-                                                    fontSize = 18.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-
-                                        if (friend.isOnline) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(13.dp)
-                                                    .clip(CircleShape)
-                                                    .background(OnlineGreen)
-                                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                            )
-                                        }
-                                    }
+                                    ConnectoAvatar(
+                                        name = friend.name,
+                                        avatarUrl = friend.avatarUrl,
+                                        customSizeDp = 48.dp,
+                                        customFontSizeSp = 18,
+                                        status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
+                                        borderWidth = 1.5.dp,
+                                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    )
 
                                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -2250,32 +2218,14 @@ private fun CustomChatBubble(
         verticalAlignment = Alignment.Bottom
     ) {
         if (!message.isMe) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                if (!message.avatarUrl.isNullOrBlank()) {
-                    AsyncImage(
-                        model = message.avatarUrl,
-                        contentDescription = message.senderName,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape)
-                    )
-                } else {
-                    Text(
-                        text = message.initial,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            ConnectoAvatar(
+                name = message.senderName,
+                avatarUrl = message.avatarUrl,
+                customSizeDp = 32.dp,
+                customFontSizeSp = 13,
+                borderWidth = 1.dp,
+                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+            )
             Spacer(modifier = Modifier.width(8.dp))
         }
 
