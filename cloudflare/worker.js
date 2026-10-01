@@ -282,18 +282,67 @@ export default {
       }
     }
 
-    // 5. Intelligent Origin Proxy with Automated Cloudflare Maintenance Failover
+    // 5. Intelligent Origin Proxy with Cloudflare Pages Edge Fallback
     try {
       const originResponse = await fetch(request);
-      // If origin returns a gateway error (502, 503, 504), gracefully failover to maintenance
-      if (originResponse.status === 502 || originResponse.status === 503 || originResponse.status === 504) {
-        return getMaintenanceResponse(host);
+      if (originResponse.status < 500) {
+        return originResponse;
       }
-      return originResponse;
     } catch (e) {
-      // Origin is unreachable, failover to maintenance page
-      return getMaintenanceResponse(host);
+      // Origin unreachable, attempt cloud edge fallback below
     }
+
+    // 6. Cloudflare Pages Edge Fallback (Serves static app directly from Cloudflare Cloud)
+    try {
+      let pagesPath = url.pathname;
+      if (host.startsWith("news.") && pagesPath === "/") {
+        pagesPath = "/news.html";
+      } else if (host.startsWith("resinora.") && pagesPath === "/") {
+        pagesPath = "/resinora.html";
+      } else if (pagesPath === "/") {
+        pagesPath = "/index.html";
+      }
+
+      // If this is an API call that origin failed to answer, return clean JSON
+      if (pagesPath.startsWith("/api/")) {
+        return new Response(JSON.stringify({
+          status: "edge_sync",
+          message: "Connecto edge gateway is synchronizing. Core APIs available via /api/v1/db and /api/v1/ai.",
+          timestamp: new Date().toISOString()
+        }), {
+          status: 503,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Retry-After": "10"
+          }
+        });
+      }
+
+      const pagesUrl = new URL(`https://connecto-web.pages.dev${pagesPath}${url.search}`);
+      const pagesResponse = await fetch(pagesUrl.toString(), {
+        method: request.method,
+        headers: {
+          "Accept": request.headers.get("Accept") || "*/*",
+          "User-Agent": request.headers.get("User-Agent") || ""
+        }
+      });
+
+      if (pagesResponse.status === 200) {
+        const resHeaders = new Headers(pagesResponse.headers);
+        resHeaders.set("X-Served-By", "Cloudflare-Pages-Edge");
+        resHeaders.set("Access-Control-Allow-Origin", "*");
+        return new Response(pagesResponse.body, {
+          status: 200,
+          headers: resHeaders
+        });
+      }
+    } catch (err) {
+      // Fall through to adaptive maintenance page
+    }
+
+    // 7. Adaptive Maintenance Failover
+    return getMaintenanceResponse(host);
   }
 };
 
