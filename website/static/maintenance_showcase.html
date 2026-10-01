@@ -157,6 +157,7 @@
       width: 100%;
       height: 100%;
       border: none;
+      background: #0c1017;
       transition: all 0.25s ease;
     }
     .viewport-frame.tablet {
@@ -221,18 +222,18 @@
     </div>
   </header>
 
-  <!-- Viewport -->
+  <!-- Viewport with Relative Path -->
   <main class="viewport-container">
-    <iframe class="viewport-frame" id="preview-frame" src="/static/maintenance_classic_1.html"></iframe>
+    <iframe class="viewport-frame" id="preview-frame" src="maintenance_classic_1.html"></iframe>
   </main>
 
   <script>
     let activeTpl = 'c1';
 
     const tplUrls = {
-      'c1': '/static/maintenance_classic_1.html',
-      'c2': '/static/maintenance_classic_2.html',
-      'c3': '/static/maintenance_classic_3.html'
+      'c1': 'maintenance_classic_1.html',
+      'c2': 'maintenance_classic_2.html',
+      'c3': 'maintenance_classic_3.html'
     };
 
     function switchTemplate(id) {
