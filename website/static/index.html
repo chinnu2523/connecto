@@ -5,23 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connecto • Real-Time Community Platform for Tactical Squads & Gamers</title>
   <!-- Primary Meta Tags & SEO -->
-  <meta name="title" content="Connecto • Real-Time Community Platform for Tactical Squads & Gamers">
-  <meta name="description" content="Connect with your clan via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
-  <meta name="keywords" content="Connecto, ninja clan, encrypted chat, WebSockets, WebRTC voice, cyber academy, CTF, developer community, careers">
+  <meta name="title" content="Connecto • Real-Time Community Platform for Friends & Developers">
+  <meta name="description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
+  <meta name="keywords" content="Connecto, friends community, encrypted chat, WebSockets, WebRTC voice, cyber academy, CTF, developer community, careers">
   <meta name="author" content="Connecto Network">
 
   <!-- Open Graph / Facebook / Discord / WhatsApp -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://connecto.fun/">
-  <meta property="og:title" content="Connecto • Real-Time Community Platform for Tactical Squads & Gamers">
-  <meta property="og:description" content="Connect with your clan via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
+  <meta property="og:title" content="Connecto • Real-Time Community Platform for Friends & Developers">
+  <meta property="og:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
   <meta property="og:image" content="https://connecto.fun/static/icon.png">
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://connecto.fun/">
-  <meta name="twitter:title" content="Connecto • Real-Time Community Platform for Tactical Squads & Gamers">
-  <meta name="twitter:description" content="Connect with your clan via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
+  <meta name="twitter:title" content="Connecto • Real-Time Community Platform for Friends & Developers">
+  <meta name="twitter:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
   <meta name="twitter:image" content="https://connecto.fun/static/icon.png">
 
   <link rel="manifest" href="/static/manifest.json">
@@ -14016,7 +14016,7 @@ pre, .code-block, .chat-code-snippet {
       </svg>
       <div class="blade-sheen"></div>
     </div>
-    <div class="ink-tagline-reveal">The Real-Time Shinobi Network</div>
+    <div class="ink-tagline-reveal">The Real-Time Community Network</div>
     <div class="skip-hint">Click anywhere to enter ➔</div>
   </div>
 
@@ -14035,7 +14035,7 @@ pre, .code-block, .chat-code-snippet {
     <div class="guild-icon" id="tabFriendsBtn" onclick="switchMainView('friends')" title="Friends & Contacts">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </div>
-    <div class="guild-icon" id="tabLearnBtn" onclick="switchMainView('learning')" title="Ninja Learning Hub">
+    <div class="guild-icon" id="tabLearnBtn" onclick="switchMainView('learning')" title="Learning Hub">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
     </div>
     <div class="guild-icon" id="tabVoiceBtn" onclick="switchMainView('voice')" title="Voice & Screen Lounge">
@@ -14236,8 +14236,8 @@ pre, .code-block, .chat-code-snippet {
           <button class="btn-icon" id="bookmarksToggleBtn" onclick="toggleBookmarksDrawer()" title="Personal Saved Bookmarks"><i data-lucide="bookmark" class="lucide-sm"></i></button>
           <div class="notif-badge" id="bookmarksBadge" style="display:none; background:var(--chakra-cyan); color:#000;">0</div>
         </div>
-        <button class="btn-icon" id="membersToggleBtn" onclick="toggleMembersSidebar()" title="Clan Allies Roster"><i data-lucide="users" class="lucide-sm"></i></button>
-        <button class="btn-icon" id="referralLeaderboardToggleBtn" onclick="openReferralLeaderboardModal()" title="Shinobi Referral Leaderboard & Clan XP"><i data-lucide="trophy" class="lucide-sm"></i></button>
+        <button class="btn-icon" id="membersToggleBtn" onclick="toggleMembersSidebar()" title="Friends & Members Roster"><i data-lucide="users" class="lucide-sm"></i></button>
+        <button class="btn-icon" id="referralLeaderboardToggleBtn" onclick="openReferralLeaderboardModal()" title="Friends Referral Leaderboard & XP"><i data-lucide="trophy" class="lucide-sm"></i></button>
         <div style="position:relative;">
           <button class="btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown()" title="Notifications & DND"><i data-lucide="bell" class="lucide-sm"></i></button>
           <div class="notif-badge" id="notifBadge" style="display:none;"></div>
@@ -14563,7 +14563,7 @@ pre, .code-block, .chat-code-snippet {
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
             <div>
               <strong style="color:#fff; font-size:13px;">Moderation Review Queue</strong>
-              <div style="font-size:11px; color:var(--text-muted);">Flagged scrolls pending clan review</div>
+              <div style="font-size:11px; color:var(--text-muted);">Flagged messages pending community review</div>
             </div>
             <select class="members-search-input" id="reportFilterStatus" style="width:110px;" onchange="loadModerationReports()">
               <option value="pending">⏳ Pending</option>
@@ -14631,8 +14631,8 @@ pre, .code-block, .chat-code-snippet {
           <div class="user-popover-status" id="popoverStatus"></div>
         </div>
         <div class="user-popover-body">
-          <div class="user-popover-name" id="popoverName">Ninja</div>
-          <div class="user-popover-handle" id="popoverHandle">@ninja</div>
+          <div class="user-popover-name" id="popoverName">User</div>
+          <div class="user-popover-handle" id="popoverHandle">@user</div>
           <div class="user-popover-badge-pill" id="popoverRankPill">🍃 Genin</div>
           <div class="user-popover-bio-box" id="popoverBioBox">
             <div class="popover-bio-header">
@@ -14652,7 +14652,7 @@ pre, .code-block, .chat-code-snippet {
         </div>
       </div>
 
-      <!-- 4. Active Clan Members Roster (Right Sidebar) -->
+      <!-- 4. Active Friends Roster (Right Sidebar) -->
       <!-- COMMUNITY ALLIES ROSTER -->
       <div class="members-sidebar" id="membersSidebar">
         <!-- Clean Community Members Header -->
@@ -14735,7 +14735,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="hero-grid">
           <div class="hero-text">
             <div class="hero-eyebrow"><span class="official-live-indicator"></span>Official Release • Connecto Platform v3.9.6</div>
-            <h1 class="hero-official-title">Connect with your <span class="hero-gradient-text">Ninja Clan.</span></h1>
+            <h1 class="hero-official-title">Connect with your <span class="hero-gradient-text">Friends.</span></h1>
             <p class="hero-official-desc">High-speed real-time messaging, peer-to-peer voice rooms, and hands-on cybersecurity mastery for modern developer communities.</p>
             <div class="hero-pill-badges-row">
               <span class="hero-pill-badge"><i data-lucide="message-square" class="lucide-sm"></i> Instant Chat</span>
@@ -14809,7 +14809,7 @@ pre, .code-block, .chat-code-snippet {
                   <div class="mock-interactive-input-row" style="display:flex; align-items:center; gap:4px; padding:6px; background:rgba(0,0,0,0.35); border-top:1px solid rgba(255,255,255,0.08);">
                     <button class="mock-demo-btn" onclick="insertSandboxCodeSnippet()" title="Try Code Block" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="code-2" class="lucide-sm"></i></button>
                     <button class="mock-demo-btn" onclick="insertSandboxEmoji('🔥')" title="Try Flame Reaction" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="flame" class="lucide-sm"></i></button>
-                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('🥷')" title="Try Ninja Reaction" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="zap" class="lucide-sm"></i></button>
+                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('🥷')" title="Try Emoji Reaction" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="zap" class="lucide-sm"></i></button>
                     <input type="text" class="mock-demo-input" id="sandboxDemoInput" placeholder="Type a message or ```js code```..." onkeydown="if(event.key==='Enter') sendSandboxDemoMessage()">
                     <button class="btn btn-primary" style="padding:4px 10px; font-size:11.5px; flex-shrink:0; display:inline-flex; align-items:center; gap:4px;" onclick="sendSandboxDemoMessage()">Send <i data-lucide="send" class="lucide-sm"></i></button>
                   </div>
@@ -14861,7 +14861,7 @@ pre, .code-block, .chat-code-snippet {
             <div class="marquee-chip"><i data-lucide="briefcase" class="lucide-sm"></i> <span>Zero-Knowledge AES-256 Encryption</span></div>
             <div class="marquee-chip"><i data-lucide="smartphone" class="lucide-sm"></i> <span>Official Native Android App (OLED Dark Mode)</span></div>
             <div class="marquee-chip"><i data-lucide="shield-check" class="lucide-sm"></i> <span>Biometric Hardware Vault & Encrypted Notes</span></div>
-            <div class="marquee-chip"><i data-lucide="users" class="lucide-sm"></i> <span>Clan Communities & Tactical War Rooms</span></div>
+            <div class="marquee-chip"><i data-lucide="users" class="lucide-sm"></i> <span>Friends, Communities & War Rooms</span></div>
             <div class="marquee-chip"><i data-lucide="cpu" class="lucide-sm"></i> <span>High-Throughput Asynchronous Architecture</span></div>
           </div>
         </div>
@@ -14871,8 +14871,8 @@ pre, .code-block, .chat-code-snippet {
           <div class="stat-item">
             <div class="stat-icon-wrap" style="color:var(--chakra-cyan);"><i data-lucide="users" class="lucide-md"></i></div>
             <div class="stat-num-custom" id="statShinobi">6+</div>
-            <div class="stat-label-custom">Active Shinobi</div>
-            <div class="stat-subtext">Verified Clan Members</div>
+            <div class="stat-label-custom">Active Friends</div>
+            <div class="stat-subtext">Verified Friends & Members</div>
           </div>
           <div class="stat-item">
             <div class="stat-icon-wrap" style="color:var(--accent);"><i data-lucide="message-square" class="lucide-md"></i></div>
@@ -15142,7 +15142,7 @@ pre, .code-block, .chat-code-snippet {
           <!-- Integrated Real-Time Search & Category Filters -->
           <div style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 12px; width: 100%;">
             <div style="position: relative; width: 100%;">
-              <input type="text" id="discoverySearchInput" class="auth-input-field" placeholder="Search by clan tags, voice lounge, CTF labs, or keywords..." style="width:100%; font-size:13.5px; padding:12px 16px 12px 42px; background:rgba(15,20,36,0.85); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; color:#fff;" oninput="filterDiscoveryHubs(this.value)">
+              <input type="text" id="discoverySearchInput" class="auth-input-field" placeholder="Search by community tags, voice lounge, CTF labs, or keywords..." style="width:100%; font-size:13.5px; padding:12px 16px 12px 42px; background:rgba(15,20,36,0.85); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; color:#fff;" oninput="filterDiscoveryHubs(this.value)">
               <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; color:var(--chakra-cyan);"><i data-lucide="search" class="lucide-sm"></i></span>
             </div>
 
@@ -15159,7 +15159,7 @@ pre, .code-block, .chat-code-snippet {
 
           <div class="ecosystem-grid-6">
             <!-- Portal 1: Live Chat & Channels -->
-            <div class="ecosystem-card disc-item" data-cat="chat" data-title="instant live clan chat general developer code markdown">
+            <div class="ecosystem-card disc-item" data-cat="chat" data-title="instant live community chat general developer code markdown">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:var(--chakra-cyan); background:rgba(0,206,201,0.1); border-color:rgba(0,206,201,0.25);">
                   <i data-lucide="message-square" class="lucide-md"></i>
@@ -15288,18 +15288,18 @@ pre, .code-block, .chat-code-snippet {
               </div>
             </div>
 
-            <!-- Portal 6: Defense & Clan Moderation Guard -->
-            <div class="ecosystem-card disc-item" data-cat="security" data-title="clan defense auto mod guard rate limiting audit logs rbac">
+            <!-- Portal 6: Defense & Community Moderation Guard -->
+            <div class="ecosystem-card disc-item" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25);">
                   <i data-lucide="shield-alert" class="lucide-md"></i>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
-                    <span>Clan Defense & Security</span>
+                    <span>Community Defense & Security</span>
                     <span class="ecosystem-card-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">Zero-Trust</span>
                   </div>
-                  <p class="ecosystem-card-desc">Comprehensive clan defense with automated keyword filtering, slowmode rate limits, encrypted session keys, and audit logs.</p>
+                  <p class="ecosystem-card-desc">Comprehensive community defense with automated keyword filtering, slowmode rate limits, encrypted session keys, and audit logs.</p>
                 </div>
               </div>
               <div class="ecosystem-card-features">
@@ -15391,7 +15391,7 @@ pre, .code-block, .chat-code-snippet {
           </div>
         </div>
 
-        <!-- SECTION 5: SHINOBI CLAN CUSTOMIZER STUDIO -->
+        <!-- SECTION 5: THEME & PROFILE CUSTOMIZER STUDIO -->
         <!-- SECTION 5: PLATFORM ARCHITECTURE & DEFENSE SPOTLIGHT -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="archSection">
           <div class="section-header-standard">
@@ -15460,7 +15460,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="academyRoadmapSection">
           <div class="section-header-standard">
             <div class="hero-eyebrow"><i data-lucide="graduation-cap" class="lucide-sm"></i> Learning Academy</div>
-            <h2 class="section-title">Shinobi Rank Progression & Cyber Curriculum</h2>
+            <h2 class="section-title">Skill Progression & Cyber Curriculum</h2>
             <p class="section-sub">Master foundational networking, full-duplex streams, and modern cryptographic protocols to level up your shinobi rank.</p>
           </div>
 
@@ -15502,7 +15502,7 @@ pre, .code-block, .chat-code-snippet {
                 <span style="color:#ef4444;">●</span>
                 <span style="color:#f59e0b;">●</span>
                 <span style="color:#10b981;">●</span>
-                <span style="color:var(--chakra-cyan); font-size:12px; font-weight:700; margin-left:6px;">root@shinobi-ctf-sandbox:~#</span>
+                <span style="color:var(--chakra-cyan); font-size:12px; font-weight:700; margin-left:6px;">root@connecto-ctf-sandbox:~#</span>
               </div>
               <div style="font-size:11px; color:var(--text-muted);">Interactive Terminal Sandbox</div>
             </div>
@@ -15525,7 +15525,7 @@ pre, .code-block, .chat-code-snippet {
           <div class="section-header-standard">
             <div class="hero-eyebrow"><i data-lucide="help-circle" class="lucide-sm"></i> Got Questions?</div>
             <h2 class="section-title shimmer-title">Frequently Asked Questions</h2>
-            <p class="section-sub">Everything you need to know about setting up clans, voice rooms, and learning tracks.</p>
+            <p class="section-sub">Everything you need to know about setting up groups, voice rooms, and learning tracks.</p>
           </div>
 
           <div class="faq-grid">
@@ -15539,7 +15539,7 @@ pre, .code-block, .chat-code-snippet {
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  Yes, 100%. All messaging, WebRTC voice channels, cybersecurity curriculum, and clan features are completely free with zero subscription paywalls or hidden fees.
+                  Yes, 100%. All messaging, WebRTC voice channels, cybersecurity curriculum, and community features are completely free with zero subscription paywalls or hidden fees.
                 </div>
               </div>
             </div>
@@ -15569,7 +15569,7 @@ pre, .code-block, .chat-code-snippet {
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  The Cyber Academy is an integrated learning hub designed to teach real-world computer networking, web protocols, and cryptography. Through hands-on challenges and CTFs, members gain live XP to level up their Shinobi rank from Genin to Jonin.
+                  The Cyber Academy is an integrated learning hub designed to teach real-world computer networking, web protocols, and cryptography. Through hands-on challenges and CTFs, members gain live XP to level up their rank from Novice to Master.
                 </div>
               </div>
             </div>
@@ -15603,9 +15603,9 @@ pre, .code-block, .chat-code-snippet {
               <div>
                 <div class="step-badge-custom">1</div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Create or Join a Clan</h4>
-                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing clans via invite code or create your own custom encrypted server with full moderation tools.</p>
+                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend groups via invite code or create your own custom encrypted server with full moderation tools.</p>
               </div>
-              <div class="step-pill-chip"><i data-lucide="user-plus" class="lucide-sm"></i> Instant Shinobi Auth</div>
+              <div class="step-pill-chip"><i data-lucide="user-plus" class="lucide-sm"></i> Instant Auth</div>
             </div>
 
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-2">
@@ -15630,7 +15630,7 @@ pre, .code-block, .chat-code-snippet {
 
         <div class="final-cta-card scroll-reveal-3d interactive-tilt-card spatial-3d-section" id="finalCtaSection">
           <h2 style="font-family:var(--font-display); font-size:32px; font-weight:900; color:var(--text-header); margin-bottom:var(--space-2);">Ready to Level Up Your Clan?</h2>
-          <p style="color:var(--text-muted); font-size:15px; margin-bottom:var(--space-5); max-width:540px;">Join thousands of modern shinobi communicating, sharing tactical intel, and training in real time.</p>
+          <p style="color:var(--text-muted); font-size:15px; margin-bottom:var(--space-5); max-width:540px;">Join thousands of friends and developers communicating, sharing ideas, and collaborating in real time.</p>
           <button class="btn" style="padding:13px 32px; font-size:15.5px;" onclick="openAuthModal('register')">Get Started Free <i data-lucide="arrow-right" class="lucide-sm"></i></button>
         </div>
 
@@ -15639,7 +15639,7 @@ pre, .code-block, .chat-code-snippet {
           <div class="footer-grid">
             <div class="footer-col">
               <div style="font-family:var(--font-display); font-weight:900; font-size:20px; color:white; margin-bottom:8px;">Connecto<span style="color:var(--accent);">.</span></div>
-              <p style="font-size:13px; color:var(--text-muted); line-height:1.5; max-width:280px;">The real-time communication & security learning platform for modern shinobi.</p>
+              <p style="font-size:13px; color:var(--text-muted); line-height:1.5; max-width:280px;">The real-time communication & security learning platform for friends and developers.</p>
             </div>
             <div class="footer-col">
               <h5>Product</h5>
@@ -15658,7 +15658,7 @@ pre, .code-block, .chat-code-snippet {
                 <li><a onclick="scrollToHeroSection('ecosystemSection')"><i data-lucide="layers" class="lucide-sm" style="margin-right:6px;"></i> Platform Ecosystem</a></li>
                 <li><a href="/changelog" target="_blank"><i data-lucide="file-text" class="lucide-sm" style="margin-right:6px;"></i> Platform Changelog</a></li>
                 <li><a onclick="openConnectoVault()" style="cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm" style="margin-right:6px;"></i> Connecto Hardware Vault</a></li>
-                <li><a onclick="scrollToHeroSection('faqSection')"><i data-lucide="help-circle" class="lucide-sm" style="margin-right:6px;"></i> Shinobi FAQ</a></li>
+                <li><a onclick="scrollToHeroSection('faqSection')"><i data-lucide="help-circle" class="lucide-sm" style="margin-right:6px;"></i> Platform FAQ</a></li>
                 <li><a onclick="openDirectMessage('support')"><i data-lucide="headphones" class="lucide-sm" style="margin-right:6px;"></i> Community Support</a></li>
               </ul>
             </div>
@@ -15877,16 +15877,16 @@ pre, .code-block, .chat-code-snippet {
     <div class="view-panel" id="learningView">
       <div class="learning-hub-container">
         
-        <!-- Guest Shinobi Banner -->
+        <!-- Guest Member Banner -->
         <div id="learningGuestBanner" style="display:none; background:var(--accent-tint); border:1px solid var(--accent-border); border-radius:10px; padding:10px 16px; font-size:13px; justify-content:space-between; align-items:center;">
           <span>💡 You are exploring as a <strong>Guest</strong>. Sign in to save your XP, track completions, and rank up!</span>
           <button class="btn" style="padding:5px 14px; font-size:12px;" onclick="openAuthModal('login')">Sign In ➔</button>
         </div>
 
-        <!-- Academy Shinobi Mastery & Track Switcher Card -->
+        <!-- Academy Skill Mastery & Track Switcher Card -->
         <div class="academy-mastery-card">
           <div class="academy-mastery-info">
-            <div class="academy-mastery-label">Shinobi Rank & XP Mastery</div>
+            <div class="academy-mastery-label">Skill Rank & XP Mastery</div>
             <div class="academy-mastery-rank" id="learnRankBadge">Jonin • 550 XP</div>
           </div>
           <div class="academy-track-buttons">
@@ -15943,7 +15943,7 @@ pre, .code-block, .chat-code-snippet {
             <span>Voice Lounge</span>
             <span class="stage-telemetry-badge" style="font-size:11.5px; padding:3px 10px;">⚡ WebRTC Mesh Live</span>
           </div>
-          <p class="voice-lounge-desc">Connect directly with friends and clan members with ultra-low latency voice audio.</p>
+          <p class="voice-lounge-desc">Connect directly with friends and community members with ultra-low latency voice audio.</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn-create-room-promax" onclick="openCreateVoiceRoomModal()">
@@ -15964,7 +15964,7 @@ pre, .code-block, .chat-code-snippet {
             <span style="font-size:28px;" id="stageRoomIcon">⛩️</span>
             <div>
               <div class="stage-room-name" id="stageRoomName">⛩️ Tactical War Room</div>
-              <div style="font-size:12.5px; color:var(--text-muted);" id="stageRoomTopic">Strategic briefing & clan audio</div>
+              <div style="font-size:12.5px; color:var(--text-muted);" id="stageRoomTopic">Strategic briefing & group audio</div>
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
@@ -16013,7 +16013,7 @@ pre, .code-block, .chat-code-snippet {
     <div class="notif-dropdown" id="notifDropdown">
       <div class="notif-header">
         <div style="display:flex; align-items:center; gap:6px;">
-          <span>Clan Alerts</span>
+          <span>Community Alerts</span>
           <span class="dnd-status-pill dnd-status-normal" id="notifDropdownDNDPill" style="font-size:9px;">🟢 Standard</span>
         </div>
         <div style="display:flex; gap:4px; align-items:center;">
@@ -16038,7 +16038,7 @@ pre, .code-block, .chat-code-snippet {
         <button class="mobile-drawer-close" onclick="closeMobileNavMenu()" aria-label="Close navigation"><i data-lucide="x" class="lucide-sm"></i></button>
       </div>
 
-      <!-- Shinobi Real-Time Telemetry Strip -->
+      <!-- Real-Time Telemetry Strip -->
       <div class="mobile-drawer-telemetry">
         <div class="drawer-stat-pill">
           <span class="pulse-emerald-dot"></span>
@@ -16091,7 +16091,7 @@ pre, .code-block, .chat-code-snippet {
         <a class="mobile-drawer-link" onclick="switchMainView('learning'); closeMobileNavMenu();">
           <span class="mobile-drawer-icon"><i data-lucide="book-open" class="lucide-sm"></i></span>
           <div class="mobile-drawer-text">
-            <strong>Ninja Learning Academy</strong>
+            <strong>Learning Academy</strong>
             <span>Cybersecurity labs, CTF & knowledge hub</span>
           </div>
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
@@ -16100,7 +16100,7 @@ pre, .code-block, .chat-code-snippet {
         <a class="mobile-drawer-link" onclick="openLeaderboardModal(); closeMobileNavMenu();">
           <span class="mobile-drawer-icon"><i data-lucide="trophy" class="lucide-sm"></i></span>
           <div class="mobile-drawer-text">
-            <strong>Shinobi Clan Leaderboard</strong>
+            <strong>Friends Leaderboard</strong>
             <span>Rankings, XP & battle streaks</span>
           </div>
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
@@ -16155,7 +16155,7 @@ pre, .code-block, .chat-code-snippet {
       
       <!-- Step 1: Nickname -->
       <div id="obStep1">
-        <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--space-4);">Set your ninja display name visible to your clan and teammates.</p>
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--space-4);">Set your display name visible to your friends and teammates.</p>
         <div class="form-group">
           <label for="obNicknameInput">Display Name / Nickname</label>
           <input type="text" class="form-input" id="obNicknameInput" placeholder="Enter username or display name">
@@ -16290,7 +16290,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="voice-invite-title">
           <span id="inviteSenderName" style="color:#ffffff;">@user</span> summoned you to join <span class="voice-invite-room-chip" id="inviteRoomChip">⛩️ Voice Room</span>
         </div>
-        <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;" id="inviteRoomTopicText">Strategic briefing & clan audio</div>
+        <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;" id="inviteRoomTopicText">Strategic briefing & group audio</div>
       </div>
     </div>
     <div class="voice-invite-actions">
@@ -16303,7 +16303,7 @@ pre, .code-block, .chat-code-snippet {
   <div class="modal-overlay" id="incomingCallModal">
     <div class="modal-box-scroll" style="text-align:center; width:340px;">
       <div style="font-size:48px; margin-bottom:var(--space-3);" id="incomingCallerAvatar">⚡</div>
-      <h3 style="font-family:var(--font-display); color:var(--text-header); margin-bottom:4px;" id="incomingCallerName">Shinobi</h3>
+      <h3 style="font-family:var(--font-display); color:var(--text-header); margin-bottom:4px;" id="incomingCallerName">Friend</h3>
       <p style="color:var(--green); font-size:13px; margin-bottom:var(--space-5); font-weight:600;">Incoming Voice Call...</p>
       <div style="display:flex; gap:var(--space-3); justify-content:center;">
         <button class="btn btn-success" style="padding:10px 20px;" onclick="acceptIncomingCall()">✅ Accept</button>
@@ -16312,7 +16312,7 @@ pre, .code-block, .chat-code-snippet {
     </div>
   </div>
 
-    <!-- Settings Modal (Professional Profile & Clan Settings Studio) -->
+    <!-- Settings Modal (Professional Profile & Settings Studio) -->
     <!-- Unfriend Confirmation Modal -->
   <div class="modal-overlay" id="unfriendConfirmModal" style="display:none;" onclick="closeUnfriendModal(event)">
     <div class="modal-card border-beam-card" style="width:430px; max-width:92vw; padding:24px; border-radius:18px;" onclick="event.stopPropagation()">
@@ -16348,7 +16348,7 @@ pre, .code-block, .chat-code-snippet {
         <div style="display:flex; align-items:center; gap:10px;">
           <span style="font-size:20px;">⚙️</span>
           <div>
-            <h3 style="margin:0; font-size:16px; font-weight:900; color:#fff;">Shinobi Profile & Studio</h3>
+            <h3 style="margin:0; font-size:16px; font-weight:900; color:#fff;">User Profile & Settings</h3>
             <span style="font-size:11.5px; color:var(--text-muted);">Manage your public identity, 2FA credentials, and preferences</span>
           </div>
         </div>
@@ -16468,7 +16468,7 @@ pre, .code-block, .chat-code-snippet {
 
             <!-- Avatar & Visual Identity Controls -->
             <div class="profile-card-section">
-              <div class="profile-card-title"><span>🎭</span> Shinobi Avatar & Photo</div>
+              <div class="profile-card-title"><span>🎭</span> Profile Avatar & Photo</div>
               
               <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
                 <!-- Emoji Presets Grid -->
@@ -16498,11 +16498,11 @@ pre, .code-block, .chat-code-snippet {
 
             <!-- Identity Inputs -->
             <div class="profile-card-section">
-              <div class="profile-card-title"><span>🥷</span> Clan Identity</div>
+              <div class="profile-card-title"><span>👤</span> User Identity</div>
               
               <!-- Display Name -->
               <div class="form-group" style="margin-bottom:12px;">
-                <label for="setUserNickname" style="font-weight:700; font-size:12px;">Display Name / Clan Nickname</label>
+                <label for="setUserNickname" style="font-weight:700; font-size:12px;">Display Name</label>
                 <div class="auth-input-wrap">
                   <span class="auth-input-icon">✨</span>
                   <input type="text" class="auth-input-field" id="setUserNickname" placeholder="Enter display name">
@@ -16512,7 +16512,7 @@ pre, .code-block, .chat-code-snippet {
               <!-- Username -->
               <div class="form-group" style="margin-bottom:12px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                  <label for="setUserName" style="font-weight:700; font-size:12px;">Shinobi Username <span style="color:var(--red);">*</span></label>
+                  <label for="setUserName" style="font-weight:700; font-size:12px;">Username <span style="color:var(--red);">*</span></label>
                   <span id="settingsUsernameLockBadge" style="font-size:10.5px; font-weight:700; color:var(--chakra-cyan);">
                     ✏️ 1-Time Change Available
                   </span>
@@ -16523,17 +16523,17 @@ pre, .code-block, .chat-code-snippet {
                 </div>
                 <div id="settingsUsernameAvailability" style="font-size:11.5px; margin-top:5px; font-weight:700; display:none;"></div>
                 <div id="settingsUsernameHint" style="font-size:11px; color:var(--text-muted); margin-top:3px;">
-                  Unique identifier used for clan mentions, DMs, and authentication.
+                  Unique identifier used for community mentions, DMs, and authentication.
                 </div>
               </div>
 
-              <!-- Bio & Nindo (Redesigned & Spacious) -->
+              <!-- Bio & Status -->
               <div class="form-group bio-form-group">
                 <div class="bio-input-wrap" id="bioInputWrap">
                   <div class="bio-input-header">
                     <label for="setUserBio" class="bio-input-title">
                       <span class="bio-icon">📜</span>
-                      <span>Ninja Bio & Nindo</span>
+                      <span>Bio & Status</span>
                     </label>
                     <span id="setUserBioCounter" class="bio-char-counter">0 / 190</span>
                   </div>
@@ -16542,12 +16542,12 @@ pre, .code-block, .chat-code-snippet {
                     id="setUserBio" 
                     maxlength="190" 
                     rows="3" 
-                    placeholder="Write your ninja way, gaming quotes, or personal status..."
+                    placeholder="Write your bio, gaming quotes, or personal status..."
                     oninput="updateBioCounter(this)"
                   ></textarea>
                 </div>
                 <div class="bio-input-hint">
-                  Your bio appears on your ninja profile card and will be visible to allies and friends across the realm.
+                  Your bio appears on your profile card and will be visible to friends across the platform.
                 </div>
               </div>
             </div>
@@ -16571,7 +16571,7 @@ pre, .code-block, .chat-code-snippet {
                       <option value="prefer_not_to_say">Prefer not to say</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
-                      <option value="other">Other / Shinobi</option>
+                      <option value="other">Other</option>
                     </select>
                   </div>
                 </div>
@@ -16631,6 +16631,27 @@ pre, .code-block, .chat-code-snippet {
               </div>
 
 
+            </div>
+
+            <!-- Stealth Mode (Ghost Presence) Card -->
+            <div class="profile-card-section">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="profile-card-title" style="margin-bottom:0;"><span>👻</span> Stealth Mode (Ghost Presence)</div>
+                <span id="settingsStealthStatusBadge" style="font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3);">
+                  Visible (Online)
+                </span>
+              </div>
+              
+              <!-- Stealth Toggle Row -->
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); padding:10px 14px; border-radius:10px; margin-bottom:12px;">
+                <div>
+                  <div style="font-weight:700; font-size:12.5px; color:#fff;">Incognito Stealth Status</div>
+                  <div style="font-size:11px; color:var(--text-muted);">Appear completely offline to friends and public rosters while browsing</div>
+                </div>
+                <label style="display:inline-flex; align-items:center; cursor:pointer;">
+                  <input type="checkbox" id="setUserStealthEnabled" onchange="handleStealthToggleChange(this.checked)" style="width:20px; height:20px; accent-color:var(--chakra-cyan); cursor:pointer;">
+                </label>
+              </div>
             </div>
 
             <!-- Password & Security Card -->
@@ -16693,7 +16714,7 @@ pre, .code-block, .chat-code-snippet {
           <div id="profTabContentTheme" style="display:none;">
             <div class="profile-card-section">
               <div class="profile-card-title"><span>🎨</span> Chakra Energy Theme</div>
-              <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Select your signature shinobi aura to customize accents and lighting.</p>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Select your signature aura to customize accents and lighting.</p>
               
               <div style="display:flex; gap:12px; flex-wrap:wrap;">
                 <div style="width:42px; height:42px; border-radius:50%; background:#6c5ce7; cursor:pointer; border:2px solid #fff; box-shadow:0 0 12px #6c5ce7;" onclick="setChakraTheme('purple')" title="Purple Chakra"></div>
@@ -17007,7 +17028,7 @@ pre, .code-block, .chat-code-snippet {
         </label>
         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:var(--text-normal);">
           <input type="checkbox" id="soundAlertsCheckbox" checked style="accent-color:var(--chakra-cyan); width:15px; height:15px;">
-          <span>Play shinobi chime sounds for new messages</span>
+          <span>Play chime sounds for new messages</span>
         </label>
         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; color:var(--text-normal);">
           <input type="checkbox" id="desktopNotifsCheckbox" checked style="accent-color:var(--chakra-cyan); width:15px; height:15px;">
@@ -17042,7 +17063,7 @@ pre, .code-block, .chat-code-snippet {
     </div>
   </div>
 
-  <!-- Shinobi Referral Leaderboard & Clan XP Modal -->
+  <!-- Friends Referral Leaderboard & Community XP Modal -->
   <div class="modal-overlay" id="referralLeaderboardModal" style="display:none;" onclick="closeReferralLeaderboardModal(event)">
     <div class="modal-card border-beam-card" style="width:620px; max-width:95vw; padding:24px; border-radius:20px; max-height:88vh; overflow-y:auto;" onclick="event.stopPropagation()">
       <div class="border-beam"></div>
@@ -17051,10 +17072,10 @@ pre, .code-block, .chat-code-snippet {
           <div style="font-size:24px; background:rgba(250,204,21,0.15); border:1px solid rgba(250,204,21,0.3); border-radius:12px; width:42px; height:42px; display:flex; align-items:center; justify-content:center;">🏆</div>
           <div>
             <h3 style="margin:0; font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
-              <span>Shinobi Referral Leaderboard</span>
-              <span class="xp-pill" style="font-size:10.5px; background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); padding:2px 8px; border-radius:999px;">Clan XP Rewards</span>
+              <span>Friends Referral Leaderboard</span>
+              <span class="xp-pill" style="font-size:10.5px; background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); padding:2px 8px; border-radius:999px;">Community XP</span>
             </h3>
-            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">Recruit elite ninjas to the clan & earn rank XP points</div>
+            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">Invite friends to Connecto & earn rank XP points</div>
           </div>
         </div>
         <button class="pins-close-btn" onclick="closeReferralLeaderboardModal()">✕</button>
@@ -17064,14 +17085,14 @@ pre, .code-block, .chat-code-snippet {
       <div id="myReferralHubCard" style="background:linear-gradient(135deg, rgba(250,204,21,0.06), rgba(168,85,247,0.08)); border:1px solid rgba(250,204,21,0.2); border-radius:16px; padding:16px; margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <div id="myReferralAvatar" style="font-size:24px; width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">🥷</div>
+            <div id="myReferralAvatar" style="font-size:24px; width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">👤</div>
             <div>
               <div style="display:flex; align-items:center; gap:6px;">
                 <strong id="myReferralHandle" style="font-size:14px; color:#fff;">@user</strong>
-                <span id="myReferralTierBadge" class="referral-tier-badge referral-tier-initiate">🌱 Initiate Scout</span>
+                <span id="myReferralTierBadge" class="referral-tier-badge referral-tier-initiate">🌱 Active Member</span>
               </div>
               <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
-                <span id="myReferralCandCount">0</span> Candidates Referred • <span id="myReferralTotalXP" style="color:#facc15; font-weight:700;">0 XP</span> Earned
+                <span id="myReferralCandCount">0</span> Friends Referred • <span id="myReferralTotalXP" style="color:#facc15; font-weight:700;">0 XP</span> Earned
               </div>
             </div>
           </div>
@@ -17106,28 +17127,28 @@ pre, .code-block, .chat-code-snippet {
       <!-- XP Milestone Matrix Bar -->
       <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; margin-bottom:16px;">
         <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:flex; justify-content:space-between;">
-          <span>Clan XP Rewards Matrix</span>
+          <span>Community XP Rewards Matrix</span>
           <span style="color:#a855f7; font-weight:600;">Automated Crediting</span>
         </div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:6px;">
           <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">📝 Submit</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">📝 Invite</div>
             <div style="font-size:13px; font-weight:800; color:#38bdf8; margin-top:2px;">+100 XP</div>
           </div>
           <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">🔍 Screen</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">🔍 Verify</div>
             <div style="font-size:13px; font-weight:800; color:#c084fc; margin-top:2px;">+150 XP</div>
           </div>
           <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">🌟 Shortlist</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">🌟 Chat</div>
             <div style="font-size:13px; font-weight:800; color:#4ade80; margin-top:2px;">+250 XP</div>
           </div>
           <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">📅 Interview</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">📅 Voice</div>
             <div style="font-size:13px; font-weight:800; color:#facc15; margin-top:2px;">+500 XP</div>
           </div>
           <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">🎉 Offer</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">🎉 Milestone</div>
             <div style="font-size:13px; font-weight:800; color:#f43f5e; margin-top:2px;">+1,500 XP</div>
           </div>
         </div>
@@ -17136,7 +17157,7 @@ pre, .code-block, .chat-code-snippet {
       <!-- Top Referrers Table -->
       <div style="margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Top Shinobi Scouts</div>
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Top Referrals</div>
           <button type="button" class="btn btn-outline" style="font-size:11px; padding:3px 8px; border-radius:6px;" onclick="loadReferralLeaderboard()">🔄 Refresh</button>
         </div>
         <div id="leaderboardListContainer" style="display:flex; flex-direction:column; gap:6px;">
@@ -17144,7 +17165,7 @@ pre, .code-block, .chat-code-snippet {
         </div>
       </div>
 
-      <!-- Recent Clan Referral Activity Feed -->
+      <!-- Recent Referral Activity Feed -->
       <div>
         <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Live Clan Referral Feed</div>
         <div id="referralLiveFeed" style="max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-right:4px;"></div>
@@ -17328,9 +17349,9 @@ pre, .code-block, .chat-code-snippet {
       <form id="twoFactorForm" onsubmit="event.preventDefault(); handleTwoFactorSubmit();" style="display:none;">
         <div style="text-align:center; margin-bottom:var(--space-4); position:relative; z-index:1;">
           <div style="font-size:36px; margin-bottom:6px;">🛡️</div>
-          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">2FA Phone Verification</h3>
+          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Two-Factor Authentication (2FA)</h3>
           <p style="font-size:13px; color:var(--text-muted); line-height:1.45;">
-            Enter the 6-digit random OTP sent to your registered number:<br>
+            Enter the 6-digit verification code sent to your registered email or phone:<br>
             <strong style="color:var(--chakra-cyan); font-family:var(--font-mono); font-size:14px;" id="twoFactorMaskedPhone">+1 (***) ***-****</strong>
           </p>
         </div>
@@ -17356,15 +17377,15 @@ pre, .code-block, .chat-code-snippet {
         </div>
 
         <div style="display:flex; gap:var(--space-3); margin-top:var(--space-4); position:relative; z-index:1;">
-          <button type="submit" class="btn auth-submit-shimmer" id="twoFactorSubmitBtn" style="width:100%; padding:12px; font-size:14.5px; border-radius:12px; font-weight:800;">Verify & Enter Clan ➔</button>
+          <button type="submit" class="btn auth-submit-shimmer" id="twoFactorSubmitBtn" style="width:100%; padding:12px; font-size:14.5px; border-radius:12px; font-weight:800;">Verify & Enter Connecto ➔</button>
         </div>
       </form>
       <!-- ==================== 4. ACCOUNT RECOVERY (FORGOT PASSWORD & USERNAME) ==================== -->
       <form id="accountRecoveryForm" onsubmit="event.preventDefault();" style="display:none;">
         <div style="text-align:center; margin-bottom:var(--space-4); position:relative; z-index:1;">
           <div style="font-size:36px; margin-bottom:6px;">🗝️</div>
-          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Shinobi Account Recovery</h3>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.45;">Recover your lost ninja username or reset your password via Email OTP.</p>
+          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Account Recovery</h3>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.45;">Recover your lost username or reset your password via Email OTP.</p>
         </div>
 
         <!-- Sub-tab switcher for Recovery -->
@@ -17437,7 +17458,7 @@ pre, .code-block, .chat-code-snippet {
           <!-- Discovered Username Card Result -->
           <div id="recovUsernameResult" style="display:none; margin-top:16px; background:rgba(0,206,201,0.08); border:1px solid rgba(0,206,201,0.3); border-radius:14px; padding:16px; text-align:center;">
             <div style="font-size:32px; margin-bottom:4px;" id="recovFoundAvatar">🔥</div>
-            <div style="font-size:12px; color:var(--text-muted);">Your Shinobi Username:</div>
+            <div style="font-size:12px; color:var(--text-muted);">Your Username:</div>
             <div style="font-size:18px; font-weight:900; color:#fff; margin:4px 0 12px;" id="recovFoundUsername">@shadow_hayate</div>
             <button type="button" class="btn" style="width:100%; padding:9px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #00cec9, #6c5ce7); color:#060913; border:none; border-radius:10px; cursor:pointer;" onclick="signInWithRecoveredUsername()">Sign In as @<span id="recovFoundUsernameBtn">shadow_hayate</span> ➔</button>
           </div>
@@ -17857,7 +17878,7 @@ pre, .code-block, .chat-code-snippet {
         if (searchWrap) searchWrap.style.display = 'none';
         if (headerPrefix) headerPrefix.innerText = '👥';
         if (headerTitle) headerTitle.innerText = 'Direct Messages & Friends';
-        if (headerTopic) headerTopic.innerText = 'Direct Communications & Clan Alliances';
+        if (headerTopic) headerTopic.innerText = 'Direct Communications & Friends';
         if (window.voiceLoungeSyncTimer) { clearInterval(window.voiceLoungeSyncTimer); window.voiceLoungeSyncTimer = null; }
         document.getElementById('friendsView').classList.add('active');
         document.getElementById('tabFriendsBtn')?.classList.add('active');
@@ -18023,7 +18044,7 @@ pre, .code-block, .chat-code-snippet {
         'general': 'High-density matrix channel for neural telemetry, HRTF 3D audio synthesis, and distributed core dev.',
         'announcements': 'Official platform releases, verified feature deployments, and technical security updates.',
         'dev-chat': 'FastAPI, WebSockets, WebRTC mesh calling, and backend architecture telemetry.',
-        'gaming': 'Clan match-making, cyber tournaments, and low-latency voice banter.'
+        'gaming': 'Game match-making, cyber tournaments, and low-latency voice banter.'
       };
       const finalTopic = topic || channelTopicsMap[channelId] || 'General community chat';
       document.getElementById('headerTopic').innerText = finalTopic;
@@ -18313,7 +18334,7 @@ pre, .code-block, .chat-code-snippet {
         const guestBanner = document.getElementById('learningGuestBanner');
         if (currentUser === 'guest' || !authToken) {
           if (guestBanner) guestBanner.style.display = 'flex';
-          document.getElementById('learnRankBadge').innerText = 'Guest Shinobi • 0 XP';
+          document.getElementById('learnRankBadge').innerText = 'Guest Member • 0 XP';
         } else {
           if (guestBanner) guestBanner.style.display = 'none';
           document.getElementById('learnRankBadge').innerText = `${progData.rank} • ${progData.xp} XP (${progData.completion_percentage}% Completed)`;
@@ -18504,7 +18525,7 @@ pre, .code-block, .chat-code-snippet {
         const data = await res.json();
         
         if (data.correct) {
-          fb.innerHTML = `<span style="color:var(--green); font-weight:800;">✅ Excellent Shinobi! +${data.xp_gained} XP Awarded!</span><br>${data.explanation}`;
+          fb.innerHTML = `<span style="color:var(--green); font-weight:800;">✅ Excellent Job! +${data.xp_gained} XP Awarded!</span><br>${data.explanation}`;
           document.getElementById('w3LessonStatusBadge').style.display = 'inline-block';
           lItem.completed = true;
           renderW3LessonsSidebar();
@@ -19477,11 +19498,11 @@ pre, .code-block, .chat-code-snippet {
     function insertCodeSnippet() {
       const inp = document.getElementById('msgInput');
       if (!inp) return;
-      inp.value += '\n```javascript\n// Shinobi Code Snippet\nconsole.log("Clan Connected!");\n```\n';
+      inp.value += '\n```javascript\n// Connecto Code Snippet\nconsole.log("Community Connected!");\n```\n';
       inp.focus();
     }
 
-    // Clan Member Roster System (Exclusively User Friends)
+    // Friends Roster System
     let cachedMembersList = [];
     
     // Live Presence DOM Updater across Website
@@ -19562,7 +19583,7 @@ pre, .code-block, .chat-code-snippet {
           <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
             <div style="font-size: 32px; margin-bottom: 10px;">🔐</div>
             <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Sign In to View Allies</div>
-            <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your verified shinobi comrades and friends are displayed here.</div>
+            <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your verified friends are displayed here.</div>
             <button class="btn btn-primary" onclick="openAuthModal('login')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px;">Sign In ➔</button>
           </div>
         `;
@@ -19573,7 +19594,7 @@ pre, .code-block, .chat-code-snippet {
         container.innerHTML = `
           <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
             <div style="font-size: 32px; margin-bottom: 10px;">👥</div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">No Clan Allies Yet</div>
+            <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">No Friends Yet</div>
             <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your accepted friends appear in this roster. Add shinobi to your clan!</div>
             <button class="btn btn-outline" onclick="switchMainView('friends')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; color: var(--chakra-cyan); border-color: rgba(6,182,212,0.4);">+ Add Friends</button>
           </div>
@@ -19700,7 +19721,7 @@ pre, .code-block, .chat-code-snippet {
       document.getElementById('popoverName').innerText = dispName;
       document.getElementById('popoverHandle').innerText = `@${member.username}`;
       document.getElementById('popoverRankPill').innerText = `⚡ ${member.rank || 'Genin'} • Level ${level}`;
-      document.getElementById('popoverBio').innerText = member.bio || 'Connecto Shinobi';
+      document.getElementById('popoverBio').innerText = member.bio || 'Connecto Member';
 
       // Custom Status in Popover
       const csEl = document.getElementById('popoverCustomStatus');
@@ -19739,7 +19760,7 @@ pre, .code-block, .chat-code-snippet {
         xpWrapEl.innerHTML = `
           <div class="xp-progress-wrap">
             <div class="xp-progress-label">
-              <span>Shinobi Mastery</span>
+              <span>Skill Mastery</span>
               <span>${xp} / ${nextXp} XP</span>
             </div>
             <div class="xp-progress-track">
@@ -19827,7 +19848,7 @@ pre, .code-block, .chat-code-snippet {
           avatar: currentAvatar || '🔥',
           status: 'online',
           banner_url: currentUserBanner || '',
-          bio: 'Connecto Shinobi'
+          bio: 'Connecto Member'
         };
       }
       if (member) {
@@ -20646,7 +20667,7 @@ pre, .code-block, .chat-code-snippet {
         });
         const data = await res.json();
         if (data.status === 'ok') {
-          showNotificationToast('Report Transmitted', 'Thank you. Clan moderators have been alerted.');
+          showNotificationToast('Report Transmitted', 'Thank you. Community moderators have been alerted.');
           const modal = document.getElementById('reportMessageModal');
           if (modal) modal.style.display = 'none';
           reportingTarget = null;
@@ -21009,7 +21030,7 @@ pre, .code-block, .chat-code-snippet {
 
       const formatted = formatMessageContent(parent.content || '');
       const avatar = parent.avatar || '👤';
-      const author = parent.nickname || parent.user || 'Shinobi';
+      const author = parent.nickname || parent.user || 'Friend';
       const timeStr = parent.timestamp || '';
       const linkPreviewHTML = parent.link_preview ? renderLinkPreviewHTML(parent.link_preview) : '';
 
@@ -21036,7 +21057,7 @@ pre, .code-block, .chat-code-snippet {
           <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px 10px; color:var(--text-muted); text-align:center;">
             <span style="font-size:28px; margin-bottom:8px;">🧵</span>
             <strong style="font-size:13px; color:var(--text-header); margin-bottom:4px;">No replies yet</strong>
-            <span style="font-size:11.5px;">Be the first shinobi to start this reply chain!</span>
+            <span style="font-size:11.5px;">Be the first friend to start this reply chain!</span>
           </div>
         `;
         return;
@@ -21049,7 +21070,7 @@ pre, .code-block, .chat-code-snippet {
     function renderSingleThreadReplyHTML(r) {
       const formatted = formatMessageContent(r.content || '');
       const avatar = r.avatar || '👤';
-      const author = r.nickname || r.user || 'Shinobi';
+      const author = r.nickname || r.user || 'Friend';
       const timeStr = r.timestamp || '';
       const linkPreviewHTML = r.link_preview ? renderLinkPreviewHTML(r.link_preview) : '';
 
@@ -21271,7 +21292,7 @@ pre, .code-block, .chat-code-snippet {
         name: '/flip',
         syntax: '/flip',
         icon: '🪙',
-        desc: 'Flip a shinobi coin (Heads or Tails)',
+        desc: 'Flip a coin (Heads or Tails)',
         handler: () => {
           const outcome = Math.random() < 0.5 ? 'Heads' : 'Tails';
           return `🪙 **Flipped a coin and got: ${outcome}!**`;
@@ -21409,7 +21430,7 @@ pre, .code-block, .chat-code-snippet {
         name: '/leaderboard',
         syntax: '/leaderboard',
         icon: '🏆',
-        desc: 'Open Shinobi Referral Leaderboard & Clan XP Hub',
+        desc: 'Open Friends Referral Leaderboard & XP Hub',
         handler: () => {
           openReferralLeaderboardModal();
           return null;
@@ -21441,7 +21462,7 @@ pre, .code-block, .chat-code-snippet {
         icon: '❓',
         desc: 'Display list of available slash commands and platform shortcuts',
         handler: () => {
-          return `✨ **Shinobi Slash Commands Guide:**\n• \`/search [query]\` - Global message search across all channels & DMs\n• \`/leaderboard\` or \`/referrals\` - Referral & Clan XP Leaderboard\n• \`/schedule [mins] [text]\` - Delayed scheduled messages\n• \`/roll [20|2d6]\` - Roll dice or random number\n• \`/flip\` - Flip a coin (Heads/Tails)\n• \`/poll [Question | Opt1 | Opt2]\` - Launch instant interactive poll\n• \`/status [emoji] [text]\` - Update custom status\n• \`/clear\` - Clear local message view`;
+          return `✨ **Connecto Slash Commands Guide:**\n• \`/search [query]\` - Global message search across all channels & DMs\n• \`/leaderboard\` or \`/referrals\` - Referral & Clan XP Leaderboard\n• \`/schedule [mins] [text]\` - Delayed scheduled messages\n• \`/roll [20|2d6]\` - Roll dice or random number\n• \`/flip\` - Flip a coin (Heads/Tails)\n• \`/poll [Question | Opt1 | Opt2]\` - Launch instant interactive poll\n• \`/status [emoji] [text]\` - Update custom status\n• \`/clear\` - Clear local message view`;
         }
       }
     ];
@@ -22179,11 +22200,11 @@ pre, .code-block, .chat-code-snippet {
           btnText.innerText = '✅ Copied!';
           setTimeout(() => { btnText.innerText = '📋 Copy'; }, 2000);
         }
-        showNotificationToast('Referral Link Copied', 'Share your link with talented engineers to earn Clan XP!');
+        showNotificationToast('Referral Link Copied', 'Share your link with friends to earn Community XP!');
       } catch (err) {
         input.select();
         document.execCommand('copy');
-        showNotificationToast('Referral Link Copied', 'Share your link with talented engineers to earn Clan XP!');
+        showNotificationToast('Referral Link Copied', 'Share your link with friends to earn Community XP!');
       }
     }
 
@@ -22602,7 +22623,7 @@ pre, .code-block, .chat-code-snippet {
           author: 'Hayate',
           avatar: '🍃',
           time: '09:01 AM',
-          content: "You can also test syntax highlighted code snippets:\n```js\nconst clan = new ShinobiMesh({\n  encryption: 'AES-256-GCM',\n  latency: '< 5ms'\n});\n```",
+          content: "You can also test syntax highlighted code snippets:\n```js\nconst network = new PeerMesh({\n  encryption: 'AES-256-GCM',\n  latency: '< 5ms'\n});\n```",
           reactions: { '🔥': 6, '⚡': 4 }
         }
       ],
@@ -22733,7 +22754,7 @@ pre, .code-block, .chat-code-snippet {
           author: 'Shadow Sensei',
           avatar: '⚡',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          content: "Nice scroll! ⚡ You've tested the interactive demo. Sign in or click 'Open Live Chat' to join 28+ active shinobi in production.",
+          content: "Nice scroll! ⚡ You've tested the interactive demo. Sign in or click 'Open Live Chat' to join 28+ active friends in production.",
           reactions: { '🎉': 3, '⚔️': 2 }
         };
         if (!currentSandboxData[sandboxChannel]) currentSandboxData[sandboxChannel] = [];
@@ -23133,7 +23154,7 @@ pre, .code-block, .chat-code-snippet {
 
     function handleIncomingCall(data) {
       incomingCallData = data;
-      const callerUname = data.caller || data.caller_username || data.caller_name || 'Shinobi';
+      const callerUname = data.caller || data.caller_username || data.caller_name || 'Friend';
       const callId = data.call_id || data.room_id || '';
       document.getElementById('incomingCallerName').innerText = callerUname;
       document.getElementById('incomingCallerAvatar').innerText = data.avatar || data.caller_avatar || '👤';
@@ -23477,7 +23498,7 @@ pre, .code-block, .chat-code-snippet {
         const isCurrent = activeVoiceRoomId === room.id;
         const pCount = room.participant_count || 0;
         const membersPills = (room.participants || []).map(p => `
-          <span class="voice-member-pill" title="${escapeHTML(p.nickname || p.username)} (${p.rank || 'Shinobi'})">
+          <span class="voice-member-pill" title="${escapeHTML(p.nickname || p.username)} (${p.rank || 'Member'})">
             <span>${renderAvatarHTML(p.avatar, p.nickname || p.username, 20)}</span>
             <span>${escapeHTML(p.nickname || p.username)}</span>
           </span>
@@ -23500,7 +23521,7 @@ pre, .code-block, .chat-code-snippet {
                   <span>${pCount > 0 ? `${pCount} in room` : 'Empty'}</span>
                 </div>
               </div>
-              <div class="voice-room-topic">${escapeHTML(room.topic || 'Group voice communication & strategic shinobi mesh.')}</div>
+              <div class="voice-room-topic">${escapeHTML(room.topic || 'Group voice communication & strategic team mesh.')}</div>
             </div>
             <div class="voice-card-footer">
               <div class="voice-room-members-strip">
@@ -23605,7 +23626,7 @@ pre, .code-block, .chat-code-snippet {
               ${renderAvatarHTML(p.avatar, p.nickname || p.username, 56)}
             </div>
             <div class="participant-name">${escapeHTML(p.nickname || p.username)} ${isMe ? '(You)' : ''}</div>
-            <div class="participant-rank">⚡ ${p.rank || 'Shinobi'}</div>
+            <div class="participant-rank">⚡ ${p.rank || 'Member'}</div>
           </div>
         `;
       }).join('');
@@ -23897,7 +23918,7 @@ pre, .code-block, .chat-code-snippet {
       listEl.innerHTML = friends.map(f => {
         const uname = typeof f === 'string' ? f : (f.username || f.name || '');
         const avatar = typeof f === 'object' && f.avatar ? f.avatar : '👤';
-        const rank = typeof f === 'object' && f.rank ? f.rank : 'Shinobi';
+        const rank = typeof f === 'object' && f.rank ? f.rank : 'Member';
         const isOnline = typeof f === 'object' && f.status ? f.status === 'online' : true;
 
         return `
@@ -23976,7 +23997,7 @@ pre, .code-block, .chat-code-snippet {
       const toast = document.getElementById('voiceInviteToast');
       if (toast) toast.style.display = 'flex';
 
-      showNotificationToast('Clan Summon', `@${data.from_user} summoned you to join ${data.room_name || 'Voice Room'}`);
+      showNotificationToast('Voice Summon', `@${data.from_user} summoned you to join ${data.room_name || 'Voice Room'}`);
 
       clearTimeout(voiceInviteTimeout);
       voiceInviteTimeout = setTimeout(() => {
@@ -24069,7 +24090,7 @@ pre, .code-block, .chat-code-snippet {
             row.className = 'friend-row';
             const friendName = f.username || f.friend_username || 'Friend';
             const fStatus = (f.status || 'offline').toLowerCase();
-            const fRank = f.rank || 'Shinobi';
+            const fRank = f.rank || 'Member';
             const fBio = f.bio || (fStatus === 'online' ? 'Online' : 'Offline');
             row.innerHTML = `
               <div style="display:flex; align-items:center; gap:var(--space-3);">
@@ -24304,7 +24325,7 @@ pre, .code-block, .chat-code-snippet {
 
       if (cmd === 'scan_network') {
         outputHtml += `
-          <div style="color:var(--green); margin-left:10px;">✔ [OK] Probing active shinobi clan nodes...</div>
+          <div style="color:var(--green); margin-left:10px;">✔ [OK] Probing active peer network nodes...</div>
           <div style="color:var(--text-normal); margin-left:10px;">→ Node 1 (Shadow Vanguard Core): 127.0.0.1:8080 [Latency: &lt;10ms]</div>
           <div style="color:var(--text-normal); margin-left:10px;">→ Node 2 (Vault Archives): AES-256 GCM [TLS 1.3 Active]</div>
           <div style="color:var(--ninja-gold); margin-left:10px;">→ Mesh Status: 100% P2P Handshake Synchronized</div>
@@ -24317,7 +24338,7 @@ pre, .code-block, .chat-code-snippet {
         `;
       } else if (cmd === 'decrypt_scroll') {
         outputHtml += `
-          <div style="color:var(--ninja-gold); margin-left:10px;">Decrypting Forbidden Shinobi Scroll #42...</div>
+          <div style="color:var(--ninja-gold); margin-left:10px;">Decrypting Encrypted Data Packet #42...</div>
           <div style="color:var(--chakra-cyan); margin-left:10px;">HMAC-SHA256 Signature Verified ✔</div>
           <div style="color:#ffffff; margin-left:10px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">"Secret: WebSocket protocol upgrade verified with sub-ms packet speed."</div>
         `;
@@ -25164,7 +25185,7 @@ pre, .code-block, .chat-code-snippet {
           } else if (data.type === 'referral_xp_awarded') {
             const isMe = (data.referrer === '@' + currentUser || data.referrer === currentUser);
             if (isMe) {
-              showNotificationToast('🎉 Clan XP Earned!', `+${data.xp_awarded} XP: ${data.description}`);
+              showNotificationToast('🎉 Community XP Earned!', `+${data.xp_awarded} XP: ${data.description}`);
               try { playShinobiChime(); } catch(e) {}
               loadMyReferralStats();
             }
@@ -25218,7 +25239,7 @@ pre, .code-block, .chat-code-snippet {
           
           else if (data.type === 'friend_request_received' || data.type === 'friend:request_received' || data.type === 'friend:request_sent') {
             playSynthesizedSound('mention');
-            const sName = data.data?.sender || data.data?.sender_username || 'A Shinobi';
+            const sName = data.data?.sender || data.data?.sender_username || 'A Friend';
             const sAvatar = data.data?.sender_avatar || data.data?.avatar || data.data?.avatar_url || null; showNotificationToast('New Friend Request', `@${sName} sent you a friend request! 🥷`, sAvatar, sName);
             loadFriends();
             const notifBadge = document.getElementById('notifBadge');
@@ -25251,7 +25272,7 @@ pre, .code-block, .chat-code-snippet {
           } else if (data.type === 'call:accepted' || data.type === 'call_connected' || data.action === 'call:accepted') {
             handleCallAccepted(data);
           } else if (data.type === 'call:declined' || data.type === 'call_rejected' || data.action === 'call:declined') {
-            showNotificationToast('Call Declined', `${activeCallPeer || 'Shinobi'} declined the voice call.`);
+            showNotificationToast('Call Declined', `${activeCallPeer || 'Friend'} declined the voice call.`);
             cleanupCallState();
           } else if (data.type === 'call:offer' || data.type === 'voice_offer' || data.action === 'call:offer') {
             handleCallOffer(data);
@@ -25395,6 +25416,42 @@ pre, .code-block, .chat-code-snippet {
       }
     }
 
+    async function handleStealthToggleChange(enabled) {
+      updateStealthStatusUI(enabled);
+      try {
+        const token = localStorage.getItem('connecto_token') || '';
+        await fetch('/api/users/stealth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+            'X-User-Username': currentUser
+          },
+          body: JSON.stringify({ is_stealth: enabled, enabled: enabled, username: currentUser })
+        });
+        showNotificationToast(enabled ? 'Stealth Mode Active' : 'Stealth Mode Inactive', enabled ? 'You are now appearing offline to friends.' : 'You are now appearing online.');
+      } catch (e) {
+        console.error('Stealth toggle sync error:', e);
+      }
+    }
+
+    function updateStealthStatusUI(enabled) {
+      const badge = document.getElementById('settingsStealthStatusBadge');
+      if (badge) {
+        if (enabled) {
+          badge.innerHTML = '👻 Stealth Mode Active';
+          badge.style.background = 'rgba(96,165,250,0.15)';
+          badge.style.color = '#60a5fa';
+          badge.style.border = '1px solid rgba(96,165,250,0.3)';
+        } else {
+          badge.innerHTML = 'Visible (Online)';
+          badge.style.background = 'rgba(16,185,129,0.15)';
+          badge.style.color = '#10b981';
+          badge.style.border = '1px solid rgba(16,185,129,0.3)';
+        }
+      }
+    }
+
 function switchProfileStudioTab(tabId) {
       const tabs = ['profile', 'security', 'audio', 'theme'];
       tabs.forEach(t => {
@@ -25519,6 +25576,11 @@ function selectSettingsAvatar(emoji, el) {
             const toggle2FA = document.getElementById('setUser2faEnabled');
             if (toggle2FA) toggle2FA.checked = is2FA;
             update2FAStatusUI(is2FA);
+
+            const isStealth = (user.is_stealth === true || user.is_stealth === 1);
+            const toggleStealth = document.getElementById('setUserStealthEnabled');
+            if (toggleStealth) toggleStealth.checked = isStealth;
+            updateStealthStatusUI(isStealth);
             if (document.getElementById('setUserDob')) {
               document.getElementById('setUserDob').value = user.date_of_birth || '2000-01-01';
             }
@@ -25583,7 +25645,7 @@ function selectSettingsAvatar(emoji, el) {
                 lockBadge.style.color = 'var(--chakra-cyan)';
               }
               if (hint) {
-                hint.innerText = '⚠️ You can change your clan username ONCE. It will lock permanently after saving.';
+                hint.innerText = '⚠️ You can change your username ONCE. It will lock permanently after saving.';
               }
             }
 
@@ -25749,7 +25811,7 @@ function selectSettingsAvatar(emoji, el) {
         if (fb) {
           fb.className = 'auth-alert error';
           fb.style.display = 'block';
-          fb.innerHTML = '⚠️ Please enter your registered email or ninja username.';
+          fb.innerHTML = '⚠️ Please enter your registered email or username.';
         }
         return;
       }
@@ -25974,13 +26036,16 @@ function selectSettingsAvatar(emoji, el) {
       const form = document.getElementById('twoFactorForm');
       if (form) form.style.display = 'block';
       const maskEl = document.getElementById('twoFactorMaskedPhone');
-      if (maskEl) maskEl.innerText = maskedPhone || '+1 (***) ***-****';
+      if (maskEl) maskEl.innerText = maskedPhone || 'Registered Email or Phone';
       
       const feedback = document.getElementById('twoFactorFeedback');
       if (feedback) {
         feedback.className = 'auth-alert success';
         feedback.style.display = 'block';
-        feedback.innerHTML = `✓ 2FA code sent via SMS & WhatsApp to ${escapeHTML(maskedPhone || 'your phone')}.`;
+        const isEmail = maskedPhone && maskedPhone.includes('@');
+        feedback.innerHTML = isEmail
+          ? `✓ 2FA verification code sent to your registered email ${escapeHTML(maskedPhone)}.`
+          : `✓ 2FA verification code sent to ${escapeHTML(maskedPhone || 'your registered device')}.`;
       }
       
       const inputs = document.querySelectorAll('#otpInputsGrid .otp-digit-input');
@@ -26152,7 +26217,7 @@ function selectSettingsAvatar(emoji, el) {
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerText = 'Verify & Enter Clan ➔';
+          btn.innerText = 'Verify & Enter Connecto ➔';
         }
       }
     }
@@ -26492,7 +26557,7 @@ function selectSettingsAvatar(emoji, el) {
         bar.style.width = '50%';
         bar.style.backgroundColor = 'var(--ninja-gold)';
         bar.style.boxShadow = '0 0 10px var(--ninja-gold)';
-        text.innerHTML = '<span style="color:var(--ninja-gold); font-weight:800;">Chunin (Moderate)</span>';
+        text.innerHTML = '<span style="color:var(--ninja-gold); font-weight:800;">Moderate (Medium)</span>';
       } else if (score <= 3) {
         bar.style.width = '75%';
         bar.style.backgroundColor = 'var(--chakra-cyan)';
@@ -26511,7 +26576,7 @@ function selectSettingsAvatar(emoji, el) {
       '⚡': '⚡ Lightning Style',
       '🌸': '🌸 Cherry Blossom',
       '🍃': '🍃 Leaf Village',
-      '👾': '👾 Cyber Shinobi',
+      '👾': '👾 Cyber Explorer',
       '👑': '👑 Sovereign Crown'
     };
 
@@ -26663,14 +26728,14 @@ function selectSettingsAvatar(emoji, el) {
               </div>
               <div style="display:flex; flex-direction:column; min-width:0;">
                 <strong style="color:#ffffff; font-size:14px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">@${escapeHTML(currentUser)}</strong>
-                <span style="color:#10b981; font-size:11px; font-weight:600; display:flex; align-items:center; gap:4px;"><span class="pulse-emerald-dot" style="width:6px; height:6px;"></span> Active Shinobi</span>
+                <span style="color:#10b981; font-size:11px; font-weight:600; display:flex; align-items:center; gap:4px;"><span class="pulse-emerald-dot" style="width:6px; height:6px;"></span> Active Friend</span>
               </div>
             </div>
             <button class="btn btn-outline" onclick="openSettingsModal(); closeMobileNavMenu();" style="padding:6px 10px; font-size:11.5px; border-radius:8px; flex-shrink:0;" title="Settings">⚙️</button>
           </div>
           <div style="display:flex; flex-direction:column; gap:8px;">
             <button class="btn nav-cta-shimmer mobile-drawer-btn" style="width:100%; padding:11px; font-size:13px; font-weight:800; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:6px;" onclick="switchMainView('chat'); closeMobileNavMenu();">
-              <span>⚡ Enter Clan Chat</span> ➔
+              <span>⚡ Enter Chat</span> ➔
             </button>
             <button class="btn mobile-drawer-btn" style="width:100%; padding:11px; font-size:13px; font-weight:800; border-radius:10px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.35); color:#f87171; display:flex; align-items:center; justify-content:center; gap:6px; cursor:pointer;" onclick="handleLogout(); closeMobileNavMenu();">
               <i data-lucide="log-out" class="lucide-xs"></i> <span>Sign Out from Connecto</span>
@@ -26706,7 +26771,7 @@ function selectSettingsAvatar(emoji, el) {
       const profileInfo = document.getElementById('userProfileBarInfo');
       if (profileBtn) {
         profileBtn.innerText = isAuthed ? '⚙️' : '🔐';
-        profileBtn.title = isAuthed ? 'Shinobi Profile Settings' : 'Sign In / Account';
+        profileBtn.title = isAuthed ? 'Profile Settings' : 'Sign In / Account';
       }
       if (profileInfo) {
         profileInfo.title = isAuthed ? 'Click to open settings' : 'Click to sign in';
@@ -26732,9 +26797,9 @@ function selectSettingsAvatar(emoji, el) {
             <span class="nav-user-name">@${escapeHTML(currentUser)}</span>
             <span class="nav-user-status-dot"></span>
           </div>
-          <button class="nav-enter-clan-btn" onclick="switchMainView('chat')" title="Enter Clan Chat">
-            <span class="clan-btn-full">Enter Clan ➔</span>
-            <span class="clan-btn-mobile">⚡ Clan</span>
+          <button class="nav-enter-clan-btn" onclick="switchMainView('chat')" title="Enter Live Chat">
+            <span class="clan-btn-full">Enter Chat ➔</span>
+            <span class="clan-btn-mobile">⚡ Chat</span>
           </button>
           <button class="nav-signout-btn" onclick="handleLogout()" title="Sign Out">
             <span>🚪</span> <span class="signout-btn-label">Sign Out</span>
@@ -26969,7 +27034,7 @@ function handleNavCommunityClick() {
       if (email && !isValidEmail(email)) {
         if (fb) {
           fb.className = 'auth-alert error';
-          fb.innerHTML = '<span>⚠️</span><span>Invalid email ID. Please enter a valid email address (e.g. ninja@example.com).</span>';
+          fb.innerHTML = '<span>⚠️</span><span>Invalid email ID. Please enter a valid email address (e.g. user@example.com).</span>';
           fb.style.display = 'flex';
           fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
@@ -27158,6 +27223,8 @@ function handleNavCommunityClick() {
       
       const twoFaToggle = document.getElementById('setUser2faEnabled');
       const twoFaEnabled = twoFaToggle ? twoFaToggle.checked : true;
+      const stealthToggle = document.getElementById('setUserStealthEnabled');
+      const isStealth = stealthToggle ? stealthToggle.checked : false;
       
       const fullName = document.getElementById('setUserFullName') ? document.getElementById('setUserFullName').value.trim() : '';
       const location = document.getElementById('setUserLocation') ? document.getElementById('setUserLocation').value.trim() : '';
@@ -27178,6 +27245,7 @@ function handleNavCommunityClick() {
         email: email,
         phone: phone,
         two_factor_enabled: twoFaEnabled,
+        is_stealth: isStealth,
         date_of_birth: dob,
         gender: gender
       };
@@ -27569,20 +27637,20 @@ function handleNavCommunityClick() {
     }, 10000);
 </script>
 
-  <!-- Clan Leaderboard Modal -->
+  <!-- Friends Leaderboard Modal -->
   <div class="modal-overlay" id="leaderboardModal" onclick="closeLeaderboardModal()">
     <div class="modal-box-scroll" onclick="event.stopPropagation()" style="max-width:560px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:22px;">🏆</span>
-          <h3 style="margin:0; font-size:18px; color:#fff; font-weight:800;">Shinobi Clan Leaderboard</h3>
+          <h3 style="margin:0; font-size:18px; color:#fff; font-weight:800;">Friends Leaderboard</h3>
         </div>
         <button class="nav-btn-link" onclick="closeLeaderboardModal()" style="font-size:18px; color:var(--text-muted);">✕</button>
       </div>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:0;">Top ranked ninjas ranked by XP earned from CTF challenges, live messaging, and voice lounges.</p>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:0;">Top ranked members ranked by XP earned from challenges, live messaging, and voice lounges.</p>
       
       <div id="clanLeaderboardListContainer" style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; padding-right:4px;">
-        <div style="text-align:center; padding:24px; color:var(--text-muted);">Loading clan rankings...</div>
+        <div style="text-align:center; padding:24px; color:var(--text-muted);">Loading community rankings...</div>
       </div>
     </div>
   </div>
@@ -27612,9 +27680,9 @@ function handleNavCommunityClick() {
         <button class="nav-btn-link" onclick="closeTermsModal()" style="font-size:18px; color:var(--text-muted);">✕</button>
       </div>
       <div style="font-size:13px; color:var(--text-body); line-height:1.6; display:flex; flex-direction:column; gap:12px;">
-        <p><strong>1. Clan Respect:</strong> Harassment, hate speech, spamming, and illegal content distribution are strictly prohibited.</p>
+        <p><strong>1. Community Respect:</strong> Harassment, hate speech, spamming, and illegal content distribution are strictly prohibited.</p>
         <p><strong>2. Educational Fair Use:</strong> Cybersecurity learning labs & CTF challenges must only be used for defensive learning and authorized security practice.</p>
-        <p><strong>3. Account Integrity:</strong> Each ninja is responsible for maintaining the confidentiality of their credentials and session tokens.</p>
+        <p><strong>3. Account Integrity:</strong> Each member is responsible for maintaining the confidentiality of their credentials and session tokens.</p>
       </div>
       <button class="btn nav-cta-shimmer" style="margin-top:16px; width:100%;" onclick="closeTermsModal()">Accept Terms</button>
     </div>
@@ -27632,7 +27700,7 @@ function handleNavCommunityClick() {
     function handleSocialLogin(provider) {
       openAuthModal('login');
       if (typeof showToast === 'function') {
-        showToast(`${provider} login is in closed beta. Please use standard Ninja Sign In or Sign Up.`, 'info');
+        showToast(`${provider} login is in closed beta. Please use standard Sign In or Sign Up.`, 'info');
       }
     }
 
@@ -28568,7 +28636,7 @@ function updateGreeting() {
   else if (hr >= 23 || hr < 5) greet = 'Welcome back';
 
   const user = (typeof currentUser !== 'undefined' && currentUser && currentUser !== 'guest') 
-    ? currentUser : 'Shinobi';
+    ? currentUser : 'User';
   const titleEl = document.getElementById('homeGreetingTitle');
   if (titleEl) titleEl.textContent = `${greet}, ${user} 👋`;
 
