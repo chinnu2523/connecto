@@ -1,8 +1,8 @@
-name = "connecto-maintenance"
+name = "vconnect-maintenance"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
-# To deploy to connecto.fun zone, configure your zone_name / route:
-# routes = [
-#   { pattern = "connecto.fun/*", zone_name = "connecto.fun" }
-# ]
+routes = [
+  { pattern = "connecto.fun/*", zone_name = "connecto.fun" },
+  { pattern = "*.connecto.fun/*", zone_name = "connecto.fun" }
+]
