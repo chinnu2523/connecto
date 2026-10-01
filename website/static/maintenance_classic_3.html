@@ -3,24 +3,33 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Connecto • Routine Maintenance</title>
+  <title>Connecto • Scheduled Maintenance</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%23111827'/><path d='M30 35h40a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H45L30 78V41a6 6 0 0 1 6-6z' fill='%23FFFFFF'/><circle cx='42' cy='52' r='4' fill='%236366F1'/><circle cx='58' cy='52' r='4' fill='%236366F1'/></svg>">
   <style>
     :root {
-      --bg: #0e1117;
+      --bg: #0b0d13;
+      --card-bg: #12151e;
       --text-title: #ffffff;
       --text-sub: #9ca3af;
       --text-muted: #6b7280;
-      --border: #1f2937;
-      --button-bg: #f3f4f6;
-      --button-text: #111827;
-      --button-hover: #e5e7eb;
+      --border: #1f2430;
+      --border-subtle: rgba(255, 255, 255, 0.07);
+      --button-bg: #ffffff;
+      --button-text: #0b0d13;
+      --button-hover: #f3f4f6;
+      --accent: #4f46e5;
+      --accent-tint: rgba(99, 102, 241, 0.12);
+      --amber: #f59e0b;
+      --emerald: #10b981;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% -10%, rgba(99, 102, 241, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 50% 110%, rgba(56, 189, 248, 0.08) 0%, transparent 50%);
       color: var(--text-sub);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       min-height: 100vh;
@@ -28,10 +37,44 @@
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      padding: 48px 24px 32px;
+      padding: 44px 24px 32px;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       text-align: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient Subtle Background Breathing */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.02) 0%, transparent 60%);
+      pointer-events: none;
+      animation: ambientBreathe 8s ease-in-out infinite alternate;
+    }
+    @keyframes ambientBreathe {
+      0% { opacity: 0.4; transform: scale(0.98); }
+      100% { opacity: 1; transform: scale(1.02); }
+    }
+
+    /* Orchestrated Entrance Animation Stagger */
+    .animate-entry {
+      opacity: 0;
+      transform: translateY(16px);
+      animation: entryFadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .delay-1 { animation-delay: 0.08s; }
+    .delay-2 { animation-delay: 0.18s; }
+    .delay-3 { animation-delay: 0.28s; }
+    .delay-4 { animation-delay: 0.38s; }
+    .delay-5 { animation-delay: 0.48s; }
+    .delay-6 { animation-delay: 0.58s; }
+
+    @keyframes entryFadeUp {
+      0% { opacity: 0; transform: translateY(16px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
 
     /* Top Brand */
@@ -41,48 +84,136 @@
       gap: 10px;
       text-decoration: none;
       color: var(--text-title);
-      font-size: 20px;
+      font-size: 19px;
       font-weight: 700;
       letter-spacing: -0.4px;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      z-index: 10;
     }
+    .brand-link:hover { transform: translateY(-1px); }
     .brand-symbol {
-      width: 34px;
-      height: 34px;
+      width: 32px;
+      height: 32px;
       border-radius: 9px;
-      background: #1f2937;
-      border: 1px solid #374151;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .brand-symbol svg { width: 18px; height: 18px; fill: #ffffff; }
-
-    /* Center Content Container */
-    main.center-box {
-      max-width: 500px;
-      margin: 40px auto;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .maintenance-icon-wrap {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.04);
+      background: #181d28;
       border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 28px;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .maintenance-icon-wrap svg {
-      width: 26px;
-      height: 26px;
-      stroke: #9ca3af;
+    .brand-link:hover .brand-symbol {
+      border-color: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+    }
+    .brand-symbol svg { width: 17px; height: 17px; fill: #ffffff; }
+
+    /* Center Content Container */
+    main.center-box {
+      max-width: 520px;
+      margin: 32px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      z-index: 10;
     }
 
+    /* Bespoke Animated Editorial Mechanical Clock */
+    .clock-stage {
+      width: 68px;
+      height: 68px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 10px 25px rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 28px;
+      position: relative;
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s;
+      cursor: pointer;
+    }
+    .clock-stage:hover {
+      transform: scale(1.06) rotate(4deg);
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.15),
+        0 16px 36px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(99, 102, 241, 0.2);
+    }
+
+    /* Clock SVG Hands */
+    .clock-svg {
+      width: 34px;
+      height: 34px;
+    }
+    .clock-face {
+      fill: none;
+      stroke: #4b5563;
+      stroke-width: 2;
+    }
+    .clock-hand-hour {
+      stroke: #9ca3af;
+      stroke-width: 2;
+      stroke-linecap: round;
+      transform-origin: 17px 17px;
+      animation: rotateHour 48s linear infinite;
+    }
+    .clock-hand-minute {
+      stroke: #e5e7eb;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      transform-origin: 17px 17px;
+      animation: rotateMinute 12s linear infinite;
+    }
+    .clock-hand-second {
+      stroke: var(--accent);
+      stroke-width: 1.2;
+      stroke-linecap: round;
+      transform-origin: 17px 17px;
+      animation: rotateSecond 4s linear infinite;
+    }
+    .clock-center-dot {
+      fill: #ffffff;
+    }
+
+    @keyframes rotateHour { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes rotateMinute { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes rotateSecond { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Clean Status Pill with Pulsing Ambient Dot */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      font-size: 12px;
+      font-weight: 600;
+      color: #fbbf24;
+      margin-bottom: 22px;
+      letter-spacing: 0.2px;
+    }
+    .status-dot-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #f59e0b;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      animation: pulseDot 2s infinite ease-in-out;
+    }
+    @keyframes pulseDot {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.5; }
+    }
+
+    /* Editorial Typography */
     h1.heading {
       color: var(--text-title);
       font-size: 32px;
@@ -91,18 +222,19 @@
       line-height: 1.25;
       margin-bottom: 16px;
     }
-
     p.body-text {
-      font-size: 16px;
+      font-size: 15.5px;
       color: var(--text-sub);
-      margin-bottom: 32px;
+      line-height: 1.65;
+      margin-bottom: 30px;
     }
 
+    /* Actions Group */
     .button-group {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
       justify-content: center;
     }
@@ -111,55 +243,187 @@
       background: var(--button-bg);
       color: var(--button-text);
       border: none;
-      padding: 12px 28px;
+      padding: 11px 26px;
       border-radius: 24px;
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .btn-refresh:hover { background: var(--button-hover); transform: translateY(-1px); }
+    .btn-refresh:hover {
+      background: var(--button-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(255, 255, 255, 0.15);
+    }
+    .btn-refresh:active {
+      transform: translateY(0) scale(0.97);
+    }
+    .btn-refresh svg {
+      width: 14px;
+      height: 14px;
+      transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .btn-refresh.checking svg {
+      animation: spinRefresh 0.8s linear infinite;
+    }
+    @keyframes spinRefresh {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
 
     .btn-status-link {
       background: transparent;
       color: var(--text-sub);
       border: 1px solid var(--border);
-      padding: 11px 22px;
+      padding: 10px 22px;
       border-radius: 24px;
-      font-size: 14.5px;
+      font-size: 14px;
       font-weight: 500;
       text-decoration: none;
-      transition: color 0.15s ease, border-color 0.15s ease;
-    }
-    .btn-status-link:hover { color: var(--text-title); border-color: #374151; }
-
-    .auto-reload-status {
-      font-size: 13px;
-      color: var(--text-muted);
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
+      transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     }
-    .status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #f59e0b;
+    .btn-status-link:hover {
+      color: var(--text-title);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+    .btn-status-link svg {
+      width: 12px;
+      height: 12px;
+      transition: transform 0.2s ease;
+    }
+    .btn-status-link:hover svg {
+      transform: translateX(2px);
+    }
+
+    /* Live Countdown Progress Ring */
+    .auto-reload-card {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12.5px;
+      color: var(--text-muted);
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 30px;
+      margin-bottom: 24px;
+      transition: border-color 0.2s;
+    }
+    .auto-reload-card:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+    .countdown-ring-svg {
+      width: 18px;
+      height: 18px;
+      transform: rotate(-90deg);
+    }
+    .countdown-ring-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.08);
+      stroke-width: 2.2;
+    }
+    .countdown-ring-fill {
+      fill: none;
+      stroke: #9ca3af;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-dasharray: 50.26;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .countdown-seconds-num {
+      color: var(--text-sub);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Expandable Maintenance Details Disclosure */
+    .details-toggle {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: color 0.15s ease, background 0.15s ease;
+    }
+    .details-toggle:hover {
+      color: var(--text-sub);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .details-toggle svg {
+      width: 12px;
+      height: 12px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .details-toggle.expanded svg {
+      transform: rotate(180deg);
+    }
+
+    .details-content-wrapper {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 100%;
+      text-align: left;
+    }
+    .details-content-wrapper.open {
+      grid-template-rows: 1fr;
+    }
+    .details-inner {
+      overflow: hidden;
+    }
+    .details-card {
+      margin-top: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: var(--text-sub);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    .details-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .details-check {
+      width: 16px;
+      height: 16px;
+      color: var(--emerald);
+      flex-shrink: 0;
+      margin-top: 1px;
     }
 
     /* Footer */
     footer.bottom-bar {
-      font-size: 13px;
+      font-size: 12.5px;
       color: var(--text-muted);
       display: flex;
       align-items: center;
       gap: 16px;
       flex-wrap: wrap;
       justify-content: center;
+      position: relative;
+      z-index: 10;
     }
     footer.bottom-bar a {
       color: var(--text-muted);
@@ -168,27 +432,35 @@
     }
     footer.bottom-bar a:hover { color: var(--text-sub); }
 
-    /* Toast */
+    /* Minimal Toast */
     #minimal-toast {
       position: fixed;
-      bottom: 24px;
-      background: #181c24;
-      border: 1px solid #2d3748;
-      color: #fff;
+      bottom: 28px;
+      left: 50%;
+      background: #181d27;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #ffffff;
       padding: 10px 18px;
-      border-radius: 8px;
+      border-radius: 20px;
       font-size: 13px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      transform: translateY(80px);
+      font-weight: 500;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transform: translate(-50%, 80px);
       opacity: 0;
-      transition: all 0.2s ease;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
       z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      pointer-events: none;
     }
-    #minimal-toast.show { transform: translateY(0); opacity: 1; }
+    #minimal-toast.show { transform: translate(-50%, 0); opacity: 1; }
 
     @media (max-width: 520px) {
+      body { padding: 32px 18px 24px; }
       h1.heading { font-size: 26px; }
-      p.body-text { font-size: 15px; }
+      p.body-text { font-size: 14.5px; }
       .button-group { flex-direction: column; width: 100%; }
       .btn-refresh, .btn-status-link { width: 100%; justify-content: center; }
     }
@@ -196,93 +468,189 @@
 </head>
 <body>
 
-  <!-- Brand -->
-  <a href="#" class="brand-link">
+  <!-- Top Brand Navigation -->
+  <a href="#" class="brand-link animate-entry delay-1">
     <div class="brand-symbol">
       <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
     </div>
     <span>Connecto</span>
   </a>
 
-  <!-- Content -->
+  <!-- Central Editorial Content -->
   <main class="center-box">
-    <div class="maintenance-icon-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <polyline points="12 6 12 12 16 14"></polyline>
+    <!-- Kinetic Mechanical Clock Icon -->
+    <div class="clock-stage animate-entry delay-2" title="Scheduled Maintenance Active" onclick="handleClockClick()">
+      <svg class="clock-svg" viewBox="0 0 34 34">
+        <circle class="clock-face" cx="17" cy="17" r="14"></circle>
+        <line class="clock-hand-hour" id="hand-hour" x1="17" y1="17" x2="17" y2="10"></line>
+        <line class="clock-hand-minute" id="hand-minute" x1="17" y1="17" x2="23" y2="17"></line>
+        <line class="clock-hand-second" id="hand-second" x1="17" y1="17" x2="17" y2="7"></line>
+        <circle class="clock-center-dot" cx="17" cy="17" r="1.8"></circle>
       </svg>
     </div>
 
-    <h1 class="heading">Temporarily down for maintenance</h1>
-
-    <p class="body-text">
-      We are performing routine server upgrades to keep Connecto fast, secure, and reliable. We expect to be back online in just a few minutes.
-    </p>
-
-    <div class="button-group">
-      <button class="btn-refresh" id="btn-refresh" onclick="handleRefresh()">
-        <span id="refresh-label">Refresh Page</span>
-      </button>
-      <a href="/static/status.html" class="btn-status-link">View System Status</a>
+    <!-- Status Badge -->
+    <div class="status-badge animate-entry delay-3">
+      <div class="status-dot-pulse"></div>
+      <span>Routine Server Maintenance</span>
     </div>
 
-    <div class="auto-reload-status">
-      <div class="status-dot"></div>
-      <span>Auto-refreshing in <span id="time-left">30</span> seconds</span>
+    <!-- Main Editorial Headline -->
+    <h1 class="heading animate-entry delay-3">
+      Temporarily down for maintenance
+    </h1>
+
+    <p class="body-text animate-entry delay-4">
+      We are performing routine server upgrades to keep Connecto fast, secure, and reliable. We expect to be back online in just a few minutes. Thank you for your patience.
+    </p>
+
+    <!-- Primary Action Buttons -->
+    <div class="button-group animate-entry delay-5">
+      <button class="btn-refresh" id="btn-refresh" onclick="handleRefresh()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        <span id="refresh-label">Refresh Page</span>
+      </button>
+      <a href="/static/status.html" class="btn-status-link">
+        <span>View System Status</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+
+    <!-- Live Hairline Radial Countdown Tracker -->
+    <div class="auto-reload-card animate-entry delay-6">
+      <svg class="countdown-ring-svg">
+        <circle class="countdown-ring-bg" cx="9" cy="9" r="8"></circle>
+        <circle class="countdown-ring-fill" id="countdown-ring" cx="9" cy="9" r="8"></circle>
+      </svg>
+      <span>Checking connection in <span class="countdown-seconds-num" id="time-left">30</span>s</span>
+    </div>
+
+    <!-- Expandable Clean Scope Disclosure -->
+    <div class="animate-entry delay-6" style="width: 100%;">
+      <button class="details-toggle" id="details-toggle-btn" onclick="toggleDetails()">
+        <span>What's being updated?</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+
+      <div class="details-content-wrapper" id="details-wrapper">
+        <div class="details-inner">
+          <div class="details-card">
+            <div class="details-item">
+              <svg class="details-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span><strong>Database Optimization</strong>: Faster query caching and non-destructive index migrations.</span>
+            </div>
+            <div class="details-item">
+              <svg class="details-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span><strong>Real-Time Message Sync</strong>: Upgrading low-latency WebSocket connection gateways.</span>
+            </div>
+            <div class="details-item">
+              <svg class="details-check" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              <span><strong>100% Data Preservation</strong>: All messages, media, and channels remain safe and intact.</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
-  <!-- Footer -->
-  <footer class="bottom-bar">
+  <!-- Clean Bottom Footer -->
+  <footer class="bottom-bar animate-entry delay-6">
     <span>Need help? <a href="mailto:support@connecto.fun">support@connecto.fun</a></span>
     <span>&bull;</span>
-    <a href="https://t.me/connecto" target="_blank" rel="noopener">Telegram Channel</a>
+    <a href="https://t.me/connecto" target="_blank" rel="noopener">Telegram Updates</a>
     <span>&bull;</span>
     <span>&copy; 2026 Connecto</span>
   </footer>
 
-  <div id="minimal-toast"></div>
+  <!-- Minimal Spring Toast -->
+  <div id="minimal-toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+    <span id="toast-text"></span>
+  </div>
 
   <script>
-    let remaining = 30;
+    const TOTAL_SECONDS = 30;
+    let remaining = TOTAL_SECONDS;
     const timeLeft = document.getElementById('time-left');
+    const ringFill = document.getElementById('countdown-ring');
     const toast = document.getElementById('minimal-toast');
+    const toastText = document.getElementById('toast-text');
+    const refreshBtn = document.getElementById('btn-refresh');
     const refreshLabel = document.getElementById('refresh-label');
+    const detailsWrapper = document.getElementById('details-wrapper');
+    const detailsToggleBtn = document.getElementById('details-toggle-btn');
 
-    setInterval(() => {
+    const ringCircumference = 2 * Math.PI * 8; // 50.265
+
+    function updateCountdownVisual() {
+      timeLeft.innerText = remaining;
+      const offset = ringCircumference - (remaining / TOTAL_SECONDS) * ringCircumference;
+      ringFill.style.strokeDashoffset = offset;
+    }
+
+    const timerInterval = setInterval(() => {
       remaining--;
       if (remaining <= 0) {
-        remaining = 30;
+        remaining = TOTAL_SECONDS;
         handleRefresh(true);
       }
-      timeLeft.innerText = remaining;
+      updateCountdownVisual();
     }, 1000);
 
     function handleRefresh(silent = false) {
+      refreshBtn.classList.add('checking');
       if (!silent) refreshLabel.innerText = 'Checking...';
 
       fetch('/api/v1/health', { method: 'GET', cache: 'no-store' })
         .then(res => {
+          refreshBtn.classList.remove('checking');
           if (res.status === 200) {
-            showToast('Service is restored! Reloading...');
-            setTimeout(() => window.location.reload(), 800);
+            showToast('🎉 Connecto is back online! Refreshing...');
+            setTimeout(() => window.location.reload(), 900);
           } else {
-            if (!silent) showToast('Maintenance is still ongoing. Will recheck automatically.');
+            if (!silent) showToast('Maintenance is still ongoing. Re-checking shortly.');
             refreshLabel.innerText = 'Refresh Page';
-            remaining = 30;
+            remaining = TOTAL_SECONDS;
+            updateCountdownVisual();
           }
         })
         .catch(() => {
-          if (!silent) showToast('Maintenance is still ongoing. Will recheck automatically.');
+          refreshBtn.classList.remove('checking');
+          if (!silent) showToast('Maintenance is still ongoing. Re-checking shortly.');
           refreshLabel.innerText = 'Refresh Page';
-          remaining = 30;
+          remaining = TOTAL_SECONDS;
+          updateCountdownVisual();
         });
     }
 
+    function toggleDetails() {
+      const isOpen = detailsWrapper.classList.contains('open');
+      if (isOpen) {
+        detailsWrapper.classList.remove('open');
+        detailsToggleBtn.classList.remove('expanded');
+      } else {
+        detailsWrapper.classList.add('open');
+        detailsToggleBtn.classList.add('expanded');
+      }
+    }
+
+    function handleClockClick() {
+      // Playful quick spin on clock hands when tapped
+      const handSec = document.getElementById('hand-second');
+      const handMin = document.getElementById('hand-minute');
+      handSec.style.animation = 'rotateSecond 0.8s ease-in-out 1';
+      handMin.style.animation = 'rotateMinute 1.5s ease-in-out 1';
+      setTimeout(() => {
+        handSec.style.animation = 'rotateSecond 4s linear infinite';
+        handMin.style.animation = 'rotateMinute 12s linear infinite';
+      }, 1600);
+      showToast('⚡ Precision server synchronizers active.');
+    }
+
     function showToast(msg) {
-      toast.innerText = msg;
+      toastText.innerText = msg;
       toast.classList.add('show');
-      setTimeout(() => toast.classList.remove('show'), 3000);
+      setTimeout(() => toast.classList.remove('show'), 3500);
     }
   </script>
 </body>
