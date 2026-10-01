@@ -52,6 +52,18 @@ export default {
       return handleSystemStatus(env);
     }
     if (url.pathname === "/api/server-mode" || url.pathname === "/api/v1/system/mode") {
+      if (env.DB) {
+        try {
+          const row = await env.DB.prepare(
+            "SELECT origin_state, (strftime('%s', 'now') - strftime('%s', last_checked)) as age_sec FROM server_status WHERE id = 'main_origin'"
+          ).first();
+          if (row && row.origin_state === "UP" && (row.age_sec == null || row.age_sec <= 45)) {
+            localServerStatus = "UP";
+          } else {
+            localServerStatus = "DOWN";
+          }
+        } catch (_) {}
+      }
       return jsonResponse({
         active_server: localServerStatus === "UP" ? "local_server" : "cloud_server",
         origin_status: localServerStatus,
@@ -149,28 +161,20 @@ function markLocalServerDown(env, ctx) {
 
 async function probeOriginHealth(env) {
   lastOriginProbeTime = Date.now();
-  const startTime = Date.now();
   let state = "DOWN";
-  let latency = 0;
   let detailMsg = "Local server offline";
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
-    // Request a lightweight origin endpoint with custom header to bypass worker loop
-    const res = await fetch("https://connecto.fun/cdn-cgi/trace", {
-      headers: { "X-Connecto-Health-Probe": "1" },
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-    latency = Date.now() - startTime;
-    // Note: If Cloudflare Tunnel is down, fetch to the origin tunnel will return status >= 500
-    if (res.status < 500) {
-      // Cloudflare edge is up; check server_status record if updated by local runner
-      const row = await env.DB.prepare("SELECT origin_state, last_checked FROM server_status WHERE id = 'main_origin'").first();
-      if (row && row.origin_state === "UP") {
+    if (env.DB) {
+      const row = await env.DB.prepare(
+        "SELECT origin_state, last_checked, (strftime('%s', 'now') - strftime('%s', last_checked)) as age_sec FROM server_status WHERE id = 'main_origin'"
+      ).first();
+      if (row && row.origin_state === "UP" && (row.age_sec == null || row.age_sec <= 45)) {
         state = "UP";
-        detailMsg = "Origin verified online";
+        detailMsg = `Origin verified online (heartbeat age ${row.age_sec || 0}s)`;
+      } else {
+        state = "DOWN";
+        detailMsg = row ? `Origin heartbeat expired (age ${row.age_sec || 999}s)` : "No origin record";
       }
     }
   } catch (err) {
@@ -179,14 +183,6 @@ async function probeOriginHealth(env) {
   }
 
   localServerStatus = state;
-  try {
-    if (env.DB) {
-      await env.DB.prepare(
-        "INSERT OR REPLACE INTO server_status (id, origin_state, last_checked, latency_ms, details) VALUES (?, ?, datetime('now'), ?, ?)"
-      ).bind("main_origin", state, latency, detailMsg).run();
-    }
-  } catch (_) {}
-
   return state;
 }
 
@@ -2183,6 +2179,14 @@ async function handleSystemStatus(env) {
       await env.DB.prepare("SELECT 1;").first();
       latencyMs = Date.now() - startTime;
       tableCount = (await env.DB.prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table';").first("count")) || 28;
+      const statusRow = await env.DB.prepare(
+        "SELECT origin_state, (strftime('%s', 'now') - strftime('%s', last_checked)) as age_sec FROM server_status WHERE id = 'main_origin'"
+      ).first();
+      if (statusRow && statusRow.origin_state === "UP" && (statusRow.age_sec == null || statusRow.age_sec <= 45)) {
+        localServerStatus = "UP";
+      } else {
+        localServerStatus = "DOWN";
+      }
     }
   } catch (_) {
     d1Status = "Degraded";

@@ -330,12 +330,21 @@ async def lifespan(app: FastAPI):
                     pass
         except Exception as _we:
             pass
-    asyncio.create_task(_launch_watchdog_deferred())
+    # Start Cloudflare D1 Cloud Sync & Origin Heartbeat Engine
+    from app.db.d1_sync import d1_sync_manager
+    d1_sync_manager.start()
+
     yield
+
     purge_task.cancel()
     try:
         await purge_task
     except (asyncio.CancelledError, Exception):
+        pass
+
+    try:
+        await d1_sync_manager.stop()
+    except Exception:
         pass
 
 is_prod = (getattr(settings, "ENV", "production") == "production" or os.environ.get("CONNECTO_ENV") == "production")
@@ -466,6 +475,7 @@ app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 os.makedirs(os.path.join(static_dir, "downloads"), exist_ok=True)
+os.makedirs(os.path.join(static_dir, "_next"), exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.mount("/_next", StaticFiles(directory=os.path.join(static_dir, "_next")), name="nextjs")
 
@@ -650,6 +660,31 @@ app.include_router(academy_router, prefix="/api")
 app.include_router(careers_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api/v1")
 # Legacy compat: also expose auth and notifications at /api/* for older clients
+
+@app.get("/api/v1/sync/status")
+@app.get("/api/sync/status")
+async def get_sync_status():
+    from app.db.d1_sync import d1_sync_manager
+    return {
+        "status": "active" if d1_sync_manager.is_running else "ready",
+        "cloud_online": d1_sync_manager.is_cloud_online(),
+        "last_sync_time": d1_sync_manager.last_sync_time,
+        "local_server": "operational",
+        "local_database": "connecto_staging.db",
+        "cloud_database": "connecto-db",
+        "failover_mode": "automatic"
+    }
+
+@app.post("/api/v1/sync/now")
+@app.post("/api/sync/now")
+async def trigger_sync_now():
+    from app.db.d1_sync import d1_sync_manager
+    res = await asyncio.to_thread(d1_sync_manager.sync_all_to_cloud)
+    return {
+        "status": "success",
+        "message": "Local database pushed to Cloudflare D1 successfully",
+        "tables_synced": res
+    }
 
 # ==================== STRUCTURED ERROR LOGGING & MONITORING ====================
 LOGS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")

@@ -42,6 +42,31 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script>
+  // ==================== AUTOMATED CLOUD & LOCAL FAILOVER ENGINE ====================
+  (function initAutomatedFailover() {
+    const originalFetch = window.fetch;
+    const CLOUD_ORIGIN = 'https://connecto.fun';
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    window.fetch = async function(...args) {
+      let [resource, config] = args;
+      try {
+        const response = await originalFetch.apply(this, args);
+        if (isLocal && response.status >= 502 && response.status <= 504 && typeof resource === 'string' && resource.startsWith('/api/')) {
+          console.warn('[Connecto Failover] Local server responded ' + response.status + '. Automatically connecting to Cloud Server...');
+          return await originalFetch(CLOUD_ORIGIN + resource, config);
+        }
+        return response;
+      } catch (err) {
+        if (isLocal && typeof resource === 'string' && resource.startsWith('/api/')) {
+          console.warn('[Connecto Failover] Local server connection refused. Automatically connecting to Cloud Server (' + CLOUD_ORIGIN + ')...');
+          return await originalFetch(CLOUD_ORIGIN + resource, config);
+        }
+        throw err;
+      }
+    };
+  })();
+
   // ==================== CONNECTO VAULT & UI LOGIC ====================
   let currentVaultTheme = 'dark';
   const BANNER_PRESETS = {
