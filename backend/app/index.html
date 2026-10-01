@@ -13626,6 +13626,383 @@ pre, .code-block, .chat-code-snippet {
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 </style>
+
+<style id="connecto-device-parity-v4">
+/* ========================================================================== */
+/* STITCH & MCP CONNECTORS: DEDICATED PHONE VIEW (<768px) vs DESKTOP WORKSTATION (>=769px) */
+/* ========================================================================== */
+
+/* --- 1. PHONE VIEW (Tactical OLED Mobile Interface) --- */
+@media (max-width: 768px) {
+  /* Complete elimination of Desktop Guild Rail on Mobile */
+  .guilds-nav {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    pointer-events: none !important;
+  }
+
+  /* Full-width off-canvas slide-over Channels Drawer starting flush at left: 0 */
+  .channels-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    width: min(320px, 86vw) !important;
+    max-width: 320px !important;
+    z-index: 1500 !important;
+    background: rgba(8, 11, 20, 0.98) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 12px 0 48px rgba(0, 0, 0, 0.9) !important;
+    transform: translateX(-105%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+  }
+  .channels-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Close button inside mobile server header */
+  .channels-sidebar-mobile-close {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .channels-sidebar-mobile-close:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  /* Off-canvas Members Drawer from Right */
+  .members-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: min(320px, 86vw) !important;
+    max-width: 320px !important;
+    z-index: 1500 !important;
+    background: rgba(8, 11, 20, 0.98) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: -12px 0 48px rgba(0, 0, 0, 0.9) !important;
+    transform: translateX(105%) !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    display: flex !important;
+  }
+  .members-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Backdrop Overlay for Mobile Drawers */
+  .sidebar-backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: rgba(0, 0, 0, 0.72) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    z-index: 1400 !important;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease !important;
+  }
+  .sidebar-backdrop.active {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+
+  /* Full screen touch workspace */
+  .main-view-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Tactical Mobile Top App Bar */
+  .chat-header {
+    height: 52px !important;
+    padding: 0 12px !important;
+    background: rgba(8, 10, 18, 0.96) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    z-index: 30 !important;
+  }
+  /* On mobile non-chat screens (home, messages, calls), hide the redundant chat header */
+  body.in-app-view:not(.mobile-in-chat) .chat-header {
+    display: none !important;
+  }
+  body.in-app-view.mobile-in-chat .chat-header {
+    display: flex !important;
+  }
+
+  /* Mobile Back Arrow Button */
+  .mobile-chat-back-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    cursor: pointer;
+    margin-right: 6px;
+    flex-shrink: 0;
+  }
+  .mobile-chat-back-btn:active {
+    transform: scale(0.92);
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  /* Mobile hides bulky in-chat header elements */
+  .header-topic,
+  .header-divider-sep,
+  .in-chat-search-wrap,
+  #canvasToggleBtn,
+  #scheduledToggleBtn,
+  #bookmarksToggleBtn,
+  #referralLeaderboardToggleBtn,
+  #chatChannelSwitcherRow {
+    display: none !important;
+  }
+
+  /* Tactical Mobile Chat Stage & Messages */
+  .chat-messages-column {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .messages-area {
+    padding: 10px 12px 90px 12px !important;
+  }
+
+  /* Tactical Mobile Touch Composer */
+  .input-area {
+    margin-bottom: 74px !important;
+    padding: 6px 12px !important;
+    background: transparent !important;
+  }
+  .stitch-input-card {
+    padding: 6px 8px !important;
+    background: rgba(14, 17, 27, 0.94) !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75) !important;
+  }
+  .stitch-input-toolbar {
+    display: none !important; /* Hide tiny desktop tools on mobile */
+  }
+  .connecto-enhanced-input-row {
+    margin-top: 0 !important;
+  }
+  .connecto-input-capsule-wrapper {
+    min-height: 44px !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 2px 4px !important;
+  }
+  .connecto-attach-inline-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: #94A3B8;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+  .connecto-attach-inline-btn:active {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.16);
+  }
+  .stitch-input-field {
+    font-size: 15px !important;
+    padding: 8px 10px !important;
+  }
+  .connecto-send-circle-btn {
+    width: 38px !important;
+    height: 38px !important;
+    flex-shrink: 0;
+  }
+
+  /* Floating Bottom Island Dock on Mobile */
+  body.in-app-view .connecto-mobile-dock {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 12px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100% - 24px) !important;
+    max-width: 440px !important;
+    height: 60px !important;
+    background: rgba(10, 13, 22, 0.94) !important;
+    backdrop-filter: blur(24px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 9999px !important;
+    z-index: 1000 !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(124, 92, 252, 0.18) !important;
+    padding: 0 6px !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+  }
+  .connecto-screen-container {
+    padding: 16px 14px 100px !important;
+  }
+}
+
+/* --- 2. DESKTOP VIEW (Power-User Multi-Column Workstation) --- */
+@media (min-width: 769px) {
+  /* Complete elimination of Mobile Dock on Desktop */
+  .connecto-mobile-dock {
+    display: none !important;
+    pointer-events: none !important;
+  }
+
+  /* Mobile-only buttons hidden on Desktop */
+  .mobile-sidebar-toggle,
+  .mobile-chat-back-btn,
+  .channels-sidebar-mobile-close,
+  .connecto-attach-inline-btn {
+    display: none !important;
+  }
+
+  /* Column 1: Left Guilds / Servers Rail */
+  .guilds-nav {
+    display: flex !important;
+    position: relative !important;
+    transform: none !important;
+    width: 64px !important;
+    min-width: 64px !important;
+    max-width: 64px !important;
+    background: #080A10 !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.06) !important;
+    padding: 16px 0 !important;
+    z-index: 40 !important;
+  }
+
+  /* Column 2: Channels & DMs Sidebar */
+  .channels-sidebar {
+    display: flex !important;
+    position: relative !important;
+    transform: none !important;
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 280px !important;
+    background: #0D101A !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+    z-index: 35 !important;
+  }
+
+  /* Column 3: Reading Stage */
+  .chat-workspace-wrap {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    background: #090B12 !important;
+    position: relative !important;
+  }
+  .chat-messages-column {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .messages-area {
+    max-width: 1000px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    padding: 16px 24px 24px 24px !important;
+  }
+
+  /* Full Desktop Header with ⌘K */
+  .chat-header {
+    display: flex !important;
+    height: 56px !important;
+    padding: 0 20px !important;
+    background: rgba(14, 18, 28, 0.9) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+  .header-topic {
+    display: inline-block !important;
+  }
+  .header-divider-sep {
+    display: inline-block !important;
+  }
+  .in-chat-search-wrap {
+    display: flex !important;
+  }
+  .header-search-kbd {
+    display: inline-block !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: var(--text-muted);
+    margin-left: 6px;
+    pointer-events: none;
+  }
+
+  /* Desktop Channel Chips */
+  #chatChannelSwitcherRow {
+    display: flex !important;
+    max-width: 1000px !important;
+    margin: 0 auto 8px auto !important;
+    width: 100% !important;
+  }
+
+  /* Desktop Studio Composer */
+  .input-area {
+    max-width: 1000px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    padding: 12px 24px !important;
+  }
+  .stitch-input-toolbar {
+    display: flex !important;
+  }
+
+  /* Column 4: Contextual Members Roster on Wide Displays */
+  @media (min-width: 1200px) {
+    .members-sidebar {
+      display: flex !important;
+      position: relative !important;
+      transform: none !important;
+      width: 260px !important;
+      min-width: 260px !important;
+      background: #0D101A !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: none !important;
+      z-index: 30 !important;
+    }
+  }
+}
+</style>
 </head>
 <body class="in-hero-view">
 
@@ -13688,9 +14065,12 @@ pre, .code-block, .chat-code-snippet {
   <!-- 2. Channels & DM Sidebar (Hidden on homepage) -->
   <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeAllMobileDrawers()"></div>
   <div class="channels-sidebar" id="channelsSidebar" style="display:none;">
-    <div class="server-header" onclick="switchMainView('hero')">
-      <span id="currentServerName">connecto.fun</span>
-      <span style="font-size: 11px; color: var(--green); font-weight:700;">● Live</span>
+    <div class="server-header" style="display:flex; align-items:center; justify-content:space-between;">
+      <div class="server-header-left" onclick="switchMainView('hero')" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <span id="currentServerName">connecto.fun</span>
+        <span style="font-size: 11px; color: var(--green); font-weight:700;">● Live</span>
+      </div>
+      <button type="button" class="channels-sidebar-mobile-close" id="channelsSidebarCloseBtn" onclick="toggleMobileSidebar(false)" aria-label="Close Channels Drawer" title="Close Drawer">✕</button>
     </div>
 
     <!-- Integrated Sidebar Search Input -->
@@ -13820,6 +14200,7 @@ pre, .code-block, .chat-code-snippet {
     <!-- Top Header (Hidden on homepage) -->
     <div class="chat-header" id="chatHeader" style="display:none;">
       <div class="header-left">
+        <button type="button" class="mobile-chat-back-btn" id="mobileChatBackBtn" onclick="handleMobileChatBack()" title="Back" aria-label="Back"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg></button>
         <button class="mobile-sidebar-toggle" onclick="toggleMobileSidebar()" title="Toggle Channels"><i data-lucide="menu" class="lucide-sm"></i></button>
         <div class="header-channel-pill" id="headerChannelPill">
           <span style="color: var(--chakra-cyan); font-size: 15px;" id="headerPrefix">#</span>
@@ -13839,7 +14220,8 @@ pre, .code-block, .chat-code-snippet {
 
         <div class="in-chat-search-wrap" onclick="openGlobalSearchModal()" style="cursor:pointer;" title="Search messages or jump to channel (⌘K)">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="in-chat-search-input" id="searchMsgInput" aria-label="Global cross-channel search" placeholder="Search #general or type ⌘K..." readonly style="cursor:pointer;">
+          <input type="text" class="in-chat-search-input" id="searchMsgInput" aria-label="Global cross-channel search" placeholder="Search or type ⌘K..." readonly style="cursor:pointer;">
+          <kbd class="header-search-kbd">⌘K</kbd>
         </div>
 
         
@@ -13952,6 +14334,9 @@ pre, .code-block, .chat-code-snippet {
             <!-- Main Input Row: Clean, Aesthetic Unified Capsule -->
             <div class="connecto-enhanced-input-row stitch-input-row" id="connectoInputRow">
               <div class="connecto-input-capsule-wrapper" id="connectoInputBoxWrapper">
+                <button type="button" class="connecto-attach-inline-btn" id="mobileAttachBtn" title="Upload Media" onclick="document.getElementById('fileInput').click()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
                 <button type="button" class="connecto-emoji-inline-btn" id="emojiPickerBtn" title="Emoji Reactions" onclick="toggleEmojiPicker()">😊</button>
                 <input type="text" class="stitch-input-field input-box" id="msgInput" aria-label="Type your message" placeholder="Message #general..." onkeydown="handleKeyDown(event)" oninput="handleMsgInputChange(this)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)">
                 <button type="button" class="connecto-send-circle-btn" id="sendBtn" title="Send Message" onclick="sendCurrentMessage()">
@@ -28118,7 +28503,7 @@ if ('serviceWorker' in navigator) {
     <span class="dock-btn-label">Messages</span>
   </button>
 
-  <button class="mobile-dock-btn active" id="dock-chat-btn" onclick="switchMainView('chat');" title="Channels">
+  <button class="mobile-dock-btn active" id="dock-chat-btn" onclick="handleDockChannelsClick();" title="Channels">
     <div class="dock-btn-icon-wrap">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
     </div>
@@ -28433,7 +28818,10 @@ async function syncDynamicCalls() {
 
 
 function enhancedSwitchMainView(view) {
-  // Hide custom view panels
+  // Always close any open mobile slide-over drawers when switching screens
+  if (typeof closeAllMobileDrawers === 'function') closeAllMobileDrawers();
+
+  const isMobile = window.innerWidth <= 768;
   const homeView = document.getElementById('homeView');
   const dmListView = document.getElementById('dmListView');
   const callsView = document.getElementById('callsView');
@@ -28442,7 +28830,9 @@ function enhancedSwitchMainView(view) {
   const friendsView = document.getElementById('friendsView');
   const learningView = document.getElementById('learningView');
   const voiceView = document.getElementById('voiceView');
+  const chatHeader = document.getElementById('chatHeader');
 
+  // Hide custom view panels
   if (homeView) homeView.style.setProperty('display', 'none', 'important');
   if (dmListView) dmListView.style.setProperty('display', 'none', 'important');
   if (callsView) callsView.style.setProperty('display', 'none', 'important');
@@ -28469,6 +28859,14 @@ function enhancedSwitchMainView(view) {
     
     document.body.classList.remove('in-hero-view');
     document.body.classList.add('in-app-view');
+    document.body.classList.remove('mobile-in-chat');
+    localStorage.setItem('connecto_prev_mobile_view', 'home');
+
+    // On mobile, hide the redundant chat header when in Home view
+    if (isMobile && chatHeader) {
+      chatHeader.style.setProperty('display', 'none', 'important');
+    }
+
     if (homeView) {
       homeView.style.removeProperty('display');
       homeView.style.display = 'block';
@@ -28487,6 +28885,14 @@ function enhancedSwitchMainView(view) {
 
     document.body.classList.remove('in-hero-view');
     document.body.classList.add('in-app-view');
+    document.body.classList.remove('mobile-in-chat');
+    localStorage.setItem('connecto_prev_mobile_view', 'messages');
+
+    // On mobile, hide the redundant chat header when in Direct Messages view
+    if (isMobile && chatHeader) {
+      chatHeader.style.setProperty('display', 'none', 'important');
+    }
+
     if (dmListView) {
       dmListView.style.removeProperty('display');
       dmListView.style.display = 'block';
@@ -28504,6 +28910,14 @@ function enhancedSwitchMainView(view) {
 
     document.body.classList.remove('in-hero-view');
     document.body.classList.add('in-app-view');
+    document.body.classList.remove('mobile-in-chat');
+    localStorage.setItem('connecto_prev_mobile_view', 'calls');
+
+    // On mobile, hide the redundant chat header when in Calls view
+    if (isMobile && chatHeader) {
+      chatHeader.style.setProperty('display', 'none', 'important');
+    }
+
     if (callsView) {
       callsView.style.removeProperty('display');
       callsView.style.display = 'block';
@@ -28513,9 +28927,16 @@ function enhancedSwitchMainView(view) {
   }
 
   if (view === 'chat') {
+    document.body.classList.remove('in-hero-view');
+    document.body.classList.add('in-app-view');
+    document.body.classList.add('mobile-in-chat');
     if (chatWrap) {
       chatWrap.style.removeProperty('display');
       chatWrap.style.display = 'flex';
+    }
+    if (chatHeader) {
+      chatHeader.style.removeProperty('display');
+      chatHeader.style.display = 'flex';
     }
   }
 
@@ -28524,6 +28945,31 @@ function enhancedSwitchMainView(view) {
   }
 }
 window.switchMainView = enhancedSwitchMainView;
+
+function handleDockChannelsClick() {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    const chSidebar = document.getElementById('channelsSidebar');
+    if (chSidebar && chSidebar.classList.contains('mobile-open')) {
+      toggleMobileSidebar(false);
+    } else {
+      toggleMobileSidebar(true);
+    }
+  } else {
+    switchMainView('chat');
+  }
+}
+
+function handleMobileChatBack() {
+  const prev = localStorage.getItem('connecto_prev_mobile_view') || 'home';
+  if (prev === 'messages') {
+    switchMainView('messages');
+  } else if (prev === 'calls') {
+    switchMainView('calls');
+  } else {
+    switchMainView('home');
+  }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   updateGreeting();
