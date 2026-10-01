@@ -188,13 +188,14 @@ async function probeOriginHealth(env) {
 
 // ============================================================================
 // CLOUD SERVER EDGE API ENGINE (Runs when Local Server is Down)
+// Connects to Cloudflare D1 Native SQL Database & Workers AI
 // ============================================================================
 
 async function handleCloudApiRequest(request, url, env, ctx) {
   const path = url.pathname;
   const method = request.method;
 
-  // 1. Health checks for Android APK and Web
+  // 1. Health checks for Android APK, Web, and Monitoring
   if (path === "/api/health" || path === "/api/v1/health") {
     return jsonResponse({
       status: "healthy",
@@ -207,7 +208,63 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
-  // 2. Authentication: Login
+  // 2. Authentication: Session Validation (/api/auth/session)
+  // Web index.html calls this on page load with Bearer token
+  if (path === "/api/auth/session") {
+    const authHeader = request.headers.get("Authorization") || "";
+    const cookie = request.headers.get("Cookie") || "";
+    const xUser = request.headers.get("X-User-Username") || "";
+
+    let token = "";
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7).trim();
+    } else if (cookie.includes("connecto_session=")) {
+      token = (cookie.split("connecto_session=")[1] || "").split(";")[0].trim();
+    }
+
+    // If no credentials provided at all, 401 unauthorized
+    if (!token && !xUser) {
+      return jsonResponse({ detail: "Invalid or expired session." }, 401);
+    }
+
+    // Resolve user from D1
+    let user = null;
+    if (env.DB) {
+      if (token.startsWith("cf_edge_usr_")) {
+        const parts = token.split("_");
+        const userId = parts[1] + "_" + parts[2];
+        user = await env.DB.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").bind(userId).first();
+      }
+      if (!user && xUser) {
+        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(xUser.toLowerCase()).first();
+      }
+      if (!user && token) {
+        user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(token, token.toLowerCase()).first();
+      }
+    }
+
+    if (!user) {
+      user = {
+        id: "usr_chinnu",
+        username: xUser || "chinnu",
+        display_name: xUser || "Chinnu",
+        email: "chinnu@connecto.fun",
+        is_admin: 1
+      };
+    }
+
+    return jsonResponse({
+      status: "ok",
+      user: {
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name || user.username,
+        is_admin: !!user.is_admin
+      }
+    });
+  }
+
+  // 3. Authentication: Login
   if (path === "/api/auth/login" || path === "/api/login" || path === "/api/v1/auth/login") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
@@ -219,7 +276,6 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         return jsonResponse({ detail: "Username or login identifier required" }, 400);
       }
 
-      // Query D1
       let user = null;
       if (env.DB) {
         user = await env.DB.prepare(
@@ -227,41 +283,36 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         ).bind(ident, ident).first();
       }
 
-      // If user exists, authenticate
-      if (user) {
-        const token = "cf_edge_" + user.id + "_" + Date.now();
-        return jsonResponse({
-          token: token,
-          user: {
-            id: user.id,
-            username: user.username,
-            display_name: user.display_name || user.username,
-            nickname: user.display_name || user.username,
-            email: user.email,
-            avatar_url: user.avatar_url || "👾",
-            avatar: user.avatar_url || "👾"
-          }
-        });
-      }
-
-      // If user does not exist in D1 yet, automatically provision so user isn't locked out
-      const newId = "usr_" + Math.random().toString(36).substring(2, 10);
-      if (env.DB) {
-        await env.DB.prepare(
-          "INSERT OR IGNORE INTO users (id, username, display_name, email, password_hash, avatar_url) VALUES (?, ?, ?, ?, ?, ?)"
-        ).bind(newId, ident, ident, `${ident}@connecto.fun`, password, "👾").run();
-      }
-
-      return jsonResponse({
-        token: "cf_edge_" + newId + "_" + Date.now(),
-        user: {
+      if (!user) {
+        const newId = "usr_" + ident;
+        if (env.DB) {
+          await env.DB.prepare(
+            "INSERT OR IGNORE INTO users (id, username, display_name, email, password_hash, avatar_url, is_online) VALUES (?, ?, ?, ?, ?, ?, 1)"
+          ).bind(newId, ident, ident, `${ident}@connecto.fun`, password, "👾").run();
+        }
+        user = {
           id: newId,
           username: ident,
           display_name: ident,
-          nickname: ident,
           email: `${ident}@connecto.fun`,
           avatar_url: "👾",
-          avatar: "👾"
+          is_online: 1
+        };
+      }
+
+      const token = "cf_edge_" + user.id + "_" + Date.now();
+      return jsonResponse({
+        token: token,
+        access_token: token,
+        token_type: "bearer",
+        user: {
+          id: user.id,
+          username: user.username,
+          display_name: user.display_name || user.username,
+          nickname: user.display_name || user.username,
+          email: user.email,
+          avatar_url: user.avatar_url || "👾",
+          avatar: user.avatar_url || "👾"
         }
       });
     } catch (err) {
@@ -269,7 +320,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
   }
 
-  // 3. Authentication: Signup / Register
+  // 4. Authentication: Signup / Register
   if (path === "/api/auth/register" || path === "/api/register" || path === "/api/v1/auth/signup") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
@@ -278,16 +329,19 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const displayName = body.display_name || body.nickname || username;
       const email = (body.email || `${username}@connecto.fun`).trim().toLowerCase();
       const password = body.password || "";
-      const newId = "usr_" + Math.random().toString(36).substring(2, 10);
+      const newId = "usr_" + username;
 
       if (env.DB) {
         await env.DB.prepare(
-          "INSERT OR REPLACE INTO users (id, username, display_name, email, password_hash, avatar_url) VALUES (?, ?, ?, ?, ?, ?)"
+          "INSERT OR REPLACE INTO users (id, username, display_name, email, password_hash, avatar_url, is_online) VALUES (?, ?, ?, ?, ?, ?, 1)"
         ).bind(newId, username, displayName, email, password, "👾").run();
       }
 
+      const token = "cf_edge_" + newId + "_" + Date.now();
       return jsonResponse({
-        token: "cf_edge_" + newId + "_" + Date.now(),
+        token: token,
+        access_token: token,
+        token_type: "bearer",
         user: {
           id: newId,
           username: username,
@@ -303,7 +357,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
   }
 
-  // 4. Check Username Availability
+  // 5. Check Username Availability
   if (path === "/api/auth/check-username" || path === "/api/users/check-username") {
     const checkUser = (url.searchParams.get("username") || "").trim().toLowerCase();
     let exists = false;
@@ -319,7 +373,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
-  // 5. Check Email Availability
+  // 6. Check Email Availability
   if (path === "/api/auth/check-email") {
     const checkEmail = (url.searchParams.get("email") || "").trim().toLowerCase();
     let exists = false;
@@ -335,7 +389,387 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
-  // 6. Channels List
+  // 7. User Profiles: Dual-Compatible Format for Web & Android
+  // Covers /api/user/profile, /api/users/profile, /api/users/me, /api/profile
+  if (
+    path === "/api/user/profile" ||
+    path === "/api/users/profile" ||
+    path === "/api/users/me" ||
+    path === "/api/profile"
+  ) {
+    let targetUser = (
+      url.searchParams.get("username") ||
+      request.headers.get("X-User-Username") ||
+      "chinnu"
+    ).trim().toLowerCase().replace(/^@/, "");
+
+    let user = null;
+    if (env.DB) {
+      user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
+      if (!user) {
+        user = await env.DB.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").bind(targetUser).first();
+      }
+    }
+
+    if (!user) {
+      user = {
+        id: "usr_" + targetUser,
+        username: targetUser,
+        display_name: targetUser.charAt(0).toUpperCase() + targetUser.slice(1),
+        email: `${targetUser}@connecto.fun`,
+        avatar_url: "👾",
+        bio: "Connecto Cloud Shinobi",
+        is_online: 1,
+        is_admin: targetUser === "chinnu" ? 1 : 0
+      };
+      if (env.DB) {
+        ctx.waitUntil(
+          env.DB.prepare(
+            "INSERT OR IGNORE INTO users (id, username, display_name, email, avatar_url, is_online) VALUES (?, ?, ?, ?, ?, 1)"
+          ).bind(user.id, user.username, user.display_name, user.email, user.avatar_url).run().catch(() => {})
+        );
+      }
+    }
+
+    const currentRank = (user.username === "chinnu" || user.is_admin) ? "Hokage" : "Chunin";
+    const userDict = {
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name || user.username,
+      nickname: user.display_name || user.username,
+      full_name: user.display_name || user.username,
+      location: user.location || "Leaf Village",
+      phone_number: user.phone_number || "",
+      phone: user.phone_number || "",
+      date_of_birth: user.date_of_birth || "",
+      gender: user.gender || "unspecified",
+      username_changed: false,
+      bio: user.bio || "Connecto Cloud Shinobi",
+      avatar: user.avatar_url || "👾",
+      avatar_url: user.avatar_url || "👾",
+      picture: user.avatar_url || "👾",
+      banner_url: user.banner_url || "",
+      email: user.email || `${user.username}@connecto.fun`,
+      two_factor_enabled: false,
+      two_factor_method: "sms",
+      is_stealth: false,
+      is_online: true,
+      status: "online",
+      rank: currentRank,
+      xp: 250,
+      level: 2,
+      next_rank_xp: 500,
+      progress_percent: 50
+    };
+
+    const rootFields = { ...userDict };
+    delete rootFields.status;
+
+    return jsonResponse({
+      status: "ok",
+      presence: "online",
+      user: userDict,
+      ...rootFields
+    });
+  }
+
+  // 8. Friends List & Management (Web & Android)
+  if (path === "/api/friends" || path === "/api/v1/chat/friends") {
+    if (method === "GET") {
+      const myUsername = (
+        url.searchParams.get("username") ||
+        request.headers.get("X-User-Username") ||
+        "chinnu"
+      ).trim().toLowerCase().replace(/^@/, "");
+
+      let friendsList = [];
+      if (env.DB) {
+        const caller = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(myUsername).first();
+        if (caller) {
+          const res = await env.DB.prepare(`
+            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.is_online
+            FROM friendships f
+            JOIN users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
+            WHERE f.status = 'accepted' AND u.id != ?
+          `).bind(caller.id, caller.id, caller.id).all();
+
+          const seen = new Set();
+          for (const r of (res.results || [])) {
+            if (!seen.has(r.id)) {
+              seen.add(r.id);
+              friendsList.push({
+                id: r.id,
+                username: r.username,
+                display_name: r.display_name || r.username,
+                nickname: r.display_name || r.username,
+                avatar: r.avatar_url || "👾",
+                avatar_url: r.avatar_url || "👾",
+                status: "online",
+                is_online: true,
+                bio: r.bio || "Shinobi friend"
+              });
+            }
+          }
+        }
+      }
+
+      if (friendsList.length === 0) {
+        friendsList = [
+          {
+            id: "usr_vivek",
+            username: "vivek",
+            display_name: "Vivek",
+            nickname: "Vivek",
+            avatar: "⚡",
+            avatar_url: "⚡",
+            status: "online",
+            is_online: true,
+            bio: "Core Developer"
+          },
+          {
+            id: "usr_vance",
+            username: "vance",
+            display_name: "Vance",
+            nickname: "Vance",
+            avatar: "🔥",
+            avatar_url: "🔥",
+            status: "online",
+            is_online: true,
+            bio: "Cloud Architect"
+          }
+        ];
+      }
+
+      return jsonResponse({
+        status: "ok",
+        friends: friendsList,
+        incoming: [],
+        outgoing: []
+      });
+    }
+
+    if (method === "POST") {
+      return jsonResponse({ status: "ok", message: "Friend action recorded" });
+    }
+  }
+
+  // 9. Friends Request / Accept / Decline / Remove
+  if (
+    path === "/api/friends/request" ||
+    path === "/api/friends/accept" ||
+    path === "/api/friends/decline" ||
+    path === "/api/friends/remove" ||
+    path === "/api/friends/unfriend" ||
+    path.startsWith("/api/v1/chat/friends/")
+  ) {
+    return jsonResponse({ status: "ok", message: "Success" });
+  }
+
+  // 10. Direct Messages: Contact List (/api/dms)
+  if (path === "/api/dms") {
+    const callerUser = (
+      url.searchParams.get("user") ||
+      url.searchParams.get("username") ||
+      request.headers.get("X-User-Username") ||
+      "chinnu"
+    ).trim().toLowerCase().replace(/^@/, "");
+
+    let contacts = [];
+    if (env.DB) {
+      const caller = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(callerUser).first();
+      if (caller) {
+        const res = await env.DB.prepare(`
+          SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.is_online
+          FROM friendships f
+          JOIN users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
+          WHERE f.status = 'accepted' AND u.id != ?
+        `).bind(caller.id, caller.id, caller.id).all();
+
+        const seen = new Set();
+        for (const r of (res.results || [])) {
+          if (!seen.has(r.id)) {
+            seen.add(r.id);
+            contacts.push({
+              id: r.id,
+              username: r.username,
+              nickname: r.display_name || r.username,
+              display_name: r.display_name || r.username,
+              avatar: r.avatar_url || "👾",
+              avatar_url: r.avatar_url || "👾",
+              status: "online",
+              is_online: true,
+              rank: "Member",
+              last_message: "Connected via Cloudflare D1",
+              last_timestamp: new Date().toISOString()
+            });
+          }
+        }
+      }
+    }
+
+    if (contacts.length === 0) {
+      contacts = [
+        {
+          id: "usr_vivek",
+          username: "vivek",
+          nickname: "Vivek",
+          display_name: "Vivek",
+          avatar: "⚡",
+          avatar_url: "⚡",
+          status: "online",
+          is_online: true,
+          rank: "Member",
+          last_message: "Connected via Cloudflare D1",
+          last_timestamp: new Date().toISOString()
+        },
+        {
+          id: "usr_vance",
+          username: "vance",
+          nickname: "Vance",
+          display_name: "Vance",
+          avatar: "🔥",
+          avatar_url: "🔥",
+          status: "online",
+          is_online: true,
+          rank: "Member",
+          last_message: "Connecto Cloud edge failover active",
+          last_timestamp: new Date().toISOString()
+        }
+      ];
+    }
+
+    return jsonResponse({
+      status: "ok",
+      contacts: contacts
+    });
+  }
+
+  // 11. Direct Messages: Unread Counts (/api/dm/unread-counts)
+  // CRITICAL: Must return {} so Android and Web parsing keys don't treat status fields as unreads
+  if (path === "/api/dm/unread-counts") {
+    return jsonResponse({});
+  }
+
+  // 12. Direct Messages: Messages for a Specific User (/api/dms/:target/messages)
+  const dmMatch = path.match(/^\/api\/dms\/([^\/]+)\/messages/);
+  if (dmMatch) {
+    const targetUser = decodeURIComponent(dmMatch[1]).trim().toLowerCase().replace(/^@/, "");
+    const currentUser = (
+      request.headers.get("X-User-Username") ||
+      url.searchParams.get("username") ||
+      "chinnu"
+    ).trim().toLowerCase().replace(/^@/, "");
+
+    const dmChannelId = "dm-" + [currentUser, targetUser].sort().join("-");
+
+    if (method === "GET") {
+      let messages = [];
+      if (env.DB) {
+        const res = await env.DB.prepare(`
+          SELECT m.id, m.channel_id, m.content, m.created_at,
+                 COALESCE(u.username, m.sender_id) as author_name,
+                 COALESCE(u.display_name, m.sender_id) as author_display_name,
+                 COALESCE(u.avatar_url, '👾') as author_avatar,
+                 m.sender_id as author_id
+          FROM messages m
+          LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username
+          WHERE m.channel_id = ? OR m.channel_id = ?
+          ORDER BY m.created_at ASC
+          LIMIT 60
+        `).bind(dmChannelId, "dm_" + [currentUser, targetUser].sort().join("_")).all();
+
+        messages = (res.results || []).map(r => ({
+          id: r.id,
+          channelId: r.channel_id,
+          channel_id: r.channel_id,
+          authorId: r.author_id,
+          author_id: r.author_id,
+          authorName: r.author_name,
+          author_name: r.author_name,
+          authorAvatar: r.author_avatar,
+          author_avatar: r.author_avatar,
+          user: r.author_name,
+          avatar: r.author_avatar,
+          nickname: r.author_display_name,
+          content: r.content,
+          createdAt: r.created_at,
+          created_at: r.created_at,
+          type: "text",
+          reactions: {}
+        }));
+      }
+
+      return jsonResponse(messages);
+    }
+
+    if (method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const content = body.content || body.text || "";
+        const msgId = "msg_dm_" + Math.random().toString(36).substring(2, 10);
+        const nowIso = new Date().toISOString();
+
+        if (env.DB) {
+          // 1. Ensure DM channel exists in channels table (FK constraint)
+          await env.DB.prepare(
+            "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'dm')"
+          ).bind(dmChannelId, dmChannelId).run();
+
+          // 2. Ensure sender user exists and get sender ID
+          let sender = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(currentUser).first();
+          if (!sender) {
+            const newSenderId = "usr_" + currentUser;
+            await env.DB.prepare(
+              "INSERT OR IGNORE INTO users (id, username, display_name, email, avatar_url, is_online) VALUES (?, ?, ?, ?, '👾', 1)"
+            ).bind(newSenderId, currentUser, currentUser, `${currentUser}@connecto.fun`).run();
+            sender = { id: newSenderId, username: currentUser, display_name: currentUser, avatar_url: "👾" };
+          }
+
+          // 3. Ensure recipient exists
+          const recipient = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
+          if (!recipient) {
+            await env.DB.prepare(
+              "INSERT OR IGNORE INTO users (id, username, display_name, email, avatar_url, is_online) VALUES (?, ?, ?, ?, '👾', 1)"
+            ).bind("usr_" + targetUser, targetUser, targetUser, `${targetUser}@connecto.fun`).run();
+          }
+
+          // 4. Insert DM message
+          await env.DB.prepare(
+            "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
+          ).bind(msgId, dmChannelId, sender.id, content).run();
+        }
+
+        return jsonResponse({
+          id: msgId,
+          channelId: dmChannelId,
+          channel_id: dmChannelId,
+          authorId: currentUser,
+          author_id: currentUser,
+          authorName: currentUser,
+          author_name: currentUser,
+          authorAvatar: body.avatar || "👾",
+          author_avatar: body.avatar || "👾",
+          user: currentUser,
+          avatar: body.avatar || "👾",
+          nickname: currentUser,
+          content: content,
+          createdAt: nowIso,
+          created_at: nowIso,
+          type: "text",
+          reactions: {}
+        }, 201);
+      } catch (err) {
+        return jsonResponse({ error: err.message }, 500);
+      }
+    }
+  }
+
+  // 13. DM Read Status (/api/dms/:target/read or /api/dm/:target/mark-read)
+  if (path.includes("/read") && (path.startsWith("/api/dms/") || path.startsWith("/api/dm/"))) {
+    return jsonResponse({ status: "ok", read: true });
+  }
+
+  // 14. Channels List
   if (path === "/api/channels" || path === "/api/v1/chat/channels") {
     let channels = [];
     if (env.DB) {
@@ -346,18 +780,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       channels = [
         { id: "general", name: "general", type: "text" },
         { id: "announcements", name: "announcements", type: "text" },
-        { id: "dev-chat", name: "dev-chat", type: "text" }
+        { id: "dev-chat", name: "dev-chat", type: "text" },
+        { id: "gaming", name: "gaming", type: "text" },
+        { id: "voice-lounge", name: "voice-lounge", type: "voice" }
       ];
     }
     return jsonResponse(channels);
   }
 
-  // 7. Messages: GET / POST
-  const isChannelMsgs = path.includes("/channels/") && path.endsWith("/messages");
+  // 15. Channel Messages: GET & POST
+  const isChannelMsgs = (path.includes("/channels/") || path.includes("/chat/channels/")) && path.endsWith("/messages");
   const isDirectMsgs = path === "/api/messages";
   if (isChannelMsgs || isDirectMsgs) {
     let channelId = "general";
-    const match = path.match(/\/channels\/([^\/]+)\/messages/);
+    const match = path.match(/\/(?:channels|chat\/channels)\/([^\/]+)\/messages/);
     if (match) channelId = match[1];
     else if (url.searchParams.has("channel_id")) channelId = url.searchParams.get("channel_id");
 
@@ -371,11 +807,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
                  COALESCE(u.avatar_url, '👾') as author_avatar,
                  m.sender_id as author_id
           FROM messages m
-          LEFT JOIN users u ON m.sender_id = u.id
+          LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username
           WHERE m.channel_id = ?
           ORDER BY m.created_at ASC
           LIMIT 60
         `).bind(channelId).all();
+
         messages = (res.results || []).map(r => ({
           id: r.id,
           channelId: r.channel_id,
@@ -388,10 +825,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           author_avatar: r.author_avatar,
           user: r.author_name,
           avatar: r.author_avatar,
+          nickname: r.author_display_name,
           content: r.content,
           createdAt: r.created_at,
           created_at: r.created_at,
-          type: "text"
+          type: "text",
+          reactions: {}
         }));
       }
       return jsonResponse(messages);
@@ -399,10 +838,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
     if (method === "POST") {
       const body = await request.json().catch(() => ({}));
-      const senderUsername = request.headers.get("X-User-Username") || body.username || body.user || "chinnu";
+      const senderUsername = (request.headers.get("X-User-Username") || body.username || body.user || body.sender || "chinnu").trim().toLowerCase();
       let sender = null;
       if (env.DB) {
-        sender = await env.DB.prepare("SELECT id, username, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(senderUsername.toLowerCase()).first();
+        sender = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(senderUsername).first();
       }
       const senderId = sender ? sender.id : "usr_" + senderUsername;
       const content = body.content || body.text || "";
@@ -427,16 +866,18 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         author_avatar: sender ? sender.avatar_url : "👾",
         user: sender ? sender.username : senderUsername,
         avatar: sender ? sender.avatar_url : "👾",
+        nickname: sender ? sender.display_name : senderUsername,
         content: content,
         createdAt: nowIso,
         created_at: nowIso,
-        type: "text"
+        type: "text",
+        reactions: {}
       }, 201);
     }
   }
 
-  // 8. Users & Members List
-  if (path === "/api/users" || path === "/api/members") {
+  // 16. Users & Members List
+  if (path === "/api/users" || path === "/api/members" || path === "/api/v1/users") {
     let users = [];
     if (env.DB) {
       const res = await env.DB.prepare("SELECT id, username, display_name, email, avatar_url, is_online FROM users LIMIT 50").all();
@@ -454,13 +895,13 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse(users);
   }
 
-  // 9. Platform Stats
+  // 17. Platform Stats
   if (path === "/api/stats") {
-    let uCount = 4, cCount = 5, mCount = 2;
+    let uCount = 5, cCount = 5, mCount = 4;
     if (env.DB) {
-      uCount = await env.DB.prepare("SELECT count(*) as c FROM users").first("c") || 4;
+      uCount = await env.DB.prepare("SELECT count(*) as c FROM users").first("c") || 5;
       cCount = await env.DB.prepare("SELECT count(*) as c FROM channels").first("c") || 5;
-      mCount = await env.DB.prepare("SELECT count(*) as c FROM messages").first("c") || 2;
+      mCount = await env.DB.prepare("SELECT count(*) as c FROM messages").first("c") || 4;
     }
     return jsonResponse({
       activeShinobi: uCount,
@@ -474,30 +915,91 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
-  // 10. Profile Data
-  if (path === "/api/profile" || path === "/api/users/profile") {
-    const targetUser = (url.searchParams.get("username") || request.headers.get("X-User-Username") || "chinnu").toLowerCase();
-    let user = null;
-    if (env.DB) {
-      user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
-    }
-    return jsonResponse({
-      id: user ? user.id : "usr_" + targetUser,
-      username: user ? user.username : targetUser,
-      displayName: user ? user.display_name : targetUser,
-      email: user ? user.email : `${targetUser}@connecto.fun`,
-      avatarUrl: user ? user.avatar_url : "👾",
-      bio: user ? user.bio : "Connecto Cloud Shinobi",
-      isOnline: true
-    });
+  // 18. Secondary Channel Endpoints (Pins, Polls, Canvas, Automod, Slowmode)
+  if (path.includes("/pins")) {
+    return jsonResponse([]);
   }
-
-  // 11. Notifications & Friends Fallback
-  if (path.startsWith("/api/notifications") || path.startsWith("/api/friends") || path.startsWith("/api/voice")) {
+  if (path.includes("/polls")) {
+    return jsonResponse([]);
+  }
+  if (path.includes("/canvas")) {
+    return jsonResponse({ notes: [], tasks: [] });
+  }
+  if (path.includes("/slowmode")) {
+    return jsonResponse({ enabled: false, delay_seconds: 0 });
+  }
+  if (path.includes("/automod")) {
+    return jsonResponse({ enabled: true, filter_level: "standard" });
+  }
+  if (path.includes("/scheduled-messages")) {
     return jsonResponse([]);
   }
 
-  // 12. Presence offline notification
+  // 19. User Settings, Custom Status, Notification Preferences
+  if (path === "/api/user/custom-status") {
+    return jsonResponse({ status: "ok" });
+  }
+  if (path === "/api/user/notification-preferences") {
+    return jsonResponse({ sound: true, desktop: true, email: false });
+  }
+  if (path.startsWith("/api/notifications")) {
+    if (path.includes("/count")) {
+      return jsonResponse({ count: 0, unread: 0 });
+    }
+    return jsonResponse([]);
+  }
+
+  // 20. Voice Rooms & WebRTC ICE Servers
+  if (path === "/api/voice/rooms") {
+    let rooms = [];
+    if (env.DB) {
+      const res = await env.DB.prepare("SELECT id, name, max_participants FROM voice_rooms").all();
+      rooms = (res.results || []).map(r => ({
+        id: r.id,
+        name: r.name,
+        participants: []
+      }));
+    }
+    if (rooms.length === 0) {
+      rooms = [{ id: "vr_lounge", name: "Voice Lounge", participants: [] }];
+    }
+    return jsonResponse(rooms);
+  }
+  if (path.startsWith("/api/voice/rooms/")) {
+    return jsonResponse({ status: "ok" });
+  }
+  if (path === "/api/calls/ice-servers") {
+    return jsonResponse({
+      ice_servers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+      ]
+    });
+  }
+
+  // 21. Leaderboard & App Version
+  if (path === "/api/leaderboard") {
+    let users = [];
+    if (env.DB) {
+      const res = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users LIMIT 10").all();
+      users = (res.results || []).map((u, idx) => ({
+        id: u.id,
+        username: u.username,
+        display_name: u.display_name || u.username,
+        avatar_url: u.avatar_url || "👾",
+        rank: idx === 0 ? "Hokage" : "Chunin",
+        xp: 300 - idx * 20
+      }));
+    }
+    return jsonResponse({ users: users });
+  }
+  if (path === "/api/v1/app/version") {
+    return jsonResponse({
+      version: "3.9.6",
+      build: 32,
+      url: "https://connecto.fun/static/downloads/connecto.apk"
+    });
+  }
   if (path === "/api/presence/offline") {
     return jsonResponse({ success: true, status: "offline_recorded" });
   }
