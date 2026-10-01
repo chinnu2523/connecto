@@ -3056,6 +3056,13 @@ object ConnectoApiClient {
                 val isSuccess = responseCode in 200..299
                 android.util.Log.d("ConnectoSync", "executeRequest: $method $fullUrl returned $responseCode (success=$isSuccess)")
 
+                // Detect Cloudflare server mode
+                val serverMode = conn.getHeaderField("X-Connecto-Mode")
+                if (!serverMode.isNullOrBlank()) {
+                    ConnectoNetworkConfig.activeServerMode = serverMode
+                    android.util.Log.d("ConnectoSync", "Connecto active server mode: $serverMode")
+                }
+
                 // Extract any Set-Cookie headers
                 val cookieHeaders = conn.headerFields["Set-Cookie"]
                 if (!cookieHeaders.isNullOrEmpty()) {
