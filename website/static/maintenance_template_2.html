@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Connecto Operations • Mission Control Maintenance</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='28' fill='%2310B981'/><path d='M30 35h40a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H45L30 78V41a6 6 0 0 1 6-6z' fill='%23FFFFFF'/><circle cx='42' cy='52' r='4' fill='%2310B981'/><circle cx='58' cy='52' r='4' fill='%2310B981'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-terminal: #05080e;
+      --bg-panel: rgba(10, 16, 26, 0.85);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.35);
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.3);
+      --amber: #f59e0b;
+      --text-green: #34d399;
+      --text-dim: #64748b;
+      --text-white: #f1f5f9;
+      --border-term: rgba(16, 185, 129, 0.22);
+      --border-glass: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-terminal);
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(16, 185, 129, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.1) 0%, transparent 40%),
+        linear-gradient(rgba(16, 185, 129, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(16, 185, 129, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      color: var(--text-white);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    /* Top Telemetry HUD */
+    header.hud-header {
+      width: 100%;
+      padding: 16px 36px;
+      background: rgba(5, 8, 14, 0.9);
+      border-bottom: 1px solid var(--border-term);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(16px);
+      z-index: 50;
+    }
+    .hud-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+    }
+    .hud-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--emerald);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 14px var(--emerald-glow);
+    }
+    .hud-logo svg { width: 18px; height: 18px; fill: var(--emerald); }
+    .hud-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .hud-title span { color: var(--emerald); }
+    .hud-telemetry {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .hud-telemetry-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-val { color: var(--text-green); font-weight: 700; }
+    .hud-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Main Console Workspace */
+    main.console-main {
+      flex: 1;
+      width: 100%;
+      max-width: 940px;
+      margin: 0 auto;
+      padding: 40px 24px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      z-index: 10;
+    }
+
+    .status-summary-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 16px 24px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-term);
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    }
+    .status-label-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-tag {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .status-desc {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-white);
+    }
+    .eta-box {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .eta-box strong { color: var(--emerald); font-weight: 700; }
+
+    /* Progress Indicator */
+    .progress-section {
+      width: 100%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      padding: 20px 24px;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12.5px;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    .progress-header span:last-child { color: var(--emerald); font-weight: 700; }
+    .progress-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 86%;
+      background: linear-gradient(90deg, #10b981 0%, #06b6d4 100%);
+      border-radius: 4px;
+      box-shadow: 0 0 12px var(--emerald-glow);
+      transition: width 0.5s ease;
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmer 2s infinite;
+    }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+    /* Terminal Window */
+    .terminal-window {
+      background: #020408;
+      border: 1px solid var(--border-term);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(16, 185, 129, 0.05);
+      overflow: hidden;
+    }
+    .terminal-titlebar {
+      background: #090e17;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .terminal-dots {
+      display: flex;
+      gap: 7px;
+    }
+    .t-dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green { background: #10b981; }
+    .terminal-title {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    .terminal-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--emerald);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .terminal-body {
+      padding: 20px 24px;
+      font-size: 13px;
+      line-height: 1.8;
+      height: 260px;
+      overflow-y: auto;
+      color: #94a3b8;
+    }
+    .log-line { display: flex; gap: 12px; }
+    .log-time { color: #475569; user-select: none; }
+    .log-info { color: #38bdf8; }
+    .log-success { color: #34d399; font-weight: 700; }
+    .log-warn { color: #fbbf24; }
+    .log-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 15px;
+      background: var(--emerald);
+      vertical-align: middle;
+      animation: blinkCursor 1s infinite;
+      margin-left: 4px;
+    }
+    @keyframes blinkCursor { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* Interactive Command Prompt / Subscriber */
+    .cli-prompt-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-term);
+      border-radius: 16px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .cli-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 280px;
+    }
+    .cli-prefix {
+      color: var(--emerald);
+      font-weight: 700;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .cli-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13.5px;
+    }
+    .cli-input::placeholder { color: #475569; }
+    .cli-btn-group {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-term-action {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid var(--emerald);
+      color: var(--emerald);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-term-action:hover {
+      background: var(--emerald);
+      color: #000;
+      box-shadow: 0 0 16px var(--emerald-glow);
+    }
+    .btn-term-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-term-secondary:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+    /* Footer */
+    footer.hud-footer {
+      width: 100%;
+      border-top: 1px solid var(--border-term);
+      padding: 18px 36px;
+      background: rgba(5, 8, 14, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .hud-links {
+      display: flex;
+      gap: 16px;
+    }
+    .hud-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .hud-links a:hover { color: var(--emerald); }
+
+    /* Toast */
+    #cli-toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #090e17;
+      border: 1px solid var(--emerald);
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 15px var(--emerald-glow);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1000;
+    }
+    #cli-toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 768px) {
+      header.hud-header { flex-direction: column; gap: 10px; padding: 14px 20px; }
+      .hud-telemetry { flex-wrap: wrap; justify-content: center; }
+      footer.hud-footer { flex-direction: column; gap: 10px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Telemetry HUD -->
+  <header class="hud-header">
+    <a href="#" class="hud-brand">
+      <div class="hud-logo">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      </div>
+      <div class="hud-title">CONNECTO<span>.OPS</span></div>
+    </a>
+    <div class="hud-telemetry">
+      <div class="hud-telemetry-item">
+        <div class="hud-pulse"></div>
+        <span>CLUSTER:</span> <span class="hud-val">SHARD-SIN-01</span>
+      </div>
+      <div class="hud-telemetry-item">
+        <span>LATENCY:</span> <span class="hud-val">14ms</span>
+      </div>
+      <div class="hud-telemetry-item">
+        <span>INTEGRITY:</span> <span class="hud-val">100% SECURE</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Terminal Console -->
+  <main class="console-main">
+    <!-- Status Banner -->
+    <div class="status-summary-bar">
+      <div class="status-label-group">
+        <span class="status-tag">SYSTEM UPGRADE</span>
+        <span class="status-desc">Executing Live Sharding & WebRTC Mesh Relays</span>
+      </div>
+      <div class="eta-box">
+        ESTIMATED COMPLETION: <strong id="eta-timer">00:12:45</strong>
+      </div>
+    </div>
+
+    <!-- Migration Progress -->
+    <div class="progress-section">
+      <div class="progress-header">
+        <span>CLUSTER CONCURRENCY OPTIMIZATION</span>
+        <span id="pct-val">88% COMPLETE</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <!-- Live Terminal Box -->
+    <div class="terminal-window">
+      <div class="terminal-titlebar">
+        <div class="terminal-dots">
+          <div class="t-dot dot-red"></div>
+          <div class="t-dot dot-yellow"></div>
+          <div class="t-dot dot-green"></div>
+        </div>
+        <div class="terminal-title">connecto-ops@cluster-node-4: ~/deploy/v3.5</div>
+        <div class="terminal-badge">LIVE TTY STREAM</div>
+      </div>
+      <div class="terminal-body" id="term-logs">
+        <div class="log-line"><span class="log-time">[12:40:01]</span><span><span class="log-info">[INIT]</span> Initializing system migration sequence (Worker ID: c-8472)...</span></div>
+        <div class="log-line"><span class="log-time">[12:40:04]</span><span><span class="log-success">[DB]</span> SQLite WAL memory-mapped page cache verified (256MB allocated).</span></div>
+        <div class="log-line"><span class="log-time">[12:40:09]</span><span><span class="log-info">[WS]</span> Re-indexing direct message route table (6,420 channels mapped).</span></div>
+        <div class="log-line"><span class="log-time">[12:40:15]</span><span><span class="log-success">[FCM]</span> Android background high-priority push dispatch verified.</span></div>
+        <div class="log-line"><span class="log-time">[12:40:22]</span><span><span class="log-info">[RTC]</span> Establishing full-duplex STUN/TURN media relay matrix...</span></div>
+        <div class="log-line"><span class="log-time">[12:40:31]</span><span><span class="log-warn">[SYNC]</span> Draining active sockets for final persistent connection handshake...</span></div>
+      </div>
+    </div>
+
+    <!-- CLI Prompt Subscription -->
+    <form class="cli-prompt-box" onsubmit="handleCliSubmit(event)">
+      <div class="cli-left">
+        <span class="cli-prefix">connecto:notify$</span>
+        <input type="email" class="cli-input" id="cli-email" placeholder="enter-your-email@domain.com" required>
+      </div>
+      <div class="cli-btn-group">
+        <button type="submit" class="btn-term-action">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+          SUBSCRIBE
+        </button>
+        <button type="button" class="btn-term-secondary" onclick="pingGateway()">
+          PING GATEWAY
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Footer -->
+  <footer class="hud-footer">
+    <div>&copy; 2026 <strong>connecto.fun</strong> • Zero Data Loss Guarantee • All Chats & Keys Preserved</div>
+    <div class="hud-links">
+      <a href="/static/status.html">System Health Matrix</a>
+      <a href="https://t.me/connecto" target="_blank" rel="noopener">Dev Telegram</a>
+      <a href="https://github.com/chinnu2523/connecto" target="_blank" rel="noopener">Repo</a>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div id="cli-toast">
+    <span id="cli-toast-text"></span>
+  </div>
+
+  <script>
+    const logs = [
+      { tag: '[WS]', msg: 'Broadcasting keepalive ping to edge proxies...', type: 'log-info' },
+      { tag: '[AUTH]', msg: 'Validating cryptographic session hashes & JWT keys... [OK]', type: 'log-success' },
+      { tag: '[GATEWAY]', msg: 'Synchronizing Nginx /api/v1/ws upgrade pipeline...', type: 'log-info' },
+      { tag: '[MESH]', msg: 'WebRTC STUN/TURN ICE candidate pathways cleared.', type: 'log-success' },
+      { tag: '[FINAL]', msg: 'Preparing automated cluster cutover...', type: 'log-warn' }
+    ];
+    let logIndex = 0;
+    const termLogs = document.getElementById('term-logs');
+
+    // Append new live stream logs every 3 seconds
+    setInterval(() => {
+      if (logIndex < logs.length) {
+        const item = logs[logIndex];
+        const now = new Date();
+        const timeStr = `[${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}]`;
+        const div = document.createElement('div');
+        div.className = 'log-line';
+        div.innerHTML = `<span class="log-time">${timeStr}</span><span><span class="${item.type}">${item.tag}</span> ${item.msg}</span>`;
+        termLogs.appendChild(div);
+        termLogs.scrollTop = termLogs.scrollHeight;
+        logIndex++;
+      }
+    }, 3200);
+
+    function handleCliSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('cli-email').value.trim();
+      if (!email) return;
+      showCliToast('✅ Subscribed: ' + email + ' will be alerted upon cutover.');
+      document.getElementById('cli-email').value = '';
+    }
+
+    function pingGateway() {
+      showCliToast('⚡ Pinging https://connecto.fun/api/v1/health...');
+      fetch('/api/v1/health', { method: 'GET', cache: 'no-store' })
+        .then(res => {
+          if (res.status === 200) {
+            showCliToast('🟢 Gateway 200 OK! Reloading cluster...');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showCliToast('🟡 HTTP ' + res.status + ': Maintenance in progress.');
+          }
+        })
+        .catch(() => {
+          showCliToast('🟡 Gateway unreachable. Retrying scheduled check...');
+        });
+    }
+
+    function showCliToast(msg) {
+      const toast = document.getElementById('cli-toast');
+      document.getElementById('cli-toast-text').innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+  </script>
+</body>
+</html>

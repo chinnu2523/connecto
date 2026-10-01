@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Connecto • System Maintenance</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='28' fill='%236366F1'/><path d='M30 35h40a6 6 0 0 1 6 6v22a6 6 0 0 1-6 6H45L30 78V41a6 6 0 0 1 6-6z' fill='%23FFFFFF'/><circle cx='42' cy='52' r='4' fill='%236366F1'/><circle cx='58' cy='52' r='4' fill='%236366F1'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a10;
+      --card-bg: rgba(18, 20, 32, 0.75);
+      --indigo: #6366f1;
+      --violet: #8b5cf6;
+      --cyan: #38bdf8;
+      --text-white: #ffffff;
+      --text-soft: #cbd5e1;
+      --text-muted: #64748b;
+      --border-specular: rgba(255, 255, 255, 0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.22) 0%, transparent 55%),
+        radial-gradient(circle at 10% 100%, rgba(139, 92, 246, 0.15) 0%, transparent 45%),
+        radial-gradient(circle at 90% 100%, rgba(56, 189, 248, 0.12) 0%, transparent 45%);
+      color: var(--text-white);
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 30px 20px;
+      overflow-x: hidden;
+    }
+
+    /* Top Nav Brand */
+    header.brand-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #38bdf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+    }
+    .brand-icon svg { width: 24px; height: 24px; fill: #fff; }
+    .brand-text {
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.6px;
+    }
+    .brand-text span { color: var(--cyan); }
+
+    /* Floating Studio Card */
+    .studio-monolith {
+      width: 100%;
+      max-width: 680px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-specular);
+      border-radius: 32px;
+      padding: 48px 44px;
+      text-align: center;
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 8px 16px rgba(0, 0, 0, 0.3),
+        0 24px 60px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(99, 102, 241, 0.12);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Animated Orbital Centerpiece */
+    .orb-stage {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 28px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .orb-core {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #38bdf8 100%);
+      box-shadow: 0 0 35px rgba(99, 102, 241, 0.6), inset 0 0 15px rgba(255, 255, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulseCore 3s ease-in-out infinite;
+      z-index: 2;
+    }
+    .orb-core svg { width: 26px; height: 26px; fill: #ffffff; }
+    .orb-ring {
+      position: absolute;
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(99, 102, 241, 0.4);
+      animation: spinRing 12s linear infinite;
+    }
+    .orb-ring-2 {
+      position: absolute;
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      animation: spinRingRev 18s linear infinite;
+    }
+    @keyframes spinRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes spinRingRev { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+    @keyframes pulseCore { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+    /* Typography */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #a5b4fc;
+      margin-bottom: 20px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+    }
+
+    h1.studio-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.2;
+      margin-bottom: 12px;
+    }
+    .shine-text {
+      background: linear-gradient(135deg, #ffffff 30%, #c7d2fe 65%, #38bdf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.studio-subtitle {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-soft);
+      max-width: 520px;
+      margin-bottom: 34px;
+    }
+
+    /* Countdown Grid */
+    .countdown-grid {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 34px;
+      width: 100%;
+    }
+    .countdown-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 16px 20px;
+      min-width: 90px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+    .countdown-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 32px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .countdown-unit {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .countdown-divider {
+      font-family: 'Outfit', sans-serif;
+      font-size: 26px;
+      color: rgba(255, 255, 255, 0.2);
+      font-weight: 700;
+    }
+
+    /* Notification Input */
+    .notify-container {
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 24px;
+    }
+    .notify-form {
+      display: flex;
+      align-items: center;
+      background: rgba(10, 12, 20, 0.65);
+      border: 1px solid var(--border-specular);
+      border-radius: 40px;
+      padding: 5px 5px 5px 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s;
+    }
+    .notify-form:focus-within {
+      border-color: var(--indigo);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+    }
+    .notify-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .notify-input::placeholder { color: #64748b; }
+    .notify-button {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-size: 13.5px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      transition: all 0.2s;
+    }
+    .notify-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    /* Secondary Reconnect Action */
+    .recheck-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-soft);
+      font-size: 13px;
+      text-decoration: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .recheck-link:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .recheck-link svg { width: 14px; height: 14px; }
+
+    /* Footer */
+    footer.studio-footer {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    footer.studio-footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    footer.studio-footer a:hover { color: #fff; }
+
+    /* Toast */
+    #studio-toast {
+      position: fixed;
+      bottom: 30px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--border-specular);
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+    #studio-toast.show { transform: translateY(0); opacity: 1; }
+
+    @media (max-width: 640px) {
+      .studio-monolith { padding: 36px 20px; }
+      h1.studio-title { font-size: 32px; }
+      .countdown-card { min-width: 72px; padding: 12px 14px; }
+      .countdown-val { font-size: 26px; }
+      .notify-form { flex-direction: column; padding: 12px; border-radius: 20px; gap: 10px; }
+      .notify-button { width: 100%; border-radius: 12px; }
+      footer.studio-footer { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Brand Nav -->
+  <header class="brand-nav">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+    </div>
+    <div class="brand-text">connecto<span>.fun</span></div>
+  </header>
+
+  <!-- Central Monolith Card -->
+  <main class="studio-monolith">
+    <div class="orb-stage">
+      <div class="orb-ring-2"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-core">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+      </div>
+    </div>
+
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <span>SCHEDULED SYSTEM UPGRADE</span>
+    </div>
+
+    <h1 class="studio-title">
+      We'll be <span class="shine-text">right back.</span>
+    </h1>
+
+    <p class="studio-subtitle">
+      We are fine-tuning our real-time messaging clusters and voice engines to deliver lightning-fast speed. All your messages, channels, and contacts are safely stored.
+    </p>
+
+    <!-- Countdown Timer -->
+    <div class="countdown-grid">
+      <div class="countdown-card">
+        <div class="countdown-val" id="hours-val">00</div>
+        <div class="countdown-unit">Hours</div>
+      </div>
+      <div class="countdown-divider">:</div>
+      <div class="countdown-card">
+        <div class="countdown-val" id="mins-val">14</div>
+        <div class="countdown-unit">Minutes</div>
+      </div>
+      <div class="countdown-divider">:</div>
+      <div class="countdown-card">
+        <div class="countdown-val" id="secs-val">42</div>
+        <div class="countdown-unit">Seconds</div>
+      </div>
+    </div>
+
+    <!-- Notify Subscription -->
+    <div class="notify-container">
+      <form class="notify-form" onsubmit="handleStudioNotify(event)">
+        <input type="email" class="notify-input" id="studio-email" placeholder="Enter email to get notified on launch..." required>
+        <button type="submit" class="notify-button">Notify Me</button>
+      </form>
+    </div>
+
+    <button class="recheck-link" onclick="checkStudioHealth()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      <span id="studio-recheck-label">Check connection now</span>
+    </button>
+  </main>
+
+  <!-- Studio Footer -->
+  <footer class="studio-footer">
+    <div>&copy; 2026 Connecto Fun Inc.</div>
+    <div>•</div>
+    <a href="/static/status.html">Live Status</a>
+    <div>•</div>
+    <a href="https://t.me/connecto" target="_blank" rel="noopener">Telegram Community</a>
+  </footer>
+
+  <!-- Toast Message -->
+  <div id="studio-toast">
+    <span id="studio-toast-text"></span>
+  </div>
+
+  <script>
+    let remainingSeconds = 14 * 60 + 42;
+    const hoursEl = document.getElementById('hours-val');
+    const minsEl = document.getElementById('mins-val');
+    const secsEl = document.getElementById('secs-val');
+    const recheckLabel = document.getElementById('studio-recheck-label');
+
+    setInterval(() => {
+      if (remainingSeconds > 0) {
+        remainingSeconds--;
+        const h = Math.floor(remainingSeconds / 3600);
+        const m = Math.floor((remainingSeconds % 3600) / 60);
+        const s = remainingSeconds % 60;
+        hoursEl.innerText = String(h).padStart(2, '0');
+        minsEl.innerText = String(m).padStart(2, '0');
+        secsEl.innerText = String(s).padStart(2, '0');
+      }
+    }, 1000);
+
+    function checkStudioHealth() {
+      recheckLabel.innerText = 'Checking...';
+      fetch('/api/v1/health', { method: 'GET', cache: 'no-store' })
+        .then(res => {
+          if (res.status === 200) {
+            showStudioToast('🎉 We are live! Loading Connecto...');
+            setTimeout(() => window.location.reload(), 1000);
+          } else {
+            showStudioToast('⏳ Upgrade in progress. Re-checking soon.');
+            recheckLabel.innerText = 'Check connection now';
+          }
+        })
+        .catch(() => {
+          showStudioToast('⏳ Upgrade in progress. Re-checking soon.');
+          recheckLabel.innerText = 'Check connection now';
+        });
+    }
+
+    function handleStudioNotify(e) {
+      e.preventDefault();
+      const email = document.getElementById('studio-email').value.trim();
+      if (!email) return;
+      showStudioToast('🔔 Confirmed: Notification queued for ' + email);
+      document.getElementById('studio-email').value = '';
+    }
+
+    function showStudioToast(msg) {
+      const toast = document.getElementById('studio-toast');
+      document.getElementById('studio-toast-text').innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+  </script>
+</body>
+</html>
