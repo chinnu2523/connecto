@@ -18,3 +18,12 @@ database_id = "c95366cb-6dde-4bfe-8a3e-f466969f1a16"
 [ai]
 binding = "AI"
 
+[durable_objects]
+bindings = [
+  { name = "REALTIME_ROOM", class_name = "ConnectoRealtimeRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["ConnectoRealtimeRoom"]
+

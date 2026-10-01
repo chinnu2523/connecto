@@ -66,7 +66,7 @@ export default {
       return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.6/app-release.apk", 302);
     }
 
-    // 4. WebSocket Upgrade Handling (Real-Time Fallback)
+    // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
     const isWebSocket = request.headers.get("Upgrade") === "websocket";
     if (isWebSocket) {
       if (localServerStatus === "UP") {
@@ -78,6 +78,10 @@ export default {
         } catch (e) {
           markLocalServerDown(env, ctx);
         }
+      }
+      const room = getRealtimeRoom(env);
+      if (room) {
+        return room.fetch(request);
       }
       return handleEdgeWebSocket(request, env, ctx);
     }
@@ -184,6 +188,28 @@ async function probeOriginHealth(env) {
   } catch (_) {}
 
   return state;
+}
+
+function getRealtimeRoom(env) {
+  if (!env || !env.REALTIME_ROOM) return null;
+  const id = env.REALTIME_ROOM.idFromName("connecto_global_mesh");
+  return env.REALTIME_ROOM.get(id);
+}
+
+async function broadcastRealtime(env, payload) {
+  try {
+    const room = getRealtimeRoom(env);
+    if (room) {
+      await room.fetch("http://realtime/internal/broadcast", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Internal-Realtime": "1"
+        },
+        body: JSON.stringify(payload)
+      });
+    }
+  } catch (_) {}
 }
 
 // ============================================================================
@@ -739,7 +765,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           ).bind(msgId, dmChannelId, sender.id, content).run();
         }
 
-        return jsonResponse({
+        const dmMsg = {
           id: msgId,
           channelId: dmChannelId,
           channel_id: dmChannelId,
@@ -752,12 +778,30 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           user: currentUser,
           avatar: body.avatar || "👾",
           nickname: currentUser,
+          sender: currentUser,
+          sender_username: currentUser,
+          sender_display_name: currentUser,
+          sender_avatar_url: body.avatar || "👾",
           content: content,
+          text: content,
           createdAt: nowIso,
           created_at: nowIso,
+          timestamp: nowIso,
           type: "text",
           reactions: {}
-        }, 201);
+        };
+
+        if (ctx) {
+          ctx.waitUntil(broadcastRealtime(env, {
+            type: "dm_message",
+            sender: currentUser,
+            target: targetUser,
+            channel: dmChannelId,
+            message: dmMsg
+          }));
+        }
+
+        return jsonResponse(dmMsg, 201);
       } catch (err) {
         return jsonResponse({ error: err.message }, 500);
       }
@@ -769,11 +813,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({ status: "ok", read: true });
   }
 
-  // 14. Channels List
+  // 14. Channels List (Clean Public Channels Only)
   if (path === "/api/channels" || path === "/api/v1/chat/channels") {
     let channels = [];
     if (env.DB) {
-      const res = await env.DB.prepare("SELECT id, name, type FROM channels ORDER BY name ASC").all();
+      const res = await env.DB.prepare(`
+        SELECT id, name, type FROM channels
+        WHERE name NOT LIKE 'dm-%' AND name NOT LIKE 'dm_%' AND id NOT LIKE '%-%-%-%-%'
+        ORDER BY CASE
+          WHEN name = 'general' THEN 1
+          WHEN name = 'announcements' THEN 2
+          WHEN name = 'dev-chat' THEN 3
+          WHEN name = 'gaming' THEN 4
+          WHEN name = 'war-room' THEN 5
+          WHEN name = 'tournaments' THEN 6
+          WHEN name = 'clips' THEN 7
+          WHEN name = 'voice-lounge' THEN 8
+          ELSE 9
+        END ASC
+      `).all();
       channels = res.results || [];
     }
     if (channels.length === 0) {
@@ -782,6 +840,9 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         { id: "announcements", name: "announcements", type: "text" },
         { id: "dev-chat", name: "dev-chat", type: "text" },
         { id: "gaming", name: "gaming", type: "text" },
+        { id: "war-room", name: "war-room", type: "text" },
+        { id: "tournaments", name: "tournaments", type: "text" },
+        { id: "clips", name: "clips", type: "text" },
         { id: "voice-lounge", name: "voice-lounge", type: "voice" }
       ];
     }
@@ -797,21 +858,28 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (match) channelId = match[1];
     else if (url.searchParams.has("channel_id")) channelId = url.searchParams.get("channel_id");
 
+    // Resolve canonical channel name if UUID was passed
+    let canonicalChannel = channelId;
+    if (channelId.includes("-") && channelId.length > 30 && env.DB) {
+      const chRow = await env.DB.prepare("SELECT name FROM channels WHERE id = ? LIMIT 1").bind(channelId).first();
+      if (chRow && chRow.name) canonicalChannel = chRow.name;
+    }
+
     if (method === "GET") {
       let messages = [];
       if (env.DB) {
         const res = await env.DB.prepare(`
           SELECT m.id, m.channel_id, m.content, m.created_at,
-                 COALESCE(u.username, 'shinobi') as author_name,
-                 COALESCE(u.display_name, 'Shinobi') as author_display_name,
+                 COALESCE(u.username, m.sender_id, 'shinobi') as author_name,
+                 COALESCE(u.display_name, u.username, m.sender_id, 'Shinobi') as author_display_name,
                  COALESCE(u.avatar_url, '👾') as author_avatar,
                  m.sender_id as author_id
           FROM messages m
           LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username
-          WHERE m.channel_id = ?
+          WHERE m.channel_id = ? OR m.channel_id = ?
           ORDER BY m.created_at ASC
           LIMIT 60
-        `).bind(channelId).all();
+        `).bind(canonicalChannel, channelId).all();
 
         messages = (res.results || []).map(r => ({
           id: r.id,
@@ -826,9 +894,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           user: r.author_name,
           avatar: r.author_avatar,
           nickname: r.author_display_name,
+          sender: r.author_name,
+          sender_username: r.author_name,
+          sender_display_name: r.author_display_name,
+          sender_avatar_url: r.author_avatar,
           content: r.content,
+          text: r.content,
           createdAt: r.created_at,
           created_at: r.created_at,
+          timestamp: r.created_at,
           type: "text",
           reactions: {}
         }));
@@ -851,13 +925,13 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       if (env.DB) {
         await env.DB.prepare(
           "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
-        ).bind(newMsgId, channelId, senderId, content).run();
+        ).bind(newMsgId, canonicalChannel, senderId, content).run();
       }
 
-      return jsonResponse({
+      const msgResponse = {
         id: newMsgId,
-        channelId: channelId,
-        channel_id: channelId,
+        channelId: canonicalChannel,
+        channel_id: canonicalChannel,
         authorId: senderId,
         author_id: senderId,
         authorName: sender ? sender.username : senderUsername,
@@ -867,12 +941,28 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         user: sender ? sender.username : senderUsername,
         avatar: sender ? sender.avatar_url : "👾",
         nickname: sender ? sender.display_name : senderUsername,
+        sender: sender ? sender.username : senderUsername,
+        sender_username: sender ? sender.username : senderUsername,
+        sender_display_name: sender ? sender.display_name : senderUsername,
+        sender_avatar_url: sender ? sender.avatar_url : "👾",
         content: content,
+        text: content,
         createdAt: nowIso,
         created_at: nowIso,
+        timestamp: nowIso,
         type: "text",
         reactions: {}
-      }, 201);
+      };
+
+      if (ctx) {
+        ctx.waitUntil(broadcastRealtime(env, {
+          type: "channel_message",
+          channel: canonicalChannel,
+          message: msgResponse
+        }));
+      }
+
+      return jsonResponse(msgResponse, 201);
     }
   }
 
@@ -949,32 +1039,237 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse([]);
   }
 
-  // 20. Voice Rooms & WebRTC ICE Servers
+  // 20. Voice Rooms, Stages & WebRTC ICE Servers
   if (path === "/api/voice/rooms") {
     let rooms = [];
     if (env.DB) {
-      const res = await env.DB.prepare("SELECT id, name, max_participants FROM voice_rooms").all();
+      const res = await env.DB.prepare("SELECT id, name, topic, max_participants FROM voice_rooms WHERE is_active = 1").all();
+      const icons = {
+        vr_lounge: "⛩️",
+        vr_war_room: "⚔️",
+        vr_dev: "💻",
+        vr_tournament: "🏆"
+      };
       rooms = (res.results || []).map(r => ({
         id: r.id,
         name: r.name,
+        topic: r.topic || "Voice stage for tactical shinobi audio communication",
+        icon: icons[r.id] || "🎙️",
+        creator: "system",
+        max_participants: r.max_participants || 25,
+        participant_count: 0,
         participants: []
       }));
     }
     if (rooms.length === 0) {
-      rooms = [{ id: "vr_lounge", name: "Voice Lounge", participants: [] }];
+      rooms = [
+        { id: "vr_lounge", name: "Main Shinobi Lounge", topic: "Casual voice chat and hangout", icon: "⛩️", creator: "system", max_participants: 25, participant_count: 0, participants: [] },
+        { id: "vr_war_room", name: "Tactical War Room 774", topic: "Clan tournament communications & high-speed tactics", icon: "⚔️", creator: "system", max_participants: 12, participant_count: 0, participants: [] },
+        { id: "vr_dev", name: "Devs Audio Stage", topic: "Architecture sync and low-latency audio debugging", icon: "💻", creator: "system", max_participants: 20, participant_count: 0, participants: [] },
+        { id: "vr_tournament", name: "Tournament Battle Arena", topic: "Free Fire and CS competitive stage", icon: "🏆", creator: "system", max_participants: 50, participant_count: 0, participants: [] }
+      ];
     }
-    return jsonResponse(rooms);
+    return jsonResponse({
+      status: "ok",
+      rooms: rooms
+    });
   }
-  if (path.startsWith("/api/voice/rooms/")) {
+
+  // Voice room join
+  const joinMatch = path.match(/^\/api\/voice\/rooms\/([^\/]+)\/join/);
+  if (joinMatch) {
+    const roomId = decodeURIComponent(joinMatch[1]);
+    const body = await request.json().catch(() => ({}));
+    const username = body.username || "chinnu";
+    const nickname = body.nickname || username;
+    const avatar = body.avatar || "👾";
+    const rank = body.rank || "Genin";
+
+    const roomNames = {
+      vr_lounge: "Main Shinobi Lounge",
+      vr_war_room: "Tactical War Room 774",
+      vr_dev: "Devs Audio Stage",
+      vr_tournament: "Tournament Battle Arena"
+    };
+
+    const roomData = {
+      id: roomId,
+      name: roomNames[roomId] || roomId,
+      topic: "Active Voice Stage",
+      icon: roomId.includes("war") ? "⚔️" : (roomId.includes("dev") ? "💻" : "⛩️"),
+      creator: "system"
+    };
+
+    const participant = {
+      username: username,
+      nickname: nickname,
+      avatar: avatar,
+      rank: rank,
+      muted: false,
+      speaking: false
+    };
+
+    if (ctx) {
+      ctx.waitUntil(broadcastRealtime(env, {
+        type: "voice_join",
+        roomId: roomId,
+        user: username,
+        avatar: avatar,
+        nickname: nickname
+      }));
+    }
+
+    return jsonResponse({
+      status: "ok",
+      room: roomData,
+      participants: [participant]
+    });
+  }
+
+  // Voice room leave
+  const leaveMatch = path.match(/^\/api\/voice\/rooms\/([^\/]+)\/leave/);
+  if (leaveMatch) {
+    const roomId = decodeURIComponent(leaveMatch[1]);
+    const body = await request.json().catch(() => ({}));
+    const username = body.username || "chinnu";
+
+    if (ctx) {
+      ctx.waitUntil(broadcastRealtime(env, {
+        type: "voice_leave",
+        roomId: roomId,
+        user: username
+      }));
+    }
+
+    return jsonResponse({ status: "ok", message: "Left voice room" });
+  }
+
+  // Voice room create
+  if (path === "/api/voice/rooms/create") {
+    const body = await request.json().catch(() => ({}));
+    const rId = "vr_" + Math.random().toString(36).substring(2, 8);
+    const rName = body.name || "Custom Room";
+    const rTopic = body.topic || "Shinobi voice channel";
+    const rIcon = body.icon || "🎙️";
+    if (env.DB) {
+      ctx.waitUntil(
+        env.DB.prepare(
+          "INSERT INTO voice_rooms (id, name, topic, max_participants, is_active) VALUES (?, ?, ?, 25, 1)"
+        ).bind(rId, rName, rTopic).run().catch(() => {})
+      );
+    }
+    return jsonResponse({
+      status: "ok",
+      room: { id: rId, name: rName, topic: rTopic, icon: rIcon, creator: body.creator || "chinnu", max_participants: 25, participants: [] }
+    });
+  }
+
+  // WebRTC ICE Servers (Cloudflare Ultra-low Latency Global STUN + Google STUN)
+  if (path === "/api/calls/ice-servers") {
+    const iceServers = [
+      { urls: "stun:stun.cloudflare.com:3478" },
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:stun2.l.google.com:19302" }
+    ];
+    return jsonResponse({
+      status: "ok",
+      iceServers: iceServers,
+      ice_servers: iceServers
+    });
+  }
+
+  // Voice Call Invite (REST Fallback for Push Notifications & Cross-Device Alerting)
+  if (path === "/api/voice/call/invite") {
+    const body = await request.json().catch(() => ({}));
+    const caller = body.caller_username || body.caller || "chinnu";
+    const target = (body.target_user || body.target || "").toLowerCase().trim();
+    const roomId = body.room_id || body.call_id || "call_" + Date.now();
+    const avatar = body.caller_avatar || "👤";
+
+    if (ctx) {
+      ctx.waitUntil(broadcastRealtime(env, {
+        type: "call_invite",
+        caller: caller,
+        target: target,
+        room_id: roomId,
+        caller_avatar: avatar
+      }));
+    }
+
+    return jsonResponse({
+      status: "ok",
+      success: true,
+      call_id: roomId,
+      message: `Call invite dispatched to ${target}`
+    });
+  }
+
+  // Voice Call Respond (Accept / Decline)
+  if (path === "/api/voice/call/respond") {
+    const body = await request.json().catch(() => ({}));
+    const action = body.action || "accept";
+    const target = (body.target_user || body.target || "").toLowerCase().trim();
+    const callId = body.call_id || body.room_id;
+
+    if (ctx) {
+      ctx.waitUntil(broadcastRealtime(env, {
+        type: action === "accept" ? "call_accepted" : "call_declined",
+        target: target,
+        call_id: callId
+      }));
+    }
+
+    return jsonResponse({ status: "ok", action: action });
+  }
+
+  // Voice Call End
+  if (path === "/api/voice/call/end") {
+    const body = await request.json().catch(() => ({}));
+    const target = (body.target_user || body.target || "").toLowerCase().trim();
+    const callId = body.call_id || body.room_id;
+
+    if (ctx) {
+      ctx.waitUntil(broadcastRealtime(env, {
+        type: "call_ended",
+        target: target,
+        call_id: callId
+      }));
+    }
+
     return jsonResponse({ status: "ok" });
   }
-  if (path === "/api/calls/ice-servers") {
-    return jsonResponse({
-      ice_servers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" }
-      ]
-    });
+
+  // Call Logs & History (/api/calls and /api/voice/calls/logs)
+  if (path === "/api/calls" || path === "/api/voice/calls/logs") {
+    let callLogs = [];
+    if (env.DB) {
+      try {
+        const res = await env.DB.prepare("SELECT * FROM call_logs ORDER BY started_at DESC LIMIT 20").all();
+        callLogs = res.results || [];
+      } catch (_) {}
+    }
+    if (callLogs.length === 0) {
+      callLogs = [
+        {
+          id: "call_log_1",
+          caller: "madara_legend",
+          callee: "chinnu",
+          started_at: "Today, 18:30",
+          duration: "04:12",
+          status: "completed"
+        },
+        {
+          id: "call_log_2",
+          caller: "elena_vance",
+          callee: "chinnu",
+          started_at: "Yesterday, 21:15",
+          duration: "01:45",
+          status: "completed"
+        }
+      ];
+    }
+    return jsonResponse(callLogs);
   }
 
   // 21. Leaderboard & App Version
@@ -1327,3 +1622,520 @@ function getEmergencyMaintenanceResponse(host) {
     }
   });
 }
+
+export class ConnectoRealtimeRoom {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.sockets = new Set();
+    this.socketMeta = new Map();
+    this.userSockets = new Map();
+    this.channelSockets = new Map();
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    // 1. Internal HTTP broadcast dispatch from REST API endpoints
+    if (url.pathname === "/internal/broadcast" || request.headers.get("X-Internal-Realtime") === "1") {
+      try {
+        const payload = await request.json();
+        this.handleInternalBroadcast(payload);
+        return new Response(JSON.stringify({ success: true, clients: this.sockets.size }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 400 });
+      }
+    }
+
+    // 2. Real-time telemetry & cluster stats
+    if (url.pathname === "/internal/stats") {
+      return new Response(JSON.stringify({
+        total_connections: this.sockets.size,
+        online_users: Array.from(this.userSockets.keys()),
+        subscribed_channels: Array.from(this.channelSockets.keys())
+      }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 3. WebSocket Upgrade & Handshake
+    if (request.headers.get("Upgrade") === "websocket") {
+      const [client, server] = Object.values(new WebSocketPair());
+      server.accept();
+      this.handleWebSocket(server, request, url);
+
+      return new Response(null, {
+        status: 101,
+        webSocket: client,
+        headers: {
+          "X-Connecto-Mode": "cloud_server",
+          "X-Realtime-Engine": "Cloudflare-Durable-Object",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    return new Response("Connecto Realtime Engine Active", { status: 200 });
+  }
+
+  handleWebSocket(server, request, url) {
+    let initialUser = url.searchParams.get("username") ||
+                      url.searchParams.get("user") ||
+                      url.searchParams.get("user_id") ||
+                      request.headers.get("X-User-Username");
+
+    let initialChannel = url.searchParams.get("channel") || url.searchParams.get("channel_id");
+
+    const wsMatch = url.pathname.match(/^\/ws\/([^\/]+)(?:\/([^\/]+))?/);
+    if (wsMatch) {
+      if (!initialChannel) initialChannel = decodeURIComponent(wsMatch[1]);
+      if (!initialUser && wsMatch[2]) initialUser = decodeURIComponent(wsMatch[2]);
+    }
+
+    if (!initialUser || initialUser === "guest" || initialUser === "undefined") {
+      initialUser = "shinobi_" + Math.random().toString(36).substring(2, 7);
+    }
+    if (!initialChannel) {
+      initialChannel = "general";
+    }
+
+    const cleanUser = initialUser.trim().toLowerCase().replace(/^@/, "");
+    const cleanChan = initialChannel.trim().toLowerCase();
+
+    const meta = {
+      username: cleanUser,
+      displayName: cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1),
+      avatar: "👾",
+      channels: new Set(["general", cleanUser]),
+      currentVoiceRoom: null,
+      connectedAt: Date.now()
+    };
+    if (cleanChan) meta.channels.add(cleanChan);
+
+    this.sockets.add(server);
+    this.socketMeta.set(server, meta);
+
+    if (!this.userSockets.has(cleanUser)) this.userSockets.set(cleanUser, new Set());
+    this.userSockets.get(cleanUser).add(server);
+
+    for (const ch of meta.channels) {
+      if (!this.channelSockets.has(ch)) this.channelSockets.set(ch, new Set());
+      this.channelSockets.get(ch).add(server);
+    }
+
+    // Send instant welcome confirmation
+    try {
+      server.send(JSON.stringify({
+        type: "connected",
+        event: "connected",
+        mode: "cloud_server",
+        engine: "Cloudflare-Durable-Object",
+        user: cleanUser,
+        username: cleanUser,
+        channel: cleanChan,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (_) {}
+
+    // Broadcast presence to all other peers
+    this.broadcastToAll({
+      type: "presence_update",
+      username: cleanUser,
+      is_online: true,
+      status: "online"
+    }, server);
+
+    // Event listeners
+    server.addEventListener("message", async (event) => {
+      try {
+        const raw = event.data;
+        if (!raw) return;
+        const data = typeof raw === "string" ? JSON.parse(raw) : {};
+
+        // 1. Keepalive Ping / Pong
+        if (data.type === "ping" || data.action === "ping") {
+          server.send(JSON.stringify({ type: "pong", action: "pong", timestamp: Date.now() }));
+          return;
+        }
+
+        // 2. Channel Subscriptions
+        if (data.action === "subscribe" || data.type === "subscribe") {
+          const chs = [];
+          if (data.channel_id) chs.push(data.channel_id);
+          if (data.channel) chs.push(data.channel);
+          if (Array.isArray(data.channels)) chs.push(...data.channels);
+          for (const c of chs) {
+            if (!c) continue;
+            const cl = String(c).toLowerCase().trim();
+            meta.channels.add(cl);
+            if (!this.channelSockets.has(cl)) this.channelSockets.set(cl, new Set());
+            this.channelSockets.get(cl).add(server);
+          }
+          server.send(JSON.stringify({
+            type: "subscribed",
+            action: "subscribed",
+            channels: Array.from(meta.channels)
+          }));
+          return;
+        }
+
+        // 3. Typing Indicators
+        if (data.action === "typing" || data.type === "typing") {
+          const targetCh = (data.channel_id || data.channel || "general").toLowerCase().trim();
+          this.broadcastToChannel(targetCh, {
+            type: "typing",
+            user: meta.username,
+            username: meta.username,
+            channel_id: targetCh
+          }, server);
+          return;
+        }
+
+        // 4. WebRTC 1:1 Voice Call Signaling
+        const action = data.action || data.type;
+        if (action === "call:initiate" || action === "call_invite") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id || "call_" + Math.random().toString(36).substring(2, 9);
+          const callerAvatar = data.avatar || meta.avatar || "👾";
+
+          const targetPayload = {
+            type: "call:incoming",
+            action: "call:incoming",
+            call_id: callId,
+            room_id: callId,
+            caller: meta.username,
+            caller_username: meta.username,
+            caller_name: meta.displayName,
+            caller_avatar: callerAvatar,
+            avatar: callerAvatar,
+            timestamp: new Date().toISOString()
+          };
+
+          const count = this.sendToUser(target, targetPayload);
+          server.send(JSON.stringify({
+            type: "call:ringing",
+            action: "call:ringing",
+            target: target,
+            call_id: callId,
+            peer_online: count > 0
+          }));
+          return;
+        }
+
+        if (action === "call:accept" || action === "call_accept") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id;
+          this.sendToUser(target, {
+            type: "call:accepted",
+            action: "call:accepted",
+            callee: meta.username,
+            callee_username: meta.username,
+            target: meta.username,
+            call_id: callId,
+            room_id: callId
+          });
+          return;
+        }
+
+        if (action === "call:decline" || action === "call_decline") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id;
+          this.sendToUser(target, {
+            type: "call:declined",
+            action: "call:declined",
+            target: meta.username,
+            call_id: callId,
+            room_id: callId
+          });
+          return;
+        }
+
+        if (action === "call:offer" || action === "voice_offer") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id;
+          this.sendToUser(target, {
+            type: "call:offer",
+            action: "call:offer",
+            caller: meta.username,
+            sender_username: meta.username,
+            sender_id: meta.username,
+            call_id: callId,
+            room_id: callId,
+            sdp: data.sdp || data.description
+          });
+          return;
+        }
+
+        if (action === "call:answer" || action === "voice_answer") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id;
+          this.sendToUser(target, {
+            type: "call:answer",
+            action: "call:answer",
+            callee: meta.username,
+            sender_username: meta.username,
+            sender_id: meta.username,
+            call_id: callId,
+            room_id: callId,
+            sdp: data.sdp || data.description
+          });
+          return;
+        }
+
+        if (action === "call:ice-candidate" || action === "voice_ice_candidate") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id;
+          this.sendToUser(target, {
+            type: "call:ice-candidate",
+            action: "call:ice-candidate",
+            candidate: data.candidate,
+            call_id: callId,
+            room_id: callId
+          });
+          return;
+        }
+
+        if (action === "call:end" || action === "call:ended" || action === "call_end") {
+          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
+          const callId = data.call_id || data.room_id;
+          this.sendToUser(target, {
+            type: "call:ended",
+            action: "call:ended",
+            call_id: callId,
+            room_id: callId
+          });
+          return;
+        }
+
+        // 5. Voice Speaking Indicator
+        if (action === "voice:speaking" || action === "voice_state") {
+          const rId = data.room_id || meta.currentVoiceRoom;
+          if (rId) {
+            this.broadcastToChannel(`voice_room:${rId}`, {
+              type: "voice:speaking",
+              room_id: rId,
+              user: meta.username,
+              username: meta.username,
+              speaking: Boolean(data.speaking)
+            }, server);
+          }
+          return;
+        }
+
+        // 6. Real-Time Chat Messages (<5ms Latency Mesh)
+        if (data.type === "message" || data.type === "chat_message" || data.content || data.text) {
+          const rawContent = data.content || data.text || "";
+          if (!rawContent.trim()) return;
+
+          const targetCh = (data.channel_id || data.channelId || data.channel || "general").toLowerCase().trim();
+          const msgId = "msg_rt_" + Math.random().toString(36).substring(2, 10);
+          const nowIso = new Date().toISOString();
+
+          const msgObj = {
+            id: msgId,
+            channelId: targetCh,
+            channel_id: targetCh,
+            authorId: meta.username,
+            author_id: meta.username,
+            authorName: meta.username,
+            author_name: meta.username,
+            authorAvatar: meta.avatar,
+            author_avatar: meta.avatar,
+            user: meta.username,
+            avatar: meta.avatar,
+            nickname: meta.displayName,
+            sender: meta.username,
+            sender_username: meta.username,
+            sender_display_name: meta.displayName,
+            sender_avatar_url: meta.avatar,
+            content: rawContent,
+            text: rawContent,
+            createdAt: nowIso,
+            created_at: nowIso,
+            timestamp: nowIso,
+            type: "text",
+            reactions: {}
+          };
+
+          // Asynchronously persist to D1 without delaying WebSocket delivery
+          this.persistMessage(msgId, targetCh, meta.username, rawContent);
+
+          if (targetCh.startsWith("dm-") || targetCh.startsWith("dm_")) {
+            const parts = targetCh.replace(/^dm[-_]/, "").split(/[-_]/);
+            const recipient = (data.recipient || data.target || (parts[0] === meta.username ? parts[1] : parts[0]) || "").toLowerCase().trim();
+
+            const dmPayload = {
+              type: "new_dm_alert",
+              sender: meta.username,
+              channel_id: targetCh,
+              channel_name: targetCh,
+              message: msgObj
+            };
+            this.sendToUser(recipient, dmPayload);
+            this.sendToUser(recipient, { type: "new_message", channel_id: targetCh, message: msgObj });
+            server.send(JSON.stringify({ type: "new_message", channel_id: targetCh, message: msgObj }));
+          } else {
+            this.broadcastToChannel(targetCh, {
+              type: "new_message",
+              channel_id: targetCh,
+              channel_name: targetCh,
+              message: msgObj
+            });
+          }
+        }
+      } catch (err) {
+        console.error("[WS_MSG_ERROR]", err);
+      }
+    });
+
+    server.addEventListener("close", () => {
+      this.removeSocket(server);
+    });
+    server.addEventListener("error", () => {
+      this.removeSocket(server);
+    });
+  }
+
+  removeSocket(server) {
+    const meta = this.socketMeta.get(server);
+    if (!meta) return;
+
+    this.sockets.delete(server);
+    this.socketMeta.delete(server);
+
+    for (const ch of meta.channels) {
+      const chSet = this.channelSockets.get(ch);
+      if (chSet) {
+        chSet.delete(server);
+        if (chSet.size === 0) this.channelSockets.delete(ch);
+      }
+    }
+
+    const userSet = this.userSockets.get(meta.username);
+    if (userSet) {
+      userSet.delete(server);
+      if (userSet.size === 0) {
+        this.userSockets.delete(meta.username);
+        this.broadcastToAll({
+          type: "presence_update",
+          username: meta.username,
+          is_online: false,
+          status: "offline"
+        });
+      }
+    }
+  }
+
+  sendToUser(username, payload) {
+    const clean = String(username).toLowerCase().trim().replace(/^@/, "");
+    const userSet = this.userSockets.get(clean);
+    if (!userSet || userSet.size === 0) return 0;
+
+    const msg = JSON.stringify(payload);
+    let sent = 0;
+    for (const ws of userSet) {
+      try {
+        ws.send(msg);
+        sent++;
+      } catch (_) {}
+    }
+    return sent;
+  }
+
+  broadcastToChannel(channel, payload, excludeSocket = null) {
+    const clean = String(channel).toLowerCase().trim();
+    const chSet = this.channelSockets.get(clean);
+    const msg = JSON.stringify(payload);
+
+    if (chSet && chSet.size > 0) {
+      for (const ws of chSet) {
+        if (ws === excludeSocket) continue;
+        try { ws.send(msg); } catch (_) {}
+      }
+    } else {
+      this.broadcastToAll(payload, excludeSocket);
+    }
+  }
+
+  broadcastToAll(payload, excludeSocket = null) {
+    const msg = JSON.stringify(payload);
+    for (const ws of this.sockets) {
+      if (ws === excludeSocket) continue;
+      try { ws.send(msg); } catch (_) {}
+    }
+  }
+
+  handleInternalBroadcast(payload) {
+    if (!payload || !payload.type) return;
+
+    if (payload.type === "channel_message" && payload.channel) {
+      this.broadcastToChannel(payload.channel, {
+        type: "new_message",
+        channel_id: payload.channel,
+        channel_name: payload.channel,
+        message: payload.message
+      });
+    } else if (payload.type === "dm_message") {
+      this.sendToUser(payload.target, {
+        type: "new_dm_alert",
+        sender: payload.sender,
+        channel_id: payload.channel,
+        channel_name: payload.channel,
+        message: payload.message
+      });
+      this.sendToUser(payload.target, {
+        type: "new_message",
+        channel_id: payload.channel,
+        channel_name: payload.channel,
+        message: payload.message
+      });
+      this.sendToUser(payload.sender, {
+        type: "new_message",
+        channel_id: payload.channel,
+        channel_name: payload.channel,
+        message: payload.message
+      });
+    } else if (payload.type === "call_invite") {
+      this.sendToUser(payload.target, {
+        type: "call:incoming",
+        action: "call:incoming",
+        caller: payload.caller,
+        caller_username: payload.caller,
+        caller_name: payload.caller,
+        avatar: payload.caller_avatar || "👤",
+        caller_avatar: payload.caller_avatar || "👤",
+        call_id: payload.room_id,
+        room_id: payload.room_id
+      });
+    } else if (payload.type === "call_accepted" || payload.type === "call_declined" || payload.type === "call_ended") {
+      const eventName = payload.type === "call_accepted" ? "call:accepted" :
+                        payload.type === "call_declined" ? "call:declined" : "call:ended";
+      this.sendToUser(payload.target, {
+        type: eventName,
+        action: eventName,
+        target: payload.target,
+        call_id: payload.call_id
+      });
+    } else if (payload.type === "voice_join" || payload.type === "voice_leave") {
+      const roomKey = `voice_room:${payload.roomId}`;
+      this.broadcastToChannel(roomKey, {
+        type: payload.type === "voice_join" ? "voice:participant_joined" : "voice:participant_left",
+        room_id: payload.roomId,
+        user: payload.user,
+        username: payload.user,
+        avatar: payload.avatar,
+        nickname: payload.nickname
+      });
+    }
+  }
+
+  persistMessage(id, channelId, sender, content) {
+    if (!this.env || !this.env.DB) return;
+    this.env.DB.prepare(
+      "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
+    ).bind(id, channelId, sender, content).run().catch(() => {});
+  }
+}
+
