@@ -4843,6 +4843,16 @@ INDEX_HTML_PATH = os.path.join(static_dir, "index.html")
 APP_HTML_PATH = os.path.join(static_dir, "app.html")
 TERMS_HTML_PATH = os.path.join(static_dir, "terms.html")
 PRIVACY_HTML_PATH = os.path.join(static_dir, "privacy.html")
+MAINTENANCE_HTML_PATH = os.path.join(static_dir, "maintenance.html")
+if not os.path.exists(MAINTENANCE_HTML_PATH):
+    MAINTENANCE_HTML_PATH = os.path.join(os.path.dirname(__file__), "maintenance.html")
+
+@app.get("/maintenance")
+@app.get("/maintenance.html")
+@app.head("/maintenance")
+@app.head("/maintenance.html")
+async def maintenance_page(request: Request):
+    return make_conditional_file_response(request, MAINTENANCE_HTML_PATH, media_type="text/html")
 
 @app.get("/app")
 @app.head("/app")
@@ -4910,6 +4920,12 @@ async def auth_portal(request: Request):
 
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root_landing_page(request: Request):
+    if os.getenv("CONNECTO_MAINTENANCE_MODE", "").strip().lower() in ("1", "true", "yes", "on"):
+        resp = make_conditional_file_response(request, MAINTENANCE_HTML_PATH, media_type="text/html")
+        resp.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        resp.headers["X-Maintenance"] = "true"
+        resp.headers["Retry-After"] = "60"
+        return resp
     host = request.headers.get("host", "").lower().split(":")[0]
     if host.startswith("status."):
         return make_conditional_file_response(request, STATUS_HTML_PATH, media_type="text/html")
