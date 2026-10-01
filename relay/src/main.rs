@@ -164,17 +164,28 @@ async fn health_handler(State(state): State<AppState>) -> Json<HealthResponse> {
     })
 }
 
+fn constant_time_compare(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    let mut diff = 0u8;
+    for (x, y) in a.iter().zip(b.iter()) {
+        diff |= x ^ y;
+    }
+    diff == 0
+}
+
 async fn broadcast_handler(
     State(state): State<AppState>,
     headers: HeaderMap,
     Json(req): Json<BroadcastRequest>,
 ) -> impl IntoResponse {
-    // Security: Validate internal secret header
+    // Security: Validate internal secret header using constant-time comparison
     let provided_secret = headers
         .get("X-Internal-Secret")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    if provided_secret != state.internal_secret {
+    if !constant_time_compare(provided_secret.as_bytes(), state.internal_secret.as_bytes()) {
         return (
             StatusCode::UNAUTHORIZED,
             Json(serde_json::json!({ "error": "Unauthorized: invalid or missing X-Internal-Secret" })),

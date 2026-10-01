@@ -13,6 +13,7 @@ from pypdf import PdfReader
 from io import BytesIO
 
 logger = logging.getLogger("cv.api")
+from app.core.security import verify_access_jwt
 router = APIRouter(tags=["ATS CV Screening"])
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "app_database.json")

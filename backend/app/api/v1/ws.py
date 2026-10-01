@@ -56,16 +56,26 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
                         await db.commit()
                         return user
 
-        # Verified authentic mobile app connection fallback
-        if user_id_param or username:
-            query = select(User)
-            if user_id_param and len(user_id_param) == 36:
-                query = query.where(User.id == user_id_param)
-            elif username:
-                query = query.where(func.lower(User.username) == username.lower())
-            user = (await db.execute(query)).scalar_one_or_none()
-            if user:
-                return user
+        # Security Hardening: Only explicitly identified guest / anonymous sessions are permitted without a token.
+        # Registered user identities strictly require a valid session token to prevent impersonation.
+        if username and (username.startswith("guest_") or username.startswith("anon-")):
+            clean_guest = username.strip()[:32]
+            return User(
+                id=f"guest_{clean_guest}",
+                username=clean_guest,
+                display_name=f"Guest {clean_guest.removeprefix('guest_')[:6]}",
+                is_admin=False
+            )
+
+        # Allow test runner to simulate users in explicit test environment only
+        if getattr(settings, "ENV", "production") == "test":
+            if user_id_param or username:
+                query = select(User)
+                if user_id_param and len(user_id_param) == 36:
+                    query = query.where(User.id == user_id_param)
+                elif username:
+                    query = query.where(func.lower(User.username) == username.lower())
+                return (await db.execute(query)).scalar_one_or_none()
 
         return None
 

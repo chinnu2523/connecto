@@ -29,3 +29,26 @@ def generate_session_token() -> str:
 def hash_session_token(token: str) -> str:
     """Hashes a session token for secure DB storage."""
     return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+from typing import Optional, Dict, Any
+from datetime import datetime, timezone, timedelta
+import jwt
+from app.core.config import settings
+
+def create_access_jwt(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """Generates a signed JWT with HS256 algorithm and expiration."""
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(days=settings.SESSION_EXPIRE_DAYS))
+    to_encode.update({"exp": expire, "iat": datetime.now(timezone.utc)})
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")
+
+def verify_access_jwt(token: str) -> Optional[Dict[str, Any]]:
+    """Verifies and decodes a signed JWT. Returns payload dictionary or None if invalid/expired."""
+    if not token or not isinstance(token, str):
+        return None
+    try:
+        payload = jwt.decode(token.strip(), settings.SECRET_KEY, algorithms=["HS256"])
+        return payload
+    except Exception:
+        return None
+

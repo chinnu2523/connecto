@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.news_data import fetch_all_live_news, translate_text, translate_article_dict
 
 logger = logging.getLogger("news.api")
+from app.core.security import verify_access_jwt
 router = APIRouter(tags=["News Intelligence"])
 
 DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "app_database.json")

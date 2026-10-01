@@ -1397,8 +1397,12 @@ async def clear_all_call_logs_endpoint(
     return {"status": "ok", "message": "Call logs cleared"}
 
 @app.post("/api/voice/rooms/invite")
-async def send_voice_room_invite(request: Request, db: AsyncSession = Depends(get_db)):
-    """Sends a formatted DM to a friend containing the room join code."""
+async def send_voice_room_invite(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Sends a formatted DM to a friend containing the room join code (strictly authenticated)."""
     body = {}
     try:
         body = await request.json()
@@ -1407,7 +1411,8 @@ async def send_voice_room_invite(request: Request, db: AsyncSession = Depends(ge
 
     room_code = body.get("room_code", "").strip()
     room_name = body.get("room_name", "Voice Room").strip()
-    sender_username = body.get("sender_username", "").strip() or "Host"
+    sender_username = current_user.username
+    sender_id = current_user.id
     recipient_username = body.get("recipient_username", "").strip()
 
     if not recipient_username:
@@ -1416,9 +1421,6 @@ async def send_voice_room_invite(request: Request, db: AsyncSession = Depends(ge
     invite_content = f"🎙️ [VOICE ROOM INVITE]\nJoin my voice room '{room_name}'!\n🔑 Room Code: {room_code}\nOpen Voice Lobby & enter the code to join now!"
     
     dm_ch_id = f"dm_{min(sender_username.lower(), recipient_username.lower())}_{max(sender_username.lower(), recipient_username.lower())}"
-
-    sender_user = (await db.execute(select(User).where(User.username == sender_username))).scalar_one_or_none()
-    sender_id = sender_user.id if sender_user else None
 
     stmt = select(Channel).where(Channel.id == dm_ch_id)
     channel = (await db.execute(stmt)).scalar_one_or_none()
@@ -1445,8 +1447,12 @@ async def send_voice_room_invite(request: Request, db: AsyncSession = Depends(ge
     }
 
 @app.post("/api/voice/call/invite")
-async def api_voice_call_invite(request: Request, db: AsyncSession = Depends(get_db)):
-    """Initiates a 1:1 call and sends an incoming call notification."""
+async def api_voice_call_invite(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Initiates a 1:1 call and sends an incoming call notification (strictly authenticated)."""
     from app.core.ws import ws_manager
     import time
     body = {}
@@ -1455,10 +1461,10 @@ async def api_voice_call_invite(request: Request, db: AsyncSession = Depends(get
     except Exception:
         pass
 
-    caller_id = body.get("caller_id", "").strip()
-    caller_username = body.get("caller_username", "").strip() or "User"
-    caller_name = body.get("caller_name", "").strip() or caller_username
-    caller_avatar = body.get("caller_avatar", "")
+    caller_id = current_user.id
+    caller_username = current_user.username
+    caller_name = current_user.display_name or current_user.username
+    caller_avatar = current_user.avatar_url or body.get("caller_avatar", "")
     target_user = body.get("target_user", "").strip()
     room_id = body.get("room_id") or f"call_{caller_username}_{int(time.time())}"
 
@@ -1471,7 +1477,7 @@ async def api_voice_call_invite(request: Request, db: AsyncSession = Depends(get
     callee_id = callee_obj.id if callee_obj else target_user
 
     callee_resolved = await ws_manager.invite_to_call(
-        caller_id=caller_id or caller_username,
+        caller_id=caller_id,
         caller_username=caller_username,
         caller_name=caller_name,
         caller_avatar=caller_avatar,
@@ -1502,7 +1508,10 @@ async def api_voice_call_invite(request: Request, db: AsyncSession = Depends(get
     }
 
 @app.post("/api/voice/call/respond")
-async def api_voice_call_respond(request: Request):
+async def api_voice_call_respond(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
     """Accepts or declines a pending 1:1 voice call."""
     from app.core.ws import ws_manager
     body = {}
@@ -1512,12 +1521,12 @@ async def api_voice_call_respond(request: Request):
         pass
 
     room_id = body.get("room_id", "").strip()
-    user_id = body.get("user_id", "").strip()
+    user_id = current_user.id
     action = body.get("action", "accept").strip().lower()
     reason = body.get("reason", "declined")
 
-    if not room_id or not user_id:
-        return {"status": "error", "message": "room_id and user_id required"}
+    if not room_id:
+        return {"status": "error", "message": "room_id required"}
 
     if action == "accept":
         await ws_manager.accept_call(user_id, room_id)
@@ -1527,23 +1536,27 @@ async def api_voice_call_respond(request: Request):
         return {"status": "ok", "action": "decline", "room_id": room_id}
 
 @app.get("/api/voice/call/pending")
-async def api_voice_call_pending(user_id: str = Query(None), username: str = Query(None)):
-    """Checks if there is an active ringing call for the user."""
+async def api_voice_call_pending(
+    current_user: User = Depends(get_current_user)
+):
+    """Checks if there is an active ringing call for the authenticated user."""
     from app.core.ws import ws_manager
-    target = (user_id or username or "").strip().lower()
-    if not target:
-        return {"status": "ok", "call": None}
+    target = current_user.id.lower()
+    target_uname = current_user.username.lower()
 
     for r_id, call_info in list(ws_manager.pending_calls.items()):
         callee_id = str(call_info.get("callee_id", "")).lower()
         callee_ident = str(call_info.get("callee_identifier", "")).lower()
-        if (callee_id == target or callee_ident == target) and call_info.get("status") == "ringing":
+        if (callee_id in (target, target_uname) or callee_ident in (target, target_uname)) and call_info.get("status") == "ringing":
             return {"status": "ok", "call": call_info}
 
     return {"status": "ok", "call": None}
 
 @app.post("/api/voice/call/end")
-async def api_voice_call_end(request: Request):
+async def api_voice_call_end(
+    request: Request,
+    current_user: User = Depends(get_current_user)
+):
     """Terminates an active voice call."""
     from app.core.ws import ws_manager
     body = {}
@@ -1553,9 +1566,8 @@ async def api_voice_call_end(request: Request):
         pass
 
     room_id = body.get("room_id", "").strip()
-    user_id = body.get("user_id", "").strip()
     if room_id:
-        await ws_manager.end_call(user_id, room_id)
+        await ws_manager.end_call(current_user.id, room_id)
     return {"status": "ok", "room_id": room_id}
 
 @app.get("/api/channels")
@@ -1633,10 +1645,6 @@ async def start_dm_compat(
             current_u = await get_current_user_optional(request, db)
         except Exception:
             pass
-    if not current_u:
-        my_uname = body.get("my_username") or body.get("sender", "") or (request.query_params.get("my_username") if request else None) or (request.headers.get("X-User-Username") if request else None)
-        if my_uname:
-            current_u = (await db.execute(select(User).where(func.lower(User.username) == my_uname.strip().lower()))).scalar_one_or_none()
             
     if not current_u:
         raise HTTPException(status_code=401, detail="Authentication required to start a direct message.")
@@ -1746,12 +1754,6 @@ async def get_channel_messages_compat(
     target_clean_name = (channel.name or clean_id).lower()
     if channel.type == "dm" or target_clean_name.startswith("dm-") or target_clean_name.startswith("dm_"):
         caller_user = await get_current_user_optional(request, db)
-        if not caller_user:
-            req_u = username or user or request.query_params.get("username") or request.query_params.get("user") or request.headers.get("X-User-Username")
-            if req_u:
-                clean_req_u = req_u.strip().lower().removeprefix("@")
-                caller_user = (await db.execute(select(User).where(func.lower(User.username) == clean_req_u))).scalar_one_or_none()
-
         if not caller_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -1888,11 +1890,6 @@ async def post_channel_message_compat(
     content = str(body.get("content", "")).strip()
     target_channel = body.get("channel_id", channel_id).strip().lower().removeprefix("#")
     user = current_user
-    if not user:
-        req_u = username or user or request.query_params.get("username") or request.query_params.get("user") or request.headers.get("X-User-Username") or body.get("username") or body.get("sender") or body.get("sender_username")
-        if req_u:
-            clean_req_u = str(req_u).strip().lower().removeprefix("@")
-            user = (await db.execute(select(User).where(func.lower(User.username) == clean_req_u))).scalar_one_or_none()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -3042,12 +3039,6 @@ async def mark_dm_read(
     from datetime import datetime, timezone as tz
     from app.db.models.dm_read_state import DMReadState
     caller = current_user
-    if not caller and request:
-        req_u = username or user or request.query_params.get("username") or request.query_params.get("user") or request.headers.get("X-User-Username")
-        if req_u:
-            clean_req_u = req_u.strip().lower().removeprefix("@")
-            caller = (await db.execute(select(User).where(func.lower(User.username) == clean_req_u))).scalar_one_or_none()
-
     if not caller:
         return {"status": "ok", "detail": "anonymous"}
 
@@ -3152,12 +3143,6 @@ async def get_dm_messages_compat(
     db: AsyncSession = Depends(get_db)
 ):
     sender_u = current_user
-    if not sender_u:
-        req_u = username or user or request.query_params.get("username") or request.query_params.get("user") or request.headers.get("X-User-Username")
-        if req_u:
-            clean_req_u = req_u.strip().lower().removeprefix("@")
-            sender_u = (await db.execute(select(User).where(func.lower(User.username) == clean_req_u))).scalar_one_or_none()
-
     if not sender_u:
         raise HTTPException(status_code=401, detail="Authentication required to view direct messages.")
 

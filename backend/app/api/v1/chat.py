@@ -176,18 +176,6 @@ async def start_direct_message(
     db: AsyncSession = Depends(get_db)
 ):
     caller = current_user
-    if not caller and request:
-        req_u = request.query_params.get("my_username") or request.query_params.get("username") or request.headers.get("X-User-Username")
-        if not req_u:
-            try:
-                body = await request.json()
-                req_u = body.get("my_username") or body.get("sender")
-            except Exception:
-                pass
-        if req_u:
-            clean_req_u = str(req_u).strip().lower().removeprefix("@")
-            caller = (await db.execute(select(User).where(func.lower(User.username) == clean_req_u))).scalar_one_or_none()
-
     if not caller:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -277,12 +265,6 @@ async def list_channel_messages(
     target_clean = (ch_name or clean_ch).lower()
     if (ch and ch.type == "dm") or target_clean.startswith("dm-") or target_clean.startswith("dm_") or target_clean.startswith("dm:"):
         caller_user = current_user
-        if not caller_user and request:
-            req_u = username or user or request.query_params.get("username") or request.query_params.get("user") or request.headers.get("X-User-Username")
-            if req_u:
-                clean_req_u = str(req_u).strip().lower().removeprefix("@")
-                caller_user = (await db.execute(select(User).where(func.lower(User.username) == clean_req_u))).scalar_one_or_none()
-
         if not caller_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
