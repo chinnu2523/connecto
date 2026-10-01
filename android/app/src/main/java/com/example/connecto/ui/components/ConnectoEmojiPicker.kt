@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -153,6 +154,7 @@ fun ConnectoEmojiPicker(
             )
             .padding(12.dp)
     ) {
+        DisableSelection {
         Column(modifier = Modifier.fillMaxWidth()) {
             // Category Tabs Header
             Row(
@@ -300,6 +302,7 @@ fun ConnectoEmojiPicker(
                 }
             }
         }
+        } // end DisableSelection
     }
 }
 
@@ -361,6 +364,8 @@ private fun AnimatedEmojiItem(
                         }
                         tryAwaitRelease()
                         isPressed = false
+                    },
+                    onTap = {
                         isJustSelected = true
                         onSelect()
                         coroutineScope.launch {

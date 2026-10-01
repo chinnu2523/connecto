@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.sp
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.components.WebRtcCallOverlay
+import com.example.connecto.ui.components.FullScreenCallUI
 import com.example.connecto.ui.theme.CyanGlow
 import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.StaggeredReveal
@@ -359,25 +361,6 @@ fun CallsScreen(
                 onNotificationClick = null,
                 unreadNotificationsCount = 0
             )
-
-            // Active Call Overlay
-            val isCallVisible = (callState != CallState.IDLE) || isInActiveCall
-            AnimatedVisibility(visible = isCallVisible) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    WebRtcCallOverlay(
-                        callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else activeCallTitle,
-                        participantCount = activeCallParticipants,
-                        roomCode = managerRoomCode ?: activeCallRoomCode,
-                        onEndCall = {
-                            isInActiveCall = false
-                            activeCallRoomCode = null
-                            VoiceCallManager.leaveVoiceRoom()
-                            VoiceCallManager.endCall()
-                            refreshCallLogs()
-                        }
-                    )
-                }
-            }
 
             // Call History Search Bar
             Box(
@@ -761,6 +744,29 @@ fun CallsScreen(
                         Text("Cancel")
                     }
                 }
+            )
+        }
+
+        // Full Screen Active Call Overlay
+        val isCallVisible = (callState != CallState.IDLE) || isInActiveCall
+        AnimatedVisibility(
+            visible = isCallVisible,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(250)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            FullScreenCallUI(
+                callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else activeCallTitle,
+                participantCount = activeCallParticipants,
+                roomCode = managerRoomCode ?: activeCallRoomCode,
+                onEndCall = {
+                    isInActiveCall = false
+                    activeCallRoomCode = null
+                    VoiceCallManager.leaveVoiceRoom()
+                    VoiceCallManager.endCall()
+                    refreshCallLogs()
+                },
+                modifier = Modifier.fillMaxSize()
             )
         }
     }

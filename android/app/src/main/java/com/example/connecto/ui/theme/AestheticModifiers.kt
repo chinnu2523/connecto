@@ -96,6 +96,8 @@ fun Modifier.pressScaleEffect(
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     tryAwaitRelease()
                     isPressed = false
+                },
+                onTap = {
                     onClick()
                 }
             )

@@ -34,6 +34,8 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -408,6 +410,8 @@ private fun ChatConversationDetail(
             )
             .padding(16.dp)
     ) {
+        var showOptionsMenu by remember { mutableStateOf(false) }
+
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -451,12 +455,34 @@ private fun ChatConversationDetail(
                     }
                 }
 
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Options",
-                        tint = TextSecondaryDark
-                    )
+                Box {
+                    IconButton(onClick = { showOptionsMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Options",
+                            tint = TextSecondaryDark
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showOptionsMenu,
+                        onDismissRequest = { showOptionsMenu = false },
+                        modifier = Modifier.background(DarkCardSurface)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Clear Chat", color = TextPrimaryDark) },
+                            onClick = {
+                                showOptionsMenu = false
+                                messages.clear()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Mute Notifications", color = TextPrimaryDark) },
+                            onClick = {
+                                showOptionsMenu = false
+                            }
+                        )
+                    }
                 }
             }
 

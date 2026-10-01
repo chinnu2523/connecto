@@ -1,6 +1,10 @@
 package com.example.connecto.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -26,12 +30,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,6 +82,9 @@ object InAppNotificationController {
     }
 }
 
+private const val DISMISS_DURATION_MS = 5000L
+private const val PROGRESS_STEPS = 100
+
 @Composable
 fun InAppNotificationBanner(
     onNavigate: (actionType: String, referenceId: String?) -> Unit,
@@ -85,9 +93,21 @@ fun InAppNotificationBanner(
     val notification by InAppNotificationController.currentNotificationFlow.collectAsState()
     val current = notification
 
+    // Progress (1f → 0f) for the countdown bar
+    var progress by remember(current?.id) { mutableFloatStateOf(1f) }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 80),
+        label = "notifProgress"
+    )
+
     LaunchedEffect(current?.id) {
         if (current != null) {
-            delay(5000L) // Auto dismiss after 5s
+            val stepDelayMs = DISMISS_DURATION_MS / PROGRESS_STEPS
+            for (i in PROGRESS_STEPS downTo 0) {
+                progress = i / PROGRESS_STEPS.toFloat()
+                delay(stepDelayMs)
+            }
             if (InAppNotificationController.currentNotification?.id == current.id) {
                 InAppNotificationController.dismiss()
             }
@@ -104,8 +124,20 @@ fun InAppNotificationBanner(
     ) {
         AnimatedVisibility(
             visible = current != null,
-            enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut()
+            enter = slideInVertically(
+                initialOffsetY = { -it - 60 },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
+            ) + fadeIn(animationSpec = tween(200)),
+            exit = slideOutVertically(
+                targetOffsetY = { -it - 60 },
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessMediumLow
+                )
+            ) + fadeOut(animationSpec = tween(180))
         ) {
             if (current != null) {
                 val resolvedAvatar = current.avatarUrl?.let { raw ->
@@ -120,30 +152,41 @@ fun InAppNotificationBanner(
                     )
                 )
 
-                Box(
+                val progressGradient = Brush.horizontalGradient(
+                    listOf(Color(0xFF6C5CE7), Color(0xFF00CEC9))
+                )
+
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(elevation = 16.dp, shape = RoundedCornerShape(18.dp), spotColor = Color(0xFF6C5CE7))
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFF0D0E15).copy(alpha = 0.96f))
-                        .border(1.2.dp, borderGradient, RoundedCornerShape(18.dp))
+                        .shadow(
+                            elevation = 20.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            spotColor = Color(0xFF6C5CE7).copy(alpha = 0.5f),
+                            ambientColor = Color(0xFF00CEC9).copy(alpha = 0.2f)
+                        )
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color(0xFF0D0E15).copy(alpha = 0.97f))
+                        .border(1.2.dp, borderGradient, RoundedCornerShape(20.dp))
                         .clickable {
                             val action = current.actionType
                             val ref = current.referenceId
                             InAppNotificationController.dismiss()
                             onNavigate(action, ref)
                         }
-                        .padding(14.dp)
                 ) {
+                    // Main content row
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 14.dp, end = 10.dp, top = 14.dp, bottom = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // User Profile Picture
+                        // User Profile Picture or Initial
                         if (!resolvedAvatar.isNullOrBlank()) {
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(46.dp)
                                     .clip(CircleShape)
                                     .border(1.5.dp, borderGradient, CircleShape)
                             ) {
@@ -160,17 +203,17 @@ fun InAppNotificationBanner(
                             val initialColor = Color.hsv(hue, 0.7f, 0.9f)
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(46.dp)
                                     .clip(CircleShape)
-                                    .background(initialColor.copy(alpha = 0.25f))
-                                    .border(1.5.dp, initialColor.copy(alpha = 0.6f), CircleShape),
+                                    .background(initialColor.copy(alpha = 0.22f))
+                                    .border(1.5.dp, initialColor.copy(alpha = 0.65f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = initial,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
+                                    fontSize = 19.sp
                                 )
                             }
                         }
@@ -197,14 +240,15 @@ fun InAppNotificationBanner(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(4.dp))
-                                        .background(Color(0xFF6C5CE7).copy(alpha = 0.3f))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        .background(Color(0xFF6C5CE7).copy(alpha = 0.28f))
+                                        .padding(horizontal = 5.dp, vertical = 1.5.dp)
                                 ) {
                                     Text(
                                         text = "NOW",
                                         color = Color(0xFFC084FC),
                                         fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 0.5.sp
                                     )
                                 }
                             }
@@ -221,12 +265,12 @@ fun InAppNotificationBanner(
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
 
                         // Dismiss button
                         IconButton(
                             onClick = { InAppNotificationController.dismiss() },
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(30.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Rounded.Close,
@@ -235,6 +279,21 @@ fun InAppNotificationBanner(
                                 modifier = Modifier.size(16.dp)
                             )
                         }
+                    }
+
+                    // Countdown progress bar at bottom
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .background(Color.White.copy(alpha = 0.07f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(fraction = animatedProgress.coerceIn(0f, 1f))
+                                .height(3.dp)
+                                .background(progressGradient)
+                        )
                     }
                 }
             }

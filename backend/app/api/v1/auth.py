@@ -91,15 +91,15 @@ async def check_username(
             "message": "Username may only contain letters, numbers, and underscores without spaces."
         }
         
-    # Enforce test account rule: only 'chinnu' and 'vivek' are permitted test accounts
+    # Enforce test account rule: only 'test_user', 'chinnu', and 'vivek' are permitted test accounts
     test_patterns = [r"^test", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user"]
-    if any(re.search(pat, clean_u) for pat in test_patterns) and clean_u not in ("chinnu", "vivek"):
+    if any(re.search(pat, clean_u) for pat in test_patterns) and clean_u not in ("chinnu", "vivek", "test_user"):
         return {
             "status": "error",
             "available": False,
             "valid": False,
             "username": clean_u,
-            "message": "Registration of additional test accounts is disabled. Only designated test accounts ('chinnu' and 'vivek') are permitted."
+            "message": "Registration of additional test accounts is disabled. Only designated test accounts ('test_user', 'chinnu', and 'vivek') are permitted."
         }
 
     stmt = select(User).where(func.lower(User.username) == clean_u)
@@ -188,14 +188,14 @@ async def signup(
     clean_email = signup_data.email.strip().lower()
     clean_display_name = signup_data.display_name.strip() if (signup_data.display_name and signup_data.display_name.strip()) else clean_username
 
-    # Enforce test accounts policy: only 'chinnu' and 'vivek' are permitted test accounts
+    # Enforce test accounts policy: only 'test_user', 'chinnu', and 'vivek' are permitted test accounts
     test_patterns = [r"^test", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user"]
     is_test_username = any(re.search(pat, clean_username) for pat in test_patterns)
     is_test_email = clean_email.endswith("@connecto.test") or clean_email.endswith("@example.com") or any(re.search(pat, clean_email) for pat in test_patterns)
-    if (is_test_username or is_test_email) and clean_username not in ("chinnu", "vivek"):
+    if (is_test_username or is_test_email) and clean_username not in ("chinnu", "vivek", "test_user"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration of additional test accounts is disabled. Only the designated test accounts ('chinnu' and 'vivek') are authorized for testing."
+            detail="Registration of additional test accounts is disabled. Only the designated test accounts ('test_user', 'chinnu', and 'vivek') are authorized for testing."
         )
 
     # Check if username or email already exists

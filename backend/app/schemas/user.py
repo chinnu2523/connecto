@@ -1,7 +1,7 @@
 import re
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 class UserSignup(BaseModel):
     """Signup form schema - contains ONLY account creation fields."""
@@ -31,8 +31,15 @@ class UserSignup(BaseModel):
 
 class UserLogin(BaseModel):
     """Login form schema - contains ONLY login identifier and password."""
-    login: str = Field(..., min_length=1, description="Username or Email address")
+    login: str = Field(default="", description="Username or Email address")
     password: str = Field(..., min_length=1, description="Password")
+
+    @model_validator(mode="before")
+    def populate_login_from_username(cls, values):
+        if isinstance(values, dict):
+            if not values.get("login") and values.get("username"):
+                values["login"] = values["username"]
+        return values
 
 class UserResponse(BaseModel):
     id: str

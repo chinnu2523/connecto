@@ -75,7 +75,9 @@ export default {
 
     // 3b. Direct APK Download Gateway
     if (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto")) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.6/app-release.apk", 302);
+      if (localServerStatus !== "UP") {
+        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.7/app-release.apk", 302);
+      }
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -99,23 +101,31 @@ export default {
     }
 
     // 5. Intelligent Automated Proxy with Local Server Circuit Breaker
-    // If local server is UP, attempt proxy with strict timeout
-    if (localServerStatus === "UP") {
+    // If local server is UP and no force-cloud flag, attempt proxy with strict timeout
+    const forceCloud = request.headers.get("X-Force-Cloud") === "1" || url.searchParams.get("force_cloud") === "1";
+    if (localServerStatus === "UP" && !forceCloud) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2500);
-        const originResponse = await fetch(request, { signal: controller.signal });
+        const originResponse = await fetch(request.clone(), { signal: controller.signal });
         clearTimeout(timeoutId);
 
         // If local server responds successfully (< 500), return directly
         if (originResponse.status < 500) {
-          const headers = new Headers(originResponse.headers);
-          headers.set("X-Connecto-Mode", "local_server");
-          headers.set("Access-Control-Allow-Origin", "*");
-          return new Response(originResponse.body, {
-            status: originResponse.status,
-            headers: headers
-          });
+          // If origin returns 401 on authentication or 404 on any API endpoint, fall through to Cloudflare D1
+          const isAuth401 = originResponse.status === 401 && (url.pathname.includes('/auth/') || url.pathname.includes('/login'));
+          const isApi404 = originResponse.status === 404 && url.pathname.startsWith('/api/');
+          if (isAuth401 || isApi404) {
+            // Fall through to handleCloudApiRequest
+          } else {
+            const headers = new Headers(originResponse.headers);
+            headers.set("X-Connecto-Mode", "local_server");
+            headers.set("Access-Control-Allow-Origin", "*");
+            return new Response(originResponse.body, {
+              status: originResponse.status,
+              headers: headers
+            });
+          }
         }
         // Origin returned 500, 502, 503, 504, or 530 (Cloudflare Argo Tunnel drop)
         markLocalServerDown(env, ctx);
@@ -1512,10 +1522,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
                  m.sender_id as author_id
           FROM messages m
           LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username
-          WHERE m.channel_id = ? OR m.channel_id = ?
+          WHERE (m.channel_id = ? OR m.channel_id = ? OR m.channel_id IN (SELECT id FROM channels WHERE name = ? OR id = ?))
+            AND m.id NOT LIKE '%_name'
           ORDER BY m.created_at ASC
-          LIMIT 60
-        `).bind(canonicalChannel, channelId).all();
+          LIMIT 100
+        `).bind(canonicalChannel, channelId, canonicalChannel, channelId).all();
 
         messages = (res.results || []).map(r => ({
           id: r.id,
@@ -1543,7 +1554,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           reactions: {}
         }));
       }
-      return jsonResponse(messages);
+      return jsonResponse({
+        status: "ok",
+        channel_id: canonicalChannel,
+        messages: messages,
+        count: messages.length
+      });
     }
 
     if (method === "POST") {
@@ -1629,11 +1645,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
   // 17. Platform Stats
   if (path === "/api/stats") {
-    let uCount = 5, cCount = 5, mCount = 4;
+    let uCount = 28, cCount = 8, mCount = 83;
     if (env.DB) {
-      uCount = await env.DB.prepare("SELECT count(*) as c FROM users").first("c") || 5;
-      cCount = await env.DB.prepare("SELECT count(*) as c FROM channels").first("c") || 5;
-      mCount = await env.DB.prepare("SELECT count(*) as c FROM messages").first("c") || 4;
+      uCount = await env.DB.prepare("SELECT count(*) as c FROM users").first("c") || 28;
+      cCount = await env.DB.prepare("SELECT count(*) as c FROM channels WHERE name NOT LIKE 'dm-%' AND name NOT LIKE 'dm_%' AND id NOT LIKE '%-%-%-%-%'").first("c") || 8;
+      mCount = await env.DB.prepare("SELECT count(*) as c FROM messages WHERE id NOT LIKE '%_name'").first("c") || 83;
     }
     return jsonResponse({
       activeShinobi: uCount,
@@ -1646,6 +1662,147 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       messages_sent: mCount,
       onlineUsers: uCount,
       online_users: uCount
+    });
+  }
+
+  // 17b. Referrals, Leaderboard, Academy & Careers
+  if (path === "/api/leaderboard" || path === "/api/referrals/leaderboard") {
+    return jsonResponse({
+      leaderboard: [
+        { rank: 1, username: "connecto_admin", nickname: "Shadow Master", xp: 12500, referrals: 42, badge: "👑 Grandmaster" },
+        { rank: 2, username: "madara_legend", nickname: "Madara Uchiha", xp: 9800, referrals: 28, badge: "⚡ Jonin" },
+        { rank: 3, username: "elena_vance", nickname: "Elena Vance", xp: 8400, referrals: 19, badge: "⚡ Jonin" },
+        { rank: 4, username: "chinnu", nickname: "Chinnu", xp: 7200, referrals: 15, badge: "🔥 Chunin" },
+        { rank: 5, username: "vivek", nickname: "Vivek", xp: 6500, referrals: 12, badge: "🔥 Chunin" }
+      ]
+    });
+  }
+  if (path === "/api/referrals/stats" || path.startsWith("/api/referrals/")) {
+    return jsonResponse({
+      total_referrals: 0,
+      reward_points: 0,
+      referral_code: "CONNECTO_2026",
+      rank: 42
+    });
+  }
+  if (path.startsWith("/api/academy")) {
+    return jsonResponse({
+      tracks: [
+        { id: "cyber_sec", title: "Cybersecurity & CTF Defense", xp: 2500, modules: 8, status: "available" },
+        { id: "webrtc_audio", title: "WebRTC Low-Latency Voice", xp: 1800, modules: 6, status: "available" },
+        { id: "cloud_systems", title: "Cloud Edge & Failover Resilience", xp: 3200, modules: 10, status: "available" }
+      ]
+    });
+  }
+  if (path.startsWith("/api/careers")) {
+    return jsonResponse({
+      jobs: [
+        { id: "lead_dev", title: "Full-Stack Distributed Systems Lead", location: "Remote", type: "Full-time" },
+        { id: "webrtc_eng", title: "Low-Latency Voice & Video Engineer", location: "Remote", type: "Full-time" }
+      ]
+    });
+  }
+
+  // 17b. Message Threads: GET & POST (/api/messages/:id/thread)
+  const threadMatch = path.match(/^\/api\/messages\/([^\/]+)\/thread/);
+  if (threadMatch) {
+    const rawParentId = threadMatch[1];
+    const cleanParentId = rawParentId.replace(/^msg-/, "");
+    let parentMsg = null;
+    let parentUser = null;
+    if (env.DB) {
+      parentMsg = await env.DB.prepare(
+        "SELECT * FROM messages WHERE id = ? OR id = ? OR id LIKE ? LIMIT 1"
+      ).bind(rawParentId, cleanParentId, `%${cleanParentId}%`).first();
+      if (parentMsg) {
+        parentUser = await env.DB.prepare(
+          "SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1"
+        ).bind(parentMsg.sender_id, parentMsg.sender_id.toLowerCase()).first();
+      }
+    }
+    if (!parentMsg) {
+      return jsonResponse({ detail: "Message not found" }, 404);
+    }
+
+    if (method === "GET") {
+      let replies = [];
+      if (env.DB) {
+        const repRes = await env.DB.prepare(
+          "SELECT m.*, u.username as u_name, u.display_name as u_disp, u.avatar_url as u_av FROM messages m LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username WHERE m.nonce = ? OR m.nonce = ? ORDER BY m.created_at ASC LIMIT 100"
+        ).bind("thread_" + parentMsg.id, "thread_" + rawParentId).all();
+        replies = (repRes.results || []).map(r => ({
+          id: r.id,
+          content: r.content,
+          user: r.u_name || r.sender_id,
+          author: r.u_disp || r.u_name || r.sender_id,
+          nickname: r.u_disp || r.u_name || r.sender_id,
+          avatar: r.u_av || "👤",
+          timestamp: r.created_at || "Just now",
+          reactions: {}
+        }));
+      }
+      return jsonResponse({
+        parent: {
+          id: parentMsg.id,
+          content: parentMsg.content,
+          user: parentUser ? parentUser.username : parentMsg.sender_id,
+          author: parentUser ? (parentUser.display_name || parentUser.username) : parentMsg.sender_id,
+          nickname: parentUser ? (parentUser.display_name || parentUser.username) : parentMsg.sender_id,
+          avatar: parentUser ? (parentUser.avatar_url || "👾") : "👾",
+          timestamp: parentMsg.created_at || "Just now",
+          reactions: {}
+        },
+        replies: replies,
+        count: replies.length
+      });
+    }
+
+    if (method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const text = (body.content || "").trim();
+      const uname = (body.username || "user").trim();
+      const av = body.avatar || "👤";
+      if (!text) {
+        return jsonResponse({ detail: "Reply content cannot be empty" }, 400);
+      }
+      const replyId = "reply_" + crypto.randomUUID().slice(0, 10);
+      const nowIso = new Date().toISOString();
+      let senderId = uname;
+      if (env.DB) {
+        const uRow = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? OR id = ? LIMIT 1").bind(uname.toLowerCase(), uname).first();
+        if (uRow) senderId = uRow.id;
+        await env.DB.prepare(
+          "INSERT INTO messages (id, channel_id, sender_id, content, nonce, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+        ).bind(replyId, parentMsg.channel_id, senderId, text, "thread_" + parentMsg.id, nowIso).run();
+      }
+      const countRes = env.DB ? await env.DB.prepare("SELECT count(*) as c FROM messages WHERE nonce = ? OR nonce = ?").bind("thread_" + parentMsg.id, "thread_" + rawParentId).first() : { c: 1 };
+      return jsonResponse({
+        reply: {
+          id: replyId,
+          content: text,
+          user: uname,
+          author: uname,
+          nickname: uname,
+          avatar: av,
+          timestamp: "Just now",
+          reactions: {}
+        },
+        thread_count: (countRes && countRes.c) || 1
+      }, 201);
+    }
+  }
+
+  // 17c. Message Reactions: POST (/api/messages/:id/react)
+  const reactMatch = path.match(/^\/api\/messages\/([^\/]+)\/react/);
+  if (reactMatch && method === "POST") {
+    const msgId = reactMatch[1];
+    const body = await request.json().catch(() => ({}));
+    const emoji = body.emoji || "🔥";
+    const uname = (body.username || "user").toLowerCase().trim();
+    return jsonResponse({
+      status: "ok",
+      action: "added",
+      reactions: { [emoji]: [uname] }
     });
   }
 
@@ -1932,11 +2089,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
     return jsonResponse({ users: users });
   }
-  if (path === "/api/v1/app/version") {
+  if (path === "/api/v1/app/version" || path === "/api/app/version") {
     return jsonResponse({
-      version: "3.9.6",
-      build: 32,
-      url: "https://connecto.fun/static/downloads/connecto.apk"
+      version: "3.9.7",
+      build: 40,
+      url: "https://connecto.fun/download/apk"
     });
   }
   if (path === "/api/presence/offline") {
@@ -2226,14 +2383,14 @@ async function handleSystemStatus(env) {
   });
 }
 
-function jsonResponse(data, status = 200) {
+function jsonResponse(data, status = 200, mode = "cloud_server") {
   return new Response(JSON.stringify(data), {
     status: status,
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
       "Cache-Control": "no-store",
-      "X-Connecto-Mode": localServerStatus === "UP" ? "local_server" : "cloud_server"
+      "X-Connecto-Mode": mode
     }
   });
 }

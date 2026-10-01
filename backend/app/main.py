@@ -149,7 +149,7 @@ async def seed_channels():
 
             for ch_info in canonical_channels:
                 stmt = select(Channel).where(Channel.name == ch_info["name"])
-                existing_ch = (await session.execute(stmt)).scalar_one_or_none()
+                existing_ch = (await session.execute(stmt)).scalars().first()
                 is_new = False
                 if not existing_ch:
                     is_new = True
@@ -473,11 +473,16 @@ uploads_dir = settings.UPLOAD_DIR
 os.makedirs(uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
-static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+candidate_static = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "website", "static"))
+if os.path.isdir(candidate_static) and os.path.exists(os.path.join(candidate_static, "index.html")):
+    static_dir = candidate_static
+else:
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 os.makedirs(os.path.join(static_dir, "downloads"), exist_ok=True)
 os.makedirs(os.path.join(static_dir, "_next"), exist_ok=True)
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.mount("/_next", StaticFiles(directory=os.path.join(static_dir, "_next")), name="nextjs")
+
 
 
 
@@ -811,7 +816,7 @@ async def health_check(db: AsyncSession = Depends(get_db)):
     voice_rooms_active = sum(1 for v in ws_manager.voice_rooms.values() if v)
     return {
         "status": "operational",
-        "version": "3.9.6",
+        "version": "3.9.7",
         "database": db_status,
         "websocket_connections": ws_total,
         "voice_rooms_active": voice_rooms_active,
@@ -1230,7 +1235,13 @@ async def join_voice_room(room_id: str, request: Request, db: AsyncSession = Dep
     except Exception as e:
         print(f"[WS_JOIN_BROADCAST_ERROR] {e}")
 
-    return {"status": "ok", "message": f"{username} joined {room.name}", "room_id": room.id}
+    return {
+        "status": "ok",
+        "message": f"{username} joined {room.name}",
+        "room_id": room.id,
+        "room": format_voice_room_dict(room),
+        "participants": part_dicts
+    }
 
 @app.post("/api/voice/rooms/{room_id}/leave")
 async def leave_voice_room(room_id: str, request: Request, db: AsyncSession = Depends(get_db)):
@@ -1790,7 +1801,7 @@ async def get_channel_messages_compat(
     
     # Try finding channel by ID or name
     stmt = select(Channel).where(or_(Channel.id == clean_id, Channel.name == clean_id))
-    channel = (await db.execute(stmt)).scalar_one_or_none()
+    channel = (await db.execute(stmt)).scalars().first()
     
     if not channel:
         channel = Channel(id=clean_id if len(clean_id) == 36 else None, name=clean_id, type="text")
@@ -1831,6 +1842,8 @@ async def get_channel_messages_compat(
 
     # Permanent message history retention across channel UUID and canonical/alt aliases
     possible_channel_ids = [channel.id, clean_id, channel.name]
+    alt_channels = (await db.execute(select(Channel.id).where(or_(Channel.name == clean_id, Channel.name == channel.name, Channel.id == clean_id, Channel.id == channel.id)))).scalars().all()
+    possible_channel_ids.extend(alt_channels)
     if channel.type == "dm" or target_clean_name.startswith("dm-") or target_clean_name.startswith("dm_"):
         parts = target_clean_name.replace("dm_", "dm-").split("-")
         if len(parts) >= 3:
@@ -1968,7 +1981,7 @@ async def post_channel_message_compat(
 
     # Find or create channel
     stmt = select(Channel).where(or_(Channel.id == target_channel, Channel.name == target_channel))
-    channel = (await db.execute(stmt)).scalar_one_or_none()
+    channel = (await db.execute(stmt)).scalars().first()
     if not channel:
         channel = Channel(id=target_channel if len(target_channel) == 36 else None, name=target_channel, type="text")
         db.add(channel)
@@ -2415,7 +2428,7 @@ async def react_to_message_endpoint(
     message_id: str,
     req: ReactionRequest,
     channel_id: str = Query("general"),
-    current_user: User = Depends(get_current_user),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Message).where(Message.id == message_id)
@@ -2423,7 +2436,7 @@ async def react_to_message_endpoint(
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    u_clean = current_user.username.lower().strip()
+    u_clean = (current_user.username if current_user else (req.username or "user")).lower().strip()
 
     att = dict(msg.attachments) if isinstance(msg.attachments, dict) else {}
     reactions = dict(att.get("reactions", {}))
@@ -2460,11 +2473,117 @@ async def react_to_message_endpoint(
     })
     return {"status": "ok", "action": action, "reactions": reactions}
 
+class ThreadReplyRequest(BaseModel):
+    content: str
+    username: Optional[str] = None
+    avatar: Optional[str] = None
+
+@app.get("/api/messages/{message_id}/thread")
+async def get_message_thread_endpoint(
+    message_id: str,
+    channel_id: str = Query("general"),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Message, User).join(User, Message.sender_id == User.id, isouter=True).where(Message.id == message_id)
+    result = (await db.execute(stmt)).first()
+    if not result:
+        raise HTTPException(status_code=404, detail="Message not found")
+    parent_msg, parent_user = result
+    parent_att = parent_msg.attachments if isinstance(parent_msg.attachments, dict) else {}
+
+    replies_stmt = select(Message, User).join(User, Message.sender_id == User.id, isouter=True).where(
+        or_(
+            Message.nonce == f"thread_{message_id}",
+            Message.content.like(f"thread:{message_id}:%")
+        )
+    ).order_by(Message.created_at.asc())
+    replies_rows = (await db.execute(replies_stmt)).all()
+    replies = []
+    for r_msg, r_user in replies_rows:
+        r_att = r_msg.attachments if isinstance(r_msg.attachments, dict) else {}
+        r_content = r_msg.content
+        if r_content.startswith(f"thread:{message_id}:"):
+            r_content = r_content.split(":", 2)[2]
+        replies.append({
+            "id": r_msg.id,
+            "content": r_content,
+            "user": r_user.username if r_user else (r_att.get("username") or "user"),
+            "author": r_user.display_name if r_user else (r_att.get("username") or "user"),
+            "nickname": r_user.display_name if r_user else (r_att.get("username") or "user"),
+            "avatar": (r_user.avatar_url if r_user and r_user.avatar_url else None) or r_att.get("avatar") or "👤",
+            "timestamp": str(r_msg.created_at) if r_msg.created_at else "Just now",
+            "reactions": r_att.get("reactions", {})
+        })
+
+    return {
+        "parent": {
+            "id": parent_msg.id,
+            "content": parent_msg.content,
+            "user": parent_user.username if parent_user else "user",
+            "author": parent_user.display_name if parent_user else "user",
+            "nickname": parent_user.display_name if parent_user else "user",
+            "avatar": (parent_user.avatar_url if parent_user and parent_user.avatar_url else None) or "👾",
+            "timestamp": str(parent_msg.created_at) if parent_msg.created_at else "Just now",
+            "reactions": parent_att.get("reactions", {})
+        },
+        "replies": replies,
+        "count": len(replies)
+    }
+
+@app.post("/api/messages/{message_id}/thread")
+async def post_message_thread_reply_endpoint(
+    message_id: str,
+    req: ThreadReplyRequest,
+    channel_id: str = Query("general"),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Message).where(Message.id == message_id)
+    parent = (await db.execute(stmt)).scalar_one_or_none()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent message not found")
+
+    sender_id = current_user.id if current_user else (req.username or "usr_anonymous")
+    uname = current_user.username if current_user else (req.username or "user")
+    disp_name = current_user.display_name if current_user else uname
+    av = req.avatar or (current_user.avatar_url if current_user else "👤")
+
+    import uuid
+    reply_id = f"reply_{uuid.uuid4().hex[:10]}"
+    new_reply = Message(
+        id=reply_id,
+        channel_id=parent.channel_id,
+        sender_id=sender_id,
+        content=req.content,
+        nonce=f"thread_{message_id}",
+        attachments={"parent_id": message_id, "username": uname, "avatar": av}
+    )
+    db.add(new_reply)
+    await db.commit()
+
+    count_stmt = select(func.count(Message.id)).where(Message.nonce == f"thread_{message_id}")
+    count = (await db.execute(count_stmt)).scalar() or 1
+
+    return {
+        "reply": {
+            "id": reply_id,
+            "content": req.content,
+            "user": uname,
+            "author": disp_name,
+            "nickname": disp_name,
+            "avatar": av,
+            "timestamp": "Just now",
+            "reactions": {}
+        },
+        "thread_count": count
+    }
+
+
 @app.get("/api/channels/{channel_id}/pins")
 async def get_channel_pins_endpoint(channel_id: str, db: AsyncSession = Depends(get_db)):
     clean_id = channel_id.strip().lower().removeprefix("#")
     ch_stmt = select(Channel).where(or_(Channel.id == clean_id, Channel.name == clean_id))
-    ch = (await db.execute(ch_stmt)).scalar_one_or_none()
+    ch = (await db.execute(ch_stmt)).scalars().first()
     target_ch_id = ch.id if ch else clean_id
 
     stmt = select(Message, User).join(User, Message.sender_id == User.id, isouter=True).where(
@@ -2691,7 +2810,7 @@ async def create_channel_poll(
 
     target_channel = channel_id.strip().lower().removeprefix("#")
     stmt = select(Channel).where(or_(Channel.id == target_channel, Channel.name == target_channel))
-    channel = (await db.execute(stmt)).scalar_one_or_none()
+    channel = (await db.execute(stmt)).scalars().first()
     if not channel:
         channel = Channel(id=target_channel if len(target_channel) == 36 else None, name=target_channel, type="text")
         db.add(channel)
@@ -4554,14 +4673,14 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "3.9.6",
-        "version_name": "v3.9.6",
-        "version_code": 39,
-        "release_tag": "v3.9.6-stable",
-        "sha256": "78fd84c51f106c60ee1be04da25f025cf3d850d04aecae2490e74f54cd49d8b9",
-        "md5": "1ba607b67496add026c79c7f7b36bf20",
-        "size_bytes": 56898389,
-        "size_display": "55 MB",
+        "version": "3.9.7",
+        "version_name": "v3.9.7",
+        "version_code": 40,
+        "release_tag": "v3.9.7-stable",
+        "sha256": "559c0a906738ac22fc6704d50856852f480f37008cdccfe3c80658f0731ea7cf",
+        "md5": "004af90685b0d884869149dcda0ccd94",
+        "size_bytes": 56914817,
+        "size_display": "54.3 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 36 / HyperOS Verified)",
         "download_url": "/download/apk",
@@ -4569,6 +4688,9 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "v3.9.7 Fullscreen Voice Call UI: Dedicated immersive voice calling view with pulsing dynamic avatar glow, real-time audio visualizer waveform equalizer, active duration timer, and one-tap mute/speaker/end call controls",
+            "v3.9.7 Android Backwards Compatibility: Verified and optimized for legacy Android 7.0 (Nougat, API 24) through modern Android 16 (API 36) without runtime crashes or deprecated API failures",
+            "v3.9.7 Touch Scroll Fix: Wrapped chat messages in DisableSelection to eliminate accidental text selection during vertical scrolling and swipe gestures",
             "v3.9.6 Voice Call Latency Fix: Eliminated third-party ICE server RTT overhead (200-800ms removed), expanded TURN relay port pool from 49 to 16,384 ports, switched to GATHER_ONCE to stop perpetual ICE restarts",
             "Full-Stack Security Hardening & Zero-Vulnerability Architecture: Fallback arbitrary upload vulnerability completely eliminated, strict puremagic MIME verification enforced, mandatory upload authentication required, SSRF attack vectors on profile avatars blocked, authenticated Rust Relay with internal secret, hardcoded admin username bypasses removed, pinned HTTPS-only CORS, and rate limit IP spoofing protected",
             "Target SDK 37 (Android 16 Ready) & HyperOS Compatibility: Full 64-bit arm64-v8a native optimization across physical Android 16 and legacy Android 7.0 devices",
@@ -5681,3 +5803,4 @@ async def _presence_watchdog_task():
 # =============================================================================
 # END PRESENCE WATCHDOG
 # =============================================================================
+

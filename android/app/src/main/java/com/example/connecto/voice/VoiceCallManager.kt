@@ -108,6 +108,9 @@ object VoiceCallManager {
     private val _activeCallPartner = MutableStateFlow<String?>(null)
     val activeCallPartner: StateFlow<String?> = _activeCallPartner.asStateFlow()
 
+    private val _activeCallAvatar = MutableStateFlow<String?>(null)
+    val activeCallAvatar: StateFlow<String?> = _activeCallAvatar.asStateFlow()
+
     private val _activeCallRoomCode = MutableStateFlow<String?>(null)
     val activeCallRoomCode: StateFlow<String?> = _activeCallRoomCode.asStateFlow()
 
@@ -1649,7 +1652,7 @@ object VoiceCallManager {
     // Public Call Controls
     // ----------------------------------------------------
 
-    fun start1on1Call(targetUsername: String, targetDisplayName: String) {
+    fun start1on1Call(targetUsername: String, targetDisplayName: String, avatarUrl: String? = null) {
         val cleanTarget = targetUsername.trim()
             .removePrefix("@")
             .removePrefix("1:1 Voice Call with ")
@@ -1670,6 +1673,7 @@ object VoiceCallManager {
         _activeRoomId.value = roomId
         _activeCallPartner.value = cleanDisplayName
         _activeCallTitle.value = "1:1 Voice Call with $cleanDisplayName"
+        _activeCallAvatar.value = avatarUrl
         _participantCount.value = 2
 
         // If user is calling themselves (Echo / Loopback audio test call)
@@ -1726,6 +1730,7 @@ object VoiceCallManager {
         _activeRoomId.value = call.roomId
         _activeCallPartner.value = call.callerName
         _activeCallTitle.value = "1:1 Voice Call with ${call.callerName}"
+        _activeCallAvatar.value = call.callerAvatar
         _callState.value = CallState.CONNECTED
         _participantCount.value = 2
         appContext?.let {
@@ -1914,6 +1919,7 @@ object VoiceCallManager {
             isCallCaller = false
             _activeRoomId.value = null
             _activeCallPartner.value = null
+            _activeCallAvatar.value = null
             _activeCallRoomCode.value = null
             _incomingCall.value = null
             _participantCount.value = 1

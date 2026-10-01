@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connecto • Real-Time Community Platform for Tactical Squads & Gamers</title>
+  <title>Connecto • Real-Time Community Platform for Friends & Communities</title>
   <!-- Primary Meta Tags & SEO -->
-  <meta name="title" content="Connecto • Real-Time Community Platform for Friends & Developers">
-  <meta name="description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
-  <meta name="keywords" content="Connecto, friends community, encrypted chat, WebSockets, WebRTC voice, cyber academy, CTF, developer community, careers">
+  <meta name="title" content="Connecto • Real-Time Community Platform for Friends & Communities">
+  <meta name="description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, interactive labs, and career tracks.">
+  <meta name="keywords" content="Connecto, friends community, encrypted chat, WebSockets, WebRTC voice, developer community, careers">
   <meta name="author" content="Connecto Network">
 
   <!-- Open Graph / Facebook / Discord / WhatsApp -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://connecto.fun/">
-  <meta property="og:title" content="Connecto • Real-Time Community Platform for Friends & Developers">
-  <meta property="og:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
+  <meta property="og:title" content="Connecto • Real-Time Community Platform for Friends & Communities">
+  <meta property="og:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, interactive labs, and career tracks.">
   <meta property="og:image" content="https://connecto.fun/static/icon.png">
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://connecto.fun/">
-  <meta name="twitter:title" content="Connecto • Real-Time Community Platform for Friends & Developers">
-  <meta name="twitter:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, CTF cybersecurity labs, and AI career matching.">
+  <meta name="twitter:title" content="Connecto • Real-Time Community Platform for Friends & Communities">
+  <meta name="twitter:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, interactive labs, and career tracks.">
   <meta name="twitter:image" content="https://connecto.fun/static/icon.png">
 
   <link rel="manifest" href="/static/manifest.json">
@@ -42,6 +42,31 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script>
+  // ==================== AUTOMATED CLOUD & LOCAL FAILOVER ENGINE ====================
+  (function initAutomatedFailover() {
+    const originalFetch = window.fetch;
+    const CLOUD_ORIGIN = 'https://connecto.fun';
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+    window.fetch = async function(...args) {
+      let [resource, config] = args;
+      try {
+        const response = await originalFetch.apply(this, args);
+        if (isLocal && response.status >= 502 && response.status <= 504 && typeof resource === 'string' && resource.startsWith('/api/')) {
+          console.warn('[Connecto Failover] Local server responded ' + response.status + '. Automatically connecting to Cloud Server...');
+          return await originalFetch(CLOUD_ORIGIN + resource, config);
+        }
+        return response;
+      } catch (err) {
+        if (isLocal && typeof resource === 'string' && resource.startsWith('/api/')) {
+          console.warn('[Connecto Failover] Local server connection refused. Automatically connecting to Cloud Server (' + CLOUD_ORIGIN + ')...');
+          return await originalFetch(CLOUD_ORIGIN + resource, config);
+        }
+        throw err;
+      }
+    };
+  })();
+
   // ==================== CONNECTO VAULT & UI LOGIC ====================
   let currentVaultTheme = 'dark';
   const BANNER_PRESETS = {
@@ -14735,12 +14760,12 @@ pre, .code-block, .chat-code-snippet {
         <div class="hero-grid">
           <div class="hero-text">
             <div class="hero-eyebrow"><span class="official-live-indicator"></span>Official Release • Connecto Platform v3.9.6</div>
-            <h1 class="hero-official-title">Connect with your <span class="hero-gradient-text">Friends.</span></h1>
-            <p class="hero-official-desc">High-speed real-time messaging, peer-to-peer voice rooms, and hands-on cybersecurity mastery for modern developer communities.</p>
+            <h1 class="hero-official-title">Connecting <span class="hero-gradient-text">Friends.</span></h1>
+            <p class="hero-official-desc">High-speed real-time messaging, crystal-clear voice rooms, and private circles crafted for friends, creators, and modern communities.</p>
             <div class="hero-pill-badges-row">
               <span class="hero-pill-badge"><i data-lucide="message-square" class="lucide-sm"></i> Instant Chat</span>
               <span class="hero-pill-badge"><i data-lucide="mic" class="lucide-sm"></i> Voice Lounges</span>
-              <span class="hero-pill-badge"><i data-lucide="shield-check" class="lucide-sm"></i> Cyber Academy</span>
+              <span class="hero-pill-badge"><i data-lucide="users" class="lucide-sm"></i> Close Friends</span>
             </div>
             <div class="hero-cta-buttons-row">
               <button class="btn hero-cta-btn-primary" onclick="switchMainView('chat')"><i data-lucide="message-square" class="lucide-sm"></i> <span>Open Live Chat</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
@@ -14771,18 +14796,18 @@ pre, .code-block, .chat-code-snippet {
               <div class="mock-body-layout" id="mockChatBody" style="display:flex;">
                 <div class="mock-sidebar">
                   <div class="mock-server-badge">
-                    <i data-lucide="shield" class="lucide-sm"></i>
-                    <span>Shadow Vanguard Intel</span>
+                    <i data-lucide="users" class="lucide-sm"></i>
+                    <span>Connecto Friends</span>
                   </div>
                   <div class="mock-ch active" id="mockChGeneral" onclick="switchSandboxChannel('general')">
                     <span># general</span>
                     <span style="width:6px; height:6px; border-radius:50%; background:var(--chakra-cyan);"></span>
                   </div>
                   <div class="mock-ch" id="mockChMissions" onclick="switchSandboxChannel('missions')">
-                    <span># missions</span>
+                    <span># hangouts</span>
                   </div>
                   <div class="mock-ch" id="mockChCyber" onclick="switchSandboxChannel('cyber-defense')">
-                    <span># cyber-defense</span>
+                    <span># community</span>
                   </div>
                   
                   <div class="mock-voice-capsule">
@@ -14799,7 +14824,7 @@ pre, .code-block, .chat-code-snippet {
                 <div class="mock-main">
                   <!-- Sandbox Status Banner -->
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:4px 8px; background:rgba(255,255,255,0.03); border-bottom:1px solid rgba(255,255,255,0.06); font-size:10px; color:var(--text-muted);">
-                    <span style="display:inline-flex; align-items:center; gap:5px;"><i data-lucide="terminal" class="lucide-sm"></i> Interactive Sandbox Preview</span>
+                    <span style="display:inline-flex; align-items:center; gap:5px;"><i data-lucide="sparkles" class="lucide-sm"></i> Live Friends Preview</span>
                     <button class="mock-demo-btn" style="padding:2px 7px; font-size:10px; display:inline-flex; align-items:center; gap:4px;" onclick="resetSandboxDemo()"><i data-lucide="rotate-ccw" class="lucide-sm"></i> Reset</button>
                   </div>
 
@@ -14807,10 +14832,10 @@ pre, .code-block, .chat-code-snippet {
 
                   <!-- Interactive Demo Input Bar -->
                   <div class="mock-interactive-input-row" style="display:flex; align-items:center; gap:4px; padding:6px; background:rgba(0,0,0,0.35); border-top:1px solid rgba(255,255,255,0.08);">
-                    <button class="mock-demo-btn" onclick="insertSandboxCodeSnippet()" title="Try Code Block" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="code-2" class="lucide-sm"></i></button>
-                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('🔥')" title="Try Flame Reaction" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="flame" class="lucide-sm"></i></button>
-                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('🥷')" title="Try Emoji Reaction" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="zap" class="lucide-sm"></i></button>
-                    <input type="text" class="mock-demo-input" id="sandboxDemoInput" placeholder="Type a message or ```js code```..." onkeydown="if(event.key==='Enter') sendSandboxDemoMessage()">
+                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('💬')" title="Send Chat Reaction" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="message-circle" class="lucide-sm"></i></button>
+                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('❤️')" title="Send Heart" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="heart" class="lucide-sm"></i></button>
+                    <button class="mock-demo-btn" onclick="insertSandboxEmoji('✨')" title="Send Sparkle" style="display:inline-flex; align-items:center; justify-content:center;"><i data-lucide="sparkles" class="lucide-sm"></i></button>
+                    <input type="text" class="mock-demo-input" id="sandboxDemoInput" placeholder="Type a message to your friends..." onkeydown="if(event.key==='Enter') sendSandboxDemoMessage()">
                     <button class="btn btn-primary" style="padding:4px 10px; font-size:11.5px; flex-shrink:0; display:inline-flex; align-items:center; gap:4px;" onclick="sendSandboxDemoMessage()">Send <i data-lucide="send" class="lucide-sm"></i></button>
                   </div>
                 </div>
@@ -14844,7 +14869,7 @@ pre, .code-block, .chat-code-snippet {
                 <div class="morph-features-row">
                   <span class="morph-feature-pill"><i data-lucide="zap" class="lucide-sm"></i> Sub-Second Sync</span>
                   <span class="morph-feature-pill"><i data-lucide="shield" class="lucide-sm"></i> Decentralized Mesh</span>
-                  <span class="morph-feature-pill"><i data-lucide="terminal" class="lucide-sm"></i> Hands-On Labs</span>
+                  <span class="morph-feature-pill"><i data-lucide="book-open" class="lucide-sm"></i> Interactive Labs</span>
                 </div>
               </div>
             </div>
@@ -14857,11 +14882,11 @@ pre, .code-block, .chat-code-snippet {
           <div class="shinobi-marquee-track">
             <div class="marquee-chip"><i data-lucide="message-square" class="lucide-sm"></i> <span>Instant Text Channels & Direct Messaging</span></div>
             <div class="marquee-chip"><i data-lucide="mic" class="lucide-sm"></i> <span>Spatial Audio Voice Lounges</span></div>
-            <div class="marquee-chip"><i data-lucide="terminal" class="lucide-sm"></i> <span>Hands-On Cybersecurity & CTF Labs</span></div>
-            <div class="marquee-chip"><i data-lucide="briefcase" class="lucide-sm"></i> <span>Zero-Knowledge AES-256 Encryption</span></div>
+            <div class="marquee-chip"><i data-lucide="book-open" class="lucide-sm"></i> <span>Hands-On Protocol & Network Labs</span></div>
+            <div class="marquee-chip"><i data-lucide="shield" class="lucide-sm"></i> <span>Zero-Knowledge AES-256 Encryption</span></div>
             <div class="marquee-chip"><i data-lucide="smartphone" class="lucide-sm"></i> <span>Official Native Android App (OLED Dark Mode)</span></div>
             <div class="marquee-chip"><i data-lucide="shield-check" class="lucide-sm"></i> <span>Biometric Hardware Vault & Encrypted Notes</span></div>
-            <div class="marquee-chip"><i data-lucide="users" class="lucide-sm"></i> <span>Friends, Communities & War Rooms</span></div>
+            <div class="marquee-chip"><i data-lucide="users" class="lucide-sm"></i> <span>Friends, Channels & Voice Lounges</span></div>
             <div class="marquee-chip"><i data-lucide="cpu" class="lucide-sm"></i> <span>High-Throughput Asynchronous Architecture</span></div>
           </div>
         </div>
@@ -14871,13 +14896,13 @@ pre, .code-block, .chat-code-snippet {
           <div class="stat-item">
             <div class="stat-icon-wrap" style="color:var(--chakra-cyan);"><i data-lucide="users" class="lucide-md"></i></div>
             <div class="stat-num-custom" id="statShinobi">6+</div>
-            <div class="stat-label-custom">Active Friends</div>
+            <div class="stat-label-custom">Connected People</div>
             <div class="stat-subtext">Verified Friends & Members</div>
           </div>
           <div class="stat-item">
             <div class="stat-icon-wrap" style="color:var(--accent);"><i data-lucide="message-square" class="lucide-md"></i></div>
             <div class="stat-num-custom" id="statMessages" style="color:var(--accent);">42+</div>
-            <div class="stat-label-custom">Live Scrolls</div>
+            <div class="stat-label-custom">Messages Sent</div>
             <div class="stat-subtext">Real-Time Channel Messages</div>
           </div>
           <div class="stat-item">
@@ -14890,13 +14915,13 @@ pre, .code-block, .chat-code-snippet {
             <div class="stat-icon-wrap" style="color:var(--ninja-gold);"><i data-lucide="shield-check" class="lucide-md"></i></div>
             <div class="stat-num-custom" id="statLabs" style="color:var(--ninja-gold);">12+</div>
             <div class="stat-label-custom">Security Labs</div>
-            <div class="stat-subtext">Hands-On CTF Challenges</div>
+            <div class="stat-subtext">Interactive Protocol Labs</div>
           </div>
           <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:#a855f7;"><i data-lucide="briefcase" class="lucide-md"></i></div>
-            <div class="stat-num-custom" style="color:#a855f7;">15 Roles</div>
-            <div class="stat-label-custom">Career Tracks</div>
-            <div class="stat-subtext">Specialized Evaluation Rubrics</div>
+            <div class="stat-icon-wrap" style="color:#a855f7;"><i data-lucide="zap" class="lucide-md"></i></div>
+            <div class="stat-num-custom" style="color:#a855f7;">&lt; 50ms</div>
+            <div class="stat-label-custom">Global Latency</div>
+            <div class="stat-subtext">Edge-Routed Mesh Network</div>
           </div>
           <div class="stat-item">
             <div class="stat-icon-wrap" style="color:#10b981;"><i data-lucide="unlock" class="lucide-md"></i></div>
@@ -15136,24 +15161,24 @@ pre, .code-block, .chat-code-snippet {
           <div class="section-header-standard">
             <div class="hero-eyebrow"><i data-lucide="compass" class="lucide-sm"></i> Ecosystem Directory</div>
             <h2 class="section-title">Explore the Connecto Ecosystem</h2>
-            <p class="section-sub">Modular communication, hands-on cybersecurity education, real-time news intelligence, and AI-powered careers — instantly searchable.</p>
+            <p class="section-sub">High-speed messaging, crystal-clear voice rooms, interactive learning labs, and hardware-level encryption — instantly searchable.</p>
           </div>
 
           <!-- Integrated Real-Time Search & Category Filters -->
           <div style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 12px; width: 100%;">
             <div style="position: relative; width: 100%;">
-              <input type="text" id="discoverySearchInput" class="auth-input-field" placeholder="Search by community tags, voice lounge, CTF labs, or keywords..." style="width:100%; font-size:13.5px; padding:12px 16px 12px 42px; background:rgba(15,20,36,0.85); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; color:#fff;" oninput="filterDiscoveryHubs(this.value)">
+              <input type="text" id="discoverySearchInput" class="auth-input-field" placeholder="Search by community tags, voice lounge, learning labs, or keywords..." style="width:100%; font-size:13.5px; padding:12px 16px 12px 42px; background:rgba(15,20,36,0.85); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; color:#fff;" oninput="filterDiscoveryHubs(this.value)">
               <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; color:var(--chakra-cyan);"><i data-lucide="search" class="lucide-sm"></i></span>
             </div>
 
             <div class="filter-chips-row">
               <button class="filter-chip active" data-disc-cat="all" onclick="setDiscoveryCategory('all')"><i data-lucide="sparkles" class="lucide-sm"></i> All Spaces</button>
-              <button class="filter-chip" data-disc-cat="chat" onclick="setDiscoveryCategory('chat')"><i data-lucide="message-square" class="lucide-sm"></i> Clan Chat</button>
+              <button class="filter-chip" data-disc-cat="chat" onclick="setDiscoveryCategory('chat')"><i data-lucide="message-square" class="lucide-sm"></i> Friends Chat</button>
               <button class="filter-chip" data-disc-cat="voice" onclick="setDiscoveryCategory('voice')"><i data-lucide="mic" class="lucide-sm"></i> Voice Lounges</button>
-              <button class="filter-chip" data-disc-cat="academy" onclick="setDiscoveryCategory('academy')"><i data-lucide="shield-check" class="lucide-sm"></i> Cyber Academy</button>
+              <button class="filter-chip" data-disc-cat="academy" onclick="setDiscoveryCategory('academy')"><i data-lucide="shield-check" class="lucide-sm"></i> Learning Hub</button>
               <button class="filter-chip" data-disc-cat="security" onclick="setDiscoveryCategory('security')"><i data-lucide="shield" class="lucide-sm"></i> Security & Vault</button>
               <button class="filter-chip" data-disc-cat="apps" onclick="setDiscoveryCategory('apps')"><i data-lucide="smartphone" class="lucide-sm"></i> Mobile App</button>
-              <button class="filter-chip" data-disc-cat="leaderboard" onclick="openLeaderboardModal()"><i data-lucide="trophy" class="lucide-sm"></i> Clan Leaderboard</button>
+              <button class="filter-chip" data-disc-cat="leaderboard" onclick="openLeaderboardModal()"><i data-lucide="trophy" class="lucide-sm"></i> Community Leaderboard</button>
             </div>
           </div>
 
@@ -15210,29 +15235,29 @@ pre, .code-block, .chat-code-snippet {
               </div>
             </div>
 
-            <!-- Portal 3: Cyber Academy & CTFs -->
-            <div class="ecosystem-card disc-item" data-cat="academy" data-title="cyber academy ctf challenges genin chunin jonin xp">
+            <!-- Portal 3: Learning Hub & Interactive Labs -->
+            <div class="ecosystem-card disc-item" data-cat="academy" data-title="learning hub protocol networking security labs">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:var(--ninja-gold); background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.25);">
-                  <i data-lucide="shield-check" class="lucide-md"></i>
+                  <i data-lucide="book-open" class="lucide-md"></i>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
-                    <span>Cyber Academy & CTFs</span>
+                    <span>Learning Hub & Labs</span>
                     <span class="ecosystem-card-badge" style="background:rgba(245,158,11,0.15); color:var(--ninja-gold);">Interactive Labs</span>
                   </div>
-                  <p class="ecosystem-card-desc">Hands-on networking, WebRTC signaling, protocol dissection, and cryptography curriculum with interactive CTF sandboxes.</p>
+                  <p class="ecosystem-card-desc">Hands-on networking, WebRTC signaling, protocol dissection, and cryptography curriculum with interactive sandboxes.</p>
                 </div>
               </div>
               <div class="ecosystem-card-features">
-                <span class="ecosystem-feature-chip"><i data-lucide="book-open" class="lucide-sm"></i> Genin Track</span>
-                <span class="ecosystem-feature-chip"><i data-lucide="activity" class="lucide-sm"></i> Chunin Track</span>
-                <span class="ecosystem-feature-chip"><i data-lucide="award" class="lucide-sm"></i> Jonin Mastery</span>
-                <span class="ecosystem-feature-chip">Live XP</span>
+                <span class="ecosystem-feature-chip"><i data-lucide="book-open" class="lucide-sm"></i> Foundations</span>
+                <span class="ecosystem-feature-chip"><i data-lucide="activity" class="lucide-sm"></i> Real-Time Streams</span>
+                <span class="ecosystem-feature-chip"><i data-lucide="shield" class="lucide-sm"></i> Cryptography</span>
+                <span class="ecosystem-feature-chip"><i data-lucide="sparkles" class="lucide-sm"></i> Edge Systems</span>
               </div>
               <div class="ecosystem-card-action">
-                <span style="font-size:11.5px; color:var(--text-muted);">3 Tracks • 12+ Labs</span>
-                <button class="ecosystem-card-btn" style="color:var(--ninja-gold);" onclick="switchMainView('learning')">Launch Academy <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+                <span style="font-size:11.5px; color:var(--text-muted);">4 Modules • 12+ Labs</span>
+                <button class="ecosystem-card-btn" style="color:var(--ninja-gold);" onclick="switchMainView('learning')">Launch Learning Hub <i data-lucide="arrow-right" class="lucide-sm"></i></button>
               </div>
             </div>
 
@@ -15320,7 +15345,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="comparison-section scroll-reveal-3d spatial-3d-section" id="comparisonSection">
           <div class="section-header-standard">
             <div class="hero-eyebrow"><i data-lucide="zap" class="lucide-sm"></i> Platform Edge</div>
-            <h2 class="section-title">Why Tactical Squads & Gamers Choose Connecto</h2>
+            <h2 class="section-title">Why Friends & Communities Choose Connecto</h2>
             <p class="section-sub">A lightweight, free, secure alternative to heavy legacy chat clients and bloated walled gardens.</p>
           </div>
 
@@ -15339,12 +15364,12 @@ pre, .code-block, .chat-code-snippet {
                   <strong style="color:var(--green);">100% Free & Open (No Paywalls)</strong>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Cybersecurity Academy:</span>
-                  <strong style="color:var(--chakra-cyan);">Built-in with Live XP & CTFs</strong>
+                  <span style="color:#94a3b8;">Learning Hub:</span>
+                  <strong style="color:var(--chakra-cyan);">Real-Time Network & Security Labs</strong>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">AI Career Hub:</span>
-                  <strong style="color:#a855f7;">15-Role Automated Scoring</strong>
+                  <span style="color:#94a3b8;">Real-Time Sync:</span>
+                  <strong style="color:#a855f7;">Sub-Millisecond WebSocket Duplex</strong>
                 </div>
                 <div class="comparison-row">
                   <span style="color:#94a3b8;">Audio Architecture:</span>
@@ -15371,12 +15396,12 @@ pre, .code-block, .chat-code-snippet {
                   <span style="color:#ef4444;">Nitro & Monthly Subscriptions</span>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Cybersecurity Academy:</span>
+                  <span style="color:#94a3b8;">Learning Hub:</span>
                   <span style="color:#94a3b8;">None / Not Supported</span>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">AI Career Hub:</span>
-                  <span style="color:#94a3b8;">None / Separate Portals</span>
+                  <span style="color:#94a3b8;">Real-Time Sync:</span>
+                  <span style="color:#94a3b8;">Rate-Limited HTTP Polling</span>
                 </div>
                 <div class="comparison-row">
                   <span style="color:#94a3b8;">Audio Architecture:</span>
@@ -15428,15 +15453,10 @@ pre, .code-block, .chat-code-snippet {
             <div class="arch-node scroll-reveal-3d">
               <div class="arch-node-icon" style="color:var(--green);"><i data-lucide="database" class="lucide-md"></i></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">ACID Data Engine</strong>
-              <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Atomic Transactions • In-Memory Presence • Real-Time XP Progression</span>
+              <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Atomic Transactions • In-Memory Presence • Real-Time Sync</span>
               <div class="arch-node-status">Atomic Commits</div>
             </div>
-            <div class="arch-node scroll-reveal-3d">
-              <div class="arch-node-icon" style="color:#a855f7;"><i data-lucide="bot" class="lucide-md"></i></div>
-              <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Gemini AI Pipeline</strong>
-              <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Multi-Modal CV Screening • Autonomous n8n Nodes • Structured Reasoning</span>
-              <div class="arch-node-status">AI Intelligence</div>
-            </div>
+
           </div>
 
           <div style="margin-top:28px; padding:24px 28px; background:linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.55) 100%); border:1px solid rgba(6,182,212,0.25); border-radius:14px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
@@ -15456,45 +15476,45 @@ pre, .code-block, .chat-code-snippet {
           </div>
         </div>
 
-        <!-- SECTION 8: INTERACTIVE CYBERSECURITY ACADEMY & CTF SANDBOX -->
+        <!-- SECTION 8: INTERACTIVE PROTOCOL LABS & SECURITY CURRICULUM -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="academyRoadmapSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="graduation-cap" class="lucide-sm"></i> Learning Academy</div>
-            <h2 class="section-title">Skill Progression & Cyber Curriculum</h2>
-            <p class="section-sub">Master foundational networking, full-duplex streams, and modern cryptographic protocols to level up your shinobi rank.</p>
+            <div class="hero-eyebrow"><i data-lucide="graduation-cap" class="lucide-sm"></i> Learning Hub</div>
+            <h2 class="section-title">Networking, Streams & Security Curriculum</h2>
+            <p class="section-sub">Master foundational networking, full-duplex streams, and modern cryptographic protocols to level up your skills.</p>
           </div>
 
           <div class="usecases-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
               <div class="usecase-icon-badge" style="color:var(--accent);"><i data-lucide="book-open" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Rank 1 • 100 XP</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Genin (Web & HTTP)</h4>
+              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 1</span></div>
+              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Web Foundations</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">HTTP/1.1 vs HTTP/2 vs HTTP/3, headers, status codes, RESTful methods, and request-response lifecycles.</p>
             </div>
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
               <div class="usecase-icon-badge" style="color:var(--accent);"><i data-lucide="activity" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Rank 2 • 300 XP</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Chunin (Streams & WebRTC)</h4>
+              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 2</span></div>
+              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Real-Time Streams</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">WebSocket TCP upgrades, framing protocols, WebRTC SDP offer/answer handshakes, and ICE candidate negotiation.</p>
             </div>
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
               <div class="usecase-icon-badge" style="color:var(--gold-rank);"><i data-lucide="shield" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Rank 3 • 550+ XP</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Jonin (Cryptography & CTF)</h4>
-              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Symmetric AES-256 vs Asymmetric RSA, TLS 1.3 handshake verification, DTLS-SRTP audio security, and CTF challenges.</p>
+              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
+              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security & Encryption</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Symmetric AES-256 vs Asymmetric RSA, TLS 1.3 handshake verification, and DTLS-SRTP audio security.</p>
             </div>
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
               <div class="usecase-icon-badge" style="color:var(--gold-rank-bright);"><i data-lucide="sparkles" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Rank 4 • 999 XP</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Grandmaster (AI & Orchestration)</h4>
-              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Autonomous AI agent pipelines, n8n automated workflow nodes, Gemini multi-modal reasoning, and zero-trust edge infrastructure.</p>
+              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 4</span></div>
+              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Distributed Edge Architecture</h4>
+              <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">High-concurrency asyncio architecture, event streams, and zero-trust edge infrastructure.</p>
             </div>
           </div>
 
-          <!-- INTERACTIVE LIVE CTF & CRYPTOGRAPHY SANDBOX -->
+          <!-- INTERACTIVE PROTOCOL & SECURITY INSPECTOR -->
           <div class="ctf-sandbox-card scroll-reveal-3d border-beam-card" style="margin-top:24px;">
             <div class="border-beam"></div>
             <div class="ctf-terminal-header">
@@ -15502,20 +15522,20 @@ pre, .code-block, .chat-code-snippet {
                 <span style="color:#ef4444;">●</span>
                 <span style="color:#f59e0b;">●</span>
                 <span style="color:#10b981;">●</span>
-                <span style="color:var(--chakra-cyan); font-size:12px; font-weight:700; margin-left:6px;">root@connecto-ctf-sandbox:~#</span>
+                <span style="color:var(--chakra-cyan); font-size:12px; font-weight:700; margin-left:6px;">Connecto Protocol & Security Visualizer</span>
               </div>
-              <div style="font-size:11px; color:var(--text-muted);">Interactive Terminal Sandbox</div>
+              <div style="font-size:11px; color:var(--text-muted);">Real-Time Diagnostics</div>
             </div>
             <div class="ctf-screen" id="ctfTerminalOutput">
-              <div style="color:var(--text-muted);">[SYS_READY] Connecto CTF Node Initialized. Click below or enter commands to execute jutsu scripts:</div>
-              <div style="color:var(--chakra-cyan); margin-top:4px;">> Available jutsu: scan_network, generate_keys, decrypt_scroll, verify_mesh</div>
+              <div style="color:var(--text-muted);">[SYSTEM READY] Protocol diagnostic node active. Select an inspection check below to verify network and encryption layers:</div>
+              <div style="color:var(--chakra-cyan); margin-top:4px;">> Available checks: Inspect Mesh, Generate Keys, Verify Security, Test Voice Mesh</div>
             </div>
             <div class="ctf-btn-group">
-              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('scan_network')"><i data-lucide="radar" class="lucide-sm"></i> scan_network</button>
-              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('generate_keys')"><i data-lucide="key" class="lucide-sm"></i> generate_keys</button>
-              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('decrypt_scroll')"><i data-lucide="file-code" class="lucide-sm"></i> decrypt_scroll</button>
-              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('verify_mesh')"><i data-lucide="check-circle-2" class="lucide-sm"></i> verify_mesh</button>
-              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('clear')"><i data-lucide="trash-2" class="lucide-sm"></i> clear</button>
+              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('scan_network')"><i data-lucide="radar" class="lucide-sm"></i> Inspect Mesh</button>
+              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('generate_keys')"><i data-lucide="key" class="lucide-sm"></i> Generate Keys</button>
+              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('decrypt_scroll')"><i data-lucide="shield-check" class="lucide-sm"></i> Verify Security</button>
+              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('verify_mesh')"><i data-lucide="activity" class="lucide-sm"></i> Test Voice Mesh</button>
+              <button class="btn btn-outline" style="padding:6px 12px; font-size:11.5px; border-radius:8px;" onclick="runCTFCommand('clear')"><i data-lucide="trash-2" class="lucide-sm"></i> Clear</button>
             </div>
           </div>
         </div>
@@ -15562,14 +15582,14 @@ pre, .code-block, .chat-code-snippet {
             <div class="faq-item">
               <div class="faq-q" onclick="toggleFAQ(this)">
                 <div class="faq-q-left">
-                  <div class="faq-q-icon"><i data-lucide="terminal" class="lucide-sm"></i></div>
-                  <span class="faq-q-title">What is the Cyber Academy?</span>
+                  <div class="faq-q-icon"><i data-lucide="graduation-cap" class="lucide-sm"></i></div>
+                  <span class="faq-q-title">What is the Learning Hub?</span>
                 </div>
                 <div class="faq-q-chevron"><i data-lucide="chevron-down" class="lucide-sm"></i></div>
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  The Cyber Academy is an integrated learning hub designed to teach real-world computer networking, web protocols, and cryptography. Through hands-on challenges and CTFs, members gain live XP to level up their rank from Novice to Master.
+                  The Learning Hub is an integrated educational space designed to teach real-world computer networking, web protocols, and cryptography. Through visual modules and interactive milestones, members level up their practical skills from fundamentals to advanced architecture.
                 </div>
               </div>
             </div>
@@ -15602,8 +15622,8 @@ pre, .code-block, .chat-code-snippet {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-1">
               <div>
                 <div class="step-badge-custom">1</div>
-                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Create or Join a Clan</h4>
-                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend groups via invite code or create your own custom encrypted server with full moderation tools.</p>
+                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Connect with Friends</h4>
+                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend circles via invite code or create your own custom encrypted space.</p>
               </div>
               <div class="step-pill-chip"><i data-lucide="user-plus" class="lucide-sm"></i> Instant Auth</div>
             </div>
@@ -15620,17 +15640,17 @@ pre, .code-block, .chat-code-snippet {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-3">
               <div>
                 <div class="step-badge-custom" style="background:linear-gradient(135deg, var(--ninja-gold) 0%, #ffeaa7 100%); color:#1a1002;">3</div>
-                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Cyber Academy</h4>
-                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh & cryptography in interactive lessons. Level up your rank from Genin to Jonin.</p>
+                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h4>
+                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh & cryptography in interactive lessons. Level up your skills with hands-on practice.</p>
               </div>
-              <div class="step-pill-chip" style="color:var(--ninja-gold);"><i data-lucide="award" class="lucide-sm"></i> Live XP & Ranks</div>
+              <div class="step-pill-chip" style="color:var(--ninja-gold);"><i data-lucide="award" class="lucide-sm"></i> Skill Progression</div>
             </div>
           </div>
         </div>
 
         <div class="final-cta-card scroll-reveal-3d interactive-tilt-card spatial-3d-section" id="finalCtaSection">
-          <h2 style="font-family:var(--font-display); font-size:32px; font-weight:900; color:var(--text-header); margin-bottom:var(--space-2);">Ready to Level Up Your Clan?</h2>
-          <p style="color:var(--text-muted); font-size:15px; margin-bottom:var(--space-5); max-width:540px;">Join thousands of friends and developers communicating, sharing ideas, and collaborating in real time.</p>
+          <h2 style="font-family:var(--font-display); font-size:32px; font-weight:900; color:var(--text-header); margin-bottom:var(--space-2);">Ready to Start Connecting?</h2>
+          <p style="color:var(--text-muted); font-size:15px; margin-bottom:var(--space-5); max-width:540px;">Join thousands of friends communicating, sharing ideas, and collaborating in real time.</p>
           <button class="btn" style="padding:13px 32px; font-size:15.5px;" onclick="openAuthModal('register')">Get Started Free <i data-lucide="arrow-right" class="lucide-sm"></i></button>
         </div>
 
@@ -15783,6 +15803,21 @@ pre, .code-block, .chat-code-snippet {
       </div>
     </div>
 
+    <!-- ==================== SCREEN 3: FRIENDS VIEW ==================== -->
+    <div class="view-panel" id="friendsView">
+      <div style="padding:var(--space-6); max-width:1100px; margin:0 auto; width:100%;">
+        <div class="friends-header">
+          <button class="friends-tab-btn active" id="fTabAll" onclick="switchFriendsSubTab('all')">👥 All Friends</button>
+          <button class="friends-tab-btn" id="fTabPending" onclick="switchFriendsSubTab('pending')">
+            <span>✉️ Pending</span>
+            <span class="notif-badge" id="pendingBadge" style="display:none; position:static; margin-left:6px;">0</span>
+          </button>
+          <button class="friends-tab-btn" id="fTabAdd" onclick="switchFriendsSubTab('add')" style="color:var(--chakra-cyan);">➕ Add Friend</button>
+        </div>
+        <div id="friendsListContainer"></div>
+      </div>
+    </div>
+
     <!-- ==================== SCREEN 4: DIRECT MESSAGES VIEW ==================== -->
     <div class="view-panel" id="dmListView" style="display:none; overflow-y:auto; flex:1;">
       <div class="connecto-screen-container">
@@ -15879,20 +15914,20 @@ pre, .code-block, .chat-code-snippet {
         
         <!-- Guest Member Banner -->
         <div id="learningGuestBanner" style="display:none; background:var(--accent-tint); border:1px solid var(--accent-border); border-radius:10px; padding:10px 16px; font-size:13px; justify-content:space-between; align-items:center;">
-          <span>💡 You are exploring as a <strong>Guest</strong>. Sign in to save your XP, track completions, and rank up!</span>
+          <span>💡 You are exploring as a <strong>Guest</strong>. Sign in to save your progress and track lesson completions!</span>
           <button class="btn" style="padding:5px 14px; font-size:12px;" onclick="openAuthModal('login')">Sign In ➔</button>
         </div>
 
         <!-- Academy Skill Mastery & Track Switcher Card -->
         <div class="academy-mastery-card">
           <div class="academy-mastery-info">
-            <div class="academy-mastery-label">Skill Rank & XP Mastery</div>
-            <div class="academy-mastery-rank" id="learnRankBadge">Jonin • 550 XP</div>
+            <div class="academy-mastery-label">Skill Mastery & Progression</div>
+            <div class="academy-mastery-rank" id="learnRankBadge">Level 3 • Advanced</div>
           </div>
           <div class="academy-track-buttons">
-            <button class="btn btn-outline track-btn active" id="btnTrackGenin" onclick="loadTrackWorkspace('genin')">🌱 Genin</button>
-            <button class="btn btn-outline track-btn" id="btnTrackChunin" onclick="loadTrackWorkspace('chunin')">⚡ Chunin</button>
-            <button class="btn btn-outline track-btn" id="btnTrackJonin" onclick="loadTrackWorkspace('jonin')">🔥 Jonin</button>
+            <button class="btn btn-outline track-btn active" id="btnTrackGenin" onclick="loadTrackWorkspace('genin')">🌱 Foundations</button>
+            <button class="btn btn-outline track-btn" id="btnTrackChunin" onclick="loadTrackWorkspace('chunin')">⚡ Streams</button>
+            <button class="btn btn-outline track-btn" id="btnTrackJonin" onclick="loadTrackWorkspace('jonin')">🔥 Advanced</button>
           </div>
         </div>
 
@@ -15956,6 +15991,9 @@ pre, .code-block, .chat-code-snippet {
           </button>
         </div>
       </div>
+
+      <!-- Voice Rooms Grid -->
+      <div class="voice-rooms-grid" id="voiceRoomsGrid"></div>
 
       <!-- Active Voice Stage (Visible when joined in a room) -->
       <div class="active-room-stage" id="activeRoomStage" style="display:none;">
@@ -16853,7 +16891,7 @@ pre, .code-block, .chat-code-snippet {
       <!-- Additional Details -->
       <div style="margin-bottom:18px;">
         <label style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; display:block;" for="reportNotesInput">ADDITIONAL DETAILS (OPTIONAL)</label>
-        <textarea id="reportNotesInput" class="auth-input-field" style="width:100%; height:65px; padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; resize:none;" placeholder="Describe why this message violates clan guidelines..."></textarea>
+        <textarea id="reportNotesInput" class="auth-input-field" style="width:100%; height:65px; padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; resize:none;" placeholder="Describe why this message violates community guidelines..."></textarea>
       </div>
 
       <!-- Actions -->
@@ -17167,7 +17205,7 @@ pre, .code-block, .chat-code-snippet {
 
       <!-- Recent Referral Activity Feed -->
       <div>
-        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Live Clan Referral Feed</div>
+        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Live Referral Feed</div>
         <div id="referralLiveFeed" style="max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-right:4px;"></div>
       </div>
     </div>
@@ -18531,7 +18569,7 @@ pre, .code-block, .chat-code-snippet {
           renderW3LessonsSidebar();
           document.getElementById('learnRankBadge').innerText = `${data.rank} • ${data.current_xp} XP`;
         } else {
-          fb.innerHTML = `<span style="color:var(--red); font-weight:800;">❌ Incorrect Jutsu.</span><br>${data.explanation}`;
+          fb.innerHTML = `<span style="color:var(--red); font-weight:800;">❌ Incorrect Answer.</span><br>${data.explanation}`;
         }
       } catch (err) {
         fb.innerText = `Error: ${err.message}`;
@@ -19595,7 +19633,7 @@ pre, .code-block, .chat-code-snippet {
           <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
             <div style="font-size: 32px; margin-bottom: 10px;">👥</div>
             <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">No Friends Yet</div>
-            <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your accepted friends appear in this roster. Add shinobi to your clan!</div>
+            <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your accepted friends appear in this roster. Connect with your friends!</div>
             <button class="btn btn-outline" onclick="switchMainView('friends')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; color: var(--chakra-cyan); border-color: rgba(6,182,212,0.4);">+ Add Friends</button>
           </div>
         `;
@@ -21462,7 +21500,7 @@ pre, .code-block, .chat-code-snippet {
         icon: '❓',
         desc: 'Display list of available slash commands and platform shortcuts',
         handler: () => {
-          return `✨ **Connecto Slash Commands Guide:**\n• \`/search [query]\` - Global message search across all channels & DMs\n• \`/leaderboard\` or \`/referrals\` - Referral & Clan XP Leaderboard\n• \`/schedule [mins] [text]\` - Delayed scheduled messages\n• \`/roll [20|2d6]\` - Roll dice or random number\n• \`/flip\` - Flip a coin (Heads/Tails)\n• \`/poll [Question | Opt1 | Opt2]\` - Launch instant interactive poll\n• \`/status [emoji] [text]\` - Update custom status\n• \`/clear\` - Clear local message view`;
+          return `✨ **Connecto Slash Commands Guide:**\n• \`/search [query]\` - Global message search across all channels & DMs\n• \`/leaderboard\` or \`/referrals\` - Referral & Community Leaderboard\n• \`/schedule [mins] [text]\` - Delayed scheduled messages\n• \`/roll [20|2d6]\` - Roll dice or random number\n• \`/flip\` - Flip a coin (Heads/Tails)\n• \`/poll [Question | Opt1 | Opt2]\` - Launch instant interactive poll\n• \`/status [emoji] [text]\` - Update custom status\n• \`/clear\` - Clear local message view`;
         }
       }
     ];
@@ -22612,39 +22650,39 @@ pre, .code-block, .chat-code-snippet {
       'general': [
         {
           id: 'sb_1',
-          author: 'Aoi',
+          author: 'Sophia',
           avatar: '🌸',
           time: '09:00 AM',
-          content: "Welcome to the interactive sandbox preview! Try typing a message or reacting with emojis below 🚀",
-          reactions: { '🌸': 4, '⚔️': 3 }
+          content: "Welcome to Connecto! Try sending a real-time message or reacting with emojis below ✨",
+          reactions: { '🌸': 4, '❤️': 6 }
         },
         {
           id: 'sb_2',
-          author: 'Hayate',
+          author: 'Marcus',
           avatar: '🍃',
           time: '09:01 AM',
-          content: "You can also test syntax highlighted code snippets:\n```js\nconst network = new PeerMesh({\n  encryption: 'AES-256-GCM',\n  latency: '< 5ms'\n});\n```",
-          reactions: { '🔥': 6, '⚡': 4 }
+          content: "Just hopped into Lounge 1 for audio chat — audio clarity is amazing and zero lag!",
+          reactions: { '🔥': 5, '✨': 4 }
         }
       ],
       'missions': [
         {
           id: 'sb_m1',
-          author: 'Ryu',
-          avatar: '⚡',
+          author: 'Elena',
+          avatar: '🎨',
           time: '10:15 AM',
-          content: "Mission Briefing: Infiltrate Sector 7 and establish secure WebRTC mesh tunnel.",
-          reactions: { '🎯': 5 }
+          content: "Catching up tonight in the design hangout lounge! Who else is joining?",
+          reactions: { '🎉': 7, '🙌': 4 }
         }
       ],
       'cyber-defense': [
         {
           id: 'sb_c1',
-          author: 'Jin Grandmaster',
-          avatar: '🥷',
+          author: 'David',
+          avatar: '✨',
           time: '11:00 AM',
-          content: "Penetration test simulated on honeypot: 0 leaks, all packets sealed.",
-          reactions: { '🛡️': 8, '🔥': 5 }
+          content: "Loving the new minimal theme. Pure OLED dark mode and super smooth animations.",
+          reactions: { '❤️': 8, '🔥': 6 }
         }
       ]
     };
@@ -22720,7 +22758,7 @@ pre, .code-block, .chat-code-snippet {
     function insertSandboxCodeSnippet() {
       const inp = document.getElementById('sandboxDemoInput');
       if (inp) {
-        inp.value = "```js\nconsole.log('Hello from Connecto!');\n```";
+        inp.value = "Hey everyone! Great connecting with you all here ✨";
         inp.focus();
       }
     }
@@ -23576,17 +23614,19 @@ pre, .code-block, .chat-code-snippet {
 
         await setupVoiceRoomAudio();
         playSynthesizedSound('voice_join');
-        showActiveVoiceRoomStage(data.room, data.participants);
+        const roomObj = data.room || { name: 'Voice Room', icon: '🎙️', topic: 'Group voice communication' };
+        showActiveVoiceRoomStage(roomObj, data.participants);
         loadVoiceRooms();
-        showNotificationToast('Voice Connected', `Connected to ${data.room.name}`);
+        showNotificationToast('Voice Connected', `Connected to ${roomObj.name}`);
       } catch (err) {
         console.error('[JOIN_VOICE_ERROR]', err);
       }
     }
 
     function showActiveVoiceRoomStage(room, participants) {
+      room = room || { name: 'Voice Room', icon: '🎙️', topic: 'Group voice communication' };
       document.getElementById('stageRoomIcon').innerText = room.icon || '🎙️';
-      document.getElementById('stageRoomName').innerText = room.name;
+      document.getElementById('stageRoomName').innerText = room.name || 'Voice Room';
       document.getElementById('stageRoomTopic').innerText = room.topic || 'Group voice communication';
       const stage = document.getElementById('activeRoomStage');
       stage.style.display = 'block';
@@ -24069,22 +24109,6 @@ pre, .code-block, .chat-code-snippet {
           }
           const fragment = document.createDocumentFragment();
 
-      // Prepend Stitch Pro Max Channel Welcome Card
-      const welcomeCard = document.createElement('div');
-      welcomeCard.className = 'channel-welcome-card';
-      const isAnnounce = (currentChannel === 'announcements');
-      welcomeCard.innerHTML = `
-        <div class="welcome-icon-box">${isAnnounce ? '📢' : '🛰️'}</div>
-        <div class="welcome-content">
-          <div class="welcome-title-row">
-            <h2 class="welcome-title">Welcome to the #${escapeHTML(currentChannel)} ${isAnnounce ? 'Broadcast' : 'Relay'}</h2>
-            <span class="welcome-badge">${isAnnounce ? 'SERVER BROADCAST' : 'CORE GUILD'}</span>
-          </div>
-          <p class="welcome-desc">${isAnnounce ? 'Official channel for verified platform releases, system telemetry, and mission announcements. Only server administrators can transmit in this frequency.' : 'This is the genesis channel of connecto.fun. Neural stream integration is operational. Lossless 96kHz voice links and interactive code blocks can be dropped right into the buffer.'}</p>
-        </div>
-      `;
-      fragment.appendChild(welcomeCard);
-
           friends.forEach(f => {
             const row = document.createElement('div');
             row.className = 'friend-row';
@@ -24181,11 +24205,11 @@ pre, .code-block, .chat-code-snippet {
         } else if (friendsSubTab === 'add') {
           container.innerHTML = `
             <div style="background:var(--bg-darker); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:var(--space-6); max-width:500px; box-shadow:var(--shadow-card);">
-              <h3 style="font-family:var(--font-display); color:var(--text-header); font-size:17px; margin-bottom:6px; font-weight:800;">Summon a Shinobi Ally</h3>
-              <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--space-4);">Transmit a friend request to start encrypted messaging and 1:1 voice calling.</p>
+              <h3 style="font-family:var(--font-display); color:var(--text-header); font-size:17px; margin-bottom:6px; font-weight:800;">Add a Friend</h3>
+              <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--space-4);">Send a friend request to start real-time messaging and 1:1 voice calling.</p>
               <div style="display:flex; gap:var(--space-2);">
-                <input type="text" class="form-input" id="addFriendInput" aria-label="Enter username to add ally" placeholder="Enter username (e.g. @chinnu)">
-                <button class="btn" onclick="sendFriendRequest()">Transmit ➔</button>
+                <input type="text" class="form-input" id="addFriendInput" aria-label="Enter username to add friend" placeholder="Enter username (e.g. @test1)">
+                <button class="btn" onclick="sendFriendRequest()">Send Request ➔</button>
               </div>
               <div id="addFriendFeedback" style="margin-top:12px; font-size:13px; display:none;"></div>
             </div>
@@ -24316,37 +24340,37 @@ pre, .code-block, .chat-code-snippet {
       if (!screen) return;
 
       if (cmd === 'clear') {
-        screen.innerHTML = `<div style="color:var(--text-muted);">[SYS_CLEARED] Terminal reset. Type or select jutsu command:</div>`;
+        screen.innerHTML = `<div style="color:var(--text-muted);">[SYS_READY] Inspector reset. Select an inspection check above to run diagnostics:</div>`;
         return;
       }
 
       const timeStr = new Date().toLocaleTimeString();
-      let outputHtml = `<div style="color:#ffffff; margin-top:8px;">[${timeStr}] <span style="color:var(--chakra-cyan);">$</span> <strong>${cmd}</strong></div>`;
+      let outputHtml = `<div style="color:#ffffff; margin-top:8px;">[${timeStr}] <span style="color:var(--chakra-cyan);">›</span> <strong>${cmd.replace('_', ' ').toUpperCase()}</strong></div>`;
 
       if (cmd === 'scan_network') {
         outputHtml += `
           <div style="color:var(--green); margin-left:10px;">✔ [OK] Probing active peer network nodes...</div>
-          <div style="color:var(--text-normal); margin-left:10px;">→ Node 1 (Shadow Vanguard Core): 127.0.0.1:8080 [Latency: &lt;10ms]</div>
-          <div style="color:var(--text-normal); margin-left:10px;">→ Node 2 (Vault Archives): AES-256 GCM [TLS 1.3 Active]</div>
+          <div style="color:var(--text-normal); margin-left:10px;">→ Node 1 (FastAPI Async Core): 127.0.0.1:8081 [Latency: &lt;5ms]</div>
+          <div style="color:var(--text-normal); margin-left:10px;">→ Node 2 (Edge Anycast Distribution): TLS 1.3 Active</div>
           <div style="color:var(--ninja-gold); margin-left:10px;">→ Mesh Status: 100% P2P Handshake Synchronized</div>
         `;
       } else if (cmd === 'generate_keys') {
         outputHtml += `
           <div style="color:var(--chakra-cyan); margin-left:10px;">Generating Ed25519 & X25519 Ephemeral Keypair...</div>
-          <div style="color:var(--text-muted); margin-left:10px;">[██████████████████████████████] 100% Salted Entropy</div>
+          <div style="color:var(--text-muted); margin-left:10px;">[██████████████████████████████] 100% Cryptographic Entropy</div>
           <div style="color:var(--green); margin-left:10px;">✔ Public Key: 0x9f4a...e12b (Curve25519 / 256-bit)</div>
         `;
       } else if (cmd === 'decrypt_scroll') {
         outputHtml += `
-          <div style="color:var(--ninja-gold); margin-left:10px;">Decrypting Encrypted Data Packet #42...</div>
+          <div style="color:var(--ninja-gold); margin-left:10px;">Verifying Encrypted Payload Integrity...</div>
           <div style="color:var(--chakra-cyan); margin-left:10px;">HMAC-SHA256 Signature Verified ✔</div>
-          <div style="color:#ffffff; margin-left:10px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">"Secret: WebSocket protocol upgrade verified with sub-ms packet speed."</div>
+          <div style="color:#ffffff; margin-left:10px; background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">"Verified: End-to-end WebSocket stream authenticated with zero packet leakage."</div>
         `;
       } else if (cmd === 'verify_mesh') {
         outputHtml += `
           <div style="color:var(--green); margin-left:10px;">✔ WebRTC STUN/TURN ICE Candidates Gathered (3/3)</div>
           <div style="color:var(--text-normal); margin-left:10px;">→ Audio Codec: Opus (48kHz Stereo, 64kbps DTLS-SRTP)</div>
-          <div style="color:var(--chakra-cyan); margin-left:10px;">→ Spatial Sound Stage: Binaural DSP Mesh Ready!</div>
+          <div style="color:var(--chakra-cyan); margin-left:10px;">→ Voice Mesh: Low-Latency Spatial Audio Ready</div>
         `;
       }
 

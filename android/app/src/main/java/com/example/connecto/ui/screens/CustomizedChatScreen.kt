@@ -56,6 +56,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -1732,6 +1733,7 @@ fun CustomizedChatScreen(
                                     }
                                 }
                             } else {
+                                DisableSelection {
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier
@@ -1787,6 +1789,7 @@ fun CustomizedChatScreen(
                                         }
                                     }
                                 }
+                                } // end DisableSelection
                             }
 
                             // Floating "Scroll to Bottom" FAB
@@ -1875,6 +1878,7 @@ fun CustomizedChatScreen(
                             enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleIn(initialScale = 0.94f),
                             exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleOut(targetScale = 0.94f)
                         ) {
+                            DisableSelection {
                             Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)) {
                                 ConnectoEmojiPicker(
                                     onEmojiSelected = { emoji ->
@@ -1883,6 +1887,7 @@ fun CustomizedChatScreen(
                                     onClose = { showEmojiPicker = false }
                                 )
                             }
+                            } // end DisableSelection
                         }
 
                         // ================= 3. ADVANCED CHAT INPUT BAR & SEND BUTTON =================
@@ -2373,6 +2378,8 @@ private fun CustomChatBubble(
                                             haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                             tryAwaitRelease()
                                             isEmojiPressed = false
+                                        },
+                                        onTap = {
                                             message.reaction = if (message.reaction == emoji) null else emoji
                                             showReactionPill = false
                                         }
