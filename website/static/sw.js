@@ -1,4 +1,4 @@
-const CACHE_NAME = 'connecto-v4-1-2';
+const CACHE_NAME = 'connecto-v4-2-0';
 const STATIC_ASSETS = [
   '/manifest.json'
 ];
@@ -35,20 +35,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // HTML Page Navigations: ALWAYS NETWORK FIRST so updates deploy instantly
+  // HTML Page Navigations: ALWAYS NETWORK ONLY to ensure real-time deployment updates
   if (event.request.mode === 'navigate' || (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
     event.respondWith(
-      fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const resClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, resClone));
-          }
-          return networkResponse;
-        })
-        .catch(() => {
-          return caches.match(event.request);
-        })
+      fetch(event.request).catch(() => {
+        return caches.match(event.request);
+      })
     );
     return;
   }

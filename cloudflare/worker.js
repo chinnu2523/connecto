@@ -2091,8 +2091,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   }
   if (path === "/api/v1/app/version" || path === "/api/app/version") {
     return jsonResponse({
-      version: "3.9.7",
-      build: 40,
+      version: "3.9.8",
+      build: 41,
       url: "https://connecto.fun/download/apk"
     });
   }

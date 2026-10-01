@@ -18,6 +18,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -228,7 +230,8 @@ fun ConnectoEmojiPicker(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 // Close Button with spring hover & rotate
-                var isClosePressed by remember { mutableStateOf(false) }
+                val closeInteractionSource = remember { MutableInteractionSource() }
+                val isClosePressed by closeInteractionSource.collectIsPressedAsState()
                 val closeScale by animateFloatAsState(
                     targetValue = if (isClosePressed) 0.85f else 1.0f,
                     animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -241,15 +244,11 @@ fun ConnectoEmojiPicker(
                         .scale(closeScale)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onPress = {
-                                    isClosePressed = true
-                                    tryAwaitRelease()
-                                    isClosePressed = false
-                                    onClose()
-                                }
-                            )
+                        .clickable(
+                            interactionSource = closeInteractionSource,
+                            indication = null
+                        ) {
+                            onClose()
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -311,7 +310,8 @@ private fun AnimatedEmojiItem(
     emoji: String,
     onSelect: () -> Unit
 ) {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     var isJustSelected by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
@@ -319,8 +319,8 @@ private fun AnimatedEmojiItem(
     // Bouncy scale physics
     val scale by animateFloatAsState(
         targetValue = when {
-            isPressed -> 1.45f
-            isJustSelected -> 1.25f
+            isPressed -> 1.25f
+            isJustSelected -> 1.15f
             else -> 1.0f
         },
         animationSpec = spring(
@@ -332,7 +332,7 @@ private fun AnimatedEmojiItem(
 
     // Subtle playful rotation on press
     val rotation by animateFloatAsState(
-        targetValue = if (isPressed) -10f else if (isJustSelected) 8f else 0f,
+        targetValue = if (isPressed) -6f else if (isJustSelected) 6f else 0f,
         animationSpec = spring(
             stiffness = 400f,
             dampingRatio = Spring.DampingRatioMediumBouncy
@@ -353,28 +353,20 @@ private fun AnimatedEmojiItem(
                 rotationZ = rotation
             }
             .clip(CircleShape)
-            .pointerInput(emoji) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        coroutineScope.launch {
-                            burstRadius.snapTo(0.2f)
-                            burstAlpha.snapTo(0.6f)
-                        }
-                        tryAwaitRelease()
-                        isPressed = false
-                    },
-                    onTap = {
-                        isJustSelected = true
-                        onSelect()
-                        coroutineScope.launch {
-                            burstRadius.animateTo(1.5f, animationSpec = tween(220, easing = FastOutSlowInEasing))
-                            burstAlpha.animateTo(0f, animationSpec = tween(220))
-                            isJustSelected = false
-                        }
-                    }
-                )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                isJustSelected = true
+                onSelect()
+                coroutineScope.launch {
+                    burstRadius.snapTo(0.2f)
+                    burstAlpha.snapTo(0.6f)
+                    burstRadius.animateTo(1.5f, animationSpec = tween(220, easing = FastOutSlowInEasing))
+                    burstAlpha.animateTo(0f, animationSpec = tween(220))
+                    isJustSelected = false
+                }
             },
         contentAlignment = Alignment.Center
     ) {

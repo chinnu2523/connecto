@@ -36,6 +36,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -1388,6 +1390,7 @@ fun CustomizedChatScreen(
             ) { isFriendSelected ->
                 if (!isFriendSelected) {
                     // ================= 1. FRIENDS LIST SCREEN =================
+                    DisableSelection {
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
@@ -1664,6 +1667,7 @@ fun CustomizedChatScreen(
                             }
                         }
                     }
+                    } // end DisableSelection
                 }
                 } else {
                     // ================= 2. DIRECT CHAT STREAM WITH IME RESIZE =================
@@ -1832,41 +1836,47 @@ fun CustomizedChatScreen(
                             }
                         }
 
-                        // ================= QUICK GAMER ACTION CHIPS (COLLAPSIBLE) =================
+                        // ================= QUICK ACTION CHIPS (COLLAPSIBLE) =================
                         AnimatedVisibility(
                             visible = !isInputFocused && typedMessage.isEmpty(),
                             enter = expandVertically() + fadeIn(),
                             exit = shrinkVertically() + fadeOut()
                         ) {
-                            LazyRow(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                val quickChips = listOf(
-                                    "👋 Hey, how are you doing?",
-                                    "📅 Free for a quick call?",
-                                    "🚀 Just sent you an update",
-                                    "👍 Sounds great!"
-                                )
-                                items(quickChips) { chipText ->
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                                            .clickable {
-                                                typedMessage = chipText
-                                            }
-                                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                                    ) {
-                                        Text(
-                                            text = chipText,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
+                            DisableSelection {
+                                LazyRow(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    val quickChips = listOf(
+                                        "👋 Hey, how are you doing?",
+                                        "📅 Free for a quick call?",
+                                        "🚀 Just sent you an update",
+                                        "👍 Sounds great!"
+                                    )
+                                    items(quickChips) { chipText ->
+                                        val chipInteractionSource = remember { MutableInteractionSource() }
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+                                                .clickable(
+                                                    interactionSource = chipInteractionSource,
+                                                    indication = null
+                                                ) {
+                                                    typedMessage = chipText
+                                                }
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = chipText,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -2269,8 +2279,9 @@ private fun CustomChatBubble(
                                 isBubblePressed = false
                             },
                             onTap = {
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                showReactionPill = !showReactionPill
+                                if (showReactionPill) {
+                                    showReactionPill = false
+                                }
                             },
                             onLongPress = {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -2371,19 +2382,13 @@ private fun CustomChatBubble(
                                     scaleY = emojiScale
                                 }
                                 .clip(CircleShape)
-                                .pointerInput(emoji) {
-                                    detectTapGestures(
-                                        onPress = {
-                                            isEmojiPressed = true
-                                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                            tryAwaitRelease()
-                                            isEmojiPressed = false
-                                        },
-                                        onTap = {
-                                            message.reaction = if (message.reaction == emoji) null else emoji
-                                            showReactionPill = false
-                                        }
-                                    )
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    message.reaction = if (message.reaction == emoji) null else emoji
+                                    showReactionPill = false
                                 }
                                 .padding(3.dp)
                         )

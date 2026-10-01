@@ -76,7 +76,8 @@ fun Modifier.pressScaleEffect(
     onClick: () -> Unit,
     targetScale: Float = 0.94f
 ): Modifier {
-    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
     val scale by animateFloatAsState(
         targetValue = if (isPressed) targetScale else 1f,
@@ -89,18 +90,12 @@ fun Modifier.pressScaleEffect(
             scaleX = scale
             scaleY = scale
         }
-        .pointerInput(onClick) {
-            detectTapGestures(
-                onPress = {
-                    isPressed = true
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    tryAwaitRelease()
-                    isPressed = false
-                },
-                onTap = {
-                    onClick()
-                }
-            )
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null
+        ) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
         }
 }
 
