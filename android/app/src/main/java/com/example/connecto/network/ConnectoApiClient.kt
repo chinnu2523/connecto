@@ -2168,10 +2168,10 @@ object ConnectoApiClient {
                             username = item.optString("username"),
                             nickname = item.optString("nickname").ifEmpty { item.optString("username") },
                             avatar = item.optString("avatar").takeIf { it.isNotEmpty() },
-                            rank = item.optString("rank", "Shinobi"),
+                            rank = item.optString("rank", "Member"),
                             xp = item.optInt("xp", 100),
                             streak = item.optInt("streak", 1),
-                            badge = item.optString("badge", "🌱 Genin")
+                            badge = item.optString("badge", "🌱 Member")
                         )
                     )
                 }
@@ -2233,7 +2233,7 @@ object ConnectoApiClient {
                                 username = p.optString("username"),
                                 nickname = p.optString("nickname").ifEmpty { p.optString("username") },
                                 avatar = p.optString("avatar").takeIf { it.isNotEmpty() },
-                                rank = p.optString("rank", "Shinobi"),
+                                rank = p.optString("rank", "Member"),
                                 muted = p.optBoolean("muted", false),
                                 speaking = p.optBoolean("speaking", false)
                             )
@@ -2347,7 +2347,7 @@ object ConnectoApiClient {
                             username = p.optString("username"),
                             nickname = p.optString("nickname").ifEmpty { p.optString("username") },
                             avatar = p.optString("avatar").takeIf { it.isNotEmpty() },
-                            rank = p.optString("rank", "Shinobi"),
+                            rank = p.optString("rank", "Member"),
                             muted = p.optBoolean("muted", false),
                             speaking = p.optBoolean("speaking", false)
                         )
@@ -3150,7 +3150,7 @@ object ConnectoApiClient {
 
     suspend fun getProfile(username: String? = null, token: String? = null): Result<ProfileDataDto> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val encoded = java.net.URLEncoder.encode(u, "UTF-8")
             var response = executeRequest(
                 endpoint = "/api/user/profile?username=$encoded",
@@ -3236,7 +3236,7 @@ object ConnectoApiClient {
 
     suspend fun setStealthMode(username: String? = null, enabled: Boolean): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val body = JSONObject().apply {
                 put("username", u)
                 put("enabled", enabled)
@@ -3272,7 +3272,7 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val body = JSONObject().apply {
                 put("username", u)
                 displayName?.let {
@@ -3403,7 +3403,7 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<List<NotificationDto>> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val endpoint = "/api/v1/notifications?username=$u&unread_only=$unreadOnly&limit=$limit"
             val response = executeRequest(endpoint, "GET", null, token ?: sessionToken)
             if (response.isSuccess) {
@@ -3440,7 +3440,7 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val endpoint = "/api/v1/notifications/count?username=$u"
             val response = executeRequest(endpoint, "GET", null, token ?: sessionToken)
             if (response.isSuccess) {
@@ -3481,7 +3481,7 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val endpoint = "/api/v1/notifications/read-all?username=$u"
             val response = executeRequest(endpoint, "POST", "{}", token ?: sessionToken)
             if (response.isSuccess) {
@@ -3500,7 +3500,7 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "shinobi_99"
+            val u = username ?: currentUsername ?: "user_99"
             val endpoint = "/api/v1/notifications?username=$u"
             val response = executeRequest(endpoint, "DELETE", null, token ?: sessionToken)
             if (response.isSuccess) {

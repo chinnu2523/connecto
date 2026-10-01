@@ -9602,19 +9602,31 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       scroll-behavior: smooth;
     }
 
-    /* Prevent accidental text, emoji, or button selection during scrolling */
-    button, a, .tab-btn, .channel-item, .guild-icon,
+    /* Global Touch & Scroll Isolation: Prevent text, emoji, or button selection during scrolling */
+    html, body, button, a, .tab-btn, .channel-item, .guild-icon,
     .filter-chip, .ecosystem-card, .btn, .btn-icon, .side-lead-card, .news-card,
     .mock-msg-list, .mock-text, .mock-msg, .mock-rx-chip, .mock-demo-btn,
-    .emoji-picker-drawer, .emoji-pick-item, .emoji-picker-grid,
-    .step-card, .arch-node, .rank-card, .faq-q, .feature-card {
-      touch-action: manipulation;
+    .emoji-picker-drawer, .emoji-pick-item, .emoji-picker-grid, .emoji-item,
+    .step-card, .arch-node, .rank-card, .faq-q, .feature-card,
+    .chat-container, .messages, .message-bubble, .chat-bubble, .chat-message,
+    .dm-message, .member-item, .side-member-item, .connecto-mobile-dock, .mobile-dock-btn,
+    .messages-area, .chat-workspace-wrap, .main-layout, .nav-btn, .header-apk-btn,
+    .chat-header, .chat-input-bar, .reaction-item {
       -webkit-tap-highlight-color: transparent !important;
       -webkit-user-select: none !important;
       -moz-user-select: none !important;
       -ms-user-select: none !important;
       user-select: none !important;
       -webkit-touch-callout: none !important;
+    }
+
+    /* Scroll containers: allow smooth momentum pan-y scrolling without triggering selection */
+    .messages, .messages-area, .chat-container, .channels-list, .side-members-list,
+    .discovery-grid, .main-layout, .messages-scroll, .scroll-container,
+    .emoji-picker-grid, .modal-box-scroll {
+      touch-action: pan-y !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior-y: contain;
     }
 
     input, textarea, [contenteditable="true"], .selectable-text, pre, code {
@@ -12637,19 +12649,33 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
   z-index: 1000 !important;
   user-select: none !important;
 }
-body.in-hero-view .connecto-mobile-dock {
-  display: none !important;
-}
 @media (max-width: 768px) {
-  body.in-app-view .connecto-mobile-dock {
+  .connecto-mobile-dock {
     display: flex !important;
+    position: fixed !important;
+    bottom: 12px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: min(calc(100% - 24px), 440px) !important;
+    height: 60px !important;
+    background: rgba(10, 14, 26, 0.92) !important;
+    backdrop-filter: blur(24px) -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 9999px !important;
+    padding: 4px 8px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 242, 254, 0.15) !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
   }
-  .input-area {
-    margin-bottom: 68px !important;
+  body {
+    padding-bottom: 78px !important;
+  }
+  .input-area, .stitch-input-row, .chat-input-row {
+    margin-bottom: 72px !important;
     padding-bottom: 12px !important;
   }
-  .messages-area {
-    padding-bottom: 84px !important;
+  .messages-area, .messages {
+    padding-bottom: 92px !important;
   }
 }
 .mobile-dock-btn {
@@ -14285,7 +14311,6 @@ pre, .code-block, .chat-code-snippet {
           <div class="notif-badge" id="bookmarksBadge" style="display:none; background:var(--chakra-cyan); color:#000;">0</div>
         </div>
         <button class="btn-icon" id="membersToggleBtn" onclick="toggleMembersSidebar()" title="Friends & Members Roster"><i data-lucide="users" class="lucide-sm"></i></button>
-        <button class="btn-icon" id="referralLeaderboardToggleBtn" onclick="openReferralLeaderboardModal()" title="Friends Referral Leaderboard & XP"><i data-lucide="trophy" class="lucide-sm"></i></button>
         <div style="position:relative;">
           <button class="btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown()" title="Notifications & DND"><i data-lucide="bell" class="lucide-sm"></i></button>
           <div class="notif-badge" id="notifBadge" style="display:none;"></div>
@@ -15201,7 +15226,6 @@ pre, .code-block, .chat-code-snippet {
               <button class="filter-chip" data-disc-cat="academy" onclick="setDiscoveryCategory('academy')"><i data-lucide="shield-check" class="lucide-sm"></i> Learning Hub</button>
               <button class="filter-chip" data-disc-cat="security" onclick="setDiscoveryCategory('security')"><i data-lucide="shield" class="lucide-sm"></i> Security & Vault</button>
               <button class="filter-chip" data-disc-cat="apps" onclick="setDiscoveryCategory('apps')"><i data-lucide="smartphone" class="lucide-sm"></i> Mobile App</button>
-              <button class="filter-chip" data-disc-cat="leaderboard" onclick="openLeaderboardModal()"><i data-lucide="trophy" class="lucide-sm"></i> Community Leaderboard</button>
             </div>
           </div>
 
@@ -16158,15 +16182,6 @@ pre, .code-block, .chat-code-snippet {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="openLeaderboardModal(); closeMobileNavMenu();">
-          <span class="mobile-drawer-icon"><i data-lucide="trophy" class="lucide-sm"></i></span>
-          <div class="mobile-drawer-text">
-            <strong>Friends Leaderboard</strong>
-            <span>Rankings, XP & battle streaks</span>
-          </div>
-          <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
-        </a>
-
         <a class="mobile-drawer-link" onclick="handleNavCommunityClick(); closeMobileNavMenu();">
           <span class="mobile-drawer-icon"><i data-lucide="message-square" class="lucide-sm"></i></span>
           <div class="mobile-drawer-text">
@@ -16415,7 +16430,7 @@ pre, .code-block, .chat-code-snippet {
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
           <div id="settingsRankBadge" style="padding:4px 12px; border-radius:20px; font-size:11.5px; font-weight:800; background:rgba(0,206,201,0.12); color:var(--chakra-cyan); border:1px solid rgba(0,206,201,0.35); display:inline-flex; align-items:center; gap:4px;">
-            ⚡ Genin • 0 XP
+            Active Member
           </div>
           <button type="button" class="pins-close-btn" onclick="closeSettingsModal()" aria-label="Close settings">✕</button>
         </div>
@@ -17124,115 +17139,7 @@ pre, .code-block, .chat-code-snippet {
     </div>
   </div>
 
-  <!-- Friends Referral Leaderboard & Community XP Modal -->
-  <div class="modal-overlay" id="referralLeaderboardModal" style="display:none;" onclick="closeReferralLeaderboardModal(event)">
-    <div class="modal-card border-beam-card" style="width:620px; max-width:95vw; padding:24px; border-radius:20px; max-height:88vh; overflow-y:auto;" onclick="event.stopPropagation()">
-      <div class="border-beam"></div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div style="font-size:24px; background:rgba(250,204,21,0.15); border:1px solid rgba(250,204,21,0.3); border-radius:12px; width:42px; height:42px; display:flex; align-items:center; justify-content:center;">🏆</div>
-          <div>
-            <h3 style="margin:0; font-size:16px; font-weight:800; color:#fff; display:flex; align-items:center; gap:6px;">
-              <span>Friends Referral Leaderboard</span>
-              <span class="xp-pill" style="font-size:10.5px; background:rgba(168,85,247,0.2); color:#c084fc; border:1px solid rgba(168,85,247,0.4); padding:2px 8px; border-radius:999px;">Community XP</span>
-            </h3>
-            <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">Invite friends to Connecto & earn rank XP points</div>
-          </div>
-        </div>
-        <button class="pins-close-btn" onclick="closeReferralLeaderboardModal()">✕</button>
-      </div>
 
-      <!-- User's Personal Referral Stats Card -->
-      <div id="myReferralHubCard" style="background:linear-gradient(135deg, rgba(250,204,21,0.06), rgba(168,85,247,0.08)); border:1px solid rgba(250,204,21,0.2); border-radius:16px; padding:16px; margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div id="myReferralAvatar" style="font-size:24px; width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:center;">👤</div>
-            <div>
-              <div style="display:flex; align-items:center; gap:6px;">
-                <strong id="myReferralHandle" style="font-size:14px; color:#fff;">@user</strong>
-                <span id="myReferralTierBadge" class="referral-tier-badge referral-tier-initiate">🌱 Active Member</span>
-              </div>
-              <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
-                <span id="myReferralCandCount">0</span> Friends Referred • <span id="myReferralTotalXP" style="color:#facc15; font-weight:700;">0 XP</span> Earned
-              </div>
-            </div>
-          </div>
-          <div id="myReferralRankPill" style="font-size:12px; font-weight:800; color:#38bdf8; background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.3); border-radius:8px; padding:4px 10px;">
-            Rank #--
-          </div>
-        </div>
-
-        <!-- Next Tier Progress -->
-        <div style="margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:4px;">
-            <span id="myTierProgressLabel">Progress to Next Tier</span>
-            <span id="myTierProgressVal" style="color:#fff; font-weight:700;">0%</span>
-          </div>
-          <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:999px; overflow:hidden;">
-            <div id="myTierProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #a855f7, #facc15); border-radius:999px; transition:width 0.4s ease;"></div>
-          </div>
-        </div>
-
-        <!-- Copyable Link Bar -->
-        <div>
-          <label style="font-size:10.5px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; display:block;">Your Unique Referral Link</label>
-          <div style="display:flex; gap:6px; align-items:center;">
-            <input type="text" id="myReferralUrlInput" class="auth-input-field" readonly style="flex:1; font-size:12px; padding:6px 10px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#38bdf8; font-family:monospace;" value="https://connecto.fun/?ref=@user">
-            <button type="button" class="btn btn-primary" style="font-size:12px; padding:6px 14px; border-radius:8px; display:flex; align-items:center; gap:4px;" onclick="copyReferralLink()">
-              <span id="copyRefBtnText">📋 Copy</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- XP Milestone Matrix Bar -->
-      <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; margin-bottom:16px;">
-        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; display:flex; justify-content:space-between;">
-          <span>Community XP Rewards Matrix</span>
-          <span style="color:#a855f7; font-weight:600;">Automated Crediting</span>
-        </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(100px, 1fr)); gap:6px;">
-          <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">📝 Invite</div>
-            <div style="font-size:13px; font-weight:800; color:#38bdf8; margin-top:2px;">+100 XP</div>
-          </div>
-          <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">🔍 Verify</div>
-            <div style="font-size:13px; font-weight:800; color:#c084fc; margin-top:2px;">+150 XP</div>
-          </div>
-          <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">🌟 Chat</div>
-            <div style="font-size:13px; font-weight:800; color:#4ade80; margin-top:2px;">+250 XP</div>
-          </div>
-          <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">📅 Voice</div>
-            <div style="font-size:13px; font-weight:800; color:#facc15; margin-top:2px;">+500 XP</div>
-          </div>
-          <div style="background:rgba(255,255,255,0.04); border-radius:8px; padding:8px; text-align:center;">
-            <div style="font-size:10.5px; color:var(--text-muted);">🎉 Milestone</div>
-            <div style="font-size:13px; font-weight:800; color:#f43f5e; margin-top:2px;">+1,500 XP</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Top Referrers Table -->
-      <div style="margin-bottom:16px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-          <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">Top Referrals</div>
-          <button type="button" class="btn btn-outline" style="font-size:11px; padding:3px 8px; border-radius:6px;" onclick="loadReferralLeaderboard()">🔄 Refresh</button>
-        </div>
-        <div id="leaderboardListContainer" style="display:flex; flex-direction:column; gap:6px;">
-          <div style="text-align:center; padding:18px; color:var(--text-muted); font-size:12px;">⏳ Loading leaderboard data...</div>
-        </div>
-      </div>
-
-      <!-- Recent Referral Activity Feed -->
-      <div>
-        <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Live Referral Feed</div>
-        <div id="referralLiveFeed" style="max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-right:4px;"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- Global Cross-Channel Search Modal -->
   <div class="modal-overlay" id="globalSearchModal" style="display:none;" onclick="closeGlobalSearchModal(event)">
@@ -19781,7 +19688,7 @@ pre, .code-block, .chat-code-snippet {
       document.getElementById('popoverStatus').className = `user-popover-status member-status-${member.status || (member.is_online ? 'online' : 'offline')}`;
       document.getElementById('popoverName').innerText = dispName;
       document.getElementById('popoverHandle').innerText = `@${member.username}`;
-      document.getElementById('popoverRankPill').innerText = `⚡ ${member.rank || 'Genin'} • Level ${level}`;
+      document.getElementById('popoverRankPill').innerText = 'Member';
       document.getElementById('popoverBio').innerText = member.bio || 'Connecto Member';
 
       // Custom Status in Popover
@@ -19815,20 +19722,11 @@ pre, .code-block, .chat-code-snippet {
         }
       }
 
-      // XP Progress Bar in Popover
+      // XP Progress Bar in Popover (Removed)
       const xpWrapEl = document.getElementById('popoverXPWrap');
       if (xpWrapEl) {
-        xpWrapEl.innerHTML = `
-          <div class="xp-progress-wrap">
-            <div class="xp-progress-label">
-              <span>Skill Mastery</span>
-              <span>${xp} / ${nextXp} XP</span>
-            </div>
-            <div class="xp-progress-track">
-              <div class="xp-progress-fill" style="width:${progress}%;"></div>
-            </div>
-          </div>
-        `;
+        xpWrapEl.innerHTML = '';
+        xpWrapEl.style.display = 'none';
       }
 
       const isSelf = (member.username || '').toLowerCase() === (currentUser || '').toLowerCase();
@@ -24231,7 +24129,7 @@ pre, .code-block, .chat-code-snippet {
               <h3 style="font-family:var(--font-display); color:var(--text-header); font-size:17px; margin-bottom:6px; font-weight:800;">Add a Friend</h3>
               <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--space-4);">Send a friend request to start real-time messaging and 1:1 voice calling.</p>
               <div style="display:flex; gap:var(--space-2);">
-                <input type="text" class="form-input" id="addFriendInput" aria-label="Enter username to add friend" placeholder="Enter username (e.g. @test1)">
+                <input type="text" class="form-input" id="addFriendInput" aria-label="Enter username to add friend" placeholder="Enter username (e.g. @test1)" onkeydown="if(event.key==='Enter') sendFriendRequest()">
                 <button class="btn" onclick="sendFriendRequest()">Send Request ➔</button>
               </div>
               <div id="addFriendFeedback" style="margin-top:12px; font-size:13px; display:none;"></div>
@@ -24264,6 +24162,10 @@ pre, .code-block, .chat-code-snippet {
         fb.style.display = 'block';
         fb.innerHTML = '<span style="color:var(--text-muted);">Transmitting request...</span>';
       }
+      if (currentUser && target.toLowerCase() === currentUser.toLowerCase()) {
+        if (fb) fb.innerHTML = '<span style="color:var(--red); font-weight:700;">❌ You cannot send a friend request to yourself.</span>';
+        return;
+      }
       try {
         const authHeaders = { 'Content-Type': 'application/json' };
         if (typeof authToken !== 'undefined' && authToken) {
@@ -24273,13 +24175,13 @@ pre, .code-block, .chat-code-snippet {
           method: 'POST',
           headers: authHeaders,
           credentials: 'include',
-          body: JSON.stringify({ sender: currentUser, recipient: target })
+          body: JSON.stringify({ sender: currentUser, recipient: target, friend_username: target, username: target })
         });
         const data = await res.json();
         if (res.ok) {
           if (fb) fb.innerHTML = `<span style="color:var(--green); font-weight:700;">✅ Friend request sent to @${escapeHTML(target)}!</span>`;
           if (input) input.value = '';
-          showNotificationToast('Friend Request Transmitted', `Alliance request sent to @${target}! 🥷`);
+          showNotificationToast('Friend Request Transmitted', `Friend request sent to @${target}! 🤝`);
           loadFriends();
         } else {
           if (fb) fb.innerHTML = `<span style="color:var(--red); font-weight:700;">❌ ${escapeHTML(data.detail || data.message || 'Failed to send request')}</span>`;
@@ -25699,7 +25601,7 @@ function selectSettingsAvatar(emoji, el) {
             // Rank indicator
             const rankBadge = document.getElementById('settingsRankBadge');
             if (rankBadge) {
-              rankBadge.innerHTML = `⚡ ${escapeHTML(user.rank || 'Genin')} • ${user.xp || 0} XP`;
+              rankBadge.innerHTML = 'Active Member';
             }
           }
         }
@@ -27684,23 +27586,7 @@ function handleNavCommunityClick() {
     }, 10000);
 </script>
 
-  <!-- Friends Leaderboard Modal -->
-  <div class="modal-overlay" id="leaderboardModal" onclick="closeLeaderboardModal()">
-    <div class="modal-box-scroll" onclick="event.stopPropagation()" style="max-width:560px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:22px;">🏆</span>
-          <h3 style="margin:0; font-size:18px; color:#fff; font-weight:800;">Friends Leaderboard</h3>
-        </div>
-        <button class="nav-btn-link" onclick="closeLeaderboardModal()" style="font-size:18px; color:var(--text-muted);">✕</button>
-      </div>
-      <p style="font-size:12px; color:var(--text-muted); margin-top:0;">Top ranked members ranked by XP earned from challenges, live messaging, and voice lounges.</p>
-      
-      <div id="clanLeaderboardListContainer" style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; padding-right:4px;">
-        <div style="text-align:center; padding:24px; color:var(--text-muted);">Loading community rankings...</div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Privacy Policy Modal -->
   <div class="modal-overlay" id="privacyModal" onclick="closePrivacyModal()">
@@ -28603,7 +28489,7 @@ if ('serviceWorker' in navigator) {
 <!-- ============================================================ -->
 <!-- STITCH MCP: Connecto SOTA 5-Tab Navigation Dock               -->
 <!-- ============================================================ -->
-<nav class="connecto-mobile-dock" id="connectoMobileDock" style="display:none;" aria-label="Mobile Navigation">
+<nav class="connecto-mobile-dock" id="connectoMobileDock" aria-label="Mobile Navigation">
   <button class="mobile-dock-btn" id="dock-home-btn" onclick="switchMainView('home');" title="Home">
     <div class="dock-btn-icon-wrap">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -28646,9 +28532,8 @@ function updateConnectoMobileDock(view) {
   const dock = document.getElementById('connectoMobileDock');
   if (!dock) return;
   const isMobile = window.innerWidth <= 768;
-  const isAppView = document.body.classList.contains('in-app-view') || (view && view !== 'hero');
 
-  if (isMobile && isAppView) {
+  if (isMobile) {
     dock.style.display = 'flex';
   } else {
     dock.style.display = 'none';

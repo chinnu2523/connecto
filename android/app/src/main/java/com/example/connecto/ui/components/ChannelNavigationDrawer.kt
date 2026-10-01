@@ -111,7 +111,7 @@ fun ChannelNavigationDrawer(
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
 
-    var activeShinobiCount by remember { mutableIntStateOf(10) }
+    var activeMembersCount by remember { mutableIntStateOf(10) }
 
     val officialChannels = listOf(
         DrawerChannelOption("general", "general", "Global community chat & team discussion", Icons.Rounded.Forum, category = "OFFICIAL"),
@@ -198,7 +198,7 @@ fun ChannelNavigationDrawer(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            text = "$activeShinobiCount Members Online",
+                                            text = "$activeMembersCount Members Online",
                                             fontSize = 11.sp,
                                             color = MaterialTheme.colorScheme.primary,
                                             fontWeight = FontWeight.SemiBold

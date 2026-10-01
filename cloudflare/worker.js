@@ -1226,15 +1226,64 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   }
 
   // 9. Friends Request / Accept / Decline / Remove
-  if (
-    path === "/api/friends/request" ||
-    path === "/api/friends/accept" ||
-    path === "/api/friends/decline" ||
-    path === "/api/friends/remove" ||
-    path === "/api/friends/unfriend" ||
-    path.startsWith("/api/v1/chat/friends/")
-  ) {
-    return jsonResponse({ status: "ok", message: "Success" });
+  if (path === "/api/friends/request" || path === "/api/v1/friends/request") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      let senderName = (body.sender || body.sender_username || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      let recipientName = (body.recipient || body.friend_username || body.target_username || body.username || "").trim().toLowerCase().replace(/^@/, "");
+      if (senderName && recipientName && env.DB) {
+        let sender = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(senderName).first();
+        if (!sender) {
+          const sId = "usr_" + senderName;
+          await env.DB.prepare("INSERT OR IGNORE INTO users (id, username, display_name, email, is_online) VALUES (?, ?, ?, ?, 1)").bind(sId, senderName, senderName, `${senderName}@connecto.fun`).run();
+          sender = { id: sId };
+        }
+        let recipient = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(recipientName).first();
+        if (!recipient) {
+          const rId = "usr_" + recipientName;
+          await env.DB.prepare("INSERT OR IGNORE INTO users (id, username, display_name, email, is_online) VALUES (?, ?, ?, ?, 1)").bind(rId, recipientName, recipientName, `${recipientName}@connecto.fun`).run();
+          recipient = { id: rId };
+        }
+        const existing = await env.DB.prepare("SELECT id, status FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?) LIMIT 1").bind(sender.id, recipient.id, recipient.id, sender.id).first();
+        if (!existing) {
+          const fId = "fr_" + Math.random().toString(36).substring(2, 12);
+          await env.DB.prepare("INSERT INTO friendships (id, user_id, friend_id, status, created_at) VALUES (?, ?, ?, 'pending', datetime('now'))").bind(fId, sender.id, recipient.id).run();
+        }
+      }
+    } catch (_) {}
+    return jsonResponse({ status: "ok", message: "Friend request processed" });
+  }
+
+  if (path === "/api/friends/accept" || path === "/api/v1/friends/accept") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      let senderName = (body.sender || "").trim().toLowerCase().replace(/^@/, "");
+      let recipientName = (body.recipient || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      if (senderName && recipientName && env.DB) {
+        const u1 = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(senderName).first();
+        const u2 = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(recipientName).first();
+        if (u1 && u2) {
+          await env.DB.prepare("UPDATE friendships SET status = 'accepted' WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").bind(u1.id, u2.id, u2.id, u1.id).run();
+        }
+      }
+    } catch (_) {}
+    return jsonResponse({ status: "ok", message: "Friend request accepted" });
+  }
+
+  if (path === "/api/friends/decline" || path === "/api/friends/remove" || path === "/api/friends/unfriend") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      let targetName = (body.friend_username || body.username || body.sender || "").trim().toLowerCase().replace(/^@/, "");
+      let myName = (body.recipient || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      if (targetName && myName && env.DB) {
+        const u1 = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetName).first();
+        const u2 = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(myName).first();
+        if (u1 && u2) {
+          await env.DB.prepare("DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").bind(u1.id, u2.id, u2.id, u1.id).run();
+        }
+      }
+    } catch (_) {}
+    return jsonResponse({ status: "ok", message: "Friend removed" });
   }
 
   // 10. Direct Messages: Contact List (/api/dms)
@@ -1326,10 +1375,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   const dmMatch = path.match(/^\/api\/dms\/([^\/]+)\/messages/);
   if (dmMatch) {
     const targetUser = decodeURIComponent(dmMatch[1]).trim().toLowerCase().replace(/^@/, "");
-    const currentUser = (
+    let currentUser = (
       request.headers.get("X-User-Username") ||
       url.searchParams.get("username") ||
-      "chinnu"
+      url.searchParams.get("sender") ||
+      url.searchParams.get("user") ||
+      ""
     ).trim().toLowerCase().replace(/^@/, "");
 
     const dmChannelId = "dm-" + [currentUser, targetUser].sort().join("-");
@@ -1377,6 +1428,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (method === "POST") {
       try {
         const body = await request.json().catch(() => ({}));
+        if (!currentUser && (body.sender || body.sender_username)) {
+          currentUser = (body.sender || body.sender_username).trim().toLowerCase().replace(/^@/, "");
+        }
+        if (!currentUser) currentUser = "guest";
         const content = body.content || body.text || "";
         const msgId = "msg_dm_" + Math.random().toString(36).substring(2, 10);
         const nowIso = new Date().toISOString();

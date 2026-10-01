@@ -916,7 +916,7 @@ object VoiceCallManager {
             isWsConnected = false
         }
 
-        val username = ConnectoApiClient.currentUsername?.ifEmpty { "Shinobi" } ?: "Shinobi"
+        val username = ConnectoApiClient.currentUsername?.ifEmpty { "User" } ?: "User"
         val cleanUser = username.trim().lowercase().removePrefix("@")
         val userId = ConnectoApiClient.currentUserId?.ifEmpty { cleanUser } ?: cleanUser
         val token = ConnectoApiClient.sessionToken ?: ""
@@ -1666,7 +1666,7 @@ object VoiceCallManager {
             .trim()
             .ifEmpty { cleanTarget }
 
-        val currentUsername = ConnectoApiClient.currentUsername?.ifEmpty { "Shinobi" } ?: "Shinobi"
+        val currentUsername = ConnectoApiClient.currentUsername?.ifEmpty { "User" } ?: "User"
         val roomId = "call_${currentUsername}_${System.currentTimeMillis()}"
 
         isCallCaller = true

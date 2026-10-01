@@ -895,10 +895,7 @@ async def get_members_compat(
             "username": u.username,
             "nickname": u.display_name or u.username,
             "avatar": u.avatar_url or "🎮",
-            "bio": getattr(u, "bio", "") or "Connecto Gamer",
-            "rank": "Member",
-            "xp": 100,
-            "level": 1,
+            "bio": getattr(u, "bio", "") or "Connecto Member",
             "status": "offline" if is_stealth else ("online" if is_online else "offline"),
             "is_online": is_online,
             "is_stealth": is_stealth,
@@ -3109,7 +3106,6 @@ async def get_dms_compat(
             "avatar_url": friend_u.avatar_url,
             "status": presence_status,
             "is_online": is_online,
-            "rank": "Member",
             "last_message": "",
             "last_timestamp": ""
         }
@@ -3429,7 +3425,12 @@ async def post_dm_messages_compat(
         await db.commit()
     except Exception as _e:
         pass  # Non-fatal — do not block message delivery
-    return await post_channel_message_compat(request, channel.name or canonical_dm_name, current_user, db)
+    return await post_channel_message_compat(
+        request=request,
+        channel_id=channel.name or canonical_dm_name,
+        current_user=current_user,
+        db=db
+    )
 
 @app.get("/api/auth/check-username")
 async def check_username_compat(username: str = Query(""), db: AsyncSession = Depends(get_db)):
@@ -3633,16 +3634,6 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
             is_online = is_live
             presence_status = "online" if is_online else "offline"
 
-    # Fetch Academy XP and Rank
-    from app.db.models.academy import UserAcademyProfile
-    acad_stmt = select(UserAcademyProfile).where(UserAcademyProfile.user_id == user.id)
-    acad = (await db.execute(acad_stmt)).scalar_one_or_none()
-    total_xp = acad.total_xp if acad else 150
-    current_rank = acad.current_rank if (acad and acad.current_rank) else ("Hokage" if (getattr(user, "is_admin", False) or user.username.lower() in ("chinnu", "admin", "connecto_admin")) else "Chunin")
-    level = max(1, (total_xp // 100) + 1)
-    next_rank_xp = max(250, ((total_xp // 250) + 1) * 250)
-    progress_percent = min(100, max(10, int((total_xp % 250) / 2.5)))
-
     can_view_pii = is_self or (session_user is not None and bool(getattr(session_user, "is_admin", False)))
 
     user_dict = {
@@ -3666,12 +3657,7 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
         "two_factor_enabled": bool(getattr(user, "two_factor_enabled", False)) if can_view_pii else False,
         "is_stealth": is_stealth if is_self else False,
         "is_online": is_online,
-        "status": presence_status,
-        "rank": current_rank,
-        "xp": total_xp,
-        "level": level,
-        "next_rank_xp": next_rank_xp,
-        "progress_percent": progress_percent
+        "status": presence_status
     }
 
     root_fields = {k: v for k, v in user_dict.items() if k != "status"}
@@ -4037,12 +4023,7 @@ async def get_friends_compat(
             "status": presence_status,
             "is_online": is_online,
             "is_stealth": False,
-            "rank": f_rank,
-            "bio": getattr(friend_u, "bio", "") or "Connecto Shinobi",
-            "xp": 150,
-            "level": 2,
-            "next_rank_xp": 250,
-            "progress_percent": 60,
+            "bio": getattr(friend_u, "bio", "") or "Connecto Member",
             "created_at": str(f.created_at) if f.created_at else ""
         })
 
@@ -4136,27 +4117,41 @@ async def send_friend_request_compat(
     sender_name = ""
     if current_user:
         sender_name = current_user.username.strip().lower()
-    if not sender_name:
-        sender_name = str(
-            payload.get("sender") or 
-            payload.get("sender_username") or 
-            payload.get("from_user") or 
-            payload.get("username") or 
-            ""
-        ).strip().lower().removeprefix("@")
 
+    # Recipient candidate check
     recipient_name = str(
         payload.get("recipient") or 
         payload.get("friend_username") or 
         payload.get("target_username") or 
         payload.get("target_user") or 
         payload.get("to_user") or 
-        payload.get("username") or 
+        payload.get("friend") or 
         ""
     ).strip().lower().removeprefix("@")
 
+    # If current_user was present and recipient wasn't found under explicit recipient keys,
+    # 'username' in payload is the recipient
+    if current_user and not recipient_name:
+        recipient_name = str(payload.get("username") or "").strip().lower().removeprefix("@")
+
+    # If current_user was not authenticated, extract sender from explicit sender keys
+    if not sender_name:
+        sender_name = str(
+            payload.get("sender") or 
+            payload.get("sender_username") or 
+            payload.get("from_user") or 
+            ""
+        ).strip().lower().removeprefix("@")
+
+    # If sender_name is still empty and recipient was provided, 'username' might be the sender
+    if not sender_name and recipient_name:
+        sender_name = str(payload.get("username") or "").strip().lower().removeprefix("@")
+
     if not sender_name or not recipient_name:
         raise HTTPException(status_code=400, detail="Missing sender or recipient")
+
+    if sender_name == recipient_name:
+        raise HTTPException(status_code=400, detail="Cannot send friend request to yourself")
 
     sender = (await db.execute(select(User).where(func.lower(User.username) == sender_name))).scalar_one_or_none()
     recipient = (await db.execute(select(User).where(func.lower(User.username) == recipient_name))).scalar_one_or_none()
