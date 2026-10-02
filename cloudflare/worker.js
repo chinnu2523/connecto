@@ -74,7 +74,8 @@ export default {
     }
 
     // 3b. Direct APK Download Gateway
-    if (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto")) {
+    const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
+    if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk")) {
       if (localServerStatus !== "UP") {
         return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.8/app-release.apk", 302);
       }
