@@ -17376,6 +17376,9 @@ pre, .code-block, .chat-code-snippet {
 
             <!-- Main Input Row: Clean, Aesthetic Unified Capsule -->
             <div class="connecto-enhanced-input-row stitch-input-row" id="connectoInputRow">
+              <div id="announcementsLockBanner" style="display:none; width:100%; padding:10px 16px; margin:4px 0; background:rgba(255,255,255,0.03); border:1px solid var(--card-border); border-radius:14px; font-size:12.5px; color:var(--text-muted); text-align:center; align-items:center; justify-content:center; gap:8px; font-weight:500;">
+                🔒 Only administrators can post in #announcements
+              </div>
               <div class="connecto-input-capsule-wrapper" id="connectoInputBoxWrapper">
                 <button type="button" class="connecto-attach-inline-btn" id="mobileAttachBtn" title="Upload Media" onclick="document.getElementById('fileInput').click()">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
@@ -21040,21 +21043,34 @@ pre, .code-block, .chat-code-snippet {
       if (_unfriendBtn) _unfriendBtn.style.display = 'none';
 
       const msgInput = document.getElementById('msgInput');
-      const sendBtn = document.querySelector('.input-btn.send-cta');
-      const isAdmin = (currentUser === 'connecto_admin' || (currentUser && currentUser.endsWith('_admin')) || localStorage.getItem('connecto_is_admin') === '1');
+      const sendBtn = document.getElementById('sendBtn') || document.querySelector('.connecto-send-circle-btn') || document.querySelector('.input-btn.send-cta');
+      const lockBanner = document.getElementById('announcementsLockBanner');
+      const isUserAdmin = Boolean(
+        (typeof currentUser === 'string' && (
+          currentUser.toLowerCase() === 'connecto_admin' || 
+          currentUser.toLowerCase() === 'admin' ||
+          currentUser.toLowerCase() === 'vance' ||
+          currentUser.toLowerCase() === 'madara' ||
+          currentUser.toLowerCase() === 'viki' ||
+          currentUser.toLowerCase().endsWith('_admin')
+        )) ||
+        localStorage.getItem('connecto_is_admin') === '1' ||
+        (window.currentUserObj && window.currentUserObj.is_admin)
+      );
 
       if (channelId === 'announcements') {
-        if (!isAdmin) {
+        if (!isUserAdmin) {
           if (msgInput) {
             msgInput.disabled = true;
-            msgInput.placeholder = '🔒 #announcements is read-only. Only the server administrator can broadcast.';
+            msgInput.placeholder = '🔒 #announcements is read-only. Only administrators can broadcast.';
           }
           if (sendBtn) {
             sendBtn.disabled = true;
-            sendBtn.style.opacity = '0.4';
+            sendBtn.style.opacity = '0.35';
             sendBtn.style.cursor = 'not-allowed';
             sendBtn.title = 'Only administrators can post in #announcements';
           }
+          if (lockBanner) lockBanner.style.display = 'flex';
         } else {
           if (msgInput) {
             msgInput.disabled = false;
@@ -21066,6 +21082,7 @@ pre, .code-block, .chat-code-snippet {
             sendBtn.style.cursor = 'pointer';
             sendBtn.title = 'Broadcast Announcement';
           }
+          if (lockBanner) lockBanner.style.display = 'none';
         }
       } else {
         if (msgInput) {
@@ -21078,6 +21095,7 @@ pre, .code-block, .chat-code-snippet {
           sendBtn.style.cursor = 'pointer';
           sendBtn.title = 'Send Message';
         }
+        if (lockBanner) lockBanner.style.display = 'none';
       }
       
       document.querySelectorAll('.channel-item').forEach(el => {
@@ -25799,6 +25817,27 @@ pre, .code-block, .chat-code-snippet {
       if (!input) return;
       let text = input.value.trim();
       if (!text) return;
+
+      // Announcements Channel Restriction: Admin Only
+      if (currentMode !== 'dm' && (currentChannel === 'announcements' || currentChannel === 'announcement')) {
+        const isUserAdmin = Boolean(
+          (typeof currentUser === 'string' && (
+            currentUser.toLowerCase() === 'connecto_admin' || 
+            currentUser.toLowerCase() === 'admin' ||
+            currentUser.toLowerCase() === 'vance' ||
+            currentUser.toLowerCase() === 'madara' ||
+            currentUser.toLowerCase() === 'viki' ||
+            currentUser.toLowerCase().endsWith('_admin')
+          )) ||
+          localStorage.getItem('connecto_is_admin') === '1' ||
+          (window.currentUserObj && window.currentUserObj.is_admin)
+        );
+        if (!isUserAdmin) {
+          showNotificationToast('Transmission Denied', 'Access Denied: Only administrators can post in #announcements.');
+          input.value = '';
+          return;
+        }
+      }
 
       const now = Date.now();
       // Rapid identical duplicate check: if user sends the exact same message within 1000ms
@@ -32282,7 +32321,32 @@ function handleInputFocus(focused) {
 
 function updateInputPlaceholder() {
   const input = document.getElementById('msgInput');
-  if (input) input.placeholder = 'Type a message…';
+  if (!input) return;
+  const ch = (typeof currentChannel !== 'undefined' && currentChannel) ? currentChannel : 'general';
+  if (ch === 'announcements' || ch === 'announcement') {
+    const isUserAdmin = Boolean(
+      (typeof currentUser === 'string' && (
+        currentUser.toLowerCase() === 'connecto_admin' || 
+        currentUser.toLowerCase() === 'admin' ||
+        currentUser.toLowerCase() === 'vance' ||
+        currentUser.toLowerCase() === 'madara' ||
+        currentUser.toLowerCase() === 'viki' ||
+        currentUser.toLowerCase().endsWith('_admin')
+      )) ||
+      localStorage.getItem('connecto_is_admin') === '1' ||
+      (window.currentUserObj && window.currentUserObj.is_admin)
+    );
+    if (!isUserAdmin) {
+      input.placeholder = '🔒 #announcements is read-only. Only administrators can broadcast.';
+      input.disabled = true;
+      return;
+    } else {
+      input.placeholder = 'Message #announcements... (Official Administrator Broadcast)';
+      input.disabled = false;
+      return;
+    }
+  }
+  input.placeholder = `Message #${ch}...`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

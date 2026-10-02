@@ -7,8 +7,9 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * Connecto Semantic Color System
- * Provides structured semantic colors for Light and Dark themes.
- * Clean, high-contrast, professional, and accessible.
+ * Strictly synchronized with the Web Editorial Dual-Theme System:
+ * - Edition 1: Pure Black OLED (Noir - 0-nit black canvas & crisp white/cyan typography)
+ * - Edition 2: Ivory Paper (Parchment - archival paper canvas & Sumi ink typography)
  */
 @Immutable
 data class ConnectoColors(
@@ -39,57 +40,57 @@ data class ConnectoColors(
 )
 
 val LightConnectoColors = ConnectoColors(
-    primary = Color(0xFF4F46E5),         // Refined Indigo 600
+    primary = Color(0xFF141312),          // Sumi Ink Accent
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFEEF2FF), // Indigo 50
-    onPrimaryContainer = Color(0xFF312E81),
-    background = Color(0xFFF8FAFC),       // Slate 50
-    onBackground = Color(0xFF0F172A),
-    surface = Color(0xFFFFFFFF),          // Pure White
-    onSurface = Color(0xFF0F172A),
-    surfaceVariant = Color(0xFFF1F5F9),   // Slate 100
-    onSurfaceVariant = Color(0xFF475569),
-    textPrimary = Color(0xFF0F172A),      // Slate 900
-    textSecondary = Color(0xFF64748B),    // Slate 500
-    textDisabled = Color(0xFF94A3B8),     // Slate 400
-    border = Color(0xFFE2E8F0),           // Slate 200
-    borderSubtle = Color(0xFFF1F5F9),     // Slate 100
+    primaryContainer = Color(0xFFEBE6DC), // Level 2 Warm Archival Surface
+    onPrimaryContainer = Color(0xFF141312),
+    background = Color(0xFFFBF8F2),       // Ivory Paper Canvas (#FBF8F2)
+    onBackground = Color(0xFF141312),
+    surface = Color(0xFFFFFFFF),          // Pure White Card Surface (#FFFFFF)
+    onSurface = Color(0xFF141312),
+    surfaceVariant = Color(0xFFF5F1E8),   // Level 1 Warm Surface (#F5F1E8)
+    onSurfaceVariant = Color(0xFF44403C), // Warm Secondary Ink (#44403C)
+    textPrimary = Color(0xFF141312),      // Deep Ink Header (#141312)
+    textSecondary = Color(0xFF44403C),    // Normal Body Ink (#44403C)
+    textDisabled = Color(0xFF78716C),     // Muted Archival Ink (#78716C)
+    border = Color(0xFFE7E2D8),           // Archival Border (#E7E2D8)
+    borderSubtle = Color(0xFFF0ECE4),     // Subtle Archival Border (#F0ECE4)
     success = Color(0xFF10B981),          // Emerald 500
     onSuccess = Color(0xFFFFFFFF),
-    warning = Color(0xFFF59E0B),          // Amber 500
+    warning = Color(0xFFD97706),          // Warm Amber 600
     onWarning = Color(0xFFFFFFFF),
-    error = Color(0xFFEF4444),            // Red 500
+    error = Color(0xFFDC2626),            // Crimson 600
     onError = Color(0xFFFFFFFF),
-    info = Color(0xFF3B82F6),             // Blue 500
+    info = Color(0xFF0891B2),             // Cyan 600
     onInfo = Color(0xFFFFFFFF),
     isDark = false
 )
 
 val DarkConnectoColors = ConnectoColors(
-    primary = Color(0xFF6366F1),          // Indigo 500 (Vibrant on dark)
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFF1E1B4B), // Deep Indigo 950
-    onPrimaryContainer = Color(0xFFE0E7FF),
-    background = Color(0xFF000000),       // Pure Black (OLED true 0-nit black)
+    primary = Color(0xFFFFFFFF),          // Crisp White Noir Accent
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF141418), // Deep Elevated Dark Container
+    onPrimaryContainer = Color(0xFFFFFFFF),
+    background = Color(0xFF000000),       // OLED True 0-nit Pure Black (#000000)
     onBackground = Color(0xFFFFFFFF),
-    surface = Color(0xFF08080A),          // Ultra-deep black surface (contrast against pure black canvas)
+    surface = Color(0xFF080808),          // Deep Modal & Nav Base (#080808)
     onSurface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0xFF141418),   // Slightly elevated dark container
-    onSurfaceVariant = Color(0xFFA1A1AA),
-    textPrimary = Color(0xFFFFFFFF),      // Pure crisp white
-    textSecondary = Color(0xFFA1A1AA),    // Slate/Zinc 400
-    textDisabled = Color(0xFF52525B),     // Zinc 600
-    border = Color(0xFF222228),           // Sleek 1dp OLED border
-    borderSubtle = Color(0xFF16161C),     // Hairline OLED border
+    surfaceVariant = Color(0xFF0A0A0A),   // Obsidian Card Surface (#0A0A0A)
+    onSurfaceVariant = Color(0xFFD4D4D8), // Secondary Text (#D4D4D8)
+    textPrimary = Color(0xFFFFFFFF),      // Pure Crisp White (#FFFFFF)
+    textSecondary = Color(0xFFD4D4D8),    // Normal Body Text (#D4D4D8)
+    textDisabled = Color(0xFF8E8E93),     // Muted Gray (#8E8E93)
+    border = Color(0xFF222228),           // Sleek 1dp OLED Border (#222228)
+    borderSubtle = Color(0xFF16161C),     // Hairline OLED Border (#16161C)
     success = Color(0xFF34D399),          // Emerald 400
     onSuccess = Color(0xFF064E3B),
     warning = Color(0xFFFBBF24),          // Amber 400
     onWarning = Color(0xFF78350F),
     error = Color(0xFFF87171),            // Red 400
     onError = Color(0xFF7F1D1D),
-    info = Color(0xFF60A5FA),             // Blue 400
-    onInfo = Color(0xFF1E3A8A),
+    info = Color(0xFF22D3EE),             // Cyber Cyan 400
+    onInfo = Color(0xFF083344),
     isDark = true
 )
 
-val LocalConnectoColors = staticCompositionLocalOf { LightConnectoColors }
+val LocalConnectoColors = staticCompositionLocalOf { DarkConnectoColors }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Brand Base Colors -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,5 +8,45 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="ic_launcher_background">#FF030712</color>
+    <color name="ic_launcher_background">#FF000000</color>
+
+    <!-- Edition 1: Pure Black OLED (Dark Theme / Noir) -->
+    <color name="noir_bg_darkest">#FF000000</color>
+    <color name="noir_bg_darker">#FF050505</color>
+    <color name="noir_bg_dark">#FF080808</color>
+    <color name="noir_bg_card">#FF0A0A0A</color>
+    <color name="noir_bg_card_hover">#FF181818</color>
+    <color name="noir_bg_modal">#FF080808</color>
+    <color name="noir_card_border">#1AFFFFFF</color>
+    <color name="noir_border_solid">#FF222228</color>
+    <color name="noir_border_subtle">#FF16161C</color>
+    <color name="noir_text_header">#FFFFFFFF</color>
+    <color name="noir_text_normal">#FFD4D4D8</color>
+    <color name="noir_text_muted">#FF8E8E93</color>
+    <color name="noir_accent">#FFFFFFFF</color>
+    <color name="noir_accent_cyan">#FF22D3EE</color>
+    <color name="noir_accent_indigo">#FF6366F1</color>
+    <color name="noir_success">#FF34D399</color>
+    <color name="noir_warning">#FFFBBF24</color>
+    <color name="noir_error">#FFF87171</color>
+
+    <!-- Edition 2: Ivory Paper (Light Theme / Parchment) -->
+    <color name="parchment_bg_darkest">#FFFBF8F2</color>
+    <color name="parchment_bg_darker">#FFF5F1E8</color>
+    <color name="parchment_bg_dark">#FFEBE6DC</color>
+    <color name="parchment_bg_card">#FFFFFFFF</color>
+    <color name="parchment_bg_card_hover">#FFFCFBF9</color>
+    <color name="parchment_bg_modal">#FFFFFFFF</color>
+    <color name="parchment_card_border">#1F44403C</color>
+    <color name="parchment_border_solid">#FFE7E2D8</color>
+    <color name="parchment_border_subtle">#FFF0ECE4</color>
+    <color name="parchment_text_header">#FF141312</color>
+    <color name="parchment_text_normal">#FF44403C</color>
+    <color name="parchment_text_muted">#FF78716C</color>
+    <color name="parchment_accent">#FF141312</color>
+    <color name="parchment_accent_cyan">#FF0891B2</color>
+    <color name="parchment_accent_indigo">#FF4F46E5</color>
+    <color name="parchment_success">#FF10B981</color>
+    <color name="parchment_warning">#FFD97706</color>
+    <color name="parchment_error">#FFDC2626</color>
 </resources>

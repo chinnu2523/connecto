@@ -8,19 +8,35 @@ import com.example.connecto.ui.designsystem.DarkConnectoColors
 import com.example.connecto.ui.designsystem.LightConnectoColors
 
 // ========== CONNECTO REFINED PROFESSIONAL PALETTE ==========
-// Classic, mature communication app theme (inspired by Slack, Teams, Discord standards)
+// Dark Edition: Pure Black OLED (0-nit luxury noir)
 val StitchCanvas = DarkConnectoColors.background         // OLED Pure Black Canvas (#000000)
-val StitchSurface = DarkConnectoColors.surface           // Deep Surface Container (#08080A)
-val StitchElevated = DarkConnectoColors.surfaceVariant   // Elevated Container (#141418)
-val StitchHover = Color(0xFF1C1C24)                     // Interactive Hover Surface
-val StitchAccent = DarkConnectoColors.primary           // Professional Indigo (#6366F1)
-val StitchCyan = DarkConnectoColors.info                // Professional Blue Accent (#60A5FA)
+val StitchSurface = DarkConnectoColors.surface           // Deep Base Container (#080808)
+val StitchElevated = DarkConnectoColors.surfaceVariant   // Obsidian Card Surface (#0A0A0A)
+val StitchHover = Color(0xFF181818)                     // Interactive Hover Surface (#181818)
+val StitchAccent = DarkConnectoColors.primary           // Crisp White Accent (#FFFFFF)
+val StitchCyan = DarkConnectoColors.info                // Cyber Cyan Accent (#22D3EE)
 val StitchEmerald = DarkConnectoColors.success          // Online Status Green (#34D399)
 val StitchGold = DarkConnectoColors.warning             // Notification Amber (#FBBF24)
 val StitchDanger = DarkConnectoColors.error             // Alert Red (#F87171)
 val StitchRim = DarkConnectoColors.border               // Crisp 1dp Border (#222228)
 val StitchRimSubtle = DarkConnectoColors.borderSubtle   // Subtle Border (#16161C)
 val StitchRimHover = Color(0xFF2E2E38)                  // Hover Border
+
+// Light Edition: Ivory Paper (Parchment)
+val ParchmentCanvas = LightConnectoColors.background       // Ivory Paper (#FBF8F2)
+val ParchmentSurface = LightConnectoColors.surface         // Crisp White (#FFFFFF)
+val ParchmentSurfaceVariant = LightConnectoColors.surfaceVariant // Level 1 Warm Surface (#F5F1E8)
+val ParchmentElevated = LightConnectoColors.primaryContainer    // Level 2 Warm Surface (#EBE6DC)
+val ParchmentBorder = LightConnectoColors.border           // Archival Border (#E7E2D8)
+val ParchmentBorderSubtle = LightConnectoColors.borderSubtle // Subtle Border (#F0ECE4)
+val ParchmentTextPrimary = LightConnectoColors.textPrimary  // Sumi Ink (#141312)
+val ParchmentTextSecondary = LightConnectoColors.textSecondary // Warm Secondary (#44403C)
+val ParchmentTextMuted = LightConnectoColors.textDisabled   // Archival Muted (#78716C)
+val ParchmentAccent = LightConnectoColors.primary           // Sumi Ink Accent (#141312)
+val ParchmentCyan = LightConnectoColors.info                // Cyan Accent (#0891B2)
+val ParchmentEmerald = LightConnectoColors.success          // Emerald (#10B981)
+val ParchmentGold = LightConnectoColors.warning             // Amber (#D97706)
+val ParchmentDanger = LightConnectoColors.error             // Crimson (#DC2626)
 
 // Standard Semantic Aliases
 val BackgroundColor = StitchCanvas
@@ -38,8 +54,8 @@ val TextSecondaryColor = DarkConnectoColors.textSecondary
 val TextDisabledColor = DarkConnectoColors.textDisabled
 
 // Accent Gradients (Subtle & Restrained)
-val DarkAccentGradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
-val LightAccentGradientColors = listOf(Color(0xFF4F46E5), Color(0xFF4338CA))
+val DarkAccentGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFA1A1AA))
+val LightAccentGradientColors = listOf(Color(0xFF141312), Color(0xFF292524))
 
 val AccentGradientColors = DarkAccentGradientColors
 val AccentGradient = Brush.linearGradient(AccentGradientColors)
@@ -77,5 +93,5 @@ fun isAppInLightTheme(): Boolean {
 
 @Composable
 fun getContentColorOnAccentGradient(): Color {
-    return Color.White
+    return if (isAppInLightTheme()) Color.White else Color.Black
 }

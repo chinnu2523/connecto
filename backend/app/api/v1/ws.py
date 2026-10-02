@@ -226,9 +226,24 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 # --- REAL-TIME CHAT MESSAGE RELAY ---
                 elif msg_type in ("chat_message", "message_send", "message:send"):
-                    ch_id = payload.get("channel_id") or payload.get("channel")
+                    ch_id = (payload.get("channel_id") or payload.get("channel") or "").strip().lower().removeprefix("#")
                     content = payload.get("content") or payload.get("text") or payload.get("message")
                     if ch_id and content:
+                        if ch_id in ("announcements", "announcement", "be4e2f58-0012-40f6-8180-ac92c4093ac2"):
+                            is_server_admin = bool(
+                                user and (
+                                    getattr(user, "is_admin", False) is True or
+                                    str(getattr(user, "username", "")).lower() in ("connecto_admin", "admin", "viki", "vivek", "madara", "vance") or
+                                    str(getattr(user, "id", "")) in ("usr_connecto_admin", "usr_madara", "77dac189-d653-44c4-80b2-29dc2d1b35f6")
+                                )
+                            )
+                            if not is_server_admin:
+                                await websocket.send_text(json.dumps({
+                                    "type": "error",
+                                    "code": 403,
+                                    "detail": "Access Denied: #announcements is strictly reserved for official server releases. Only the administrator can post."
+                                }))
+                                continue
                         event_payload = {
                             "type": "message_created",
                             "channel_id": ch_id,

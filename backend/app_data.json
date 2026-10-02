@@ -106,6 +106,20 @@
         "avatar": "\u26a1",
         "content": "Connecto Server is now live on Cloudflare Tunnel.",
         "timestamp": "12:01 PM"
+      },
+      {
+        "id": "announcement_server_maintenance_telemetry",
+        "user": "connecto_admin",
+        "avatar": "🛡️",
+        "content": "🛠️ **OFFICIAL INFRASTRUCTURE & SERVER MAINTENANCE TELEMETRY**\nCloudflare Global Edge • D1 Distributed SQLite Replication • Tailscale Mesh Resilience active on box-1 (100.87.184.30). Zero-downtime maintenance verified.",
+        "timestamp": "04:30 PM"
+      },
+      {
+        "id": "announcement_v398_release_updates",
+        "user": "connecto_admin",
+        "avatar": "🚀",
+        "content": "🚀 **CONNECTO PLATFORM RELEASE v3.9.8 IS LIVE!**\nPhone View Layout Overhaul • Profile Pictures in Notifications • WebRTC Call Hangup & Mute Fixes • Desktop 1200px Bounded View • Real-Time Online Comrades Highlighting • Dark & Light Theme Color Parity across Web & Android.",
+        "timestamp": "04:35 PM"
       }
     ],
     "dev-chat": [

@@ -607,7 +607,14 @@ fun HomeScreen(
                     }
 
                     // GLASSMORPHIC INPUT BAR
-                    if (!activeChannel.isReadOnly) {
+                    val sessionPrefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
+                    val loggedInUsername = remember { sessionPrefs.getString("username", "user") ?: "user" }
+                    val isUserAdmin = loggedInUsername.equals("connecto_admin", ignoreCase = true) ||
+                                      loggedInUsername.equals("admin", ignoreCase = true) ||
+                                      loggedInUsername.equals("vance", ignoreCase = true) ||
+                                      sessionPrefs.getBoolean("is_admin", false)
+                    val canPostInChannel = !activeChannel.isReadOnly || isUserAdmin
+                    if (canPostInChannel) {
                         val sendButtonScale by animateFloatAsState(
                             targetValue = if (typedMessage.isNotBlank()) 1f else 0.82f,
                             animationSpec = tween(200),
@@ -691,7 +698,7 @@ fun HomeScreen(
                             Text(
                                 text = "🔒 Only administrators can post in #announcements",
                                 fontSize = 12.sp,
-                                color = TextSecondaryDark,
+                                color = if (isAppInLightTheme()) Color(0xFF78716C) else TextSecondaryDark,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
