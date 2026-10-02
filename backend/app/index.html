@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="parchment">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -342,29 +342,29 @@
 
     /* Edition 2: Ivory Parchment (Warm Archival Paper) */
     html[data-theme="parchment"], html[data-theme="cyberpunk"] {
-      --accent: #111111;
+      --accent: #141312;
       --accent-hover: #000000;
-      --accent-tint: rgba(0, 0, 0, 0.05);
-      --accent-border: rgba(0, 0, 0, 0.15);
+      --accent-tint: rgba(212, 175, 125, 0.08);
+      --accent-border: rgba(68, 64, 60, 0.22);
       --accent-glow: transparent;
-      --accent-secondary: #52525b;
-      --accent-secondary-hover: #27272a;
-      --chakra-cyan: #111111;
-      --bg-darkest: #fbf9f5;
-      --bg-darker: #f4f1ea;
-      --bg-dark: #ebe7de;
+      --accent-secondary: #44403c;
+      --accent-secondary-hover: #1c1917;
+      --chakra-cyan: #141312;
+      --bg-darkest: #fbf8f2;
+      --bg-darker: #f5f1e8;
+      --bg-dark: #ebe6dc;
       --bg-card: #ffffff;
       --bg-card-hover: #fcfbf9;
       --bg-modal: #ffffff;
-      --bg-nav: rgba(251, 249, 245, 0.94);
-      --card-border: rgba(0, 0, 0, 0.09);
-      --text-normal: #3f3f46;
-      --text-muted: #71717a;
-      --text-header: #111111;
+      --bg-nav: rgba(251, 248, 242, 0.92);
+      --card-border: rgba(68, 64, 60, 0.12);
+      --text-normal: #44403c;
+      --text-muted: #78716c;
+      --text-header: #141312;
       --hero-glow-1: transparent;
       --hero-glow-2: transparent;
-      --hero-grad-start: #111111;
-      --hero-grad-end: #27272a;
+      --hero-grad-start: #141312;
+      --hero-grad-end: #292524;
       --theme-name: "Ivory Parchment";
     }
 
@@ -726,18 +726,47 @@
       }
     }
 
-    /* Light Theme (Ivory Parchment) Comprehensive Paper Styling */
-    html[data-theme="parchment"],
-    html[data-theme="cyberpunk"] {
-      color: #3f3f46 !important;
+    /* ==========================================================================
+       ARCHIVAL IVORY PAPER SUITE: TACTILE TEXTURE & EDITORIAL SYSTEM
+       - Microscopic SVG Cold-Pressed Cotton Fiber Paper Texture Overlay
+       - Intaglio Letterpress Typographic Deboss Impressions
+       - Hand-Deckled Paper Shadows & Tactile Multi-Tier Ambient Plume
+       - Archival Drafting Grid Ruling Lines & Atmospheric Blueprint Surface
+       - Classic Editorial Ribbon Transitions & Tactile Stamp Press Physics
+       ========================================================================== */
+
+    /* 1. Tactile Archival Paper Grain Noise Overlay (Physical Fiber Sensation) */
+    html[data-theme="parchment"]::before,
+    html[data-theme="cyberpunk"]::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 99999;
+      opacity: 0.048;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' width='256' height='256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paperFiber'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.14 0 0 0 0 0.12 0 0 0 0 0.09 1 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paperFiber)'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 192px 192px;
     }
+
+    /* 2. Archival Drafting Paper Surface & Atmospheric Watermark */
     html[data-theme="parchment"] body,
     html[data-theme="cyberpunk"] body,
     html[data-theme="parchment"] #heroView,
     html[data-theme="cyberpunk"] #heroView {
-      background-color: #fbf9f5 !important;
-      color: #3f3f46 !important;
+      background-color: #fbf8f2 !important;
+      background-image: 
+        radial-gradient(ellipse 90% 50% at 50% 0%, rgba(212, 175, 125, 0.14), transparent 75%),
+        linear-gradient(rgba(68, 64, 60, 0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(68, 64, 60, 0.022) 1px, transparent 1px) !important;
+      background-size: 100% 100%, 36px 36px, 36px 36px !important;
+      color: #44403c !important;
     }
+
+    /* 3. Letterpress Intaglio Deboss Effect for Headlines */
     html[data-theme="parchment"] .hero-official-title,
     html[data-theme="cyberpunk"] .hero-official-title,
     html[data-theme="parchment"] .section-title,
@@ -752,75 +781,34 @@
     html[data-theme="cyberpunk"] h3,
     html[data-theme="parchment"] h4,
     html[data-theme="cyberpunk"] h4 {
-      color: #111111 !important;
+      color: #141312 !important;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95), 0 -0.5px 0.5px rgba(28, 25, 23, 0.12) !important;
+      letter-spacing: -0.022em !important;
     }
+
+    html[data-theme="parchment"] .shimmer-title,
+    html[data-theme="cyberpunk"] .shimmer-title {
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      -webkit-text-fill-color: #141312 !important;
+      color: #141312 !important;
+      animation: none !important;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95), 0 -0.5px 0.5px rgba(28, 25, 23, 0.12) !important;
+    }
+
     html[data-theme="parchment"] .hero-official-desc,
     html[data-theme="cyberpunk"] .hero-official-desc,
     html[data-theme="parchment"] .section-desc,
     html[data-theme="cyberpunk"] .section-desc,
-    html[data-theme="parchment"] .landing-link,
-    html[data-theme="cyberpunk"] .landing-link,
     html[data-theme="parchment"] p,
     html[data-theme="cyberpunk"] p {
-      color: #52525b !important;
+      color: #44403c !important;
+      text-rendering: optimizeLegibility;
     }
-    html[data-theme="parchment"] .landing-link:hover,
-    html[data-theme="cyberpunk"] .landing-link:hover {
-      color: #111111 !important;
-    }
-    html[data-theme="parchment"] .landing-nav,
-    html[data-theme="cyberpunk"] .landing-nav {
-      background: rgba(251, 249, 245, 0.94) !important;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-    }
-    html[data-theme="parchment"] .hero-cta-btn-primary,
-    html[data-theme="cyberpunk"] .hero-cta-btn-primary,
-    html[data-theme="parchment"] .nav-signup-cta-btn,
-    html[data-theme="cyberpunk"] .nav-signup-cta-btn {
-      background: #111111 !important;
-      color: #ffffff !important;
-      border-color: #111111 !important;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
-    }
-    html[data-theme="parchment"] .hero-cta-btn-secondary,
-    html[data-theme="cyberpunk"] .hero-cta-btn-secondary {
-      background: transparent !important;
-      color: #111111 !important;
-      border-color: rgba(0, 0, 0, 0.16) !important;
-    }
-    html[data-theme="parchment"] .chat-mockup-card,
-    html[data-theme="cyberpunk"] .chat-mockup-card {
-      background: #ffffff !important;
-      border-color: rgba(0, 0, 0, 0.10) !important;
-      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
-    }
-    html[data-theme="parchment"] .mock-win-header,
-    html[data-theme="cyberpunk"] .mock-win-header {
-      background: #f7f6f2 !important;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-    }
-    html[data-theme="parchment"] .mock-win-title,
-    html[data-theme="cyberpunk"] .mock-win-title {
-      color: #111111 !important;
-    }
-    html[data-theme="parchment"] .mock-sidebar,
-    html[data-theme="cyberpunk"] .mock-sidebar {
-      background: #faf9f6 !important;
-      border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
-    }
-    html[data-theme="parchment"] .mock-ch,
-    html[data-theme="cyberpunk"] .mock-ch {
-      color: #52525b !important;
-    }
-    html[data-theme="parchment"] .mock-ch.active,
-    html[data-theme="cyberpunk"] .mock-ch.active {
-      color: #111111 !important;
-      background: rgba(0, 0, 0, 0.05) !important;
-    }
-    html[data-theme="parchment"] .mock-body-layout,
-    html[data-theme="cyberpunk"] .mock-body-layout {
-      background: #ffffff !important;
-    }
+
+    /* 4. Archival Cotton Paper Elevation & Hand-Deckled Shadow System */
+    html[data-theme="parchment"] .crystal-card,
+    html[data-theme="cyberpunk"] .crystal-card,
     html[data-theme="parchment"] .ecosystem-card,
     html[data-theme="cyberpunk"] .ecosystem-card,
     html[data-theme="parchment"] .usecase-card,
@@ -849,11 +837,263 @@
     html[data-theme="cyberpunk"] .android-feat-card,
     html[data-theme="parchment"] .final-cta-card,
     html[data-theme="cyberpunk"] .final-cta-card,
-    html[data-theme="parchment"] .landing-footer,
-    html[data-theme="cyberpunk"] .landing-footer {
+    html[data-theme="parchment"] .chat-mockup-card,
+    html[data-theme="cyberpunk"] .chat-mockup-card {
+      background: radial-gradient(540px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 175, 125, 0.08), transparent 70%), #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.13) !important;
+      box-shadow:
+        0 0 0 1px rgba(68, 64, 60, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.98),
+        inset 0 -1px 0 rgba(68, 64, 60, 0.04),
+        0 1px 2px rgba(44, 40, 37, 0.03),
+        0 6px 20px -3px rgba(44, 40, 37, 0.06) !important;
+    }
+
+    /* 5. Tactile Deckle-Lift Physical Hover Animation */
+    html[data-theme="parchment"] .crystal-card:hover,
+    html[data-theme="cyberpunk"] .crystal-card:hover,
+    html[data-theme="parchment"] .ecosystem-card:hover,
+    html[data-theme="cyberpunk"] .ecosystem-card:hover,
+    html[data-theme="parchment"] .usecase-card:hover,
+    html[data-theme="cyberpunk"] .usecase-card:hover,
+    html[data-theme="parchment"] .step-card-custom:hover,
+    html[data-theme="cyberpunk"] .step-card-custom:hover,
+    html[data-theme="parchment"] .comparison-card:hover,
+    html[data-theme="cyberpunk"] .comparison-card:hover,
+    html[data-theme="parchment"] .bento-card:hover,
+    html[data-theme="cyberpunk"] .bento-card:hover,
+    html[data-theme="parchment"] .faq-item:hover,
+    html[data-theme="cyberpunk"] .faq-item:hover,
+    html[data-theme="parchment"] .final-cta-card:hover,
+    html[data-theme="cyberpunk"] .final-cta-card:hover {
+      transform: translateY(-4.5px) scale(1.003) !important;
+      border-color: rgba(28, 25, 23, 0.28) !important;
+      box-shadow:
+        0 0 0 1px rgba(28, 25, 23, 0.18),
+        inset 0 1px 0 #ffffff,
+        inset 0 -1px 0 rgba(68, 64, 60, 0.06),
+        0 3px 6px rgba(44, 40, 37, 0.04),
+        0 16px 36px -6px rgba(44, 40, 37, 0.11),
+        0 30px 60px -12px rgba(44, 40, 37, 0.07) !important;
+    }
+
+    /* 6. Floating Island Navigation & Capsule Editions Dock */
+    html[data-theme="parchment"] .landing-nav,
+    html[data-theme="cyberpunk"] .landing-nav {
+      background: rgba(251, 248, 242, 0.92) !important;
+      backdrop-filter: blur(28px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow:
+        0 0 0 1px rgba(68, 64, 60, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 6px 22px -4px rgba(44, 40, 37, 0.08) !important;
+    }
+    html[data-theme="parchment"] .landing-nav.scrolled,
+    html[data-theme="cyberpunk"] .landing-nav.scrolled {
+      background: rgba(251, 248, 242, 0.96) !important;
+      box-shadow:
+        0 0 0 1px rgba(68, 64, 60, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.98),
+        0 12px 32px -6px rgba(44, 40, 37, 0.12) !important;
+    }
+    html[data-theme="parchment"] .theme-studio-dock,
+    html[data-theme="cyberpunk"] .theme-studio-dock {
+      background: rgba(251, 248, 242, 0.94) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow:
+        0 0 0 1px rgba(68, 64, 60, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 8px 24px -6px rgba(44, 40, 37, 0.08) !important;
+    }
+    html[data-theme="parchment"] .theme-studio-label,
+    html[data-theme="cyberpunk"] .theme-studio-label {
+      color: #78716c !important;
+      letter-spacing: 0.05em !important;
+      text-transform: uppercase !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+    }
+    html[data-theme="parchment"] .theme-pill-btn,
+    html[data-theme="cyberpunk"] .theme-pill-btn {
+      color: #78716c !important;
+      border-color: rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .theme-pill-btn:hover,
+    html[data-theme="cyberpunk"] .theme-pill-btn:hover {
+      color: #141312 !important;
+      background: rgba(68, 64, 60, 0.05) !important;
+    }
+    html[data-theme="parchment"] .theme-pill-btn.active,
+    html[data-theme="cyberpunk"] .theme-pill-btn.active {
+      color: #ffffff !important;
+      background: #141312 !important;
+      border-color: #141312 !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 6px rgba(20, 19, 18, 0.2) !important;
+    }
+
+    /* 7. Classic Editorial Ribbon Underline Animation */
+    html[data-theme="parchment"] .landing-link,
+    html[data-theme="cyberpunk"] .landing-link {
+      position: relative !important;
+      color: #44403c !important;
+      transition: color 0.2s ease !important;
+      text-decoration: none !important;
+    }
+    html[data-theme="parchment"] .landing-link::after,
+    html[data-theme="cyberpunk"] .landing-link::after {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 1.5px;
+      background: #141312;
+      transform: scaleX(0);
+      transform-origin: right;
+      transition: transform 0.28s var(--ease-crystal);
+    }
+    html[data-theme="parchment"] .landing-link:hover,
+    html[data-theme="cyberpunk"] .landing-link:hover {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .landing-link:hover::after,
+    html[data-theme="cyberpunk"] .landing-link:hover::after {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+
+    /* 8. Hot-Stamping & Sealing Wax Button Physics */
+    html[data-theme="parchment"] .hero-cta-btn-primary,
+    html[data-theme="cyberpunk"] .hero-cta-btn-primary,
+    html[data-theme="parchment"] .nav-signup-cta-btn,
+    html[data-theme="cyberpunk"] .nav-signup-cta-btn,
+    html[data-theme="parchment"] .android-primary-download-btn,
+    html[data-theme="cyberpunk"] .android-primary-download-btn {
+      background: #141312 !important;
+      color: #fbf8f2 !important;
+      border: 1px solid #141312 !important;
+      box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        0 2px 4px rgba(20, 19, 18, 0.12),
+        0 8px 20px -4px rgba(20, 19, 18, 0.22) !important;
+    }
+    html[data-theme="parchment"] .hero-cta-btn-primary:hover,
+    html[data-theme="cyberpunk"] .hero-cta-btn-primary:hover,
+    html[data-theme="parchment"] .nav-signup-cta-btn:hover,
+    html[data-theme="cyberpunk"] .nav-signup-cta-btn:hover,
+    html[data-theme="parchment"] .android-primary-download-btn:hover,
+    html[data-theme="cyberpunk"] .android-primary-download-btn:hover {
+      background: #23201e !important;
+      color: #ffffff !important;
+      transform: translateY(-2px) !important;
+      box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.25),
+        0 4px 8px rgba(20, 19, 18, 0.15),
+        0 14px 28px -4px rgba(20, 19, 18, 0.32) !important;
+    }
+    html[data-theme="parchment"] .hero-cta-btn-secondary,
+    html[data-theme="cyberpunk"] .hero-cta-btn-secondary,
+    html[data-theme="parchment"] .android-secondary-action-btn,
+    html[data-theme="cyberpunk"] .android-secondary-action-btn {
+      background: rgba(255, 255, 255, 0.88) !important;
+      color: #141312 !important;
+      border: 1px solid rgba(68, 64, 60, 0.22) !important;
+      box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(44, 40, 37, 0.05) !important;
+    }
+    html[data-theme="parchment"] .hero-cta-btn-secondary:hover,
+    html[data-theme="cyberpunk"] .hero-cta-btn-secondary:hover,
+    html[data-theme="parchment"] .android-secondary-action-btn:hover,
+    html[data-theme="cyberpunk"] .android-secondary-action-btn:hover {
       background: #ffffff !important;
-      border-color: rgba(0, 0, 0, 0.08) !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+      border-color: #141312 !important;
+      transform: translateY(-1.5px) !important;
+      box-shadow: inset 0 1px 0 #ffffff, 0 4px 12px rgba(44, 40, 37, 0.08) !important;
+    }
+    html[data-theme="parchment"] .btn:active,
+    html[data-theme="cyberpunk"] .btn:active,
+    html[data-theme="parchment"] .hero-cta-btn-primary:active,
+    html[data-theme="cyberpunk"] .hero-cta-btn-primary:active,
+    html[data-theme="parchment"] .hero-cta-btn-secondary:active,
+    html[data-theme="cyberpunk"] .hero-cta-btn-secondary:active,
+    html[data-theme="parchment"] .nav-signup-cta-btn:active,
+    html[data-theme="cyberpunk"] .nav-signup-cta-btn:active,
+    html[data-theme="parchment"] .android-primary-download-btn:active,
+    html[data-theme="cyberpunk"] .android-primary-download-btn:active,
+    html[data-theme="parchment"] .theme-pill-btn:active,
+    html[data-theme="cyberpunk"] .theme-pill-btn:active {
+      transform: scale(0.975) translateY(1px) !important;
+    }
+
+    /* 9. Archival Bookplate Seals & Inset Tags */
+    html[data-theme="parchment"] .hero-pill-badge,
+    html[data-theme="cyberpunk"] .hero-pill-badge,
+    html[data-theme="parchment"] .ecosystem-card-badge,
+    html[data-theme="cyberpunk"] .ecosystem-card-badge,
+    html[data-theme="parchment"] .bento-pill-tag,
+    html[data-theme="cyberpunk"] .bento-pill-tag,
+    html[data-theme="parchment"] .stat-icon-wrap,
+    html[data-theme="cyberpunk"] .stat-icon-wrap,
+    html[data-theme="parchment"] .android-release-badge,
+    html[data-theme="cyberpunk"] .android-release-badge {
+      color: #141312 !important;
+      background: #f5f1e8 !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(44, 40, 37, 0.04) !important;
+      letter-spacing: 0.04em !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-feature-chip,
+    html[data-theme="cyberpunk"] .ecosystem-feature-chip,
+    html[data-theme="parchment"] .android-release-device-chip,
+    html[data-theme="cyberpunk"] .android-release-device-chip {
+      color: #44403c !important;
+      background: #faf7f0 !important;
+      border: 1px solid rgba(68, 64, 60, 0.12) !important;
+    }
+
+    html[data-theme="parchment"] .stat-num-custom,
+    html[data-theme="cyberpunk"] .stat-num-custom {
+      color: #141312 !important;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95), 0 -0.5px 0.5px rgba(44, 40, 37, 0.12) !important;
+    }
+    html[data-theme="parchment"] .stat-label-custom,
+    html[data-theme="cyberpunk"] .stat-label-custom {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .stat-subtext,
+    html[data-theme="cyberpunk"] .stat-subtext {
+      color: #a8a29e !important;
+    }
+
+    html[data-theme="parchment"] .mock-win-header,
+    html[data-theme="cyberpunk"] .mock-win-header {
+      background: #f5f1e8 !important;
+      border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .mock-win-title,
+    html[data-theme="cyberpunk"] .mock-win-title {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .mock-sidebar,
+    html[data-theme="cyberpunk"] .mock-sidebar {
+      background: #faf7f0 !important;
+      border-right: 1px solid rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .mock-ch,
+    html[data-theme="cyberpunk"] .mock-ch {
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .mock-ch.active,
+    html[data-theme="cyberpunk"] .mock-ch.active {
+      color: #141312 !important;
+      background: rgba(68, 64, 60, 0.08) !important;
+    }
+    html[data-theme="parchment"] .mock-body-layout,
+    html[data-theme="cyberpunk"] .mock-body-layout {
+      background: #ffffff !important;
     }
 
     html[data-theme="parchment"] .ecosystem-card-title,
@@ -870,10 +1110,6 @@
     html[data-theme="cyberpunk"] .comparison-card-title,
     html[data-theme="parchment"] .arch-node-title,
     html[data-theme="cyberpunk"] .arch-node-title,
-    html[data-theme="parchment"] .stat-num-custom,
-    html[data-theme="cyberpunk"] .stat-num-custom,
-    html[data-theme="parchment"] .stat-label-custom,
-    html[data-theme="cyberpunk"] .stat-label-custom,
     html[data-theme="parchment"] .android-showcase-title,
     html[data-theme="cyberpunk"] .android-showcase-title,
     html[data-theme="parchment"] .android-feat-card-title,
@@ -882,13 +1118,41 @@
     html[data-theme="cyberpunk"] .android-spec-val,
     html[data-theme="parchment"] .faq-question,
     html[data-theme="cyberpunk"] .faq-question,
+    html[data-theme="parchment"] .faq-q,
+    html[data-theme="cyberpunk"] .faq-q,
+    html[data-theme="parchment"] .faq-q-title,
+    html[data-theme="cyberpunk"] .faq-q-title,
     html[data-theme="parchment"] .final-cta-card h2,
     html[data-theme="cyberpunk"] .final-cta-card h2,
     html[data-theme="parchment"] .footer-col h5,
     html[data-theme="cyberpunk"] .footer-col h5,
     html[data-theme="parchment"] .auth-title,
     html[data-theme="cyberpunk"] .auth-title {
-      color: #111111 !important;
+      color: #141312 !important;
+    }
+
+    html[data-theme="parchment"] .faq-q-icon,
+    html[data-theme="cyberpunk"] .faq-q-icon {
+      color: #141312 !important;
+      background: #f5f1e8 !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+    }
+
+    html[data-theme="parchment"] .faq-q-chevron,
+    html[data-theme="cyberpunk"] .faq-q-chevron {
+      color: #78716c !important;
+    }
+
+    html[data-theme="parchment"] .faq-a-inner,
+    html[data-theme="cyberpunk"] .faq-a-inner {
+      color: #57534e !important;
+      border-top: 1px solid rgba(68, 64, 60, 0.10) !important;
+    }
+
+    html[data-theme="parchment"] .faq-item.active,
+    html[data-theme="cyberpunk"] .faq-item.active {
+      border-color: rgba(20, 19, 18, 0.3) !important;
+      background: #ffffff !important;
     }
 
     html[data-theme="parchment"] .ecosystem-card-desc,
@@ -903,8 +1167,6 @@
     html[data-theme="cyberpunk"] .comparison-row,
     html[data-theme="parchment"] .arch-node-desc,
     html[data-theme="cyberpunk"] .arch-node-desc,
-    html[data-theme="parchment"] .stat-subtext,
-    html[data-theme="cyberpunk"] .stat-subtext,
     html[data-theme="parchment"] .android-showcase-desc,
     html[data-theme="cyberpunk"] .android-showcase-desc,
     html[data-theme="parchment"] .android-feat-card-desc,
@@ -921,89 +1183,58 @@
     html[data-theme="cyberpunk"] .footer-link,
     html[data-theme="parchment"] .footer-col li,
     html[data-theme="cyberpunk"] .footer-col li {
-      color: #52525b !important;
-    }
-
-    html[data-theme="parchment"] .ecosystem-card-badge,
-    html[data-theme="cyberpunk"] .ecosystem-card-badge,
-    html[data-theme="parchment"] .bento-pill-tag,
-    html[data-theme="cyberpunk"] .bento-pill-tag,
-    html[data-theme="parchment"] .stat-icon-wrap,
-    html[data-theme="cyberpunk"] .stat-icon-wrap,
-    html[data-theme="parchment"] .android-release-badge,
-    html[data-theme="cyberpunk"] .android-release-badge {
-      color: #111111 !important;
-      background: rgba(0, 0, 0, 0.05) !important;
-      border-color: rgba(0, 0, 0, 0.1) !important;
-    }
-
-    html[data-theme="parchment"] .ecosystem-feature-chip,
-    html[data-theme="cyberpunk"] .ecosystem-feature-chip,
-    html[data-theme="parchment"] .android-release-device-chip,
-    html[data-theme="cyberpunk"] .android-release-device-chip {
-      color: #52525b !important;
-      background: rgba(0, 0, 0, 0.03) !important;
-      border-color: rgba(0, 0, 0, 0.08) !important;
+      color: #57534e !important;
     }
 
     html[data-theme="parchment"] .ecosystem-card-btn,
     html[data-theme="cyberpunk"] .ecosystem-card-btn {
-      color: #111111 !important;
+      color: #141312 !important;
     }
 
     html[data-theme="parchment"] .android-specs-row,
     html[data-theme="cyberpunk"] .android-specs-row {
-      background: #f7f6f2 !important;
-      border-color: rgba(0, 0, 0, 0.08) !important;
+      background: #f5f1e8 !important;
+      border-color: rgba(68, 64, 60, 0.12) !important;
     }
-
-    html[data-theme="parchment"] .android-primary-download-btn,
-    html[data-theme="cyberpunk"] .android-primary-download-btn {
-      background: #111111 !important;
-      color: #ffffff !important;
-      border-color: #111111 !important;
-    }
-
-    html[data-theme="parchment"] .android-secondary-action-btn,
-    html[data-theme="cyberpunk"] .android-secondary-action-btn {
-      background: #ffffff !important;
-      color: #111111 !important;
-      border-color: rgba(0, 0, 0, 0.14) !important;
-    }
-
     html[data-theme="parchment"] .android-security-note,
     html[data-theme="cyberpunk"] .android-security-note {
-      background: #f7f6f2 !important;
-      border-color: rgba(0, 0, 0, 0.08) !important;
+      background: #f5f1e8 !important;
+      border-color: rgba(68, 64, 60, 0.12) !important;
     }
 
     html[data-theme="parchment"] .landing-link-btn,
     html[data-theme="cyberpunk"] .landing-link-btn {
-      color: #52525b !important;
+      color: #57534e !important;
     }
     html[data-theme="parchment"] .discovery-search-input,
     html[data-theme="cyberpunk"] .discovery-search-input {
       background: #ffffff !important;
-      border-color: rgba(0, 0, 0, 0.12) !important;
-      color: #111111 !important;
+      border-color: rgba(68, 64, 60, 0.16) !important;
+      color: #141312 !important;
     }
     html[data-theme="parchment"] .filter-chip,
     html[data-theme="cyberpunk"] .filter-chip {
       background: #ffffff !important;
-      border-color: rgba(0, 0, 0, 0.10) !important;
-      color: #52525b !important;
+      border-color: rgba(68, 64, 60, 0.14) !important;
+      color: #57534e !important;
     }
     html[data-theme="parchment"] .filter-chip.active,
     html[data-theme="cyberpunk"] .filter-chip.active {
-      background: #111111 !important;
+      background: #141312 !important;
       color: #ffffff !important;
-      border-color: #111111 !important;
+      border-color: #141312 !important;
     }
     html[data-theme="parchment"] .marquee-chip,
     html[data-theme="cyberpunk"] .marquee-chip {
       background: #ffffff !important;
-      border-color: rgba(0, 0, 0, 0.08) !important;
-      color: #3f3f46 !important;
+      border-color: rgba(68, 64, 60, 0.12) !important;
+      color: #44403c !important;
+    }
+
+    html[data-theme="parchment"] .landing-footer,
+    html[data-theme="cyberpunk"] .landing-footer {
+      background: #f5f1e8 !important;
+      border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
 
     /* ==========================================================================
@@ -1026,7 +1257,7 @@
 
     html[data-theme="parchment"],
     html[data-theme="cyberpunk"] {
-      --crystal-specular: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+      --crystal-specular: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(68, 64, 60, 0.04);
     }
 
     /* 1. Crystalline Elevation & Multi-Tier Diffuse Shadows */
@@ -16020,11 +16251,11 @@ pre, .code-block, .chat-code-snippet {
           <span>Curated Editions</span>
         </div>
         <div class="theme-studio-pills">
-          <button class="theme-pill-btn active" data-theme-btn="noir" onclick="setHomepageTheme('noir')" title="Edition 1: Editorial Noir (Archival Ink)">
+          <button class="theme-pill-btn" data-theme-btn="noir" onclick="setHomepageTheme('noir')" title="Edition 1: Editorial Noir (Archival Ink)">
             <span class="theme-pill-dot" style="background:#fafafa; border:1px solid #71717a;"></span>
             <span>1. Noir Ink</span>
           </button>
-          <button class="theme-pill-btn" data-theme-btn="parchment" onclick="setHomepageTheme('parchment')" title="Edition 2: Ivory Parchment (Warm Archival Paper)">
+          <button class="theme-pill-btn active" data-theme-btn="parchment" onclick="setHomepageTheme('parchment')" title="Edition 2: Ivory Parchment (Warm Archival Paper)">
             <span class="theme-pill-dot" style="background:#f4f1ea; border:1px solid #111111;"></span>
             <span>2. Ivory Paper</span>
           </button>
@@ -27896,7 +28127,7 @@ function selectSettingsAvatar(emoji, el) {
           alpine: 'alpine',
           vaporwave: 'alpine'
         };
-        const canonicalTheme = aliasMap[themeId] || 'noir';
+        const canonicalTheme = aliasMap[themeId] || 'parchment';
 
         const root = document.documentElement;
 
@@ -27936,7 +28167,7 @@ function selectSettingsAvatar(emoji, el) {
           cashmere: 'gold',
           alpine: 'indigo'
         };
-        const eqChakra = chakraMap[canonicalTheme] || 'cyan';
+        const eqChakra = chakraMap[canonicalTheme] || 'crimson';
         document.querySelectorAll('.chakra-theme-dot').forEach(d => {
           d.classList.toggle('active', d.dataset.theme === eqChakra);
         });
@@ -27972,9 +28203,9 @@ function selectSettingsAvatar(emoji, el) {
         indigo:  { accent: '#eef4f0', glow: 'transparent', cyan: '#9cb3a5' },
         gold:    { accent: '#f7ede2', glow: 'transparent', cyan: '#d5bdaf' },
         emerald: { accent: '#f1f5f9', glow: 'transparent', cyan: '#94a3b8' },
-        crimson: { accent: '#111111', glow: 'transparent', cyan: '#111111' }
+        crimson: { accent: '#141312', glow: 'transparent', cyan: '#141312' }
       };
-      const p = palettes[themeName] || palettes.cyan;
+      const p = palettes[themeName] || palettes.crimson;
       root.style.setProperty('--accent', p.accent);
       root.style.setProperty('--accent-glow', p.glow);
       root.style.setProperty('--chakra-cyan', p.cyan);
@@ -27991,10 +28222,10 @@ function selectSettingsAvatar(emoji, el) {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const queryTheme = urlParams.get('theme');
-      const savedTheme = queryTheme || localStorage.getItem('connecto_home_theme') || 'noir';
+      const savedTheme = queryTheme || localStorage.getItem('connecto_home_theme') || 'parchment';
       setHomepageTheme(savedTheme, false);
     } catch (e) {
-      setHomepageTheme('noir', false);
+      setHomepageTheme('parchment', false);
     }
 
     // Global keyboard shortcuts
