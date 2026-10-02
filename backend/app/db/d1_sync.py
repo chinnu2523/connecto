@@ -72,6 +72,31 @@ class D1SyncManager:
             logger.error(f"[D1_SYNC] Failed to execute D1 query: {e}")
             return None
 
+    def execute_batch_cloud_d1(self, statements: List[str]) -> bool:
+        """Executes a list of SQL statements via Cloudflare D1 batch API."""
+        if not statements:
+            return True
+        try:
+            req = urllib.request.Request(
+                self.endpoint,
+                data=json.dumps({"batch": [{"sql": s} for s in statements]}).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json",
+                    "X-D1-Key": self.api_key,
+                    "User-Agent": self.user_agent
+                }
+            )
+            with urllib.request.urlopen(req, timeout=10.0) as resp:
+                if resp.status == 200:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    return bool(data.get("success"))
+                else:
+                    logger.error(f"[D1_SYNC] D1 batch HTTP error: {resp.status}")
+            return False
+        except Exception as e:
+            logger.error(f"[D1_SYNC] Failed to execute D1 batch: {e}")
+            return False
+
     def send_heartbeat(self, state: str = "UP", details: str = "Local server operational on port 8081"):
         """Sends real-time origin heartbeat to Cloudflare D1."""
         t0 = time.time()
@@ -89,7 +114,7 @@ class D1SyncManager:
             logger.warning(f"[D1_SYNC] Could not send heartbeat state={state}")
 
     def sync_table_to_cloud(self, table_name: str) -> int:
-        """Pushes rows from local SQLite table to Cloudflare D1 using INSERT OR REPLACE."""
+        """Pushes rows from local SQLite table to Cloudflare D1 using INSERT OR REPLACE via batch API."""
         try:
             conn = sqlite3.connect(self.local_db_path)
             conn.row_factory = sqlite3.Row
@@ -116,8 +141,8 @@ class D1SyncManager:
                 s = str(v).replace("'", "''")
                 return f"'{s}'"
 
-            # Batch statements in groups of 10 for clean execution
-            batch_size = 10
+            # Batch statements in groups of 25 for fast, clean, atomic execution
+            batch_size = 25
             total_synced = 0
 
             for i in range(0, len(rows), batch_size):
@@ -130,10 +155,11 @@ class D1SyncManager:
                     stmt = f"INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({val_str});"
                     statements.append(stmt)
 
-                combined_sql = "\n".join(statements)
-                res = self.query_cloud_d1(combined_sql)
-                if res is not None:
+                success = self.execute_batch_cloud_d1(statements)
+                if success:
                     total_synced += len(batch)
+                else:
+                    logger.warning(f"[D1_SYNC] Batch sync failed for table {table_name} batch offset {i}")
 
             return total_synced
         except Exception as e:
