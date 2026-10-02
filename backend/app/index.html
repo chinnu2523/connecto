@@ -2278,7 +2278,6 @@
       color: #57534e !important;
     }
 
-    /* Members Sidebar (Right Side) */
     html[data-theme="parchment"] .members-sidebar {
       background: #fbf8f2 !important;
       border-left: 1px solid rgba(68, 64, 60, 0.14) !important;
@@ -2291,6 +2290,115 @@
     }
     html[data-theme="parchment"] .member-item:hover {
       background: rgba(68, 64, 60, 0.06) !important;
+    }
+
+    /* Members Sidebar — Header area */
+    .members-header-border {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    html[data-theme="parchment"] .members-header-border {
+      border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    .members-heading-text {
+      color: #fff;
+    }
+    html[data-theme="parchment"] .members-heading-text {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .members-close-btn {
+      color: #78716c !important;
+      background: transparent !important;
+    }
+    html[data-theme="parchment"] .members-close-btn:hover {
+      color: #141312 !important;
+      background: rgba(68, 64, 60, 0.08) !important;
+    }
+    html[data-theme="parchment"] .members-search-box {
+      background: rgba(68, 64, 60, 0.06) !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .members-search-input {
+      background: transparent !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .members-search-input::placeholder {
+      color: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .roster-section-title {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .roster-count-badge {
+      background: rgba(68, 64, 60, 0.10) !important;
+      color: #78716c !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .member-status-dot {
+      border-color: #fbf8f2 !important;
+    }
+    html[data-theme="parchment"] .member-status-offline {
+      background: #a8a29e !important;
+    }
+
+    /* Friends View — Parchment theme */
+    html[data-theme="parchment"] .friends-header {
+      border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .friends-tab-btn {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .friends-tab-btn.active {
+      background: rgba(68, 64, 60, 0.10) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .friend-row {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .shinobi-empty-state .empty-state-title {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .shinobi-empty-state .empty-state-desc {
+      color: #78716c !important;
+    }
+
+    /* Nav user pill — Parchment theme */
+    html[data-theme="parchment"] .nav-user-pill {
+      background: rgba(68, 64, 60, 0.08) !important;
+      border: 1px solid rgba(68, 64, 60, 0.2) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .nav-user-pill:hover {
+      border-color: var(--chakra-cyan) !important;
+    }
+    html[data-theme="parchment"] .nav-user-name {
+      color: #141312 !important;
+    }
+
+    /* Online dot — Fix dark border on parchment ivory background */
+    html[data-theme="parchment"] .connecto-online-dot {
+      border-color: #fbf8f2 !important;
+    }
+    html[data-theme="parchment"] .status-badge {
+      border-color: #fbf8f2 !important;
+    }
+
+    /* Nav user status dot */
+    .nav-user-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    html[data-theme="parchment"] .nav-user-status-dot {
+      border: 1.5px solid #fbf8f2 !important;
+    }
+    /* Stealth mode — status dot goes grey */
+    .nav-user-status-dot.stealth,
+    .nav-user-status-dot.offline {
+      background: #a8a29e !important;
     }
 
     /* User Settings & Profile Modal in Light Theme */
@@ -17287,10 +17395,10 @@ pre, .code-block, .chat-code-snippet {
       <!-- COMMUNITY ALLIES ROSTER -->
       <div class="members-sidebar" id="membersSidebar">
         <!-- Clean Community Members Header -->
-        <div class="members-header-clean" style="padding: 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div class="members-header-clean members-header-border" style="padding: 16px; display: flex; align-items: center; justify-content: space-between;">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="pulse-emerald-dot"></span>
-            <span style="font-weight: 700; font-size: 13px; color: #fff; letter-spacing: 0.05em;">COMMUNITY MEMBERS</span>
+            <span class="members-heading-text" style="font-weight: 700; font-size: 13px; letter-spacing: 0.05em;">COMMUNITY MEMBERS</span>
           </div>
           <button class="members-close-btn" onclick="toggleMembersSidebar(false)" aria-label="Close Members Roster">✕</button>
         </div>
@@ -27990,6 +28098,17 @@ pre, .code-block, .chat-code-snippet {
           badge.style.border = '1px solid rgba(16,185,129,0.3)';
         }
       }
+      // Also update the nav bar status dot
+      const navDots = document.querySelectorAll('.nav-user-status-dot');
+      navDots.forEach(dot => {
+        if (enabled) {
+          dot.classList.add('stealth');
+          dot.title = 'Stealth Mode (Appearing Offline)';
+        } else {
+          dot.classList.remove('stealth');
+          dot.title = 'Online';
+        }
+      });
     }
 
 function switchProfileStudioTab(tabId) {
