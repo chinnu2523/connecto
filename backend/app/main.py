@@ -4627,18 +4627,22 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
 @app.api_route("/download/apk", methods=["GET", "HEAD"])
 @app.api_route("/download-apk", methods=["GET", "HEAD"])
+@app.api_route("/connecto-fun.apk", methods=["GET", "HEAD"])
 @app.api_route("/connecto.apk", methods=["GET", "HEAD"])
 @app.api_route("/download", methods=["GET", "HEAD"])
 @app.api_route("/downloads", methods=["GET", "HEAD"])
 @app.api_route("/downloads/", methods=["GET", "HEAD"])
 @app.api_route("/apk", methods=["GET", "HEAD"])
 @app.api_route("/downloads/apk", methods=["GET", "HEAD"])
+@app.api_route("/downloads/connecto-fun.apk", methods=["GET", "HEAD"])
 @app.api_route("/downloads/connecto.apk", methods=["GET", "HEAD"])
 @app.api_route("/downloads/connecto-latest.apk", methods=["GET", "HEAD"])
 @app.api_route("/downloads/connecto-v3.7.1.apk", methods=["GET", "HEAD"])
 @app.api_route("/connecto-v3.7.1.apk", methods=["GET", "HEAD"])
 async def download_apk_direct():
-    apk_path = os.path.join(static_dir, "downloads", "connecto-release.apk")
+    apk_path = os.path.join(static_dir, "downloads", "connecto-fun.apk")
+    if not os.path.exists(apk_path):
+        apk_path = os.path.join(static_dir, "downloads", "connecto-release.apk")
     if not os.path.exists(apk_path):
         apk_path = os.path.join(static_dir, "downloads", "connecto-latest.apk")
     if not os.path.exists(apk_path):
@@ -4646,10 +4650,10 @@ async def download_apk_direct():
     if os.path.exists(apk_path):
         return FileResponse(
             path=apk_path,
-            filename="Connecto.apk",
+            filename="connecto-fun.apk",
             media_type="application/vnd.android.package-archive",
             headers={
-                "Content-Disposition": 'attachment; filename="Connecto.apk"',
+                "Content-Disposition": 'attachment; filename="connecto-fun.apk"',
                 "Cache-Control": "no-cache, no-store, must-revalidate",
                 "Pragma": "no-cache",
                 "Expires": "0",
@@ -4672,12 +4676,14 @@ async def download_qr_direct():
 @app.get("/api/v1/app/version")
 @app.get("/api/app/version")
 async def get_app_version_endpoint(response: Response = None):
-    apk_path = os.path.join(static_dir, "downloads", "connecto-release.apk")
+    apk_path = os.path.join(static_dir, "downloads", "connecto-fun.apk")
+    if not os.path.exists(apk_path):
+        apk_path = os.path.join(static_dir, "downloads", "connecto-release.apk")
     if not os.path.exists(apk_path):
         apk_path = os.path.join(static_dir, "downloads", "connecto-latest.apk")
-    size_bytes = 56832805
-    size_mb = "54.2 MB"
-    last_modified = "2026-09-16T04:28:00Z"
+    size_bytes = 56916705
+    size_mb = "54.3 MB"
+    last_modified = "2026-10-02T18:15:00Z"
     if os.path.exists(apk_path):
         stat = os.stat(apk_path)
         size_bytes = stat.st_size
@@ -4691,14 +4697,14 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "3.9.8",
-        "version_name": "v3.9.8",
-        "version_code": 41,
-        "release_tag": "v3.9.8-stable",
-        "sha256": "683099c610e3e8f62a4546a23a69cdd0c38dd8b5567773f310008fa225cf87fd",
+        "version": "3.9.9",
+        "version_name": "v3.9.9",
+        "version_code": 42,
+        "release_tag": "v3.9.9-stable",
+        "sha256": "8fb0268a95e001dbb5abe78427c16655973da290239e61cd29c86600f8ab35a1",
         "md5": "367471581900b138cedaac7cce6eef29",
-        "size_bytes": 56914821,
-        "size_display": "54.3 MB",
+        "size_bytes": size_bytes,
+        "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 36 / HyperOS Verified)",
         "download_url": "/download/apk",
@@ -4706,6 +4712,7 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "v3.9.9 Theme Parity & Admin Guard: Complete unification of Android & Web light themes, Admin-only announcement posting guard, and connecto-fun.apk release bundle",
             "v3.9.8 Touch-Scroll Isolation Engine: Replaced unthrottled pointerInput gesture detectors with Compose-native MutableInteractionSource clickable handlers across AnimatedEmojiItem, CustomChatBubble, QuickChips, and pressScaleEffect to completely eliminate accidental emoji, button, and text selection during scroll",
             "v3.9.8 Comprehensive Selection Guard: Wrapped Friends list, Chat stream, Quick Action chips, and Emoji trays in DisableSelection to enforce zero-highlighting during drag and swipe gestures",
             "v3.9.8 Long-Press Reaction Activation: Gated message reaction pill popover strictly to intentional long-press (onLongPress) rather than tap/release, preventing floating emoji pills from appearing while scrolling through messages",

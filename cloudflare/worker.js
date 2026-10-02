@@ -81,9 +81,9 @@ export default {
 
     // 3b. Direct APK Download Gateway
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
-    if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk")) {
+    if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
       if (localServerStatus !== "UP") {
-        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.8/app-release.apk", 302);
+        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.9/connecto-fun.apk", 302);
       }
     }
 
@@ -2164,11 +2164,13 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "3.9.8",
-      version_name: "v3.9.8",
-      version_code: 41,
-      build: 41,
-      size_bytes: 56914821,
+      version: "3.9.9",
+      version_name: "v3.9.9",
+      version_code: 42,
+      build: 42,
+      sha256: "8fb0268a95e001dbb5abe78427c16655973da290239e61cd29c86600f8ab35a1",
+      filename: "connecto-fun.apk",
+      size_bytes: 56916705,
       size_display: "54.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 36 / HyperOS Verified)",

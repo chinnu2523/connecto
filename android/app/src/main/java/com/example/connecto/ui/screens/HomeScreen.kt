@@ -1,7 +1,9 @@
 package com.example.connecto.ui.screens
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import com.example.connecto.ui.theme.isAppInLightTheme
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
