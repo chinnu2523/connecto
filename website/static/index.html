@@ -487,6 +487,9 @@
     [data-theme] .comparison-card,
     [data-theme] .bento-card,
     [data-theme] .arch-node,
+    [data-theme] .arch-flow-wrap,
+    [data-theme] .arch-spec-banner,
+    [data-theme] .ctf-sandbox-card,
     [data-theme] .faq-item,
     [data-theme] .stats-section-asym,
     [data-theme] .android-showcase-card-left,
@@ -501,6 +504,7 @@
     /* Neutralize legacy neon glow strips & laser lines across all themes */
     [data-theme] .stats-section-asym::after,
     [data-theme] .android-showcase-card-left::before,
+    [data-theme] .arch-flow-wrap::before,
     [data-theme] .bento-card::after,
     [data-theme] .border-beam,
     [data-theme] .blade-sheen {
@@ -829,6 +833,12 @@
     html[data-theme="cyberpunk"] .bento-card,
     html[data-theme="parchment"] .arch-node,
     html[data-theme="cyberpunk"] .arch-node,
+    html[data-theme="parchment"] .arch-flow-wrap,
+    html[data-theme="cyberpunk"] .arch-flow-wrap,
+    html[data-theme="parchment"] .arch-spec-banner,
+    html[data-theme="cyberpunk"] .arch-spec-banner,
+    html[data-theme="parchment"] .ctf-sandbox-card,
+    html[data-theme="cyberpunk"] .ctf-sandbox-card,
     html[data-theme="parchment"] .faq-item,
     html[data-theme="cyberpunk"] .faq-item,
     html[data-theme="parchment"] .stats-section-asym,
@@ -996,16 +1006,417 @@
       color: #3f3f46 !important;
     }
 
-    /* Universal Minimal Editorial Components */
+    /* ==========================================================================
+       SMOOTH CRYSTAL & EDITORIAL MOTION SYSTEM
+       - Crystalline Multi-Tier Diffuse Lighting & Specular Top Highlights
+       - Apple/Linear Spring Physics Easing: cubic-bezier(0.16, 1, 0.3, 1)
+       - Dynamic Interactive Cursor Spotlight Tracking
+       - Spatial Layout Reshaping across Hero, Workstation, Telemetry & Hubs
+       - Butter-Smooth Staggered Entrance Choreography
+       ========================================================================== */
+
+    :root {
+      --ease-crystal: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --crystal-specular: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+      --crystal-radius-lg: 20px;
+      --crystal-radius-md: 14px;
+      --crystal-radius-pill: 9999px;
+    }
+
+    html[data-theme="parchment"],
+    html[data-theme="cyberpunk"] {
+      --crystal-specular: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    /* 1. Crystalline Elevation & Multi-Tier Diffuse Shadows */
+    .crystal-card,
+    .ecosystem-card,
+    .usecase-card,
+    .step-card-custom,
+    .comparison-card,
+    .bento-card,
+    .arch-node,
+    .faq-item,
+    .stats-section-asym,
+    .android-showcase-card-left,
+    .android-feat-card,
+    .final-cta-card,
+    .chat-mockup-card,
+    .landing-footer {
+      position: relative;
+      background: radial-gradient(480px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--accent-tint), transparent 65%), var(--bg-card) !important;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--card-border) !important;
+      box-shadow:
+        0 0 0 1px var(--card-border),
+        var(--crystal-specular),
+        0 2px 4px rgba(0, 0, 0, 0.02),
+        0 8px 24px -4px rgba(0, 0, 0, 0.05) !important;
+      transition: transform 0.3s var(--ease-crystal),
+                  box-shadow 0.3s var(--ease-crystal),
+                  border-color 0.25s ease,
+                  background-color 0.35s ease !important;
+    }
+
+    /* 2. Crystalline Hover Lift & Edge Sheen */
+    .crystal-card:hover,
+    .ecosystem-card:hover,
+    .usecase-card:hover,
+    .step-card-custom:hover,
+    .bento-card:hover,
+    .faq-item:hover,
+    .comparison-card:hover,
+    .final-cta-card:hover {
+      transform: translateY(-3.5px) scale(1.004) !important;
+      border-color: var(--accent-border) !important;
+      box-shadow:
+        0 0 0 1px var(--accent-border),
+        var(--crystal-specular),
+        0 4px 10px rgba(0, 0, 0, 0.04),
+        0 16px 36px -6px rgba(0, 0, 0, 0.12) !important;
+    }
+
+    /* 3. Tactile Spring Button Physics */
+    .btn,
+    .hero-cta-btn-primary,
+    .hero-cta-btn-secondary,
+    .nav-signup-cta-btn,
+    .android-primary-download-btn,
+    .android-secondary-action-btn,
+    .theme-pill-btn,
+    .filter-chip,
+    .ecosystem-card-btn {
+      transition: transform 0.2s var(--ease-crystal),
+                  box-shadow 0.2s var(--ease-crystal),
+                  background-color 0.2s ease,
+                  border-color 0.2s ease,
+                  color 0.15s ease !important;
+    }
+    .btn:hover,
+    .hero-cta-btn-primary:hover,
+    .nav-signup-cta-btn:hover,
+    .android-primary-download-btn:hover {
+      transform: translateY(-1.5px) !important;
+      box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.25) !important;
+    }
+    .btn:active,
+    .hero-cta-btn-primary:active,
+    .hero-cta-btn-secondary:active,
+    .nav-signup-cta-btn:active,
+    .android-primary-download-btn:active,
+    .theme-pill-btn:active,
+    .filter-chip:active {
+      transform: scale(0.975) translateY(0.5px) !important;
+    }
+
+    /* 4. Reshaped Floating Island Navigation */
+    .landing-nav-wrapper {
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      width: 100%;
+      padding: 14px 24px;
+      display: flex;
+      justify-content: center;
+      background: transparent;
+      pointer-events: none;
+    }
+    .landing-nav {
+      pointer-events: auto;
+      max-width: 1200px;
+      width: 100%;
+      background: var(--bg-nav) !important;
+      backdrop-filter: blur(28px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+      border: 1px solid var(--card-border) !important;
+      border-radius: 9999px !important;
+      box-shadow:
+        0 0 0 1px var(--card-border),
+        var(--crystal-specular),
+        0 8px 32px -8px rgba(0, 0, 0, 0.2) !important;
+      padding: 8px 20px !important;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.3s var(--ease-crystal) !important;
+    }
+    .landing-nav.scrolled {
+      padding: 6px 18px !important;
+      box-shadow:
+        0 0 0 1px var(--card-border),
+        var(--crystal-specular),
+        0 12px 36px -6px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    /* 5. Reshaped Curated Editions Dock */
+    .theme-studio-dock {
+      position: sticky;
+      top: 72px;
+      margin: 0 auto 16px auto;
+      z-index: 9990;
+      background: var(--bg-card) !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+      border: 1px solid var(--card-border) !important;
+      border-radius: 9999px !important;
+      padding: 4px 10px !important;
+      box-shadow:
+        0 0 0 1px var(--card-border),
+        var(--crystal-specular),
+        0 8px 24px -6px rgba(0, 0, 0, 0.15) !important;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: fit-content;
+      max-width: 95vw;
+      transition: all 0.3s var(--ease-crystal) !important;
+    }
+
+    /* 6. Reshaped Hero Section Spatial Rhythm */
+    #heroView .hero-container {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 24px 28px 72px 28px;
+    }
+    .hero-grid {
+      display: grid !important;
+      grid-template-columns: 1.05fr 1fr;
+      align-items: center;
+      gap: clamp(32px, 4vw, 56px);
+      padding: 24px 0 48px;
+      min-height: 520px;
+    }
+    @media (max-width: 960px) {
+      .hero-grid {
+        grid-template-columns: 1fr !important;
+        text-align: center;
+        gap: 36px;
+      }
+      .hero-text {
+        text-align: center !important;
+        margin: 0 auto;
+      }
+      .hero-pill-badges-row,
+      .hero-cta-buttons-row {
+        justify-content: center !important;
+      }
+    }
+    .hero-official-title {
+      font-size: clamp(38px, 4.6vw, 60px) !important;
+      line-height: 1.08 !important;
+      letter-spacing: -0.03em !important;
+      margin-bottom: 14px !important;
+    }
+    .hero-official-desc {
+      font-size: clamp(15px, 1.5vw, 17px) !important;
+      line-height: 1.65 !important;
+      color: var(--text-muted) !important;
+      max-width: 520px !important;
+      margin: 0 0 20px 0 !important;
+    }
+    @media (max-width: 960px) {
+      .hero-official-desc {
+        margin: 0 auto 20px auto !important;
+      }
+    }
+    .hero-pill-badges-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .hero-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      background: var(--accent-tint) !important;
+      border: 1px solid var(--card-border) !important;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.2s var(--ease-crystal);
+    }
+    .hero-pill-badge:hover {
+      border-color: var(--accent-border);
+      color: var(--text-header);
+      transform: translateY(-1px);
+    }
+    .hero-cta-buttons-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* 7. Reshaped Chat Mockup Workstation */
+    .chat-mockup-card {
+      width: 100%;
+      border-radius: 20px !important;
+      overflow: hidden;
+      border: 1px solid var(--card-border) !important;
+      box-shadow:
+        0 0 0 1px var(--card-border),
+        var(--crystal-specular),
+        0 4px 12px rgba(0, 0, 0, 0.05),
+        0 24px 60px -12px rgba(0, 0, 0, 0.35) !important;
+    }
+    .mock-win-header {
+      padding: 12px 18px !important;
+      background: var(--bg-card) !important;
+      border-bottom: 1px solid var(--card-border) !important;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mock-sidebar {
+      width: 170px !important;
+      background: var(--bg-card-subtle, var(--bg-darker)) !important;
+      border-right: 1px solid var(--card-border) !important;
+      padding: 12px 8px !important;
+    }
+    .mock-main {
+      flex: 1;
+      background: var(--bg-card) !important;
+      display: flex;
+      flex-direction: column;
+    }
+    .mock-interactive-input-row {
+      padding: 8px 12px !important;
+      border-top: 1px solid var(--card-border) !important;
+      background: var(--bg-card-subtle, var(--bg-darkest)) !important;
+    }
+    .mock-demo-input {
+      flex: 1;
+      background: var(--bg-card) !important;
+      border: 1px solid var(--card-border) !important;
+      border-radius: 9999px !important;
+      padding: 7px 14px !important;
+      font-size: 12px !important;
+      color: var(--text-header) !important;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .mock-demo-input:focus {
+      border-color: var(--accent-border) !important;
+    }
+
+    /* 8. Reshaped Telemetry Marquee */
+    .shinobi-marquee-wrap {
+      width: 100%;
+      overflow: hidden;
+      padding: 16px 0;
+      position: relative;
+      margin: 16px 0 32px 0;
+    }
+    .shinobi-marquee-track {
+      display: flex;
+      gap: 12px;
+      width: max-content;
+      animation: crystalMarqueeScroll 38s linear infinite;
+    }
+    .shinobi-marquee-track:hover {
+      animation-play-state: paused;
+    }
+    @keyframes crystalMarqueeScroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* 9. Reshaped Precision Crystalline Telemetry Stats Bar */
+    .stats-section-asym {
+      display: grid !important;
+      grid-template-columns: repeat(6, 1fr) !important;
+      gap: 0 !important;
+      padding: 24px 16px !important;
+      border-radius: var(--crystal-radius-lg) !important;
+      margin-bottom: 48px;
+    }
+    @media (max-width: 960px) {
+      .stats-section-asym {
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+    }
+    @media (max-width: 600px) {
+      .stats-section-asym {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+    .stat-item {
+      padding: 16px 12px !important;
+      border-right: 1px solid var(--card-border);
+      position: relative;
+      transition: transform 0.2s var(--ease-crystal);
+    }
+    .stat-item:last-child {
+      border-right: none;
+    }
+    .stat-item:hover {
+      transform: translateY(-2px);
+    }
+    .stat-num-custom {
+      font-size: clamp(30px, 3.2vw, 42px) !important;
+      font-weight: 500 !important;
+      line-height: 1 !important;
+      margin: 6px 0 4px 0 !important;
+    }
+    .stat-label-custom {
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.05em !important;
+      text-transform: uppercase !important;
+    }
+    .stat-subtext {
+      font-size: 11px !important;
+      line-height: 1.3 !important;
+    }
+
+    /* 10. Reshaped Android Showcase */
+    .android-showcase-section {
+      padding: 48px 0 40px;
+    }
+    .android-showcase-card-left {
+      border-radius: var(--crystal-radius-lg) !important;
+      padding: clamp(24px, 3vw, 40px) !important;
+    }
+    .android-specs-row {
+      border-radius: var(--crystal-radius-md) !important;
+      padding: 16px !important;
+      margin-bottom: 24px;
+    }
+    .android-features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    @media (max-width: 640px) {
+      .android-features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .android-feat-card {
+      border-radius: var(--crystal-radius-md) !important;
+      padding: 16px !important;
+    }
+
+    /* 11. Reshaped Ecosystem Directory & Search */
+    .ecosystem-gateway-section {
+      padding: 48px 0 40px;
+    }
     .discovery-search-input {
       width: 100%;
       font-size: 13.5px;
-      padding: 12px 16px 12px 42px;
+      padding: 12px 18px 12px 42px;
       background: var(--bg-card) !important;
       border: 1px solid var(--card-border) !important;
       border-radius: 9999px !important;
       color: var(--text-header) !important;
-      transition: all 0.2s ease;
+      transition: all 0.2s var(--ease-crystal);
     }
     .discovery-search-input:focus {
       border-color: var(--accent-border) !important;
@@ -1017,7 +1428,9 @@
       border: 1px solid var(--card-border) !important;
       color: var(--text-muted) !important;
       border-radius: 9999px !important;
-      transition: all 0.15s ease !important;
+      padding: 6px 14px !important;
+      font-size: 12px !important;
+      transition: all 0.18s var(--ease-crystal) !important;
     }
     .filter-chip:hover {
       color: var(--text-header) !important;
@@ -1028,6 +1441,67 @@
       color: var(--bg-darkest) !important;
       border-color: var(--accent) !important;
       font-weight: 600 !important;
+    }
+    .ecosystem-grid-6 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 1024px) {
+      .ecosystem-grid-6 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 680px) {
+      .ecosystem-grid-6 {
+        grid-template-columns: 1fr;
+      }
+    }
+    .ecosystem-card {
+      border-radius: var(--crystal-radius-lg) !important;
+      padding: 24px !important;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .ecosystem-card-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 600;
+      transition: gap 0.2s var(--ease-crystal);
+    }
+    .ecosystem-card:hover .ecosystem-card-btn {
+      gap: 9px;
+    }
+
+    /* 12. Crystal Scroll Reveal Choreography */
+    .crystal-reveal,
+    .scroll-reveal-3d {
+      opacity: 0;
+      transform: translateY(22px) scale(0.988);
+      filter: blur(3px);
+      transition: opacity 0.65s var(--ease-crystal),
+                  transform 0.65s var(--ease-crystal),
+                  filter 0.65s var(--ease-crystal) !important;
+      will-change: opacity, transform, filter;
+    }
+    .crystal-reveal.in-view,
+    .scroll-reveal-3d.in-view {
+      opacity: 1 !important;
+      transform: translateY(0) scale(1) !important;
+      filter: blur(0px) !important;
+    }
+
+    /* 13. Liquid Crystal View Transitions */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.3s;
+      animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
     }
     
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-body); }
@@ -16276,16 +16750,16 @@ pre, .code-block, .chat-code-snippet {
 
           </div>
 
-          <div style="margin-top:28px; padding:24px 28px; background:linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.55) 100%); border:1px solid rgba(6,182,212,0.25); border-radius:14px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+          <div class="arch-spec-banner crystal-card" style="margin-top:28px; padding:24px 28px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
             <div style="max-width:620px;">
               <div style="font-family:var(--font-display); font-size:16px; font-weight:800; color:var(--text-header); display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                <i data-lucide="shield-check" class="lucide-sm" style="color:var(--chakra-cyan);"></i> Deep RFC Specifications & Benchmarks
+                <i data-lucide="shield-check" class="lucide-sm" style="color:var(--accent);"></i> Deep RFC Specifications & Benchmarks
               </div>
               <div style="font-size:13px; color:var(--text-muted); line-height:1.6;">
                 Detailed protocol specifications, RFC 9106 Argon2id memory parameters, TLS 1.3 cipher suites, and WebRTC mesh architecture are documented on the dedicated Architecture page.
               </div>
             </div>
-            <a href="/architecture" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:8px; padding:12px 22px; font-size:13.5px; font-weight:700; text-decoration:none; border-radius:10px; background:linear-gradient(135deg, var(--accent) 0%, #00cec9 100%); color:#000; box-shadow:0 4px 18px rgba(0,206,201,0.3); transition:all 0.2s ease;">
+            <a href="/architecture" class="btn hero-cta-btn-primary" style="text-decoration:none;">
               <i data-lucide="book-open" class="lucide-sm"></i>
               <span>View Full Architecture Specification</span>
               <i data-lucide="arrow-right" class="lucide-sm"></i>
@@ -25410,31 +25884,63 @@ pre, .code-block, .chat-code-snippet {
     }
 
     function initMotionScrollObserver() {
-      // Ensure all cards are visible immediately
-      document.querySelectorAll('.scroll-reveal-3d, .motion-reveal').forEach(el => {
-        el.classList.add('in-view');
-      });
-
-      if (!window.IntersectionObserver) return;
+      const revealItems = document.querySelectorAll('.scroll-reveal-3d, .motion-reveal, .crystal-reveal');
+      
+      if (!window.IntersectionObserver) {
+        revealItems.forEach(el => el.classList.add('in-view'));
+        return;
+      }
 
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             entry.target.classList.add('in-view');
+            observer.unobserve(entry.target);
           }
         });
       }, {
-        threshold: 0.05
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
       });
 
-      document.querySelectorAll('.scroll-reveal-3d, .motion-reveal').forEach(el => {
-        observer.observe(el);
+      revealItems.forEach(el => {
+        // If element is already in the initial visible viewport, show immediately without waiting for scroll
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.9 && rect.bottom > 0) {
+          el.classList.add('in-view');
+        } else {
+          observer.observe(el);
+        }
       });
     }
 
     let cursorMotionInitialized = false;
-        function initCursorAndTiltMotion() {
-      // Decommissioned mousemove listener for instant zero-latency response
+    function initCursorAndTiltMotion() {
+      if (cursorMotionInitialized) return;
+      cursorMotionInitialized = true;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      let activeTarget = null;
+      let targetBounds = null;
+
+      document.addEventListener('mouseover', (e) => {
+        const card = e.target.closest('.crystal-card, .ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .stats-section-asym, .android-showcase-card-left, .final-cta-card, .chat-mockup-card');
+        if (card) {
+          activeTarget = card;
+          targetBounds = card.getBoundingClientRect();
+        } else {
+          activeTarget = null;
+          targetBounds = null;
+        }
+      }, { passive: true });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!activeTarget || !targetBounds) return;
+        const x = ((e.clientX - targetBounds.left) / targetBounds.width) * 100;
+        const y = ((e.clientY - targetBounds.top) / targetBounds.height) * 100;
+        activeTarget.style.setProperty('--mouse-x', `${x}%`);
+        activeTarget.style.setProperty('--mouse-y', `${y}%`);
+      }, { passive: true });
     }
 
     function initNavHoverPill() {
@@ -27377,65 +27883,73 @@ function selectSettingsAvatar(emoji, el) {
     // MINIMAL EDITORIAL DESIGN SYSTEM - THEME CONTROLLER
     // ============================================================
     function setHomepageTheme(themeId, updateUrl = true) {
-      const aliasMap = {
-        noir: 'noir',
-        obsidian: 'noir',
-        parchment: 'parchment',
-        cyberpunk: 'parchment',
-        slate: 'slate',
-        aurora: 'slate',
-        cashmere: 'cashmere',
-        forge: 'cashmere',
-        alpine: 'alpine',
-        vaporwave: 'alpine'
-      };
-      const canonicalTheme = aliasMap[themeId] || 'noir';
+      const applyTheme = () => {
+        const aliasMap = {
+          noir: 'noir',
+          obsidian: 'noir',
+          parchment: 'parchment',
+          cyberpunk: 'parchment',
+          slate: 'slate',
+          aurora: 'slate',
+          cashmere: 'cashmere',
+          forge: 'cashmere',
+          alpine: 'alpine',
+          vaporwave: 'alpine'
+        };
+        const canonicalTheme = aliasMap[themeId] || 'noir';
 
-      const root = document.documentElement;
+        const root = document.documentElement;
 
-      // Clear inline root styles so the CSS data-theme variables take complete effect
-      const inlineVars = [
-        '--accent', '--accent-hover', '--accent-tint', '--accent-border',
-        '--accent-glow', '--accent-secondary', '--accent-secondary-hover',
-        '--chakra-cyan', '--bg-darkest', '--bg-darker', '--bg-dark',
-        '--bg-card', '--bg-card-hover', '--bg-modal', '--bg-nav',
-        '--card-border', '--hero-glow-1', '--hero-glow-2',
-        '--hero-grad-start', '--hero-grad-end'
-      ];
-      inlineVars.forEach(v => root.style.removeProperty(v));
+        // Clear inline root styles so the CSS data-theme variables take complete effect
+        const inlineVars = [
+          '--accent', '--accent-hover', '--accent-tint', '--accent-border',
+          '--accent-glow', '--accent-secondary', '--accent-secondary-hover',
+          '--chakra-cyan', '--bg-darkest', '--bg-darker', '--bg-dark',
+          '--bg-card', '--bg-card-hover', '--bg-modal', '--bg-nav',
+          '--card-border', '--hero-glow-1', '--hero-glow-2',
+          '--hero-grad-start', '--hero-grad-end'
+        ];
+        inlineVars.forEach(v => root.style.removeProperty(v));
 
-      root.setAttribute('data-theme', canonicalTheme);
-      try {
-        localStorage.setItem('connecto_home_theme', canonicalTheme);
-        if (updateUrl && window.history && window.history.replaceState) {
-          const url = new URL(window.location);
-          url.searchParams.set('theme', canonicalTheme);
-          window.history.replaceState({}, '', url);
+        root.setAttribute('data-theme', canonicalTheme);
+        try {
+          localStorage.setItem('connecto_home_theme', canonicalTheme);
+          if (updateUrl && window.history && window.history.replaceState) {
+            const url = new URL(window.location);
+            url.searchParams.set('theme', canonicalTheme);
+            window.history.replaceState({}, '', url);
+          }
+        } catch (e) {}
+
+        // Update Theme Studio active pill
+        document.querySelectorAll('.theme-pill-btn').forEach(btn => {
+          const btnTheme = btn.dataset.themeBtn;
+          const mappedBtnTheme = aliasMap[btnTheme] || btnTheme;
+          btn.classList.toggle('active', mappedBtnTheme === canonicalTheme);
+        });
+
+        // Synchronize internal chakra dots
+        const chakraMap = {
+          noir: 'cyan',
+          parchment: 'crimson',
+          slate: 'emerald',
+          cashmere: 'gold',
+          alpine: 'indigo'
+        };
+        const eqChakra = chakraMap[canonicalTheme] || 'cyan';
+        document.querySelectorAll('.chakra-theme-dot').forEach(d => {
+          d.classList.toggle('active', d.dataset.theme === eqChakra);
+        });
+
+        if (typeof refreshParticleColors === 'function') {
+          refreshParticleColors();
         }
-      } catch (e) {}
-
-      // Update Theme Studio active pill
-      document.querySelectorAll('.theme-pill-btn').forEach(btn => {
-        const btnTheme = btn.dataset.themeBtn;
-        const mappedBtnTheme = aliasMap[btnTheme] || btnTheme;
-        btn.classList.toggle('active', mappedBtnTheme === canonicalTheme);
-      });
-
-      // Synchronize internal chakra dots
-      const chakraMap = {
-        noir: 'cyan',
-        parchment: 'crimson',
-        slate: 'emerald',
-        cashmere: 'gold',
-        alpine: 'indigo'
       };
-      const eqChakra = chakraMap[canonicalTheme] || 'cyan';
-      document.querySelectorAll('.chakra-theme-dot').forEach(d => {
-        d.classList.toggle('active', d.dataset.theme === eqChakra);
-      });
 
-      if (typeof refreshParticleColors === 'function') {
-        refreshParticleColors();
+      if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.startViewTransition(applyTheme);
+      } else {
+        applyTheme();
       }
     }
 
