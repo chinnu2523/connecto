@@ -2725,7 +2725,7 @@ object ConnectoApiClient {
                                 json.optJSONObject("user")?.optString("avatar_url") ?: ""
                             }
                         }
-                        val fullAvatarUrl = if (returnedPath.startsWith("http://") || returnedPath.startsWith("https://")) {
+                        val fullAvatarUrl = if (returnedPath.startsWith("http://") || returnedPath.startsWith("https://") || returnedPath.startsWith("data:")) {
                             returnedPath
                         } else {
                             "$base$returnedPath"
@@ -2903,7 +2903,7 @@ object ConnectoApiClient {
                                 json.optJSONObject("user")?.optString("banner_url") ?: ""
                             }
                         }
-                        val fullBannerUrl = if (returnedPath.startsWith("http://") || returnedPath.startsWith("https://")) {
+                        val fullBannerUrl = if (returnedPath.startsWith("http://") || returnedPath.startsWith("https://") || returnedPath.startsWith("data:")) {
                             returnedPath
                         } else {
                             "$base$returnedPath"

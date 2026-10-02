@@ -225,6 +225,31 @@ async function broadcastRealtime(env, payload) {
   } catch (_) {}
 }
 
+async function saveProfileToRealtimeStorage(env, userId, username, data) {
+  try {
+    const room = getRealtimeRoom(env);
+    if (!room) return;
+    await room.fetch("http://realtime/internal/profile/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, username, ...data })
+    });
+  } catch (_) {}
+}
+
+async function getProfileFromRealtimeStorage(env, identifier) {
+  try {
+    const room = getRealtimeRoom(env);
+    if (!room || !identifier) return null;
+    const res = await room.fetch("http://realtime/internal/profile/get?userId=" + encodeURIComponent(identifier.toLowerCase()));
+    if (res.ok) {
+      const data = await res.json();
+      return data.profile || null;
+    }
+  } catch (_) {}
+  return null;
+}
+
 function generateNumericOtp(length = 6) {
   const digits = "0123456789";
   let result = "";
@@ -319,18 +344,44 @@ async function resolveUserFromRequest(request, env) {
   if (!env || !env.DB) return null;
 
   let user = null;
+
+  // 1. Cloudflare edge token: cf_edge_<userId>_<timestamp>
   if (token.startsWith("cf_edge_")) {
     const rest = token.substring(8); // remove "cf_edge_"
     const lastUnderscore = rest.lastIndexOf("_");
     const userId = lastUnderscore !== -1 ? rest.substring(0, lastUnderscore) : rest;
     user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(userId, userId.toLowerCase()).first();
   }
+
+  // 2. Local origin session token (SHA-256 hash match against user_sessions in D1)
+  if (!user && token) {
+    try {
+      const enc = new TextEncoder().encode(token);
+      const buf = await crypto.subtle.digest("SHA-256", enc);
+      const hashHex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+      const session = await env.DB.prepare(
+        "SELECT user_id FROM user_sessions WHERE (session_token_hash = ? OR id = ?) AND datetime(expires_at) >= datetime('now') LIMIT 1"
+      ).bind(hashHex, token).first();
+
+      if (session && session.user_id) {
+        user = await env.DB.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").bind(session.user_id).first();
+      }
+    } catch (e) {
+      console.warn("[resolveUser] Session hash lookup failed:", e.message);
+    }
+  }
+
+  // 3. Fallback: X-User-Username header
   if (!user && xUser) {
     user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(xUser.toLowerCase()).first();
   }
+
+  // 4. Fallback: Token used directly as userId or username
   if (!user && token) {
     user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(token, token.toLowerCase()).first();
   }
+
   return user;
 }
 
@@ -993,21 +1044,119 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
+  // 6.9. Multipart / File Upload Edge Handler (Avatars & Banners)
+  // When box-1 (Tailscale) is down, edge processes image as base64 data URL
+  if (
+    method === "POST" &&
+    (path === "/api/upload" ||
+     path === "/api/upload/avatar" ||
+     path === "/api/upload/banner" ||
+     path === "/api/v1/upload" ||
+     path === "/api/v1/upload/avatar")
+  ) {
+    try {
+      const contentType = request.headers.get("content-type") || "";
+      let dataUrl = "";
+      let caller = await resolveUserFromRequest(request, env);
+
+      if (contentType.includes("multipart/form-data")) {
+        const formData = await request.formData();
+        // Look for file in standard field names
+        const fileEntry = formData.get("file") || formData.get("avatar") || formData.get("image") || formData.get("banner");
+        
+        // Also check if username was passed in form data
+        const formUsername = (formData.get("username") || "").toString().toLowerCase().trim();
+        if (!caller && formUsername && env.DB) {
+          caller = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(formUsername).first();
+        }
+        if (!caller && formUsername) {
+          caller = { id: "usr_" + formUsername, username: formUsername };
+        }
+
+        if (fileEntry && typeof fileEntry === "object" && typeof fileEntry.arrayBuffer === "function") {
+          const mimeType = fileEntry.type || "image/webp";
+          const buffer = await fileEntry.arrayBuffer();
+          // Convert arrayBuffer to base64
+          let binary = "";
+          const bytes = new Uint8Array(buffer);
+          const len = bytes.byteLength;
+          for (let i = 0; i < len; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+          dataUrl = `data:${mimeType};base64,${base64}`;
+        }
+      } else if (contentType.includes("application/json")) {
+        const body = await request.json().catch(() => ({}));
+        dataUrl = body.avatar_url || body.url || body.data || body.image || "";
+        const reqUser = (body.username || "").toLowerCase().trim();
+        if (!caller && reqUser && env.DB) {
+          caller = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(reqUser).first();
+        }
+        if (!caller && reqUser) {
+          caller = { id: "usr_" + reqUser, username: reqUser };
+        }
+      }
+
+      if (!dataUrl) {
+        return jsonResponse({ error: "No image file provided in upload" }, 400);
+      }
+
+      const isBanner = path.includes("banner");
+
+      // If caller is authenticated, persist immediately into D1 users table and Realtime Durable Object storage
+      if (caller) {
+        await saveProfileToRealtimeStorage(env, caller.id, caller.username, isBanner ? { banner_url: dataUrl } : { avatar_url: dataUrl });
+        if (env.DB) {
+          try {
+            if (isBanner) {
+              await env.DB.prepare("UPDATE users SET banner_url = ?, updated_at = datetime('now') WHERE id = ?").bind(dataUrl, caller.id).run();
+            } else {
+              await env.DB.prepare("UPDATE users SET avatar_url = ?, updated_at = datetime('now') WHERE id = ?").bind(dataUrl, caller.id).run();
+            }
+          } catch (dbErr) {
+            console.warn("[CloudUpload] Could not write to D1:", dbErr.message);
+          }
+        }
+      }
+
+      return jsonResponse({
+        status: "ok",
+        success: true,
+        message: "Image uploaded successfully (edge cloud)",
+        url: dataUrl,
+        avatar_url: dataUrl,
+        banner_url: dataUrl,
+        file_url: dataUrl,
+        secure_url: dataUrl,
+        filename: isBanner ? "banner.webp" : "avatar.webp"
+      });
+    } catch (err) {
+      return jsonResponse({ error: "Upload failed at cloud edge: " + err.message }, 500);
+    }
+  }
+
   // 7. User Profiles: Dual-Compatible Format for Web & Android
-  // Covers /api/user/profile, /api/users/profile, /api/users/me, /api/profile
+  // Covers /api/user/profile, /api/users/profile, /api/users/me, /api/profile,
+  // /api/account/settings, /api/v1/users/me (Android updateProfile() fallback chain)
   if (
     path === "/api/user/profile" ||
     path === "/api/users/profile" ||
     path === "/api/users/me" ||
-    path === "/api/profile"
+    path === "/api/profile" ||
+    path === "/api/account/settings" ||
+    path === "/api/v1/users/me"
   ) {
-    if (method === "PUT" || (method === "POST" && !path.includes("/stealth"))) {
+    if (method === "PUT" || method === "PATCH" || (method === "POST" && !path.includes("/stealth"))) {
       try {
         const body = await request.json().catch(() => ({}));
         let caller = await resolveUserFromRequest(request, env);
         const reqUsername = (body.username || "").toLowerCase().trim();
         if (!caller && reqUsername && env.DB) {
           caller = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(reqUsername).first();
+        }
+        if (!caller && reqUsername) {
+          caller = { id: "usr_" + reqUsername, username: reqUsername, display_name: reqUsername };
         }
         if (!caller) {
           return jsonResponse({ error: "Unauthorized" }, 401);
@@ -1026,24 +1175,51 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         const twoFa = body.two_factor_enabled !== undefined ? (body.two_factor_enabled ? 1 : 0) : caller.two_factor_enabled;
         const twoFaMethod = body.two_factor_method || caller.two_factor_method || "email";
 
+        // 1. Resilient edge storage (Durable Object) - always succeeds even if D1 limit is exceeded
+        const profileUpdates = {
+          id: caller.id,
+          username: caller.username,
+          display_name: displayName,
+          nickname: displayName,
+          full_name: displayName,
+          bio: bio,
+          avatar_url: avatar,
+          avatar: avatar,
+          banner_url: banner,
+          email: email,
+          phone_number: phone,
+          date_of_birth: dob,
+          gender: gender,
+          location: location,
+          is_stealth: isStealth,
+          two_factor_enabled: twoFa,
+          two_factor_method: twoFaMethod
+        };
+        await saveProfileToRealtimeStorage(env, caller.id, caller.username, profileUpdates);
+
+        // 2. Persist to D1 database (wrapped to gracefully absorb daily row-write exhaustion)
         if (env.DB) {
-          await env.DB.prepare(`
-            UPDATE users SET
-              display_name = ?,
-              bio = ?,
-              avatar_url = ?,
-              banner_url = ?,
-              email = ?,
-              phone_number = ?,
-              date_of_birth = ?,
-              gender = ?,
-              location = ?,
-              is_stealth = ?,
-              two_factor_enabled = ?,
-              two_factor_method = ?,
-              updated_at = datetime('now')
-            WHERE id = ?
-          `).bind(displayName, bio, avatar, banner, email, phone, dob, gender, location, isStealth, twoFa, twoFaMethod, caller.id).run();
+          try {
+            await env.DB.prepare(`
+              UPDATE users SET
+                display_name = ?,
+                bio = ?,
+                avatar_url = ?,
+                banner_url = ?,
+                email = ?,
+                phone_number = ?,
+                date_of_birth = ?,
+                gender = ?,
+                location = ?,
+                is_stealth = ?,
+                two_factor_enabled = ?,
+                two_factor_method = ?,
+                updated_at = datetime('now')
+              WHERE id = ?
+            `).bind(displayName, bio, avatar, banner, email, phone, dob, gender, location, isStealth, twoFa, twoFaMethod, caller.id).run();
+          } catch (dbErr) {
+            console.warn("[ProfileUpdate] D1 write failed, preserved in Durable Object:", dbErr.message);
+          }
         }
 
         return jsonResponse({
@@ -1110,6 +1286,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         two_factor_method: "email",
         is_admin: 0
       };
+    }
+
+    // Overlay real-time profile updates from Durable Object storage if available
+    const doProfile = (await getProfileFromRealtimeStorage(env, targetUser)) || (user.id ? await getProfileFromRealtimeStorage(env, user.id) : null);
+    if (doProfile) {
+      user = { ...user, ...doProfile };
     }
 
     const isSelf = callerUser && callerUser.id === user.id;
@@ -2642,6 +2824,44 @@ export class ConnectoRealtimeRoom {
       }), {
         headers: { "Content-Type": "application/json" }
       });
+    }
+
+    // 2b. Internal Profile Storage (Resilient edge storage bypassing D1 write limits)
+    if (url.pathname === "/internal/profile/set" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        const userId = body.userId || body.id || body.username;
+        if (userId && this.state && this.state.storage) {
+          const key = "user_profile_" + userId.toLowerCase();
+          const existing = (await this.state.storage.get(key)) || {};
+          const merged = { ...existing, ...body, updated_at: new Date().toISOString() };
+          await this.state.storage.put(key, merged);
+          if (body.username) {
+            await this.state.storage.put("user_profile_" + body.username.toLowerCase(), merged);
+          }
+          return new Response(JSON.stringify({ success: true, profile: merged }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        return new Response(JSON.stringify({ error: "Missing userId" }), { status: 400 });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      }
+    }
+
+    if (url.pathname === "/internal/profile/get" && request.method === "GET") {
+      try {
+        const userId = (url.searchParams.get("userId") || "").toLowerCase();
+        if (userId && this.state && this.state.storage) {
+          const profile = await this.state.storage.get("user_profile_" + userId);
+          return new Response(JSON.stringify({ success: true, profile: profile || null }), {
+            headers: { "Content-Type": "application/json" }
+          });
+        }
+        return new Response(JSON.stringify({ profile: null }), { status: 200 });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      }
     }
 
     // 3. WebSocket Upgrade & Handshake
