@@ -35,8 +35,8 @@
   <!-- Typography: Non-blocking font loading — preload+swap prevents render-blocking -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Outfit:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"></noscript>
   
   <!-- Highlight.js Syntax Highlighting for Developer Code Blocks -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
@@ -290,9 +290,11 @@
       --red: #f87171;                   /* Warning / Error */
       --red-glow: rgba(248, 113, 113, 0.35);
       
-      --font-display: 'Outfit', -apple-system, sans-serif;
-      --font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      --font-shinobi: 'Cinzel', serif;
+      --font-display: 'Newsreader', 'Instrument Serif', Georgia, 'Times New Roman', serif;
+      --font-serif: 'Newsreader', 'Instrument Serif', Georgia, serif;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      --font-shinobi: 'Newsreader', serif;
 
       /* Motion Physics & Curves */
       --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
@@ -300,138 +302,167 @@
       --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
       /* Multi-Tier Specular Shadows & Layer Separation */
-      --shadow-card: 0 12px 32px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.08);
-      --shadow-elevated: 0 24px 60px -15px rgba(0, 0, 0, 0.95), 0 0 30px -10px rgba(34, 211, 238, 0.22), 0 0 0 1px rgba(255, 255, 255, 0.12);
-      --shadow-modal: 0 32px 80px -16px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.14);
+      --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      --shadow-elevated: 0 16px 40px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      --shadow-modal: 0 24px 60px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.12);
     }
 
     /* ============================================================ */
-    /* 5 SOTA HOMEPAGE THEMES - DYNAMIC DESIGN SYSTEM TOKENS        */
+    /* MINIMAL EDITORIAL DESIGN SYSTEM - 5 CURATED EDITIONS         */
+    /* Simple, Classic, Professional, Timeless                      */
     /* ============================================================ */
 
-    /* Theme 1: Midnight Obsidian OLED (Cyber-Stealth Pro) */
-    html[data-theme="obsidian"], :root {
-      --accent: #22d3ee;
-      --accent-hover: #06b6d4;
-      --accent-tint: rgba(34, 211, 238, 0.12);
-      --accent-border: rgba(34, 211, 238, 0.35);
-      --accent-glow: rgba(34, 211, 238, 0.30);
-      --accent-secondary: #818cf8;
-      --accent-secondary-hover: #6366f1;
-      --chakra-cyan: #22d3ee;
-      --bg-darkest: #06080e;
-      --bg-darker: #0b0f17;
-      --bg-dark: #101622;
-      --bg-card: rgba(16, 22, 34, 0.94);
-      --bg-card-hover: rgba(24, 33, 50, 0.98);
-      --bg-modal: #0d131f;
-      --bg-nav: rgba(11, 15, 23, 0.90);
-      --card-border: rgba(34, 211, 238, 0.16);
-      --hero-glow-1: rgba(34, 211, 238, 0.18);
-      --hero-glow-2: rgba(99, 102, 241, 0.12);
-      --hero-grad-start: #38bdf8;
-      --hero-grad-end: #22d3ee;
-      --theme-name: "Midnight Obsidian OLED";
+    /* Edition 1: Editorial Noir (Archival Ink) - DEFAULT */
+    html[data-theme="noir"], html[data-theme="obsidian"], :root {
+      --accent: #fafafa;
+      --accent-hover: #ffffff;
+      --accent-tint: rgba(255, 255, 255, 0.06);
+      --accent-border: rgba(255, 255, 255, 0.16);
+      --accent-glow: transparent;
+      --accent-secondary: #a1a1aa;
+      --accent-secondary-hover: #e4e4e7;
+      --chakra-cyan: #e4e4e7;
+      --bg-darkest: #0c0c0e;
+      --bg-darker: #121215;
+      --bg-dark: #18181c;
+      --bg-card: rgba(22, 22, 26, 0.94);
+      --bg-card-hover: rgba(30, 30, 36, 0.98);
+      --bg-modal: #141418;
+      --bg-nav: rgba(12, 12, 14, 0.90);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-normal: #d4d4d8;
+      --text-muted: #8e8e93;
+      --text-header: #fafafa;
+      --hero-glow-1: transparent;
+      --hero-glow-2: transparent;
+      --hero-grad-start: #ffffff;
+      --hero-grad-end: #d4d4d8;
+      --theme-name: "Editorial Noir";
     }
 
-    /* Theme 2: Tokyo Cyberpunk 2077 (Neon Pulse / Acid Synth) */
-    html[data-theme="cyberpunk"] {
-      --accent: #ff007f;
-      --accent-hover: #e60072;
-      --accent-tint: rgba(255, 0, 127, 0.16);
-      --accent-border: rgba(255, 0, 127, 0.45);
-      --accent-glow: rgba(255, 0, 127, 0.38);
-      --accent-secondary: #00f0ff;
-      --accent-secondary-hover: #00d4e0;
-      --chakra-cyan: #00f0ff;
-      --bg-darkest: #080914;
-      --bg-darker: #0e0c22;
-      --bg-dark: #151336;
-      --bg-card: rgba(21, 18, 48, 0.92);
-      --bg-card-hover: rgba(30, 26, 68, 0.98);
-      --bg-modal: #120f2b;
-      --bg-nav: rgba(14, 12, 34, 0.90);
-      --card-border: rgba(255, 0, 127, 0.28);
-      --hero-glow-1: rgba(255, 0, 127, 0.24);
-      --hero-glow-2: rgba(0, 240, 255, 0.18);
-      --hero-grad-start: #ff007f;
-      --hero-grad-end: #00f0ff;
-      --theme-name: "Tokyo Cyberpunk 2077";
+    /* Edition 2: Ivory Parchment (Warm Archival Paper) */
+    html[data-theme="parchment"], html[data-theme="cyberpunk"] {
+      --accent: #111111;
+      --accent-hover: #000000;
+      --accent-tint: rgba(0, 0, 0, 0.05);
+      --accent-border: rgba(0, 0, 0, 0.15);
+      --accent-glow: transparent;
+      --accent-secondary: #52525b;
+      --accent-secondary-hover: #27272a;
+      --chakra-cyan: #111111;
+      --bg-darkest: #fbf9f5;
+      --bg-darker: #f4f1ea;
+      --bg-dark: #ebe7de;
+      --bg-card: #ffffff;
+      --bg-card-hover: #fcfbf9;
+      --bg-modal: #ffffff;
+      --bg-nav: rgba(251, 249, 245, 0.94);
+      --card-border: rgba(0, 0, 0, 0.09);
+      --text-normal: #3f3f46;
+      --text-muted: #71717a;
+      --text-header: #111111;
+      --hero-glow-1: transparent;
+      --hero-glow-2: transparent;
+      --hero-grad-start: #111111;
+      --hero-grad-end: #27272a;
+      --theme-name: "Ivory Parchment";
     }
 
-    /* Theme 3: Nordic Aurora Borealis (Frost Minimalist / Linear Aesthetic) */
-    html[data-theme="aurora"] {
-      --accent: #10b981;
-      --accent-hover: #059669;
-      --accent-tint: rgba(16, 185, 129, 0.15);
-      --accent-border: rgba(16, 185, 129, 0.40);
-      --accent-glow: rgba(16, 185, 129, 0.35);
-      --accent-secondary: #38bdf8;
-      --accent-secondary-hover: #0284c7;
-      --chakra-cyan: #38bdf8;
-      --bg-darkest: #070e14;
-      --bg-darker: #0a1722;
-      --bg-dark: #0f2434;
-      --bg-card: rgba(15, 36, 52, 0.92);
-      --bg-card-hover: rgba(22, 50, 72, 0.98);
-      --bg-modal: #0c1c28;
-      --bg-nav: rgba(10, 23, 34, 0.90);
-      --card-border: rgba(16, 185, 129, 0.24);
-      --hero-glow-1: rgba(16, 185, 129, 0.22);
-      --hero-glow-2: rgba(56, 189, 248, 0.18);
-      --hero-grad-start: #10b981;
-      --hero-grad-end: #38bdf8;
-      --theme-name: "Nordic Aurora Borealis";
+    /* Edition 3: Oxford Slate (Architectural Neutral) */
+    html[data-theme="slate"], html[data-theme="aurora"] {
+      --accent: #f1f5f9;
+      --accent-hover: #ffffff;
+      --accent-tint: rgba(241, 245, 249, 0.06);
+      --accent-border: rgba(241, 245, 249, 0.18);
+      --accent-glow: transparent;
+      --accent-secondary: #94a3b8;
+      --accent-secondary-hover: #cbd5e1;
+      --chakra-cyan: #94a3b8;
+      --bg-darkest: #111317;
+      --bg-darker: #17191f;
+      --bg-dark: #1e2129;
+      --bg-card: rgba(27, 30, 38, 0.92);
+      --bg-card-hover: rgba(35, 39, 49, 0.98);
+      --bg-modal: #181a22;
+      --bg-nav: rgba(17, 19, 23, 0.90);
+      --card-border: rgba(241, 245, 249, 0.08);
+      --text-normal: #cbd5e1;
+      --text-muted: #828a99;
+      --text-header: #f8fafc;
+      --hero-glow-1: transparent;
+      --hero-glow-2: transparent;
+      --hero-grad-start: #f8fafc;
+      --hero-grad-end: #cbd5e1;
+      --theme-name: "Oxford Slate";
     }
 
-    /* Theme 4: Solar Amber & Crimson Forge (Warm Industrial / Tactical Dark) */
-    html[data-theme="forge"] {
-      --accent: #f59e0b;
-      --accent-hover: #d97706;
-      --accent-tint: rgba(245, 158, 11, 0.16);
-      --accent-border: rgba(245, 158, 11, 0.45);
-      --accent-glow: rgba(245, 158, 11, 0.38);
-      --accent-secondary: #ff4757;
-      --accent-secondary-hover: #ee5253;
-      --chakra-cyan: #fbbf24;
-      --bg-darkest: #0c0a08;
-      --bg-darker: #15110e;
-      --bg-dark: #221c17;
-      --bg-card: rgba(34, 28, 23, 0.94);
-      --bg-card-hover: rgba(48, 39, 32, 0.98);
-      --bg-modal: #191410;
-      --bg-nav: rgba(21, 17, 14, 0.90);
-      --card-border: rgba(245, 158, 11, 0.26);
-      --hero-glow-1: rgba(245, 158, 11, 0.24);
-      --hero-glow-2: rgba(255, 71, 87, 0.18);
-      --hero-grad-start: #f59e0b;
-      --hero-grad-end: #ff4757;
-      --theme-name: "Solar Amber & Crimson Forge";
+    /* Edition 4: Warm Cashmere (Literary Review) */
+    html[data-theme="cashmere"], html[data-theme="forge"] {
+      --accent: #f7ede2;
+      --accent-hover: #ffffff;
+      --accent-tint: rgba(247, 237, 226, 0.06);
+      --accent-border: rgba(247, 237, 226, 0.18);
+      --accent-glow: transparent;
+      --accent-secondary: #d5bdaf;
+      --accent-secondary-hover: #e3d5ca;
+      --chakra-cyan: #d5bdaf;
+      --bg-darkest: #12100e;
+      --bg-darker: #1a1714;
+      --bg-dark: #24201c;
+      --bg-card: rgba(32, 28, 24, 0.92);
+      --bg-card-hover: rgba(42, 37, 32, 0.98);
+      --bg-modal: #1f1b17;
+      --bg-nav: rgba(18, 16, 14, 0.90);
+      --card-border: rgba(245, 235, 224, 0.08);
+      --text-normal: #d6ccc2;
+      --text-muted: #9c9288;
+      --text-header: #faf6f0;
+      --hero-glow-1: transparent;
+      --hero-glow-2: transparent;
+      --hero-grad-start: #faf6f0;
+      --hero-grad-end: #d6ccc2;
+      --theme-name: "Warm Cashmere";
     }
 
-    /* Theme 5: Quantum Vaporwave (Retro-Futurism / Pastel Twilight) */
-    html[data-theme="vaporwave"] {
-      --accent: #a855f7;
-      --accent-hover: #9333ea;
-      --accent-tint: rgba(168, 85, 247, 0.16);
-      --accent-border: rgba(168, 85, 247, 0.42);
-      --accent-glow: rgba(168, 85, 247, 0.38);
-      --accent-secondary: #fb7185;
-      --accent-secondary-hover: #f43f5e;
-      --chakra-cyan: #c084fc;
-      --bg-darkest: #090614;
-      --bg-darker: #120b24;
-      --bg-dark: #1d1238;
-      --bg-card: rgba(29, 18, 56, 0.92);
-      --bg-card-hover: rgba(42, 26, 80, 0.98);
-      --bg-modal: #150d2a;
-      --bg-nav: rgba(18, 11, 36, 0.90);
-      --card-border: rgba(168, 85, 247, 0.26);
-      --hero-glow-1: rgba(168, 85, 247, 0.25);
-      --hero-glow-2: rgba(251, 113, 133, 0.18);
-      --hero-grad-start: #a855f7;
-      --hero-grad-end: #fb7185;
-      --theme-name: "Quantum Vaporwave";
+    /* Edition 5: Alpine Pine (Botanical Monograph) */
+    html[data-theme="alpine"], html[data-theme="vaporwave"] {
+      --accent: #eef4f0;
+      --accent-hover: #ffffff;
+      --accent-tint: rgba(238, 244, 240, 0.06);
+      --accent-border: rgba(238, 244, 240, 0.18);
+      --accent-glow: transparent;
+      --accent-secondary: #9cb3a5;
+      --accent-secondary-hover: #b4c7bc;
+      --chakra-cyan: #9cb3a5;
+      --bg-darkest: #0a0e0c;
+      --bg-darker: #101614;
+      --bg-dark: #17211d;
+      --bg-card: rgba(21, 31, 27, 0.92);
+      --bg-card-hover: rgba(29, 43, 37, 0.98);
+      --bg-modal: #131d19;
+      --bg-nav: rgba(10, 14, 12, 0.90);
+      --card-border: rgba(238, 244, 240, 0.08);
+      --text-normal: #cadbd0;
+      --text-muted: #859c8e;
+      --text-header: #f4faf6;
+      --hero-glow-1: transparent;
+      --hero-glow-2: transparent;
+      --hero-grad-start: #f4faf6;
+      --hero-grad-end: #cadbd0;
+      --theme-name: "Alpine Pine";
+    }
+
+    /* Editorial Typography Refinements */
+    h1, h2, h3, .hero-official-title, .section-title, .bento-card-title, .ecosystem-card-title, .step-card-title {
+      font-family: var(--font-display) !important;
+      font-weight: 400 !important;
+      letter-spacing: -0.025em !important;
+    }
+    .hero-official-title em {
+      font-family: var(--font-serif) !important;
+      font-style: italic !important;
+      font-weight: 400 !important;
+      color: var(--accent) !important;
     }
 
     /* Card and Component Transitions Across Themes */
@@ -449,28 +480,153 @@
       transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, color 0.2s ease !important;
     }
 
-    /* Dynamic Card Backgrounds & Borders */
+    /* Dynamic Minimal Editorial Cards & Architecture */
     [data-theme] .ecosystem-card,
     [data-theme] .usecase-card,
     [data-theme] .step-card-custom,
     [data-theme] .comparison-card,
     [data-theme] .bento-card,
     [data-theme] .arch-node,
-    [data-theme] .faq-item {
+    [data-theme] .faq-item,
+    [data-theme] .stats-section-asym,
+    [data-theme] .android-showcase-card-left,
+    [data-theme] .android-feat-card,
+    [data-theme] .final-cta-card,
+    [data-theme] .landing-footer {
       background: var(--bg-card) !important;
-      border-color: var(--card-border) !important;
+      border: 1px solid var(--card-border) !important;
+      box-shadow: 0 2px 14px rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* Neutralize legacy neon glow strips & laser lines across all themes */
+    [data-theme] .stats-section-asym::after,
+    [data-theme] .android-showcase-card-left::before,
+    [data-theme] .bento-card::after,
+    [data-theme] .border-beam,
+    [data-theme] .blade-sheen {
+      display: none !important;
     }
 
     [data-theme] .ecosystem-card:hover,
     [data-theme] .usecase-card:hover,
-    [data-theme] .step-card-custom:hover {
+    [data-theme] .step-card-custom:hover,
+    [data-theme] .bento-card:hover,
+    [data-theme] .faq-item:hover,
+    [data-theme] .comparison-card:hover,
+    [data-theme] .final-cta-card:hover {
       border-color: var(--accent-border) !important;
-      box-shadow: 0 10px 30px -10px var(--accent-glow) !important;
+      box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.12) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    /* Minimal Editorial Card Typography (Universally Themed) */
+    [data-theme] .ecosystem-card-title,
+    [data-theme] .ecosystem-card-title span,
+    [data-theme] .usecase-title,
+    [data-theme] .step-card-title,
+    [data-theme] .bento-card-title,
+    [data-theme] .comparison-card-title,
+    [data-theme] .arch-node-title,
+    [data-theme] .stat-num-custom,
+    [data-theme] .stat-label-custom,
+    [data-theme] .android-showcase-title,
+    [data-theme] .android-feat-card-title,
+    [data-theme] .android-spec-val,
+    [data-theme] .faq-question,
+    [data-theme] .final-cta-card h2,
+    [data-theme] .footer-col h5 {
+      color: var(--text-header) !important;
+      font-family: var(--font-display) !important;
+    }
+
+    [data-theme] .ecosystem-card-desc,
+    [data-theme] .usecase-desc,
+    [data-theme] .step-card-desc,
+    [data-theme] .bento-card-desc,
+    [data-theme] .comparison-row,
+    [data-theme] .arch-node-desc,
+    [data-theme] .stat-subtext,
+    [data-theme] .android-showcase-desc,
+    [data-theme] .android-feat-card-desc,
+    [data-theme] .android-spec-lbl,
+    [data-theme] .faq-answer,
+    [data-theme] .final-cta-card p,
+    [data-theme] .footer-desc,
+    [data-theme] .footer-link,
+    [data-theme] .footer-col li {
+      color: var(--text-muted) !important;
+    }
+
+    [data-theme] .ecosystem-card-badge,
+    [data-theme] .bento-pill-tag,
+    [data-theme] .stat-icon-wrap,
+    [data-theme] .android-release-badge {
+      background: var(--accent-tint) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--accent) !important;
+    }
+
+    [data-theme] .ecosystem-feature-chip,
+    [data-theme] .android-release-device-chip {
+      background: var(--accent-tint) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--text-muted) !important;
+    }
+
+    [data-theme] .ecosystem-card-action {
+      border-top: 1px solid var(--card-border) !important;
+    }
+    [data-theme] .ecosystem-card-btn {
+      color: var(--text-header) !important;
+      font-weight: 600 !important;
+    }
+    [data-theme] .android-specs-row {
+      background: var(--accent-tint) !important;
+      border: 1px solid var(--card-border) !important;
+    }
+    [data-theme] .android-primary-download-btn {
+      background: var(--accent) !important;
+      color: var(--bg-darkest) !important;
+      border-radius: 9999px !important;
+      font-weight: 600 !important;
+    }
+    [data-theme] .android-secondary-action-btn {
+      background: transparent !important;
+      color: var(--text-header) !important;
+      border: 1px solid var(--card-border) !important;
+      border-radius: 9999px !important;
+    }
+    [data-theme] .android-security-note {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--card-border) !important;
+    }
+    [data-theme] .comparison-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--card-border) !important;
+      box-shadow: none !important;
+    }
+    [data-theme] .comparison-card.connecto-highlight {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--accent-border) !important;
+    }
+    [data-theme] .comparison-row {
+      border-bottom: 1px solid var(--card-border) !important;
+    }
+
+    [data-theme] .marquee-track-container {
+      border-top: 1px solid var(--card-border) !important;
+      border-bottom: 1px solid var(--card-border) !important;
+      background: transparent !important;
+    }
+    [data-theme] .marquee-chip {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--text-muted) !important;
     }
 
     [data-theme] .landing-nav {
       background: var(--bg-nav) !important;
-      border-color: var(--card-border) !important;
+      border-bottom: 1px solid var(--card-border) !important;
     }
 
     [data-theme] body,
@@ -478,24 +634,24 @@
       background-color: var(--bg-darkest) !important;
     }
 
-    /* Theme Studio Floating Showcase Bar */
+    /* Theme Studio Floating Showcase Bar (Editorial Curator) */
     .theme-studio-dock {
       position: fixed;
-      top: 82px;
+      top: 76px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 9990;
-      background: rgba(10, 14, 26, 0.90);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border: 1px solid var(--accent-border);
+      background: var(--bg-card);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--card-border);
       border-radius: 9999px;
-      padding: 6px 12px;
+      padding: 5px 12px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 0 25px var(--accent-glow);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      gap: 6px;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
       max-width: 95vw;
       overflow-x: auto;
       scrollbar-width: none;
@@ -506,87 +662,372 @@
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 11.5px;
-      font-weight: 800;
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--accent);
-      padding: 0 6px 0 2px;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      padding: 0 8px 0 2px;
       white-space: nowrap;
-      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      border-right: 1px solid var(--card-border);
     }
     .theme-studio-pills {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
     }
     .theme-pill-btn {
       display: inline-flex;
       align-items: center;
       gap: 7px;
-      padding: 6px 12px;
+      padding: 5px 12px;
       border-radius: 9999px;
       font-size: 12px;
-      font-weight: 700;
-      color: #94a3b8;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.10);
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .theme-pill-btn:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.10);
-      border-color: rgba(255, 255, 255, 0.25);
-      transform: translateY(-1px);
+      color: var(--text-header);
+      background: var(--accent-tint);
+      border-color: var(--card-border);
     }
     .theme-pill-btn.active {
-      color: #ffffff;
+      color: var(--text-header);
       background: var(--accent-tint);
-      border-color: var(--accent);
-      box-shadow: 0 0 16px var(--accent-glow);
+      border-color: var(--accent-border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+      font-weight: 600;
     }
     .theme-pill-dot {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       flex-shrink: 0;
     }
-    .theme-studio-toggle-btn {
-      position: fixed;
-      top: 86px;
-      right: 20px;
-      z-index: 9991;
-      background: var(--bg-card);
-      border: 1px solid var(--accent-border);
-      color: var(--accent);
-      padding: 6px 12px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
-      transition: all 0.2s;
-    }
-    .theme-studio-toggle-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 8px 24px var(--accent-glow);
-    }
     @media (max-width: 768px) {
       .theme-studio-dock {
-        top: 68px;
-        padding: 5px 10px;
+        top: 64px;
+        padding: 4px 8px;
         width: calc(100% - 20px);
         justify-content: flex-start;
       }
       .theme-pill-btn {
-        padding: 5px 10px;
+        padding: 4px 9px;
         font-size: 11px;
       }
+    }
+
+    /* Light Theme (Ivory Parchment) Comprehensive Paper Styling */
+    html[data-theme="parchment"],
+    html[data-theme="cyberpunk"] {
+      color: #3f3f46 !important;
+    }
+    html[data-theme="parchment"] body,
+    html[data-theme="cyberpunk"] body,
+    html[data-theme="parchment"] #heroView,
+    html[data-theme="cyberpunk"] #heroView {
+      background-color: #fbf9f5 !important;
+      color: #3f3f46 !important;
+    }
+    html[data-theme="parchment"] .hero-official-title,
+    html[data-theme="cyberpunk"] .hero-official-title,
+    html[data-theme="parchment"] .section-title,
+    html[data-theme="cyberpunk"] .section-title,
+    html[data-theme="parchment"] .landing-logo .nav-logo-text,
+    html[data-theme="cyberpunk"] .landing-logo .nav-logo-text,
+    html[data-theme="parchment"] h1,
+    html[data-theme="cyberpunk"] h1,
+    html[data-theme="parchment"] h2,
+    html[data-theme="cyberpunk"] h2,
+    html[data-theme="parchment"] h3,
+    html[data-theme="cyberpunk"] h3,
+    html[data-theme="parchment"] h4,
+    html[data-theme="cyberpunk"] h4 {
+      color: #111111 !important;
+    }
+    html[data-theme="parchment"] .hero-official-desc,
+    html[data-theme="cyberpunk"] .hero-official-desc,
+    html[data-theme="parchment"] .section-desc,
+    html[data-theme="cyberpunk"] .section-desc,
+    html[data-theme="parchment"] .landing-link,
+    html[data-theme="cyberpunk"] .landing-link,
+    html[data-theme="parchment"] p,
+    html[data-theme="cyberpunk"] p {
+      color: #52525b !important;
+    }
+    html[data-theme="parchment"] .landing-link:hover,
+    html[data-theme="cyberpunk"] .landing-link:hover {
+      color: #111111 !important;
+    }
+    html[data-theme="parchment"] .landing-nav,
+    html[data-theme="cyberpunk"] .landing-nav {
+      background: rgba(251, 249, 245, 0.94) !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+    html[data-theme="parchment"] .hero-cta-btn-primary,
+    html[data-theme="cyberpunk"] .hero-cta-btn-primary,
+    html[data-theme="parchment"] .nav-signup-cta-btn,
+    html[data-theme="cyberpunk"] .nav-signup-cta-btn {
+      background: #111111 !important;
+      color: #ffffff !important;
+      border-color: #111111 !important;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+    }
+    html[data-theme="parchment"] .hero-cta-btn-secondary,
+    html[data-theme="cyberpunk"] .hero-cta-btn-secondary {
+      background: transparent !important;
+      color: #111111 !important;
+      border-color: rgba(0, 0, 0, 0.16) !important;
+    }
+    html[data-theme="parchment"] .chat-mockup-card,
+    html[data-theme="cyberpunk"] .chat-mockup-card {
+      background: #ffffff !important;
+      border-color: rgba(0, 0, 0, 0.10) !important;
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06) !important;
+    }
+    html[data-theme="parchment"] .mock-win-header,
+    html[data-theme="cyberpunk"] .mock-win-header {
+      background: #f7f6f2 !important;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+    html[data-theme="parchment"] .mock-win-title,
+    html[data-theme="cyberpunk"] .mock-win-title {
+      color: #111111 !important;
+    }
+    html[data-theme="parchment"] .mock-sidebar,
+    html[data-theme="cyberpunk"] .mock-sidebar {
+      background: #faf9f6 !important;
+      border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+    html[data-theme="parchment"] .mock-ch,
+    html[data-theme="cyberpunk"] .mock-ch {
+      color: #52525b !important;
+    }
+    html[data-theme="parchment"] .mock-ch.active,
+    html[data-theme="cyberpunk"] .mock-ch.active {
+      color: #111111 !important;
+      background: rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-theme="parchment"] .mock-body-layout,
+    html[data-theme="cyberpunk"] .mock-body-layout {
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] .ecosystem-card,
+    html[data-theme="cyberpunk"] .ecosystem-card,
+    html[data-theme="parchment"] .usecase-card,
+    html[data-theme="cyberpunk"] .usecase-card,
+    html[data-theme="parchment"] .step-card-custom,
+    html[data-theme="cyberpunk"] .step-card-custom,
+    html[data-theme="parchment"] .comparison-card,
+    html[data-theme="cyberpunk"] .comparison-card,
+    html[data-theme="parchment"] .bento-card,
+    html[data-theme="cyberpunk"] .bento-card,
+    html[data-theme="parchment"] .arch-node,
+    html[data-theme="cyberpunk"] .arch-node,
+    html[data-theme="parchment"] .faq-item,
+    html[data-theme="cyberpunk"] .faq-item,
+    html[data-theme="parchment"] .stats-section-asym,
+    html[data-theme="cyberpunk"] .stats-section-asym,
+    html[data-theme="parchment"] .android-showcase-card-left,
+    html[data-theme="cyberpunk"] .android-showcase-card-left,
+    html[data-theme="parchment"] .android-feat-card,
+    html[data-theme="cyberpunk"] .android-feat-card,
+    html[data-theme="parchment"] .final-cta-card,
+    html[data-theme="cyberpunk"] .final-cta-card,
+    html[data-theme="parchment"] .landing-footer,
+    html[data-theme="cyberpunk"] .landing-footer {
+      background: #ffffff !important;
+      border-color: rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-card-title,
+    html[data-theme="cyberpunk"] .ecosystem-card-title,
+    html[data-theme="parchment"] .ecosystem-card-title span,
+    html[data-theme="cyberpunk"] .ecosystem-card-title span,
+    html[data-theme="parchment"] .usecase-title,
+    html[data-theme="cyberpunk"] .usecase-title,
+    html[data-theme="parchment"] .step-card-title,
+    html[data-theme="cyberpunk"] .step-card-title,
+    html[data-theme="parchment"] .bento-card-title,
+    html[data-theme="cyberpunk"] .bento-card-title,
+    html[data-theme="parchment"] .comparison-card-title,
+    html[data-theme="cyberpunk"] .comparison-card-title,
+    html[data-theme="parchment"] .arch-node-title,
+    html[data-theme="cyberpunk"] .arch-node-title,
+    html[data-theme="parchment"] .stat-num-custom,
+    html[data-theme="cyberpunk"] .stat-num-custom,
+    html[data-theme="parchment"] .stat-label-custom,
+    html[data-theme="cyberpunk"] .stat-label-custom,
+    html[data-theme="parchment"] .android-showcase-title,
+    html[data-theme="cyberpunk"] .android-showcase-title,
+    html[data-theme="parchment"] .android-feat-card-title,
+    html[data-theme="cyberpunk"] .android-feat-card-title,
+    html[data-theme="parchment"] .android-spec-val,
+    html[data-theme="cyberpunk"] .android-spec-val,
+    html[data-theme="parchment"] .faq-question,
+    html[data-theme="cyberpunk"] .faq-question,
+    html[data-theme="parchment"] .final-cta-card h2,
+    html[data-theme="cyberpunk"] .final-cta-card h2,
+    html[data-theme="parchment"] .footer-col h5,
+    html[data-theme="cyberpunk"] .footer-col h5,
+    html[data-theme="parchment"] .auth-title,
+    html[data-theme="cyberpunk"] .auth-title {
+      color: #111111 !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-card-desc,
+    html[data-theme="cyberpunk"] .ecosystem-card-desc,
+    html[data-theme="parchment"] .usecase-desc,
+    html[data-theme="cyberpunk"] .usecase-desc,
+    html[data-theme="parchment"] .step-card-desc,
+    html[data-theme="cyberpunk"] .step-card-desc,
+    html[data-theme="parchment"] .bento-card-desc,
+    html[data-theme="cyberpunk"] .bento-card-desc,
+    html[data-theme="parchment"] .comparison-row,
+    html[data-theme="cyberpunk"] .comparison-row,
+    html[data-theme="parchment"] .arch-node-desc,
+    html[data-theme="cyberpunk"] .arch-node-desc,
+    html[data-theme="parchment"] .stat-subtext,
+    html[data-theme="cyberpunk"] .stat-subtext,
+    html[data-theme="parchment"] .android-showcase-desc,
+    html[data-theme="cyberpunk"] .android-showcase-desc,
+    html[data-theme="parchment"] .android-feat-card-desc,
+    html[data-theme="cyberpunk"] .android-feat-card-desc,
+    html[data-theme="parchment"] .android-spec-lbl,
+    html[data-theme="cyberpunk"] .android-spec-lbl,
+    html[data-theme="parchment"] .faq-answer,
+    html[data-theme="cyberpunk"] .faq-answer,
+    html[data-theme="parchment"] .final-cta-card p,
+    html[data-theme="cyberpunk"] .final-cta-card p,
+    html[data-theme="parchment"] .footer-desc,
+    html[data-theme="cyberpunk"] .footer-desc,
+    html[data-theme="parchment"] .footer-link,
+    html[data-theme="cyberpunk"] .footer-link,
+    html[data-theme="parchment"] .footer-col li,
+    html[data-theme="cyberpunk"] .footer-col li {
+      color: #52525b !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-card-badge,
+    html[data-theme="cyberpunk"] .ecosystem-card-badge,
+    html[data-theme="parchment"] .bento-pill-tag,
+    html[data-theme="cyberpunk"] .bento-pill-tag,
+    html[data-theme="parchment"] .stat-icon-wrap,
+    html[data-theme="cyberpunk"] .stat-icon-wrap,
+    html[data-theme="parchment"] .android-release-badge,
+    html[data-theme="cyberpunk"] .android-release-badge {
+      color: #111111 !important;
+      background: rgba(0, 0, 0, 0.05) !important;
+      border-color: rgba(0, 0, 0, 0.1) !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-feature-chip,
+    html[data-theme="cyberpunk"] .ecosystem-feature-chip,
+    html[data-theme="parchment"] .android-release-device-chip,
+    html[data-theme="cyberpunk"] .android-release-device-chip {
+      color: #52525b !important;
+      background: rgba(0, 0, 0, 0.03) !important;
+      border-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-card-btn,
+    html[data-theme="cyberpunk"] .ecosystem-card-btn {
+      color: #111111 !important;
+    }
+
+    html[data-theme="parchment"] .android-specs-row,
+    html[data-theme="cyberpunk"] .android-specs-row {
+      background: #f7f6f2 !important;
+      border-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    html[data-theme="parchment"] .android-primary-download-btn,
+    html[data-theme="cyberpunk"] .android-primary-download-btn {
+      background: #111111 !important;
+      color: #ffffff !important;
+      border-color: #111111 !important;
+    }
+
+    html[data-theme="parchment"] .android-secondary-action-btn,
+    html[data-theme="cyberpunk"] .android-secondary-action-btn {
+      background: #ffffff !important;
+      color: #111111 !important;
+      border-color: rgba(0, 0, 0, 0.14) !important;
+    }
+
+    html[data-theme="parchment"] .android-security-note,
+    html[data-theme="cyberpunk"] .android-security-note {
+      background: #f7f6f2 !important;
+      border-color: rgba(0, 0, 0, 0.08) !important;
+    }
+
+    html[data-theme="parchment"] .landing-link-btn,
+    html[data-theme="cyberpunk"] .landing-link-btn {
+      color: #52525b !important;
+    }
+    html[data-theme="parchment"] .discovery-search-input,
+    html[data-theme="cyberpunk"] .discovery-search-input {
+      background: #ffffff !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+      color: #111111 !important;
+    }
+    html[data-theme="parchment"] .filter-chip,
+    html[data-theme="cyberpunk"] .filter-chip {
+      background: #ffffff !important;
+      border-color: rgba(0, 0, 0, 0.10) !important;
+      color: #52525b !important;
+    }
+    html[data-theme="parchment"] .filter-chip.active,
+    html[data-theme="cyberpunk"] .filter-chip.active {
+      background: #111111 !important;
+      color: #ffffff !important;
+      border-color: #111111 !important;
+    }
+    html[data-theme="parchment"] .marquee-chip,
+    html[data-theme="cyberpunk"] .marquee-chip {
+      background: #ffffff !important;
+      border-color: rgba(0, 0, 0, 0.08) !important;
+      color: #3f3f46 !important;
+    }
+
+    /* Universal Minimal Editorial Components */
+    .discovery-search-input {
+      width: 100%;
+      font-size: 13.5px;
+      padding: 12px 16px 12px 42px;
+      background: var(--bg-card) !important;
+      border: 1px solid var(--card-border) !important;
+      border-radius: 9999px !important;
+      color: var(--text-header) !important;
+      transition: all 0.2s ease;
+    }
+    .discovery-search-input:focus {
+      border-color: var(--accent-border) !important;
+      box-shadow: 0 0 0 3px var(--accent-tint) !important;
+      outline: none;
+    }
+    .filter-chip {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--card-border) !important;
+      color: var(--text-muted) !important;
+      border-radius: 9999px !important;
+      transition: all 0.15s ease !important;
+    }
+    .filter-chip:hover {
+      color: var(--text-header) !important;
+      border-color: var(--accent-border) !important;
+    }
+    .filter-chip.active {
+      background: var(--accent) !important;
+      color: var(--bg-darkest) !important;
+      border-color: var(--accent) !important;
+      font-weight: 600 !important;
     }
     
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-body); }
@@ -7518,47 +7959,60 @@
       z-index: 2;
     }
     .hero-official-title {
-      font-family: var(--font-display);
-      font-size: clamp(32px, 5.5vw, 56px);
-      font-weight: 800;
-      line-height: 1.12;
-      letter-spacing: -0.03em;
-      color: #ffffff;
-      margin: 0;
+      font-family: var(--font-display) !important;
+      font-size: clamp(32px, 4.4vw, 52px) !important;
+      font-weight: 400 !important;
+      line-height: 1.1 !important;
+      letter-spacing: -0.025em !important;
+      color: var(--text-header) !important;
+      margin: 0 !important;
+    }
+    .hero-official-title em {
+      font-family: var(--font-serif) !important;
+      font-style: italic !important;
+      font-weight: 400 !important;
+      color: var(--accent) !important;
+    }
+    .hero-editorial-sub {
+      color: var(--text-muted) !important;
+      font-weight: 300 !important;
     }
     .hero-gradient-text {
-      background: linear-gradient(135deg, var(--hero-grad-start, #38bdf8) 0%, var(--accent, #818cf8) 50%, var(--hero-grad-end, #22d3ee) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      font-family: var(--font-display) !important;
+      font-weight: 400 !important;
+      color: var(--text-header) !important;
+      background: none !important;
+      -webkit-text-fill-color: initial !important;
       display: inline;
     }
     .hero-official-desc {
-      font-size: clamp(15px, 1.8vw, 17px);
-      color: #94a3b8;
-      line-height: 1.6;
-      max-width: 580px;
-      margin: 0;
+      font-size: clamp(14.5px, 1.6vw, 16.5px) !important;
+      color: var(--text-muted) !important;
+      line-height: 1.6 !important;
+      max-width: 540px !important;
+      margin: 4px auto 0 auto !important;
     }
     .official-live-indicator {
       display: inline-block;
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: var(--accent, #10b981);
-      box-shadow: 0 0 8px var(--accent, #10b981);
-      margin-right: 6px;
+      background: var(--text-muted);
+      margin-right: 8px;
+      opacity: 0.7;
     }
     .hero-eyebrow {
       display: inline-flex;
       align-items: center;
       padding: 4px 12px;
-      background: var(--accent-tint, rgba(16, 185, 129, 0.08));
-      border: 1px solid var(--accent-border, rgba(16, 185, 129, 0.25));
+      background: var(--accent-tint);
+      border: 1px solid var(--card-border);
       border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--accent, #34d399);
-      letter-spacing: 0.3px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
       width: fit-content;
     }
     .hero-pill-badge {
@@ -7566,55 +8020,57 @@
       align-items: center;
       gap: 6px;
       padding: 4px 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: transparent;
+      border: 1px solid var(--card-border);
       border-radius: 9999px;
-      font-size: 12.5px;
-      font-weight: 600;
-      color: var(--text-normal);
-      transition: background 0.15s ease, border-color 0.15s ease;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      transition: all 0.15s ease;
     }
     .hero-pill-badge:hover {
-      background: rgba(255, 255, 255, 0.09);
-      border-color: rgba(255, 255, 255, 0.2);
+      background: var(--accent-tint);
+      border-color: var(--accent-border);
+      color: var(--text-header);
     }
     .hero-cta-btn-primary {
-      background: var(--accent, #00ced1) !important;
-      color: #080c18 !important;
-      font-weight: 800 !important;
-      padding: 12px 24px !important;
-      border-radius: 10px !important;
-      box-shadow: 0 4px 16px var(--accent-glow, rgba(0, 206, 201, 0.35)) !important;
-      border: 1px solid rgba(255, 255, 255, 0.2) !important;
-      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease !important;
-      font-size: 14.5px !important;
+      background: var(--accent) !important;
+      color: var(--bg-darkest) !important;
+      font-weight: 600 !important;
+      padding: 10px 22px !important;
+      border-radius: 9999px !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+      border: 1px solid var(--accent-border) !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      font-size: 13.5px !important;
       display: inline-flex !important;
       align-items: center !important;
       gap: 8px !important;
       cursor: pointer !important;
     }
     .hero-cta-btn-primary:hover {
-      transform: translateY(-1.5px) !important;
-      box-shadow: 0 8px 24px var(--accent-glow, rgba(0, 206, 201, 0.5)) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3) !important;
+      opacity: 0.95 !important;
     }
     .hero-cta-btn-secondary {
-      background: rgba(255, 255, 255, 0.06) !important;
-      color: #ffffff !important;
-      border: 1px solid rgba(255, 255, 255, 0.14) !important;
-      padding: 12px 22px !important;
-      border-radius: 10px !important;
-      font-weight: 700 !important;
-      font-size: 14.5px !important;
-      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease !important;
+      background: transparent !important;
+      color: var(--text-header) !important;
+      border: 1px solid var(--card-border) !important;
+      padding: 10px 20px !important;
+      border-radius: 9999px !important;
+      font-weight: 500 !important;
+      font-size: 13.5px !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
       display: inline-flex !important;
       align-items: center !important;
       gap: 8px !important;
       cursor: pointer !important;
     }
     .hero-cta-btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1) !important;
-      border-color: rgba(255, 255, 255, 0.3) !important;
-      transform: translateY(-1.5px) !important;
+      background: var(--accent-tint) !important;
+      border-color: var(--accent-border) !important;
+      transform: translateY(-1px) !important;
     }
 
     /* Fast, snappy micro-interactions */
@@ -15083,32 +15539,32 @@ pre, .code-block, .chat-code-snippet {
         </nav>
       </div>
 
-      <!-- FLOATING THEME STUDIO (Live Interactive Switcher) -->
-      <div class="theme-studio-dock" id="themeStudioDock" role="region" aria-label="Theme Studio">
+      <!-- FLOATING THEME STUDIO (Curated Minimal Editorial Editions) -->
+      <div class="theme-studio-dock" id="themeStudioDock" role="region" aria-label="Editorial Editions">
         <div class="theme-studio-label">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"/></svg>
-          <span>Theme Studio</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          <span>Curated Editions</span>
         </div>
         <div class="theme-studio-pills">
-          <button class="theme-pill-btn active" data-theme-btn="obsidian" onclick="setHomepageTheme('obsidian')" title="Theme 1: Midnight Obsidian OLED (Cyber-Stealth Pro)">
-            <span class="theme-pill-dot" style="background:#22d3ee; box-shadow:0 0 8px #22d3ee;"></span>
-            <span>1. Obsidian OLED</span>
+          <button class="theme-pill-btn active" data-theme-btn="noir" onclick="setHomepageTheme('noir')" title="Edition 1: Editorial Noir (Archival Ink)">
+            <span class="theme-pill-dot" style="background:#fafafa; border:1px solid #71717a;"></span>
+            <span>1. Noir Ink</span>
           </button>
-          <button class="theme-pill-btn" data-theme-btn="cyberpunk" onclick="setHomepageTheme('cyberpunk')" title="Theme 2: Tokyo Cyberpunk 2077 (Neon Pulse / Acid Synth)">
-            <span class="theme-pill-dot" style="background:#ff007f; box-shadow:0 0 8px #ff007f;"></span>
-            <span>2. Tokyo Cyberpunk</span>
+          <button class="theme-pill-btn" data-theme-btn="parchment" onclick="setHomepageTheme('parchment')" title="Edition 2: Ivory Parchment (Warm Archival Paper)">
+            <span class="theme-pill-dot" style="background:#f4f1ea; border:1px solid #111111;"></span>
+            <span>2. Ivory Paper</span>
           </button>
-          <button class="theme-pill-btn" data-theme-btn="aurora" onclick="setHomepageTheme('aurora')" title="Theme 3: Nordic Aurora Borealis (Frost Minimalist / Linear)">
-            <span class="theme-pill-dot" style="background:#10b981; box-shadow:0 0 8px #10b981;"></span>
-            <span>3. Nordic Aurora</span>
+          <button class="theme-pill-btn" data-theme-btn="slate" onclick="setHomepageTheme('slate')" title="Edition 3: Oxford Slate (Architectural Neutral)">
+            <span class="theme-pill-dot" style="background:#94a3b8; border:1px solid #475569;"></span>
+            <span>3. Oxford Slate</span>
           </button>
-          <button class="theme-pill-btn" data-theme-btn="forge" onclick="setHomepageTheme('forge')" title="Theme 4: Solar Amber &amp; Crimson Forge (Warm Industrial / Tactical Dark)">
-            <span class="theme-pill-dot" style="background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span>
-            <span>4. Solar Amber</span>
+          <button class="theme-pill-btn" data-theme-btn="cashmere" onclick="setHomepageTheme('cashmere')" title="Edition 4: Warm Cashmere (Literary Review)">
+            <span class="theme-pill-dot" style="background:#d5bdaf; border:1px solid #8d7b68;"></span>
+            <span>4. Cashmere</span>
           </button>
-          <button class="theme-pill-btn" data-theme-btn="vaporwave" onclick="setHomepageTheme('vaporwave')" title="Theme 5: Quantum Vaporwave (Retro-Futurism / Pastel Twilight)">
-            <span class="theme-pill-dot" style="background:#a855f7; box-shadow:0 0 8px #a855f7;"></span>
-            <span>5. Quantum Vapor</span>
+          <button class="theme-pill-btn" data-theme-btn="alpine" onclick="setHomepageTheme('alpine')" title="Edition 5: Alpine Pine (Botanical Monograph)">
+            <span class="theme-pill-dot" style="background:#9cb3a5; border:1px solid #52796f;"></span>
+            <span>5. Alpine Pine</span>
           </button>
         </div>
       </div>
@@ -15121,17 +15577,17 @@ pre, .code-block, .chat-code-snippet {
         <!-- SECTION 1: HERO & INTERACTIVE STAGE -->
         <div class="hero-grid">
           <div class="hero-text">
-            <div class="hero-eyebrow"><span class="official-live-indicator"></span>Official Release • Connecto Platform v3.9.8</div>
-            <h1 class="hero-official-title">Connecting <span class="hero-gradient-text">Friends.</span></h1>
-            <p class="hero-official-desc">High-speed real-time messaging, crystal-clear voice rooms, and private circles crafted for friends, creators, and modern communities.</p>
+            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v3.9.8</div>
+            <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
+            <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
-              <span class="hero-pill-badge"><i data-lucide="message-square" class="lucide-sm"></i> Instant Chat</span>
-              <span class="hero-pill-badge"><i data-lucide="mic" class="lucide-sm"></i> Voice Lounges</span>
-              <span class="hero-pill-badge"><i data-lucide="users" class="lucide-sm"></i> Close Friends</span>
+              <span class="hero-pill-badge"><i data-lucide="feather" class="lucide-sm"></i> Distraction-Free</span>
+              <span class="hero-pill-badge"><i data-lucide="shield" class="lucide-sm"></i> Zero-Knowledge</span>
+              <span class="hero-pill-badge"><i data-lucide="radio" class="lucide-sm"></i> Mesh Voice</span>
             </div>
             <div class="hero-cta-buttons-row">
-              <button class="btn hero-cta-btn-primary" onclick="switchMainView('chat')"><i data-lucide="message-square" class="lucide-sm"></i> <span>Open Live Chat</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
-              <button class="btn hero-cta-btn-secondary" onclick="scrollToHeroSection('ecosystemSection')"><i data-lucide="compass" class="lucide-sm"></i> <span>Explore Ecosystem</span> <i data-lucide="chevron-down" class="lucide-sm"></i></button>
+              <button class="btn hero-cta-btn-primary" onclick="switchMainView('chat')"><span>Open Live Chat</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+              <button class="btn hero-cta-btn-secondary" onclick="scrollToHeroSection('ecosystemSection')"><span>Explore Architecture</span> <i data-lucide="arrow-down" class="lucide-sm"></i></button>
             </div>
           </div>
           
@@ -15529,8 +15985,8 @@ pre, .code-block, .chat-code-snippet {
           <!-- Integrated Real-Time Search & Category Filters -->
           <div style="margin: 0 0 20px; display: flex; flex-direction: column; gap: 12px; width: 100%;">
             <div style="position: relative; width: 100%;">
-              <input type="text" id="discoverySearchInput" class="auth-input-field" placeholder="Search by community tags, voice lounge, learning labs, or keywords..." style="width:100%; font-size:13.5px; padding:12px 16px 12px 42px; background:rgba(15,20,36,0.85); border:1.5px solid rgba(6,182,212,0.3); border-radius:12px; color:#fff;" oninput="filterDiscoveryHubs(this.value)">
-              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; color:var(--chakra-cyan);"><i data-lucide="search" class="lucide-sm"></i></span>
+              <input type="text" id="discoverySearchInput" class="auth-input-field discovery-search-input" placeholder="Search spaces, voice lounges, learning labs, or topics..." oninput="filterDiscoveryHubs(this.value)">
+              <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); display:inline-flex; align-items:center; color:var(--text-muted);"><i data-lucide="search" class="lucide-sm"></i></span>
             </div>
 
             <div class="filter-chips-row">
@@ -26918,11 +27374,22 @@ function selectSettingsAvatar(emoji, el) {
     }
 
     // ============================================================
-    // 5 SOTA HOMEPAGE THEMES - DYNAMIC CONTROLLER & LIVE STUDIO
+    // MINIMAL EDITORIAL DESIGN SYSTEM - THEME CONTROLLER
     // ============================================================
     function setHomepageTheme(themeId, updateUrl = true) {
-      const validThemes = ['obsidian', 'cyberpunk', 'aurora', 'forge', 'vaporwave'];
-      if (!validThemes.includes(themeId)) themeId = 'obsidian';
+      const aliasMap = {
+        noir: 'noir',
+        obsidian: 'noir',
+        parchment: 'parchment',
+        cyberpunk: 'parchment',
+        slate: 'slate',
+        aurora: 'slate',
+        cashmere: 'cashmere',
+        forge: 'cashmere',
+        alpine: 'alpine',
+        vaporwave: 'alpine'
+      };
+      const canonicalTheme = aliasMap[themeId] || 'noir';
 
       const root = document.documentElement;
 
@@ -26937,30 +27404,32 @@ function selectSettingsAvatar(emoji, el) {
       ];
       inlineVars.forEach(v => root.style.removeProperty(v));
 
-      root.setAttribute('data-theme', themeId);
+      root.setAttribute('data-theme', canonicalTheme);
       try {
-        localStorage.setItem('connecto_home_theme', themeId);
+        localStorage.setItem('connecto_home_theme', canonicalTheme);
         if (updateUrl && window.history && window.history.replaceState) {
           const url = new URL(window.location);
-          url.searchParams.set('theme', themeId);
+          url.searchParams.set('theme', canonicalTheme);
           window.history.replaceState({}, '', url);
         }
       } catch (e) {}
 
       // Update Theme Studio active pill
       document.querySelectorAll('.theme-pill-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.themeBtn === themeId);
+        const btnTheme = btn.dataset.themeBtn;
+        const mappedBtnTheme = aliasMap[btnTheme] || btnTheme;
+        btn.classList.toggle('active', mappedBtnTheme === canonicalTheme);
       });
 
       // Synchronize internal chakra dots
       const chakraMap = {
-        obsidian: 'cyan',
-        cyberpunk: 'crimson',
-        aurora: 'emerald',
-        forge: 'gold',
-        vaporwave: 'indigo'
+        noir: 'cyan',
+        parchment: 'crimson',
+        slate: 'emerald',
+        cashmere: 'gold',
+        alpine: 'indigo'
       };
-      const eqChakra = chakraMap[themeId] || 'cyan';
+      const eqChakra = chakraMap[canonicalTheme] || 'cyan';
       document.querySelectorAll('.chakra-theme-dot').forEach(d => {
         d.classList.toggle('active', d.dataset.theme === eqChakra);
       });
@@ -26973,11 +27442,11 @@ function selectSettingsAvatar(emoji, el) {
     // Chakra Theme Customization Engine (Compat & in-app settings)
     function setChakraTheme(themeName) {
       const themeMap = {
-        cyan: 'obsidian',
-        crimson: 'cyberpunk',
-        emerald: 'aurora',
-        gold: 'forge',
-        indigo: 'vaporwave'
+        cyan: 'noir',
+        crimson: 'parchment',
+        emerald: 'slate',
+        gold: 'cashmere',
+        indigo: 'alpine'
       };
       if (themeMap[themeName]) {
         setHomepageTheme(themeMap[themeName]);
@@ -26985,11 +27454,11 @@ function selectSettingsAvatar(emoji, el) {
       }
       const root = document.documentElement;
       const palettes = {
-        cyan:    { accent: '#22d3ee', glow: 'rgba(34, 211, 238, 0.35)',   cyan: '#06b6d4' },
-        indigo:  { accent: '#818cf8', glow: 'rgba(129, 140, 248, 0.35)',  cyan: '#22d3ee' },
-        gold:    { accent: '#fbbf24', glow: 'rgba(251, 191, 36, 0.35)',   cyan: '#f59e0b' },
-        emerald: { accent: '#4ade80', glow: 'rgba(74, 222, 128, 0.35)',   cyan: '#22c55e' },
-        crimson: { accent: '#f87171', glow: 'rgba(248, 113, 113, 0.35)', cyan: '#ef4444' }
+        cyan:    { accent: '#fafafa', glow: 'transparent', cyan: '#e4e4e7' },
+        indigo:  { accent: '#eef4f0', glow: 'transparent', cyan: '#9cb3a5' },
+        gold:    { accent: '#f7ede2', glow: 'transparent', cyan: '#d5bdaf' },
+        emerald: { accent: '#f1f5f9', glow: 'transparent', cyan: '#94a3b8' },
+        crimson: { accent: '#111111', glow: 'transparent', cyan: '#111111' }
       };
       const p = palettes[themeName] || palettes.cyan;
       root.style.setProperty('--accent', p.accent);
@@ -27008,10 +27477,10 @@ function selectSettingsAvatar(emoji, el) {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const queryTheme = urlParams.get('theme');
-      const savedTheme = queryTheme || localStorage.getItem('connecto_home_theme') || 'obsidian';
+      const savedTheme = queryTheme || localStorage.getItem('connecto_home_theme') || 'noir';
       setHomepageTheme(savedTheme, false);
     } catch (e) {
-      setHomepageTheme('obsidian', false);
+      setHomepageTheme('noir', false);
     }
 
     // Global keyboard shortcuts
