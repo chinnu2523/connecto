@@ -72,14 +72,23 @@ class D1SyncManager:
             logger.error(f"[D1_SYNC] Failed to execute D1 query: {e}")
             return None
 
-    def execute_batch_cloud_d1(self, statements: List[str]) -> bool:
-        """Executes a list of SQL statements via Cloudflare D1 batch API."""
-        if not statements:
+    def execute_batch_cloud_d1(self, items: List[Any]) -> bool:
+        """Executes a list of SQL statements or param objects via Cloudflare D1 batch API."""
+        if not items:
             return True
         try:
+            batch_payload = []
+            for item in items:
+                if isinstance(item, str):
+                    batch_payload.append({"sql": item})
+                elif isinstance(item, dict):
+                    batch_payload.append(item)
+                else:
+                    batch_payload.append({"sql": str(item)})
+
             req = urllib.request.Request(
                 self.endpoint,
-                data=json.dumps({"batch": [{"sql": s} for s in statements]}).encode("utf-8"),
+                data=json.dumps({"batch": batch_payload}).encode("utf-8"),
                 headers={
                     "Content-Type": "application/json",
                     "X-D1-Key": self.api_key,
@@ -114,7 +123,7 @@ class D1SyncManager:
             logger.warning(f"[D1_SYNC] Could not send heartbeat state={state}")
 
     def sync_table_to_cloud(self, table_name: str) -> int:
-        """Pushes rows from local SQLite table to Cloudflare D1 using INSERT OR REPLACE via batch API."""
+        """Pushes rows from local SQLite table to Cloudflare D1 using INSERT OR REPLACE via parameterized batch API."""
         try:
             conn = sqlite3.connect(self.local_db_path)
             conn.row_factory = sqlite3.Row
@@ -132,34 +141,29 @@ class D1SyncManager:
             if not rows:
                 return 0
 
-            # Escape helper
-            def esc(v):
-                if v is None:
-                    return "NULL"
-                if isinstance(v, (int, float)):
-                    return str(v)
-                s = str(v).replace("'", "''")
-                return f"'{s}'"
-
             # Batch statements in groups of 25 for fast, clean, atomic execution
             batch_size = 25
             total_synced = 0
 
             for i in range(0, len(rows), batch_size):
                 batch = rows[i:i + batch_size]
-                statements = []
+                items = []
                 for r in batch:
                     cols = list(r.keys())
                     col_names = ", ".join(cols)
-                    val_str = ", ".join([esc(r[c]) for c in cols])
-                    stmt = f"INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({val_str});"
-                    statements.append(stmt)
+                    placeholders = ", ".join(["?" for _ in cols])
+                    stmt = f"INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({placeholders});"
+                    items.append({"sql": stmt, "params": [r[c] for c in cols]})
 
-                success = self.execute_batch_cloud_d1(statements)
+                success = self.execute_batch_cloud_d1(items)
                 if success:
                     total_synced += len(batch)
                 else:
-                    logger.warning(f"[D1_SYNC] Batch sync failed for table {table_name} batch offset {i}")
+                    # Fallback to row-by-row for resilience against isolated constraints
+                    logger.warning(f"[D1_SYNC] Batch sync failed for {table_name} offset {i}, trying row-by-row...")
+                    for single_item in items:
+                        if self.execute_batch_cloud_d1([single_item]):
+                            total_synced += 1
 
             return total_synced
         except Exception as e:
@@ -170,17 +174,31 @@ class D1SyncManager:
         """Synchronizes all primary application tables from local SQLite to Cloudflare D1."""
         target_tables = [
             "users",
+            "user_sessions",
+            "user_academy_profiles",
             "servers",
             "channels",
             "server_members",
+            "dm_participants",
             "messages",
-            "voice_rooms",
             "friendships",
+            "message_read_receipts",
+            "dm_read_states",
+            "notifications",
             "course_tracks",
             "lessons",
             "quiz_questions",
+            "user_progress",
             "job_openings",
-            "job_applications"
+            "job_applications",
+            "voice_rooms",
+            "voice_room_participants",
+            "call_logs",
+            "scheduled_messages",
+            "bookmarks",
+            "referrals",
+            "moderation_reports",
+            "audit_logs"
         ]
         results = {}
         for tbl in target_tables:
