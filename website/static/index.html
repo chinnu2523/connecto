@@ -2333,11 +2333,85 @@
       color: #78716c !important;
       border: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
+    html[data-theme="parchment"] .roster-empty-title {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .member-category-header {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .member-category-count {
+      background: rgba(68, 64, 60, 0.10) !important;
+      color: #78716c !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .member-handle {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .member-avatar-wrap {
+      background: #ebe6dc !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .member-activity-pill {
+      background: rgba(68, 64, 60, 0.06) !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      color: #44403c !important;
+    }
+    html[data-theme="parchment"] .member-activity-pill strong {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .member-custom-status-row {
+      color: #0891b2 !important;
+    }
+    html[data-theme="parchment"] .avatar-fallback,
+    html[data-theme="parchment"] .avatar-text {
+      background: rgba(68, 64, 60, 0.08) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .avatar-wrap,
+    html[data-theme="parchment"] #currentUserAvatar {
+      color: #141312 !important;
+    }
+
+    /* Rank badges in Parchment */
+    html[data-theme="parchment"] .rank-grandmaster {
+      background: rgba(239, 68, 68, 0.12) !important;
+      color: #dc2626 !important;
+      border: 1px solid rgba(239, 68, 68, 0.25) !important;
+    }
+    html[data-theme="parchment"] .rank-jonin {
+      background: rgba(245, 158, 11, 0.12) !important;
+      color: #d97706 !important;
+      border: 1px solid rgba(245, 158, 11, 0.25) !important;
+    }
+    html[data-theme="parchment"] .rank-chunin {
+      background: rgba(8, 145, 178, 0.12) !important;
+      color: #0891b2 !important;
+      border: 1px solid rgba(8, 145, 178, 0.25) !important;
+    }
+    html[data-theme="parchment"] .rank-genin {
+      background: rgba(22, 163, 74, 0.12) !important;
+      color: #16a34a !important;
+      border: 1px solid rgba(22, 163, 74, 0.25) !important;
+    }
+
     html[data-theme="parchment"] .member-status-dot {
       border-color: #fbf8f2 !important;
     }
     html[data-theme="parchment"] .member-status-offline {
       background: #a8a29e !important;
+    }
+
+    /* Button outlines in Parchment */
+    html[data-theme="parchment"] .btn-outline {
+      border: 1px solid rgba(68, 64, 60, 0.22) !important;
+      color: #141312 !important;
+      background: transparent !important;
+    }
+    html[data-theme="parchment"] .btn-outline:hover {
+      background: rgba(68, 64, 60, 0.08) !important;
+      border-color: rgba(68, 64, 60, 0.35) !important;
+      color: #141312 !important;
     }
 
     /* Friends View — Parchment theme */
@@ -2354,6 +2428,12 @@
     html[data-theme="parchment"] .friend-row {
       background: #ffffff !important;
       border: 1px solid rgba(68, 64, 60, 0.12) !important;
+      box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+    }
+    html[data-theme="parchment"] .add-friend-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow: 0 4px 16px rgba(68, 64, 60, 0.06) !important;
     }
     html[data-theme="parchment"] .shinobi-empty-state .empty-state-title {
       color: #141312 !important;
@@ -22220,9 +22300,17 @@ pre, .code-block, .chat-code-snippet {
       if (memberEl) {
         const dot = memberEl.querySelector('.member-status-dot');
         if (dot) {
-          dot.className = 'member-status-dot ' + (isOnline ? 'online' : 'offline');
+          dot.className = 'member-status-dot member-status-' + (isOnline ? 'online' : 'offline');
         }
+        memberEl.classList.toggle('member-offline', !isOnline);
       }
+
+      document.querySelectorAll(`.friend-row[data-username="${u}"]`).forEach(row => {
+        const statusBadge = row.querySelector('.status-badge');
+        if (statusBadge) {
+          statusBadge.style.background = isOnline ? 'var(--green)' : 'var(--text-muted)';
+        }
+      });
     }
 
     async function loadMembersRoster() {
@@ -22263,7 +22351,7 @@ pre, .code-block, .chat-code-snippet {
         container.innerHTML = `
           <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
             <div style="font-size: 32px; margin-bottom: 10px;">🔐</div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">Sign In to View Allies</div>
+            <div class="roster-empty-title" style="font-weight: 700; color: var(--text-header); margin-bottom: 6px;">Sign In to View Allies</div>
             <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your verified friends are displayed here.</div>
             <button class="btn btn-primary" onclick="openAuthModal('login')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px;">Sign In ➔</button>
           </div>
@@ -22275,7 +22363,7 @@ pre, .code-block, .chat-code-snippet {
         container.innerHTML = `
           <div style="padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px;">
             <div style="font-size: 32px; margin-bottom: 10px;">👥</div>
-            <div style="font-weight: 700; color: #fff; margin-bottom: 6px;">No Friends Yet</div>
+            <div class="roster-empty-title" style="font-weight: 700; color: var(--text-header); margin-bottom: 6px;">No Friends Yet</div>
             <div style="font-size: 11.5px; opacity: 0.75; margin-bottom: 14px; line-height: 1.4;">Only your accepted friends appear in this roster. Connect with your friends!</div>
             <button class="btn btn-outline" onclick="switchMainView('friends')" style="padding: 6px 14px; font-size: 12px; font-weight: 700; border-radius: 8px; color: var(--chakra-cyan); border-color: rgba(6,182,212,0.4);">+ Add Friends</button>
           </div>
@@ -22317,7 +22405,7 @@ pre, .code-block, .chat-code-snippet {
           }
 
           return `
-            <div class="member-item ${isOffline ? 'member-offline' : ''}" onclick="handleMemberClick('${escapeHTML(m.username)}', event)">
+            <div class="member-item ${isOffline ? 'member-offline' : ''}" data-username="${escapeHTML(m.username).toLowerCase()}" onclick="handleMemberClick('${escapeHTML(m.username)}', event)">
               <div class="member-avatar-wrap">
                 <div class="member-avatar-inner">
                   ${renderAvatarHTML(m.avatar || m.avatar_url, m.nickname || m.display_name || m.username, 30)}
@@ -26705,11 +26793,18 @@ pre, .code-block, .chat-code-snippet {
           authHeaders['Authorization'] = `Bearer ${authToken}`;
         }
         const userParam = encodeURIComponent(currentUser || '');
-        const res = await fetch(`/api/friends?username=${userParam}`, {
-          headers: authHeaders,
-          credentials: 'include'
-        });
-        const data = await res.json();
+        let data = {};
+        try {
+          const res = await fetch(`/api/friends?username=${userParam}`, {
+            headers: authHeaders,
+            credentials: 'include'
+          });
+          if (res.ok) {
+            data = await res.json();
+          }
+        } catch (fetchErr) {
+          console.warn('[FRIENDS_FETCH_WARN]', fetchErr);
+        }
         const friends = Array.isArray(data?.friends) ? data.friends : [];
         const incoming = Array.isArray(data?.incoming) ? data.incoming : [];
         const outgoing = Array.isArray(data?.outgoing) ? data.outgoing : [];
@@ -26747,6 +26842,7 @@ pre, .code-block, .chat-code-snippet {
             const row = document.createElement('div');
             row.className = 'friend-row';
             const friendName = f.username || f.friend_username || 'Friend';
+            row.setAttribute('data-username', friendName.toLowerCase());
             const fStatus = (f.status || 'offline').toLowerCase();
             const fRank = f.rank || 'Member';
             const fBio = f.bio || (fStatus === 'online' ? 'Online' : 'Offline');
@@ -26780,22 +26876,6 @@ pre, .code-block, .chat-code-snippet {
           }
           const fragment = document.createDocumentFragment();
 
-      // Prepend Stitch Pro Max Channel Welcome Card
-      const welcomeCard = document.createElement('div');
-      welcomeCard.className = 'channel-welcome-card';
-      const isAnnounce = (currentChannel === 'announcements');
-      welcomeCard.innerHTML = `
-        <div class="welcome-icon-box">${isAnnounce ? '📢' : '🛰️'}</div>
-        <div class="welcome-content">
-          <div class="welcome-title-row">
-            <h2 class="welcome-title">Welcome to the #${escapeHTML(currentChannel)} ${isAnnounce ? 'Broadcast' : 'Relay'}</h2>
-            <span class="welcome-badge">${isAnnounce ? 'SERVER BROADCAST' : 'CORE GUILD'}</span>
-          </div>
-          <p class="welcome-desc">${isAnnounce ? 'Official channel for verified platform releases, system telemetry, and mission announcements. Only server administrators can transmit in this frequency.' : 'This is the genesis channel of connecto.fun. Neural stream integration is operational. Lossless 96kHz voice links and interactive code blocks can be dropped right into the buffer.'}</p>
-        </div>
-      `;
-      fragment.appendChild(welcomeCard);
-
           if (incoming.length > 0) {
             const incHeader = document.createElement('div');
             incHeader.innerHTML = '<h4 style="color:var(--text-header); margin-bottom:var(--space-3); font-weight:800;">Incoming Requests</h4>';
@@ -26804,6 +26884,7 @@ pre, .code-block, .chat-code-snippet {
               const row = document.createElement('div');
               row.className = 'friend-row';
               const sUser = req.sender || req.sender_username || 'someone';
+              row.setAttribute('data-username', sUser.toLowerCase());
               row.innerHTML = `
                 <div>
                   <div style="font-weight:700; color:var(--text-header);">Friend request from <strong>@${escapeHTML(sUser)}</strong></div>
@@ -26825,6 +26906,7 @@ pre, .code-block, .chat-code-snippet {
               const row = document.createElement('div');
               row.className = 'friend-row';
               const rUser = req.recipient || req.recipient_username || 'user';
+              row.setAttribute('data-username', rUser.toLowerCase());
               row.innerHTML = `
                 <div>
                   <div style="font-weight:700; color:var(--text-header);">Request sent to <strong>@${escapeHTML(rUser)}</strong></div>
@@ -26838,7 +26920,7 @@ pre, .code-block, .chat-code-snippet {
           container.replaceChildren(fragment);
         } else if (friendsSubTab === 'add') {
           container.innerHTML = `
-            <div style="background:var(--bg-darker); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:var(--space-6); max-width:500px; box-shadow:var(--shadow-card);">
+            <div class="add-friend-card" style="background:var(--bg-darker); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:var(--space-6); max-width:500px; box-shadow:var(--shadow-card);">
               <h3 style="font-family:var(--font-display); color:var(--text-header); font-size:17px; margin-bottom:6px; font-weight:800;">Add a Friend</h3>
               <p style="font-size:13px; color:var(--text-muted); margin-bottom:var(--space-4);">Send a friend request to start real-time messaging and 1:1 voice calling.</p>
               <div style="display:flex; gap:var(--space-2);">
@@ -26851,6 +26933,16 @@ pre, .code-block, .chat-code-snippet {
         }
       } catch (err) {
         console.error('[FRIENDS_LOAD_ERROR]', err);
+        const container = document.getElementById('friendsListContainer');
+        if (container && !container.innerHTML.trim()) {
+          container.innerHTML = `
+            <div class="shinobi-empty-state">
+              <div class="empty-state-icon">👥</div>
+              <div class="empty-state-title">No Friends Added Yet</div>
+              <div class="empty-state-desc">Head over to the "Add Friend" tab to forge your first alliance.</div>
+            </div>
+          `;
+        }
       }
     }
 
@@ -28084,6 +28176,7 @@ pre, .code-block, .chat-code-snippet {
     }
 
     function updateStealthStatusUI(enabled) {
+      localStorage.setItem('connecto_is_stealth', enabled ? '1' : '0');
       const badge = document.getElementById('settingsStealthStatusBadge');
       if (badge) {
         if (enabled) {
@@ -28109,6 +28202,22 @@ pre, .code-block, .chat-code-snippet {
           dot.title = 'Online';
         }
       });
+
+      // Update in-app user profile bar badge & status text
+      const userBadge = document.getElementById('userStatusBadge');
+      if (userBadge) {
+        userBadge.style.background = enabled ? 'var(--text-muted)' : 'var(--green)';
+      }
+      const userStatusText = document.getElementById('userStatusText');
+      if (userStatusText && currentUser && currentUser !== 'guest') {
+        if (enabled) {
+          userStatusText.innerText = 'Invisible (Stealth)';
+        } else if (currentCustomStatus) {
+          userStatusText.innerText = `${currentStatusEmoji} ${currentCustomStatus}`;
+        } else {
+          userStatusText.innerText = 'Online';
+        }
+      }
     }
 
 function switchProfileStudioTab(tabId) {
