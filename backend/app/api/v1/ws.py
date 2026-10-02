@@ -201,8 +201,8 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 elif msg_type in ("call_end", "call:end"):
                     room_id = payload.get("room_id") or payload.get("call_id")
-                    if room_id:
-                        await ws_manager.end_call(user.id, room_id)
+                    target = (payload.get("target") or payload.get("target_user") or payload.get("target_user_id") or payload.get("callee") or payload.get("callee_id") or payload.get("caller") or payload.get("caller_id") or "").strip()
+                    await ws_manager.end_call(user.id, room_id, target=target if target else None)
 
                 # --- REAL-TIME FULL-DUPLEX AUDIO PACKET RELAY (FALLBACK) ---
                 elif msg_type in ("voice_data", "voice:data"):

@@ -3723,7 +3723,6 @@
     .btn-icon.active { color: var(--accent); }
     .notif-badge { position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; background: var(--red); border-radius: 50%; }
 
-    /* ==================== 2. SINGLE-SIDED CHAT MESSAGES & GROUPING ==================== */
     .messages-area {
       flex: 1;
       overflow-y: auto;
@@ -3733,6 +3732,10 @@
       gap: 2px;
       overflow-anchor: auto;
       scroll-behavior: auto;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     /* Message Group Container */
@@ -4254,11 +4257,15 @@
       to { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
 
-    /* Full-Width Input Area */
+    /* Full-Width Input Area - Desktop Bounded Container */
     .input-area {
       padding: 0 var(--space-4) var(--space-4);
       flex-shrink: 0;
       position: relative;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
     }
     .typing-indicator {
       font-size: 11px;
@@ -4626,13 +4633,28 @@
       background: rgba(255, 255, 255, 0.06);
       transform: translateX(2px);
     }
+    .member-item.member-online {
+      opacity: 1;
+      filter: none;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.22);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.08);
+    }
+    .member-item.member-online:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.45);
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.2);
+    }
     .member-item.member-offline {
       opacity: 0.55;
       filter: grayscale(0.2);
+      background: transparent;
+      border: 1px solid transparent;
     }
     .member-item.member-offline:hover {
       opacity: 0.9;
       filter: none;
+      background: rgba(255, 255, 255, 0.04);
     }
     .member-avatar-wrap {
       position: relative;
@@ -12711,36 +12733,89 @@ body.in-app-view #heroView,
     display: none !important;
   }
 
-  /* Hero Section */
+  /* Hero Section - Mobile Bounded & Responsive */
   #heroView .hero-container {
-    padding: 0 12px 60px 12px !important;
+    padding: 0 12px 84px 12px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
   }
   .hero-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
     padding: 16px 0 24px !important;
     gap: 20px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  .hero-text {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    text-align: center !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
   }
   .hero-official-title {
-    font-size: clamp(26px, 7.8vw, 36px) !important;
+    font-size: clamp(24px, 7.2vw, 34px) !important;
     line-height: 1.2 !important;
     letter-spacing: -0.02em !important;
     text-align: center !important;
+    max-width: 100% !important;
+    word-break: break-word !important;
   }
   .hero-official-desc {
     font-size: 13.5px !important;
     line-height: 1.55 !important;
     text-align: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 10px auto 16px auto !important;
+    box-sizing: border-box !important;
   }
   .hero-eyebrow {
     font-size: 11px !important;
     padding: 3px 10px !important;
     margin: 0 auto 12px auto !important;
     text-align: center !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
   }
   .hero-pill-badges-row {
+    width: 100% !important;
+    max-width: 100% !important;
     justify-content: center !important;
     gap: 5px !important;
     flex-wrap: wrap !important;
+    box-sizing: border-box !important;
+  }
+  .hero-cta-buttons-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    box-sizing: border-box !important;
+  }
+  .hero-spatial-stage {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  .chat-mockup-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    box-sizing: border-box !important;
   }
   .hero-pill-badge {
     font-size: 11px !important;
@@ -15547,9 +15622,14 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
   body {
     padding-bottom: 78px !important;
   }
-  .input-area, .stitch-input-row, .chat-input-row {
+  .input-area {
     margin-bottom: 72px !important;
-    padding-bottom: 12px !important;
+    padding-bottom: 4px !important;
+  }
+  .stitch-input-row, .chat-input-row, .connecto-enhanced-input-row {
+    margin: 0 !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
   }
   .messages-area, .messages {
     padding-bottom: 92px !important;
@@ -16749,27 +16829,34 @@ pre, .code-block, .chat-code-snippet {
   /* Tactical Mobile Touch Composer */
   .input-area {
     margin-bottom: 74px !important;
-    padding: 6px 12px !important;
+    padding: 4px 12px !important;
     background: transparent !important;
   }
   .stitch-input-card {
-    padding: 6px 8px !important;
-    background: rgba(14, 17, 27, 0.94) !important;
-    border-radius: 24px !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.75) !important;
+    padding: 2px 4px !important;
+    border-radius: 28px !important;
+    height: auto !important;
+    min-height: 48px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
   }
   .stitch-input-toolbar {
     display: none !important; /* Hide tiny desktop tools on mobile */
   }
-  .connecto-enhanced-input-row {
+  .connecto-enhanced-input-row,
+  .stitch-input-row {
+    margin: 0 !important;
     margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 2px 4px !important;
+    width: 100% !important;
   }
   .connecto-input-capsule-wrapper {
-    min-height: 44px !important;
+    min-height: 40px !important;
     background: transparent !important;
     border: none !important;
-    padding: 2px 4px !important;
+    padding: 0 4px !important;
   }
   .connecto-attach-inline-btn {
     display: inline-flex !important;
@@ -20519,15 +20606,27 @@ pre, .code-block, .chat-code-snippet {
         toast.remove();
       };
 
-      // Determine sender profile picture
-      let avatarHtml = '';
-      if (avatar || username) {
-        avatarHtml = typeof renderAvatarHTML === 'function' ? renderAvatarHTML(avatar, username || title, 42) : `<img src="${avatar || 'https://connecto.fun/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
-      } else if (icon) {
-        avatarHtml = `<span style="font-size: 24px; line-height: 1;">${icon}</span>`;
-      } else {
-        avatarHtml = `<span style="font-size: 24px; line-height: 1;">🔔</span>`;
+      // Determine user profile picture (always display user profile avatar in place of icon)
+      let resolvedUser = username;
+      let resolvedAvatar = avatar;
+      if (!resolvedUser && !resolvedAvatar) {
+        const match = (title + ' ' + content).match(/@([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+          resolvedUser = match[1];
+        }
       }
+      if (resolvedUser && !resolvedAvatar && typeof cachedFriendsList !== 'undefined' && Array.isArray(cachedFriendsList)) {
+        const f = cachedFriendsList.find(x => (x.username || '').toLowerCase() === resolvedUser.toLowerCase());
+        if (f) resolvedAvatar = f.avatar || f.avatar_url;
+      }
+      if (resolvedUser && !resolvedAvatar && typeof cachedMembersList !== 'undefined' && Array.isArray(cachedMembersList)) {
+        const m = cachedMembersList.find(x => (x.username || '').toLowerCase() === resolvedUser.toLowerCase());
+        if (m) resolvedAvatar = m.avatar || m.avatar_url;
+      }
+
+      let avatarHtml = typeof renderAvatarHTML === 'function'
+        ? renderAvatarHTML(resolvedAvatar, resolvedUser || title || 'Connecto', 42)
+        : `<img src="${resolvedAvatar || 'https://connecto.fun/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
 
       toast.innerHTML = `
         <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
@@ -22443,6 +22542,7 @@ pre, .code-block, .chat-code-snippet {
         if (dot) {
           dot.className = 'member-status-dot member-status-' + (isOnline ? 'online' : 'offline');
         }
+        memberEl.classList.toggle('member-online', isOnline);
         memberEl.classList.toggle('member-offline', !isOnline);
       }
 
@@ -22452,6 +22552,20 @@ pre, .code-block, .chat-code-snippet {
           statusBadge.style.background = isOnline ? 'var(--green)' : 'var(--text-muted)';
         }
       });
+
+      // Synchronize cachedMembersList and re-render roster so online members are properly placed and highlighted
+      if (Array.isArray(cachedMembersList)) {
+        const mem = cachedMembersList.find(m => (m.username || '').toLowerCase() === u || String(m.id || '').toLowerCase() === u);
+        if (mem) {
+          mem.is_online = isOnline;
+          mem.status = isOnline ? 'online' : 'offline';
+        }
+        const isOnlineFn = (m) => (!m.is_stealth && (m.status === 'online' || m.is_online === true || m.is_online === 'true' || m.is_online === 1 || m.online === true));
+        const onlineCount = cachedMembersList.filter(f => isOnlineFn(f)).length;
+        const badge = document.getElementById('membersOnlineBadge');
+        if (badge) badge.innerText = `${onlineCount} Online`;
+        renderMembersRoster(cachedMembersList);
+      }
     }
 
     async function loadMembersRoster() {
@@ -22471,7 +22585,8 @@ pre, .code-block, .chat-code-snippet {
         if (res.ok) {
           const data = await res.json();
           cachedMembersList = Array.isArray(data.friends) ? data.friends : [];
-          const onlineCount = cachedMembersList.filter(f => f.status === 'online' || f.is_online).length;
+          const isOnlineFn = (m) => (!m.is_stealth && (m.status === 'online' || m.is_online === true || m.is_online === 'true' || m.is_online === 1 || m.online === true));
+          const onlineCount = cachedMembersList.filter(f => isOnlineFn(f)).length;
           const badge = document.getElementById('membersOnlineBadge');
           if (badge) badge.innerText = `${onlineCount} Online`;
           renderMembersRoster(cachedMembersList);
@@ -22512,9 +22627,10 @@ pre, .code-block, .chat-code-snippet {
         return;
       }
 
-      // Stitch Pro Max Roster Builder
-      const onlineAllies = (members || []).filter(m => m.status === 'online' || m.is_online);
-      const offlineAllies = (members || []).filter(m => m.status === 'offline' || !m.is_online);
+      // Stitch Pro Max Roster Builder - Strict Partitioning
+      const isUserOnline = (m) => (!m.is_stealth && (m.status === 'online' || m.is_online === true || m.is_online === 'true' || m.is_online === 1 || m.online === true));
+      const onlineAllies = (members || []).filter(m => isUserOnline(m));
+      const offlineAllies = (members || []).filter(m => !isUserOnline(m));
 
       // Ensure Core Architects are always listed if roster is small
       const coreArchitects = [
@@ -22546,7 +22662,7 @@ pre, .code-block, .chat-code-snippet {
           }
 
           return `
-            <div class="member-item ${isOffline ? 'member-offline' : ''}" data-username="${escapeHTML(m.username).toLowerCase()}" onclick="handleMemberClick('${escapeHTML(m.username)}', event)">
+            <div class="member-item ${isOffline ? 'member-offline' : 'member-online'}" data-username="${escapeHTML(m.username).toLowerCase()}" onclick="handleMemberClick('${escapeHTML(m.username)}', event)">
               <div class="member-avatar-wrap">
                 <div class="member-avatar-inner">
                   ${renderAvatarHTML(m.avatar || m.avatar_url, m.nickname || m.display_name || m.username, 30)}
@@ -26182,9 +26298,22 @@ pre, .code-block, .chat-code-snippet {
       };
 
       peerConnection.onconnectionstatechange = () => {
-        console.log('[WEBRTC_STATE]', peerConnection.connectionState);
-        if (peerConnection.connectionState === 'connected') {
+        const state = peerConnection ? peerConnection.connectionState : 'closed';
+        console.log('[WEBRTC_STATE]', state);
+        if (state === 'connected') {
           setCallConnectedState();
+        } else if (state === 'disconnected' || state === 'failed' || state === 'closed') {
+          console.log('[WEBRTC_STATE] Peer disconnected or closed, ending call session');
+          cleanupCallState();
+        }
+      };
+
+      peerConnection.oniceconnectionstatechange = () => {
+        const iceState = peerConnection ? peerConnection.iceConnectionState : 'closed';
+        console.log('[ICE_STATE]', iceState);
+        if (iceState === 'disconnected' || iceState === 'failed' || iceState === 'closed') {
+          console.log('[ICE_STATE] ICE connection closed or failed, ending call session');
+          cleanupCallState();
         }
       };
     }
@@ -26317,10 +26446,43 @@ pre, .code-block, .chat-code-snippet {
     }
 
     function toggleMuteMic() {
+      isMuted = !isMuted;
       if (localStream) {
-        isMuted = !isMuted;
-        localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
-        document.getElementById('muteBtn').innerText = isMuted ? '🔇 Unmute' : '🎙️ Mute';
+        localStream.getAudioTracks().forEach(track => {
+          track.enabled = !isMuted;
+        });
+      }
+      if (peerConnection) {
+        try {
+          peerConnection.getSenders().forEach(sender => {
+            if (sender.track && sender.track.kind === 'audio') {
+              sender.track.enabled = !isMuted;
+            }
+          });
+        } catch(e) {}
+      }
+      const muteBtn = document.getElementById('muteBtn');
+      if (muteBtn) {
+        muteBtn.innerText = isMuted ? '🔇 Unmute' : '🎙️ Mute';
+        if (isMuted) {
+          muteBtn.classList.add('active-danger');
+          muteBtn.style.background = 'rgba(239, 68, 68, 0.2)';
+          muteBtn.style.borderColor = 'var(--status-danger)';
+          muteBtn.style.color = '#ef4444';
+        } else {
+          muteBtn.classList.remove('active-danger');
+          muteBtn.style.background = '';
+          muteBtn.style.borderColor = '';
+          muteBtn.style.color = '';
+        }
+      }
+      if (activeCallPeer && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          action: isMuted ? 'call:mute' : 'call:unmute',
+          type: isMuted ? 'call:mute' : 'call:unmute',
+          target: activeCallPeer,
+          call_id: activeCallId
+        }));
       }
     }
 
@@ -26329,8 +26491,10 @@ pre, .code-block, .chat-code-snippet {
       if (activeCallPeer && ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({
           action: 'call:end',
+          type: 'call:end',
           target: activeCallPeer,
-          call_id: activeCallId
+          call_id: activeCallId,
+          room_id: activeCallId
         }));
       }
       cleanupCallState();
@@ -26338,8 +26502,10 @@ pre, .code-block, .chat-code-snippet {
 
     function cleanupCallState() {
       stopRingtone();
-      document.getElementById('activeCallBar').style.display = 'none';
-      document.getElementById('incomingCallModal').style.display = 'none';
+      const callBar = document.getElementById('activeCallBar');
+      if (callBar) callBar.style.display = 'none';
+      const incomingModal = document.getElementById('incomingCallModal');
+      if (incomingModal) incomingModal.style.display = 'none';
       clearInterval(callTimerInterval);
       if (localStream) {
         localStream.getTracks().forEach(t => t.stop());
@@ -26358,7 +26524,14 @@ pre, .code-block, .chat-code-snippet {
       activeCallId = null;
       incomingCallData = null;
       isMuted = false;
-      document.getElementById('muteBtn').innerText = '🎙️ Mute';
+      const muteBtn = document.getElementById('muteBtn');
+      if (muteBtn) {
+        muteBtn.innerText = '🎙️ Mute';
+        muteBtn.classList.remove('active-danger');
+        muteBtn.style.background = '';
+        muteBtn.style.borderColor = '';
+        muteBtn.style.color = '';
+      }
     }
 
     // ==================== GROUP VOICE ROOMS STATE & HANDLERS ====================
@@ -27798,10 +27971,11 @@ pre, .code-block, .chat-code-snippet {
 
           if (data.type === 'presence_update') {
             const targetUsername = (data.username || '').toLowerCase();
+            const targetId = String(data.user_id || '').toLowerCase();
             const isOnline = Boolean(data.is_online);
-            updateLivePresenceUI(targetUsername, isOnline);
+            updateLivePresenceUI(targetUsername || targetId, isOnline);
             if (Array.isArray(cachedFriendsList)) {
-              const friend = cachedFriendsList.find(f => (f.username || '').toLowerCase() === targetUsername);
+              const friend = cachedFriendsList.find(f => (f.username || '').toLowerCase() === targetUsername || String(f.id || '').toLowerCase() === targetId);
               if (friend) {
                 friend.is_online = isOnline;
                 friend.status = isOnline ? 'online' : 'offline';
@@ -28161,10 +28335,21 @@ pre, .code-block, .chat-code-snippet {
             handleCallAnswer(data);
           } else if (data.type === 'call:ice-candidate' || data.type === 'voice_ice_candidate' || data.action === 'call:ice-candidate') {
             handleRemoteIceCandidate(data.candidate);
-          } else if (data.type === 'call:ended' || data.type === 'call_ended' || data.action === 'call:ended' || data.type === 'call:busy') {
+          } else if (data.type === 'call:ended' || data.type === 'call_ended' || data.action === 'call:ended' || data.type === 'call:cancelled' || data.type === 'call_cancelled' || data.type === 'call:busy') {
             if (data.type === 'call:busy') showNotificationToast('User Busy', data.message || 'User is currently in another voice call.');
             else showNotificationToast('Call Ended', `Voice call with ${activeCallPeer || 'peer'} ended.`);
             cleanupCallState();
+          } else if (data.type === 'voice_peer_left' || data.type === 'voice:leave') {
+            const leftPeer = (data.peer_id || data.peer_username || data.username || '').toLowerCase();
+            const curPeer = (activeCallPeer || '').toLowerCase();
+            if (curPeer && leftPeer && (leftPeer === curPeer || curPeer.includes(leftPeer) || leftPeer.includes(curPeer))) {
+              showNotificationToast('Call Ended', `${activeCallPeer} disconnected.`);
+              cleanupCallState();
+            }
+          } else if (data.type === 'call:mute' || data.action === 'call:mute') {
+            console.log('[WEBRTC] Remote peer muted microphone');
+          } else if (data.type === 'call:unmute' || data.action === 'call:unmute') {
+            console.log('[WEBRTC] Remote peer unmuted microphone');
           }
 
         } catch (err) {
@@ -28243,12 +28428,23 @@ pre, .code-block, .chat-code-snippet {
         const res = await fetch(`/api/notifications?username=${encodeURIComponent(currentUser)}`);
         const notifs = await res.json();
         const list = document.getElementById('notifList');
-        list.innerHTML = notifs.map(n => `
-          <div class="notif-item ${n.read ? '' : 'unread'}">
-            <div style="font-weight:800; color:var(--text-header);">${escapeHTML(n.title)}</div>
-            <div style="color:var(--text-muted); margin-top:2px;">${escapeHTML(n.content)}</div>
-          </div>
-        `).join('') || '<div style="color:var(--text-muted); padding:12px; text-align:center; font-size:12px;">No unread notifications.</div>';
+        list.innerHTML = (Array.isArray(notifs) && notifs.length > 0) ? notifs.map(n => {
+          const senderName = n.sender_username || n.title || 'User';
+          const senderAvatar = n.sender_avatar || n.avatar_url || null;
+          return `
+            <div class="notif-item ${n.read ? '' : 'unread'}" style="display:flex; align-items:center; gap:12px; padding:10px 12px; cursor:pointer;">
+              <div class="notif-avatar-wrap" style="flex-shrink:0;">
+                ${renderAvatarHTML(senderAvatar, senderName, 36)}
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-weight:700; color:var(--text-header); font-size:13px; display:flex; justify-content:space-between; align-items:center;">
+                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(n.title)}</span>
+                </div>
+                <div style="color:var(--text-muted); font-size:12px; margin-top:2px; line-height:1.35; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">${escapeHTML(n.content)}</div>
+              </div>
+            </div>
+          `;
+        }).join('') : '<div style="color:var(--text-muted); padding:16px; text-align:center; font-size:12.5px;">No unread notifications.</div>';
       }
     }
 

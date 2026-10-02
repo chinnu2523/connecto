@@ -505,22 +505,31 @@ class ConnectionManager:
             })
         self.voice_rooms.pop(room_id, None)
 
-    async def end_call(self, user_id: str, room_id: str):
-        peers = self.voice_rooms.pop(room_id, set())
-        call_info = self.pending_calls.pop(room_id, None)
+    async def end_call(self, user_id: str, room_id: str = None, target: str = None):
+        peers = self.voice_rooms.pop(room_id, set()) if room_id else set()
+        call_info = self.pending_calls.pop(room_id, None) if room_id else None
         all_participants = set(peers)
         if call_info:
             if call_info.get("caller_id"):
                 all_participants.add(call_info["caller_id"])
             if call_info.get("callee_id"):
                 all_participants.add(call_info["callee_id"])
+        if target:
+            clean_target = str(target).strip()
+            all_participants.add(clean_target)
+            resolved_t = await self.async_resolve_user_id(clean_target)
+            if resolved_t:
+                all_participants.add(resolved_t)
+        if user_id:
+            all_participants.add(user_id)
 
+        effective_room = room_id or "call"
         for p_id in all_participants:
             await self.send_personal_event(p_id, {
                 "type": "call_ended",
                 "action": "call:ended",
-                "room_id": room_id,
-                "call_id": room_id,
+                "room_id": effective_room,
+                "call_id": effective_room,
                 "ended_by": user_id
             })
 

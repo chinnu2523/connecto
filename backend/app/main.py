@@ -1621,9 +1621,9 @@ async def api_voice_call_end(
     except Exception:
         pass
 
-    room_id = body.get("room_id", "").strip()
-    if room_id:
-        await ws_manager.end_call(current_user.id, room_id)
+    room_id = (body.get("room_id") or body.get("call_id") or "").strip()
+    target = (body.get("target") or body.get("target_user") or body.get("target_user_id") or body.get("callee") or body.get("callee_id") or body.get("caller") or body.get("caller_id") or "").strip()
+    await ws_manager.end_call(current_user.id, room_id=room_id if room_id else None, target=target if target else None)
     return {"status": "ok", "room_id": room_id}
 
 @app.get("/api/channels")
