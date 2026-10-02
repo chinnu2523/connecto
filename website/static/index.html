@@ -15,18 +15,18 @@
   <meta property="og:url" content="https://connecto.fun/">
   <meta property="og:title" content="Connecto • Real-Time Community Platform for Friends & Communities">
   <meta property="og:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, interactive labs, and career tracks.">
-  <meta property="og:image" content="https://connecto.fun/static/icon.png">
+  <meta property="og:image" content="https://connecto.fun/icon.png">
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:url" content="https://connecto.fun/">
   <meta name="twitter:title" content="Connecto • Real-Time Community Platform for Friends & Communities">
   <meta name="twitter:description" content="Connect with your friends via ultra low-latency WebSockets messaging, WebRTC spatial voice rooms, interactive labs, and career tracks.">
-  <meta name="twitter:image" content="https://connecto.fun/static/icon.png">
+  <meta name="twitter:image" content="https://connecto.fun/icon.png">
 
-  <link rel="manifest" href="/static/manifest.json">
-  <link rel="icon" type="image/png" href="/static/icon.png">
-  <link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta name="theme-color" content="#22d3ee">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -560,120 +560,46 @@
       background-color: var(--bg-darkest) !important;
     }
 
-    /* Theme Studio Floating Showcase Bar (Editorial Curator) */
-    .theme-studio-dock {
-      position: fixed;
-      top: 76px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9990;
-      background: var(--bg-card);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border: 1px solid var(--card-border);
-      border-radius: 9999px;
-      padding: 5px 12px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-      max-width: 95vw;
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .theme-studio-dock::-webkit-scrollbar { display: none; }
-    
-    .theme-studio-label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      padding: 0 8px 0 2px;
-      white-space: nowrap;
-      border-right: 1px solid var(--card-border);
-    }
-    .theme-studio-pills {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .theme-pill-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 12px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: 1px solid transparent;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .theme-pill-btn:hover {
-      color: var(--text-header);
-      background: var(--accent-tint);
-      border-color: var(--card-border);
-    }
-    .theme-pill-btn.active {
-      color: var(--text-header);
-      background: var(--accent-tint);
-      border-color: var(--accent-border);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-      font-weight: 600;
-    }
-    .theme-pill-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-    @media (max-width: 768px) {
-      .theme-studio-dock {
-        top: 64px;
-        padding: 4px 8px;
-        width: calc(100% - 20px);
-        justify-content: flex-start;
-      }
-      .theme-pill-btn {
-        padding: 4px 9px;
-        font-size: 11px;
-      }
-    }
-
     /* Navbar Quick Theme Toggle Button (Ivory Paper <-> Pure Black OLED) */
     .nav-theme-toggle-btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 36px;
-      height: 36px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       background: var(--accent-tint);
-      border: 1px solid var(--accent-border);
+      border: 1px solid var(--card-border);
       color: var(--text-header);
       cursor: pointer;
-      font-size: 15px;
-      line-height: 1;
       padding: 0;
       transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
       will-change: transform;
     }
     .nav-theme-toggle-btn:hover {
       transform: scale(1.10) rotate(12deg);
-      background: rgba(255, 255, 255, 0.12);
-      border-color: var(--accent);
-      box-shadow: 0 0 12px var(--accent-border);
+      border-color: var(--accent-border);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
     }
     .nav-theme-toggle-btn:active {
       transform: scale(0.92) rotate(-8deg) !important;
+    }
+    .theme-icon-svg {
+      display: block;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    /* Light Theme Styling for Android QR Code Card */
+    html[data-theme="parchment"] .android-qr-box {
+      background: rgba(245, 241, 232, 0.96) !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      box-shadow: 0 4px 14px rgba(44, 40, 37, 0.08) !important;
+    }
+    html[data-theme="parchment"] .android-qr-text strong {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .android-qr-text span {
+      color: #57534e !important;
     }
     /* ==========================================================================
        PURE BLACK OLED LUXURY SUITE (#000000 PITCH-BLACK TRUE BLACK)
@@ -967,37 +893,6 @@
         0 0 0 1px rgba(68, 64, 60, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.98),
         0 12px 32px -6px rgba(44, 40, 37, 0.12) !important;
-    }
-    html[data-theme="parchment"] .theme-studio-dock .theme-studio-dock {
-      background: rgba(251, 248, 242, 0.94) !important;
-      backdrop-filter: blur(24px) saturate(180%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-      border: 1px solid rgba(68, 64, 60, 0.14) !important;
-      box-shadow:
-        0 0 0 1px rgba(68, 64, 60, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.95),
-        0 8px 24px -6px rgba(44, 40, 37, 0.08) !important;
-    }
-    html[data-theme="parchment"] .theme-studio-label .theme-studio-label {
-      color: #78716c !important;
-      letter-spacing: 0.05em !important;
-      text-transform: uppercase !important;
-      font-size: 10px !important;
-      font-weight: 600 !important;
-    }
-    html[data-theme="parchment"] .theme-pill-btn .theme-pill-btn {
-      color: #78716c !important;
-      border-color: rgba(68, 64, 60, 0.12) !important;
-    }
-    html[data-theme="parchment"] .theme-pill-btn:hover .theme-pill-btn:hover {
-      color: #141312 !important;
-      background: rgba(68, 64, 60, 0.05) !important;
-    }
-    html[data-theme="parchment"] .theme-pill-btn.active .theme-pill-btn.active {
-      color: #ffffff !important;
-      background: #141312 !important;
-      border-color: #141312 !important;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 2px 6px rgba(20, 19, 18, 0.2) !important;
     }
 
     /* 7. Classic Editorial Ribbon Underline Animation */
@@ -1367,29 +1262,6 @@
         0 12px 36px -6px rgba(0, 0, 0, 0.35) !important;
     }
 
-    /* 5. Reshaped Curated Editions Dock */
-    .theme-studio-dock {
-      position: sticky;
-      top: 72px;
-      margin: 0 auto 16px auto;
-      z-index: 9990;
-      background: var(--bg-card) !important;
-      backdrop-filter: blur(24px) saturate(180%) !important;
-      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-      border: 1px solid var(--card-border) !important;
-      border-radius: 9999px !important;
-      padding: 4px 10px !important;
-      box-shadow:
-        0 0 0 1px var(--card-border),
-        var(--crystal-specular),
-        0 8px 24px -6px rgba(0, 0, 0, 0.15) !important;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      width: fit-content;
-      max-width: 95vw;
-      transition: all 0.3s var(--ease-crystal) !important;
-    }
 
     /* 6. Reshaped Hero Section Spatial Rhythm */
     #heroView .hero-container {
@@ -16210,16 +16082,18 @@ pre, .code-block, .chat-code-snippet {
             <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
             <a class="landing-link" id="navLinkVault" onclick="openConnectoVault()" style="display:inline-flex; align-items:center; gap:6px; color:#10b981; font-weight:700; cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm"></i>Vault</a>
-            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="Connecto.apk" title="Download Connecto for Android (v3.9.6 Live • 55 MB)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 16V9a7 7 0 0 1 14 0v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M8 3l1.5 2"/><path d="M16 3l-1.5 2"/></svg>
+            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="Connecto.apk" title="Download Connecto for Android (v3.9.8 Live • 54.3 MB)">
+              <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
-              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v3.9.6</span></span>
+              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v3.9.8</span></span>
             </a>
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
           </div>
 
-          <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Editorial Theme" title="Toggle Light / Dark Theme">
-            <span id="navThemeToggleIcon">🌙</span>
+          <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+            <span id="navThemeToggleIcon" style="display:inline-flex; align-items:center; justify-content:center;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </span>
           </button>
 
           <div id="navAuthButtons" style="display:flex; align-items:center; gap:10px;">
@@ -16232,24 +16106,6 @@ pre, .code-block, .chat-code-snippet {
             </button>
           </div>
         </nav>
-      </div>
-
-      <!-- FLOATING THEME STUDIO (Curated Minimal Editorial Editions: Ivory Paper vs Pure Black OLED) -->
-      <div class="theme-studio-dock" id="themeStudioDock" role="region" aria-label="Editorial Themes">
-        <div class="theme-studio-label">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          <span>Editorial Theme</span>
-        </div>
-        <div class="theme-studio-pills" role="tablist">
-          <button class="theme-pill-btn active" data-theme-btn="parchment" onclick="setHomepageTheme('parchment')" title="Ivory Paper: Warm Archival Paper & Sumi Ink">
-            <span class="theme-pill-dot" style="background:#f5f1e8; border:1.5px solid #141312;"></span>
-            <span>☀️ Ivory Paper</span>
-          </button>
-          <button class="theme-pill-btn" data-theme-btn="noir" onclick="setHomepageTheme('noir')" title="Pure Black OLED: #000000 Pitch-Black Luxury Editorial">
-            <span class="theme-pill-dot" style="background:#000000; border:1.5px solid #ffffff;"></span>
-            <span>🌙 Pure Black OLED</span>
-          </button>
-        </div>
       </div>
 
       <!-- High-Performance Static Official Background Mesh -->
@@ -16646,7 +16502,7 @@ pre, .code-block, .chat-code-snippet {
 
               <!-- Instant Mobile QR Code Box -->
               <div class="android-qr-box">
-                <img src="/static/downloads/connecto-apk-qr.png" alt="Connecto APK Download QR Code" class="android-qr-img" width="52" height="52">
+                <img src="/downloads/connecto-apk-qr.png" alt="Connecto APK Download QR Code" class="android-qr-img" width="52" height="52">
                 <div class="android-qr-text">
                   <strong>Scan with Phone</strong>
                   <span>Direct download for Android 7.0 - 16+ (HyperOS)</span>
@@ -17653,9 +17509,9 @@ pre, .code-block, .chat-code-snippet {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <!-- Interactive Editorial Theme Customizer -->
+        <!-- Interactive Theme Customizer -->
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
-        <div class="mobile-drawer-label">Editorial Theme</div>
+        <div class="mobile-drawer-label">Theme</div>
         <div class="chakra-palette-row" style="display:flex; gap:12px; align-items:center;">
           <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('parchment')" title="☀️ Ivory Paper">☀️</button>
           <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('noir')" title="🌙 Pure Black OLED">🌙</button>
@@ -18235,10 +18091,10 @@ pre, .code-block, .chat-code-snippet {
 
           </div>
 
-          <!-- ==================== TAB 4: EDITORIAL THEMES ==================== -->
+          <!-- ==================== TAB 4: THEMES ==================== -->
           <div id="profTabContentTheme" style="display:none;">
             <div class="profile-card-section">
-              <div class="profile-card-title"><span>🎨</span> Editorial Appearance</div>
+              <div class="profile-card-title"><span>🎨</span> Appearance & Theme</div>
               <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Select your signature theme edition for the entire Connecto workspace.</p>
               
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
@@ -28085,17 +27941,12 @@ function selectSettingsAvatar(emoji, el) {
           }
         } catch (e) {}
 
-        // Update Theme Studio active pill
-        document.querySelectorAll('.theme-pill-btn').forEach(btn => {
-          const btnTheme = btn.dataset.themeBtn;
-          const mappedBtnTheme = aliasMap[btnTheme] || btnTheme;
-          btn.classList.toggle('active', mappedBtnTheme === canonicalTheme);
-        });
-
-        // Update Nav theme quick toggle icon
+        // Update Nav theme quick toggle icon with crisp SVG icons
         const navToggleIcon = document.getElementById('navThemeToggleIcon');
         if (navToggleIcon) {
-          navToggleIcon.innerText = canonicalTheme === 'parchment' ? '🌙' : '☀️';
+          navToggleIcon.innerHTML = canonicalTheme === 'parchment'
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
         }
 
         // Synchronize mobile drawer & modal theme selectors
