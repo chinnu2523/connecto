@@ -308,40 +308,47 @@
     }
 
     /* ============================================================ */
-    /* MINIMAL EDITORIAL DESIGN SYSTEM - 5 CURATED EDITIONS         */
-    /* Simple, Classic, Professional, Timeless                      */
+    /* PRISTINE EDITORIAL DUAL-THEME SYSTEM                         */
+    /* Strictly Two Themes: Ivory Paper (Light) & Pure Black (Dark) */
     /* ============================================================ */
 
-    /* Edition 1: Editorial Noir (Archival Ink) - DEFAULT */
-    html[data-theme="noir"], html[data-theme="obsidian"], :root {
-      --accent: #fafafa;
-      --accent-hover: #ffffff;
-      --accent-tint: rgba(255, 255, 255, 0.06);
-      --accent-border: rgba(255, 255, 255, 0.16);
+    /* Edition 1: Pure Black OLED (Pitch-Black Luxury Editorial) */
+    html[data-theme="noir"],
+    html[data-theme="dark"],
+    html[data-theme="black"],
+    html[data-theme="obsidian"],
+    :root {
+      --accent: #ffffff;
+      --accent-hover: #f4f4f5;
+      --accent-tint: rgba(255, 255, 255, 0.08);
+      --accent-border: rgba(255, 255, 255, 0.20);
       --accent-glow: transparent;
       --accent-secondary: #a1a1aa;
       --accent-secondary-hover: #e4e4e7;
-      --chakra-cyan: #e4e4e7;
-      --bg-darkest: #0c0c0e;
-      --bg-darker: #121215;
-      --bg-dark: #18181c;
-      --bg-card: rgba(22, 22, 26, 0.94);
-      --bg-card-hover: rgba(30, 30, 36, 0.98);
-      --bg-modal: #141418;
-      --bg-nav: rgba(12, 12, 14, 0.90);
-      --card-border: rgba(255, 255, 255, 0.08);
+      --chakra-cyan: #ffffff;
+      --bg-darkest: #000000;
+      --bg-darker: #050505;
+      --bg-dark: #0a0a0a;
+      --bg-card: rgba(10, 10, 10, 0.94);
+      --bg-card-hover: rgba(18, 18, 18, 0.98);
+      --bg-modal: #080808;
+      --bg-nav: rgba(0, 0, 0, 0.90);
+      --card-border: rgba(255, 255, 255, 0.10);
       --text-normal: #d4d4d8;
       --text-muted: #8e8e93;
-      --text-header: #fafafa;
+      --text-header: #ffffff;
       --hero-glow-1: transparent;
       --hero-glow-2: transparent;
       --hero-grad-start: #ffffff;
-      --hero-grad-end: #d4d4d8;
-      --theme-name: "Editorial Noir";
+      --hero-grad-end: #a1a1aa;
+      --theme-name: "Pure Black OLED";
     }
 
-    /* Edition 2: Ivory Parchment (Warm Archival Paper) */
-    html[data-theme="parchment"], html[data-theme="cyberpunk"] {
+    /* Edition 2: Ivory Paper (Warm Archival Paper & Sumi Ink) */
+    html[data-theme="parchment"],
+    html[data-theme="light"],
+    html[data-theme="ivory"],
+    html[data-theme="cyberpunk"] {
       --accent: #141312;
       --accent-hover: #000000;
       --accent-tint: rgba(212, 175, 125, 0.08);
@@ -365,91 +372,7 @@
       --hero-glow-2: transparent;
       --hero-grad-start: #141312;
       --hero-grad-end: #292524;
-      --theme-name: "Ivory Parchment";
-    }
-
-    /* Edition 3: Oxford Slate (Architectural Neutral) */
-    html[data-theme="slate"], html[data-theme="aurora"] {
-      --accent: #f1f5f9;
-      --accent-hover: #ffffff;
-      --accent-tint: rgba(241, 245, 249, 0.06);
-      --accent-border: rgba(241, 245, 249, 0.18);
-      --accent-glow: transparent;
-      --accent-secondary: #94a3b8;
-      --accent-secondary-hover: #cbd5e1;
-      --chakra-cyan: #94a3b8;
-      --bg-darkest: #111317;
-      --bg-darker: #17191f;
-      --bg-dark: #1e2129;
-      --bg-card: rgba(27, 30, 38, 0.92);
-      --bg-card-hover: rgba(35, 39, 49, 0.98);
-      --bg-modal: #181a22;
-      --bg-nav: rgba(17, 19, 23, 0.90);
-      --card-border: rgba(241, 245, 249, 0.08);
-      --text-normal: #cbd5e1;
-      --text-muted: #828a99;
-      --text-header: #f8fafc;
-      --hero-glow-1: transparent;
-      --hero-glow-2: transparent;
-      --hero-grad-start: #f8fafc;
-      --hero-grad-end: #cbd5e1;
-      --theme-name: "Oxford Slate";
-    }
-
-    /* Edition 4: Warm Cashmere (Literary Review) */
-    html[data-theme="cashmere"], html[data-theme="forge"] {
-      --accent: #f7ede2;
-      --accent-hover: #ffffff;
-      --accent-tint: rgba(247, 237, 226, 0.06);
-      --accent-border: rgba(247, 237, 226, 0.18);
-      --accent-glow: transparent;
-      --accent-secondary: #d5bdaf;
-      --accent-secondary-hover: #e3d5ca;
-      --chakra-cyan: #d5bdaf;
-      --bg-darkest: #12100e;
-      --bg-darker: #1a1714;
-      --bg-dark: #24201c;
-      --bg-card: rgba(32, 28, 24, 0.92);
-      --bg-card-hover: rgba(42, 37, 32, 0.98);
-      --bg-modal: #1f1b17;
-      --bg-nav: rgba(18, 16, 14, 0.90);
-      --card-border: rgba(245, 235, 224, 0.08);
-      --text-normal: #d6ccc2;
-      --text-muted: #9c9288;
-      --text-header: #faf6f0;
-      --hero-glow-1: transparent;
-      --hero-glow-2: transparent;
-      --hero-grad-start: #faf6f0;
-      --hero-grad-end: #d6ccc2;
-      --theme-name: "Warm Cashmere";
-    }
-
-    /* Edition 5: Alpine Pine (Botanical Monograph) */
-    html[data-theme="alpine"], html[data-theme="vaporwave"] {
-      --accent: #eef4f0;
-      --accent-hover: #ffffff;
-      --accent-tint: rgba(238, 244, 240, 0.06);
-      --accent-border: rgba(238, 244, 240, 0.18);
-      --accent-glow: transparent;
-      --accent-secondary: #9cb3a5;
-      --accent-secondary-hover: #b4c7bc;
-      --chakra-cyan: #9cb3a5;
-      --bg-darkest: #0a0e0c;
-      --bg-darker: #101614;
-      --bg-dark: #17211d;
-      --bg-card: rgba(21, 31, 27, 0.92);
-      --bg-card-hover: rgba(29, 43, 37, 0.98);
-      --bg-modal: #131d19;
-      --bg-nav: rgba(10, 14, 12, 0.90);
-      --card-border: rgba(238, 244, 240, 0.08);
-      --text-normal: #cadbd0;
-      --text-muted: #859c8e;
-      --text-header: #f4faf6;
-      --hero-glow-1: transparent;
-      --hero-glow-2: transparent;
-      --hero-grad-start: #f4faf6;
-      --hero-grad-end: #cadbd0;
-      --theme-name: "Alpine Pine";
+      --theme-name: "Ivory Paper";
     }
 
     /* Editorial Typography Refinements */
@@ -724,6 +647,195 @@
         padding: 4px 9px;
         font-size: 11px;
       }
+    }
+
+    /* Navbar Quick Theme Toggle Button (Ivory Paper <-> Pure Black OLED) */
+    .nav-theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent-tint);
+      border: 1px solid var(--accent-border);
+      color: var(--text-header);
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+      padding: 0;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      will-change: transform;
+    }
+    .nav-theme-toggle-btn:hover {
+      transform: scale(1.10) rotate(12deg);
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-border);
+    }
+    .nav-theme-toggle-btn:active {
+      transform: scale(0.92) rotate(-8deg) !important;
+    }
+    /* ==========================================================================
+       PURE BLACK OLED LUXURY SUITE (#000000 PITCH-BLACK TRUE BLACK)
+       - True OLED pitch-black void for canvas, body, heroView, modals, and nav
+       - Obsidian smoked crystal glass surfaces with specular hairlines
+       - Ultra-crisp luxury typography (#ffffff headers, #d4d4d8 body, #71717a muted)
+       - Pure Black edge lighting and subtle 1px border highlights
+       - Completely disables paper fiber noise overlay
+       ========================================================================== */
+
+    html[data-theme="noir"]::before,
+    html[data-theme="dark"]::before,
+    html[data-theme="black"]::before,
+    html[data-theme="obsidian"]::before {
+      display: none !important;
+    }
+
+    html[data-theme="noir"] body,
+    html[data-theme="dark"] body,
+    html[data-theme="black"] body,
+    html[data-theme="obsidian"] body,
+    html[data-theme="noir"] #heroView,
+    html[data-theme="dark"] #heroView,
+    html[data-theme="black"] #heroView,
+    html[data-theme="obsidian"] #heroView {
+      background-color: #000000 !important;
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 255, 255, 0.04), transparent 70%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px) !important;
+      background-size: 100% 100%, 48px 48px, 48px 48px !important;
+      color: #d4d4d8 !important;
+    }
+
+    html[data-theme="noir"] .landing-nav,
+    html[data-theme="dark"] .landing-nav,
+    html[data-theme="black"] .landing-nav,
+    html[data-theme="obsidian"] .landing-nav {
+      background: rgba(0, 0, 0, 0.88) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+      backdrop-filter: blur(28px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+    }
+
+    html[data-theme="noir"] .landing-nav.scrolled,
+    html[data-theme="dark"] .landing-nav.scrolled,
+    html[data-theme="black"] .landing-nav.scrolled,
+    html[data-theme="obsidian"] .landing-nav.scrolled {
+      background: rgba(0, 0, 0, 0.95) !important;
+      box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.9) !important;
+    }
+
+    html[data-theme="noir"] .hero-official-title,
+    html[data-theme="dark"] .hero-official-title,
+    html[data-theme="black"] .hero-official-title,
+    html[data-theme="obsidian"] .hero-official-title,
+    html[data-theme="noir"] .section-title,
+    html[data-theme="dark"] .section-title,
+    html[data-theme="black"] .section-title,
+    html[data-theme="obsidian"] .section-title,
+    html[data-theme="noir"] h1,
+    html[data-theme="dark"] h1,
+    html[data-theme="black"] h1,
+    html[data-theme="obsidian"] h1,
+    html[data-theme="noir"] h2,
+    html[data-theme="dark"] h2,
+    html[data-theme="black"] h2,
+    html[data-theme="obsidian"] h2,
+    html[data-theme="noir"] h3,
+    html[data-theme="dark"] h3,
+    html[data-theme="black"] h3,
+    html[data-theme="obsidian"] h3 {
+      color: #ffffff !important;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+    }
+
+    html[data-theme="noir"] .shimmer-title,
+    html[data-theme="dark"] .shimmer-title,
+    html[data-theme="black"] .shimmer-title,
+    html[data-theme="obsidian"] .shimmer-title {
+      background: linear-gradient(135deg, #ffffff 20%, #a1a1aa 100%) !important;
+      -webkit-background-clip: text !important;
+      -webkit-text-fill-color: transparent !important;
+      text-shadow: none !important;
+    }
+
+    html[data-theme="noir"] .hero-official-desc,
+    html[data-theme="dark"] .hero-official-desc,
+    html[data-theme="black"] .hero-official-desc,
+    html[data-theme="obsidian"] .hero-official-desc,
+    html[data-theme="noir"] .section-desc,
+    html[data-theme="dark"] .section-desc,
+    html[data-theme="black"] .section-desc,
+    html[data-theme="obsidian"] .section-desc {
+      color: #a1a1aa !important;
+    }
+
+    /* Smoked Obsidian Crystal Cards in Pure Black OLED Theme */
+    html[data-theme="noir"] .ecosystem-card,
+    html[data-theme="dark"] .ecosystem-card,
+    html[data-theme="noir"] .usecase-card,
+    html[data-theme="dark"] .usecase-card,
+    html[data-theme="noir"] .step-card-custom,
+    html[data-theme="dark"] .step-card-custom,
+    html[data-theme="noir"] .comparison-card,
+    html[data-theme="dark"] .comparison-card,
+    html[data-theme="noir"] .bento-card,
+    html[data-theme="dark"] .bento-card,
+    html[data-theme="noir"] .arch-node,
+    html[data-theme="dark"] .arch-node,
+    html[data-theme="noir"] .arch-flow-wrap,
+    html[data-theme="dark"] .arch-flow-wrap,
+    html[data-theme="noir"] .arch-spec-banner,
+    html[data-theme="dark"] .arch-spec-banner,
+    html[data-theme="noir"] .ctf-sandbox-card,
+    html[data-theme="dark"] .ctf-sandbox-card,
+    html[data-theme="noir"] .faq-item,
+    html[data-theme="dark"] .faq-item,
+    html[data-theme="noir"] .stats-section-asym,
+    html[data-theme="dark"] .stats-section-asym,
+    html[data-theme="noir"] .android-showcase-card-left,
+    html[data-theme="dark"] .android-showcase-card-left,
+    html[data-theme="noir"] .android-feat-card,
+    html[data-theme="dark"] .android-feat-card,
+    html[data-theme="noir"] .final-cta-card,
+    html[data-theme="dark"] .final-cta-card,
+    html[data-theme="noir"] .chat-mockup-card,
+    html[data-theme="dark"] .chat-mockup-card {
+      background: rgba(10, 10, 10, 0.94) !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 4px 20px -2px rgba(0, 0, 0, 0.7) !important;
+    }
+
+    html[data-theme="noir"] .ecosystem-card:hover,
+    html[data-theme="dark"] .ecosystem-card:hover,
+    html[data-theme="noir"] .usecase-card:hover,
+    html[data-theme="dark"] .usecase-card:hover,
+    html[data-theme="noir"] .step-card-custom:hover,
+    html[data-theme="dark"] .step-card-custom:hover,
+    html[data-theme="noir"] .bento-card:hover,
+    html[data-theme="dark"] .bento-card:hover,
+    html[data-theme="noir"] .faq-item:hover,
+    html[data-theme="dark"] .faq-item:hover,
+    html[data-theme="noir"] .comparison-card:hover,
+    html[data-theme="dark"] .comparison-card:hover,
+    html[data-theme="noir"] .final-cta-card:hover,
+    html[data-theme="dark"] .final-cta-card:hover {
+      background: rgba(16, 16, 16, 0.98) !important;
+      border-color: rgba(255, 255, 255, 0.22) !important;
+      box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.20),
+        0 14px 34px -4px rgba(0, 0, 0, 0.9) !important;
+      transform: translateY(-2px) !important;
+    }
+
+    html[data-theme="noir"] .landing-footer,
+    html[data-theme="dark"] .landing-footer {
+      background: #000000 !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
     }
 
     /* ==========================================================================
@@ -16232,6 +16344,10 @@ pre, .code-block, .chat-code-snippet {
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
           </div>
 
+          <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Editorial Theme" title="Toggle Light / Dark Theme">
+            <span id="navThemeToggleIcon">🌙</span>
+          </button>
+
           <div id="navAuthButtons" style="display:flex; align-items:center; gap:10px;">
             <button class="landing-link-btn" onclick="openAuthModal('login')">Log in</button>
             <button class="nav-signup-cta-btn" onclick="openAuthModal('register')">Sign up <i data-lucide="arrow-right" class="lucide-sm"></i></button>
@@ -16244,32 +16360,20 @@ pre, .code-block, .chat-code-snippet {
         </nav>
       </div>
 
-      <!-- FLOATING THEME STUDIO (Curated Minimal Editorial Editions) -->
-      <div class="theme-studio-dock" id="themeStudioDock" role="region" aria-label="Editorial Editions">
+      <!-- FLOATING THEME STUDIO (Curated Minimal Editorial Editions: Ivory Paper vs Pure Black OLED) -->
+      <div class="theme-studio-dock" id="themeStudioDock" role="region" aria-label="Editorial Themes">
         <div class="theme-studio-label">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          <span>Curated Editions</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span>Editorial Theme</span>
         </div>
-        <div class="theme-studio-pills">
-          <button class="theme-pill-btn" data-theme-btn="noir" onclick="setHomepageTheme('noir')" title="Edition 1: Editorial Noir (Archival Ink)">
-            <span class="theme-pill-dot" style="background:#fafafa; border:1px solid #71717a;"></span>
-            <span>1. Noir Ink</span>
+        <div class="theme-studio-pills" role="tablist">
+          <button class="theme-pill-btn active" data-theme-btn="parchment" onclick="setHomepageTheme('parchment')" title="Ivory Paper: Warm Archival Paper & Sumi Ink">
+            <span class="theme-pill-dot" style="background:#f5f1e8; border:1.5px solid #141312;"></span>
+            <span>☀️ Ivory Paper</span>
           </button>
-          <button class="theme-pill-btn active" data-theme-btn="parchment" onclick="setHomepageTheme('parchment')" title="Edition 2: Ivory Parchment (Warm Archival Paper)">
-            <span class="theme-pill-dot" style="background:#f4f1ea; border:1px solid #111111;"></span>
-            <span>2. Ivory Paper</span>
-          </button>
-          <button class="theme-pill-btn" data-theme-btn="slate" onclick="setHomepageTheme('slate')" title="Edition 3: Oxford Slate (Architectural Neutral)">
-            <span class="theme-pill-dot" style="background:#94a3b8; border:1px solid #475569;"></span>
-            <span>3. Oxford Slate</span>
-          </button>
-          <button class="theme-pill-btn" data-theme-btn="cashmere" onclick="setHomepageTheme('cashmere')" title="Edition 4: Warm Cashmere (Literary Review)">
-            <span class="theme-pill-dot" style="background:#d5bdaf; border:1px solid #8d7b68;"></span>
-            <span>4. Cashmere</span>
-          </button>
-          <button class="theme-pill-btn" data-theme-btn="alpine" onclick="setHomepageTheme('alpine')" title="Edition 5: Alpine Pine (Botanical Monograph)">
-            <span class="theme-pill-dot" style="background:#9cb3a5; border:1px solid #52796f;"></span>
-            <span>5. Alpine Pine</span>
+          <button class="theme-pill-btn" data-theme-btn="noir" onclick="setHomepageTheme('noir')" title="Pure Black OLED: #000000 Pitch-Black Luxury Editorial">
+            <span class="theme-pill-dot" style="background:#000000; border:1.5px solid #ffffff;"></span>
+            <span>🌙 Pure Black OLED</span>
           </button>
         </div>
       </div>
@@ -17675,18 +17779,14 @@ pre, .code-block, .chat-code-snippet {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <!-- Interactive Chakra Customizer -->
-        <div style="height:1px; background:rgba(255,255,255,0.08); margin:6px 0;"></div>
-        <div class="mobile-drawer-label">Chakra Theme Customization</div>
-        <div class="chakra-palette-row">
-          <button class="chakra-theme-dot active" data-theme="amethyst" style="background:#6c5ce7;" onclick="setChakraTheme('amethyst')" title="Amethyst Chakra"></button>
-          <button class="chakra-theme-dot" data-theme="cyan" style="background:#00cec9;" onclick="setChakraTheme('cyan')" title="Cyan Vortex"></button>
-          <button class="chakra-theme-dot" data-theme="gold" style="background:#f59e0b;" onclick="setChakraTheme('gold')" title="Grandmaster Gold"></button>
-          <button class="chakra-theme-dot" data-theme="emerald" style="background:#10b981;" onclick="setChakraTheme('emerald')" title="Sage Emerald"></button>
-          <button class="chakra-theme-dot" data-theme="crimson" style="background:#ff4757;" onclick="setChakraTheme('crimson')" title="Crimson Ember"></button>
+        <!-- Interactive Editorial Theme Customizer -->
+        <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
+        <div class="mobile-drawer-label">Editorial Theme</div>
+        <div class="chakra-palette-row" style="display:flex; gap:12px; align-items:center;">
+          <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('parchment')" title="☀️ Ivory Paper">☀️</button>
+          <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('noir')" title="🌙 Pure Black OLED">🌙</button>
         </div>
-
-        <div style="height:1px; background:rgba(255,255,255,0.08); margin:6px 0;"></div>
+        <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         
 
       </div>
@@ -17940,7 +18040,7 @@ pre, .code-block, .chat-code-snippet {
                 <span>🔊</span> Audio & Sound FX
               </button>
               <button type="button" class="profile-studio-nav-item" id="profTabBtnTheme" onclick="switchProfileStudioTab('theme')">
-                <span>🎨</span> Chakra Themes
+                <span>🎨</span> Appearance & Theme
               </button>
               <button type="button" class="profile-studio-nav-item mobile-signout-nav-item" style="color:#ef4444 !important;" onclick="handleLogout()">
                 <span>🚪</span> Sign Out
@@ -18261,18 +18361,27 @@ pre, .code-block, .chat-code-snippet {
 
           </div>
 
-          <!-- ==================== TAB 4: CHAKRA THEMES ==================== -->
+          <!-- ==================== TAB 4: EDITORIAL THEMES ==================== -->
           <div id="profTabContentTheme" style="display:none;">
             <div class="profile-card-section">
-              <div class="profile-card-title"><span>🎨</span> Chakra Energy Theme</div>
-              <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Select your signature aura to customize accents and lighting.</p>
+              <div class="profile-card-title"><span>🎨</span> Editorial Appearance</div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Select your signature theme edition for the entire Connecto workspace.</p>
               
-              <div style="display:flex; gap:12px; flex-wrap:wrap;">
-                <div style="width:42px; height:42px; border-radius:50%; background:#6c5ce7; cursor:pointer; border:2px solid #fff; box-shadow:0 0 12px #6c5ce7;" onclick="setChakraTheme('purple')" title="Purple Chakra"></div>
-                <div style="width:42px; height:42px; border-radius:50%; background:#00cec9; cursor:pointer; border:2px solid #fff; box-shadow:0 0 12px #00cec9;" onclick="setChakraTheme('cyan')" title="Cyan Pulse"></div>
-                <div style="width:42px; height:42px; border-radius:50%; background:#fdcb6e; cursor:pointer; border:2px solid transparent;" onclick="setChakraTheme('gold')" title="Golden Sage"></div>
-                <div style="width:42px; height:42px; border-radius:50%; background:#00b894; cursor:pointer; border:2px solid transparent;" onclick="setChakraTheme('emerald')" title="Emerald Leaf"></div>
-                <div style="width:42px; height:42px; border-radius:50%; background:#ff7675; cursor:pointer; border:2px solid transparent;" onclick="setChakraTheme('crimson')" title="Crimson Nebula"></div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px;">
+                <div class="theme-selection-card" onclick="setHomepageTheme('parchment')" style="padding:16px; border-radius:14px; border:1px solid rgba(68,64,60,0.2); background:#fbf8f2; color:#141312; cursor:pointer; display:flex; align-items:center; gap:12px; transition:transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s ease;">
+                  <span style="width:28px; height:28px; border-radius:50%; background:#f5f1e8; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">☀️</span>
+                  <div>
+                    <div style="font-weight:700; font-size:13px; color:#141312;">Ivory Paper</div>
+                    <div style="font-size:11px; color:#78716c;">Archival paper & sumi ink</div>
+                  </div>
+                </div>
+                <div class="theme-selection-card" onclick="setHomepageTheme('noir')" style="padding:16px; border-radius:14px; border:1px solid rgba(255,255,255,0.15); background:#000000; color:#ffffff; cursor:pointer; display:flex; align-items:center; gap:12px; transition:transform 0.2s cubic-bezier(0.16,1,0.3,1), box-shadow 0.2s ease;">
+                  <span style="width:28px; height:28px; border-radius:50%; background:#000000; border:2px solid #ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:12px;">🌙</span>
+                  <div>
+                    <div style="font-weight:700; font-size:13px; color:#ffffff;">Pure Black OLED</div>
+                    <div style="font-size:11px; color:#a1a1aa;">#000000 pitch-black luxury</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -26023,80 +26132,13 @@ pre, .code-block, .chat-code-snippet {
       }
     }
 
-    // ==================== SHINOBI THEME PRESET ENGINE ====================
+    // ==================== SHINOBI THEME PRESET ENGINE (LEGACY COMPAT) ====================
     function applyChakraThemePreset(preset) {
-      document.querySelectorAll('.theme-swatch-btn').forEach(b => b.classList.remove('active'));
-      const btnIdMap = {
-        obsidian: 'btnThemeObsidian',
-        crimson: 'btnThemeCrimson',
-        sage: 'btnThemeSage',
-        cyan: 'btnThemeCyan',
-        gold: 'btnThemeGold'
-      };
-      if (document.getElementById(btnIdMap[preset])) {
-        document.getElementById(btnIdMap[preset]).classList.add('active');
+      if (preset === 'parchment' || preset === 'light' || preset === 'ivory' || preset === 'cashmere' || preset === 'gold' || preset === 'crimson') {
+        setHomepageTheme('parchment');
+      } else {
+        setHomepageTheme('noir');
       }
-
-      const root = document.documentElement;
-      if (preset === 'obsidian') {
-        root.style.setProperty('--bg-darkest', '#0a0e1a');
-        root.style.setProperty('--bg-darker', '#0e1424');
-        root.style.setProperty('--bg-dark', '#131a2b');
-        root.style.setProperty('--bg-card', 'rgba(19, 26, 43, 0.85)');
-        root.style.setProperty('--accent', '#22d3ee');
-        root.style.setProperty('--accent-hover', '#06b6d4');
-        root.style.setProperty('--accent-tint', 'rgba(34, 211, 238, 0.12)');
-        root.style.setProperty('--accent-border', 'rgba(34, 211, 238, 0.35)');
-        root.style.setProperty('--accent-glow', 'rgba(34, 211, 238, 0.35)');
-        root.style.setProperty('--accent-secondary', '#818cf8');
-        root.style.setProperty('--accent-secondary-hover', '#6366f1');
-        root.style.setProperty('--accent-secondary-tint', 'rgba(129, 140, 248, 0.12)');
-        root.style.setProperty('--accent-secondary-glow', 'rgba(129, 140, 248, 0.35)');
-        root.style.setProperty('--green', '#4ade80');
-        root.style.setProperty('--green-glow', 'rgba(74, 222, 128, 0.35)');
-        root.style.setProperty('--red', '#f87171');
-        root.style.setProperty('--red-glow', 'rgba(248, 113, 113, 0.35)');
-        root.style.setProperty('--chakra-cyan', '#22d3ee');
-        root.style.setProperty('--ninja-gold', '#fbbf24');
-      } else if (preset === 'crimson') {
-        root.style.setProperty('--bg-darkest', '#0a0507');
-        root.style.setProperty('--bg-darker', '#150a0d');
-        root.style.setProperty('--bg-dark', '#1f0d13');
-        root.style.setProperty('--accent', '#ef4444');
-        root.style.setProperty('--accent-hover', '#dc2626');
-        root.style.setProperty('--accent-glow', 'rgba(239, 68, 68, 0.4)');
-        root.style.setProperty('--chakra-cyan', '#f59e0b');
-        root.style.setProperty('--ninja-gold', '#fbbf24');
-      } else if (preset === 'sage') {
-        root.style.setProperty('--bg-darkest', '#040a07');
-        root.style.setProperty('--bg-darker', '#08140e');
-        root.style.setProperty('--bg-dark', '#0c1f16');
-        root.style.setProperty('--accent', '#4ade80');
-        root.style.setProperty('--accent-hover', '#22c55e');
-        root.style.setProperty('--accent-glow', 'rgba(74, 222, 128, 0.4)');
-        root.style.setProperty('--chakra-cyan', '#22d3ee');
-        root.style.setProperty('--ninja-gold', '#d97706');
-      } else if (preset === 'cyan') {
-        root.style.setProperty('--bg-darkest', '#040812');
-        root.style.setProperty('--bg-darker', '#081124');
-        root.style.setProperty('--bg-dark', '#0c1a36');
-        root.style.setProperty('--accent', '#22d3ee');
-        root.style.setProperty('--accent-hover', '#06b6d4');
-        root.style.setProperty('--accent-glow', 'rgba(34, 211, 238, 0.4)');
-        root.style.setProperty('--chakra-cyan', '#818cf8');
-        root.style.setProperty('--ninja-gold', '#38bdf8');
-      } else if (preset === 'gold') {
-        root.style.setProperty('--bg-darkest', '#0a0906');
-        root.style.setProperty('--bg-darker', '#17140b');
-        root.style.setProperty('--bg-dark', '#241f12');
-        root.style.setProperty('--accent', '#fbbf24');
-        root.style.setProperty('--accent-hover', '#f59e0b');
-        root.style.setProperty('--accent-glow', 'rgba(251, 191, 36, 0.4)');
-        root.style.setProperty('--chakra-cyan', '#22d3ee');
-        root.style.setProperty('--ninja-gold', '#fbbf24');
-      }
-      // Sync cached canvas colors after any preset switch
-      if (typeof refreshParticleColors === 'function') refreshParticleColors();
     }
 
     // ==================== INTERACTIVE BACKGROUND PARTICLES ====================
@@ -26115,7 +26157,7 @@ pre, .code-block, .chat-code-snippet {
     }
 
     function initMotionScrollObserver() {
-      const revealItems = document.querySelectorAll('.scroll-reveal-3d, .motion-reveal, .crystal-reveal');
+      const revealItems = document.querySelectorAll('.scroll-reveal-3d, .motion-reveal, .crystal-reveal, .stagger-parent');
       
       if (!window.IntersectionObserver) {
         revealItems.forEach(el => el.classList.add('in-view'));
@@ -28111,21 +28153,38 @@ function selectSettingsAvatar(emoji, el) {
     }
 
     // ============================================================
-    // MINIMAL EDITORIAL DESIGN SYSTEM - THEME CONTROLLER
+    // PRISTINE EDITORIAL DUAL-THEME SYSTEM - CONTROLLER
+    // Strictly Two Editions: Ivory Paper (Light) & Pure Black OLED (Dark)
     // ============================================================
     function setHomepageTheme(themeId, updateUrl = true) {
       const applyTheme = () => {
         const aliasMap = {
-          noir: 'noir',
-          obsidian: 'noir',
+          // Light Edition -> 'parchment'
           parchment: 'parchment',
+          ivory: 'parchment',
+          light: 'parchment',
+          paper: 'parchment',
           cyberpunk: 'parchment',
-          slate: 'slate',
-          aurora: 'slate',
-          cashmere: 'cashmere',
-          forge: 'cashmere',
-          alpine: 'alpine',
-          vaporwave: 'alpine'
+          cashmere: 'parchment',
+          forge: 'parchment',
+          gold: 'parchment',
+          crimson: 'parchment',
+
+          // Dark Edition -> 'noir'
+          noir: 'noir',
+          black: 'noir',
+          dark: 'noir',
+          oled: 'noir',
+          obsidian: 'noir',
+          slate: 'noir',
+          aurora: 'noir',
+          alpine: 'noir',
+          vaporwave: 'noir',
+          cyan: 'noir',
+          amethyst: 'noir',
+          emerald: 'noir',
+          indigo: 'noir',
+          purple: 'noir'
         };
         const canonicalTheme = aliasMap[themeId] || 'parchment';
 
@@ -28159,17 +28218,17 @@ function selectSettingsAvatar(emoji, el) {
           btn.classList.toggle('active', mappedBtnTheme === canonicalTheme);
         });
 
-        // Synchronize internal chakra dots
-        const chakraMap = {
-          noir: 'cyan',
-          parchment: 'crimson',
-          slate: 'emerald',
-          cashmere: 'gold',
-          alpine: 'indigo'
-        };
-        const eqChakra = chakraMap[canonicalTheme] || 'crimson';
+        // Update Nav theme quick toggle icon
+        const navToggleIcon = document.getElementById('navThemeToggleIcon');
+        if (navToggleIcon) {
+          navToggleIcon.innerText = canonicalTheme === 'parchment' ? '🌙' : '☀️';
+        }
+
+        // Synchronize mobile drawer & modal theme selectors
         document.querySelectorAll('.chakra-theme-dot').forEach(d => {
-          d.classList.toggle('active', d.dataset.theme === eqChakra);
+          const dTheme = d.dataset.theme;
+          const mapped = aliasMap[dTheme] || dTheme;
+          d.classList.toggle('active', mapped === canonicalTheme);
         });
 
         if (typeof refreshParticleColors === 'function') {
@@ -28184,38 +28243,21 @@ function selectSettingsAvatar(emoji, el) {
       }
     }
 
+    // Quick toggle helper between the two editorial themes
+    function toggleEditorialTheme() {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'parchment';
+      const targetTheme = (currentTheme === 'parchment' || currentTheme === 'light' || currentTheme === 'ivory') ? 'noir' : 'parchment';
+      setHomepageTheme(targetTheme, true);
+    }
+
     // Chakra Theme Customization Engine (Compat & in-app settings)
     function setChakraTheme(themeName) {
-      const themeMap = {
-        cyan: 'noir',
-        crimson: 'parchment',
-        emerald: 'slate',
-        gold: 'cashmere',
-        indigo: 'alpine'
-      };
-      if (themeMap[themeName]) {
-        setHomepageTheme(themeMap[themeName]);
-        return;
+      const lightPresets = ['parchment', 'ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'];
+      if (lightPresets.includes(themeName)) {
+        setHomepageTheme('parchment');
+      } else {
+        setHomepageTheme('noir');
       }
-      const root = document.documentElement;
-      const palettes = {
-        cyan:    { accent: '#fafafa', glow: 'transparent', cyan: '#e4e4e7' },
-        indigo:  { accent: '#eef4f0', glow: 'transparent', cyan: '#9cb3a5' },
-        gold:    { accent: '#f7ede2', glow: 'transparent', cyan: '#d5bdaf' },
-        emerald: { accent: '#f1f5f9', glow: 'transparent', cyan: '#94a3b8' },
-        crimson: { accent: '#141312', glow: 'transparent', cyan: '#141312' }
-      };
-      const p = palettes[themeName] || palettes.crimson;
-      root.style.setProperty('--accent', p.accent);
-      root.style.setProperty('--accent-glow', p.glow);
-      root.style.setProperty('--chakra-cyan', p.cyan);
-      if (typeof refreshParticleColors === 'function') refreshParticleColors();
-      try {
-        localStorage.setItem('connecto_chakra_theme', themeName);
-      } catch (e) {}
-      document.querySelectorAll('.chakra-theme-dot').forEach(d => {
-        d.classList.toggle('active', d.dataset.theme === themeName);
-      });
     }
 
     // Initialize saved theme on page load (support ?theme= query param)
