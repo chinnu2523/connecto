@@ -347,8 +347,7 @@
     /* Edition 2: Ivory Paper (Warm Archival Paper & Sumi Ink) */
     html[data-theme="parchment"],
     html[data-theme="light"],
-    html[data-theme="ivory"],
-    html[data-theme="cyberpunk"] {
+    html[data-theme="ivory"] {
       --accent: #141312;
       --accent-hover: #000000;
       --accent-tint: rgba(212, 175, 125, 0.08);
@@ -848,8 +847,7 @@
        ========================================================================== */
 
     /* 1. Tactile Archival Paper Grain Noise Overlay (Physical Fiber Sensation) */
-    html[data-theme="parchment"]::before,
-    html[data-theme="cyberpunk"]::before {
+    html[data-theme="parchment"]::before::before {
       content: "";
       position: fixed;
       inset: 0;
@@ -865,10 +863,8 @@
     }
 
     /* 2. Archival Drafting Paper Surface & Atmospheric Watermark */
-    html[data-theme="parchment"] body,
-    html[data-theme="cyberpunk"] body,
-    html[data-theme="parchment"] #heroView,
-    html[data-theme="cyberpunk"] #heroView {
+    html[data-theme="parchment"] body body,
+    html[data-theme="parchment"] #heroView #heroView {
       background-color: #fbf8f2 !important;
       background-image: 
         radial-gradient(ellipse 90% 50% at 50% 0%, rgba(212, 175, 125, 0.14), transparent 75%),
@@ -879,27 +875,19 @@
     }
 
     /* 3. Letterpress Intaglio Deboss Effect for Headlines */
-    html[data-theme="parchment"] .hero-official-title,
-    html[data-theme="cyberpunk"] .hero-official-title,
-    html[data-theme="parchment"] .section-title,
-    html[data-theme="cyberpunk"] .section-title,
-    html[data-theme="parchment"] .landing-logo .nav-logo-text,
-    html[data-theme="cyberpunk"] .landing-logo .nav-logo-text,
-    html[data-theme="parchment"] h1,
-    html[data-theme="cyberpunk"] h1,
-    html[data-theme="parchment"] h2,
-    html[data-theme="cyberpunk"] h2,
-    html[data-theme="parchment"] h3,
-    html[data-theme="cyberpunk"] h3,
-    html[data-theme="parchment"] h4,
-    html[data-theme="cyberpunk"] h4 {
+    html[data-theme="parchment"] .hero-official-title .hero-official-title,
+    html[data-theme="parchment"] .section-title .section-title,
+    html[data-theme="parchment"] .landing-logo .nav-logo-text .landing-logo .nav-logo-text,
+    html[data-theme="parchment"] h1 h1,
+    html[data-theme="parchment"] h2 h2,
+    html[data-theme="parchment"] h3 h3,
+    html[data-theme="parchment"] h4 h4 {
       color: #141312 !important;
       text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95), 0 -0.5px 0.5px rgba(28, 25, 23, 0.12) !important;
       letter-spacing: -0.022em !important;
     }
 
-    html[data-theme="parchment"] .shimmer-title,
-    html[data-theme="cyberpunk"] .shimmer-title {
+    html[data-theme="parchment"] .shimmer-title .shimmer-title {
       background: none !important;
       -webkit-background-clip: initial !important;
       -webkit-text-fill-color: #141312 !important;
@@ -908,49 +896,30 @@
       text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95), 0 -0.5px 0.5px rgba(28, 25, 23, 0.12) !important;
     }
 
-    html[data-theme="parchment"] .hero-official-desc,
-    html[data-theme="cyberpunk"] .hero-official-desc,
-    html[data-theme="parchment"] .section-desc,
-    html[data-theme="cyberpunk"] .section-desc,
-    html[data-theme="parchment"] p,
-    html[data-theme="cyberpunk"] p {
+    html[data-theme="parchment"] .hero-official-desc .hero-official-desc,
+    html[data-theme="parchment"] .section-desc .section-desc,
+    html[data-theme="parchment"] p p {
       color: #44403c !important;
       text-rendering: optimizeLegibility;
     }
 
     /* 4. Archival Cotton Paper Elevation & Hand-Deckled Shadow System */
-    html[data-theme="parchment"] .crystal-card,
-    html[data-theme="cyberpunk"] .crystal-card,
-    html[data-theme="parchment"] .ecosystem-card,
-    html[data-theme="cyberpunk"] .ecosystem-card,
-    html[data-theme="parchment"] .usecase-card,
-    html[data-theme="cyberpunk"] .usecase-card,
-    html[data-theme="parchment"] .step-card-custom,
-    html[data-theme="cyberpunk"] .step-card-custom,
-    html[data-theme="parchment"] .comparison-card,
-    html[data-theme="cyberpunk"] .comparison-card,
-    html[data-theme="parchment"] .bento-card,
-    html[data-theme="cyberpunk"] .bento-card,
-    html[data-theme="parchment"] .arch-node,
-    html[data-theme="cyberpunk"] .arch-node,
-    html[data-theme="parchment"] .arch-flow-wrap,
-    html[data-theme="cyberpunk"] .arch-flow-wrap,
-    html[data-theme="parchment"] .arch-spec-banner,
-    html[data-theme="cyberpunk"] .arch-spec-banner,
-    html[data-theme="parchment"] .ctf-sandbox-card,
-    html[data-theme="cyberpunk"] .ctf-sandbox-card,
-    html[data-theme="parchment"] .faq-item,
-    html[data-theme="cyberpunk"] .faq-item,
-    html[data-theme="parchment"] .stats-section-asym,
-    html[data-theme="cyberpunk"] .stats-section-asym,
-    html[data-theme="parchment"] .android-showcase-card-left,
-    html[data-theme="cyberpunk"] .android-showcase-card-left,
-    html[data-theme="parchment"] .android-feat-card,
-    html[data-theme="cyberpunk"] .android-feat-card,
-    html[data-theme="parchment"] .final-cta-card,
-    html[data-theme="cyberpunk"] .final-cta-card,
-    html[data-theme="parchment"] .chat-mockup-card,
-    html[data-theme="cyberpunk"] .chat-mockup-card {
+    html[data-theme="parchment"] .crystal-card .crystal-card,
+    html[data-theme="parchment"] .ecosystem-card .ecosystem-card,
+    html[data-theme="parchment"] .usecase-card .usecase-card,
+    html[data-theme="parchment"] .step-card-custom .step-card-custom,
+    html[data-theme="parchment"] .comparison-card .comparison-card,
+    html[data-theme="parchment"] .bento-card .bento-card,
+    html[data-theme="parchment"] .arch-node .arch-node,
+    html[data-theme="parchment"] .arch-flow-wrap .arch-flow-wrap,
+    html[data-theme="parchment"] .arch-spec-banner .arch-spec-banner,
+    html[data-theme="parchment"] .ctf-sandbox-card .ctf-sandbox-card,
+    html[data-theme="parchment"] .faq-item .faq-item,
+    html[data-theme="parchment"] .stats-section-asym .stats-section-asym,
+    html[data-theme="parchment"] .android-showcase-card-left .android-showcase-card-left,
+    html[data-theme="parchment"] .android-feat-card .android-feat-card,
+    html[data-theme="parchment"] .final-cta-card .final-cta-card,
+    html[data-theme="parchment"] .chat-mockup-card .chat-mockup-card {
       background: radial-gradient(540px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 175, 125, 0.08), transparent 70%), #ffffff !important;
       border: 1px solid rgba(68, 64, 60, 0.13) !important;
       box-shadow:
@@ -962,22 +931,14 @@
     }
 
     /* 5. Tactile Deckle-Lift Physical Hover Animation */
-    html[data-theme="parchment"] .crystal-card:hover,
-    html[data-theme="cyberpunk"] .crystal-card:hover,
-    html[data-theme="parchment"] .ecosystem-card:hover,
-    html[data-theme="cyberpunk"] .ecosystem-card:hover,
-    html[data-theme="parchment"] .usecase-card:hover,
-    html[data-theme="cyberpunk"] .usecase-card:hover,
-    html[data-theme="parchment"] .step-card-custom:hover,
-    html[data-theme="cyberpunk"] .step-card-custom:hover,
-    html[data-theme="parchment"] .comparison-card:hover,
-    html[data-theme="cyberpunk"] .comparison-card:hover,
-    html[data-theme="parchment"] .bento-card:hover,
-    html[data-theme="cyberpunk"] .bento-card:hover,
-    html[data-theme="parchment"] .faq-item:hover,
-    html[data-theme="cyberpunk"] .faq-item:hover,
-    html[data-theme="parchment"] .final-cta-card:hover,
-    html[data-theme="cyberpunk"] .final-cta-card:hover {
+    html[data-theme="parchment"] .crystal-card:hover .crystal-card:hover,
+    html[data-theme="parchment"] .ecosystem-card:hover .ecosystem-card:hover,
+    html[data-theme="parchment"] .usecase-card:hover .usecase-card:hover,
+    html[data-theme="parchment"] .step-card-custom:hover .step-card-custom:hover,
+    html[data-theme="parchment"] .comparison-card:hover .comparison-card:hover,
+    html[data-theme="parchment"] .bento-card:hover .bento-card:hover,
+    html[data-theme="parchment"] .faq-item:hover .faq-item:hover,
+    html[data-theme="parchment"] .final-cta-card:hover .final-cta-card:hover {
       transform: translateY(-4.5px) scale(1.003) !important;
       border-color: rgba(28, 25, 23, 0.28) !important;
       box-shadow:
@@ -990,8 +951,7 @@
     }
 
     /* 6. Floating Island Navigation & Capsule Editions Dock */
-    html[data-theme="parchment"] .landing-nav,
-    html[data-theme="cyberpunk"] .landing-nav {
+    html[data-theme="parchment"] .landing-nav .landing-nav {
       background: rgba(251, 248, 242, 0.92) !important;
       backdrop-filter: blur(28px) saturate(180%) !important;
       -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
@@ -1001,16 +961,14 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.95),
         0 6px 22px -4px rgba(44, 40, 37, 0.08) !important;
     }
-    html[data-theme="parchment"] .landing-nav.scrolled,
-    html[data-theme="cyberpunk"] .landing-nav.scrolled {
+    html[data-theme="parchment"] .landing-nav.scrolled .landing-nav.scrolled {
       background: rgba(251, 248, 242, 0.96) !important;
       box-shadow:
         0 0 0 1px rgba(68, 64, 60, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.98),
         0 12px 32px -6px rgba(44, 40, 37, 0.12) !important;
     }
-    html[data-theme="parchment"] .theme-studio-dock,
-    html[data-theme="cyberpunk"] .theme-studio-dock {
+    html[data-theme="parchment"] .theme-studio-dock .theme-studio-dock {
       background: rgba(251, 248, 242, 0.94) !important;
       backdrop-filter: blur(24px) saturate(180%) !important;
       -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
@@ -1020,26 +978,22 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.95),
         0 8px 24px -6px rgba(44, 40, 37, 0.08) !important;
     }
-    html[data-theme="parchment"] .theme-studio-label,
-    html[data-theme="cyberpunk"] .theme-studio-label {
+    html[data-theme="parchment"] .theme-studio-label .theme-studio-label {
       color: #78716c !important;
       letter-spacing: 0.05em !important;
       text-transform: uppercase !important;
       font-size: 10px !important;
       font-weight: 600 !important;
     }
-    html[data-theme="parchment"] .theme-pill-btn,
-    html[data-theme="cyberpunk"] .theme-pill-btn {
+    html[data-theme="parchment"] .theme-pill-btn .theme-pill-btn {
       color: #78716c !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
     }
-    html[data-theme="parchment"] .theme-pill-btn:hover,
-    html[data-theme="cyberpunk"] .theme-pill-btn:hover {
+    html[data-theme="parchment"] .theme-pill-btn:hover .theme-pill-btn:hover {
       color: #141312 !important;
       background: rgba(68, 64, 60, 0.05) !important;
     }
-    html[data-theme="parchment"] .theme-pill-btn.active,
-    html[data-theme="cyberpunk"] .theme-pill-btn.active {
+    html[data-theme="parchment"] .theme-pill-btn.active .theme-pill-btn.active {
       color: #ffffff !important;
       background: #141312 !important;
       border-color: #141312 !important;
@@ -1047,15 +1001,13 @@
     }
 
     /* 7. Classic Editorial Ribbon Underline Animation */
-    html[data-theme="parchment"] .landing-link,
-    html[data-theme="cyberpunk"] .landing-link {
+    html[data-theme="parchment"] .landing-link .landing-link {
       position: relative !important;
       color: #44403c !important;
       transition: color 0.2s ease !important;
       text-decoration: none !important;
     }
-    html[data-theme="parchment"] .landing-link::after,
-    html[data-theme="cyberpunk"] .landing-link::after {
+    html[data-theme="parchment"] .landing-link::after .landing-link::after {
       content: "";
       position: absolute;
       bottom: -2px;
@@ -1067,23 +1019,18 @@
       transform-origin: right;
       transition: transform 0.28s var(--ease-crystal);
     }
-    html[data-theme="parchment"] .landing-link:hover,
-    html[data-theme="cyberpunk"] .landing-link:hover {
+    html[data-theme="parchment"] .landing-link:hover .landing-link:hover {
       color: #141312 !important;
     }
-    html[data-theme="parchment"] .landing-link:hover::after,
-    html[data-theme="cyberpunk"] .landing-link:hover::after {
+    html[data-theme="parchment"] .landing-link:hover::after .landing-link:hover::after {
       transform: scaleX(1);
       transform-origin: left;
     }
 
     /* 8. Hot-Stamping & Sealing Wax Button Physics */
-    html[data-theme="parchment"] .hero-cta-btn-primary,
-    html[data-theme="cyberpunk"] .hero-cta-btn-primary,
-    html[data-theme="parchment"] .nav-signup-cta-btn,
-    html[data-theme="cyberpunk"] .nav-signup-cta-btn,
-    html[data-theme="parchment"] .android-primary-download-btn,
-    html[data-theme="cyberpunk"] .android-primary-download-btn {
+    html[data-theme="parchment"] .hero-cta-btn-primary .hero-cta-btn-primary,
+    html[data-theme="parchment"] .nav-signup-cta-btn .nav-signup-cta-btn,
+    html[data-theme="parchment"] .android-primary-download-btn .android-primary-download-btn {
       background: #141312 !important;
       color: #fbf8f2 !important;
       border: 1px solid #141312 !important;
@@ -1092,12 +1039,9 @@
         0 2px 4px rgba(20, 19, 18, 0.12),
         0 8px 20px -4px rgba(20, 19, 18, 0.22) !important;
     }
-    html[data-theme="parchment"] .hero-cta-btn-primary:hover,
-    html[data-theme="cyberpunk"] .hero-cta-btn-primary:hover,
-    html[data-theme="parchment"] .nav-signup-cta-btn:hover,
-    html[data-theme="cyberpunk"] .nav-signup-cta-btn:hover,
-    html[data-theme="parchment"] .android-primary-download-btn:hover,
-    html[data-theme="cyberpunk"] .android-primary-download-btn:hover {
+    html[data-theme="parchment"] .hero-cta-btn-primary:hover .hero-cta-btn-primary:hover,
+    html[data-theme="parchment"] .nav-signup-cta-btn:hover .nav-signup-cta-btn:hover,
+    html[data-theme="parchment"] .android-primary-download-btn:hover .android-primary-download-btn:hover {
       background: #23201e !important;
       color: #ffffff !important;
       transform: translateY(-2px) !important;
@@ -1106,50 +1050,35 @@
         0 4px 8px rgba(20, 19, 18, 0.15),
         0 14px 28px -4px rgba(20, 19, 18, 0.32) !important;
     }
-    html[data-theme="parchment"] .hero-cta-btn-secondary,
-    html[data-theme="cyberpunk"] .hero-cta-btn-secondary,
-    html[data-theme="parchment"] .android-secondary-action-btn,
-    html[data-theme="cyberpunk"] .android-secondary-action-btn {
+    html[data-theme="parchment"] .hero-cta-btn-secondary .hero-cta-btn-secondary,
+    html[data-theme="parchment"] .android-secondary-action-btn .android-secondary-action-btn {
       background: rgba(255, 255, 255, 0.88) !important;
       color: #141312 !important;
       border: 1px solid rgba(68, 64, 60, 0.22) !important;
       box-shadow: inset 0 1px 0 #ffffff, 0 1px 3px rgba(44, 40, 37, 0.05) !important;
     }
-    html[data-theme="parchment"] .hero-cta-btn-secondary:hover,
-    html[data-theme="cyberpunk"] .hero-cta-btn-secondary:hover,
-    html[data-theme="parchment"] .android-secondary-action-btn:hover,
-    html[data-theme="cyberpunk"] .android-secondary-action-btn:hover {
+    html[data-theme="parchment"] .hero-cta-btn-secondary:hover .hero-cta-btn-secondary:hover,
+    html[data-theme="parchment"] .android-secondary-action-btn:hover .android-secondary-action-btn:hover {
       background: #ffffff !important;
       border-color: #141312 !important;
       transform: translateY(-1.5px) !important;
       box-shadow: inset 0 1px 0 #ffffff, 0 4px 12px rgba(44, 40, 37, 0.08) !important;
     }
-    html[data-theme="parchment"] .btn:active,
-    html[data-theme="cyberpunk"] .btn:active,
-    html[data-theme="parchment"] .hero-cta-btn-primary:active,
-    html[data-theme="cyberpunk"] .hero-cta-btn-primary:active,
-    html[data-theme="parchment"] .hero-cta-btn-secondary:active,
-    html[data-theme="cyberpunk"] .hero-cta-btn-secondary:active,
-    html[data-theme="parchment"] .nav-signup-cta-btn:active,
-    html[data-theme="cyberpunk"] .nav-signup-cta-btn:active,
-    html[data-theme="parchment"] .android-primary-download-btn:active,
-    html[data-theme="cyberpunk"] .android-primary-download-btn:active,
-    html[data-theme="parchment"] .theme-pill-btn:active,
-    html[data-theme="cyberpunk"] .theme-pill-btn:active {
+    html[data-theme="parchment"] .btn:active .btn:active,
+    html[data-theme="parchment"] .hero-cta-btn-primary:active .hero-cta-btn-primary:active,
+    html[data-theme="parchment"] .hero-cta-btn-secondary:active .hero-cta-btn-secondary:active,
+    html[data-theme="parchment"] .nav-signup-cta-btn:active .nav-signup-cta-btn:active,
+    html[data-theme="parchment"] .android-primary-download-btn:active .android-primary-download-btn:active,
+    html[data-theme="parchment"] .theme-pill-btn:active .theme-pill-btn:active {
       transform: scale(0.975) translateY(1px) !important;
     }
 
     /* 9. Archival Bookplate Seals & Inset Tags */
-    html[data-theme="parchment"] .hero-pill-badge,
-    html[data-theme="cyberpunk"] .hero-pill-badge,
-    html[data-theme="parchment"] .ecosystem-card-badge,
-    html[data-theme="cyberpunk"] .ecosystem-card-badge,
-    html[data-theme="parchment"] .bento-pill-tag,
-    html[data-theme="cyberpunk"] .bento-pill-tag,
-    html[data-theme="parchment"] .stat-icon-wrap,
-    html[data-theme="cyberpunk"] .stat-icon-wrap,
-    html[data-theme="parchment"] .android-release-badge,
-    html[data-theme="cyberpunk"] .android-release-badge {
+    html[data-theme="parchment"] .hero-pill-badge .hero-pill-badge,
+    html[data-theme="parchment"] .ecosystem-card-badge .ecosystem-card-badge,
+    html[data-theme="parchment"] .bento-pill-tag .bento-pill-tag,
+    html[data-theme="parchment"] .stat-icon-wrap .stat-icon-wrap,
+    html[data-theme="parchment"] .android-release-badge .android-release-badge {
       color: #141312 !important;
       background: #f5f1e8 !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
@@ -1157,194 +1086,140 @@
       letter-spacing: 0.04em !important;
     }
 
-    html[data-theme="parchment"] .ecosystem-feature-chip,
-    html[data-theme="cyberpunk"] .ecosystem-feature-chip,
-    html[data-theme="parchment"] .android-release-device-chip,
-    html[data-theme="cyberpunk"] .android-release-device-chip {
+    html[data-theme="parchment"] .ecosystem-feature-chip .ecosystem-feature-chip,
+    html[data-theme="parchment"] .android-release-device-chip .android-release-device-chip {
       color: #44403c !important;
       background: #faf7f0 !important;
       border: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
 
-    html[data-theme="parchment"] .stat-num-custom,
-    html[data-theme="cyberpunk"] .stat-num-custom {
+    html[data-theme="parchment"] .stat-num-custom .stat-num-custom {
       color: #141312 !important;
       text-shadow: 0 1px 1px rgba(255, 255, 255, 0.95), 0 -0.5px 0.5px rgba(44, 40, 37, 0.12) !important;
     }
-    html[data-theme="parchment"] .stat-label-custom,
-    html[data-theme="cyberpunk"] .stat-label-custom {
+    html[data-theme="parchment"] .stat-label-custom .stat-label-custom {
       color: #78716c !important;
     }
-    html[data-theme="parchment"] .stat-subtext,
-    html[data-theme="cyberpunk"] .stat-subtext {
+    html[data-theme="parchment"] .stat-subtext .stat-subtext {
       color: #a8a29e !important;
     }
 
-    html[data-theme="parchment"] .mock-win-header,
-    html[data-theme="cyberpunk"] .mock-win-header {
+    html[data-theme="parchment"] .mock-win-header .mock-win-header {
       background: #f5f1e8 !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
-    html[data-theme="parchment"] .mock-win-title,
-    html[data-theme="cyberpunk"] .mock-win-title {
+    html[data-theme="parchment"] .mock-win-title .mock-win-title {
       color: #141312 !important;
     }
-    html[data-theme="parchment"] .mock-sidebar,
-    html[data-theme="cyberpunk"] .mock-sidebar {
+    html[data-theme="parchment"] .mock-sidebar .mock-sidebar {
       background: #faf7f0 !important;
       border-right: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
-    html[data-theme="parchment"] .mock-ch,
-    html[data-theme="cyberpunk"] .mock-ch {
+    html[data-theme="parchment"] .mock-ch .mock-ch {
       color: #57534e !important;
     }
-    html[data-theme="parchment"] .mock-ch.active,
-    html[data-theme="cyberpunk"] .mock-ch.active {
+    html[data-theme="parchment"] .mock-ch.active .mock-ch.active {
       color: #141312 !important;
       background: rgba(68, 64, 60, 0.08) !important;
     }
-    html[data-theme="parchment"] .mock-body-layout,
-    html[data-theme="cyberpunk"] .mock-body-layout {
+    html[data-theme="parchment"] .mock-body-layout .mock-body-layout {
       background: #ffffff !important;
     }
 
-    html[data-theme="parchment"] .ecosystem-card-title,
-    html[data-theme="cyberpunk"] .ecosystem-card-title,
-    html[data-theme="parchment"] .ecosystem-card-title span,
-    html[data-theme="cyberpunk"] .ecosystem-card-title span,
-    html[data-theme="parchment"] .usecase-title,
-    html[data-theme="cyberpunk"] .usecase-title,
-    html[data-theme="parchment"] .step-card-title,
-    html[data-theme="cyberpunk"] .step-card-title,
-    html[data-theme="parchment"] .bento-card-title,
-    html[data-theme="cyberpunk"] .bento-card-title,
-    html[data-theme="parchment"] .comparison-card-title,
-    html[data-theme="cyberpunk"] .comparison-card-title,
-    html[data-theme="parchment"] .arch-node-title,
-    html[data-theme="cyberpunk"] .arch-node-title,
-    html[data-theme="parchment"] .android-showcase-title,
-    html[data-theme="cyberpunk"] .android-showcase-title,
-    html[data-theme="parchment"] .android-feat-card-title,
-    html[data-theme="cyberpunk"] .android-feat-card-title,
-    html[data-theme="parchment"] .android-spec-val,
-    html[data-theme="cyberpunk"] .android-spec-val,
-    html[data-theme="parchment"] .faq-question,
-    html[data-theme="cyberpunk"] .faq-question,
-    html[data-theme="parchment"] .faq-q,
-    html[data-theme="cyberpunk"] .faq-q,
-    html[data-theme="parchment"] .faq-q-title,
-    html[data-theme="cyberpunk"] .faq-q-title,
-    html[data-theme="parchment"] .final-cta-card h2,
-    html[data-theme="cyberpunk"] .final-cta-card h2,
-    html[data-theme="parchment"] .footer-col h5,
-    html[data-theme="cyberpunk"] .footer-col h5,
-    html[data-theme="parchment"] .auth-title,
-    html[data-theme="cyberpunk"] .auth-title {
+    html[data-theme="parchment"] .ecosystem-card-title .ecosystem-card-title,
+    html[data-theme="parchment"] .ecosystem-card-title span .ecosystem-card-title span,
+    html[data-theme="parchment"] .usecase-title .usecase-title,
+    html[data-theme="parchment"] .step-card-title .step-card-title,
+    html[data-theme="parchment"] .bento-card-title .bento-card-title,
+    html[data-theme="parchment"] .comparison-card-title .comparison-card-title,
+    html[data-theme="parchment"] .arch-node-title .arch-node-title,
+    html[data-theme="parchment"] .android-showcase-title .android-showcase-title,
+    html[data-theme="parchment"] .android-feat-card-title .android-feat-card-title,
+    html[data-theme="parchment"] .android-spec-val .android-spec-val,
+    html[data-theme="parchment"] .faq-question .faq-question,
+    html[data-theme="parchment"] .faq-q .faq-q,
+    html[data-theme="parchment"] .faq-q-title .faq-q-title,
+    html[data-theme="parchment"] .final-cta-card h2 .final-cta-card h2,
+    html[data-theme="parchment"] .footer-col h5 .footer-col h5,
+    html[data-theme="parchment"] .auth-title .auth-title {
       color: #141312 !important;
     }
 
-    html[data-theme="parchment"] .faq-q-icon,
-    html[data-theme="cyberpunk"] .faq-q-icon {
+    html[data-theme="parchment"] .faq-q-icon .faq-q-icon {
       color: #141312 !important;
       background: #f5f1e8 !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
     }
 
-    html[data-theme="parchment"] .faq-q-chevron,
-    html[data-theme="cyberpunk"] .faq-q-chevron {
+    html[data-theme="parchment"] .faq-q-chevron .faq-q-chevron {
       color: #78716c !important;
     }
 
-    html[data-theme="parchment"] .faq-a-inner,
-    html[data-theme="cyberpunk"] .faq-a-inner {
+    html[data-theme="parchment"] .faq-a-inner .faq-a-inner {
       color: #57534e !important;
       border-top: 1px solid rgba(68, 64, 60, 0.10) !important;
     }
 
-    html[data-theme="parchment"] .faq-item.active,
-    html[data-theme="cyberpunk"] .faq-item.active {
+    html[data-theme="parchment"] .faq-item.active .faq-item.active {
       border-color: rgba(20, 19, 18, 0.3) !important;
       background: #ffffff !important;
     }
 
-    html[data-theme="parchment"] .ecosystem-card-desc,
-    html[data-theme="cyberpunk"] .ecosystem-card-desc,
-    html[data-theme="parchment"] .usecase-desc,
-    html[data-theme="cyberpunk"] .usecase-desc,
-    html[data-theme="parchment"] .step-card-desc,
-    html[data-theme="cyberpunk"] .step-card-desc,
-    html[data-theme="parchment"] .bento-card-desc,
-    html[data-theme="cyberpunk"] .bento-card-desc,
-    html[data-theme="parchment"] .comparison-row,
-    html[data-theme="cyberpunk"] .comparison-row,
-    html[data-theme="parchment"] .arch-node-desc,
-    html[data-theme="cyberpunk"] .arch-node-desc,
-    html[data-theme="parchment"] .android-showcase-desc,
-    html[data-theme="cyberpunk"] .android-showcase-desc,
-    html[data-theme="parchment"] .android-feat-card-desc,
-    html[data-theme="cyberpunk"] .android-feat-card-desc,
-    html[data-theme="parchment"] .android-spec-lbl,
-    html[data-theme="cyberpunk"] .android-spec-lbl,
-    html[data-theme="parchment"] .faq-answer,
-    html[data-theme="cyberpunk"] .faq-answer,
-    html[data-theme="parchment"] .final-cta-card p,
-    html[data-theme="cyberpunk"] .final-cta-card p,
-    html[data-theme="parchment"] .footer-desc,
-    html[data-theme="cyberpunk"] .footer-desc,
-    html[data-theme="parchment"] .footer-link,
-    html[data-theme="cyberpunk"] .footer-link,
-    html[data-theme="parchment"] .footer-col li,
-    html[data-theme="cyberpunk"] .footer-col li {
+    html[data-theme="parchment"] .ecosystem-card-desc .ecosystem-card-desc,
+    html[data-theme="parchment"] .usecase-desc .usecase-desc,
+    html[data-theme="parchment"] .step-card-desc .step-card-desc,
+    html[data-theme="parchment"] .bento-card-desc .bento-card-desc,
+    html[data-theme="parchment"] .comparison-row .comparison-row,
+    html[data-theme="parchment"] .arch-node-desc .arch-node-desc,
+    html[data-theme="parchment"] .android-showcase-desc .android-showcase-desc,
+    html[data-theme="parchment"] .android-feat-card-desc .android-feat-card-desc,
+    html[data-theme="parchment"] .android-spec-lbl .android-spec-lbl,
+    html[data-theme="parchment"] .faq-answer .faq-answer,
+    html[data-theme="parchment"] .final-cta-card p .final-cta-card p,
+    html[data-theme="parchment"] .footer-desc .footer-desc,
+    html[data-theme="parchment"] .footer-link .footer-link,
+    html[data-theme="parchment"] .footer-col li .footer-col li {
       color: #57534e !important;
     }
 
-    html[data-theme="parchment"] .ecosystem-card-btn,
-    html[data-theme="cyberpunk"] .ecosystem-card-btn {
+    html[data-theme="parchment"] .ecosystem-card-btn .ecosystem-card-btn {
       color: #141312 !important;
     }
 
-    html[data-theme="parchment"] .android-specs-row,
-    html[data-theme="cyberpunk"] .android-specs-row {
+    html[data-theme="parchment"] .android-specs-row .android-specs-row {
       background: #f5f1e8 !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
     }
-    html[data-theme="parchment"] .android-security-note,
-    html[data-theme="cyberpunk"] .android-security-note {
+    html[data-theme="parchment"] .android-security-note .android-security-note {
       background: #f5f1e8 !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
     }
 
-    html[data-theme="parchment"] .landing-link-btn,
-    html[data-theme="cyberpunk"] .landing-link-btn {
+    html[data-theme="parchment"] .landing-link-btn .landing-link-btn {
       color: #57534e !important;
     }
-    html[data-theme="parchment"] .discovery-search-input,
-    html[data-theme="cyberpunk"] .discovery-search-input {
+    html[data-theme="parchment"] .discovery-search-input .discovery-search-input {
       background: #ffffff !important;
       border-color: rgba(68, 64, 60, 0.16) !important;
       color: #141312 !important;
     }
-    html[data-theme="parchment"] .filter-chip,
-    html[data-theme="cyberpunk"] .filter-chip {
+    html[data-theme="parchment"] .filter-chip .filter-chip {
       background: #ffffff !important;
       border-color: rgba(68, 64, 60, 0.14) !important;
       color: #57534e !important;
     }
-    html[data-theme="parchment"] .filter-chip.active,
-    html[data-theme="cyberpunk"] .filter-chip.active {
+    html[data-theme="parchment"] .filter-chip.active .filter-chip.active {
       background: #141312 !important;
       color: #ffffff !important;
       border-color: #141312 !important;
     }
-    html[data-theme="parchment"] .marquee-chip,
-    html[data-theme="cyberpunk"] .marquee-chip {
+    html[data-theme="parchment"] .marquee-chip .marquee-chip {
       background: #ffffff !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
       color: #44403c !important;
     }
 
-    html[data-theme="parchment"] .landing-footer,
-    html[data-theme="cyberpunk"] .landing-footer {
+    html[data-theme="parchment"] .landing-footer .landing-footer {
       background: #f5f1e8 !important;
       border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
@@ -1367,8 +1242,7 @@
       --crystal-radius-pill: 9999px;
     }
 
-    html[data-theme="parchment"],
-    html[data-theme="cyberpunk"] {
+    html[data-theme="parchment"] {
       --crystal-specular: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(68, 64, 60, 0.04);
     }
 
@@ -29441,11 +29315,23 @@ function handleNavCommunityClick() {
 
 
 <script>
-if ('serviceWorker' in navigator) {
+// Prevent caching on local development so edits appear immediately
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
+  }
+  if ('caches' in window) {
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    });
+  }
+} else if ('serviceWorker' in navigator) {
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v4-2-0') {
+        if (name !== 'connecto-v5-0-0') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
@@ -29453,7 +29339,7 @@ if ('serviceWorker' in navigator) {
     });
   }
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js?v=4.2.0', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?v=5.0.0', { scope: '/' })
       .then((reg) => {
         reg.update();
       })
