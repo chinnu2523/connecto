@@ -1538,6 +1538,24 @@
       background: rgba(68, 64, 60, 0.08) !important;
       border-color: #141312 !important;
     }
+    .msg-bold { color: var(--text-header, #ffffff); font-weight: 700; }
+    .msg-italic { color: var(--text-muted, #cbd5e1); }
+    .msg-heading-2 { font-size: 16px; font-weight: 800; color: var(--text-header, #ffffff); margin: 16px 0 8px 0; }
+    .msg-heading-3 { font-size: 15px; font-weight: 800; color: var(--text-header, #ffffff); margin: 14px 0 8px 0; }
+    .msg-heading-4 { font-size: 14px; font-weight: 800; color: var(--text-header, #ffffff); margin: 12px 0 6px 0; }
+    .msg-hr { border: 0; border-top: 1px solid var(--border-subtle, rgba(255,255,255,0.12)); margin: 12px 0; }
+    html[data-theme="parchment"] .msg-bold,
+    html[data-theme="parchment"] .msg-heading-2,
+    html[data-theme="parchment"] .msg-heading-3,
+    html[data-theme="parchment"] .msg-heading-4 {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .msg-italic {
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .msg-hr {
+      border-top: 1px solid rgba(68, 64, 60, 0.16) !important;
+    }
     html[data-theme="parchment"] .msg-rx-chip.active {
       background: #141312 !important;
       color: #ffffff !important;
@@ -19855,12 +19873,14 @@ pre, .code-block, .chat-code-snippet {
           if (headerTopic) headerTopic.innerText = `Direct Message with ${currentDMTarget}`;
           if (dmCallBtn) dmCallBtn.style.display = 'inline-block';
           updateDMHeaderFriendStatus(currentDMTarget);
+          fetchDMHistory(currentDMTarget);
         } else {
           if (headerPrefix) headerPrefix.innerText = '#';
           if (headerTitle) headerTitle.innerText = currentChannel || 'general';
           if (headerTopic) headerTopic.innerText = 'General community chat';
           if (dmCallBtn) dmCallBtn.style.display = 'none';
           if (dmUnfriendBtn) dmUnfriendBtn.style.display = 'none';
+          fetchHistory();
         }
         loadMembersRoster();
         loadScheduledMessages();
@@ -20658,6 +20678,7 @@ pre, .code-block, .chat-code-snippet {
           m.nickname = m.nickname || m.sender_display_name || m.user;
           m.avatar = m.avatar || m.sender_avatar_url || m.avatar_url;
           m.content = m.content || m.text || "";
+          m.time_epoch = m.time_epoch || (m.created_at || m.createdAt || m.timestamp ? new Date(m.created_at || m.createdAt || m.timestamp).getTime() : Date.now());
 
           if (m.attachments && (!m.poll || m.type !== "poll")) {
             let att = m.attachments;
@@ -20888,12 +20909,12 @@ pre, .code-block, .chat-code-snippet {
       });
 
       // Markdown formatting: bold, italic, headings, horizontal rules
-      escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong style="color:#ffffff; font-weight:700;">$1</strong>');
-      escaped = escaped.replace(/(^|[^*])\*([^*\n]+)\*([^*]|$)/g, '$1<em style="color:#cbd5e1;">$2</em>$3');
-      escaped = escaped.replace(/^---$/gm, '<hr style="border:0; border-top:1px solid rgba(255,255,255,0.12); margin:12px 0;">');
-      escaped = escaped.replace(/^### (.*$)/gm, '<h4 style="font-size:14px; font-weight:800; color:#ffffff; margin:12px 0 6px 0;">$1</h4>');
-      escaped = escaped.replace(/^## (.*$)/gm, '<h3 style="font-size:15px; font-weight:800; color:#ffffff; margin:14px 0 8px 0;">$1</h3>');
-      escaped = escaped.replace(/^# (.*$)/gm, '<h2 style="font-size:16px; font-weight:800; color:#ffffff; margin:16px 0 8px 0;">$1</h2>');
+      escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong class="msg-bold">$1</strong>');
+      escaped = escaped.replace(/(^|[^*])\*([^*\n]+)\*([^*]|$)/g, '$1<em class="msg-italic">$2</em>$3');
+      escaped = escaped.replace(/^---$/gm, '<hr class="msg-hr">');
+      escaped = escaped.replace(/^### (.*$)/gm, '<h4 class="msg-heading-4">$1</h4>');
+      escaped = escaped.replace(/^## (.*$)/gm, '<h3 class="msg-heading-3">$1</h3>');
+      escaped = escaped.replace(/^# (.*$)/gm, '<h2 class="msg-heading-2">$1</h2>');
       escaped = escaped.replace(/\n/g, '<br>');
 
       // 4. Restore inline code
@@ -21205,7 +21226,16 @@ pre, .code-block, .chat-code-snippet {
         msg.content = typeof msg.content === 'string' ? msg.content : (typeof msg.text === 'string' ? msg.text : '');
         validMsgs.push(msg);
       }
-      const allMsgs = validMsgs.sort((a, b) => (a.time_epoch || 0) - (b.time_epoch || 0));
+      const getMsgEpoch = (m) => {
+        if (m.time_epoch) return Number(m.time_epoch);
+        const dt = m.created_at || m.createdAt || m.timestamp;
+        if (dt) {
+          const t = new Date(dt).getTime();
+          if (!isNaN(t)) return t;
+        }
+        return 0;
+      };
+      const allMsgs = validMsgs.sort((a, b) => getMsgEpoch(a) - getMsgEpoch(b));
       const fragment = document.createDocumentFragment();
 
       // Prepend Stitch Pro Max Channel Welcome Card

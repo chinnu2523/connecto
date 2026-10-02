@@ -257,7 +257,7 @@ async def list_channel_messages(
     clean_ch = channel_id.strip().removeprefix("#")
     # Resolve channel by ID or name
     stmt_ch = select(Channel).where(or_(Channel.id == clean_ch, Channel.name == clean_ch.lower()))
-    ch = (await db.execute(stmt_ch)).scalar_one_or_none()
+    ch = (await db.execute(stmt_ch)).scalars().first()
     target_id = ch.id if ch else clean_ch
     ch_name = ch.name if ch else clean_ch.lower()
 

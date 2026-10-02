@@ -154,8 +154,8 @@ async def seed_channels():
                 if not existing_ch:
                     is_new = True
                     existing_ch = Channel(
-                        id=str(uuid.uuid4()),
-                        server_id=None,
+                        id=ch_info["name"],
+                        server_id="srv_connecto",
                         name=ch_info["name"],
                         type=ch_info["type"]
                     )

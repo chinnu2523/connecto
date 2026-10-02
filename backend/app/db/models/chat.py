@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Text, JSON, PrimaryKeyConstraint, Index
 from sqlalchemy.orm import relationship
 from app.db.session import Base
+from app.db.models.user import User
 
 def generate_uuid():
     return str(uuid.uuid4())
