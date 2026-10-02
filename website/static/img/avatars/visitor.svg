@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="guest-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="50" fill="url(#guest-bg)"/>
+  <!-- Ninja Hood -->
+  <path d="M24 60 C22 32 32 20 50 20 C68 20 78 32 76 60 C74 78 68 85 50 85 C32 85 26 78 24 60 Z" fill="#090d16"/>
+  <!-- Mask opening -->
+  <ellipse cx="50" cy="48" rx="18" ry="9" fill="#161e2e"/>
+  <!-- Glowing ninja eyes -->
+  <ellipse cx="43" cy="48" rx="3.5" ry="2" fill="#22d3ee"/>
+  <ellipse cx="57" cy="48" rx="3.5" ry="2" fill="#22d3ee"/>
+  <circle cx="44" cy="47.5" r="0.8" fill="#ffffff"/>
+  <circle cx="58" cy="47.5" r="0.8" fill="#ffffff"/>
+  <!-- Headband with emblem -->
+  <rect x="30" y="32" width="40" height="6" rx="2" fill="#1e293b"/>
+  <circle cx="50" cy="35" r="2" fill="#22d3ee"/>
+  <!-- Shoulders -->
+  <path d="M20 95 C25 76 36 72 50 72 C64 72 75 76 80 95 Z" fill="#090d16"/>
+</svg>

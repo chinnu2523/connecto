@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="sophia-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="50" fill="url(#sophia-bg)"/>
+  <!-- Hair back -->
+  <path d="M22 60 C20 40 25 22 50 20 C75 22 80 40 78 60 C75 75 70 85 68 95 C62 97 38 97 32 95 C30 85 25 75 22 60 Z" fill="#31102b"/>
+  <!-- Neck -->
+  <rect x="43" y="60" width="14" height="18" rx="4" fill="#fbcfe8"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="48" rx="18" ry="22" fill="#fce7f3"/>
+  <!-- Hair style -->
+  <path d="M28 42 C30 25 42 22 50 22 C64 22 72 26 72 42 C68 34 58 32 50 32 C40 32 32 36 28 42 Z" fill="#4a154b"/>
+  <!-- Bangs -->
+  <path d="M32 38 Q45 42 55 35 Q65 42 68 40 Q55 30 50 30 Q38 30 32 38 Z" fill="#31102b"/>
+  <!-- Eyes -->
+  <circle cx="43" cy="47" r="2.5" fill="#1e1b4b"/>
+  <circle cx="57" cy="47" r="2.5" fill="#1e1b4b"/>
+  <!-- Smile -->
+  <path d="M45 57 Q50 62 55 57" stroke="#db2777" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Cheeks -->
+  <circle cx="39" cy="52" r="3" fill="#f472b6" opacity="0.6"/>
+  <circle cx="61" cy="52" r="3" fill="#f472b6" opacity="0.6"/>
+  <!-- Collar / shoulders -->
+  <path d="M26 95 C30 80 42 75 50 75 C58 75 70 80 74 95 Z" fill="#be185d"/>
+</svg>
