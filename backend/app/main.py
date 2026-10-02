@@ -2149,6 +2149,24 @@ async def post_channel_message_compat(
         participant_user_ids=participants
     )
 
+    # Immediately push new message to Cloudflare D1 for edge synchronization
+    try:
+        from app.db.d1_sync import d1_sync_manager
+        raw_att = new_msg.attachments
+        att_str = json.dumps(raw_att) if isinstance(raw_att, (dict, list)) else (str(raw_att) if raw_att else "[]")
+        msg_sync_data = {
+            "id": new_msg.id,
+            "channel_id": channel.id,
+            "sender_id": user.id,
+            "content": new_msg.content,
+            "attachments": att_str,
+            "nonce": new_msg.nonce,
+            "created_at": str(new_msg.created_at) if new_msg.created_at else datetime.now(timezone.utc).isoformat()
+        }
+        asyncio.create_task(asyncio.to_thread(d1_sync_manager.push_single_message, msg_sync_data))
+    except Exception as _sync_err:
+        logger.debug(f"[D1_SYNC] Instant message push schedule error: {_sync_err}")
+
     # If DM, emit new_dm_alert directly to recipient and send FCM push (app->app, web->app, app->web, web->web)
     if is_dm_channel:
         recipients = [p_id for p_id in participants if p_id != user.id]

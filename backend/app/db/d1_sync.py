@@ -209,6 +209,19 @@ class D1SyncManager:
         self.last_sync_time = time.time()
         return results
 
+    def push_single_message(self, msg_payload: Dict[str, Any]) -> bool:
+        """Immediately pushes an individual message to Cloudflare D1."""
+        try:
+            cols = list(msg_payload.keys())
+            col_names = ", ".join(cols)
+            placeholders = ", ".join(["?" for _ in cols])
+            stmt = f"INSERT OR REPLACE INTO messages ({col_names}) VALUES ({placeholders});"
+            item = {"sql": stmt, "params": [msg_payload[c] for c in cols]}
+            return self.execute_batch_cloud_d1([item])
+        except Exception as e:
+            logger.error(f"[D1_SYNC] Error pushing single message to D1: {e}")
+            return False
+
     async def run_worker(self):
         """Continuous background worker loop for periodic heartbeat and sync."""
         self.is_running = True

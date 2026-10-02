@@ -1,6 +1,19 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="parchment">
+<html lang="en">
 <head>
+  <script>
+    (function() {
+      try {
+        var urlParams = new URLSearchParams(window.location.search);
+        var queryTheme = urlParams.get('theme');
+        var storedTheme = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_chakra_theme');
+        var theme = queryTheme || storedTheme || 'noir';
+        var lightThemes = ['parchment', 'ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'];
+        var canonical = lightThemes.includes(theme) ? 'parchment' : 'noir';
+        document.documentElement.setAttribute('data-theme', canonical);
+      } catch (_) {}
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Connecto • Real-Time Community Platform for Friends & Communities</title>
@@ -998,26 +1011,88 @@
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
     }
     html[data-theme="noir"] .msg-bubble-mine {
-      background: rgba(255, 255, 255, 0.06) !important;
-      color: #d4d4d8 !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      box-shadow: none !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #ffffff !important;
+      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15) !important;
     }
 
-    /* Connecto Modern Message Cards */
+    /* Connecto Modern Message Cards in Noir (Dark) Theme */
     html[data-theme="noir"] .connecto-message-card {
       background: #0a0a0a !important;
-      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
     }
     html[data-theme="noir"] .connecto-message-card:hover {
       background: #111111 !important;
-      border-color: rgba(255, 255, 255, 0.14) !important;
+      border-color: rgba(255, 255, 255, 0.18) !important;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7) !important;
     }
+    /* In Dark Theme (Noir): Alternate colour is Pure White */
     html[data-theme="noir"] .connecto-message-card.mine {
+      background: #ffffff !important;
+      border: 1px solid #ffffff !important;
+      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.20) !important;
+      color: #000000 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-card-author {
+      color: #000000 !important;
+      font-weight: 800 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-card-handle {
+      color: #52525b !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-card-time {
+      color: #52525b !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-card-body {
+      color: #111111 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-card-avatar {
+      background: #000000 !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-rx-chip {
+      background: #f4f4f5 !important;
+      border: 1px solid rgba(0, 0, 0, 0.15) !important;
+      color: #18181b !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-rx-chip.active {
+      background: #000000 !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-hover-actions {
+      background: #ffffff !important;
+      border: 1px solid rgba(0, 0, 0, 0.15) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+      color: #000000 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-hover-actions button {
+      color: #18181b !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-hover-actions button:hover {
+      background: #f4f4f5 !important;
+      color: #000000 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .msg-quoted-reply {
+      color: #52525b !important;
+      border-left-color: #000000 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .code-block-container {
+      background: #f4f4f5 !important;
+      border-color: rgba(0, 0, 0, 0.15) !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine .code-block-header {
+      background: #e4e4e7 !important;
+      color: #000000 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine pre code {
+      color: #000000 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card:not(.mine):nth-child(even) {
       background: #0d0d0d !important;
-      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
     }
     html[data-theme="noir"] .msg-card-author {
       color: #ffffff !important;
@@ -2031,13 +2106,13 @@
       box-shadow: 0 1px 4px rgba(68, 64, 60, 0.05) !important;
     }
     html[data-theme="parchment"] .msg-bubble-mine {
-      background: rgba(20, 19, 18, 0.08) !important;
-      color: #141312 !important;
-      border: 1px solid rgba(20, 19, 18, 0.22) !important;
-      box-shadow: none !important;
+      background: #141312 !important;
+      color: #ffffff !important;
+      border: 1px solid #141312 !important;
+      box-shadow: 0 2px 10px rgba(20, 19, 18, 0.20) !important;
     }
 
-    /* Connecto Modern Message Cards */
+    /* Connecto Modern Message Cards in Parchment (Light) Theme */
     html[data-theme="parchment"] .connecto-message-card {
       background: #ffffff !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
@@ -2048,9 +2123,71 @@
       border-color: rgba(68, 64, 60, 0.28) !important;
       box-shadow: 0 4px 16px rgba(68, 64, 60, 0.08) !important;
     }
+    /* In Light Theme (Parchment): Matching alternate colour is Deep Black */
     html[data-theme="parchment"] .connecto-message-card.mine {
-      background: #fbf8f2 !important;
-      border: 1px solid rgba(20, 19, 18, 0.2) !important;
+      background: #141312 !important;
+      border: 1px solid #141312 !important;
+      box-shadow: 0 4px 20px rgba(20, 19, 18, 0.22) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-card-author {
+      color: #ffffff !important;
+      font-weight: 800 !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-card-handle {
+      color: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-card-time {
+      color: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-card-body {
+      color: #f5f5f4 !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-card-avatar {
+      background: #ffffff !important;
+      color: #141312 !important;
+      border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-rx-chip {
+      background: #262626 !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      color: #e5e5e5 !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-rx-chip.active {
+      background: #ffffff !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-hover-actions {
+      background: #141312 !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-hover-actions button {
+      color: #e5e5e5 !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-hover-actions button:hover {
+      background: #262626 !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .msg-quoted-reply {
+      color: #d6d3d1 !important;
+      border-left-color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .code-block-container {
+      background: #1c1917 !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine .code-block-header {
+      background: #292524 !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card.mine pre code {
+      color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-message-card:not(.mine):nth-child(even) {
+      background: #f7f3ea !important;
+      border-color: rgba(68, 64, 60, 0.22) !important;
     }
     html[data-theme="parchment"] .msg-card-author {
       color: #141312 !important;
@@ -21528,12 +21665,16 @@ pre, .code-block, .chat-code-snippet {
       }
     }
 
-    // Active live sync ticker for personal chat (DM) mode: guarantees updates without refresh
+    // Active live sync ticker for channels & DMs: guarantees automatic real-time updates across edge & server
     setInterval(() => {
-      if (currentMode === 'dm' && currentDMTarget && !document.hidden) {
-        fetchDMHistory(currentDMTarget, true);
+      if (!document.hidden) {
+        if (currentMode === 'dm' && currentDMTarget) {
+          fetchDMHistory(currentDMTarget, true);
+        } else if (currentMode === 'channel' && currentChannel) {
+          fetchHistory(undefined, true);
+        }
       }
-    }, 2500);
+    }, 3000);
 
     let renderMessagesPendingRAF = null;
     let shouldForceScrollToBottom = false;
