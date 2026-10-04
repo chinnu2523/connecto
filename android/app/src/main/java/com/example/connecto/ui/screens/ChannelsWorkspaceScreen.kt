@@ -109,6 +109,7 @@ import coil.compose.AsyncImage
 import com.example.connecto.data.ConnectoDatabaseHelper
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.network.MessageDto
+import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ChannelNavigationDrawer
 import com.example.connecto.ui.components.ConnectoEmojiPicker
 import com.example.connecto.ui.components.ConnectoTopHeader
@@ -194,6 +195,7 @@ fun ChannelsWorkspaceScreen(
     var isSending by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
     var isInputFocused by remember { mutableStateOf(false) }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
 
     // Local reactions storage: messageId -> list of emoji strings
     val channelReactions = remember { mutableStateMapOf<String, List<String>>() }
@@ -370,6 +372,7 @@ fun ChannelsWorkspaceScreen(
                             if (drawerState.isClosed) drawerState.open() else drawerState.close()
                         }
                     },
+                    onAddFriendClick = { showAddFriendDialog = true },
                     onAvatarClick = onOpenProfile,
                     customAction = if (activeChip.id == "voice-lounge") {
                         {
@@ -842,6 +845,13 @@ fun ChannelsWorkspaceScreen(
                     }
                 }
             }
+            if (showAddFriendDialog) {
+                AddFriendDialog(
+                    currentUsername = currentUsername,
+                    onDismissRequest = { showAddFriendDialog = false },
+                    onFriendAdded = { showAddFriendDialog = false }
+                )
+            }
         }
     }
 }
@@ -913,7 +923,7 @@ private fun ChannelMessageCard(
                         fontSize = 14.sp
                     )
                     if (!message.authorAvatar.isNullOrBlank()) {
-                        val fullAvatar = if (message.authorAvatar.startsWith("/")) "https://connecto.fun${message.authorAvatar}" else message.authorAvatar
+                        val fullAvatar = if (message.authorAvatar.startsWith("/")) "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}${message.authorAvatar}" else message.authorAvatar
                         AsyncImage(
                             model = fullAvatar,
                             contentDescription = message.authorName,
@@ -1193,7 +1203,7 @@ private fun ChannelMessageCard(
                         fontSize = 14.sp
                     )
                     if (!message.authorAvatar.isNullOrBlank()) {
-                        val fullAvatar = if (message.authorAvatar.startsWith("/")) "https://connecto.fun${message.authorAvatar}" else message.authorAvatar
+                        val fullAvatar = if (message.authorAvatar.startsWith("/")) "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}${message.authorAvatar}" else message.authorAvatar
                         AsyncImage(
                             model = fullAvatar,
                             contentDescription = message.authorName,

@@ -268,15 +268,15 @@ object VoiceCallManager {
     // parallel ICE gathering delay before WebRTC could converge on the best candidate pair.
     private val iceServers by lazy {
         listOf(
-            // Primary: connecto.fun STUN — resolves public IP, fastest (same infra)
+            // Primary: connecto.fun STUN
             PeerConnection.IceServer.builder("stun:connecto.fun:3478").createIceServer(),
             // Primary: connecto.fun TURN over UDP — lowest latency relay path
             PeerConnection.IceServer.builder("turn:connecto.fun:3478?transport=udp")
                 .setUsername("connecto").setPassword("ConnectoVoice2026!").createIceServer(),
-            // Primary: connecto.fun TURN over TCP — firewall fallback (same server, no added latency)
+            // Primary: connecto.fun TURN over TCP — firewall fallback
             PeerConnection.IceServer.builder("turn:connecto.fun:3478?transport=tcp")
                 .setUsername("connecto").setPassword("ConnectoVoice2026!").createIceServer(),
-            // Secondary: Google STUN — internet-side fallback if our STUN is unreachable
+            // Secondary: Google STUN — internet-side fallback
             PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
         )
     }

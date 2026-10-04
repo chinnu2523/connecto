@@ -21,6 +21,7 @@
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">100.87.184.30</domain>
+        <domain includeSubdomains="true">box-1.taile07dd1.ts.net</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

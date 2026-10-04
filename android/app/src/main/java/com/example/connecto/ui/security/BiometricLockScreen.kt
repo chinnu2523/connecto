@@ -3,8 +3,10 @@ package com.example.connecto.ui.security
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -36,7 +38,6 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
@@ -74,8 +75,6 @@ import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.security.BiometricAuthManager
-import com.example.connecto.security.BiometricStatus
-import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import kotlinx.coroutines.launch
@@ -124,7 +123,7 @@ fun BiometricLockScreen(
     val userInitial = if (username.isNotBlank()) username.first().toString().uppercase() else "C"
 
     // Pulse animation for biometric icon
-    val infiniteTransition = rememberInfiniteTransition(label = "vaultPulse")
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1.0f,
         targetValue = 1.08f,
@@ -152,9 +151,45 @@ fun BiometricLockScreen(
 
     fun triggerScreenLockPrompt() {
         try {
+            // API 30+: BiometricPrompt with DEVICE_CREDENTIAL handles screen lock natively
+            // (KeyguardManager.createConfirmDeviceCredentialIntent is deprecated since API 29 and returns null on API 30+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && activity != null) {
+                val executor = ContextCompat.getMainExecutor(activity)
+                val callback = object : androidx.biometric.BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: androidx.biometric.BiometricPrompt.AuthenticationResult) {
+                        isAuthSuccess = true
+                        isAuthFailed = false
+                        authStatusMessage = "Device screen lock verified! 🔓"
+                        onUnlockSuccess()
+                    }
+                    override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                        if (errorCode != androidx.biometric.BiometricPrompt.ERROR_USER_CANCELED &&
+                            errorCode != androidx.biometric.BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
+                            isAuthFailed = true
+                            authStatusMessage = "$errString. Unlock with Connecto password below."
+                        }
+                    }
+                    override fun onAuthenticationFailed() {
+                        isAuthFailed = true
+                        authStatusMessage = "Screen lock not recognized. Please try again."
+                    }
+                }
+                val prompt = androidx.biometric.BiometricPrompt(activity, executor, callback)
+                val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
+                    .setTitle("Unlock Connecto")
+                    .setSubtitle("Enter device PIN, pattern, or password")
+                    .setAllowedAuthenticators(BiometricAuthManager.ALLOWED_AUTHENTICATORS_API30)
+                    .build()
+                authStatusMessage = "Confirming device screen lock..."
+                isAuthFailed = false
+                prompt.authenticate(promptInfo)
+                return
+            }
+
+            // API 24-29: Use KeyguardManager intent (deprecated but functional)
             val intent = BiometricAuthManager.createConfirmDeviceCredentialIntent(
                 context = context,
-                title = "Unlock Connecto Vault",
+                title = "Unlock Connecto",
                 description = "Enter your device PIN, pattern, or password to access Connecto"
             )
             if (intent != null) {
@@ -198,9 +233,9 @@ fun BiometricLockScreen(
 
             BiometricAuthManager.authenticate(
                 activity = activity,
-                title = "Connecto Vault Unlock",
+                title = "Unlock Connecto",
                 subtitle = "Verify identity for @$username",
-                description = "Scan your Fingerprint, Face ID, or enter Device PIN / Pattern to unlock Connecto",
+                description = "Scan fingerprint, face, or enter device screen lock to unlock Connecto",
                 onSuccess = {
                     isAuthSuccess = true
                     isAuthFailed = false
@@ -253,7 +288,7 @@ fun BiometricLockScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color(0xFF000000))
+            .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 24.dp, vertical = 24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -265,34 +300,7 @@ fun BiometricLockScreen(
             verticalArrangement = Arrangement.Center
         ) {
 
-            // Top Hardware Vault Security Badge
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xFF0D1117))
-                    .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(50))
-                    .padding(horizontal = 16.dp, vertical = 7.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(15.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "CONNECTO HARDWARE VAULT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    letterSpacing = 1.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            // User Avatar with Cybernetic Halo
+            // User Avatar
             Box(
                 modifier = Modifier
                     .size(88.dp)
@@ -309,13 +317,13 @@ fun BiometricLockScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Connecto Vault Locked",
+                text = "Unlock Connecto",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onBackground
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -327,20 +335,20 @@ fun BiometricLockScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             // Main Interactive Biometric Fingerprint Scanner
             Box(
                 modifier = Modifier
-                    .size(124.dp)
+                    .size(112.dp)
                     .scale(if (isAuthSuccess) 1.0f else pulseScale)
                     .clip(CircleShape)
                     .background(
                         Brush.radialGradient(
                             listOf(
-                                if (isAuthSuccess) OnlineGreen.copy(alpha = 0.30f)
+                                if (isAuthSuccess) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                                 else if (isAuthFailed) Color(0xFFEF4444).copy(alpha = 0.20f)
-                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                 Color.Transparent
                             )
                         )
@@ -348,7 +356,7 @@ fun BiometricLockScreen(
                     .border(
                         width = 2.dp,
                         brush = Brush.linearGradient(
-                            if (isAuthSuccess) listOf(OnlineGreen, OnlineGreen)
+                            if (isAuthSuccess) listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.primary)
                             else if (isAuthFailed) listOf(Color(0xFFEF4444), Color(0xFFEF4444))
                             else gradientColors
                         ),
@@ -370,86 +378,76 @@ fun BiometricLockScreen(
                 Icon(
                     imageVector = if (isAuthSuccess) Icons.Default.LockOpen else Icons.Default.Fingerprint,
                     contentDescription = "Trigger Biometric Unlock",
-                    tint = if (isAuthSuccess) OnlineGreen else if (isAuthFailed) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(56.dp)
+                    tint = if (isAuthSuccess) MaterialTheme.colorScheme.primary else if (isAuthFailed) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(52.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Live Security Status Pill
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF0A0A0C))
-                    .border(1.dp, Color(0xFF1E1E24), RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                     .padding(horizontal = 16.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = authStatusMessage,
                     fontSize = 13.sp,
-                    color = if (isAuthSuccess) OnlineGreen else if (isAuthFailed) Color(0xFFEF4444) else Color(0xFF94A3B8),
+                    color = if (isAuthSuccess) MaterialTheme.colorScheme.primary else if (isAuthFailed) Color(0xFFEF4444) else MaterialTheme.colorScheme.onSurfaceVariant,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                     lineHeight = 18.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Primary Action Button 1: SCAN BIOMETRICS / RETRY
             Button(
                 onClick = { triggerBiometricPrompt() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent)
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            brush = Brush.horizontalGradient(gradientColors),
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Fingerprint,
-                            contentDescription = null,
-                            tint = contentOnGradient,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "SCAN BIOMETRICS / RETRY",
-                            color = contentOnGradient,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Fingerprint,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Scan Biometrics",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Action Button 2: UNLOCK WITH SCREEN LOCK (PIN / Pattern / Password)
             OutlinedButton(
                 onClick = { triggerScreenLockPrompt() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color(0xFF0A0A0C),
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                border = BorderStroke(1.dp, Color(0xFF1E1E24))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -462,37 +460,29 @@ fun BiometricLockScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Text(
-                            text = "UNLOCK WITH SCREEN LOCK",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            letterSpacing = 0.4.sp
-                        )
-                        Text(
-                            text = "Device PIN, Pattern, or Password",
-                            fontSize = 10.sp,
-                            color = Color(0xFF94A3B8)
-                        )
-                    }
+                    Text(
+                        text = "Unlock with Device Screen Lock",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Action Button 3: UNLOCK WITH CONNECTO PASSWORD (Guaranteed universal fallback for all older devices)
+            // Action Button 3: UNLOCK WITH ACCOUNT PASSWORD
             OutlinedButton(
                 onClick = { showPasswordDialog = true },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = Color(0xFF0A0A0C),
-                    contentColor = Color.White
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.onSurface
                 ),
-                border = BorderStroke(1.dp, Color(0xFF1E1E24))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -505,24 +495,16 @@ fun BiometricLockScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Column(horizontalAlignment = Alignment.Start) {
-                        Text(
-                            text = "UNLOCK WITH CONNECTO PASSWORD",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            letterSpacing = 0.4.sp
-                        )
-                        Text(
-                            text = "Account password fallback for all devices",
-                            fontSize = 10.sp,
-                            color = Color(0xFF94A3B8)
-                        )
-                    }
+                    Text(
+                        text = "Enter Account Password",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Footer: Switch Account / Sign Out
             TextButton(
@@ -532,14 +514,14 @@ fun BiometricLockScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                         contentDescription = null,
-                        tint = Color(0xFF64748B),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Switch Account / Log Out",
                         fontSize = 12.sp,
-                        color = Color(0xFF64748B),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -557,27 +539,27 @@ fun BiometricLockScreen(
                     passwordError = null
                 }
             },
-            containerColor = Color(0xFF0D1117),
-            titleContentColor = Color.White,
-            textContentColor = Color(0xFF94A3B8),
+            containerColor = MaterialTheme.colorScheme.surface,
+            titleContentColor = MaterialTheme.colorScheme.onSurface,
+            textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Shield,
+                        imageVector = Icons.Default.Lock,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Unlock Connecto Vault", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Text("Enter Account Password", fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Enter the password for @$username to unlock your session:",
+                        "Enter the password for @$username to unlock:",
                         fontSize = 13.sp,
-                        color = Color(0xFF94A3B8)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = passwordInput,
@@ -585,14 +567,14 @@ fun BiometricLockScreen(
                             passwordInput = it
                             passwordError = null
                         },
-                        label = { Text("Connecto Password") },
+                        label = { Text("Password") },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = "Toggle password visibility",
-                                    tint = Color(0xFF94A3B8)
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         },
@@ -600,9 +582,11 @@ fun BiometricLockScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            unfocusedBorderColor = Color(0xFF1E293B),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
                     if (!passwordError.isNullOrBlank()) {
@@ -610,6 +594,33 @@ fun BiometricLockScreen(
                             text = passwordError!!,
                             color = Color(0xFFEF4444),
                             fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    // Switch Account link — always accessible inside the dialog, fixing
+                    // the z-order tap issue on devices without biometrics/screen lock.
+                    androidx.compose.material3.HorizontalDivider(
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isPasswordVerifying) { onSwitchAccount() }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Switch Account / Log Out",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -651,12 +662,15 @@ fun BiometricLockScreen(
                         }
                     },
                     enabled = passwordInput.isNotBlank() && !isPasswordVerifying,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
                 ) {
                     if (isPasswordVerifying) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(16.dp),
-                            color = Color.White,
+                            color = MaterialTheme.colorScheme.onPrimary,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -675,7 +689,7 @@ fun BiometricLockScreen(
                     },
                     enabled = !isPasswordVerifying
                 ) {
-                    Text("Cancel", color = Color(0xFF94A3B8))
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )

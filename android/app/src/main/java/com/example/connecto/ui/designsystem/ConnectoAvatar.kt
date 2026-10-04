@@ -49,8 +49,8 @@ fun sanitizeAvatarUrl(url: String?): String? {
     // Reject plain emoji strings or non-path strings
     if (!trimmed.contains("/") && !trimmed.contains(".")) return null
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
-    if (trimmed.startsWith("/")) return "https://connecto.fun$trimmed"
-    if (trimmed.startsWith("uploads/")) return "https://connecto.fun/$trimmed"
+    if (trimmed.startsWith("/")) return "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}$trimmed"
+    if (trimmed.startsWith("uploads/")) return "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/$trimmed"
     return trimmed
 }
 

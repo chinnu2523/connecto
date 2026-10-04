@@ -171,11 +171,9 @@ fun ChannelNavigationDrawer(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Image(
-                                        painter = painterResource(id = R.drawable.connecto_app_icon),
-                                        contentDescription = "Connecto-Fun Mascot",
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(CircleShape)
+                                        painter = painterResource(id = R.drawable.ic_connecto_logo),
+                                        contentDescription = "Connecto Logo",
+                                        modifier = Modifier.fillMaxSize()
                                     )
                                 }
 

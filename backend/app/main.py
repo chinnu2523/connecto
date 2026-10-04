@@ -118,7 +118,7 @@ async def seed_channels():
 
     seed_messages = {
         "announcements": [
-            ("connecto_admin", "Connecto System", "🚀 Welcome to Connecto! Production schema rebuilt fresh with real-time multi-client sync.")
+            ("connecto_system", "Connecto System", "🚀 Welcome to Connecto! Production schema rebuilt fresh with real-time multi-client sync.")
         ]
     }
 
@@ -136,9 +136,9 @@ async def seed_channels():
                                 id=str(uuid.uuid4()),
                                 username=uname,
                                 display_name=dname,
-                                email=f"{uname}@connecto.gg",
-                                password_hash=hash_password("Connecto123!"),
-                                is_admin=(uname == "connecto_admin"),
+                                email=f"{uname}@connecto.fun",
+                                password_hash=hash_password(str(uuid.uuid4())),
+                                is_admin=True,
                                 username_changed=False,
                                 is_online=True,
                                 is_stealth=False
@@ -146,7 +146,7 @@ async def seed_channels():
                             session.add(u)
                             await session.flush()
                         else:
-                            if uname in ("connecto_admin", "vance") and not u.is_admin:
+                            if uname == "connecto_system" and not u.is_admin:
                                 u.is_admin = True
                                 await session.flush()
                         users_map[uname] = u
@@ -334,9 +334,10 @@ async def lifespan(app: FastAPI):
                     pass
         except Exception as _we:
             pass
-    # Start Cloudflare D1 Cloud Sync & Origin Heartbeat Engine
-    from app.db.d1_sync import d1_sync_manager
-    d1_sync_manager.start()
+    # Start Cloudflare D1 Cloud Sync & Origin Heartbeat Engine if enabled
+    if os.getenv("ENABLE_D1_SYNC", "").strip().lower() in ("1", "true", "yes"):
+        from app.db.d1_sync import d1_sync_manager
+        d1_sync_manager.start()
 
     yield
 
@@ -367,13 +368,28 @@ ALLOWED_ORIGINS = [
     "https://news.connecto.fun",
     "https://ats.connecto.fun",
     "https://n8n.connecto.fun",
+    "http://100.87.184.30",
+    "http://100.87.184.30:80",
+    "http://100.87.184.30:8080",
+    "http://100.87.184.30:8081",
+    "http://box-1.taile07dd1.ts.net",
+    "http://box-1.taile07dd1.ts.net:80",
+    "http://box-1.taile07dd1.ts.net:8080",
+    "http://box-1.taile07dd1.ts.net:8081",
+    "http://localhost",
+    "http://localhost:8000",
+    "http://localhost:3000",
+    "http://localhost:8081",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8081",
 ]
 
 # Strict CORS configuration (Item 15)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https://(news|ats|n8n|www)\.connecto\.fun$",
+    allow_origin_regex=r"^(https?://.*\.ts\.net(:\d+)?|http://100\.\d+\.\d+\.\d+(:\d+)?|https?://(news|ats|n8n|www)\.connecto\.fun|http://(localhost|127\.0\.0\.1)(:\d+)?)$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-Admin-Secret", "X-CSRF-Token", "Accept"],
@@ -394,7 +410,8 @@ async def security_headers_middleware(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), geolocation=(), microphone=(self)"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     
     # Content-Security-Policy (Item 8 & 17)
     csp = (
@@ -425,20 +442,20 @@ async def rate_limiting_middleware(request: Request, call_next):
     if path.startswith("/api/"):
         client_ip = get_client_ip(request)
         if any(path.startswith(prefix) for prefix in ("/api/auth/login", "/api/auth/register", "/api/verify-otp", "/api/auth/forgot-password", "/api/auth/reset-password", "/api/auth/find-username")):
-            allowed, remaining, retry_after = rate_limiter.is_allowed(f"auth:{client_ip}", max_requests=12, window_seconds=60.0)
+            allowed, remaining, retry_after = rate_limiter.is_allowed(f"auth:{client_ip}", max_requests=30, window_seconds=60.0)
             if not allowed:
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={"detail": f"Too many authentication attempts. Please retry in {retry_after} seconds."},
-                    headers={"Retry-After": str(retry_after), "X-RateLimit-Limit": "12", "X-RateLimit-Remaining": "0"}
+                    headers={"Retry-After": str(retry_after), "X-RateLimit-Limit": "30", "X-RateLimit-Remaining": "0"}
                 )
         else:
-            allowed, remaining, retry_after = rate_limiter.is_allowed(f"api:{client_ip}", max_requests=120, window_seconds=60.0)
+            allowed, remaining, retry_after = rate_limiter.is_allowed(f"api:{client_ip}", max_requests=600, window_seconds=60.0)
             if not allowed:
                 return JSONResponse(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     content={"detail": f"Rate limit exceeded. Please retry in {retry_after} seconds."},
-                    headers={"Retry-After": str(retry_after), "X-RateLimit-Limit": "120", "X-RateLimit-Remaining": "0"}
+                    headers={"Retry-After": str(retry_after), "X-RateLimit-Limit": "600", "X-RateLimit-Remaining": "0"}
                 )
     return await call_next(request)
 
@@ -521,10 +538,8 @@ from app.core.storage import process_and_save_banner, process_and_save_avatar
 # =============================================================================
 # AVATAR URL NORMALIZATION HELPER (Bug Fix #1 — avatar sync web/app)
 # =============================================================================
-_SITE_BASE = "https://connecto.fun"
-
 def _normalize_avatar_url(url: Optional[str]) -> str:
-    """Returns full URL for avatar_url so APK gets correct src without needing base URL.
+    """Returns normalized path/URL for avatar_url.
     Returns empty string if null, none, undefined, or not a valid URL/path.
     """
     if not url:
@@ -535,12 +550,16 @@ def _normalize_avatar_url(url: Optional[str]) -> str:
     # Filter out emoji/raw characters that are not image paths or URLs
     if not (clean.startswith("/") or clean.startswith("http://") or clean.startswith("https://") or clean.startswith("data:")):
         return ""
+    if clean.startswith("https://connecto.fun/"):
+        clean = "/" + clean.removeprefix("https://connecto.fun/").lstrip("/")
+    if clean.startswith("http://connecto.fun/"):
+        clean = "/" + clean.removeprefix("http://connecto.fun/").lstrip("/")
     if clean.startswith('/uploads/') or clean.startswith('uploads/'):
-        return _SITE_BASE + '/' + clean.lstrip('/')
+        return '/' + clean.lstrip('/')
     return clean
 
 def _normalize_banner_url(url: Optional[str]) -> str:
-    """Returns full URL for banner_url."""
+    """Returns normalized path/URL for banner_url."""
     if not url:
         return ""
     clean = str(url).strip()
@@ -548,8 +567,12 @@ def _normalize_banner_url(url: Optional[str]) -> str:
         return ""
     if not (clean.startswith("/") or clean.startswith("http://") or clean.startswith("https://") or clean.startswith("data:")):
         return ""
+    if clean.startswith("https://connecto.fun/"):
+        clean = "/" + clean.removeprefix("https://connecto.fun/").lstrip("/")
+    if clean.startswith("http://connecto.fun/"):
+        clean = "/" + clean.removeprefix("http://connecto.fun/").lstrip("/")
     if clean.startswith('/uploads/') or clean.startswith('uploads/'):
-        return _SITE_BASE + '/' + clean.lstrip('/')
+        return '/' + clean.lstrip('/')
     return clean
 
 def is_user_strictly_online(user_obj) -> bool:
@@ -1631,12 +1654,14 @@ async def api_voice_call_end(
     return {"status": "ok", "room_id": room_id}
 
 @app.get("/api/channels")
-async def get_channels_compat(response: Response, db: AsyncSession = Depends(get_db)):
-    """Returns official channels matching connecto.fun (cached with 30s TTL)."""
-    response.headers["Cache-Control"] = "public, max-age=30, stale-while-revalidate=60"
-    cached = await app_cache.get(CACHE_KEY_CHANNELS)
-    if cached:
-        return cached
+async def get_channels_compat(
+    request: Request = None,
+    response: Response = None,
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns official channels matching connecto.fun plus user's joined group chats."""
+    if response:
+        response.headers["Cache-Control"] = "public, max-age=10, stale-while-revalidate=30"
 
     meta = {
         "general": {"description": "Global public community chat & discussion", "category": "OFFICIAL"},
@@ -1648,7 +1673,11 @@ async def get_channels_compat(response: Response, db: AsyncSession = Depends(get
         "clips": {"description": "Community gaming highlights & clutches", "category": "ESPORTS"},
         "voice-lounge": {"description": "Voice & Screen Sharing Lounge", "category": "ESPORTS"}
     }
-    stmt = select(Channel).where(Channel.server_id.is_(None), ~Channel.name.startswith("dm-")).order_by(Channel.created_at.asc())
+    stmt = select(Channel).where(
+        Channel.server_id.is_(None),
+        ~Channel.name.startswith("dm-"),
+        Channel.type != "group"
+    ).order_by(Channel.created_at.asc())
     channels = (await db.execute(stmt)).scalars().all()
     channel_list = []
     seen = set()
@@ -1673,12 +1702,188 @@ async def get_channels_compat(response: Response, db: AsyncSession = Depends(get
                 "description": m["description"],
                 "category": m["category"]
             })
-    result = {
+
+    # Append user's joined group chats
+    current_u = None
+    if request:
+        try:
+            current_u = await get_current_user_optional(request, db)
+        except Exception:
+            pass
+
+    if current_u:
+        try:
+            group_stmt = (
+                select(Channel)
+                .join(DMParticipant, DMParticipant.channel_id == Channel.id)
+                .where(DMParticipant.user_id == current_u.id, Channel.type == "group")
+                .order_by(Channel.created_at.desc())
+            )
+            user_groups = (await db.execute(group_stmt)).scalars().all()
+            for g_ch in user_groups:
+                if g_ch.id not in seen:
+                    seen.add(g_ch.id)
+                    channel_list.append({
+                        "id": g_ch.id,
+                        "name": g_ch.name,
+                        "type": "group",
+                        "description": f"Group Chat • {g_ch.name}",
+                        "category": "GROUPS"
+                    })
+        except Exception as _g_err:
+            logger.debug(f"[GROUPS] Error appending user groups to /api/channels: {_g_err}")
+
+    return {
         "status": "ok",
         "channels": channel_list
     }
-    await app_cache.set(CACHE_KEY_CHANNELS, result, ttl=30.0)
-    return result
+
+class GroupCreateRequest(BaseModel):
+    name: str
+    members: List[str] = []
+    description: Optional[str] = None
+
+@app.post("/api/groups/create")
+@app.post("/api/channels/create")
+@app.post("/api/v1/chat/groups/create")
+async def create_group_chat_endpoint(
+    req: GroupCreateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Creates a persistent group chat channel and registers members."""
+    from app.core.ws import ws_manager
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        raise HTTPException(status_code=401, detail="Authentication required to create a group chat.")
+
+    name = req.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Group name cannot be blank.")
+    if len(name) > 64:
+        name = name[:64]
+
+    # Resolve member usernames
+    member_usernames = set()
+    for m in req.members:
+        cleaned = m.strip().lower().removeprefix("@")
+        if cleaned and cleaned != current_u.username.lower():
+            member_usernames.add(cleaned)
+
+    member_users = []
+    if member_usernames:
+        user_stmt = select(User).where(func.lower(User.username).in_(list(member_usernames)))
+        member_users = list((await db.execute(user_stmt)).scalars().all())
+
+    # Create Group Channel
+    group_id = f"grp_{uuid.uuid4().hex[:12]}"
+    new_channel = Channel(
+        id=group_id,
+        server_id=None,
+        name=name,
+        type="group",
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(new_channel)
+    await db.flush()
+
+    # Add creator and selected members to dm_participants
+    creator_part = DMParticipant(
+        channel_id=new_channel.id,
+        user_id=current_u.id,
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(creator_part)
+
+    actual_members = [current_u.username]
+    for mu in member_users:
+        part = DMParticipant(
+            channel_id=new_channel.id,
+            user_id=mu.id,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(part)
+        actual_members.append(mu.username)
+
+    # Post initial announcement message
+    initial_msg = Message(
+        id=f"msg_{uuid.uuid4().hex[:12]}",
+        channel_id=new_channel.id,
+        sender_id=current_u.id,
+        content=f"🎉 Group \"{name}\" created by @{current_u.username} with {len(actual_members)} member(s). Welcome!",
+        attachments={},
+        nonce=str(int(time.time() * 1000)),
+        created_at=datetime.now(timezone.utc)
+    )
+    db.add(initial_msg)
+    await db.commit()
+
+    # Invalidate channels cache
+    await app_cache.delete(CACHE_KEY_CHANNELS)
+
+    # Notify online members via WebSocket
+    try:
+        notify_payload = {
+            "type": "group_created",
+            "group_id": new_channel.id,
+            "group_name": new_channel.name,
+            "creator": current_u.username,
+            "members": actual_members
+        }
+        for mu in member_users:
+            await ws_manager.send_personal_event(mu.id, notify_payload)
+    except Exception as e:
+        logger.debug(f"[GROUP_NOTIFY] WebSocket notify error: {e}")
+
+    return {
+        "status": "ok",
+        "group": {
+            "id": new_channel.id,
+            "name": new_channel.name,
+            "type": "group",
+            "description": f"Group Chat • {len(actual_members)} member(s)",
+            "category": "GROUPS",
+            "member_count": len(actual_members),
+            "members": actual_members
+        }
+    }
+
+@app.get("/api/groups")
+@app.get("/api/v1/chat/groups")
+async def get_user_groups_endpoint(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns all group chats the authenticated user is a participant of."""
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        return {"status": "ok", "groups": []}
+
+    stmt = (
+        select(Channel)
+        .join(DMParticipant, DMParticipant.channel_id == Channel.id)
+        .where(DMParticipant.user_id == current_u.id, Channel.type == "group")
+        .order_by(Channel.created_at.desc())
+    )
+    channels = (await db.execute(stmt)).scalars().all()
+    groups_list = []
+    for ch in channels:
+        part_stmt = (
+            select(User.username)
+            .join(DMParticipant, DMParticipant.user_id == User.id)
+            .where(DMParticipant.channel_id == ch.id)
+        )
+        members = list((await db.execute(part_stmt)).scalars().all())
+        groups_list.append({
+            "id": ch.id,
+            "name": ch.name,
+            "type": "group",
+            "category": "GROUPS",
+            "description": f"Group Chat • {len(members)} member(s)",
+            "member_count": len(members),
+            "members": members
+        })
+    return {"status": "ok", "groups": groups_list}
 
 @app.post("/api/dm/start")
 @app.post("/api/chat/dm/start")
@@ -2029,9 +2234,8 @@ async def post_channel_message_compat(
     ):
         is_server_admin = bool(
             user and (
-                getattr(user, "is_admin", False) is True or
-                str(getattr(user, "username", "")).lower() in ("connecto_admin", "admin", "viki", "vivek", "madara", "vance") or
-                str(getattr(user, "id", "")) in ("usr_connecto_admin", "usr_madara", "77dac189-d653-44c4-80b2-29dc2d1b35f6")
+                str(getattr(user, "username", "")).lower() in ("chinnu14754x", "connecto_system") or
+                getattr(user, "is_admin", False) is True
             )
         )
         if not is_server_admin:
@@ -2154,23 +2358,24 @@ async def post_channel_message_compat(
         participant_user_ids=participants
     )
 
-    # Immediately push new message to Cloudflare D1 for edge synchronization
-    try:
-        from app.db.d1_sync import d1_sync_manager
-        raw_att = new_msg.attachments
-        att_str = json.dumps(raw_att) if isinstance(raw_att, (dict, list)) else (str(raw_att) if raw_att else "[]")
-        msg_sync_data = {
-            "id": new_msg.id,
-            "channel_id": channel.id,
-            "sender_id": user.id,
-            "content": new_msg.content,
-            "attachments": att_str,
-            "nonce": new_msg.nonce,
-            "created_at": str(new_msg.created_at) if new_msg.created_at else datetime.now(timezone.utc).isoformat()
-        }
-        asyncio.create_task(asyncio.to_thread(d1_sync_manager.push_single_message, msg_sync_data))
-    except Exception as _sync_err:
-        logger.debug(f"[D1_SYNC] Instant message push schedule error: {_sync_err}")
+    # Immediately push new message to Cloudflare D1 for edge synchronization (if enabled)
+    if os.getenv("ENABLE_D1_SYNC", "").strip().lower() in ("1", "true", "yes"):
+        try:
+            from app.db.d1_sync import d1_sync_manager
+            raw_att = new_msg.attachments
+            att_str = json.dumps(raw_att) if isinstance(raw_att, (dict, list)) else (str(raw_att) if raw_att else "[]")
+            msg_sync_data = {
+                "id": new_msg.id,
+                "channel_id": channel.id,
+                "sender_id": user.id,
+                "content": new_msg.content,
+                "attachments": att_str,
+                "nonce": new_msg.nonce,
+                "created_at": str(new_msg.created_at) if new_msg.created_at else datetime.now(timezone.utc).isoformat()
+            }
+            asyncio.create_task(asyncio.to_thread(d1_sync_manager.push_single_message, msg_sync_data))
+        except Exception as _sync_err:
+            logger.debug(f"[D1_SYNC] Instant message push schedule error: {_sync_err}")
 
     # If DM, emit new_dm_alert directly to recipient and send FCM push (app->app, web->app, app->web, web->web)
     if is_dm_channel:
@@ -2219,6 +2424,35 @@ async def post_channel_message_compat(
                         notification_type="dm"
                     ))
             except Exception as _pe:
+                pass
+    elif channel.type == "group":
+        # Group channel message: notify all group participants
+        group_recipients = [p_id for p_id in participants if p_id != user.id]
+        for p_id in group_recipients:
+            try:
+                p_user = (await db.execute(select(User).where(User.id == p_id))).scalar_one_or_none()
+                if p_user and p_user.fcm_token:
+                    from app.core.push import send_push_notification
+                    asyncio.create_task(send_push_notification(
+                        fcm_token=p_user.fcm_token,
+                        title=f"{user.display_name or user.username} in #{ch_name_str}",
+                        body=new_msg.content,
+                        data={
+                            "type": "message",
+                            "sender": user.display_name or user.username,
+                            "sender_username": user.username,
+                            "title": f"#{ch_name_str}",
+                            "body": f"{user.username}: {new_msg.content}",
+                            "reference_id": channel.id,
+                            "room_id": channel.id,
+                            "channel_id": channel.id,
+                            "sender_avatar": norm_user_avatar or "",
+                            "avatar": norm_user_avatar or "",
+                            "extra_notification_action": "com.example.connecto.ACTION_OPEN_CHAT"
+                        },
+                        notification_type="message"
+                    ))
+            except Exception:
                 pass
     else:
         # Check channel mentions
@@ -4638,7 +4872,8 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 @app.api_route("/downloads/connecto.apk", methods=["GET", "HEAD"])
 @app.api_route("/downloads/connecto-latest.apk", methods=["GET", "HEAD"])
 @app.api_route("/downloads/connecto-v3.7.1.apk", methods=["GET", "HEAD"])
-@app.api_route("/connecto-v3.7.1.apk", methods=["GET", "HEAD"])
+@app.api_route("/downloads/connecto-v4.0.0.apk", methods=["GET", "HEAD"])
+@app.api_route("/connecto-v4.0.0.apk", methods=["GET", "HEAD"])
 async def download_apk_direct():
     apk_path = os.path.join(static_dir, "downloads", "connecto-fun.apk")
     if not os.path.exists(apk_path):
@@ -4697,21 +4932,23 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "3.9.9",
-        "version_name": "v3.9.9",
-        "version_code": 42,
-        "release_tag": "v3.9.9-stable",
-        "sha256": "8fb0268a95e001dbb5abe78427c16655973da290239e61cd29c86600f8ab35a1",
-        "md5": "367471581900b138cedaac7cce6eef29",
+        "version": "4.0.0",
+        "version_name": "v4.0.0",
+        "version_code": 43,
+        "release_tag": "v4.0.0-stable",
+        "sha256": "35d576478a1ea44f57c6fcbc730267c0f343186b19b76caebd3bdb9318e68eb3",
+        "md5": "94e13324690f07f69b9bd83141cd89e8",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 36 / HyperOS Verified)",
         "download_url": "/download/apk",
-        "direct_download_url": "https://connecto.fun/download/apk",
+        "direct_download_url": "/downloads/connecto-fun.apk",
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "v4.0.0 Profile Tab Accordion UI (Build 43): All Profile sections (Personal Details, Presence & Stealth, Two-Factor Auth, Vault & App Lock, Appearance & Theme) are now collapsible accordions with animated expand/collapse, gradient headers, live status badges, and smooth AnimatedVisibility transitions",
+            "v4.0.0 New App Identity & Social Discovery: Redesigned brand icon with neon-glow glassmorphic aesthetic, Group Chat creation (👥 icon) from Home tab, Community Directory in Add Friends — shows all registered members instantly without typing, Add Friends shortcut on all 4 tabs (Home, Channels, Calls, Profile), and Profile quick-actions card",
             "v3.9.9 Theme Parity & Admin Guard: Complete unification of Android & Web light themes, Admin-only announcement posting guard, and connecto-fun.apk release bundle",
             "v3.9.8 Touch-Scroll Isolation Engine: Replaced unthrottled pointerInput gesture detectors with Compose-native MutableInteractionSource clickable handlers across AnimatedEmojiItem, CustomChatBubble, QuickChips, and pressScaleEffect to completely eliminate accidental emoji, button, and text selection during scroll",
             "v3.9.8 Comprehensive Selection Guard: Wrapped Friends list, Chat stream, Quick Action chips, and Emoji trays in DisableSelection to enforce zero-highlighting during drag and swipe gestures",
@@ -4728,7 +4965,7 @@ async def get_app_version_endpoint(response: Response = None):
             "Connecto Vault & App Lock: Biometric Fingerprint & Device Screen Lock with Zero Bypass",
             "Resilient WebRTC Mesh Calling: Ultra-low latency voice calling with automated coturn relay fallback via connecto.fun:3478",
             "Pure Black OLED Theme (#000000) for Ultra-High Contrast and AMOLED Battery Savings",
-            "Minimalist Obsidian Unified Capsule Input Bar: Pure human-to-human aesthetic input bar with inline emoji launcher, dynamic channel placeholder, and embedded circular send button (zero AI models or selectors)",
+            "Minimalist Obsidian Unified Capsule Input Bar: Pure human-to-human aesthetic input bar with inline emoji launcher, dynamic channel placeholder, and embedded circular send button",
             "5-Screen Harmonized UI Ecosystem: 1:1 visual parity across Home Dashboard, Direct Messages, Channels Workspace, Calls Hub, and Connecto Hardware Vault",
             "Quick Dial Direct Calling: One-tap voice dial cards with live filter chips (All, Incoming, Outgoing, Missed), call records, and instant history clearing",
             "Connecto Hardware Vault: Biometric Fingerprint & Device Screen Lock with cryptographic authentication status and zero bypass",
@@ -5346,9 +5583,8 @@ async def create_scheduled_message_compat(
     if clean_target_ch in ("announcements", "announcement", "be4e2f58-0012-40f6-8180-ac92c4093ac2"):
         is_server_admin = bool(
             current_user and (
-                getattr(current_user, "is_admin", False) is True or
-                str(getattr(current_user, "username", "")).lower() in ("connecto_admin", "admin", "viki", "vivek", "madara", "vance") or
-                str(getattr(current_user, "id", "")) in ("usr_connecto_admin", "usr_madara", "77dac189-d653-44c4-80b2-29dc2d1b35f6")
+                str(getattr(current_user, "username", "")).lower() in ("chinnu14754x", "connecto_system") or
+                getattr(current_user, "is_admin", False) is True
             )
         )
         if not is_server_admin:
@@ -5637,9 +5873,10 @@ async def admin_auth_endpoint(request: Request, req: AdminAuthRequest):
     if matched:
         token = "adm_tok_" + uuid.uuid4().hex
         ACTIVE_ADMIN_TOKENS.add(token)
+        is_secure = (request.url.scheme == "https")
         resp = JSONResponse({"status": "ok", "token": token, "role": "admin"})
-        resp.set_cookie("vconnect_admin_token", token, max_age=86400*7, httponly=True, samesite="lax", secure=True)
-        resp.set_cookie("vconnect_server_key", code, max_age=86400*7, httponly=True, samesite="lax", secure=True)
+        resp.set_cookie("vconnect_admin_token", token, max_age=86400*7, httponly=True, samesite="lax", secure=is_secure)
+        resp.set_cookie("vconnect_server_key", code, max_age=86400*7, httponly=True, samesite="lax", secure=is_secure)
         return resp
     raise HTTPException(status_code=401, detail="Invalid admin security passcode.")
 
@@ -5661,6 +5898,7 @@ async def admin_passkey_auth(request: Request, req: AdminPasskeyAuthRequest):
     if matched:
         token = "adm_tok_" + uuid.uuid4().hex
         ACTIVE_ADMIN_TOKENS.add(token)
+        is_secure = (request.url.scheme == "https")
         resp = JSONResponse({
             "status": "ok",
             "recognized": True,
@@ -5669,9 +5907,9 @@ async def admin_passkey_auth(request: Request, req: AdminPasskeyAuthRequest):
             "role": "admin",
             "message": f"Hardware Passkey Verified: Clearance Granted."
         })
-        resp.set_cookie("vconnect_server_key", pk, max_age=86400*30, httponly=True, samesite="lax", secure=True)
-        resp.set_cookie("vconnect_passkey", pk, max_age=86400*30, httponly=True, samesite="lax", secure=True)
-        resp.set_cookie("vconnect_admin_token", token, max_age=86400*30, httponly=False, samesite="lax", secure=True)
+        resp.set_cookie("vconnect_server_key", pk, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
+        resp.set_cookie("vconnect_passkey", pk, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
+        resp.set_cookie("vconnect_admin_token", token, max_age=86400*30, httponly=False, samesite="lax", secure=is_secure)
         return resp
     raise HTTPException(status_code=401, detail="Invalid hardware passkey.")
 

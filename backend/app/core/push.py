@@ -84,7 +84,7 @@ def send_push_notification_sync(
             if raw_av and str(raw_av).strip().lower() not in ("null", "none", "undefined"):
                 clean_av = str(raw_av).strip()
                 if clean_av.startswith("/uploads/") or clean_av.startswith("uploads/"):
-                    avatar_img = "https://connecto.fun/" + clean_av.lstrip("/")
+                    avatar_img = "http://100.87.184.30/" + clean_av.lstrip("/")
                 elif clean_av.startswith("http://") or clean_av.startswith("https://"):
                     avatar_img = clean_av
 

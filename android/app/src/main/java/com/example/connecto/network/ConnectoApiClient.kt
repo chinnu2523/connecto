@@ -8,11 +8,15 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
+import java.io.IOException
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.net.ConnectException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.util.UUID
+
 
 data class AuthResult(
     val id: String,
@@ -528,36 +532,59 @@ object ConnectoApiClient {
         password: String
     ): Result<AuthResult> = withContext(Dispatchers.IO) {
         try {
-            val cleanIdentifier = loginIdentifier.trim()
+            val cleanIdentifier = loginIdentifier.trim().removePrefix("@")
+            val cleanPassword = password.trim()
 
             // Dual-compatible attempt — supports both "username" (production) and "login" (local)
             val body = JSONObject().apply {
                 put("username", cleanIdentifier)
                 put("login", cleanIdentifier)
-                put("password", password)
+                put("password", cleanPassword)
             }
 
-            var response = executeRequest(
-                endpoint = "/api/auth/login",
-                method = "POST",
-                body = body.toString(),
-                token = null
-            )
-            if (!response.isSuccess) {
-                response = executeRequest(
-                    endpoint = "/api/login",
+            suspend fun attemptLogin(): Result<String> {
+                var response = executeRequest(
+                    endpoint = "/api/auth/login",
                     method = "POST",
                     body = body.toString(),
                     token = null
                 )
+                if (!response.isSuccess) {
+                    response = executeRequest(
+                        endpoint = "/api/login",
+                        method = "POST",
+                        body = body.toString(),
+                        token = null
+                    )
+                }
+                if (!response.isSuccess) {
+                    response = executeRequest(
+                        endpoint = "/api/v1/auth/login",
+                        method = "POST",
+                        body = body.toString(),
+                        token = null
+                    )
+                }
+                return response
             }
+
+            var response = attemptLogin()
+
+            // Retry once after 2s if all endpoints failed with a network/IO error
+            // (handles Cloudflare Worker cold-start DOWN state window)
             if (!response.isSuccess) {
-                response = executeRequest(
-                    endpoint = "/api/v1/auth/login",
-                    method = "POST",
-                    body = body.toString(),
-                    token = null
-                )
+                val ex = response.exceptionOrNull()
+                val isNetworkError = ex is IOException ||
+                    ex is ConnectException ||
+                    ex is SocketTimeoutException ||
+                    ex?.message?.contains("connect", ignoreCase = true) == true ||
+                    ex?.message?.contains("timeout", ignoreCase = true) == true ||
+                    ex?.message?.contains("Network", ignoreCase = true) == true
+                if (isNetworkError) {
+                    android.util.Log.w("ConnectoSync", "Login: network error on first attempt, retrying in 2s — ${ex?.message}")
+                    kotlinx.coroutines.delay(2000L)
+                    response = attemptLogin()
+                }
             }
 
             if (response.isSuccess) {
@@ -610,12 +637,24 @@ object ConnectoApiClient {
                 }
                 Result.success(authResult)
             } else {
-                Result.failure(response.exceptionOrNull() ?: Exception("Login failed"))
+                val ex = response.exceptionOrNull()
+                val isNetworkError = ex is IOException ||
+                    ex is ConnectException ||
+                    ex is SocketTimeoutException ||
+                    ex?.message?.contains("connect", ignoreCase = true) == true ||
+                    ex?.message?.contains("Network", ignoreCase = true) == true
+                val friendlyMsg = if (isNetworkError) {
+                    "Connection failed. Please check your internet connection and try again."
+                } else {
+                    ex?.message ?: "Login failed"
+                }
+                Result.failure(Exception(friendlyMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
+
 
     suspend fun verifyLogin2Fa(
         loginIdentifier: String,
@@ -1000,6 +1039,23 @@ object ConnectoApiClient {
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch channels"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun createGroup(name: String, members: List<String>): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("name", name)
+                put("members", org.json.JSONArray(members))
+            }.toString()
+            val response = executeRequest("/api/groups/create", "POST", body, sessionToken)
+            if (response.isSuccess) {
+                Result.success(JSONObject(response.getOrThrow()))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Failed to create group"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -1458,11 +1514,8 @@ object ConnectoApiClient {
     suspend fun searchUsers(query: String, token: String? = null, username: String? = null): Result<List<UserSearchResultDto>> = withContext(Dispatchers.IO) {
         try {
             val cleanQ = query.trim().removePrefix("@")
-            if (cleanQ.isBlank()) {
-                return@withContext Result.success(emptyList())
-            }
-
-            val encodedQuery = java.net.URLEncoder.encode(cleanQ, "UTF-8")
+            val isBlankQuery = cleanQ.isBlank()
+            val encodedQuery = if (!isBlankQuery) java.net.URLEncoder.encode(cleanQ, "UTF-8") else ""
             val myUsername = (username ?: currentUsername ?: "").trim().lowercase().removePrefix("@")
             val resultMap = linkedMapOf<String, UserSearchResultDto>()
 
@@ -1495,7 +1548,8 @@ object ConnectoApiClient {
                                 if (d.isNotBlank()) friendsSet.add(d.lowercase())
 
                                 // Immediately match friend against search query so friend is guaranteed to appear
-                                val matches = u.contains(cleanQ, ignoreCase = true) ||
+                                val matches = isBlankQuery ||
+                                              u.contains(cleanQ, ignoreCase = true) ||
                                               d.contains(cleanQ, ignoreCase = true) ||
                                               cleanQ.contains(u, ignoreCase = true)
                                 if (matches && !resultMap.containsKey(u.lowercase())) {
@@ -1519,7 +1573,7 @@ object ConnectoApiClient {
                             if (r.isNotBlank()) {
                                 outgoingSet.add(r.lowercase())
                                 if (d.isNotBlank()) outgoingSet.add(d.lowercase())
-                                val matches = r.contains(cleanQ, ignoreCase = true) || d.contains(cleanQ, ignoreCase = true)
+                                val matches = isBlankQuery || r.contains(cleanQ, ignoreCase = true) || d.contains(cleanQ, ignoreCase = true)
                                 if (matches && !resultMap.containsKey(r.lowercase())) {
                                     resultMap[r.lowercase()] = UserSearchResultDto(
                                         id = id,
@@ -1541,7 +1595,7 @@ object ConnectoApiClient {
                             if (s.isNotBlank()) {
                                 incomingSet.add(s.lowercase())
                                 if (d.isNotBlank()) incomingSet.add(d.lowercase())
-                                val matches = s.contains(cleanQ, ignoreCase = true) || d.contains(cleanQ, ignoreCase = true)
+                                val matches = isBlankQuery || s.contains(cleanQ, ignoreCase = true) || d.contains(cleanQ, ignoreCase = true)
                                 if (matches && !resultMap.containsKey(s.lowercase())) {
                                     resultMap[s.lowercase()] = UserSearchResultDto(
                                         id = id,
@@ -1606,7 +1660,8 @@ object ConnectoApiClient {
                             if (myUsername.isNotBlank() && uName.equals(myUsername, ignoreCase = true)) continue
 
                             // Match query against username, nickname, or bio
-                            val matches = uName.contains(cleanQ, ignoreCase = true) ||
+                            val matches = isBlankQuery ||
+                                          uName.contains(cleanQ, ignoreCase = true) ||
                                           dName.contains(cleanQ, ignoreCase = true) ||
                                           bio.contains(cleanQ, ignoreCase = true) ||
                                           cleanQ.contains(uName, ignoreCase = true)
@@ -1627,40 +1682,41 @@ object ConnectoApiClient {
                 // Continue to next strategy
             }
 
-            // 3. Check exact username in server database via /api/auth/check-username
-            try {
-                val checkResp = executeRequest(
-                    endpoint = "/api/auth/check-username?username=$encodedQuery",
-                    method = "GET",
-                    body = null,
-                    token = token ?: sessionToken
-                )
-                if (checkResp.isSuccess) {
-                    val cText = checkResp.getOrThrow().trim()
-                    if (cText.startsWith("{")) {
-                        val cObj = JSONObject(cText)
-                        val isAvailable = cObj.optBoolean("available", true)
-                        // If available == false, the user definitely EXISTS in the connecto database!
-                        if (!isAvailable) {
-                            val uName = cObj.optString("username", cleanQ).trim().removePrefix("@")
-                            if (uName.isNotBlank() && (myUsername.isBlank() || !uName.equals(myUsername, ignoreCase = true)) && !resultMap.containsKey(uName.lowercase())) {
-                                resultMap[uName.lowercase()] = UserSearchResultDto(
-                                    id = UUID.randomUUID().toString(),
-                                    username = uName,
-                                    displayName = uName,
-                                    avatarUrl = null,
-                                    relationStatus = resolveRelation(uName)
-                                )
+            if (!isBlankQuery) {
+                // 3. Check exact username in server database via /api/auth/check-username
+                try {
+                    val checkResp = executeRequest(
+                        endpoint = "/api/auth/check-username?username=$encodedQuery",
+                        method = "GET",
+                        body = null,
+                        token = token ?: sessionToken
+                    )
+                    if (checkResp.isSuccess) {
+                        val cText = checkResp.getOrThrow().trim()
+                        if (cText.startsWith("{")) {
+                            val cObj = JSONObject(cText)
+                            val isAvailable = cObj.optBoolean("available", true)
+                            // If available == false, the user definitely EXISTS in the connecto database!
+                            if (!isAvailable) {
+                                val uName = cObj.optString("username", cleanQ).trim().removePrefix("@")
+                                if (uName.isNotBlank() && (myUsername.isBlank() || !uName.equals(myUsername, ignoreCase = true)) && !resultMap.containsKey(uName.lowercase())) {
+                                    resultMap[uName.lowercase()] = UserSearchResultDto(
+                                        id = UUID.randomUUID().toString(),
+                                        username = uName,
+                                        displayName = uName,
+                                        avatarUrl = null,
+                                        relationStatus = resolveRelation(uName)
+                                    )
+                                }
                             }
                         }
                     }
+                } catch (e: Exception) {
+                    // Continue
                 }
-            } catch (e: Exception) {
-                // Continue
-            }
 
-            // 4. Fallback search endpoint
-            for (searchEndpoint in listOf("/api/v1/users/search?q=$encodedQuery", "/api/users/search?q=$encodedQuery")) {
+                // 4. Fallback search endpoint
+                for (searchEndpoint in listOf("/api/v1/users/search?q=$encodedQuery", "/api/users/search?q=$encodedQuery")) {
                 try {
                     val searchResp = executeRequest(
                         endpoint = searchEndpoint,
@@ -1695,6 +1751,7 @@ object ConnectoApiClient {
                 } catch (e: Exception) {
                     // Continue
                 }
+            }
             }
 
             // Sort results: Existing friends appear first, then incoming requests, then outgoing, then others
@@ -3010,7 +3067,8 @@ object ConnectoApiClient {
             listOf(ConnectoNetworkConfig.activeBaseUrl)
         }
 
-        val activeToken = token ?: getPersistedToken()
+        val isAuthEndpoint = endpoint.contains("/auth/login") || endpoint.contains("/login") || endpoint.contains("/register")
+        val activeToken = if (isAuthEndpoint) null else (token ?: getPersistedToken())
         var lastException: Exception? = null
 
         for (base in candidateBases) {

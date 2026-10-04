@@ -138,13 +138,10 @@ fun AddFriendDialog(
     fun performSearch(query: String) {
         searchJob?.cancel()
         searchJob = coroutineScope.launch {
-            if (query.isBlank()) {
-                searchResults.clear()
-                isSearching = false
-                return@launch
-            }
             isSearching = true
-            delay(300) // Debounce typing
+            if (query.isNotBlank()) {
+                delay(250) // Debounce typing
+            }
             try {
                 val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
                 val res = ConnectoApiClient.searchUsers(query.trim(), username = effUser)
@@ -198,6 +195,7 @@ fun AddFriendDialog(
     // Initial load
     LaunchedEffect(Unit) {
         fetchReceivedRequests()
+        performSearch("")
     }
 
     Dialog(
@@ -497,7 +495,7 @@ fun AddFriendDialog(
                                             .size(18.dp)
                                             .clickable {
                                                 searchQuery = ""
-                                                searchResults.clear()
+                                                performSearch("")
                                             }
                                     )
                                 }
@@ -506,7 +504,19 @@ fun AddFriendDialog(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             // Results List
-                            if (searchQuery.isBlank()) {
+                            if (isSearching && searchResults.isEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(20.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            } else if (searchResults.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -524,27 +534,12 @@ fun AddFriendDialog(
                                             modifier = Modifier.size(48.dp)
                                         )
                                         Text(
-                                            text = "Search registered members across Connecto by their username or display name.",
-                                            fontSize = 13.sp,
+                                            text = if (searchQuery.isBlank()) "No registered members found in directory." else "No users found matching '$searchQuery'",
+                                            fontSize = 14.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center,
-                                            lineHeight = 18.sp
+                                            textAlign = TextAlign.Center
                                         )
                                     }
-                                }
-                            } else if (searchResults.isEmpty() && !isSearching) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(20.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "No users found matching '$searchQuery'",
-                                        fontSize = 14.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = TextAlign.Center
-                                    )
                                 }
                             } else {
                                 LazyColumn(
@@ -552,6 +547,24 @@ fun AddFriendDialog(
                                     verticalArrangement = Arrangement.spacedBy(10.dp),
                                     contentPadding = PaddingValues(bottom = 12.dp)
                                 ) {
+                                    if (searchQuery.isBlank()) {
+                                        item(key = "discover_header") {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "COMMUNITY DIRECTORY (${searchResults.size})",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    letterSpacing = 0.8.sp
+                                                )
+                                            }
+                                        }
+                                    }
                                     items(searchResults, key = { it.id }) { user ->
                                         val isSentLocally = sentRequestUsernames.contains(user.username)
                                         val effectiveRelation = if (isSentLocally) "pending_sent" else user.relationStatus

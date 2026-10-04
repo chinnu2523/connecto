@@ -58,7 +58,7 @@
   // ==================== AUTOMATED CLOUD & LOCAL FAILOVER ENGINE ====================
   (function initAutomatedFailover() {
     const originalFetch = window.fetch;
-    const CLOUD_ORIGIN = 'https://connecto.fun';
+    const CLOUD_ORIGIN = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://100.87.184.30' : window.location.origin;
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     window.fetch = async function(...args) {
@@ -208,7 +208,7 @@
     if (preview) {
       if (!bg) bg = BANNER_PRESETS.preset_aurora;
       if (bg.startsWith('http') || bg.startsWith('data:') || bg.startsWith('/')) {
-        const fullUrl = (bg.startsWith('http') || bg.startsWith('data:')) ? bg : ('https://connecto.fun' + bg);
+        const fullUrl = (bg.startsWith('http') || bg.startsWith('data:')) ? bg : (window.location.origin + (bg.startsWith('/') ? bg : '/' + bg));
         preview.style.background = `url('${fullUrl}') center/cover no-repeat`;
         preview.style.backgroundImage = `url('${fullUrl}')`;
         preview.style.backgroundSize = 'cover';
@@ -2023,51 +2023,112 @@
       color: #ffffff !important;
     }
 
-    /* Chat Header */
+    /* ─── Chat Header — Parchment (Light) Theme ─── */
     html[data-theme="parchment"] .chat-header {
-      background: #f5f1e8 !important;
+      background: rgba(245, 241, 232, 0.96) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border-top: 1px solid rgba(120, 113, 108, 0.18) !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow: 0 2px 16px rgba(68, 64, 60, 0.10), 0 1px 0 rgba(255,255,255,0.70) inset !important;
+    }
+    html[data-theme="parchment"] .header-left {
+      color: #1c1917 !important;
     }
     html[data-theme="parchment"] #headerTitle {
-      color: #141312 !important;
+      color: #1c1917 !important;
+      font-weight: 700 !important;
     }
     html[data-theme="parchment"] #headerPrefix {
-      color: #78716c !important;
+      color: #a8a29e !important;
+      text-shadow: none !important;
+      font-weight: 700 !important;
     }
     html[data-theme="parchment"] #headerTopic {
-      color: #57534e !important;
-      border-left-color: rgba(68, 64, 60, 0.16) !important;
+      color: #78716c !important;
+      border-left-color: rgba(68, 64, 60, 0.18) !important;
+      font-size: 12px !important;
     }
     html[data-theme="parchment"] .header-divider-sep {
-      color: rgba(68, 64, 60, 0.3) !important;
+      color: rgba(68, 64, 60, 0.28) !important;
     }
-    html[data-theme="parchment"] .in-chat-search-input {
+    html[data-theme="parchment"] .channel-slowmode-indicator {
+      color: #92400e !important;
+      background: rgba(146, 64, 14, 0.08) !important;
+      border: 1px solid rgba(146, 64, 14, 0.2) !important;
+      border-radius: 6px !important;
+      padding: 2px 7px !important;
+      font-size: 11px !important;
+    }
+    /* Search bar */
+    html[data-theme="parchment"] .in-chat-search-wrap {
       background: #ffffff !important;
       border: 1px solid rgba(68, 64, 60, 0.22) !important;
-      color: #141312 !important;
+      color: #57534e !important;
+      box-shadow: 0 1px 4px rgba(68, 64, 60, 0.06) !important;
+    }
+    html[data-theme="parchment"] .in-chat-search-wrap svg {
+      stroke: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .in-chat-search-input {
+      background: transparent !important;
+      border: none !important;
+      color: #1c1917 !important;
     }
     html[data-theme="parchment"] .in-chat-search-input::placeholder {
-      color: #78716c !important;
+      color: #a8a29e !important;
     }
     html[data-theme="parchment"] .header-search-kbd {
-      background: #ebe6dc !important;
-      border: 1px solid rgba(68, 64, 60, 0.2) !important;
-      color: #57534e !important;
+      background: #ede9e0 !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      color: #78716c !important;
     }
+    /* Icon buttons */
     html[data-theme="parchment"] .chat-header .btn-icon {
-      color: #57534e !important;
+      color: #78716c !important;
+      background: transparent !important;
     }
     html[data-theme="parchment"] .chat-header .btn-icon:hover {
-      color: #141312 !important;
-      background: rgba(68, 64, 60, 0.08) !important;
+      color: #1c1917 !important;
+      background: rgba(68, 64, 60, 0.09) !important;
     }
+    html[data-theme="parchment"] .chat-header .btn-icon.active {
+      color: #7c3aed !important;
+      background: rgba(124, 58, 237, 0.09) !important;
+    }
+    /* Theme toggle moon icon */
+    html[data-theme="parchment"] #chatHeaderThemeToggleBtn {
+      color: #78716c !important;
+    }
+    /* DM header buttons */
+    html[data-theme="parchment"] #dmCallBtn {
+      color: #1c1917 !important;
+      border-color: rgba(68, 64, 60, 0.28) !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] #dmCallBtn:hover {
+      background: rgba(68, 64, 60, 0.07) !important;
+    }
+    html[data-theme="parchment"] #dmUnfriendBtn {
+      color: #dc2626 !important;
+      border-color: rgba(220, 38, 38, 0.28) !important;
+      background: rgba(220, 38, 38, 0.04) !important;
+    }
+    /* WSS telemetry pill */
     html[data-theme="parchment"] .header-telemetry-pill {
-      background: rgba(68, 64, 60, 0.08) !important;
-      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      background: rgba(5, 150, 105, 0.07) !important;
+      border: 1px solid rgba(5, 150, 105, 0.22) !important;
+      color: #047857 !important;
     }
     html[data-theme="parchment"] .telemetry-ping-text {
-      color: #57534e !important;
+      color: #047857 !important;
+      font-weight: 700 !important;
     }
+    html[data-theme="parchment"] .pulse-cyan-dot {
+      background: #10b981 !important;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.7) !important;
+    }
+
 
     /* Horizontal Channel Switcher Row */
     html[data-theme="parchment"] .chat-channel-switcher-row {
@@ -2469,6 +2530,10 @@
       background: rgba(68, 64, 60, 0.10) !important;
       color: #78716c !important;
       border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      border-radius: 9999px !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      padding: 2px 7px !important;
     }
     html[data-theme="parchment"] .roster-empty-title {
       color: #141312 !important;
@@ -17703,8 +17768,6 @@ pre, .code-block, .chat-code-snippet {
           </span>
         </button>
 
-        <button class="btn-icon" id="pinsToggleBtn" onclick="togglePinsDrawer()" title="Pinned Messages"><i data-lucide="pin" class="lucide-sm"></i></button>
-        <button class="btn-icon" id="canvasToggleBtn" onclick="toggleCanvasDrawer()" title="Channel Canvas & Tasks"><i data-lucide="clipboard-list" class="lucide-sm"></i></button>
         <div style="position:relative;">
           <button class="btn-icon" id="scheduledToggleBtn" onclick="toggleScheduledDrawer()" title="Scheduled Messages Queue"><i data-lucide="clock" class="lucide-sm"></i></button>
           <div class="notif-badge" id="scheduledBadge" style="display:none; background:#a855f7; color:#fff;">0</div>
@@ -20880,7 +20943,7 @@ pre, .code-block, .chat-code-snippet {
     function renderAvatarHTML(avatar, name = '', size = 28, extraClass = '') {
       // BUG FIX #1: Normalize relative avatar paths to full URLs for app/web parity
       if (avatar && typeof avatar === 'string' && (avatar.startsWith('/uploads/') || avatar.startsWith('uploads/'))) {
-        avatar = 'https://connecto.fun/' + avatar.replace(/^\//, '');
+        avatar = avatar.startsWith('http') ? avatar : (window.location.origin + '/' + avatar.replace(/^\//, ''));
       }
       const clean = String(avatar || '').trim();
       const initial = (name && name.trim()) ? name.trim().charAt(0).toUpperCase() : '👤';
@@ -20891,7 +20954,7 @@ pre, .code-block, .chat-code-snippet {
       if (isImage) {
         let src = clean;
         if (src.startsWith('uploads/')) src = '/' + src;
-        return `<img src="${escapeHTML(src)}" class="avatar-img ${extraClass}" style="width:${size}px; height:${size}px; object-fit:cover; border-radius:50%; display:inline-block; flex-shrink:0; vertical-align:middle;" alt="${escapeHTML(name || '')}" onerror="this.onerror=null; this.src='https://connecto.fun/uploads/avatars/shinobi_avatar.png';">`;
+        return `<img src="${escapeHTML(src)}" class="avatar-img ${extraClass}" style="width:${size}px; height:${size}px; object-fit:cover; border-radius:50%; display:inline-block; flex-shrink:0; vertical-align:middle;" alt="${escapeHTML(name || '')}" onerror="this.onerror=null; this.src='/uploads/avatars/shinobi_avatar.png';">`;
       }
       return `<span class="avatar-text ${extraClass}" style="width:${size}px; height:${size}px; font-size:${Math.round(size * 0.55)}px; line-height:1; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(255,255,255,0.08); flex-shrink:0; overflow:hidden;">${clean}</span>`;
     }
@@ -21058,7 +21121,7 @@ pre, .code-block, .chat-code-snippet {
 
       let avatarHtml = typeof renderAvatarHTML === 'function'
         ? renderAvatarHTML(resolvedAvatar, resolvedUser || title || 'Connecto', 42)
-        : `<img src="${resolvedAvatar || 'https://connecto.fun/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
+        : `<img src="${resolvedAvatar || '/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
 
       toast.innerHTML = `
         <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
@@ -21079,7 +21142,7 @@ pre, .code-block, .chat-code-snippet {
 
       try {
         if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-          const resolvedIcon = avatar || 'https://connecto.fun/uploads/avatars/shinobi_avatar.png';
+          const resolvedIcon = avatar || '/uploads/avatars/shinobi_avatar.png';
           new Notification(title, {
             body: content,
             icon: resolvedIcon
@@ -23177,7 +23240,7 @@ pre, .code-block, .chat-code-snippet {
       if (pBanner) {
         const mBan = member.banner_url || (isSelf ? currentUserBanner : null) || BANNER_PRESETS.preset_aurora;
         if (mBan.startsWith('http') || mBan.startsWith('/')) {
-          const fullBan = mBan.startsWith('http') ? mBan : ('https://connecto.fun' + mBan);
+          const fullBan = mBan.startsWith('http') ? mBan : (window.location.origin + (mBan.startsWith('/') ? mBan : '/' + mBan));
           pBanner.style.background = `url('${fullBan}') center/cover no-repeat`;
           pBanner.style.backgroundSize = 'cover';
           pBanner.style.backgroundPosition = 'center';
@@ -25640,7 +25703,7 @@ pre, .code-block, .chat-code-snippet {
       
       const handle = '@' + (currentUser || 'user');
       document.getElementById('myReferralHandle').innerText = handle;
-      document.getElementById('myReferralUrlInput').value = `https://connecto.fun/?ref=${encodeURIComponent(handle)}`;
+      document.getElementById('myReferralUrlInput').value = window.location.origin + '/?ref=' + encodeURIComponent(handle);
       
       await Promise.all([
         loadMyReferralStats(),
@@ -31542,7 +31605,7 @@ function handleNavCommunityClick() {
   
 <script id="vconnect-version-sync">
 (function() {
-  const CURRENT_BUILD_VERSION = "3.1.0-prod";
+  const CURRENT_BUILD_VERSION = "4.0.0-prod";
   try {
     localStorage.setItem('vconnect_build_version', CURRENT_BUILD_VERSION);
     // Remove any legacy banner element
@@ -31613,7 +31676,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
 
   // Copy Direct APK Download Link
   window.copyApkDownloadLink = function() {
-    const url = 'https://connecto.fun/download/apk';
+    const url = window.location.origin + '/downloads/connecto-fun.apk';
     navigator.clipboard.writeText(url).then(() => {
       const btn = document.getElementById('btnCopyApkLink');
       if (btn) {
@@ -32023,7 +32086,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
       // Lightbox
       window.openLightbox = function(src) {
         if (!src || src.length < 5) return;
-        const url = src.startsWith('http') ? src : ('https://connecto.fun' + src);
+        const url = src.startsWith('http') ? src : (window.location.origin + (src.startsWith('/') ? src : '/' + src));
         document.getElementById('lightboxImg').src = url;
         document.getElementById('connectoLightbox').style.display = 'flex';
       };

@@ -69,6 +69,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Schedule
@@ -129,6 +130,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.runtime.collectAsState
 import com.example.connecto.ui.components.AddFriendDialog
+import com.example.connecto.ui.components.CreateGroupChatDialog
 import com.example.connecto.ui.components.ConnectoEmojiPicker
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.components.WebRtcCallOverlay
@@ -148,6 +150,7 @@ import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.designsystem.ConnectoAvatar
 import com.example.connecto.ui.designsystem.ConnectoPresenceStatus
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import com.example.connecto.ui.theme.isAppInLightTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -235,6 +238,7 @@ fun CustomizedChatScreen(
     var isUnfriending by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
+    var showCreateGroupChatDialog by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableIntStateOf(0) }
     var friendSearchQuery by remember { mutableStateOf("") }
     var typedMessage by remember { mutableStateOf("") }
@@ -264,12 +268,12 @@ fun CustomizedChatScreen(
     val isLight = isAppInLightTheme()
     val userInitial = if (currentUsername.isNotBlank()) currentUsername.first().toString().uppercase() else "C"
 
-    // Theme Aware Bubble Colors
-    val ownBubbleBg = if (isLight) Color(0xFF0052FF) else Color(0xFF3B82F6)
-    val ownBubbleText = Color.White
-    val friendBubbleBg = if (isLight) Color(0xFFF1F5F9) else Color(0xFF101014)
-    val friendBubbleBorder = if (isLight) Color(0xFFE2E8F0) else Color(0xFF1E1E24)
-    val friendBubbleText = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+    // Theme Aware Bubble Colors - Black & White matching dark and light theme
+    val ownBubbleBg = if (isLight) Color(0xFF141312) else Color(0xFFFFFFFF)
+    val ownBubbleText = if (isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
+    val friendBubbleBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF18181B)
+    val friendBubbleBorder = if (isLight) Color(0xFFE2E8F0) else Color(0xFF27272A)
+    val friendBubbleText = if (isLight) Color(0xFF141312) else Color(0xFFFFFFFF)
 
     val context = LocalContext.current
     val readPrefs = remember { context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE) }
@@ -1197,6 +1201,15 @@ fun CustomizedChatScreen(
         )
     }
 
+    if (showCreateGroupChatDialog) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "")
+        CreateGroupChatDialog(
+            currentUsername = effUser,
+            onDismissRequest = { showCreateGroupChatDialog = false },
+            onGroupCreated = { _, _, _ -> showCreateGroupChatDialog = false }
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -1357,7 +1370,20 @@ fun CustomizedChatScreen(
                     userInitial = userInitial,
                     onAddFriendClick = { showAddFriendDialog = true },
                     pendingFriendRequestsCount = pendingRequestsCount,
-                    onAvatarClick = onOpenProfile
+                    onAvatarClick = onOpenProfile,
+                    customAction = {
+                        androidx.compose.material3.IconButton(
+                            onClick = { showCreateGroupChatDialog = true },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GroupAdd,
+                                contentDescription = "Create Group Chat",
+                                tint = if (isAppInLightTheme()) androidx.compose.ui.graphics.Color(0xFF141312) else androidx.compose.ui.graphics.Color(0xFFD4D4D8),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 )
             }
 
@@ -1658,7 +1684,7 @@ fun CustomizedChatScreen(
                                                     text = "${friend.unreadCount}",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color.White
+                                                    color = MaterialTheme.colorScheme.onPrimary
                                                 )
                                             }
                                         }
@@ -2260,14 +2286,14 @@ private fun CustomChatBubble(
                     )
                     .background(
                         if (message.isMe) {
-                            SolidColor(MaterialTheme.colorScheme.primary)
+                            SolidColor(ownBg)
                         } else {
                             SolidColor(friendBg)
                         }
                     )
                     .border(
                         width = 1.dp,
-                        color = if (message.isMe) Color.White.copy(alpha = 0.15f) else friendBorder,
+                        color = if (message.isMe) ownText.copy(alpha = 0.15f) else friendBorder,
                         shape = if (message.isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
                         else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
                     )
@@ -2309,7 +2335,7 @@ private fun CustomChatBubble(
                         Text(
                             text = formatIsoTime(message.time),
                             fontSize = 10.sp,
-                            color = if (message.isMe) Color.White.copy(alpha = 0.75f) else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (message.isMe) ownText.copy(alpha = 0.70f) else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (message.isMe) {
                             Spacer(modifier = Modifier.width(4.dp))
@@ -2317,7 +2343,7 @@ private fun CustomChatBubble(
                             Icon(
                                 imageVector = if (isPending) Icons.Default.Schedule else Icons.Default.DoneAll,
                                 contentDescription = if (isPending) "Sending" else if (message.isRead) "Read" else "Delivered",
-                                tint = if (isPending) Color.White.copy(alpha = 0.5f) else if (message.isRead) Color(0xFF67E8F9) else Color.White.copy(alpha = 0.75f),
+                                tint = if (isPending) ownText.copy(alpha = 0.45f) else ownText.copy(alpha = 0.85f),
                                 modifier = Modifier.size(13.dp)
                             )
                         }

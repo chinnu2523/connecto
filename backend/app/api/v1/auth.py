@@ -1,5 +1,7 @@
 import re
 import secrets
+import logging
+logger = logging.getLogger("connecto.auth")
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -34,11 +36,14 @@ async def find_user_by_identifier(db: AsyncSession, identifier: str) -> Optional
     """Finds a user by username, email, or phone number."""
     clean = identifier.strip()
     clean_lower = clean.lower()
+    clean_no_at = clean_lower.lstrip("@")
     clean_digits = clean_phone_number(clean)
 
     conditions = [
         func.lower(User.username) == clean_lower,
-        func.lower(User.email) == clean_lower
+        func.lower(User.username) == clean_no_at,
+        func.lower(User.email) == clean_lower,
+        func.lower(User.email) == clean_no_at
     ]
     if clean_digits and len(clean_digits) >= 7:
         conditions.append(User.phone_number == clean_digits)
@@ -188,14 +193,14 @@ async def signup(
     clean_email = signup_data.email.strip().lower()
     clean_display_name = signup_data.display_name.strip() if (signup_data.display_name and signup_data.display_name.strip()) else clean_username
 
-    # Enforce test accounts policy: only 'test_user', 'chinnu', and 'vivek' are permitted test accounts
+    # Enforce test accounts policy: only 'vivek', 'srinu', and 'devi' are permitted test accounts
     test_patterns = [r"^test", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user"]
     is_test_username = any(re.search(pat, clean_username) for pat in test_patterns)
     is_test_email = clean_email.endswith("@connecto.test") or clean_email.endswith("@example.com") or any(re.search(pat, clean_email) for pat in test_patterns)
-    if (is_test_username or is_test_email) and clean_username not in ("chinnu", "vivek", "test_user"):
+    if (is_test_username or is_test_email) and clean_username not in ("vivek", "srinu", "devi"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration of additional test accounts is disabled. Only the designated test accounts ('test_user', 'chinnu', and 'vivek') are authorized for testing."
+            detail="Registration of additional test accounts is disabled. Only the designated accounts ('vivek', 'srinu', 'devi') are authorized."
         )
 
     # Check if username or email already exists
@@ -293,16 +298,24 @@ async def login(
     """
     user = await find_user_by_identifier(db, login_data.login)
 
-    if not user or not verify_password(user.password_hash, login_data.password):
+    # Strict password verification — ONLY Argon2id hash match is accepted.
+    # Whitespace trimming handles mobile keyboard trailing-space edge case only.
+    # NO fallback passwords, NO auto-rehash, NO dev password lists.
+    pwd_clean = (login_data.password or "").strip()
+    is_valid_pwd = verify_password(user.password_hash, login_data.password) if user else False
+    if not is_valid_pwd and user and pwd_clean != login_data.password:
+        is_valid_pwd = verify_password(user.password_hash, pwd_clean)
+
+    if not user or not is_valid_pwd:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username/email or password."
         )
 
-    # If admin username, ensure is_admin is True
-    is_adm = bool(getattr(user, "is_admin", False) or getattr(user, "is_recruiter", False))
-    if is_adm and not getattr(user, "is_admin", False):
-        user.is_admin = True
+    # Sole admin policy: ONLY chinnu14754x is admin, all others are members
+    is_adm = (user.username.lower() == "chinnu14754x")
+    if bool(user.is_admin) != is_adm:
+        user.is_admin = is_adm
         await db.commit()
         await db.refresh(user)
 

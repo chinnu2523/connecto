@@ -64,6 +64,7 @@ import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.isAppInLightTheme
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.launch
 
 private enum class ForgotPasswordStep {
@@ -229,13 +230,13 @@ fun ForgotPasswordDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF10B981).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFF10B981).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .background(ConnectoTheme.colors.success.copy(alpha = 0.15f))
+                            .border(1.dp, ConnectoTheme.colors.success.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
                             text = statusMessage ?: "",
-                            color = Color(0xFF10B981),
+                            color = ConnectoTheme.colors.success,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
@@ -389,7 +390,7 @@ fun ForgotPasswordDialog(
                             if (isVerifyingOtp) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = gradientColors.first())
                             } else if (isOtpVerified) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF10B981))
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ConnectoTheme.colors.success)
                             }
                         },
                         singleLine = true,

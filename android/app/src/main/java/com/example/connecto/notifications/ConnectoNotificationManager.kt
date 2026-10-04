@@ -319,7 +319,7 @@ object ConnectoNotificationManager {
                 avatarUrl
             } else {
                 val cleanPath = avatarUrl.trimStart('/')
-                "https://connecto.fun/$cleanPath"
+                "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/$cleanPath"
             }
             val connection = java.net.URL(resolvedUrl).openConnection() as java.net.HttpURLConnection
             connection.doInput = true

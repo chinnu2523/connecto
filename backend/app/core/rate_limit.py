@@ -66,8 +66,10 @@ def get_client_ip(request: Request) -> str:
     cf_ip = request.headers.get("CF-Connecting-IP")
     if cf_ip:
         return cf_ip.strip()
-    # Do NOT trust X-Forwarded-For or X-Real-IP - they can be forged
-    # Use the real socket IP for non-Cloudflare traffic (internal calls, health checks)
+    if request.client and request.client.host in ("127.0.0.1", "::1"):
+        proxy_ip = request.headers.get("X-Real-IP") or (request.headers.get("X-Forwarded-For", "").split(",")[0].strip() if request.headers.get("X-Forwarded-For") else None)
+        if proxy_ip:
+            return proxy_ip
     if request.client and request.client.host:
         return request.client.host
     return "127.0.0.1"

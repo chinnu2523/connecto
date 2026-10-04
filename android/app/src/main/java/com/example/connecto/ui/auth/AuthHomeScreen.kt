@@ -78,6 +78,7 @@ import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.isAppInLightTheme
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -453,7 +454,8 @@ fun AuthHomeScreen(
                                 errorMessage = null
                             },
                             placeholder = "Username or Email",
-                            icon = Icons.Outlined.Person
+                            icon = Icons.Outlined.Person,
+                            keyboardType = KeyboardType.Email
                         )
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -465,6 +467,7 @@ fun AuthHomeScreen(
                             },
                             placeholder = "Password",
                             icon = Icons.Outlined.Lock,
+                            keyboardType = KeyboardType.Password,
                             isPassword = true,
                             passwordVisible = passwordVisible,
                             onTogglePassword = { passwordVisible = !passwordVisible }
@@ -592,12 +595,13 @@ fun AuthHomeScreen(
                             }
                         }
                     } else {
-                        val cleanLogin = loginUsernameOrEmail.trim()
+                        val cleanLogin = loginUsernameOrEmail.trim().removePrefix("@")
+                        val cleanPassword = loginPassword.trim()
                         if (cleanLogin.isBlank()) {
                             errorMessage = "Please enter your username or email."
                             return@Button
                         }
-                        if (loginPassword.isBlank()) {
+                        if (cleanPassword.isBlank()) {
                             errorMessage = "Please enter your password."
                             return@Button
                         }
@@ -606,7 +610,7 @@ fun AuthHomeScreen(
                         coroutineScope.launch {
                             val result = ConnectoApiClient.login(
                                 loginIdentifier = cleanLogin,
-                                password = loginPassword
+                                password = cleanPassword
                             )
                             isLoading = false
                             if (result.isSuccess) {
@@ -681,7 +685,7 @@ fun AuthHomeScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 FeatureChip(icon = Icons.AutoMirrored.Outlined.Chat, label = "WebSocket Chat")
-                FeatureChip(icon = Icons.Outlined.Security, label = "Argon2id Vault")
+                FeatureChip(icon = Icons.Outlined.Security, label = "Encrypted Security")
                 FeatureChip(icon = Icons.Outlined.Call, label = "WebRTC Voice")
             }
         }
@@ -726,9 +730,9 @@ private fun ValidationStatusBadge(
     ) {
         val (bgColor, borderColor, contentColor, icon) = when (status) {
             FieldValidationStatus.VALID_AVAILABLE -> Quadruple(
-                Color(0xFF064E3B).copy(alpha = 0.25f),
-                Color(0xFF10B981).copy(alpha = 0.6f),
-                Color(0xFF34D399),
+                ConnectoTheme.colors.success.copy(alpha = 0.15f),
+                ConnectoTheme.colors.success.copy(alpha = 0.6f),
+                ConnectoTheme.colors.success,
                 Icons.Default.CheckCircle
             )
             FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Quadruple(
@@ -809,15 +813,13 @@ private fun ConnectoLogo() {
                 shape = CircleShape
             )
             .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.8f), CircleShape)
-            .padding(4.dp),
+            .padding(14.dp),
         contentAlignment = Alignment.Center
     ) {
         Image(
-            painter = painterResource(id = R.drawable.connecto_app_icon),
-            contentDescription = "Connecto-Fun Gemini Nano Banana Logo",
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(CircleShape)
+            painter = painterResource(id = R.drawable.ic_connecto_logo),
+            contentDescription = "Connecto Logo",
+            modifier = Modifier.fillMaxSize()
         )
     }
 }
@@ -835,14 +837,14 @@ private fun AuthTextField(
     validationStatus: FieldValidationStatus = FieldValidationStatus.IDLE
 ) {
     val dynamicBorderColor = when (validationStatus) {
-        FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
+        FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
         FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
         FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
         FieldValidationStatus.IDLE -> MaterialTheme.colorScheme.outline
     }
 
     val dynamicFocusedBorderColor = when (validationStatus) {
-        FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
+        FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
         FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
         FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
         FieldValidationStatus.IDLE -> MaterialTheme.colorScheme.primary
@@ -860,7 +862,7 @@ private fun AuthTextField(
                 icon,
                 contentDescription = null,
                 tint = when (validationStatus) {
-                    FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
+                    FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
                     FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
@@ -890,7 +892,7 @@ private fun AuthTextField(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Verified",
-                    tint = Color(0xFF10B981),
+                    tint = ConnectoTheme.colors.success,
                     modifier = Modifier.size(18.dp)
                 )
             }

@@ -68,6 +68,7 @@ import coil.compose.AsyncImage
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.network.NotificationDto
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -381,8 +382,8 @@ private fun NotificationItemRow(
     }
 
     val iconTint = when {
-        isCall -> Color(0xFF3B82F6)
-        isFriendRequest -> Color(0xFF10B981)
+        isCall -> ConnectoTheme.colors.info
+        isFriendRequest -> ConnectoTheme.colors.success
         item.type.contains("message", ignoreCase = true) -> Color(0xFF8B5CF6)
         else -> MaterialTheme.colorScheme.primary
     }
@@ -411,7 +412,7 @@ private fun NotificationItemRow(
             // Left Sender Avatar or Icon Badge
             val resolvedAvatar = item.senderAvatar?.let { raw ->
                 if (raw.startsWith("http://") || raw.startsWith("https://")) raw
-                else "https://connecto.fun/${raw.trimStart('/')}"
+                else "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/${raw.trimStart('/')}"
             }
 
             if (!resolvedAvatar.isNullOrBlank()) {
@@ -489,7 +490,7 @@ private fun NotificationItemRow(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF3B82F6))
+                                .background(ConnectoTheme.colors.info)
                         )
                     }
                 }

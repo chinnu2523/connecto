@@ -3,7 +3,7 @@
 // Handles connecto.fun, news.connecto.fun, and resinora.connecto.fun
 
 // Global circuit breaker state across edge worker invocations
-let localServerStatus = "DOWN"; // Defaults to DOWN until probe or request confirms origin UP
+let localServerStatus = "UP"; // Defaults to UP so edge isolates proxy directly to origin
 let lastOriginProbeTime = 0;
 const PROBE_INTERVAL_MS = 30000; // 30 seconds between background probes
 
@@ -83,7 +83,7 @@ export default {
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
       if (localServerStatus !== "UP") {
-        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v3.9.9/connecto-fun.apk", 302);
+        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.0.0/connecto-fun.apk", 302);
       }
     }
 
@@ -107,43 +107,29 @@ export default {
       return handleEdgeWebSocket(request, env, ctx);
     }
 
-    // 5. Intelligent Automated Proxy with Local Server Circuit Breaker
-    // If local server is UP and no force-cloud flag, attempt proxy with strict timeout
+    // 5. Intelligent Automated Proxy
+    // Always attempt origin proxy first unless explicitly forced to cloud
     const forceCloud = request.headers.get("X-Force-Cloud") === "1" || url.searchParams.get("force_cloud") === "1";
-    if (localServerStatus === "UP" && !forceCloud) {
+    if (!forceCloud) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2500);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
         const originResponse = await fetch(request.clone(), { signal: controller.signal });
         clearTimeout(timeoutId);
 
-        // If local server responds successfully (< 500), return directly
+        // If origin responds (< 500), return origin response directly
         if (originResponse.status < 500) {
-          // If origin returns 401 on authentication or 404 on any API endpoint, fall through to Cloudflare D1
-          const isAuth401 = originResponse.status === 401 && (url.pathname.includes('/auth/') || url.pathname.includes('/login'));
-          const isApi404 = originResponse.status === 404 && url.pathname.startsWith('/api/');
-          if (isAuth401 || isApi404) {
-            // Fall through to handleCloudApiRequest
-          } else {
-            const headers = new Headers(originResponse.headers);
-            headers.set("X-Connecto-Mode", "local_server");
-            headers.set("Access-Control-Allow-Origin", "*");
-            return new Response(originResponse.body, {
-              status: originResponse.status,
-              headers: headers
-            });
-          }
+          const headers = new Headers(originResponse.headers);
+          headers.set("X-Connecto-Mode", "local_server");
+          headers.set("Access-Control-Allow-Origin", "*");
+          return new Response(originResponse.body, {
+            status: originResponse.status,
+            headers: headers
+          });
         }
-        // Origin returned 500, 502, 503, 504, or 530 (Cloudflare Argo Tunnel drop)
-        markLocalServerDown(env, ctx);
       } catch (err) {
-        // Origin threw network timeout or connection refused
-        markLocalServerDown(env, ctx);
-      }
-    } else {
-      // Local server is DOWN -> probe occasionally in background to detect recovery
-      if (Date.now() - lastOriginProbeTime > PROBE_INTERVAL_MS) {
-        ctx.waitUntil(probeOriginHealth(env));
+        // Origin threw network timeout or connection refused - fall through to edge fallback
+        console.error("[PROXY_FALLBACK]", url.pathname, err.message);
       }
     }
 
@@ -167,13 +153,6 @@ export default {
 
 function markLocalServerDown(env, ctx) {
   localServerStatus = "DOWN";
-  if (ctx && env.DB) {
-    ctx.waitUntil(
-      env.DB.prepare(
-        "INSERT OR REPLACE INTO server_status (id, origin_state, last_checked, latency_ms, details) VALUES (?, ?, datetime('now'), ?, ?)"
-      ).bind("main_origin", "DOWN", 0, "Origin failed or disconnected; Cloud Server active").run().catch(() => {})
-    );
-  }
 }
 
 async function probeOriginHealth(env) {
@@ -471,102 +450,13 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
-  // 3. Authentication: Login (with full 2FA challenge support)
+  // 3. Authentication: Login (Strict Origin Gateway - Edge cannot forge Argon2id tokens)
   if (path === "/api/auth/login" || path === "/api/login" || path === "/api/v1/auth/login") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
-    try {
-      const body = await request.json().catch(() => ({}));
-      const ident = (body.username || body.login || body.identifier || "").trim().toLowerCase();
-      const password = body.password || "";
-
-      if (!ident) {
-        return jsonResponse({ detail: "Username or login identifier required" }, 400);
-      }
-
-      let user = null;
-      if (env.DB) {
-        user = await env.DB.prepare(
-          "SELECT * FROM users WHERE lower(username) = ? OR lower(email) = ? LIMIT 1"
-        ).bind(ident, ident).first();
-      }
-
-      if (!user) {
-        const newId = "usr_" + ident;
-        if (env.DB) {
-          await env.DB.prepare(
-            "INSERT OR IGNORE INTO users (id, username, display_name, email, password_hash, avatar_url, is_online, two_factor_enabled, is_stealth) VALUES (?, ?, ?, ?, ?, ?, 1, 0, 0)"
-          ).bind(newId, ident, ident, `${ident}@connecto.fun`, password, "👾").run();
-        }
-        user = {
-          id: newId,
-          username: ident,
-          display_name: ident,
-          email: `${ident}@connecto.fun`,
-          avatar_url: "👾",
-          is_online: 1,
-          two_factor_enabled: 0,
-          is_stealth: 0
-        };
-      }
-
-      // Check if 2FA is required for this user
-      if (user.two_factor_enabled === 1 || user.two_factor_enabled === true) {
-        const otpCode = generateNumericOtp(6);
-        const dest = user.email || `${user.username}@connecto.fun`;
-        if (env.DB) {
-          const otpId = "otp_" + crypto.randomUUID();
-          await env.DB.prepare(
-            "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'login_2fa', ?, 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
-          ).bind(otpId, user.id, dest, otpCode, user.two_factor_method || 'email').run();
-        }
-
-        if (ctx) {
-          ctx.waitUntil(dispatchOtpNotification({
-            email: user.email,
-            username: user.username,
-            otpCode: otpCode,
-            purpose: "Two-Factor Sign-In",
-            env: env,
-            ctx: ctx
-          }));
-        }
-
-        return jsonResponse({
-          status: "2fa_required",
-          two_factor_required: true,
-          requires_2fa: true,
-          two_factor_enabled: true,
-          two_factor_method: user.two_factor_method || "email",
-          username: user.username,
-          masked_email: maskEmail(user.email),
-          masked_destination: maskEmail(user.email),
-          masked_phone: maskPhone(user.phone_number),
-          dev_otp: otpCode
-        });
-      }
-
-      const token = "cf_edge_" + user.id + "_" + Date.now();
-      return jsonResponse({
-        token: token,
-        access_token: token,
-        token_type: "bearer",
-        two_factor_enabled: false,
-        requires_2fa: false,
-        user: {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name || user.username,
-          nickname: user.display_name || user.username,
-          email: user.email,
-          avatar_url: user.avatar_url || "👾",
-          avatar: user.avatar_url || "👾",
-          two_factor_enabled: false,
-          is_stealth: !!user.is_stealth
-        }
-      });
-    } catch (err) {
-      return jsonResponse({ error: err.message }, 500);
-    }
+    return jsonResponse({
+      detail: "Authentication service temporarily reconnecting. Please retry in a few seconds.",
+      error: "Service Unavailable"
+    }, 503);
   }
 
   // 3b. Verify 2FA Login OTP (Web & Android)
@@ -1921,11 +1811,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (path === "/api/leaderboard" || path === "/api/referrals/leaderboard") {
     return jsonResponse({
       leaderboard: [
-        { rank: 1, username: "connecto_admin", nickname: "Shadow Master", xp: 12500, referrals: 42, badge: "👑 Grandmaster" },
-        { rank: 2, username: "madara_legend", nickname: "Madara Uchiha", xp: 9800, referrals: 28, badge: "⚡ Jonin" },
-        { rank: 3, username: "elena_vance", nickname: "Elena Vance", xp: 8400, referrals: 19, badge: "⚡ Jonin" },
-        { rank: 4, username: "chinnu", nickname: "Chinnu", xp: 7200, referrals: 15, badge: "🔥 Chunin" },
-        { rank: 5, username: "vivek", nickname: "Vivek", xp: 6500, referrals: 12, badge: "🔥 Chunin" }
+        { rank: 1, username: "devi", nickname: "divyasree", xp: 12500, referrals: 42, badge: "👑 Grandmaster" },
+        { rank: 2, username: "srinu", nickname: "srinu", xp: 9800, referrals: 28, badge: "⚡ Jonin" },
+        { rank: 3, username: "vivek", nickname: "Vivek", xp: 8400, referrals: 19, badge: "⚡ Jonin" },
+        { rank: 4, username: "meghana", nickname: "Meghana", xp: 7200, referrals: 15, badge: "🔥 Chunin" },
+        { rank: 5, username: "divya1736", nickname: "Ammu", xp: 6500, referrals: 12, badge: "🔥 Chunin" }
       ]
     });
   }
@@ -2346,16 +2236,16 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "3.9.9",
-      version_name: "v3.9.9",
-      version_code: 42,
-      build: 42,
-      sha256: "8fb0268a95e001dbb5abe78427c16655973da290239e61cd29c86600f8ab35a1",
+      version: "4.0.0",
+      version_name: "v4.0.0",
+      version_code: 43,
+      build: 43,
+      sha256: "2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9",
       filename: "connecto-fun.apk",
-      size_bytes: 56916705,
-      size_display: "54.3 MB",
+      size_bytes: 56854629,
+      size_display: "54.2 MB",
       min_android: "Android 7.0 (API 24)",
-      target_android: "Android 16+ (API 36 / HyperOS Verified)",
+      target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
       download_url: "/download/apk",
       direct_download_url: "https://connecto.fun/download/apk"

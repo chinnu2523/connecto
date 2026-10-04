@@ -14,8 +14,8 @@ android {
         applicationId = "com.connecto.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 42
-        versionName = "3.9.9"
+        versionCode = 46
+        versionName = "4.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -25,14 +25,14 @@ android {
 
     buildTypes {
         debug {
-            // Pointing directly to production server hosted on box (100.87.184.30) via Cloudflare
-            buildConfigField("String", "BASE_URL", "\"https://connecto.fun\"")
-            buildConfigField("String", "WS_BASE_URL", "\"wss://connecto.fun\"")
+            // Debug: use Tailscale for developer builds (on-VPN only)
+            buildConfigField("String", "BASE_URL", "\"http://100.87.184.30\"")
+            buildConfigField("String", "WS_BASE_URL", "\"ws://100.87.184.30\"")
         }
         release {
             isDebuggable = false
             signingConfig = signingConfigs.getByName("debug")
-            // Real production backend configuration (Strict HTTPS & WSS)
+            // Release: public production server
             buildConfigField("String", "BASE_URL", "\"https://connecto.fun\"")
             buildConfigField("String", "WS_BASE_URL", "\"wss://connecto.fun\"")
             optimization {

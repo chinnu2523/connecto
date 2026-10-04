@@ -142,7 +142,7 @@ fun InAppNotificationBanner(
             if (current != null) {
                 val resolvedAvatar = current.avatarUrl?.let { raw ->
                     if (raw.startsWith("http://") || raw.startsWith("https://")) raw
-                    else "https://connecto.fun/${raw.trimStart('/')}"
+                    else "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/${raw.trimStart('/')}"
                 }
 
                 val borderGradient = Brush.linearGradient(

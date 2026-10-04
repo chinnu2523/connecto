@@ -11,7 +11,7 @@
         <item name="android:enforceNavigationBarContrast">false</item>
         <item name="android:enforceStatusBarContrast">false</item>
         <item name="android:windowSplashScreenBackground">@color/ic_launcher_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/connecto_app_icon</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_connecto_logo</item>
         <item name="android:windowSplashScreenIconBackgroundColor">@color/ic_launcher_background</item>
     </style>
 </resources>

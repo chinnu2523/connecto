@@ -85,12 +85,12 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Gamepad
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MilitaryTech
 import androidx.compose.material.icons.filled.Person
-
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SportsEsports
@@ -112,6 +112,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -148,6 +149,7 @@ import coil.compose.AsyncImage
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.TextDisabledColor
@@ -157,6 +159,7 @@ import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.rotatingGlowHalo
 import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
 import com.example.connecto.ui.designsystem.getAvatarGradient
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -218,6 +221,7 @@ fun ProfileScreen(
     }
     var isUploadingBanner by remember { mutableStateOf(false) }
     var bannerUrlFieldInput by remember { mutableStateOf("") }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
 
     // ================= PERSONAL DETAILS STATE =================
     var currentUsernameState by remember(username) {
@@ -264,6 +268,11 @@ fun ProfileScreen(
     var show2FaSetupDialog by remember { mutableStateOf(false) }
     var twoFaSetupMaskedDest by remember { mutableStateOf<String?>(null) }
     var twoFaErrorMessage by remember { mutableStateOf<String?>(null) }
+    var personalDetailsExpanded by remember { mutableStateOf(false) }
+    var presenceStealthExpanded by remember { mutableStateOf(false) }
+    var twoFactorExpanded by remember { mutableStateOf(false) }
+    var biometricVaultExpanded by remember { mutableStateOf(false) }
+    var appearanceThemeExpanded by remember { mutableStateOf(false) }
 
     // Live sync with backend SQLite database on launch
     LaunchedEffect(username) {
@@ -454,7 +463,7 @@ fun ProfileScreen(
                 item { Spacer(modifier = Modifier.height(4.dp)) }
 
                 // ================= AUTO-SAVE CONFIRMATION BADGE =================
-                item {
+                item(key = "auto_save_badge") {
                     AnimatedVisibility(
                         visible = showSavedBadge,
                         enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + androidx.compose.animation.scaleIn(
@@ -492,7 +501,7 @@ fun ProfileScreen(
                 }
 
                 // ================= 1. AVATAR & USER SUMMARY CARD WITH COVER =================
-                item {
+                item(key = "avatar_summary_card") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -627,7 +636,7 @@ fun ProfileScreen(
                                         .size(8.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (stealthModeEnabled) Color(0xFF60A5FA)
+                                            if (stealthModeEnabled) ConnectoTheme.colors.info
                                             else if (isWsConnected) OnlineGreen
                                             else TextDisabledColor
                                         )
@@ -643,7 +652,7 @@ fun ProfileScreen(
                                 Text(
                                     text = if (stealthModeEnabled) "• Stealth Mode Active" else if (isWsConnected) "• Online" else "• Offline",
                                     fontSize = 12.sp,
-                                    color = if (stealthModeEnabled) Color(0xFF60A5FA) else if (isWsConnected) OnlineGreen else TextDisabledColor,
+                                    color = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor,
                                     fontWeight = FontWeight.Medium
                                 )
                                 if (profilePhotoUri?.startsWith("http") == true && profilePhotoUri != "null") {
@@ -687,30 +696,42 @@ fun ProfileScreen(
                 }
 
                 // ================= PRESENCE & STEALTH MODE =================
-                item {
+                item(key = "presence_stealth_section") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        SectionHeader(
+                        ProfileAccordionHeader(
                             title = "Presence & Stealth Mode",
-                            subtitle = "Control how others see your online status"
+                            subtitle = "Control how others see your online status",
+                            icon = Icons.Default.Visibility,
+                            isExpanded = presenceStealthExpanded,
+                            onToggleExpand = { presenceStealthExpanded = !presenceStealthExpanded },
+                            statusBadge = if (stealthModeEnabled) "STEALTH ON" else null,
+                            statusBadgeColor = ConnectoTheme.colors.info,
+                            gradientColors = gradientColors,
+                            contentOnGradient = contentOnGradient
                         )
-                        Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(
-                                if (stealthModeEnabled) Color(0xFF1E2940)
-                                else MaterialTheme.colorScheme.surface
-                            )
-                            .border(
-                                1.dp,
-                                if (stealthModeEnabled) Color(0xFF3B4F78) else MaterialTheme.colorScheme.outline,
-                                RoundedCornerShape(18.dp)
-                            )
-                            .padding(16.dp)
-                    ) {
+                        AnimatedVisibility(
+                            visible = presenceStealthExpanded,
+                            enter = fadeIn() + androidx.compose.animation.expandVertically(),
+                            exit = fadeOut() + androidx.compose.animation.shrinkVertically()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
+                                    .background(
+                                        if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f)
+                                        else MaterialTheme.colorScheme.surface
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.4f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                        RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp)
+                                    )
+                                    .padding(16.dp)
+                            ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
@@ -723,7 +744,7 @@ fun ProfileScreen(
                                 Icon(
                                     imageVector = if (stealthModeEnabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     contentDescription = null,
-                                    tint = if (stealthModeEnabled) Color(0xFF60A5FA) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = if (stealthModeEnabled) ConnectoTheme.colors.info else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
@@ -733,21 +754,21 @@ fun ProfileScreen(
                                             text = "Stealth Mode",
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = if (stealthModeEnabled) Color(0xFFE2E8F0) else MaterialTheme.colorScheme.onSurface
+                                            color = if (stealthModeEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         if (stealthModeEnabled) {
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
-                                                    .background(Color(0xFF1D4ED8).copy(alpha = 0.35f))
+                                                    .background(ConnectoTheme.colors.info.copy(alpha = 0.2f))
                                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                                             ) {
                                                 Text(
                                                     text = "ACTIVE",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF93C5FD)
+                                                    color = ConnectoTheme.colors.info
                                                 )
                                             }
                                         }
@@ -758,7 +779,7 @@ fun ProfileScreen(
                                         else
                                             "Appear offline to others while staying connected",
                                         fontSize = 12.sp,
-                                        color = if (stealthModeEnabled) Color(0xFF94A3B8) else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (stealthModeEnabled) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -776,26 +797,22 @@ fun ProfileScreen(
                                     }
                                     triggerAutoSave()
                                 },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = Color(0xFF2563EB),
-                                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
+                                colors = getMonochromeSwitchColors()
                             )
                         }
                     }
+                        }
                     }
                 }
 
                 // ================= PERSONAL DETAILS SECTION =================
-                item {
+                item(key = "personal_details_section") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         SectionHeader(
-                            title = "Personal Details & Contact",
+                            title = "Personal Information",
                             subtitle = "Manage your identity, personal information, and contact details"
                         )
 
@@ -864,7 +881,7 @@ fun ProfileScreen(
                             // Email Address (OTP Protected with Masking & Dedicated Change Flow)
                             ContactStyledField(
                                 label = "Email Address",
-                                value = if (revealEmail) emailInput else maskEmail(emailInput),
+                                value = if (revealEmail) emailInput else emailInput.maskEmail(),
                                 icon = Icons.Default.Email,
                                 isMasked = !revealEmail,
                                 onToggleMask = { revealEmail = !revealEmail },
@@ -965,22 +982,33 @@ fun ProfileScreen(
                 }
 
                 // ================= 7B. TWO-FACTOR AUTH (2FA) & PASSWORD RECOVERY =================
-                item {
+                item(key = "two_factor_auth_section") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        SectionHeader(
-                            title = "TWO-FACTOR AUTH & PASSWORD SECURITY",
-                            subtitle = "Email 2FA verification & instant inbox recovery"
+                        ProfileAccordionHeader(
+                            title = "Two-Factor Auth & Password Security",
+                            subtitle = "Email 2FA verification & instant inbox recovery",
+                            icon = Icons.Default.Lock,
+                            isExpanded = twoFactorExpanded,
+                            onToggleExpand = { twoFactorExpanded = !twoFactorExpanded },
+                            statusBadge = if (twoFactorEnabled) "ACTIVE" else null,
+                            statusBadgeColor = MaterialTheme.colorScheme.primary,
+                            gradientColors = gradientColors,
+                            contentOnGradient = contentOnGradient
                         )
-
+                        AnimatedVisibility(
+                            visible = twoFactorExpanded,
+                            enter = fadeIn() + androidx.compose.animation.expandVertically(),
+                            exit = fadeOut() + androidx.compose.animation.shrinkVertically()
+                        ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
                                 .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
                                 .padding(16.dp)
                         ) {
                             Column(
@@ -1095,7 +1123,7 @@ fun ProfileScreen(
                                         Icon(
                                             imageVector = Icons.Default.Shield,
                                             contentDescription = null,
-                                            tint = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.primary,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
@@ -1111,14 +1139,14 @@ fun ProfileScreen(
                                                 Box(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(6.dp))
-                                                        .background(if (twoFactorEnabled) OnlineGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                        .background(if (twoFactorEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant)
                                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                                 ) {
                                                     Text(
                                                         text = if (twoFactorEnabled) "ACTIVE" else "OFF",
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = if (twoFactorEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
@@ -1133,12 +1161,7 @@ fun ProfileScreen(
                                     Switch(
                                         checked = twoFactorEnabled,
                                         onCheckedChange = { isChecked -> onToggle2Fa(isChecked) },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = OnlineGreen,
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                        )
+                                        colors = getMonochromeSwitchColors()
                                     )
                                 }
 
@@ -1231,30 +1254,41 @@ fun ProfileScreen(
                                 }
                             }
                         }
+                        } // AnimatedVisibility
                     }
                 }
 
-                // ================= 7C. CONNECTO VAULT & APP LOCK =================
-                item {
+                // ================= 7C. BIOMETRIC & APP LOCK =================
+                item(key = "biometric_vault_section") {
+                    val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
+                    val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
+                    val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        SectionHeader(
-                            title = "CONNECTO VAULT & APP LOCK",
-                            subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security"
+                        ProfileAccordionHeader(
+                            title = "Biometric & App Lock",
+                            subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
+                            icon = Icons.Default.Shield,
+                            isExpanded = biometricVaultExpanded,
+                            onToggleExpand = { biometricVaultExpanded = !biometricVaultExpanded },
+                            statusBadge = if (isAppLockEnabled) "ACTIVE" else null,
+                            statusBadgeColor = MaterialTheme.colorScheme.primary,
+                            gradientColors = gradientColors,
+                            contentOnGradient = contentOnGradient
                         )
-
-                        val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
-                        val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
-                        val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
-
+                        AnimatedVisibility(
+                            visible = biometricVaultExpanded,
+                            enter = fadeIn() + androidx.compose.animation.expandVertically(),
+                            exit = fadeOut() + androidx.compose.animation.shrinkVertically()
+                        ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
                                 .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
                                 .padding(16.dp)
                         ) {
                             Column(
@@ -1274,14 +1308,14 @@ fun ProfileScreen(
                                         Icon(
                                             imageVector = Icons.Default.Fingerprint,
                                             contentDescription = null,
-                                            tint = if (isAppLockEnabled) OnlineGreen else MaterialTheme.colorScheme.primary,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(22.dp)
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
-                                                    text = "App Lock (Connecto Vault)",
+                                                    text = "Biometric App Lock",
                                                     fontSize = 15.sp,
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = MaterialTheme.colorScheme.onSurface
@@ -1290,14 +1324,14 @@ fun ProfileScreen(
                                                 Box(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(6.dp))
-                                                        .background(if (isAppLockEnabled) OnlineGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                        .background(if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant)
                                                         .padding(horizontal = 6.dp, vertical = 2.dp)
                                                 ) {
                                                     Text(
-                                                        text = if (isAppLockEnabled) "SECURED" else "OFF",
+                                                        text = if (isAppLockEnabled) "ON" else "OFF",
                                                         fontSize = 10.sp,
                                                         fontWeight = FontWeight.Bold,
-                                                        color = if (isAppLockEnabled) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        color = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
@@ -1315,19 +1349,14 @@ fun ProfileScreen(
                                             if (isChecked) {
                                                 Toast.makeText(
                                                     context,
-                                                    "Connecto Vault Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
+                                                    "Biometric App Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
                                                     Toast.LENGTH_SHORT
                                                 ).show()
                                             }
                                             isAppLockEnabled = isChecked
                                             prefs.edit().putBoolean("biometric_lock_$username", isChecked).apply()
                                         },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = OnlineGreen,
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                        )
+                                        colors = getMonochromeSwitchColors()
                                     )
                                 }
 
@@ -1339,12 +1368,12 @@ fun ProfileScreen(
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(12.dp))
                                         .background(
-                                            if (isAppLockEnabled) OnlineGreen.copy(alpha = 0.08f)
+                                            if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                                         )
                                         .border(
                                             1.dp,
-                                            if (isAppLockEnabled) OnlineGreen.copy(alpha = 0.3f)
+                                            if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                                             else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
                                             RoundedCornerShape(12.dp)
                                         )
@@ -1359,7 +1388,7 @@ fun ProfileScreen(
                                                 .size(36.dp)
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .background(
-                                                    if (isAppLockEnabled) OnlineGreen.copy(alpha = 0.15f)
+                                                    if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                                     else MaterialTheme.colorScheme.surfaceVariant
                                                 ),
                                             contentAlignment = Alignment.Center
@@ -1367,7 +1396,7 @@ fun ProfileScreen(
                                             Icon(
                                                 imageVector = if (isAppLockEnabled) Icons.Default.Shield else Icons.Default.Lock,
                                                 contentDescription = null,
-                                                tint = if (isAppLockEnabled) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                tint = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -1405,7 +1434,7 @@ fun ProfileScreen(
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = "Lock vault immediately when leaving Connecto",
+                                                text = "Lock app immediately when leaving Connecto",
                                                 fontSize = 11.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1417,18 +1446,13 @@ fun ProfileScreen(
                                                 autoLockOnBackground = isChecked
                                                 prefs.edit().putBoolean("auto_lock_background_$username", isChecked).apply()
                                             },
-                                            colors = SwitchDefaults.colors(
-                                                checkedThumbColor = Color.White,
-                                                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                            )
+                                            colors = getMonochromeSwitchColors()
                                         )
                                     }
 
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
 
-                                    // 4. Test Lock Vault Now Button
+                                    // 4. Test Lock App Now Button
                                     Button(
                                         onClick = onLockApp,
                                         modifier = Modifier
@@ -1449,7 +1473,7 @@ fun ProfileScreen(
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            text = "Lock Vault & Test Authentication Now",
+                                            text = "Lock App & Test Authentication Now",
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 12.sp,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -1458,26 +1482,38 @@ fun ProfileScreen(
                                 }
                             }
                         }
+                        } // AnimatedVisibility
                     }
                 }
 
                 // ================= 7D. APPEARANCE & DISPLAY THEME =================
-                item {
+                item(key = "appearance_theme_section") {
                     Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
-                        SectionHeader(
-                            title = "APPEARANCE & DISPLAY THEME",
-                            subtitle = "Switch between Dark Mode and Light Mode"
+                        ProfileAccordionHeader(
+                            title = "Appearance & Display Theme",
+                            subtitle = "Switch between Dark Mode and Light Mode",
+                            icon = Icons.Default.DarkMode,
+                            isExpanded = appearanceThemeExpanded,
+                            onToggleExpand = { appearanceThemeExpanded = !appearanceThemeExpanded },
+                            statusBadge = if (isDarkTheme) "DARK" else "LIGHT",
+                            statusBadgeColor = MaterialTheme.colorScheme.primary,
+                            gradientColors = gradientColors,
+                            contentOnGradient = contentOnGradient
                         )
-
+                        AnimatedVisibility(
+                            visible = appearanceThemeExpanded,
+                            enter = fadeIn() + androidx.compose.animation.expandVertically(),
+                            exit = fadeOut() + androidx.compose.animation.shrinkVertically()
+                        ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
                                 .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
                                 .padding(16.dp)
                         ) {
                             Column(
@@ -1519,12 +1555,7 @@ fun ProfileScreen(
                                     Switch(
                                         checked = isDarkTheme,
                                         onCheckedChange = { onToggleTheme(it) },
-                                        colors = SwitchDefaults.colors(
-                                            checkedThumbColor = Color.White,
-                                            checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                        )
+                                        colors = getMonochromeSwitchColors()
                                     )
                                 }
 
@@ -1572,7 +1603,7 @@ fun ProfileScreen(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                                 ) {
-                                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF3B82F6)))
+                                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(ConnectoTheme.colors.info))
                                                     Box(modifier = Modifier.width(36.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF1E1E24)))
                                                 }
                                             }
@@ -1661,11 +1692,12 @@ fun ProfileScreen(
                                 }
                             }
                         }
+                        } // AnimatedVisibility
                     }
                 }
 
                 // ================= 7. PRIMARY SIGN OUT BUTTON =================
-                item {
+                item(key = "sign_out_button") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1695,6 +1727,14 @@ fun ProfileScreen(
                 item { Spacer(modifier = Modifier.height(24.dp)) }
             }
         }
+    }
+
+    if (showAddFriendDialog) {
+        AddFriendDialog(
+            currentUsername = username,
+            onDismissRequest = { showAddFriendDialog = false },
+            onFriendAdded = { showAddFriendDialog = false }
+        )
     }
 
     if (showLightbox) {
@@ -2278,6 +2318,18 @@ private fun ProfileStatCard(
 }
 
 @Composable
+private fun getMonochromeSwitchColors(isLight: Boolean = isAppInLightTheme()): SwitchColors {
+    return SwitchDefaults.colors(
+        checkedTrackColor = if (isLight) Color(0xFF141312) else Color(0xFFFFFFFF),
+        checkedThumbColor = if (isLight) Color(0xFFFFFFFF) else Color(0xFF141312),
+        checkedBorderColor = if (isLight) Color(0xFF141312) else Color(0xFFFFFFFF),
+        uncheckedTrackColor = if (isLight) Color(0xFFE4E4E7) else Color(0xFF27272A),
+        uncheckedThumbColor = if (isLight) Color(0xFF71717A) else Color(0xFFA1A1AA),
+        uncheckedBorderColor = if (isLight) Color(0xFFD4D4D8) else Color(0xFF3F3F46)
+    )
+}
+
+@Composable
 private fun SettingToggleRow(
     title: String,
     subtitle: String,
@@ -2324,27 +2376,9 @@ private fun SettingToggleRow(
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = MaterialTheme.colorScheme.primary,
-                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+            colors = getMonochromeSwitchColors()
         )
     }
-}
-
-private fun maskEmail(email: String): String {
-    val clean = email.trim()
-    if (!clean.contains("@")) return clean
-    val parts = clean.split("@", limit = 2)
-    val user = parts[0]
-    val domain = parts[1]
-    val maskedUser = when {
-        user.length <= 2 -> user.first() + "***"
-        else -> "${user.first()}${"*".repeat((user.length - 2).coerceIn(3, 8))}${user.last()}"
-    }
-    return "$maskedUser@$domain"
 }
 
 private fun maskPhone(phone: String): String {
@@ -2654,14 +2688,14 @@ private fun ChangeContactDialog(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                .background(ConnectoTheme.colors.success.copy(alpha = 0.15f))
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "Dev OTP Auto-detected: $devOtp",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF10B981)
+                                color = ConnectoTheme.colors.success
                             )
                         }
                     }
@@ -2786,6 +2820,175 @@ private fun ChangeContactDialog(
                     }
                 }
             }
+        }
+    }
+}
+
+
+// ---------------------------------------------------------------------------
+// Helper: mask an email for privacy display  e.g. "ab****@gmail.com"
+// ---------------------------------------------------------------------------
+private fun String.maskEmail(): String {
+    if (isBlank()) return "—"
+    val atIndex = indexOf('@')
+    if (atIndex < 0) return "****"
+    val local = substring(0, atIndex)
+    val domain = substring(atIndex)
+    val visible = local.take(2)
+    val stars = "*".repeat((local.length - 2).coerceAtLeast(3))
+    return "$visible$stars$domain"
+}
+
+// ---------------------------------------------------------------------------
+// Reusable read-only detail row for the Personal Details expandable card
+// ---------------------------------------------------------------------------
+@Composable
+private fun PersonalDetailRow(
+    label: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier = Modifier,
+    multiLine: Boolean = false
+) {
+    Row(
+        verticalAlignment = if (multiLine) Alignment.Top else Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+            modifier = Modifier
+                .size(18.dp)
+                .then(if (multiLine) Modifier.padding(top = 2.dp) else Modifier)
+        )
+        Spacer(modifier = Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+                letterSpacing = 0.6.sp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = if (multiLine) 4 else 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Reusable Accordion Header for Profile Screen Tabs
+// ---------------------------------------------------------------------------
+@Composable
+private fun ProfileAccordionHeader(
+    title: String,
+    subtitle: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit,
+    statusBadge: String? = null,
+    statusBadgeColor: Color = MaterialTheme.colorScheme.primary,
+    gradientColors: List<Color> = getDynamicAccentGradientColors(),
+    contentOnGradient: Color = getContentColorOnAccentGradient(),
+    modifier: Modifier = Modifier
+) {
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (isExpanded) 90f else 0f,
+        label = "accordion_arrow"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(
+                if (isExpanded) RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+                else RoundedCornerShape(18.dp)
+            )
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                1.dp,
+                if (isExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline,
+                if (isExpanded) RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)
+                else RoundedCornerShape(18.dp)
+            )
+            .clickable { onToggleExpand() }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(Brush.linearGradient(gradientColors)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = contentOnGradient,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = title,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        if (statusBadge != null) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(statusBadgeColor.copy(alpha = 0.18f))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = statusBadge,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statusBadgeColor
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = if (isExpanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                modifier = Modifier
+                    .size(22.dp)
+                    .graphicsLayer { rotationZ = arrowRotation }
+            )
         }
     }
 }

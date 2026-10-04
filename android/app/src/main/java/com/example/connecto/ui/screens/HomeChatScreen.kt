@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.GroupAdd
+import com.example.connecto.ui.components.CreateGroupChatDialog
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -150,6 +152,7 @@ fun HomeChatScreen(
     var friendRequests by remember { mutableStateOf<List<FriendRequestItemDto>>(emptyList()) }
     var recentNotifications by remember { mutableStateOf<List<NotificationDto>>(emptyList()) }
     var isAddFriendOpen by remember { mutableStateOf(false) }
+    var isGroupChatOpen by remember { mutableStateOf(false) }
     var isSearchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val filteredConversations = remember(recentConversations, searchQuery) {
@@ -355,12 +358,10 @@ fun HomeChatScreen(
         Column(modifier = Modifier.fillMaxSize()) {
             // 1. Standardized Top Header with Status and Profile Avatar
             ConnectoTopHeader(
-                title = "connecto.fun",
+                title = "Connecto",
                 subtitle = "Dashboard",
                 userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
                 onMenuClick = null,
-                onAddFriendClick = { isAddFriendOpen = true },
-                pendingFriendRequestsCount = friendRequests.size,
                 onAvatarClick = onNavigateToProfile
             )
 
@@ -460,7 +461,7 @@ fun HomeChatScreen(
                             Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
                             Text(
                                 text = when {
-                                    isWsConnected -> "Connected to connecto.fun Network"
+                                    isWsConnected -> "Connected to Connecto Network (Tailscale)"
                                     connectTimedOut -> "Server Offline · Tap to retry"
                                     else -> "Connecting..."
                                 },
@@ -794,6 +795,22 @@ fun HomeChatScreen(
                 onFriendAdded = {
                     isAddFriendOpen = false
                     coroutineScope.launch { refreshDashboard() }
+                }
+            )
+        }
+
+        // Create Group Chat Dialog
+        if (isGroupChatOpen) {
+            CreateGroupChatDialog(
+                currentUsername = currentUsername,
+                onDismissRequest = { isGroupChatOpen = false },
+                onGroupCreated = { groupName, groupId, members ->
+                    isGroupChatOpen = false
+                    if (groupId.isNotEmpty()) {
+                        onNavigateToChannel?.invoke(groupId)
+                    } else {
+                        onNavigateToMessages()
+                    }
                 }
             )
         }

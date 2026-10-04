@@ -58,7 +58,7 @@
   // ==================== AUTOMATED CLOUD & LOCAL FAILOVER ENGINE ====================
   (function initAutomatedFailover() {
     const originalFetch = window.fetch;
-    const CLOUD_ORIGIN = 'https://connecto.fun';
+    const CLOUD_ORIGIN = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://100.87.184.30' : window.location.origin;
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     window.fetch = async function(...args) {
@@ -208,7 +208,7 @@
     if (preview) {
       if (!bg) bg = BANNER_PRESETS.preset_aurora;
       if (bg.startsWith('http') || bg.startsWith('data:') || bg.startsWith('/')) {
-        const fullUrl = (bg.startsWith('http') || bg.startsWith('data:')) ? bg : ('https://connecto.fun' + bg);
+        const fullUrl = (bg.startsWith('http') || bg.startsWith('data:')) ? bg : (window.location.origin + (bg.startsWith('/') ? bg : '/' + bg));
         preview.style.background = `url('${fullUrl}') center/cover no-repeat`;
         preview.style.backgroundImage = `url('${fullUrl}')`;
         preview.style.backgroundSize = 'cover';
@@ -2023,51 +2023,112 @@
       color: #ffffff !important;
     }
 
-    /* Chat Header */
+    /* ─── Chat Header — Parchment (Light) Theme ─── */
     html[data-theme="parchment"] .chat-header {
-      background: #f5f1e8 !important;
+      background: rgba(245, 241, 232, 0.96) !important;
+      backdrop-filter: blur(20px) saturate(160%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(160%) !important;
+      border-top: 1px solid rgba(120, 113, 108, 0.18) !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow: 0 2px 16px rgba(68, 64, 60, 0.10), 0 1px 0 rgba(255,255,255,0.70) inset !important;
+    }
+    html[data-theme="parchment"] .header-left {
+      color: #1c1917 !important;
     }
     html[data-theme="parchment"] #headerTitle {
-      color: #141312 !important;
+      color: #1c1917 !important;
+      font-weight: 700 !important;
     }
     html[data-theme="parchment"] #headerPrefix {
-      color: #78716c !important;
+      color: #a8a29e !important;
+      text-shadow: none !important;
+      font-weight: 700 !important;
     }
     html[data-theme="parchment"] #headerTopic {
-      color: #57534e !important;
-      border-left-color: rgba(68, 64, 60, 0.16) !important;
+      color: #78716c !important;
+      border-left-color: rgba(68, 64, 60, 0.18) !important;
+      font-size: 12px !important;
     }
     html[data-theme="parchment"] .header-divider-sep {
-      color: rgba(68, 64, 60, 0.3) !important;
+      color: rgba(68, 64, 60, 0.28) !important;
     }
-    html[data-theme="parchment"] .in-chat-search-input {
+    html[data-theme="parchment"] .channel-slowmode-indicator {
+      color: #92400e !important;
+      background: rgba(146, 64, 14, 0.08) !important;
+      border: 1px solid rgba(146, 64, 14, 0.2) !important;
+      border-radius: 6px !important;
+      padding: 2px 7px !important;
+      font-size: 11px !important;
+    }
+    /* Search bar */
+    html[data-theme="parchment"] .in-chat-search-wrap {
       background: #ffffff !important;
       border: 1px solid rgba(68, 64, 60, 0.22) !important;
-      color: #141312 !important;
+      color: #57534e !important;
+      box-shadow: 0 1px 4px rgba(68, 64, 60, 0.06) !important;
+    }
+    html[data-theme="parchment"] .in-chat-search-wrap svg {
+      stroke: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .in-chat-search-input {
+      background: transparent !important;
+      border: none !important;
+      color: #1c1917 !important;
     }
     html[data-theme="parchment"] .in-chat-search-input::placeholder {
-      color: #78716c !important;
+      color: #a8a29e !important;
     }
     html[data-theme="parchment"] .header-search-kbd {
-      background: #ebe6dc !important;
-      border: 1px solid rgba(68, 64, 60, 0.2) !important;
-      color: #57534e !important;
+      background: #ede9e0 !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      color: #78716c !important;
     }
+    /* Icon buttons */
     html[data-theme="parchment"] .chat-header .btn-icon {
-      color: #57534e !important;
+      color: #78716c !important;
+      background: transparent !important;
     }
     html[data-theme="parchment"] .chat-header .btn-icon:hover {
-      color: #141312 !important;
-      background: rgba(68, 64, 60, 0.08) !important;
+      color: #1c1917 !important;
+      background: rgba(68, 64, 60, 0.09) !important;
     }
+    html[data-theme="parchment"] .chat-header .btn-icon.active {
+      color: #7c3aed !important;
+      background: rgba(124, 58, 237, 0.09) !important;
+    }
+    /* Theme toggle moon icon */
+    html[data-theme="parchment"] #chatHeaderThemeToggleBtn {
+      color: #78716c !important;
+    }
+    /* DM header buttons */
+    html[data-theme="parchment"] #dmCallBtn {
+      color: #1c1917 !important;
+      border-color: rgba(68, 64, 60, 0.28) !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] #dmCallBtn:hover {
+      background: rgba(68, 64, 60, 0.07) !important;
+    }
+    html[data-theme="parchment"] #dmUnfriendBtn {
+      color: #dc2626 !important;
+      border-color: rgba(220, 38, 38, 0.28) !important;
+      background: rgba(220, 38, 38, 0.04) !important;
+    }
+    /* WSS telemetry pill */
     html[data-theme="parchment"] .header-telemetry-pill {
-      background: rgba(68, 64, 60, 0.08) !important;
-      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      background: rgba(5, 150, 105, 0.07) !important;
+      border: 1px solid rgba(5, 150, 105, 0.22) !important;
+      color: #047857 !important;
     }
     html[data-theme="parchment"] .telemetry-ping-text {
-      color: #57534e !important;
+      color: #047857 !important;
+      font-weight: 700 !important;
     }
+    html[data-theme="parchment"] .pulse-cyan-dot {
+      background: #10b981 !important;
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.7) !important;
+    }
+
 
     /* Horizontal Channel Switcher Row */
     html[data-theme="parchment"] .chat-channel-switcher-row {
@@ -2469,6 +2530,10 @@
       background: rgba(68, 64, 60, 0.10) !important;
       color: #78716c !important;
       border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      border-radius: 9999px !important;
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      padding: 2px 7px !important;
     }
     html[data-theme="parchment"] .roster-empty-title {
       color: #141312 !important;
@@ -17513,11 +17578,11 @@ pre, .code-block, .chat-code-snippet {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
     </div>
 
-    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v3.9.9 Live • Pure Black OLED & Vault • 54.3 MB)" style="text-decoration:none; color:#10b981; position:relative;">
+    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.0.0 Live • Pure Black OLED & Vault • 54 MB)" style="text-decoration:none; color:#10b981; position:relative;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="3"/><path d="M12 18h.01"/><path d="m9 10 3 3 3-3"/><path d="M12 6v7"/></svg>
       <div class="rail-unread-badge rail-apk-badge" style="display:flex; align-items:center; gap:2px; background:linear-gradient(135deg, #10b981, #06b6d4); color:#020617; font-weight:900; font-size:7.5px; padding:1px 4px; min-width:auto; height:16px; border-radius:8px; box-shadow:0 0 8px rgba(16,185,129,0.5);">
         <span class="live-dot-pulse-mini"></span>
-        <span class="apk-version-val">v3.9.9</span>
+        <span class="apk-version-val">v4.0.0</span>
       </div>
     </a>
         <div class="guild-icon" id="tabVaultRailBtn" onclick="openConnectoVault()" title="Connecto Hardware Vault (Biometrics & OLED Keyguard)" style="position:relative; color:#10b981;">
@@ -17619,14 +17684,14 @@ pre, .code-block, .chat-code-snippet {
         <div class="sidebar-apk-meta">
           <div class="sidebar-apk-title-row">
             <span class="sidebar-apk-title">Connecto App</span>
-            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v3.9.9</span></span>
+            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.0.0</span></span>
           </div>
           <div class="sidebar-apk-sub">
-            <span class="apk-size-val">54.3 MB</span> • OLED Vault • Sub-5ms
+            <span class="apk-size-val">54 MB</span> • OLED Vault • Sub-5ms
           </div>
         </div>
       </div>
-      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v3.9.9)">
+      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v4.0.0)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>GET</span>
       </a>
@@ -17703,8 +17768,6 @@ pre, .code-block, .chat-code-snippet {
           </span>
         </button>
 
-        <button class="btn-icon" id="pinsToggleBtn" onclick="togglePinsDrawer()" title="Pinned Messages"><i data-lucide="pin" class="lucide-sm"></i></button>
-        <button class="btn-icon" id="canvasToggleBtn" onclick="toggleCanvasDrawer()" title="Channel Canvas & Tasks"><i data-lucide="clipboard-list" class="lucide-sm"></i></button>
         <div style="position:relative;">
           <button class="btn-icon" id="scheduledToggleBtn" onclick="toggleScheduledDrawer()" title="Scheduled Messages Queue"><i data-lucide="clock" class="lucide-sm"></i></button>
           <div class="notif-badge" id="scheduledBadge" style="display:none; background:#a855f7; color:#fff;">0</div>
@@ -18185,10 +18248,10 @@ pre, .code-block, .chat-code-snippet {
             <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
             <a class="landing-link" id="navLinkVault" onclick="openConnectoVault()" style="display:inline-flex; align-items:center; gap:6px; color:#10b981; font-weight:700; cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm"></i>Vault</a>
-            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v3.9.9 Live • 54.3 MB)">
+            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.0.0 Live • 54 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
-              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v3.9.9</span></span>
+              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.0.0</span></span>
             </a>
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
           </div>
@@ -18219,7 +18282,7 @@ pre, .code-block, .chat-code-snippet {
         <!-- SECTION 1: HERO & INTERACTIVE STAGE -->
         <div class="hero-grid">
           <div class="hero-text">
-            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v3.9.9</div>
+            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v4.0.0</div>
             <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
             <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
@@ -18403,24 +18466,24 @@ pre, .code-block, .chat-code-snippet {
             <!-- Left: Specs & Features Bento -->
             <div class="android-showcase-card-left interactive-tilt-card">
               <div class="android-release-tag-row">
-                <span class="android-release-badge"><span class="pulse-emerald-dot"></span> <span class="apk-version-val">v3.9.9</span> STABLE (BUILD 42)</span>
+                <span class="android-release-badge"><span class="pulse-emerald-dot"></span> <span class="apk-version-val">v4.0.0</span> STABLE (BUILD 43)</span>
                 <span class="android-release-device-chip"><i data-lucide="smartphone" class="lucide-xs"></i> Android 7.0 to 16+ (POCO / HyperOS Verified)</span>
                 <span class="android-release-device-chip" style="border-color:rgba(16,185,129,0.3); color:#10b981;"><i data-lucide="shield-check" class="lucide-xs"></i> Touch-Scroll Isolation Hardened</span>
               </div>
 
               <h3 class="android-showcase-title">Direct APK Package • Hardened for Android 16 & HyperOS</h3>
               <p class="android-showcase-desc">
-                Experience total privacy, instant voice calls, and zero-crash performance. The official Connecto Android APK (v3.9.9, Build 42) is built directly from source with ultra-low latency WebRTC calling (16k TURN ports), touch-scroll isolation gesture engine, zero Google Play Services dependencies, and true OLED deep blacks.
+                Experience total privacy, instant voice calls, and zero-crash performance. The official Connecto Android APK (v4.0.0, Build 43) is built directly from source with ultra-low latency WebRTC calling (16k TURN ports), touch-scroll isolation gesture engine, zero Google Play Services dependencies, and true OLED deep blacks.
               </p>
 
               <div class="android-specs-row">
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-size-val">54.3 MB</span>
+                  <span class="android-spec-val apk-size-val">63 MB</span>
                   <span class="android-spec-lbl">Package Size</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-version-val">v3.9.9</span>
-                  <span class="android-spec-lbl">Live Build 42</span>
+                  <span class="android-spec-val apk-version-val">v4.0.0</span>
+                  <span class="android-spec-lbl">Live Build 43</span>
                 </div>
                 <div class="android-spec-item">
                   <span class="android-spec-val" style="color:#10b981;">Android 16+</span>
@@ -18468,9 +18531,17 @@ pre, .code-block, .chat-code-snippet {
                 <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
                   <div class="android-feat-card-top">
                     <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="cpu" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#10b981;">v3.9.9 Touch-Scroll Isolation Engine</span>
+                    <span class="android-feat-card-title" style="color:#10b981;">v4.0.0 Profile Accordion &amp; Touch-Scroll Isolation</span>
                   </div>
                   <div class="android-feat-card-desc">Zero accidental clicks or selections. Replaced unthrottled pointerInput with Compose-native MutableInteractionSource clickable handlers across emojis, buttons, and chat bubbles.</div>
+                </div>
+
+                <div class="android-feat-card" style="border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.05);">
+                  <div class="android-feat-card-top">
+                    <span class="android-feat-card-icon" style="color:#a855f7;"><i data-lucide="users" class="lucide-md"></i></span>
+                    <span class="android-feat-card-title" style="color:#a855f7;">v4.0.0 Group Chat &amp; Community Mesh</span>
+                  </div>
+                  <div class="android-feat-card-desc">Create and manage multi-user group chats directly from the Home tab (👥 icon). Instant group channel navigation, real-time message broadcasting, member rosters, and low-latency sync.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
@@ -18485,7 +18556,7 @@ pre, .code-block, .chat-code-snippet {
               <div class="android-cta-row">
                 <a href="/download/apk" download="connecto-fun.apk" class="android-primary-download-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>Download Connecto APK (<span class="apk-size-val">54.3 MB</span>)</span>
+                  <span>Download Connecto APK (<span class="apk-size-val">54 MB</span>)</span>
                 </a>
                 <button class="android-secondary-action-btn" onclick="copyApkDownloadLink()" id="btnCopyApkLink">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -18500,15 +18571,15 @@ pre, .code-block, .chat-code-snippet {
               <div class="android-security-note" style="margin-top:14px; padding:12px 14px; background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <span style="display:flex; align-items:center; gap:6px; color:#10b981; font-weight:700; font-size:12px;">
-                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v3.9.9 (Build 42)
+                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v4.0.0 (Build 43) • Oct 3, 2026
                   </span>
                   <span style="font-size:11px; color:#94a3b8;">
-                    arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16) • 54.3 MB
+                    arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16) • 54 MB
                   </span>
                 </div>
                 <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10.5px; color:#94a3b8; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); word-break:break-all;">
                   <span style="color:#38bdf8; font-weight:700;">SHA-256:</span>
-                  <span style="color:#e2e8f0; user-select:all; margin-left:4px;">8fb0268a95e001dbb5abe78427c16655973da290239e61cd29c86600f8ab35a1</span>
+                  <span style="color:#e2e8f0; user-select:all; margin-left:4px;">2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9</span>
                 </div>
               </div>
             </div>
@@ -18576,7 +18647,7 @@ pre, .code-block, .chat-code-snippet {
 
                     <div class="phone-chat-msg">
                       <span class="phone-chat-user">alex:</span>
-                      <span style="color:#cbd5e1;">v3.9.9 connects instantly! Smooth touch scrolling with zero accidental emoji or button selections on Android 7 to 16.</span>
+                      <span style="color:#cbd5e1;">v4.0.0 connects instantly! Profile accordion UI, smooth touch scrolling with zero accidental emoji or button selections on Android 7 to 16.</span>
                     </div>
 
                     <div class="phone-chat-msg">
@@ -18585,7 +18656,7 @@ pre, .code-block, .chat-code-snippet {
                     </div>
 
                     <div class="phone-chat-poll">
-                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v3.9.9 Stability:</div>
+                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v4.0.0 Stability:</div>
                       <div style="display:flex; justify-content:space-between; margin-top:4px; color:#94a3b8;">
                         <span>Voice Teardown Mutex</span>
                         <strong style="color:#10b981;">100% Stable</strong>
@@ -18755,7 +18826,7 @@ pre, .code-block, .chat-code-snippet {
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Connecto Android Native</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v3.9.9</span>
+                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v4.0.0</span>
                   </div>
                   <p class="ecosystem-card-desc">Native Android client engineered with Jetpack Compose, low-latency voice rooms, pure black OLED power saving, and background call listener.</p>
                 </div>
@@ -18767,7 +18838,7 @@ pre, .code-block, .chat-code-snippet {
                 <span class="ecosystem-feature-chip">OLED Black Mode</span>
               </div>
               <div class="ecosystem-card-action">
-                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v3.9.9</span> • <span class="apk-size-val">54.3 MB</span></span>
+                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.0.0</span> • <span class="apk-size-val">54 MB</span></span>
                 <a href="/download/apk" download="connecto-fun.apk" class="ecosystem-card-btn" style="color:#06b6d4; text-decoration:none;">Download Android App <i data-lucide="download" class="lucide-sm"></i></a>
               </div>
             </div>
@@ -19063,7 +19134,7 @@ pre, .code-block, .chat-code-snippet {
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  Yes! Connecto is available as an official native Android app (v3.9.9, 54.3 MB) engineered with Pure Black OLED aesthetics, Connecto Vault biometric & device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
+                  Yes! Connecto is available as an official native Android app (v4.0.0, 54 MB) engineered with Pure Black OLED aesthetics, Connecto Vault biometric & device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
                 </div>
               </div>
             </div>
@@ -19123,7 +19194,7 @@ pre, .code-block, .chat-code-snippet {
             <div class="footer-col">
               <h5>Product</h5>
               <ul>
-                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v3.9.9</span> Live)</a></li>
+                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v4.0.0</span> Live)</a></li>
                 <li><a href="/architecture"><i data-lucide="cpu" class="lucide-sm" style="margin-right:6px;"></i> Architecture Deep-Dive</a></li>
                 <li><a href="/status" target="_blank"><i data-lucide="activity" class="lucide-sm" style="color:var(--green); margin-right:6px;"></i> Live Status Page</a></li>
                 <li><a onclick="switchMainView('learning')"><i data-lucide="graduation-cap" class="lucide-sm" style="margin-right:6px;"></i> Learning Academy</a></li>
@@ -19554,7 +19625,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="mobile-drawer-apk-card">
           <div class="drawer-apk-badge-row">
             <span class="drawer-apk-chip"><span class="pulse-emerald-dot"></span> OFFICIAL ANDROID APP</span>
-            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v3.9.9</span> Live</span>
+            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.0.0</span> Live</span>
           </div>
           <div class="drawer-apk-main">
             <div class="drawer-apk-icon">
@@ -19565,12 +19636,12 @@ pre, .code-block, .chat-code-snippet {
             </div>
             <div class="drawer-apk-details">
               <strong>Connecto for Android</strong>
-              <span>Pure Black OLED • Vault Biometrics • <span class="apk-size-val">54.3 MB</span></span>
+              <span>Pure Black OLED • Vault Biometrics • <span class="apk-size-val">54 MB</span></span>
             </div>
           </div>
           <a href="/download/apk" download="connecto-fun.apk" class="drawer-apk-download-btn">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Download Native APK (<span class="apk-size-val">54.3 MB</span>)</span>
+            <span>Download Native APK (<span class="apk-size-val">54 MB</span>)</span>
           </a>
           <div class="drawer-apk-trust">
             <span><i data-lucide="shield-check" class="lucide-xs"></i> Hardware Biometrics</span> • <span><i data-lucide="zap" class="lucide-xs"></i> Low Latency</span> • <span>Android 7.0 - 16+ (HyperOS)</span>
@@ -20880,7 +20951,7 @@ pre, .code-block, .chat-code-snippet {
     function renderAvatarHTML(avatar, name = '', size = 28, extraClass = '') {
       // BUG FIX #1: Normalize relative avatar paths to full URLs for app/web parity
       if (avatar && typeof avatar === 'string' && (avatar.startsWith('/uploads/') || avatar.startsWith('uploads/'))) {
-        avatar = 'https://connecto.fun/' + avatar.replace(/^\//, '');
+        avatar = avatar.startsWith('http') ? avatar : (window.location.origin + '/' + avatar.replace(/^\//, ''));
       }
       const clean = String(avatar || '').trim();
       const initial = (name && name.trim()) ? name.trim().charAt(0).toUpperCase() : '👤';
@@ -20891,7 +20962,7 @@ pre, .code-block, .chat-code-snippet {
       if (isImage) {
         let src = clean;
         if (src.startsWith('uploads/')) src = '/' + src;
-        return `<img src="${escapeHTML(src)}" class="avatar-img ${extraClass}" style="width:${size}px; height:${size}px; object-fit:cover; border-radius:50%; display:inline-block; flex-shrink:0; vertical-align:middle;" alt="${escapeHTML(name || '')}" onerror="this.onerror=null; this.src='https://connecto.fun/uploads/avatars/shinobi_avatar.png';">`;
+        return `<img src="${escapeHTML(src)}" class="avatar-img ${extraClass}" style="width:${size}px; height:${size}px; object-fit:cover; border-radius:50%; display:inline-block; flex-shrink:0; vertical-align:middle;" alt="${escapeHTML(name || '')}" onerror="this.onerror=null; this.src='/uploads/avatars/shinobi_avatar.png';">`;
       }
       return `<span class="avatar-text ${extraClass}" style="width:${size}px; height:${size}px; font-size:${Math.round(size * 0.55)}px; line-height:1; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:rgba(255,255,255,0.08); flex-shrink:0; overflow:hidden;">${clean}</span>`;
     }
@@ -21058,7 +21129,7 @@ pre, .code-block, .chat-code-snippet {
 
       let avatarHtml = typeof renderAvatarHTML === 'function'
         ? renderAvatarHTML(resolvedAvatar, resolvedUser || title || 'Connecto', 42)
-        : `<img src="${resolvedAvatar || 'https://connecto.fun/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
+        : `<img src="${resolvedAvatar || '/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
 
       toast.innerHTML = `
         <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
@@ -21079,7 +21150,7 @@ pre, .code-block, .chat-code-snippet {
 
       try {
         if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
-          const resolvedIcon = avatar || 'https://connecto.fun/uploads/avatars/shinobi_avatar.png';
+          const resolvedIcon = avatar || '/uploads/avatars/shinobi_avatar.png';
           new Notification(title, {
             body: content,
             icon: resolvedIcon
@@ -23177,7 +23248,7 @@ pre, .code-block, .chat-code-snippet {
       if (pBanner) {
         const mBan = member.banner_url || (isSelf ? currentUserBanner : null) || BANNER_PRESETS.preset_aurora;
         if (mBan.startsWith('http') || mBan.startsWith('/')) {
-          const fullBan = mBan.startsWith('http') ? mBan : ('https://connecto.fun' + mBan);
+          const fullBan = mBan.startsWith('http') ? mBan : (window.location.origin + (mBan.startsWith('/') ? mBan : '/' + mBan));
           pBanner.style.background = `url('${fullBan}') center/cover no-repeat`;
           pBanner.style.backgroundSize = 'cover';
           pBanner.style.backgroundPosition = 'center';
@@ -25640,7 +25711,7 @@ pre, .code-block, .chat-code-snippet {
       
       const handle = '@' + (currentUser || 'user');
       document.getElementById('myReferralHandle').innerText = handle;
-      document.getElementById('myReferralUrlInput').value = `https://connecto.fun/?ref=${encodeURIComponent(handle)}`;
+      document.getElementById('myReferralUrlInput').value = window.location.origin + '/?ref=' + encodeURIComponent(handle);
       
       await Promise.all([
         loadMyReferralStats(),
@@ -31542,7 +31613,7 @@ function handleNavCommunityClick() {
   
 <script id="vconnect-version-sync">
 (function() {
-  const CURRENT_BUILD_VERSION = "3.1.0-prod";
+  const CURRENT_BUILD_VERSION = "4.0.0-prod";
   try {
     localStorage.setItem('vconnect_build_version', CURRENT_BUILD_VERSION);
     // Remove any legacy banner element
@@ -31613,7 +31684,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
 
   // Copy Direct APK Download Link
   window.copyApkDownloadLink = function() {
-    const url = 'https://connecto.fun/download/apk';
+    const url = window.location.origin + '/downloads/connecto-fun.apk';
     navigator.clipboard.writeText(url).then(() => {
       const btn = document.getElementById('btnCopyApkLink');
       if (btn) {
@@ -32023,7 +32094,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
       // Lightbox
       window.openLightbox = function(src) {
         if (!src || src.length < 5) return;
-        const url = src.startsWith('http') ? src : ('https://connecto.fun' + src);
+        const url = src.startsWith('http') ? src : (window.location.origin + (src.startsWith('/') ? src : '/' + src));
         document.getElementById('lightboxImg').src = url;
         document.getElementById('connectoLightbox').style.display = 'flex';
       };

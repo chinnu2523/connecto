@@ -73,7 +73,7 @@ import com.example.connecto.ui.theme.PulsingOnlineDot
  */
 @Composable
 fun ConnectoTopHeader(
-    title: String = "connecto.fun",
+    title: String = "Connecto",
     subtitle: String = "Live Community",
     userInitial: String = "C",
     avatarUrl: String? = null,

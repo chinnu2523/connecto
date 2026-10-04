@@ -100,7 +100,7 @@ fun ConnectoButton(
     val shape = RoundedCornerShape(8.dp) // Consistent 8px radius
 
     val contentColor = when (variant) {
-        ConnectoButtonVariant.PRIMARY -> Color.White
+        ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFF0A0A0F) else Color.White
         ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFFF4F4F6) else Color(0xFF18181B)
         ConnectoButtonVariant.OUTLINED -> colors.primary
         ConnectoButtonVariant.DESTRUCTIVE -> colors.onError
@@ -108,8 +108,8 @@ fun ConnectoButton(
     }
 
     val containerColor = when (variant) {
-        ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFF141418) else Color(0xFF111116) // Near-black background
-        ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFF1A1A22) else Color(0xFFF4F4F6) // Light background
+        ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFFF5F5F7) else Color(0xFF111116)
+        ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFF1F1F27) else Color(0xFFF4F4F6)
         ConnectoButtonVariant.OUTLINED -> Color.Transparent
         ConnectoButtonVariant.DESTRUCTIVE -> colors.error
         ConnectoButtonVariant.TEXT -> Color.Transparent
@@ -124,8 +124,8 @@ fun ConnectoButton(
     }
 
     val border = when (variant) {
-        ConnectoButtonVariant.PRIMARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFF262630) else Color(0xFF1E1E24))
-        ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFF2E2E38) else Color(0xFFE4E4E7))
+        ConnectoButtonVariant.PRIMARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFFD4D4D8) else Color(0xFF1E1E24))
+        ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFF3F3F46) else Color(0xFFE4E4E7))
         ConnectoButtonVariant.OUTLINED -> BorderStroke(1.dp, if (enabled) colors.border else colors.border.copy(alpha = 0.5f))
         else -> null
     }

@@ -8,7 +8,6 @@ import android.util.Log
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
-import androidx.core.hardware.fingerprint.FingerprintManagerCompat
 import androidx.fragment.app.FragmentActivity
 
 enum class BiometricStatus {
@@ -25,8 +24,8 @@ object BiometricAuthManager {
     private const val TAG = "BiometricAuthManager"
 
     // Combination for modern Android 11+ (API 30+)
+    // NOTE: BIOMETRIC_WEAK cannot be combined with DEVICE_CREDENTIAL on API 30+ — causes IllegalArgumentException
     const val ALLOWED_AUTHENTICATORS_API30 = BiometricManager.Authenticators.BIOMETRIC_STRONG or
-            BiometricManager.Authenticators.BIOMETRIC_WEAK or
             BiometricManager.Authenticators.DEVICE_CREDENTIAL
 
     // Authenticators for API < 30 check
@@ -48,27 +47,13 @@ object BiometricAuthManager {
 
     /**
      * Checks if biometric sensors (Fingerprint, Face) are available and user has enrolled biometric credentials.
-     * Backwards-compatible across Android 7.0 - 15+ using FingerprintManagerCompat and BiometricManager.
+     * Backwards-compatible across Android 7.0 - 15+ using BiometricManager.
      */
     fun isBiometricEnrolled(context: Context): Boolean {
-        // 1. Check FingerprintManagerCompat (works on 100% of Android 6.0 - 10 devices)
-        try {
-            val compat = FingerprintManagerCompat.from(context)
-            if (compat.isHardwareDetected && compat.hasEnrolledFingerprints()) {
-                return true
-            }
-        } catch (e: Throwable) {
-            Log.w(TAG, "FingerprintManagerCompat check: ${e.message}")
-        }
-
-        // 2. Check BiometricManager with WEAK & STRONG
         return try {
             val biometricManager = BiometricManager.from(context)
-            val authTypes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
-            } else {
-                BIOMETRIC_CHECK_LEGACY
-            }
+            val authTypes = BiometricManager.Authenticators.BIOMETRIC_STRONG or
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK
             biometricManager.canAuthenticate(authTypes) == BiometricManager.BIOMETRIC_SUCCESS
         } catch (e: Throwable) {
             Log.e(TAG, "Error checking if biometric is enrolled: ${e.message}")
@@ -81,11 +66,16 @@ object BiometricAuthManager {
      */
     fun createConfirmDeviceCredentialIntent(
         context: Context,
-        title: String = "Unlock Connecto Vault",
+        title: String = "Unlock Connecto",
         description: String = "Enter your device PIN, pattern, or password to access Connecto"
     ): Intent? {
+        // On API 30+ this API is fully deprecated; callers should use BiometricPrompt with
+        // ALLOWED_AUTHENTICATORS_API30 instead. Return null so callers fall through to BiometricPrompt.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return null
         return try {
+            @Suppress("DEPRECATION")
             val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+            @Suppress("DEPRECATION")
             keyguardManager?.createConfirmDeviceCredentialIntent(title, description)
         } catch (e: Exception) {
             Log.e(TAG, "Error creating confirm device credential intent: ${e.message}")
@@ -99,15 +89,6 @@ object BiometricAuthManager {
      */
     fun checkBiometricAvailability(context: Context): BiometricStatus {
         try {
-            // First check FingerprintManagerCompat for older Android devices
-            val compat = FingerprintManagerCompat.from(context)
-            val hasCompatHw = try { compat.isHardwareDetected } catch (_: Throwable) { false }
-            val hasCompatEnrolled = try { compat.hasEnrolledFingerprints() } catch (_: Throwable) { false }
-
-            if (hasCompatHw && hasCompatEnrolled) {
-                return BiometricStatus.READY
-            }
-
             val biometricManager = BiometricManager.from(context)
             val authTypes = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 ALLOWED_AUTHENTICATORS_API30
@@ -121,13 +102,7 @@ object BiometricAuthManager {
                     return if (isDeviceSecure(context)) BiometricStatus.READY else BiometricStatus.NOT_ENROLLED
                 }
                 BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> {
-                    return if (hasCompatHw) {
-                        if (hasCompatEnrolled || isDeviceSecure(context)) BiometricStatus.READY else BiometricStatus.NOT_ENROLLED
-                    } else if (isDeviceSecure(context)) {
-                        BiometricStatus.READY
-                    } else {
-                        BiometricStatus.NO_HARDWARE
-                    }
+                    return if (isDeviceSecure(context)) BiometricStatus.READY else BiometricStatus.NO_HARDWARE
                 }
                 BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> {
                     return if (isDeviceSecure(context)) BiometricStatus.READY else BiometricStatus.HW_UNAVAILABLE
@@ -178,7 +153,7 @@ object BiometricAuthManager {
      */
     fun authenticate(
         activity: FragmentActivity,
-        title: String = "Unlock Connecto Vault",
+        title: String = "Unlock Connecto",
         subtitle: String = "Verify your biometric or device screen lock to continue",
         description: String? = "Confirm your identity with Fingerprint, Face ID, or Device PIN",
         onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,

@@ -70,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.components.WebRtcCallOverlay
 import com.example.connecto.ui.components.FullScreenCallUI
@@ -81,6 +82,7 @@ import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
+import androidx.compose.foundation.isSystemInDarkTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -117,6 +119,7 @@ fun CallsScreen(
     // Dialog state for clearing all or deleting
     var showClearAllDialog by remember { mutableStateOf(false) }
     var logPendingDelete by remember { mutableStateOf<CallLogItem?>(null) }
+    var showAddFriendDialog by remember { mutableStateOf(false) }
 
     fun showToast(msg: String) {
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -357,6 +360,7 @@ fun CallsScreen(
                 title = "CALLS",
                 subtitle = "Call History & Voice Hub",
                 userInitial = userInitial,
+                onAddFriendClick = { showAddFriendDialog = true },
                 onAvatarClick = onOpenProfile,
                 onNotificationClick = null,
                 unreadNotificationsCount = 0
@@ -407,13 +411,14 @@ fun CallsScreen(
                             "Missed" -> MaterialTheme.colorScheme.error
                             else -> MaterialTheme.colorScheme.primary
                         }
+                        val unselectedChipBg = MaterialTheme.colorScheme.surfaceVariant
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(
                                     if (isSelected) activeColor
-                                    else Color.Transparent
+                                    else unselectedChipBg
                                 )
                                 .pressScaleEffect(
                                     onClick = {
@@ -767,6 +772,14 @@ fun CallsScreen(
                     refreshCallLogs()
                 },
                 modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        if (showAddFriendDialog) {
+            AddFriendDialog(
+                currentUsername = currentUsername,
+                onDismissRequest = { showAddFriendDialog = false },
+                onFriendAdded = { showAddFriendDialog = false }
             )
         }
     }
