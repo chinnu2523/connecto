@@ -11937,7 +11937,7 @@
 .connecto-header-title {
   font-size: 24px !important;
   font-weight: 800 !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
   letter-spacing: -0.5px !important;
 }
 .connecto-header-status {
@@ -11954,9 +11954,9 @@
   gap: 12px !important;
 }
 .connecto-header-icon-btn {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: #94A3B8 !important;
+  background: var(--bg-card, rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--text-muted, #94A3B8) !important;
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
@@ -11967,25 +11967,26 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-header-icon-btn:hover {
-  background: rgba(99, 102, 241, 0.2) !important;
-  color: #FFFFFF !important;
-  border-color: #6366F1 !important;
+  background: var(--accent-tint, rgba(99, 102, 241, 0.2)) !important;
+  color: var(--accent, #FFFFFF) !important;
+  border-color: var(--accent-border, #6366F1) !important;
   transform: scale(1.08) !important;
 }
 .connecto-header-avatar {
   width: 38px !important;
   height: 38px !important;
   border-radius: 50% !important;
-  background: linear-gradient(135deg, #6366F1, #8B5CF6) !important;
-  color: #FFFFFF !important;
+  background: var(--bg-card, #1E2338) !important;
+  color: var(--text-header, #FFFFFF) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   font-weight: 800 !important;
   font-size: 16px !important;
   cursor: pointer !important;
-  border: 2px solid rgba(255, 255, 255, 0.2) !important;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3) !important;
+  border: 1.5px solid var(--card-border, rgba(255, 255, 255, 0.2)) !important;
+  box-shadow: 0 0 10px var(--accent-glow, rgba(99, 102, 241, 0.3)) !important;
+  overflow: hidden !important;
 }
 
 /* Universal Search Bar */
@@ -11993,43 +11994,43 @@
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;
-  background: #0E1017 !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: var(--bg-card, #0E1017) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.09)) !important;
   border-radius: 14px !important;
   padding: 12px 16px !important;
   margin-bottom: 22px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
   transition: all 0.2s ease !important;
 }
 .connecto-search-bar:focus-within {
-  border-color: #6366F1 !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+  border-color: var(--accent, #6366F1) !important;
+  box-shadow: 0 0 0 2px var(--accent-tint, rgba(99, 102, 241, 0.2)) !important;
 }
 .connecto-search-bar input {
   flex: 1 !important;
   background: transparent !important;
   border: none !important;
   outline: none !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
   font-size: 14.5px !important;
 }
 .connecto-search-bar input::placeholder {
-  color: #64748B !important;
+  color: var(--text-muted, #64748B) !important;
 }
 
 /* Greeting Card */
 .connecto-greeting-card {
-  background: linear-gradient(135deg, #111422, #0D0F18) !important;
-  border: 1px solid rgba(99, 102, 241, 0.22) !important;
+  background: var(--bg-card, #111422) !important;
+  border: 1px solid var(--card-border, rgba(99, 102, 241, 0.22)) !important;
   border-radius: 18px !important;
   padding: 20px 22px !important;
   margin-bottom: 22px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
 }
 .connecto-greeting-title {
   font-size: 21px !important;
   font-weight: 800 !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
   margin-bottom: 6px !important;
 }
 .connecto-greeting-sub {
@@ -12054,23 +12055,23 @@
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
-  background: #111420 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: var(--bg-card, #111420) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.1)) !important;
   border-radius: 20px !important;
   padding: 8px 16px !important;
   font-size: 13px !important;
   font-weight: 700 !important;
-  color: #F1F5F9 !important;
+  color: var(--text-header, #F1F5F9) !important;
   cursor: pointer !important;
   white-space: nowrap !important;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-action-pill:hover {
-  background: #1E2338 !important;
-  border-color: #6366F1 !important;
-  color: #FFFFFF !important;
+  background: var(--accent-tint, #1E2338) !important;
+  border-color: var(--accent-border, #6366F1) !important;
+  color: var(--accent, #FFFFFF) !important;
   transform: translateY(-2px) scale(1.04) !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.25) !important;
+  box-shadow: 0 4px 14px var(--accent-glow, rgba(99, 102, 241, 0.25)) !important;
 }
 .connecto-action-pill:active {
   transform: scale(0.94) !important;
@@ -12087,19 +12088,19 @@
 .connecto-section-title {
   font-size: 15px !important;
   font-weight: 800 !important;
-  color: #CBD5E1 !important;
+  color: var(--text-muted, #CBD5E1) !important;
   letter-spacing: 0.3px !important;
 }
 .connecto-section-link {
   font-size: 13px !important;
   font-weight: 700 !important;
-  color: #818CF8 !important;
+  color: var(--accent, #818CF8) !important;
   cursor: pointer !important;
   text-decoration: none !important;
   transition: color 0.18s ease !important;
 }
 .connecto-section-link:hover {
-  color: #A5B4FC !important;
+  color: var(--accent-hover, #A5B4FC) !important;
   text-decoration: underline !important;
 }
 
@@ -12108,8 +12109,8 @@
   display: flex !important;
   align-items: center !important;
   gap: 14px !important;
-  background: #0E1017 !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--bg-card, #0E1017) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.07)) !important;
   border-radius: 14px !important;
   padding: 14px 16px !important;
   margin-bottom: 8px !important;
@@ -12117,14 +12118,14 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-channel-card:hover {
-  background: #141724 !important;
-  border-color: rgba(99, 102, 241, 0.4) !important;
+  background: var(--bg-card-hover, #141724) !important;
+  border-color: var(--accent-border, rgba(99, 102, 241, 0.4)) !important;
   transform: translateX(4px) !important;
 }
 .connecto-channel-hash {
   font-size: 20px !important;
   font-weight: 800 !important;
-  color: #818CF8 !important;
+  color: var(--chakra-cyan, #818CF8) !important;
 }
 .connecto-channel-info {
   flex: 1 !important;
@@ -12133,12 +12134,12 @@
 .connecto-channel-name {
   font-size: 14.5px !important;
   font-weight: 700 !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
   margin-bottom: 2px !important;
 }
 .connecto-channel-desc {
   font-size: 12px !important;
-  color: #94A3B8 !important;
+  color: var(--text-muted, #94A3B8) !important;
 }
 
 /* DM Conversation Card */
@@ -12146,8 +12147,8 @@
   display: flex !important;
   align-items: center !important;
   gap: 14px !important;
-  background: #0E1017 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-card, #0E1017) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
   border-radius: 16px !important;
   padding: 14px 16px !important;
   margin-bottom: 10px !important;
@@ -12155,10 +12156,10 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-dm-card:hover {
-  background: #141724 !important;
-  border-color: rgba(99, 102, 241, 0.45) !important;
+  background: var(--bg-card-hover, #141724) !important;
+  border-color: var(--accent-border, rgba(99, 102, 241, 0.45)) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
 }
 .connecto-dm-avatar-wrap {
   position: relative !important;
@@ -12170,14 +12171,14 @@
   width: 44px !important;
   height: 44px !important;
   border-radius: 50% !important;
-  background: #1E2338 !important;
+  background: var(--bg-dark, #1E2338) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   font-size: 17px !important;
   font-weight: 700 !important;
-  color: #818CF8 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: var(--text-header, #818CF8) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12)) !important;
 }
 .connecto-online-dot {
   position: absolute !important;
@@ -12187,7 +12188,7 @@
   height: 12px !important;
   border-radius: 50% !important;
   background: #22C55E !important;
-  border: 2px solid #0E1017 !important;
+  border: 2px solid var(--bg-card, #0E1017) !important;
 }
 .connecto-dm-info {
   flex: 1 !important;
@@ -12202,16 +12203,16 @@
 .connecto-dm-name {
   font-size: 14.5px !important;
   font-weight: 700 !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
 }
 .connecto-dm-handle {
   font-size: 13px !important;
-  color: #818CF8 !important;
+  color: var(--accent, #818CF8) !important;
   font-weight: 600 !important;
 }
 .connecto-dm-snippet {
   font-size: 12.5px !important;
-  color: #94A3B8 !important;
+  color: var(--text-muted, #94A3B8) !important;
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -12219,14 +12220,14 @@
 .connecto-dm-meta {
   font-size: 11.5px !important;
   font-weight: 600 !important;
-  color: #64748B !important;
+  color: var(--text-muted, #64748B) !important;
   flex-shrink: 0 !important;
 }
 
 /* Calls View Elements */
 .connecto-quick-dial-card {
-  background: #0E1017 !important;
-  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  background: var(--bg-card, #0E1017) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.09)) !important;
   border-radius: 18px !important;
   padding: 16px 18px !important;
   margin-bottom: 18px !important;
@@ -12240,7 +12241,7 @@
 .connecto-quick-dial-lbl {
   font-size: 12px !important;
   font-weight: 800 !important;
-  color: #818CF8 !important;
+  color: var(--accent, #818CF8) !important;
   letter-spacing: 0.5px !important;
   display: flex !important;
   align-items: center !important;
@@ -12248,7 +12249,7 @@
 }
 .connecto-quick-dial-sub {
   font-size: 11px !important;
-  color: #64748B !important;
+  color: var(--text-muted, #64748B) !important;
 }
 .connecto-quick-dial-row {
   display: flex !important;
@@ -12260,8 +12261,8 @@
   display: flex !important;
   align-items: center !important;
   gap: 8px !important;
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-dark, rgba(255, 255, 255, 0.04)) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
   border-radius: 12px !important;
   padding: 8px 12px !important;
 }
@@ -12270,27 +12271,30 @@
   background: transparent !important;
   border: none !important;
   outline: none !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
   font-size: 13.5px !important;
+}
+.connecto-dial-input-wrap input::placeholder {
+  color: var(--text-muted, #64748B) !important;
 }
 .connecto-dial-btn {
   display: inline-flex !important;
   align-items: center !important;
   gap: 6px !important;
-  background: #6366F1 !important;
+  background: var(--accent, #6366F1) !important;
   border: none !important;
   border-radius: 12px !important;
   padding: 10px 18px !important;
-  color: #FFFFFF !important;
+  color: var(--bg-darkest, #FFFFFF) !important;
   font-size: 13.5px !important;
   font-weight: 700 !important;
   cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-dial-btn:hover {
-  background: #4F46E5 !important;
+  background: var(--accent-hover, #4F46E5) !important;
   transform: scale(1.04) !important;
-  box-shadow: 0 0 16px rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 0 16px var(--accent-glow, rgba(99, 102, 241, 0.45)) !important;
 }
 
 /* Filter Chips */
@@ -12302,22 +12306,22 @@
   overflow-x: auto !important;
 }
 .connecto-filter-chip {
-  background: #0E1017 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-card, #0E1017) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
   border-radius: 14px !important;
   padding: 6px 16px !important;
   font-size: 12.5px !important;
   font-weight: 600 !important;
-  color: #94A3B8 !important;
+  color: var(--text-muted, #94A3B8) !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
 }
 .connecto-filter-chip.active {
-  background: #6366F1 !important;
-  color: #FFFFFF !important;
-  border-color: #6366F1 !important;
+  background: var(--accent, #6366F1) !important;
+  color: var(--bg-darkest, #FFFFFF) !important;
+  border-color: var(--accent, #6366F1) !important;
   font-weight: 700 !important;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.35) !important;
+  box-shadow: 0 0 12px var(--accent-glow, rgba(99, 102, 241, 0.35)) !important;
 }
 
 /* Call Card */
@@ -12325,29 +12329,29 @@
   display: flex !important;
   align-items: center !important;
   gap: 14px !important;
-  background: #0E1017 !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: var(--bg-card, #0E1017) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.07)) !important;
   border-radius: 14px !important;
   padding: 12px 16px !important;
   margin-bottom: 8px !important;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-call-card:hover {
-  background: #141724 !important;
-  border-color: rgba(99, 102, 241, 0.35) !important;
+  background: var(--bg-card-hover, #141724) !important;
+  border-color: var(--accent-border, rgba(99, 102, 241, 0.35)) !important;
 }
 .connecto-call-avatar {
   width: 40px !important;
   height: 40px !important;
   border-radius: 50% !important;
-  background: #1E2338 !important;
+  background: var(--bg-dark, #1E2338) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   font-size: 16px !important;
   font-weight: 700 !important;
-  color: #818CF8 !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: var(--text-header, #818CF8) !important;
+  border: 1px solid var(--card-border, rgba(255, 255, 255, 0.1)) !important;
 }
 .connecto-call-info {
   flex: 1 !important;
@@ -12356,7 +12360,7 @@
 .connecto-call-name {
   font-size: 14px !important;
   font-weight: 700 !important;
-  color: #F8FAFC !important;
+  color: var(--text-header, #F8FAFC) !important;
   margin-bottom: 2px !important;
 }
 .connecto-call-details {
@@ -12374,7 +12378,7 @@
 .connecto-trash-btn {
   background: transparent !important;
   border: none !important;
-  color: #64748B !important;
+  color: var(--text-muted, #64748B) !important;
   cursor: pointer !important;
   padding: 6px !important;
   border-radius: 6px !important;
@@ -12388,9 +12392,9 @@
   width: 36px !important;
   height: 36px !important;
   border-radius: 50% !important;
-  background: #6366F1 !important;
+  background: var(--accent, #6366F1) !important;
   border: none !important;
-  color: #FFFFFF !important;
+  color: var(--bg-darkest, #FFFFFF) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -12398,9 +12402,9 @@
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 .connecto-call-action-btn:hover {
-  background: #4F46E5 !important;
+  background: var(--accent-hover, #4F46E5) !important;
   transform: scale(1.1) !important;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4) !important;
+  box-shadow: 0 0 12px var(--accent-glow, rgba(99, 102, 241, 0.4)) !important;
 }
 
 /* Hardware Vault Modal */
@@ -19450,7 +19454,7 @@ pre, .code-block, .chat-code-snippet {
             <button type="button" class="connecto-header-icon-btn" onclick="openAddFriendModal()" title="Add Friend">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
             </button>
-            <div class="connecto-header-avatar" onclick="openSettingsModal()">C</div>
+            <div class="connecto-header-avatar" onclick="openSettingsModal()" id="messagesUserAvatar">C</div>
           </div>
         </div>
 
@@ -19485,16 +19489,16 @@ pre, .code-block, .chat-code-snippet {
             </div>
           </div>
           <div class="connecto-header-actions">
-            <div class="connecto-header-avatar" onclick="openSettingsModal()">C</div>
+            <div class="connecto-header-avatar" onclick="openSettingsModal()" id="callsUserAvatar">C</div>
           </div>
         </div>
 
         <!-- Call History Search Bar -->
-        <div class="connecto-call-search-card" style="background: #0E1017; border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 16px; padding: 10px 14px; margin-bottom: 16px;">
-          <div style="position: relative; display: flex; align-items: center; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 0 12px;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2" style="margin-right: 8px; flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="callHistorySearchInput" placeholder="Search call history by name or date..." oninput="filterCallHistorySearch(this.value)" style="width: 100%; height: 40px; background: transparent; border: none; outline: none; color: #FFFFFF; font-size: 13px;">
-            <button type="button" id="clearCallSearchBtn" onclick="document.getElementById('callHistorySearchInput').value=''; filterCallHistorySearch(''); this.style.display='none';" style="display: none; background: none; border: none; color: #64748B; cursor: pointer; padding: 4px;">
+        <div class="connecto-call-search-card" style="background: var(--bg-card, #0E1017); border: 1px solid var(--card-border, rgba(255, 255, 255, 0.09)); border-radius: 16px; padding: 10px 14px; margin-bottom: 16px;">
+          <div style="position: relative; display: flex; align-items: center; background: var(--bg-dark, rgba(255, 255, 255, 0.03)); border: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)); border-radius: 12px; padding: 0 12px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted, #64748B)" stroke-width="2" style="margin-right: 8px; flex-shrink: 0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="callHistorySearchInput" placeholder="Search call history by name or date..." oninput="filterCallHistorySearch(this.value)" style="width: 100%; height: 40px; background: transparent; border: none; outline: none; color: var(--text-header, #FFFFFF); font-size: 13px;">
+            <button type="button" id="clearCallSearchBtn" onclick="document.getElementById('callHistorySearchInput').value=''; filterCallHistorySearch(''); this.style.display='none';" style="display: none; background: none; border: none; color: var(--text-muted, #64748B); cursor: pointer; padding: 4px;">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -20810,6 +20814,43 @@ pre, .code-block, .chat-code-snippet {
         </div>
       </div>
     </div>
+  <!-- Add Friend Modal -->
+  <div class="modal-overlay" id="addFriendModal" style="display:none;" onclick="closeAddFriendModal(event)">
+    <div class="modal-card border-beam-card" style="width:460px; max-width:94vw; padding:24px; border-radius:20px; background:var(--bg-modal, #0F121D); box-shadow:0 12px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; position:relative;" onclick="event.stopPropagation()">
+      <div class="border-beam"></div>
+      
+      <!-- Modal Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; position:relative; z-index:1;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--accent-tint, rgba(99,102,241,0.15)); display:flex; align-items:center; justify-content:center; color:var(--accent, #6366F1); font-size:18px;">
+            👥
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:17px; font-weight:800; color:var(--text-header, #FFFFFF); letter-spacing:-0.3px;">Add Friend</h3>
+            <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted, #94A3B8);">Send a request using their username</p>
+          </div>
+        </div>
+        <button type="button" class="pins-close-btn" onclick="closeAddFriendModal()" style="background:transparent; border:none; color:var(--text-muted, #94A3B8); font-size:18px; cursor:pointer; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:8px;">✕</button>
+      </div>
+
+      <!-- Input Form -->
+      <div style="margin-bottom:14px; position:relative; z-index:1;">
+        <label for="modalAddFriendInput" style="display:block; font-size:12px; font-weight:700; color:var(--text-header, #FFFFFF); margin-bottom:6px;">USERNAME</label>
+        <div style="display:flex; align-items:center; background:var(--bg-card, rgba(255,255,255,0.05)); border:1.5px solid var(--card-border, rgba(255,255,255,0.12)); border-radius:12px; padding:0 12px; transition:border-color 0.2s;">
+          <span style="color:var(--text-muted, #64748B); font-size:14px; margin-right:6px; font-weight:700;">@</span>
+          <input type="text" id="modalAddFriendInput" placeholder="Enter username (e.g. srinu)" style="width:100%; height:42px; background:transparent; border:none; outline:none; color:var(--text-header, #FFFFFF); font-size:13.5px;" onkeydown="if(event.key==='Enter') sendFriendRequestFromModal()">
+        </div>
+      </div>
+
+      <!-- Feedback Area -->
+      <div id="modalAddFriendFeedback" style="display:none; padding:10px 12px; border-radius:10px; font-size:12.5px; margin-bottom:14px; position:relative; z-index:1;"></div>
+
+      <!-- Action Buttons -->
+      <div style="display:flex; justify-content:flex-end; gap:10px; position:relative; z-index:1;">
+        <button type="button" class="btn btn-outline" style="padding:8px 16px; font-size:13px; border-radius:10px;" onclick="closeAddFriendModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="modalAddFriendSubmitBtn" style="padding:8px 18px; font-size:13px; font-weight:700; border-radius:10px;" onclick="sendFriendRequestFromModal()">Send Friend Request ➔</button>
+      </div>
+    </div>
   </div>
 
   <!-- Auth Modal (Sign In / Create Account) -->
@@ -21083,9 +21124,20 @@ pre, .code-block, .chat-code-snippet {
     }
 
     function updateCurrentUserAvatarUI(avatar) {
+      const av = avatar || (typeof currentAvatar !== 'undefined' ? currentAvatar : '') || '👤';
+      const u = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : 'guest';
       const curAvEl = document.getElementById('currentUserAvatar');
-      if (!curAvEl) return;
-      curAvEl.innerHTML = renderAvatarHTML(avatar || currentAvatar || '👤', currentUser || 'guest', 32);
+      if (curAvEl && typeof renderAvatarHTML === 'function') {
+        curAvEl.innerHTML = renderAvatarHTML(av, u, 32);
+      }
+      const headerAvatars = document.querySelectorAll('.connecto-header-avatar');
+      headerAvatars.forEach(el => {
+        if (typeof renderAvatarHTML === 'function') {
+          el.innerHTML = renderAvatarHTML(av, u, 38);
+        } else {
+          el.textContent = (u && u !== 'guest' ? u.charAt(0).toUpperCase() : '👤');
+        }
+      });
     }
 
     // ==================== UNIVERSAL EMAIL & PHONE VALIDATOR ====================
@@ -32528,8 +32580,15 @@ function updateGreeting() {
   const initial = user.charAt(0).toUpperCase();
   const av1 = document.getElementById('homeUserAvatar');
   const av2 = document.getElementById('vaultUserAvatar');
+  const avMsg = document.getElementById('messagesUserAvatar');
+  const avCalls = document.getElementById('callsUserAvatar');
   const uDisp = document.getElementById('vaultUsernameDisplay');
-  if (av1) av1.textContent = initial;
+  const avHtml = (typeof renderAvatarHTML === 'function') 
+    ? renderAvatarHTML((typeof currentAvatar !== 'undefined' ? currentAvatar : '') || '👤', user, 38)
+    : initial;
+  if (av1) { if (typeof renderAvatarHTML === 'function') av1.innerHTML = avHtml; else av1.textContent = initial; }
+  if (avMsg) { if (typeof renderAvatarHTML === 'function') avMsg.innerHTML = avHtml; else avMsg.textContent = initial; }
+  if (avCalls) { if (typeof renderAvatarHTML === 'function') avCalls.innerHTML = avHtml; else avCalls.textContent = initial; }
   if (av2) av2.textContent = initial;
   if (uDisp) uDisp.textContent = '@' + user;
 }
@@ -32983,9 +33042,107 @@ function selectChannel(ch) {
   if (typeof switchChannel === 'function') switchChannel(ch);
 }
 function openAddFriendModal() {
-  if (typeof switchMainView === 'function') {
+  const m = document.getElementById('addFriendModal');
+  if (m) {
+    m.style.display = 'flex';
+    const inp = document.getElementById('modalAddFriendInput');
+    if (inp) {
+      inp.value = '';
+      setTimeout(() => inp.focus(), 50);
+    }
+    const fb = document.getElementById('modalAddFriendFeedback');
+    if (fb) {
+      fb.style.display = 'none';
+      fb.innerHTML = '';
+    }
+  } else if (typeof switchMainView === 'function') {
     switchMainView('friends');
     if (typeof switchFriendsSubTab === 'function') switchFriendsSubTab('add');
+  }
+}
+
+function closeAddFriendModal(e) {
+  if (e && e.target && e.target !== document.getElementById('addFriendModal')) return;
+  const m = document.getElementById('addFriendModal');
+  if (m) m.style.display = 'none';
+}
+
+async function sendFriendRequestFromModal() {
+  const inp = document.getElementById('modalAddFriendInput');
+  const rawTarget = (inp ? inp.value : '').trim();
+  const target = rawTarget.replace(/^@+/, '').trim();
+  const fb = document.getElementById('modalAddFriendFeedback');
+  const submitBtn = document.getElementById('modalAddFriendSubmitBtn');
+
+  if (!target) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.background = 'rgba(239, 68, 68, 0.12)';
+      fb.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+      fb.innerHTML = '<span style="color:#EF4444; font-weight:700;">⚠️ Please enter a username.</span>';
+    }
+    return;
+  }
+
+  if (typeof currentUser !== 'undefined' && currentUser && target.toLowerCase() === currentUser.toLowerCase()) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.background = 'rgba(239, 68, 68, 0.12)';
+      fb.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+      fb.innerHTML = '<span style="color:#EF4444; font-weight:700;">❌ You cannot send a friend request to yourself.</span>';
+    }
+    return;
+  }
+
+  if (fb) {
+    fb.style.display = 'block';
+    fb.style.background = 'var(--accent-tint, rgba(99, 102, 241, 0.12))';
+    fb.style.border = '1px solid var(--accent-border, rgba(99, 102, 241, 0.25))';
+    fb.innerHTML = '<span style="color:var(--text-header, #FFF);">Sending friend request...</span>';
+  }
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const authHeaders = { 'Content-Type': 'application/json' };
+    if (typeof authToken !== 'undefined' && authToken) {
+      authHeaders['Authorization'] = `Bearer ${authToken}`;
+    }
+    const res = await fetch('/api/friends/request', {
+      method: 'POST',
+      headers: authHeaders,
+      credentials: 'include',
+      body: JSON.stringify({ sender: (typeof currentUser !== 'undefined' ? currentUser : ''), recipient: target, friend_username: target, username: target })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      if (fb) {
+        fb.style.background = 'rgba(34, 197, 94, 0.12)';
+        fb.style.border = '1px solid rgba(34, 197, 94, 0.3)';
+        fb.innerHTML = `<span style="color:#22C55E; font-weight:700;">✅ Friend request sent to @${escapeHTML(target)}!</span>`;
+      }
+      if (inp) inp.value = '';
+      if (typeof showNotificationToast === 'function') {
+        showNotificationToast('Friend Request Transmitted', `Friend request sent to @${target}! 🤝`);
+      }
+      if (typeof loadFriends === 'function') loadFriends();
+      setTimeout(() => {
+        closeAddFriendModal();
+      }, 1500);
+    } else {
+      if (fb) {
+        fb.style.background = 'rgba(239, 68, 68, 0.12)';
+        fb.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        fb.innerHTML = `<span style="color:#EF4444; font-weight:700;">❌ ${escapeHTML(data.detail || data.message || 'Failed to send friend request')}</span>`;
+      }
+    }
+  } catch (err) {
+    if (fb) {
+      fb.style.background = 'rgba(239, 68, 68, 0.12)';
+      fb.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+      fb.innerHTML = `<span style="color:#EF4444;">Error: ${escapeHTML(err.message)}</span>`;
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 function openDirectMessageWith(u) {
