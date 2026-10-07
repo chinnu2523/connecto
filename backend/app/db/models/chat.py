@@ -66,6 +66,9 @@ class Message(Base):
     content = Column(Text, nullable=False)
     attachments = Column(JSON, nullable=True, default=list)
     nonce = Column(String(64), nullable=True, index=True)
+    reply_to_id = Column(String(36), nullable=True)
+    reply_to_content = Column(Text, nullable=True)
+    reply_to_author = Column(String(256), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, index=True)
 
     channel = relationship("Channel", back_populates="messages")

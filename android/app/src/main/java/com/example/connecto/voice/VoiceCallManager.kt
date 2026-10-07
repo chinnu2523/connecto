@@ -1094,6 +1094,9 @@ object VoiceCallManager {
 
                         val timerSeconds = if (data.has("timer_seconds")) data.optInt("timer_seconds", 0).let { if (it > 0) it else null } else null
                         val expiresAt = data.optString("expires_at").ifEmpty { null }
+                        val replyToId = if (data.has("reply_to_id") && !data.isNull("reply_to_id")) data.optString("reply_to_id") else null
+                        val replyToContent = if (data.has("reply_to_content") && !data.isNull("reply_to_content")) data.optString("reply_to_content") else null
+                        val replyToAuthor = if (data.has("reply_to_author") && !data.isNull("reply_to_author")) data.optString("reply_to_author") else null
 
                         val msgDto = MessageDto(
                             id = msgId,
@@ -1107,7 +1110,10 @@ object VoiceCallManager {
                             pollId = pollId,
                             poll = poll,
                             timerSeconds = timerSeconds,
-                            expiresAt = expiresAt
+                            expiresAt = expiresAt,
+                            replyToId = replyToId,
+                            replyToContent = replyToContent,
+                            replyToAuthor = replyToAuthor
                         )
                         appContext?.let { ctx ->
                             try {
@@ -1762,6 +1768,17 @@ object VoiceCallManager {
 
         startAudioHardware()
         startDurationTimer()
+
+        // Record that we received this call (so it shows in "Incoming" filter)
+        scope.launch {
+            ConnectoApiClient.recordCallLog(
+                callerName = call.callerUsername,
+                callType = "Voice Call",
+                durationSeconds = 0,
+                isMissed = false,
+                isOutgoing = false
+            )
+        }
     }
 
     fun declineIncomingCall() {
@@ -1779,6 +1796,17 @@ object VoiceCallManager {
 
         scope.launch {
             ConnectoApiClient.respondToVoiceCall(call.roomId, "decline")
+        }
+
+        // Record as a missed incoming call
+        scope.launch {
+            ConnectoApiClient.recordCallLog(
+                callerName = call.callerUsername,
+                callType = "Voice Call",
+                durationSeconds = 0,
+                isMissed = true,
+                isOutgoing = false
+            )
         }
 
         _incomingCall.value = null
@@ -1879,7 +1907,7 @@ object VoiceCallManager {
                 callType = "Voice Call",
                 durationSeconds = duration,
                 isMissed = false,
-                isOutgoing = true,
+                isOutgoing = isCallCaller,
                 roomName = _activeCallTitle.value,
                 roomCode = _activeCallRoomCode.value ?: ""
             )

@@ -102,7 +102,10 @@ data class MessageDto(
     val pollId: String? = null,
     val poll: PollDto? = null,
     val timerSeconds: Int? = null,
-    val expiresAt: String? = null
+    val expiresAt: String? = null,
+    val replyToId: String? = null,
+    val replyToContent: String? = null,
+    val replyToAuthor: String? = null
 )
 
 data class UserSearchResultDto(
@@ -1196,6 +1199,9 @@ object ConnectoApiClient {
 
                     val timerSec = if (obj.has("timer_seconds") && !obj.isNull("timer_seconds")) obj.optInt("timer_seconds") else null
                     val expiresAt = if (obj.has("expires_at") && !obj.isNull("expires_at")) obj.optString("expires_at") else null
+                    val replyToId = if (obj.has("reply_to_id") && !obj.isNull("reply_to_id")) obj.optString("reply_to_id") else null
+                    val replyToContent = if (obj.has("reply_to_content") && !obj.isNull("reply_to_content")) obj.optString("reply_to_content") else null
+                    val replyToAuthor = if (obj.has("reply_to_author") && !obj.isNull("reply_to_author")) obj.optString("reply_to_author") else null
 
                     list.add(
                         MessageDto(
@@ -1210,7 +1216,10 @@ object ConnectoApiClient {
                             pollId = pollId,
                             poll = pollDto,
                             timerSeconds = timerSec,
-                            expiresAt = expiresAt
+                            expiresAt = expiresAt,
+                            replyToId = replyToId,
+                            replyToContent = replyToContent,
+                            replyToAuthor = replyToAuthor
                         )
                     )
                 }
@@ -1264,7 +1273,10 @@ object ConnectoApiClient {
         token: String? = null,
         channelId: String,
         content: String,
-        timerSeconds: Int? = null
+        timerSeconds: Int? = null,
+        replyToId: String? = null,
+        replyToContent: String? = null,
+        replyToAuthor: String? = null
     ): Result<MessageDto> = withContext(Dispatchers.IO) {
         try {
             val cleanChannel = channelId.trim().lowercase().removePrefix("#")
@@ -1277,6 +1289,15 @@ object ConnectoApiClient {
                 put("nonce", UUID.randomUUID().toString())
                 if (timerSeconds != null && timerSeconds > 0) {
                     put("timer_seconds", timerSeconds)
+                }
+                if (!replyToId.isNullOrBlank()) {
+                    put("reply_to_id", replyToId)
+                }
+                if (!replyToContent.isNullOrBlank()) {
+                    put("reply_to_content", replyToContent)
+                }
+                if (!replyToAuthor.isNullOrBlank()) {
+                    put("reply_to_author", replyToAuthor)
                 }
             }
             var response = executeRequest(
@@ -1296,6 +1317,15 @@ object ConnectoApiClient {
                     put("avatar", "🎮")
                     if (timerSeconds != null && timerSeconds > 0) {
                         put("timer_seconds", timerSeconds)
+                    }
+                    if (!replyToId.isNullOrBlank()) {
+                        put("reply_to_id", replyToId)
+                    }
+                    if (!replyToContent.isNullOrBlank()) {
+                        put("reply_to_content", replyToContent)
+                    }
+                    if (!replyToAuthor.isNullOrBlank()) {
+                        put("reply_to_author", replyToAuthor)
                     }
                 }
                 response = executeRequest(
@@ -1327,6 +1357,9 @@ object ConnectoApiClient {
                 val pollDto = if (obj.has("poll") && !obj.isNull("poll")) parsePollDto(obj.optJSONObject("poll")) else null
                 val timerSec = if (obj.has("timer_seconds") && !obj.isNull("timer_seconds")) obj.optInt("timer_seconds") else timerSeconds
                 val expAt = if (obj.has("expires_at") && !obj.isNull("expires_at")) obj.optString("expires_at") else null
+                val rId = if (obj.has("reply_to_id") && !obj.isNull("reply_to_id")) obj.optString("reply_to_id") else replyToId
+                val rContent = if (obj.has("reply_to_content") && !obj.isNull("reply_to_content")) obj.optString("reply_to_content") else replyToContent
+                val rAuthor = if (obj.has("reply_to_author") && !obj.isNull("reply_to_author")) obj.optString("reply_to_author") else replyToAuthor
 
                 Result.success(
                     MessageDto(
@@ -1341,7 +1374,10 @@ object ConnectoApiClient {
                         pollId = pollId,
                         poll = pollDto,
                         timerSeconds = timerSec,
-                        expiresAt = expAt
+                        expiresAt = expAt,
+                        replyToId = rId,
+                        replyToContent = rContent,
+                        replyToAuthor = rAuthor
                     )
                 )
             } else {

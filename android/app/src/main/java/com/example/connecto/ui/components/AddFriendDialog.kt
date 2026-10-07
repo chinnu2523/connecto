@@ -137,14 +137,18 @@ fun AddFriendDialog(
     // Live search function
     fun performSearch(query: String) {
         searchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.isEmpty()) {
+            searchResults.clear()
+            isSearching = false
+            return
+        }
         searchJob = coroutineScope.launch {
             isSearching = true
-            if (query.isNotBlank()) {
-                delay(250) // Debounce typing
-            }
+            delay(250) // Debounce typing
             try {
                 val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
-                val res = ConnectoApiClient.searchUsers(query.trim(), username = effUser)
+                val res = ConnectoApiClient.searchUsers(trimmed, username = effUser)
                 if (res.isSuccess) {
                     searchResults.clear()
                     searchResults.addAll(res.getOrThrow())
@@ -195,7 +199,6 @@ fun AddFriendDialog(
     // Initial load
     LaunchedEffect(Unit) {
         fetchReceivedRequests()
-        performSearch("")
     }
 
     Dialog(
@@ -292,16 +295,16 @@ fun AddFriendDialog(
                         .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    // Tab 0: Find Gamers
+                    // Tab 0: Find Friends
                     val isSearchTab = selectedTab == 0
                     val tab0Bg by animateColorAsState(
                         if (isSearchTab) MaterialTheme.colorScheme.primary else Color.Transparent,
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "tab0Bg"
                     )
-                    val tab0Text by animateColorAsState(
-                        if (isSearchTab) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        label = "tab0Text"
+                    val tab0ContentColor by animateColorAsState(
+                        if (isSearchTab) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "tab0ContentColor"
                     )
 
                     Box(
@@ -320,15 +323,15 @@ fun AddFriendDialog(
                             Icon(
                                 imageVector = Icons.Default.PersonSearch,
                                 contentDescription = null,
-                                tint = tab0Text,
+                                tint = tab0ContentColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Find People",
+                                text = "Find Friends",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = tab0Text
+                                color = tab0ContentColor
                             )
                         }
                     }
@@ -340,9 +343,9 @@ fun AddFriendDialog(
                         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
                         label = "tab1Bg"
                     )
-                    val tab1Text by animateColorAsState(
-                        if (isReqTab) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                        label = "tab1Text"
+                    val tab1ContentColor by animateColorAsState(
+                        if (isReqTab) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "tab1ContentColor"
                     )
 
                     Box(
@@ -364,7 +367,7 @@ fun AddFriendDialog(
                             Icon(
                                 imageVector = Icons.Default.Mail,
                                 contentDescription = null,
-                                tint = tab1Text,
+                                tint = tab1ContentColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -372,7 +375,7 @@ fun AddFriendDialog(
                                 text = "Requests",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = tab1Text
+                                color = tab1ContentColor
                             )
 
                             if (receivedRequests.isNotEmpty()) {
@@ -381,7 +384,7 @@ fun AddFriendDialog(
                                     modifier = Modifier
                                         .size(18.dp)
                                         .clip(CircleShape)
-                                        .background(if (isReqTab) Color.White else Color(0xFFEF4444)),
+                                        .background(if (isReqTab) MaterialTheme.colorScheme.onPrimary else Color(0xFFEF4444)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -504,7 +507,48 @@ fun AddFriendDialog(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             // Results List
-                            if (isSearching && searchResults.isEmpty()) {
+                            if (searchQuery.trim().isEmpty()) {
+                                // Default state: Prompt user to type username to find friends
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .padding(24.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(64.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PersonSearch,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(32.dp)
+                                            )
+                                        }
+                                        Text(
+                                            text = "Search for Friends",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "Type a username above to find people and connect with them.",
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            textAlign = TextAlign.Center,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
+                                }
+                            } else if (isSearching && searchResults.isEmpty()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -534,7 +578,7 @@ fun AddFriendDialog(
                                             modifier = Modifier.size(48.dp)
                                         )
                                         Text(
-                                            text = if (searchQuery.isBlank()) "No registered members found in directory." else "No users found matching '$searchQuery'",
+                                            text = "No users found matching '$searchQuery'",
                                             fontSize = 14.sp,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
@@ -547,22 +591,20 @@ fun AddFriendDialog(
                                     verticalArrangement = Arrangement.spacedBy(10.dp),
                                     contentPadding = PaddingValues(bottom = 12.dp)
                                 ) {
-                                    if (searchQuery.isBlank()) {
-                                        item(key = "discover_header") {
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 4.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = "COMMUNITY DIRECTORY (${searchResults.size})",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    letterSpacing = 0.8.sp
-                                                )
-                                            }
+                                    item(key = "search_header") {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "SEARCH RESULTS (${searchResults.size})",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                letterSpacing = 0.8.sp
+                                            )
                                         }
                                     }
                                     items(searchResults, key = { it.id }) { user ->

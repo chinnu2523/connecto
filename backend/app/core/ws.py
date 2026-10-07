@@ -110,8 +110,8 @@ class ConnectionManager:
         for u in affected_users:
             if u not in self.active_connections:
                 asyncio.create_task(self._set_online(u, False))
-                clean_u = self.id_to_username.get(u, u)
-                asyncio.create_task(self.broadcast_global({"type": "presence_update", "user_id": u, "username": clean_u, "is_online": False, "status": "offline"}))
+                # NOTE: Global presence broadcast removed — presence state is updated in DB only.
+                # Clients poll /api/friends or /api/users for fresh online status.
 
     async def connect(self, user_id: str, websocket: WebSocket, username: str = None):
         await websocket.accept()
@@ -137,7 +137,7 @@ class ConnectionManager:
                     is_stealth = bool(getattr(u_obj, "is_stealth", False)) if u_obj else False
                 if not is_stealth:
                     await self._set_online(user_id, True)
-                    await self.broadcast_global({"type": "presence_update", "user_id": user_id, "username": username or "", "is_online": True, "status": "online"})
+                    # NOTE: Global online broadcast removed — DB presence updated only.
                 else:
                     await self._set_online(user_id, False)
             except Exception as _ce:
@@ -171,7 +171,7 @@ class ConnectionManager:
 
             # Mark user as offline in DB — all their connections are gone
             asyncio.create_task(self._set_online(user_id, False))
-            asyncio.create_task(self.broadcast_global({"type": "presence_update", "user_id": user_id, "username": clean_u or "", "is_online": False, "status": "offline"}))
+            # NOTE: Global offline broadcast removed — presence updated in DB only.
 
     async def _set_online(self, user_id: str, online: bool):
         """Updates User.is_online in the database. Called on WS connect/disconnect."""

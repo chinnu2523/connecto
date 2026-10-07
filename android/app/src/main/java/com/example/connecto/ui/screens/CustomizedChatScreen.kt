@@ -30,6 +30,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import com.example.connecto.crypto.ConnectoE2EEncryption
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -217,7 +219,11 @@ data class CustomMessageItem(
     var isRead: Boolean = false,
     var reaction: String? = null,
     var showReactionPill: Boolean = false,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val replyToId: String? = null,
+    val replyToContent: String? = null,
+    val replyToAuthor: String? = null,
+    val isEncrypted: Boolean = false
 )
 
 @Composable
@@ -246,6 +252,7 @@ fun CustomizedChatScreen(
     var isFriendTyping by remember { mutableStateOf(false) }
     var isLoadingMessages by remember { mutableStateOf(false) }
     val messageDrafts = remember { mutableStateMapOf<String, String>() }
+    var replyingTo by remember { mutableStateOf<CustomMessageItem?>(null) }
 
     // Active Call State
     val callState by VoiceCallManager.callState.collectAsState()
@@ -828,17 +835,29 @@ fun CustomizedChatScreen(
                                     } else {
                                         dto.authorAvatar ?: selectedFriend?.avatarUrl
                                     }
+                                    val otherUser = friend.handle.removePrefix("@")
+                                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+                                    val isEnc = ConnectoE2EEncryption.isEncrypted(dto.content)
+                                    val decryptedContent = if (isEnc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                                    val decryptedReplyContent = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
+                                        ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                                    } else dto.replyToContent
+
                                     CustomMessageItem(
                                         id = dto.id,
                                         senderName = dto.authorName,
                                         initial = init,
-                                        content = dto.content,
+                                        content = decryptedContent,
                                         time = formatIsoTime(dto.createdAt),
                                         isMe = isMe,
                                         isDelivered = true,
                                         isRead = true,
                                         reaction = existingReactions[dto.id],
-                                        avatarUrl = msgAvatar
+                                        avatarUrl = msgAvatar,
+                                        replyToId = dto.replyToId,
+                                        replyToContent = decryptedReplyContent,
+                                        replyToAuthor = dto.replyToAuthor,
+                                        isEncrypted = isEnc
                                     )
                                 }
 
@@ -1788,7 +1807,7 @@ fun CustomizedChatScreen(
                                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                                             ) {
                                                 Text(
-                                                    text = "🔒 End-to-End Argon2id Encrypted Chat Session",
+                                                    text = "🔒 End-to-End AES-256-GCM Encrypted Chat Session",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -1801,14 +1820,76 @@ fun CustomizedChatScreen(
                                         friendMessages.distinctBy { it.id },
                                         key = { _, msg -> msg.id }
                                     ) { _, msg ->
-                                        CustomChatBubble(
-                                            message = msg,
-                                            ownBg = ownBubbleBg,
-                                            ownText = ownBubbleText,
-                                            friendBg = friendBubbleBg,
-                                            friendBorder = friendBubbleBorder,
-                                            friendText = friendBubbleText
+                                        var dragOffsetX by remember { mutableStateOf(0f) }
+                                        val animatedDragOffset by animateFloatAsState(
+                                            targetValue = dragOffsetX,
+                                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                            label = "dragOffset"
                                         )
+                                        val hapticFeedback = LocalHapticFeedback.current
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .pointerInput(msg.id) {
+                                                    detectHorizontalDragGestures(
+                                                        onDragEnd = {
+                                                            if (dragOffsetX > 80f) {
+                                                                replyingTo = msg
+                                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            }
+                                                            dragOffsetX = 0f
+                                                        },
+                                                        onDragCancel = {
+                                                            dragOffsetX = 0f
+                                                        },
+                                                        onHorizontalDrag = { _, dragAmount ->
+                                                            // Only allow swiping right (positive dragAmount)
+                                                            if (dragAmount > 0 || dragOffsetX > 0) {
+                                                                dragOffsetX = (dragOffsetX + dragAmount).coerceIn(0f, 130f)
+                                                            }
+                                                        }
+                                                    )
+                                                }
+                                        ) {
+                                            // Reply indicator icon on the left when swiping right
+                                            if (animatedDragOffset > 10f) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .align(Alignment.CenterStart)
+                                                        .padding(start = 12.dp)
+                                                        .size(32.dp)
+                                                        .graphicsLayer {
+                                                            alpha = (animatedDragOffset / 80f).coerceIn(0f, 1f)
+                                                            scaleX = (animatedDragOffset / 80f).coerceIn(0.5f, 1.1f)
+                                                            scaleY = (animatedDragOffset / 80f).coerceIn(0.5f, 1.1f)
+                                                        }
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                                        contentDescription = "Reply",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
+
+                                            Box(
+                                                modifier = Modifier.offset(x = animatedDragOffset.dp)
+                                            ) {
+                                                CustomChatBubble(
+                                                    message = msg,
+                                                    ownBg = ownBubbleBg,
+                                                    ownText = ownBubbleText,
+                                                    friendBg = friendBubbleBg,
+                                                    friendBorder = friendBubbleBorder,
+                                                    friendText = friendBubbleText
+                                                )
+                                            }
+                                        }
                                     }
 
                                     if (isFriendTyping) {
@@ -2026,6 +2107,65 @@ fun CustomizedChatScreen(
                                 }
                             }
                         } else {
+                            // Swipe-to-Reply active preview bar
+                            AnimatedVisibility(
+                                visible = replyingTo != null,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val replyTarget = replyingTo
+                                if (replyTarget != null) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .height(32.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(MaterialTheme.colorScheme.primary)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Replying to ${if (replyTarget.isMe) "yourself" else replyTarget.senderName}",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                text = replyTarget.content,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .clickable { replyingTo = null },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Cancel reply",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -2105,6 +2245,9 @@ fun CustomizedChatScreen(
 
                                     val myName = ConnectoApiClient.currentUsername ?: currentUsername
                                     val tempId = "opt-${UUID.randomUUID()}"
+                                    val currentReply = replyingTo
+                                    replyingTo = null // Clear reply banner immediately
+
                                     val localItem = CustomMessageItem(
                                         id = tempId,
                                         senderName = myName,
@@ -2114,7 +2257,11 @@ fun CustomizedChatScreen(
                                         isMe = true,
                                         isDelivered = true,
                                         isRead = true,
-                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl
+                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
+                                        replyToId = currentReply?.id,
+                                        replyToContent = currentReply?.content,
+                                        replyToAuthor = currentReply?.senderName,
+                                        isEncrypted = true
                                     )
                                     val updatedList = friendMessages + localItem
                                     friendMessages = updatedList
@@ -2132,7 +2279,18 @@ fun CustomizedChatScreen(
                                             } else null
 
                                             if (dmId != null) {
-                                                val sendRes = ConnectoApiClient.sendMessage(channelId = dmId, content = userMsg)
+                                                // Encrypt outgoing content with conversation key (AES-256-GCM)
+                                                val otherUser = friend?.handle?.removePrefix("@") ?: ""
+                                                val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myName, otherUser)
+                                                val encryptedContent = ConnectoE2EEncryption.encryptMessage(userMsg, conversationKey)
+
+                                                val sendRes = ConnectoApiClient.sendMessage(
+                                                    channelId = dmId,
+                                                    content = encryptedContent,
+                                                    replyToId = currentReply?.id,
+                                                    replyToContent = currentReply?.content,
+                                                    replyToAuthor = currentReply?.senderName
+                                                )
                                                 if (sendRes.isSuccess) {
                                                     val sentDto = sendRes.getOrThrow()
                                                     withContext(Dispatchers.IO) {
@@ -2149,12 +2307,16 @@ fun CustomizedChatScreen(
                                                         id = sentDto.id,
                                                         senderName = sentDto.authorName,
                                                         initial = userInitial,
-                                                        content = sentDto.content,
+                                                        content = userMsg, // Keep decrypted plaintext for local display
                                                         time = formatIsoTime(sentDto.createdAt),
                                                         isMe = true,
                                                         isDelivered = true,
                                                         isRead = true,
-                                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl
+                                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
+                                                        replyToId = sentDto.replyToId ?: currentReply?.id,
+                                                        replyToContent = sentDto.replyToContent ?: currentReply?.content,
+                                                        replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
+                                                        isEncrypted = true
                                                     )
                                                     val curList = friendMessages.toMutableList()
                                                     val optIdx = curList.indexOfFirst {
@@ -2318,6 +2480,50 @@ private fun CustomChatBubble(
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 Column {
+                    // Quoted replied-to message preview
+                    if (!message.replyToContent.isNullOrBlank()) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 6.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (message.isMe) ownText.copy(alpha = 0.12f)
+                                    else friendText.copy(alpha = 0.08f)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(2.5.dp)
+                                    .height(24.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(if (message.isMe) ownText.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Column {
+                                if (!message.replyToAuthor.isNullOrBlank()) {
+                                    Text(
+                                        text = message.replyToAuthor,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (message.isMe) ownText.copy(alpha = 0.9f) else MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    text = message.replyToContent,
+                                    fontSize = 11.sp,
+                                    color = if (message.isMe) ownText.copy(alpha = 0.75f) else friendText.copy(alpha = 0.75f),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
                     Text(
                         text = message.content,
                         color = if (message.isMe) ownText else friendText,

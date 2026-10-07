@@ -2121,6 +2121,9 @@ async def get_channel_messages_compat(
             "edited": att.get("edited", False),
             "edit_timestamp": att.get("edit_timestamp"),
             "pinned": att.get("pinned", False),
+            "reply_to_id": getattr(msg, "reply_to_id", None),
+            "reply_to_content": getattr(msg, "reply_to_content", None),
+            "reply_to_author": getattr(msg, "reply_to_author", None),
             "timestamp": str(msg.created_at) if msg.created_at else "Just now",
             "created_at": str(msg.created_at) if msg.created_at else "Just now"
         })
@@ -2261,11 +2264,31 @@ async def post_channel_message_compat(
         attachments_data["timer_seconds"] = timer_seconds
         attachments_data["expires_at"] = expires_at
 
+    reply_to_id = body.get("reply_to_id")
+    reply_to_content = body.get("reply_to_content")
+    reply_to_author = body.get("reply_to_author")
+
+    # If only reply_to_id was provided, resolve content and author from existing message
+    if reply_to_id and (not reply_to_content or not reply_to_author):
+        try:
+            parent_msg = (await db.execute(select(Message).where(Message.id == str(reply_to_id)))).scalar_one_or_none()
+            if parent_msg:
+                if not reply_to_content:
+                    reply_to_content = parent_msg.content[:200]
+                if not reply_to_author:
+                    parent_author = (await db.execute(select(User).where(User.id == parent_msg.sender_id))).scalar_one_or_none()
+                    reply_to_author = (parent_author.display_name or parent_author.username) if parent_author else "Unknown"
+        except Exception:
+            pass
+
     new_msg = Message(
         channel_id=channel.id,
         sender_id=user.id,
         content=content,
-        attachments=attachments_data
+        attachments=attachments_data,
+        reply_to_id=reply_to_id,
+        reply_to_content=reply_to_content,
+        reply_to_author=reply_to_author
     )
     db.add(new_msg)
     await db.commit()
@@ -2326,6 +2349,9 @@ async def post_channel_message_compat(
         "type": "text",
         "timer_seconds": timer_seconds,
         "expires_at": expires_at,
+        "reply_to_id": new_msg.reply_to_id,
+        "reply_to_content": new_msg.reply_to_content,
+        "reply_to_author": new_msg.reply_to_author,
         "nonce": None,
         "user": user.username,
         "nickname": user.display_name or user.username,
@@ -2500,6 +2526,9 @@ async def post_channel_message_compat(
         "type": "text",
         "timer_seconds": timer_seconds,
         "expires_at": expires_at,
+        "reply_to_id": new_msg.reply_to_id,
+        "reply_to_content": new_msg.reply_to_content,
+        "reply_to_author": new_msg.reply_to_author,
         "timestamp": str(new_msg.created_at) if new_msg.created_at else "Just now"
     }
 
@@ -4932,12 +4961,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.0.0",
-        "version_name": "v4.0.0",
-        "version_code": 43,
-        "release_tag": "v4.0.0-stable",
-        "sha256": "35d576478a1ea44f57c6fcbc730267c0f343186b19b76caebd3bdb9318e68eb3",
-        "md5": "94e13324690f07f69b9bd83141cd89e8",
+        "version": "4.2.0",
+        "version_name": "v4.2.0",
+        "version_code": 48,
+        "release_tag": "v4.2.0-stable",
+        "sha256": "444e98002e6d26ce989eec33d66e1e771ce7ba8eac6ece9e1064f3ce442d4631",
+        "md5": "d0caa78fad2c49dd907ca49cc1feffcf",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -4947,8 +4976,11 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "v4.0.0 Profile Tab Accordion UI (Build 43): All Profile sections (Personal Details, Presence & Stealth, Two-Factor Auth, Vault & App Lock, Appearance & Theme) are now collapsible accordions with animated expand/collapse, gradient headers, live status badges, and smooth AnimatedVisibility transitions",
-            "v4.0.0 New App Identity & Social Discovery: Redesigned brand icon with neon-glow glassmorphic aesthetic, Group Chat creation (👥 icon) from Home tab, Community Directory in Add Friends — shows all registered members instantly without typing, Add Friends shortcut on all 4 tabs (Home, Channels, Calls, Profile), and Profile quick-actions card",
+            "v4.2.0 Add Friends & Requests Fix: Fixed Find Friends tab so community directory users are not displayed by default when empty, only displaying matching users when explicitly typed; fixed Find Friends & Requests tab switcher buttons and high-contrast styling",
+            "v4.2.0 End-to-End Chat Encryption (E2EE): Client-side AES-256-GCM encryption with SHA-256 HKDF key derivation, zero plaintext storage on servers, and transparent decryption in chat view",
+            "v4.2.0 Swipe-to-Reply & Quoting: Interactive swipe right on any message with haptic response to quote and reply inline with quote banners",
+            "v4.1.1 Open Profile Cards: Restored clear, accessible Profile sections with open cards for faster navigation",
+            "v4.0.0 New App Identity & Social Discovery: Redesigned brand icon with neon-glow glassmorphic aesthetic, Group Chat creation (👥 icon) from Home tab, and Profile quick-actions card",
             "v3.9.9 Theme Parity & Admin Guard: Complete unification of Android & Web light themes, Admin-only announcement posting guard, and connecto-fun.apk release bundle",
             "v3.9.8 Touch-Scroll Isolation Engine: Replaced unthrottled pointerInput gesture detectors with Compose-native MutableInteractionSource clickable handlers across AnimatedEmojiItem, CustomChatBubble, QuickChips, and pressScaleEffect to completely eliminate accidental emoji, button, and text selection during scroll",
             "v3.9.8 Comprehensive Selection Guard: Wrapped Friends list, Chat stream, Quick Action chips, and Emoji trays in DisableSelection to enforce zero-highlighting during drag and swipe gestures",

@@ -407,18 +407,21 @@ fun CallsScreen(
 
                     quickTabs.forEach { (filter, icon) ->
                         val isSelected = selectedFilter == filter
-                        val activeColor = when (filter) {
-                            "Missed" -> MaterialTheme.colorScheme.error
-                            else -> MaterialTheme.colorScheme.primary
-                        }
+                        val isMissedTab = filter == "Missed"
                         val unselectedChipBg = MaterialTheme.colorScheme.surfaceVariant
+                        val selectedTextColor = if (isMissedTab) Color.White else contentOnGradient
                         Box(
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    if (isSelected) activeColor
-                                    else unselectedChipBg
+                                .then(
+                                    if (isSelected && isMissedTab) {
+                                        Modifier.background(MaterialTheme.colorScheme.error)
+                                    } else if (isSelected) {
+                                        Modifier.background(Brush.linearGradient(gradientColors))
+                                    } else {
+                                        Modifier.background(unselectedChipBg)
+                                    }
                                 )
                                 .pressScaleEffect(
                                     onClick = {
@@ -438,7 +441,7 @@ fun CallsScreen(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (isSelected) selectedTextColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Spacer(modifier = Modifier.width(3.dp))
@@ -447,7 +450,7 @@ fun CallsScreen(
                                     text = filter,
                                     fontSize = 11.5.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    color = if (isSelected) selectedTextColor else MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1
                                 )
                             }
