@@ -502,24 +502,41 @@ fun ProfileScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surface,
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                )
+                            )
+                            .border(
+                                BorderStroke(
+                                    1.dp,
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                        )
+                                    )
+                                ),
+                                RoundedCornerShape(24.dp)
+                            )
                     ) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(bottom = 20.dp),
+                                .padding(horizontal = 20.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Centered Avatar without Cover Banner
+                            // Centered Avatar with Glow
                             Box(
-                                contentAlignment = Alignment.BottomEnd,
-                                modifier = Modifier.padding(top = 28.dp)
+                                contentAlignment = Alignment.BottomEnd
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(96.dp)
+                                        .size(100.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surface)
                                         .padding(3.dp)
@@ -554,7 +571,7 @@ fun ProfileScreen(
                                             text = userInitial,
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 36.sp
+                                            fontSize = 38.sp
                                         )
                                         if (sanitizedProfilePhoto != null) {
                                             AsyncImage(
@@ -590,6 +607,7 @@ fun ProfileScreen(
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clip(CircleShape)
+                                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                                         .pressScaleEffect(
                                             onClick = {
                                                 photoPickerLauncher.launch(
@@ -610,76 +628,149 @@ fun ProfileScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(10.dp))
+                            Spacer(modifier = Modifier.height(14.dp))
 
-                            Text(
-                                text = if (displayNameInput.isNotBlank()) displayNameInput else username,
-                                fontSize = 21.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                lineHeight = 26.sp
-                            )
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            val isWsConnected by com.example.connecto.voice.VoiceCallManager.isWsConnectedFlow.collectAsState()
+                            // Name & Verified Badge
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (stealthModeEnabled) ConnectoTheme.colors.info
-                                            else if (isWsConnected) OnlineGreen
-                                            else TextDisabledColor
-                                        )
+                                Text(
+                                    text = if (displayNameInput.isNotBlank()) displayNameInput else username,
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                    lineHeight = 28.sp
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "@$username",
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.SemiBold
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Verified Account",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = if (stealthModeEnabled) "• Stealth Mode Active" else if (isWsConnected) "• Online" else "• Offline",
-                                    fontSize = 12.sp,
-                                    color = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor,
-                                    fontWeight = FontWeight.Medium
-                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Username handle
+                            Text(
+                                text = "@$username",
+                                fontSize = 14.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Quick Status Badges Row
+                            val isWsConnected by com.example.connecto.voice.VoiceCallManager.isWsConnectedFlow.collectAsState()
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            ) {
+                                // Status Pill (Online / Stealth / Offline)
+                                val statusColor = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor
+                                val statusText = if (stealthModeEnabled) "Stealth Mode" else if (isWsConnected) "Online" else "Offline"
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(statusColor.copy(alpha = 0.12f))
+                                        .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(statusColor)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = statusText,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = statusColor
+                                        )
+                                    }
+                                }
+
+                                // Cloud Synced Pill
                                 if (profilePhotoUri?.startsWith("http") == true && profilePhotoUri != "null") {
-                                    Spacer(modifier = Modifier.width(8.dp))
                                     Box(
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(OnlineGreen.copy(alpha = 0.15f))
-                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(OnlineGreen.copy(alpha = 0.12f))
+                                            .border(1.dp, OnlineGreen.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = OnlineGreen,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = "Synced",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = OnlineGreen
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Encrypted E2E Pill
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Shield,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(5.dp))
                                         Text(
-                                            text = "✓ Cloud Synced",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = OnlineGreen
+                                            text = "E2E Secured",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 }
                             }
 
                             if (bioInput.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "“${bioInput.trim()}”",
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    modifier = Modifier.padding(horizontal = 24.dp),
-                                    lineHeight = 19.sp
-                                )
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "“${bioInput.trim()}”",
+                                        fontSize = 13.sp,
+                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                        lineHeight = 19.sp
+                                    )
+                                }
                             }
                         }
                     }
@@ -693,7 +784,8 @@ fun ProfileScreen(
                     ) {
                         SectionHeader(
                             title = "Presence & Stealth Mode",
-                            subtitle = "Control how others see your online status"
+                            subtitle = "Control how others see your online status",
+                            icon = Icons.Default.VisibilityOff
                         )
                         Box(
                             modifier = Modifier
@@ -790,7 +882,8 @@ fun ProfileScreen(
                     ) {
                         SectionHeader(
                             title = "Personal Information",
-                            subtitle = "Manage your identity, personal information, and contact details"
+                            subtitle = "Manage your identity, personal information, and contact details",
+                            icon = Icons.Default.Person
                         )
 
                         Box(
@@ -938,20 +1031,33 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.height(6.dp))
 
                             // Manual Save Profile Button
-                            Button(
-                                onClick = { triggerAutoSave() },
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(48.dp),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                )
+                                    .height(48.dp)
+                                    .pressScaleEffect(
+                                        onClick = { triggerAutoSave() },
+                                        targetScale = 0.96f
+                                    )
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(Brush.linearGradient(gradientColors)),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Save Profile Changes", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = contentOnGradient,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Save Profile Changes",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = contentOnGradient
+                                    )
+                                }
                             }
                         }
                     }
@@ -966,7 +1072,8 @@ fun ProfileScreen(
                     ) {
                         SectionHeader(
                             title = "Two-Factor Auth & Password Security",
-                            subtitle = "Email 2FA verification & instant inbox recovery"
+                            subtitle = "Email 2FA verification & instant inbox recovery",
+                            icon = Icons.Default.Shield
                         )
                         Box(
                             modifier = Modifier
@@ -1092,15 +1199,17 @@ fun ProfileScreen(
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
-                                        Column {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
                                                 Text(
-                                                    text = "Two-Factor Auth (2FA)",
+                                                    text = "Two-Factor Auth",
                                                     fontSize = 15.sp,
                                                     fontWeight = FontWeight.SemiBold,
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
-                                                Spacer(modifier = Modifier.width(8.dp))
                                                 Box(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(6.dp))
@@ -1115,8 +1224,9 @@ fun ProfileScreen(
                                                     )
                                                 }
                                             }
+                                            Spacer(modifier = Modifier.height(2.dp))
                                             Text(
-                                                text = if (twoFactorEnabled) "Protected via EMAIL OTP on every login" else "Require 6-digit code on login",
+                                                text = if (twoFactorEnabled) "Email OTP verification enabled" else "Require 6-digit code on login",
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1233,7 +1343,8 @@ fun ProfileScreen(
                     ) {
                         SectionHeader(
                             title = "Biometric & App Lock",
-                            subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security"
+                            subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
+                            icon = Icons.Default.Fingerprint
                         )
                         Box(
                             modifier = Modifier
@@ -1445,7 +1556,8 @@ fun ProfileScreen(
                     ) {
                         SectionHeader(
                             title = "Appearance & Display Theme",
-                            subtitle = "Personalize your visual experience across the entire app"
+                            subtitle = "Personalize your visual experience across the entire app",
+                            icon = Icons.Default.Tune
                         )
                         Box(
                             modifier = Modifier
@@ -1664,25 +1776,31 @@ fun ProfileScreen(
                                 onClick = onSignOut,
                                 targetScale = 0.95f
                             )
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Brush.linearGradient(gradientColors)),
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.12f))
+                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = contentOnGradient, modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "SIGN OUT / LOGOUT",
-                                color = contentOnGradient,
+                                text = "Sign Out Account",
+                                color = Color(0xFFEF4444),
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp
+                                letterSpacing = 0.3.sp
                             )
                         }
                     }
                 }
 
-                item { Spacer(modifier = Modifier.height(24.dp)) }
+                item { Spacer(modifier = Modifier.height(32.dp)) }
             }
         }
     }
@@ -2063,22 +2181,56 @@ private fun TwoFactorSetupDialog(
 @Composable
 private fun SectionHeader(
     title: String,
-    subtitle: String
+    subtitle: String,
+    icon: ImageVector? = null
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
-        Text(
-            text = title,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            lineHeight = 22.sp
-        )
-        Text(
-            text = subtitle,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            lineHeight = 16.sp
-        )
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(3.5.dp)
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 20.sp
+            )
+            Text(
+                text = subtitle,
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                lineHeight = 16.sp
+            )
+        }
     }
 }
 
@@ -2388,7 +2540,7 @@ private fun ContactStyledField(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .heightIn(min = 52.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
                 .border(
@@ -2396,7 +2548,7 @@ private fun ContactStyledField(
                     MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
                     RoundedCornerShape(12.dp)
                 )
-                .padding(horizontal = 12.dp),
+                .padding(horizontal = 12.dp, vertical = 6.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Row(
@@ -2415,6 +2567,8 @@ private fun ContactStyledField(
                     color = if (value.isBlank()) TextDisabledColor else MaterialTheme.colorScheme.onSurface,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
                 // Reveal / Mask toggle button

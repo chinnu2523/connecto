@@ -29,6 +29,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import com.example.connecto.crypto.ConnectoE2EEncryption
@@ -71,6 +73,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
@@ -78,6 +81,20 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SentimentSatisfiedAlt
 import androidx.compose.material.icons.filled.SportsEsports
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Wallpaper
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -87,8 +104,14 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.fragment.app.FragmentActivity
+import android.content.ContextWrapper
+import com.example.connecto.security.BiometricAuthManager
+import com.example.connecto.ui.components.PhotoLightboxDialog
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -139,14 +162,19 @@ import com.example.connecto.ui.components.WebRtcCallOverlay
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
 import com.example.connecto.ui.theme.OnlineGreen
+import com.example.connecto.ui.theme.TextDisabledColor
 import com.example.connecto.ui.theme.ShimmerConversationItem
 import com.example.connecto.ui.theme.ShimmerMessageFeed
 import com.example.connecto.ui.theme.StaggeredReveal
 import com.example.connecto.ui.theme.breathingPulse
 import com.example.connecto.ui.theme.pressScaleEffect
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.SecureFlagPolicy
 import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.network.ProfileDataDto
 import java.util.UUID
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
@@ -194,6 +222,164 @@ private fun formatIsoTime(isoString: String): String {
     }
 }
 
+private fun Context.findFragmentActivity(): FragmentActivity? {
+    var currentContext = this
+    while (currentContext is ContextWrapper) {
+        if (currentContext is FragmentActivity) {
+            return currentContext
+        }
+        currentContext = currentContext.baseContext
+    }
+    return null
+}
+
+data class ChatThemeOption(
+    val id: String,
+    val name: String,
+    val subtitle: String,
+    val primaryColor: Color,
+    val secondaryColor: Color,
+    val ownBubbleBgLight: Color,
+    val ownBubbleBgDark: Color,
+    val ownBubbleTextLight: Color,
+    val ownBubbleTextDark: Color,
+    val friendBubbleBgLight: Color,
+    val friendBubbleBgDark: Color,
+    val friendBubbleTextLight: Color,
+    val friendBubbleTextDark: Color
+)
+
+val AVAILABLE_CHAT_THEMES = listOf(
+    ChatThemeOption(
+        id = "default",
+        name = "Pure Monochrome",
+        subtitle = "Editorial Noir / Parchment contrast",
+        primaryColor = Color(0xFF6C5CE7),
+        secondaryColor = Color(0xFFA29BFE),
+        ownBubbleBgLight = Color(0xFF141312),
+        ownBubbleBgDark = Color(0xFFFFFFFF),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFF000000),
+        friendBubbleBgLight = Color(0xFFFFFFFF),
+        friendBubbleBgDark = Color(0xFF18181B),
+        friendBubbleTextLight = Color(0xFF141312),
+        friendBubbleTextDark = Color(0xFFFFFFFF)
+    ),
+    ChatThemeOption(
+        id = "cyberpunk",
+        name = "Cyberpunk Neon",
+        subtitle = "Electric violet & luminous cyan glow",
+        primaryColor = Color(0xFFD946EF),
+        secondaryColor = Color(0xFF06B6D4),
+        ownBubbleBgLight = Color(0xFF9333EA),
+        ownBubbleBgDark = Color(0xFF7E22CE),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFFFFFFF),
+        friendBubbleBgLight = Color(0xFFF3E8FF),
+        friendBubbleBgDark = Color(0xFF1E112A),
+        friendBubbleTextLight = Color(0xFF581C87),
+        friendBubbleTextDark = Color(0xFFF3E8FF)
+    ),
+    ChatThemeOption(
+        id = "midnight",
+        name = "Midnight Azure",
+        subtitle = "Deep oceanic navy & azure stream",
+        primaryColor = Color(0xFF2563EB),
+        secondaryColor = Color(0xFF38BDF8),
+        ownBubbleBgLight = Color(0xFF1D4ED8),
+        ownBubbleBgDark = Color(0xFF1E40AF),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFFFFFFF),
+        friendBubbleBgLight = Color(0xFFEFF6FF),
+        friendBubbleBgDark = Color(0xFF0F172A),
+        friendBubbleTextLight = Color(0xFF1E3A8A),
+        friendBubbleTextDark = Color(0xFFE0F2FE)
+    ),
+    ChatThemeOption(
+        id = "emerald",
+        name = "Emerald Matrix",
+        subtitle = "Obsidian deep with matrix emerald",
+        primaryColor = Color(0xFF10B981),
+        secondaryColor = Color(0xFF059669),
+        ownBubbleBgLight = Color(0xFF047857),
+        ownBubbleBgDark = Color(0xFF065F46),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFFFFFFF),
+        friendBubbleBgLight = Color(0xFFECFDF5),
+        friendBubbleBgDark = Color(0xFF062319),
+        friendBubbleTextLight = Color(0xFF064E3B),
+        friendBubbleTextDark = Color(0xFFD1FAE5)
+    ),
+    ChatThemeOption(
+        id = "sunset",
+        name = "Solar Sunset",
+        subtitle = "Vibrant coral & warm amber horizon",
+        primaryColor = Color(0xFFF97316),
+        secondaryColor = Color(0xFFF43F5E),
+        ownBubbleBgLight = Color(0xFFEA580C),
+        ownBubbleBgDark = Color(0xFFC2410C),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFFFFFFF),
+        friendBubbleBgLight = Color(0xFFFFF7ED),
+        friendBubbleBgDark = Color(0xFF29150B),
+        friendBubbleTextLight = Color(0xFF9A3412),
+        friendBubbleTextDark = Color(0xFFFFEDD5)
+    )
+)
+
+data class ChatWallpaperOption(
+    val id: String,
+    val name: String,
+    val subtitle: String,
+    val lightBrush: Brush,
+    val darkBrush: Brush
+)
+
+val AVAILABLE_CHAT_WALLPAPERS = listOf(
+    ChatWallpaperOption(
+        id = "default",
+        name = "Default Clean",
+        subtitle = "Subtle theme background",
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF5F1E8))),
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF0A0A0A)))
+    ),
+    ChatWallpaperOption(
+        id = "oled",
+        name = "True 0-Nit OLED",
+        subtitle = "Pitch black battery-saver luxury",
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFFAFAFA))),
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF000000)))
+    ),
+    ChatWallpaperOption(
+        id = "mesh_dark",
+        name = "Cosmic Mesh",
+        subtitle = "Deep nebula slate with violet aura",
+        lightBrush = Brush.radialGradient(listOf(Color(0xFFEDE9FE), Color(0xFFF1F5F9))),
+        darkBrush = Brush.radialGradient(listOf(Color(0xFF1E1035), Color(0xFF090614)))
+    ),
+    ChatWallpaperOption(
+        id = "indigo_flow",
+        name = "Indigo Gradient",
+        subtitle = "Soft twilight sky gradient",
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0E7FF))),
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF111827), Color(0xFF1E1B4B)))
+    ),
+    ChatWallpaperOption(
+        id = "emerald_glow",
+        name = "Emerald Matrix",
+        subtitle = "Deep tactical aurora matrix",
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5))),
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF041C14), Color(0xFF020E0A)))
+    ),
+    ChatWallpaperOption(
+        id = "parchment_warm",
+        name = "Archival Paper",
+        subtitle = "Warm vintage ivory grain",
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF3EDE2))),
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF1C1917), Color(0xFF0C0A09)))
+    )
+)
+
 data class FriendItem(
     val id: String,
     val name: String,
@@ -239,6 +425,8 @@ fun CustomizedChatScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedFriend by remember { mutableStateOf<FriendItem?>(null) }
+    var selectedFriendProfileData by remember { mutableStateOf<ProfileDataDto?>(null) }
+    var friendProfileSelectedTab by remember { mutableStateOf("settings") } // "settings", "customization", "actions"
     var showFriendProfileDialog by remember { mutableStateOf(false) }
     var showUnfriendConfirmDialog by remember { mutableStateOf(false) }
     var isUnfriending by remember { mutableStateOf(false) }
@@ -270,21 +458,88 @@ fun CustomizedChatScreen(
         label = "sendScale"
     )
 
+    val context = LocalContext.current
+    val readPrefs = remember { context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE) }
+    val friendPrefs = remember { context.getSharedPreferences("connecto_friend_prefs", Context.MODE_PRIVATE) }
+    val notifPrefs = remember { context.getSharedPreferences("connecto_notifications_prefs", Context.MODE_PRIVATE) }
+    val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
+
+    // Friend Profile Preview Lightbox & Per-Chat Preferences
+    var showPhotoLightbox by remember { mutableStateOf(false) }
+    var isChatMuted by remember { mutableStateOf(false) }
+    var isChatLocked by remember { mutableStateOf(false) }
+    var chatThemeId by remember { mutableStateOf("default") }
+    var chatWallpaperId by remember { mutableStateOf("default") }
+    var customWallpaperUri by remember { mutableStateOf<String?>(null) }
+
+    // Custom Wallpaper Photo Picker Launcher
+    val wallpaperPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+            val uriStr = uri.toString()
+            customWallpaperUri = uriStr
+            chatWallpaperId = "custom"
+            val fId = selectedFriend?.id
+            if (fId != null) {
+                friendPrefs.edit()
+                    .putString("chat_wallpaper_custom_$fId", uriStr)
+                    .putString("chat_wallpaper_$fId", "custom")
+                    .apply()
+            }
+        }
+    }
+
+    // Session cache of unlocked friends during current app session
+    val unlockedLockedFriends = remember { mutableStateListOf<String>() }
+    var pendingLockedFriendToOpen by remember { mutableStateOf<FriendItem?>(null) }
+    var isBiometricAuthPromptActive by remember { mutableStateOf(false) }
+
+    // Synchronize mute, lock, theme, wallpaper when selectedFriend changes
+    LaunchedEffect(selectedFriend?.id) {
+        val friend = selectedFriend
+        if (friend != null) {
+            val friendId = friend.id
+            val cleanHandle = friend.handle.trim().lowercase().removePrefix("@")
+            val mutedSet = notifPrefs.getStringSet("muted_channels", emptySet()) ?: emptySet()
+            isChatMuted = mutedSet.any { it.trim().lowercase().removePrefix("#").removePrefix("@") == cleanHandle || it.trim().lowercase() == friendId.lowercase() }
+            isChatLocked = friendPrefs.getBoolean("chat_locked_$friendId", false) || friendPrefs.getBoolean("chat_locked_$cleanHandle", false)
+            chatThemeId = friendPrefs.getString("chat_theme_$friendId", "default") ?: "default"
+            chatWallpaperId = friendPrefs.getString("chat_wallpaper_$friendId", "default") ?: "default"
+            customWallpaperUri = friendPrefs.getString("chat_wallpaper_custom_$friendId", null)
+        }
+    }
+
+    // Active Chat Theme & Wallpaper Resolution
+    val activeChatTheme = remember(chatThemeId) {
+        AVAILABLE_CHAT_THEMES.firstOrNull { it.id == chatThemeId } ?: AVAILABLE_CHAT_THEMES.first()
+    }
+    val activeChatWallpaper = remember(chatWallpaperId) {
+        AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == chatWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+    }
+
+    // Dynamic Accent Colors & Light/Dark Theme Detector
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
     val isLight = isAppInLightTheme()
     val userInitial = if (currentUsername.isNotBlank()) currentUsername.first().toString().uppercase() else "C"
 
-    // Theme Aware Bubble Colors - Black & White matching dark and light theme
-    val ownBubbleBg = if (isLight) Color(0xFF141312) else Color(0xFFFFFFFF)
-    val ownBubbleText = if (isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
-    val friendBubbleBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF18181B)
-    val friendBubbleBorder = if (isLight) Color(0xFFE2E8F0) else Color(0xFF27272A)
-    val friendBubbleText = if (isLight) Color(0xFF141312) else Color(0xFFFFFFFF)
-
-    val context = LocalContext.current
-    val readPrefs = remember { context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE) }
-    val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
+    // Theme Aware Message Bubble Colors - Dynamically configured per friend theme
+    val ownBubbleBg = if (isLight) activeChatTheme.ownBubbleBgLight else activeChatTheme.ownBubbleBgDark
+    val ownBubbleText = if (isLight) activeChatTheme.ownBubbleTextLight else activeChatTheme.ownBubbleTextDark
+    val friendBubbleBg = if (isLight) activeChatTheme.friendBubbleBgLight else activeChatTheme.friendBubbleBgDark
+    val friendBubbleBorder = if (chatThemeId == "default") {
+        if (isLight) Color(0xFFE2E8F0) else Color(0xFF27272A)
+    } else {
+        activeChatTheme.primaryColor.copy(alpha = 0.35f)
+    }
+    val friendBubbleText = if (isLight) activeChatTheme.friendBubbleTextLight else activeChatTheme.friendBubbleTextDark
 
     // Friends List State - start empty, populated by IO LaunchedEffect below for 0ms Main-thread blocking
     val friendsList = remember { mutableStateListOf<FriendItem>() }
@@ -934,10 +1189,11 @@ fun CustomizedChatScreen(
                 val res = ConnectoApiClient.getProfile(clean)
                 if (res.isSuccess) {
                     val prof = res.getOrThrow()
+                    selectedFriendProfileData = prof
                     selectedFriend = selectedFriend?.copy(
                         avatarUrl = prof.avatarUrl ?: selectedFriend?.avatarUrl,
-                        name = prof.displayName.ifBlank { prof.username },
-                        bio = prof.bio ?: selectedFriend?.bio ?: "",
+                        name = prof.displayName.ifBlank { prof.fullName.ifBlank { prof.username } },
+                        bio = prof.bio.ifBlank { selectedFriend?.bio ?: "" },
                         isOnline = prof.isOnline
                     )
                 }
@@ -947,31 +1203,66 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Friend Profile Info Dialog
+    // Friend Profile Info Dialog - Enhanced with Tabs matching Profile tab
     if (showFriendProfileDialog && selectedFriend != null) {
-        Dialog(onDismissRequest = { showFriendProfileDialog = false }) {
+        val friendObj = selectedFriend!!
+        val profData = selectedFriendProfileData
+        val friendHandleClean = friendObj.handle.removePrefix("@")
+        val effectiveFullName = profData?.fullName?.ifBlank { friendObj.name } ?: friendObj.name
+        val effectiveDisplayName = profData?.displayName?.ifBlank { friendObj.name } ?: friendObj.name
+        val effectiveBio = profData?.bio?.ifBlank { friendObj.bio } ?: friendObj.bio
+        val effectiveEmail = profData?.email?.ifBlank { null }
+        val effectivePhone = profData?.phoneNumber?.ifBlank { null }
+        val isTwoFactorActive = profData?.twoFactorEnabled ?: false
+        val twoFactorMethod = profData?.twoFactorMethod ?: "email"
+
+        Dialog(
+            onDismissRequest = { showFriendProfileDialog = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                securePolicy = SecureFlagPolicy.Inherit
+            )
+        ) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(28.dp),
                 color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 8.dp,
+                shadowElevation = 16.dp,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .border(width = 1.dp, color = MaterialTheme.colorScheme.outline, shape = RoundedCornerShape(24.dp))
-                    .padding(16.dp)
+                    .fillMaxWidth(0.95f)
+                    .heightIn(max = 700.dp)
+                    .border(width = 1.dp, color = MaterialTheme.colorScheme.outline, shape = RoundedCornerShape(28.dp))
             ) {
                 Column(
-                    modifier = Modifier.padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
+                    // STABLE / FIXED HEADER (Profile pic, name, badges, tab buttons)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                    // Header close button bar
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Text(
+                            text = "FRIEND PROFILE",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 1.2.sp
+                        )
+
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
                                 .clickable { showFriendProfileDialog = false },
                             contentAlignment = Alignment.Center
                         ) {
@@ -979,135 +1270,956 @@ fun CustomizedChatScreen(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Close",
                                 tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(18.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
 
-                    // Avatar Circle
-                    ConnectoAvatar(
-                        name = selectedFriend?.name ?: "Friend",
-                        avatarUrl = selectedFriend?.avatarUrl,
-                        customSizeDp = 80.dp,
-                        customFontSizeSp = 30,
-                        borderWidth = 2.5.dp,
-                        borderBrush = Brush.sweepGradient(gradientColors)
-                    )
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = selectedFriend!!.name,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                    // Avatar Circle with Dynamic Accent Glow & Full-Screen Photo Preview
+                    val friendAvatarResolved = friendObj.avatarUrl ?: profData?.avatarUrl
+                    Box(
+                        contentAlignment = Alignment.BottomEnd,
+                        modifier = Modifier.clickable { showPhotoLightbox = true }
+                    ) {
+                        ConnectoAvatar(
+                            name = friendObj.name,
+                            avatarUrl = friendAvatarResolved,
+                            customSizeDp = 88.dp,
+                            customFontSizeSp = 34,
+                            borderWidth = 3.dp,
+                            borderBrush = Brush.sweepGradient(gradientColors),
+                            onClick = { showPhotoLightbox = true }
                         )
+                        // Zoom inspect pill badge
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ZoomIn,
+                                contentDescription = "View Profile Picture Fullscreen",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    // Display Name & Verified Badge
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = effectiveDisplayName,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Verified Member",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // Username handle
                         Text(
-                            text = selectedFriend!!.handle,
+                            text = "@$friendHandleClean",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    // Status Badges Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = selectedFriend!!.status,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
-                            .padding(12.dp)
-                    ) {
-                        Column {
+                        // Online / Offline Status Pill
+                        val statusColor = if (friendObj.isOnline) OnlineGreen else TextDisabledColor
+                        val statusText = if (friendObj.isOnline) "Online" else "Offline"
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(statusColor.copy(alpha = 0.12f))
+                                .border(1.dp, statusColor.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(statusColor)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "ABOUT ME",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 0.8.sp
+                                    text = statusText,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = statusColor
                                 )
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = selectedFriend!!.bio.ifBlank { "Connecto Member" },
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                lineHeight = 18.sp
-                            )
+                        }
+
+                        // E2E Secured Badge
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "E2E Secured",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        // Synced Pill
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(OnlineGreen.copy(alpha = 0.12f))
+                                .border(1.dp, OnlineGreen.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = OnlineGreen,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Synced",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OnlineGreen
+                                )
+                            }
                         }
                     }
 
+                    // Interactive Tab Selector Buttons (Personal, Chat & Lock, Theme & Wallpaper, Actions)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // START VOICE CALL BUTTON
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(gradientColors))
-                                .clickable {
-                                    val friend = selectedFriend
-                                    showFriendProfileDialog = false
-                                    if (friend != null) {
-                                        initiateVoiceCallWithFriend(friend)
+                        listOf(
+                            Triple("settings", "Chat & Lock", Icons.Default.Lock),
+                            Triple("customization", "Theme & Wall", Icons.Default.Palette),
+                            Triple("actions", "Actions", Icons.Default.Call)
+                        ).forEach { (tabKey, tabTitle, tabIcon) ->
+                            val isSelected = friendProfileSelectedTab == tabKey
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (isSelected) Brush.linearGradient(gradientColors)
+                                        else SolidColor(Color.Transparent)
+                                    )
+                                    .clickable { friendProfileSelectedTab = tabKey }
+                                    .padding(vertical = 9.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = tabIcon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = tabTitle,
+                                        fontSize = 10.5.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        color = if (isSelected) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    } // end Fixed Header
+
+                    // SCROLLABLE TAB CONTENT BODY
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false)
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                    when (friendProfileSelectedTab) {
+                        "settings" -> {
+                            // Chat Privacy, Notifications & Security Controls
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // 1. MUTE NOTIFICATIONS TOGGLE
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                                        .padding(14.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(38.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isChatMuted) Color(0xFFF59E0B).copy(alpha = 0.15f)
+                                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isChatMuted) Icons.Default.NotificationsOff else Icons.Default.Notifications,
+                                                    contentDescription = "Mute Notifications",
+                                                    tint = if (isChatMuted) Color(0xFFF59E0B) else MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Mute Notifications",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = if (isChatMuted) "Notifications silenced for this friend" else "Alerts & incoming vibrations active",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+
+                                        Switch(
+                                            checked = isChatMuted,
+                                            onCheckedChange = { checked ->
+                                                isChatMuted = checked
+                                                val currentMuted = notifPrefs.getStringSet("muted_channels", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                                val clean = friendObj.handle.trim().lowercase().removePrefix("@")
+                                                val fId = friendObj.id.lowercase()
+                                                if (checked) {
+                                                    currentMuted.add(clean)
+                                                    currentMuted.add(fId)
+                                                    Toast.makeText(context, "Muted notifications from @$clean", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    currentMuted.removeAll { it.lowercase() == clean || it.lowercase() == fId }
+                                                    Toast.makeText(context, "Unmuted notifications from @$clean", Toast.LENGTH_SHORT).show()
+                                                }
+                                                notifPrefs.edit().putStringSet("muted_channels", currentMuted).apply()
+                                            },
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = Color.White,
+                                                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                        )
                                     }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Call, contentDescription = null, tint = contentOnGradient, modifier = Modifier.size(15.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("VOICE CALL", color = contentOnGradient, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                // 2. LOCK THE CHAT TOGGLE (Biometric / PIN)
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                                        .padding(14.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(38.dp)
+                                                    .clip(CircleShape)
+                                                    .background(
+                                                        if (isChatLocked) Color(0xFFEF4444).copy(alpha = 0.15f)
+                                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isChatLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                                    contentDescription = "Lock Chat",
+                                                    tint = if (isChatLocked) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column {
+                                                Text(
+                                                    text = "Lock Chat Session",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = if (isChatLocked) "Requires fingerprint/PIN to open chat" else "Unlocked • Tap to enable biometric lock",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+
+                                        Switch(
+                                            checked = isChatLocked,
+                                            onCheckedChange = { checked ->
+                                                val activity = context.findFragmentActivity()
+                                                val fId = friendObj.id
+                                                val clean = friendObj.handle.trim().lowercase().removePrefix("@")
+                                                if (checked) {
+                                                    // Verify biometric/credentials before enabling lock
+                                                    if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                                        BiometricAuthManager.authenticate(
+                                                            activity = activity,
+                                                            title = "Lock Chat with @$clean",
+                                                            subtitle = "Verify biometric or device credential to enable chat lock",
+                                                            onSuccess = {
+                                                                isChatLocked = true
+                                                                friendPrefs.edit()
+                                                                    .putBoolean("chat_locked_$fId", true)
+                                                                    .putBoolean("chat_locked_$clean", true)
+                                                                    .apply()
+                                                                if (!unlockedLockedFriends.contains(fId)) {
+                                                                    unlockedLockedFriends.add(fId)
+                                                                }
+                                                                Toast.makeText(context, "Chat locked for @$clean", Toast.LENGTH_SHORT).show()
+                                                            },
+                                                            onError = { _, err ->
+                                                                Toast.makeText(context, "Authentication required: $err", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        )
+                                                    } else {
+                                                        // Fallback direct set
+                                                        isChatLocked = true
+                                                        friendPrefs.edit()
+                                                            .putBoolean("chat_locked_$fId", true)
+                                                            .putBoolean("chat_locked_$clean", true)
+                                                            .apply()
+                                                        Toast.makeText(context, "Chat locked for @$clean", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } else {
+                                                    // Verify biometric/credential before removing lock
+                                                    if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                                        BiometricAuthManager.authenticate(
+                                                            activity = activity,
+                                                            title = "Unlock Chat with @$clean",
+                                                            subtitle = "Verify biometric or device credential to disable chat lock",
+                                                            onSuccess = {
+                                                                isChatLocked = false
+                                                                friendPrefs.edit()
+                                                                    .remove("chat_locked_$fId")
+                                                                    .remove("chat_locked_$clean")
+                                                                    .apply()
+                                                                unlockedLockedFriends.remove(fId)
+                                                                Toast.makeText(context, "Chat lock disabled for @$clean", Toast.LENGTH_SHORT).show()
+                                                            },
+                                                            onError = { _, err ->
+                                                                Toast.makeText(context, "Authentication required: $err", Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        )
+                                                    } else {
+                                                        isChatLocked = false
+                                                        friendPrefs.edit()
+                                                            .remove("chat_locked_$fId")
+                                                            .remove("chat_locked_$clean")
+                                                            .apply()
+                                                        unlockedLockedFriends.remove(fId)
+                                                        Toast.makeText(context, "Chat lock disabled for @$clean", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            },
+                                            colors = SwitchDefaults.colors(
+                                                checkedThumbColor = Color.White,
+                                                checkedTrackColor = Color(0xFFEF4444),
+                                                uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                            )
+                                        )
+                                    }
+                                }
+
+                                // Direct Channel Cryptography Info
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                                        .padding(14.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Direct Channel Security",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = "Messages and voice calls are protected with client-side AES-256-GCM cryptographic keys.",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 15.sp
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
 
-                        // UNFRIEND BUTTON
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(44.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFDC2626).copy(alpha = 0.15f))
-                                .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                .clickable {
-                                    showUnfriendConfirmDialog = true
-                                },
-                            contentAlignment = Alignment.Center
+                        "customization" -> {
+                            // Chat Theme and Chat Background Wallpaper Customization
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                // Section Header: Chat Themes
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Palette,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "CHAT THEME COLOR",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+
+                                // Themes Horizontal Scroll List
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    AVAILABLE_CHAT_THEMES.forEach { theme ->
+                                        val isSelected = chatThemeId == theme.id
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 2.dp else 1.dp,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                )
+                                                .clickable {
+                                                    chatThemeId = theme.id
+                                                    val fId = friendObj.id
+                                                    friendPrefs.edit().putString("chat_theme_$fId", theme.id).apply()
+                                                }
+                                                .padding(12.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                    // Color Swatch Circles
+                                                    Row(horizontalArrangement = Arrangement.spacedBy((-4).dp)) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(20.dp)
+                                                                .clip(CircleShape)
+                                                                .background(theme.primaryColor)
+                                                                .border(1.dp, Color.White, CircleShape)
+                                                        )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(20.dp)
+                                                                .clip(CircleShape)
+                                                                .background(theme.secondaryColor)
+                                                                .border(1.dp, Color.White, CircleShape)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = theme.name,
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = theme.subtitle,
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                if (isSelected) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(22.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.primary),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = "Active Theme",
+                                                            tint = contentOnGradient,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(4.dp))
+
+                                // Section Header: Chat Wallpaper
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Wallpaper,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "CHAT BACKGROUND WALLPAPER",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        letterSpacing = 1.sp
+                                    )
+                                }
+
+                                    // CUSTOM PHOTO WALLPAPER CARD (Pick from Gallery)
+                                    val isCustomSelected = chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isCustomSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                            )
+                                            .border(
+                                                width = if (isCustomSelected) 2.dp else 1.dp,
+                                                color = if (isCustomSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                if (!customWallpaperUri.isNullOrBlank()) {
+                                                    AsyncImage(
+                                                        model = customWallpaperUri,
+                                                        contentDescription = "Custom Wallpaper",
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier
+                                                            .size(width = 46.dp, height = 34.dp)
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                                    )
+                                                } else {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(width = 46.dp, height = 34.dp)
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(6.dp)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.AddPhotoAlternate,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                    }
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(
+                                                        text = "Custom Photo Wallpaper",
+                                                        fontSize = 13.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = if (!customWallpaperUri.isNullOrBlank()) "Photo active for this chat" else "Pick custom photo from gallery",
+                                                        fontSize = 11.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(MaterialTheme.colorScheme.primary)
+                                                        .clickable {
+                                                            wallpaperPickerLauncher.launch(
+                                                                androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                            )
+                                                        }
+                                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                ) {
+                                                    Text(
+                                                        text = if (customWallpaperUri.isNullOrBlank()) "Choose" else "Change",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = contentOnGradient
+                                                    )
+                                                }
+
+                                                if (!customWallpaperUri.isNullOrBlank()) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(30.dp)
+                                                            .clip(CircleShape)
+                                                            .background(Color(0xFFDC2626).copy(alpha = 0.15f))
+                                                            .clickable {
+                                                                customWallpaperUri = null
+                                                                chatWallpaperId = "default"
+                                                                val fId = friendObj.id
+                                                                friendPrefs.edit()
+                                                                    .remove("chat_wallpaper_custom_" + fId)
+                                                                    .putString("chat_wallpaper_" + fId, "default")
+                                                                    .apply()
+                                                            },
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Delete,
+                                                            contentDescription = "Remove Custom Wallpaper",
+                                                            tint = Color(0xFFEF4444),
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                // Wallpaper Preview Grid / Cards
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    AVAILABLE_CHAT_WALLPAPERS.forEach { wallpaper ->
+                                        val isSelected = chatWallpaperId == wallpaper.id
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 2.dp else 1.dp,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                )
+                                                .clickable {
+                                                    chatWallpaperId = wallpaper.id
+                                                    val fId = friendObj.id
+                                                    friendPrefs.edit().putString("chat_wallpaper_$fId", wallpaper.id).apply()
+                                                }
+                                                .padding(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                    // Wallpaper Preview Thumbnail
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(width = 46.dp, height = 34.dp)
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(if (isLight) wallpaper.lightBrush else wallpaper.darkBrush)
+                                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = wallpaper.name,
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = wallpaper.subtitle,
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                if (isSelected) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(22.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.primary),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = "Active Wallpaper",
+                                                            tint = contentOnGradient,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        "actions" -> {
+                            // Quick Action Buttons
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // START VOICE CALL BUTTON
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                val friend = selectedFriend
+                                                showFriendProfileDialog = false
+                                                if (friend != null) {
+                                                    initiateVoiceCallWithFriend(friend)
+                                                }
+                                            },
+                                            targetScale = 0.96f
+                                        )
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Brush.linearGradient(gradientColors)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Call,
+                                            contentDescription = null,
+                                            tint = contentOnGradient,
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "START ENCRYPTED VOICE CALL",
+                                            color = contentOnGradient,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                    }
+                                }
+
+                                // UNFRIEND BUTTON
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(48.dp)
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                showUnfriendConfirmDialog = true
+                                            },
+                                            targetScale = 0.96f
+                                        )
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Color(0xFFDC2626).copy(alpha = 0.12f))
+                                        .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.PersonRemove,
+                                            contentDescription = null,
+                                            tint = Color(0xFFEF4444),
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "REMOVE FROM FRIENDS",
+                                            color = Color(0xFFEF4444),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    } // end Scrollable Tab Body
+
+                    // PERSISTENT FOOTER (Always fixed at bottom of dialog)
+                    if (friendProfileSelectedTab != "actions") {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.PersonRemove, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(15.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("UNFRIEND", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            // START VOICE CALL BUTTON
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .pressScaleEffect(
+                                        onClick = {
+                                            val friend = selectedFriend
+                                            showFriendProfileDialog = false
+                                            if (friend != null) {
+                                                initiateVoiceCallWithFriend(friend)
+                                            }
+                                        },
+                                        targetScale = 0.96f
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Brush.linearGradient(gradientColors)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Call, contentDescription = null, tint = contentOnGradient, modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("VOICE CALL", color = contentOnGradient, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            // UNFRIEND BUTTON
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(44.dp)
+                                    .pressScaleEffect(
+                                        onClick = {
+                                            showUnfriendConfirmDialog = true
+                                        },
+                                        targetScale = 0.96f
+                                    )
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFDC2626).copy(alpha = 0.12f))
+                                    .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.PersonRemove, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(15.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("UNFRIEND", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    // Friend Profile Photo Fullscreen Lightbox Dialog
+    if (showPhotoLightbox && selectedFriend != null) {
+        val friendObj = selectedFriend!!
+        val resolvedAvatar = friendObj.avatarUrl ?: selectedFriendProfileData?.avatarUrl
+        PhotoLightboxDialog(
+            title = friendObj.name,
+            imageUrl = resolvedAvatar,
+            placeholderInitial = friendObj.initial,
+            isBanner = false,
+            onDismiss = { showPhotoLightbox = false }
+        )
     }
 
     // Unfriend Confirmation Modal Dialog
@@ -1593,24 +2705,51 @@ fun CustomizedChatScreen(
                         }
 
                         itemsIndexed(filteredFriends, key = { _, friend -> friend.id }) { index, friend ->
+                            val isFriendLocked = friendPrefs.getBoolean("chat_locked_${friend.id}", false)
+                            val isUnlocked = unlockedLockedFriends.contains(friend.id)
+
+                            val openFriendChat = {
+                                selectedFriend = friend
+                                typedMessage = messageDrafts[friend.id] ?: ""
+                                friendMessages = emptyList()
+                                activeDmChannelId = null
+                                isLoadingMessages = true
+                                onDirectChatStateChanged(true)
+                                val idx = friendsList.indexOfFirst { it.id == friend.id }
+                                if (idx != -1) {
+                                    friendsList[idx] = friendsList[idx].copy(unreadCount = 0)
+                                }
+                                readPrefs.edit()
+                                    .putInt("unread_${friend.id}", 0)
+                                    .putBoolean("read_${friend.id}", true)
+                                    .apply()
+                                onUnreadStatusChanged(friendsList.any { it.unreadCount > 0 })
+                            }
+
                             StaggeredReveal(index = index) {
                                 Card(
                                 onClick = {
-                                    selectedFriend = friend
-                                    typedMessage = messageDrafts[friend.id] ?: ""
-                                    friendMessages = emptyList()
-                                    activeDmChannelId = null
-                                    isLoadingMessages = true
-                                    onDirectChatStateChanged(true)
-                                    val idx = friendsList.indexOfFirst { it.id == friend.id }
-                                    if (idx != -1) {
-                                        friendsList[idx] = friendsList[idx].copy(unreadCount = 0)
+                                    if (isFriendLocked && !isUnlocked) {
+                                        val activity = context.findFragmentActivity()
+                                        if (activity != null) {
+                                            BiometricAuthManager.authenticate(
+                                                activity = activity,
+                                                title = "Unlock Chat with ${friend.name}",
+                                                subtitle = "Authenticate to view private chat history",
+                                                onSuccess = {
+                                                    unlockedLockedFriends.add(friend.id)
+                                                    openFriendChat()
+                                                },
+                                                onError = { _, err ->
+                                                    Toast.makeText(context, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        } else {
+                                            openFriendChat()
+                                        }
+                                    } else {
+                                        openFriendChat()
                                     }
-                                    readPrefs.edit()
-                                        .putInt("unread_${friend.id}", 0)
-                                        .putBoolean("read_${friend.id}", true)
-                                        .apply()
-                                    onUnreadStatusChanged(friendsList.any { it.unreadCount > 0 })
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
@@ -1653,6 +2792,15 @@ fun CustomizedChatScreen(
                                                 overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier.weight(1f, fill = false)
                                             )
+                                            if (isFriendLocked) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.Lock,
+                                                    contentDescription = "Chat Locked",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                            }
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = friend.handle,
@@ -1722,17 +2870,47 @@ fun CustomizedChatScreen(
                         }
                     }
 
-                    Column(
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .imePadding()
                             .navigationBarsPadding()
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth()
+                        // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush
+                        if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) {
+                            AsyncImage(
+                                model = customWallpaperUri,
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            // Legibility Scrim Overlay so chat bubbles and text remain crisp
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        if (isLight) Color.White.copy(alpha = 0.40f)
+                                        else Color.Black.copy(alpha = 0.55f)
+                                    )
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
+                                    )
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier.fillMaxSize()
                         ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxWidth()
+                            ) {
                             if (isLoadingMessages) {
                                 ShimmerMessageFeed(
                                     modifier = Modifier
@@ -2385,18 +3563,19 @@ fun CustomizedChatScreen(
                                 }
                             }
                         }
-                        }
 
                         Spacer(modifier = Modifier.height(4.dp))
                     }
+                    } // end Wallpaper Box
                 }
             }
         }
     }
 }
+}
 
 @Composable
-private fun CustomChatBubble(
+fun CustomChatBubble(
     message: CustomMessageItem,
     ownBg: Color,
     ownText: Color,
@@ -2632,7 +3811,7 @@ private fun CustomChatBubble(
 }
 
 @Composable
-private fun AnimatedTypingIndicator(
+fun AnimatedTypingIndicator(
     friendName: String,
     modifier: Modifier = Modifier
 ) {

@@ -111,14 +111,10 @@ fun ChannelNavigationDrawer(
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
 
-    var activeMembersCount by remember { mutableIntStateOf(10) }
-
     val officialChannels = listOf(
         DrawerChannelOption("general", "general", "Global community chat & team discussion", Icons.Rounded.Forum, category = "OFFICIAL"),
         DrawerChannelOption("announcements", "announcements", "Official updates & platform release notes", Icons.Rounded.Campaign, badgeTag = "UPDATES", category = "OFFICIAL"),
-        DrawerChannelOption("dev-chat", "dev-chat", "Engineering, APIs, WebSockets & Security", Icons.Rounded.Security, badgeTag = "TECH", category = "OFFICIAL"),
-        DrawerChannelOption("gaming", "gaming", "Casual discussion, lounge & off-topic", Icons.Rounded.SportsEsports, badgeTag = "LOUNGE", category = "OFFICIAL"),
-        DrawerChannelOption("war-room", "war-room", "Operations, incident response & alerts", Icons.Rounded.EmojiEvents, badgeTag = "OPS", category = "OFFICIAL")
+        DrawerChannelOption("gaming", "gaming", "Casual discussion, lounge & off-topic", Icons.Rounded.SportsEsports, badgeTag = "LOUNGE", category = "OFFICIAL")
     )
 
     val esportsChannels = listOf(
@@ -187,21 +183,6 @@ fun ChannelNavigationDrawer(
                                         color = MaterialTheme.colorScheme.onSurface,
                                         letterSpacing = 0.2.sp
                                     )
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(OnlineGreen)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "$activeMembersCount Members Online",
-                                            fontSize = 11.sp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
                                 }
                             }
 

@@ -98,7 +98,7 @@ fun PhotoLightboxDialog(
     imageUrl: String?,
     placeholderInitial: String = "C",
     isBanner: Boolean = false,
-    onChangePhoto: () -> Unit,
+    onChangePhoto: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -106,7 +106,8 @@ fun PhotoLightboxDialog(
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
-            dismissOnClickOutside = true
+            dismissOnClickOutside = true,
+            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
         )
     ) {
         var zoomScale by remember { mutableFloatStateOf(1.0f) }
@@ -244,24 +245,26 @@ fun PhotoLightboxDialog(
                     Text("Reset Zoom", fontSize = 13.sp)
                 }
 
-                Button(
-                    onClick = {
-                        onDismiss()
-                        onChangePhoto()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF6C5CE7),
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Change Photo",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Change Photo", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                if (onChangePhoto != null) {
+                    Button(
+                        onClick = {
+                            onDismiss()
+                            onChangePhoto()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF6C5CE7),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CameraAlt,
+                            contentDescription = "Change Photo",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Change Photo", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
                 }
             }
         }

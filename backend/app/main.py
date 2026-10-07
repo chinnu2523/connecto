@@ -4965,8 +4965,8 @@ async def get_app_version_endpoint(response: Response = None):
         "version_name": "v4.2.0",
         "version_code": 48,
         "release_tag": "v4.2.0-stable",
-        "sha256": "f01f850f566a8b22bab47fa2128cfb5410fee47f2fb46c468b6764f34c2e0dd0",
-        "md5": "2ee678057233d5934a8ccaf70dd5dfc5",
+        "sha256": "f1ca25a90df04c461a70740b606cb06ad6b6c5102cc78793beecc47f7aa84cac",
+        "md5": "989275f7c54a0977f9749579f40e03a0",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -4976,6 +4976,7 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "v4.2.0 Friend Profile UI & Security: Fixed header stability with stationary avatar, removed Personal button and 2FA card from friend profile view, added custom photo gallery wallpaper per chat, and enforced FLAG_SECURE screenshot prevention when inspecting profile picture fullscreen",
             "v4.2.0 Add Friends & Requests Fix: Fixed Find Friends tab so community directory users are not displayed by default when empty, only displaying matching users when explicitly typed; fixed Find Friends & Requests tab switcher buttons and high-contrast styling",
             "v4.2.0 End-to-End Chat Encryption (E2EE): Client-side AES-256-GCM encryption with SHA-256 HKDF key derivation, zero plaintext storage on servers, and transparent decryption in chat view",
             "v4.2.0 Swipe-to-Reply & Quoting: Interactive swipe right on any message with haptic response to quote and reply inline with quote banners",

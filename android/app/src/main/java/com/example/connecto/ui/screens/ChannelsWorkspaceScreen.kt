@@ -176,9 +176,7 @@ fun ChannelsWorkspaceScreen(
         listOf(
             ChannelQuickChip("general", "general", Icons.Rounded.Forum, "Global community chat & team discussion"),
             ChannelQuickChip("announcements", "announcements", Icons.Rounded.Campaign, "Official updates & platform release notes"),
-            ChannelQuickChip("dev-chat", "dev-chat", Icons.Rounded.Security, "Engineering, APIs, WebSockets & Security"),
             ChannelQuickChip("gaming", "gaming", Icons.Rounded.SportsEsports, "Casual discussion, lounge & off-topic"),
-            ChannelQuickChip("war-room", "war-room", Icons.Rounded.EmojiEvents, "Operations, incident response & alerts"),
             ChannelQuickChip("tournaments", "tournaments", Icons.Rounded.EmojiEvents, "Free Fire esports tournaments & matches"),
             ChannelQuickChip("clips", "clips", Icons.Rounded.PlayCircle, "Community gaming highlights & clutches"),
             ChannelQuickChip("voice-lounge", "voice-lounge", Icons.AutoMirrored.Rounded.VolumeUp, "Voice & screen sharing lounge")
