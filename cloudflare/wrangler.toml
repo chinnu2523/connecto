@@ -1,4 +1,4 @@
-name = "vconnect-maintenance"
+name = "connecto-worker"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 

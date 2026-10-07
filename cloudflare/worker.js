@@ -53,6 +53,35 @@ export default {
       return handleAiModerate(request, env);
     }
 
+    // Edge Version API (Always return latest canonical app release specs)
+    if (url.pathname === "/api/v1/app/version" || url.pathname === "/api/app/version") {
+      return jsonResponse({
+        status: "success",
+        app_name: "Connecto",
+        package_name: "com.connecto.app",
+        version: "4.2.1",
+        version_name: "v4.2.1",
+        version_code: 49,
+        build: 49,
+        sha256: "b682eab8c70e251ec2a5aebe32c77d77dcaf50a42ea89865f230b2c970629c59",
+        md5: "04c740ea4b7ce40d5b0248108b8ca3c2",
+        filename: "connecto-fun.apk",
+        size_bytes: 56876685,
+        size_display: "54.2 MB",
+        min_android: "Android 7.0 (API 24)",
+        target_android: "Android 16+ (API 37 / HyperOS Verified)",
+        url: "https://connecto.fun/download/apk",
+        download_url: "/download/apk",
+        direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
+        features: [
+          "v4.2.1 Friend Profile UI & Security: Fixed header stability with stationary avatar, removed Personal button and 2FA card from friend profile view, added custom photo gallery wallpaper per chat, and enforced FLAG_SECURE screenshot prevention when inspecting profile picture fullscreen",
+          "v4.2.0 Add Friends & Requests Fix: Fixed Find Friends tab so community directory users are not displayed by default when empty, only displaying matching users when explicitly typed; fixed Find Friends & Requests tab switcher buttons and high-contrast styling",
+          "v4.2.0 End-to-End Chat Encryption (E2EE): Client-side AES-256-GCM encryption with SHA-256 HKDF key derivation, zero plaintext storage on servers, and transparent decryption in chat view",
+          "v4.2.0 Swipe-to-Reply & Quoting: Interactive swipe right on any message with haptic response to quote and reply inline with quote banners"
+        ]
+      });
+    }
+
     // 3. System Status & Automation Mode Telemetry
     if (url.pathname === "/api/status" || url.pathname === "/api/v1/status") {
       return handleSystemStatus(env);
@@ -83,7 +112,7 @@ export default {
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
       if (localServerStatus !== "UP") {
-        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.0/connecto-fun.apk", 302);
+        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.1/connecto-fun.apk", 302);
       }
     }
 
@@ -2236,11 +2265,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.0",
-      version_name: "v4.2.0",
-      version_code: 48,
-      build: 48,
-      sha256: "f1ca25a90df04c461a70740b606cb06ad6b6c5102cc78793beecc47f7aa84cac",
+      version: "4.2.1",
+      version_name: "v4.2.1",
+      version_code: 49,
+      build: 49,
+      sha256: "b682eab8c70e251ec2a5aebe32c77d77dcaf50a42ea89865f230b2c970629c59",
       filename: "connecto-fun.apk",
       size_bytes: 56876685,
       size_display: "54.2 MB",
