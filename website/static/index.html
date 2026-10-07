@@ -16178,17 +16178,20 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
     transform: translateX(-50%) !important;
     width: min(calc(100% - 24px), 440px) !important;
     height: 60px !important;
-    background: rgba(10, 14, 26, 0.92) !important;
+    background: var(--bg-card, rgba(10, 14, 26, 0.92)) !important;
     backdrop-filter: blur(24px) -webkit-backdrop-filter: blur(24px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12)) !important;
     border-radius: 9999px !important;
     padding: 4px 8px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75), 0 0 20px rgba(0, 242, 254, 0.15) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(124, 92, 252, 0.15) !important;
     z-index: 9999 !important;
     pointer-events: auto !important;
   }
   body {
     padding-bottom: 78px !important;
+  }
+  body.mobile-in-chat {
+    padding-bottom: 0 !important;
   }
   .input-area {
     margin-bottom: 72px !important;
@@ -16214,18 +16217,19 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
   border: 1px solid transparent !important;
   border-radius: 9999px !important;
   padding: 5px 6px !important;
-  color: #8B8FA8 !important;
+  color: var(--text-muted, #8B8FA8) !important;
   cursor: pointer !important;
   position: relative !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 .mobile-dock-btn:hover {
-  color: #f1f5f9 !important;
+  color: var(--text-header, #f1f5f9) !important;
 }
 .mobile-dock-btn.active {
-  background: rgba(124, 92, 252, 0.22) !important;
-  border-color: rgba(124, 92, 252, 0.45) !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 14px rgba(124, 92, 252, 0.3) !important;
+  background: var(--accent-tint, rgba(124, 92, 252, 0.22)) !important;
+  border-color: var(--accent-border, rgba(124, 92, 252, 0.45)) !important;
+  color: var(--accent, #ffffff) !important;
+  box-shadow: 0 0 14px var(--accent-glow, rgba(124, 92, 252, 0.3)) !important;
 }
 .dock-btn-icon-wrap {
   position: relative !important;
@@ -17341,8 +17345,10 @@ pre, .code-block, .chat-code-snippet {
   .chat-header {
     height: 52px !important;
     padding: 0 12px !important;
-    background: rgba(8, 10, 18, 0.96) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    background: var(--bg-nav, rgba(8, 10, 18, 0.96)) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    border-bottom: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
     z-index: 30 !important;
   }
   /* On mobile non-chat screens (home, messages, calls), hide the redundant chat header */
@@ -17353,24 +17359,28 @@ pre, .code-block, .chat-code-snippet {
     display: flex !important;
   }
 
-  /* Mobile Back Arrow Button */
-  .mobile-chat-back-btn {
+  /* Mobile Navigation and Back Buttons */
+  .mobile-chat-back-btn,
+  .mobile-sidebar-toggle {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: var(--bg-card, rgba(255, 255, 255, 0.06)) !important;
+    border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12)) !important;
+    color: var(--text-header, #ffffff) !important;
     cursor: pointer;
     margin-right: 6px;
     flex-shrink: 0;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, border-color 0.2s !important;
   }
-  .mobile-chat-back-btn:active {
+  .mobile-chat-back-btn:active,
+  .mobile-sidebar-toggle:active {
     transform: scale(0.92);
-    background: rgba(255, 255, 255, 0.14);
+    background: var(--accent-tint, rgba(255, 255, 255, 0.14)) !important;
+    border-color: var(--accent-border, rgba(255, 255, 255, 0.25)) !important;
   }
 
   /* Mobile hides bulky in-chat header elements */
@@ -17389,15 +17399,17 @@ pre, .code-block, .chat-code-snippet {
   .chat-messages-column {
     width: 100% !important;
     max-width: 100% !important;
+    background: var(--bg-darkest, #000000) !important;
   }
   .messages-area {
-    padding: 10px 12px 90px 12px !important;
+    padding: 10px 12px 86px 12px !important;
+    background: var(--bg-darkest, #000000) !important;
   }
 
   /* Tactical Mobile Touch Composer */
   .input-area {
-    margin-bottom: 74px !important;
-    padding: 6px 12px !important;
+    margin-bottom: 72px !important;
+    padding: 4px 12px !important;
     background: transparent !important;
   }
   .stitch-input-card {
@@ -17423,13 +17435,13 @@ pre, .code-block, .chat-code-snippet {
   }
   .connecto-input-capsule-wrapper {
     min-height: 46px !important;
-    background: rgba(14, 18, 28, 0.95) !important;
+    background: var(--bg-card, rgba(14, 18, 28, 0.95)) !important;
     backdrop-filter: blur(16px) !important;
     -webkit-backdrop-filter: blur(16px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid var(--card-border, rgba(255, 255, 255, 0.14)) !important;
     border-radius: 28px !important;
     padding: 4px 6px 4px 12px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
     display: flex !important;
     align-items: center !important;
     gap: 6px !important;
@@ -17437,8 +17449,8 @@ pre, .code-block, .chat-code-snippet {
     box-sizing: border-box !important;
   }
   .connecto-input-capsule-wrapper.focused {
-    border-color: rgba(99, 102, 241, 0.6) !important;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+    border-color: var(--accent, rgba(99, 102, 241, 0.6)) !important;
+    box-shadow: 0 0 0 3px var(--accent-tint, rgba(99, 102, 241, 0.2)), 0 4px 20px rgba(0, 0, 0, 0.5) !important;
   }
   .connecto-emoji-inline-btn {
     font-size: 20px !important;
@@ -17453,7 +17465,7 @@ pre, .code-block, .chat-code-snippet {
     font-size: 15px !important;
     padding: 8px 6px !important;
     background: transparent !important;
-    color: #fff !important;
+    color: var(--text-header, #fff) !important;
     flex: 1 1 0% !important;
     min-width: 0 !important;
   }
@@ -17462,6 +17474,8 @@ pre, .code-block, .chat-code-snippet {
     height: 38px !important;
     flex-shrink: 0 !important;
     border-radius: 50% !important;
+    background: var(--accent, #ffffff) !important;
+    color: var(--bg-darkest, #000000) !important;
   }
 
   /* Floating Bottom Island Dock on Mobile */
@@ -17474,13 +17488,13 @@ pre, .code-block, .chat-code-snippet {
     width: calc(100% - 24px) !important;
     max-width: 440px !important;
     height: 60px !important;
-    background: rgba(10, 13, 22, 0.94) !important;
+    background: var(--bg-card, rgba(10, 13, 22, 0.94)) !important;
     backdrop-filter: blur(24px) saturate(180%) !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border: 1px solid var(--card-border, rgba(255, 255, 255, 0.14)) !important;
     border-radius: 9999px !important;
     z-index: 1000 !important;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 20px rgba(124, 92, 252, 0.18) !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(124, 92, 252, 0.18) !important;
     padding: 0 6px !important;
     align-items: center !important;
     justify-content: space-around !important;
@@ -31372,9 +31386,11 @@ function handleNavCommunityClick() {
               inAppInitialized = false;
               initInAppServices();
 
-              // Restore active view (defaults to homepage 'hero' so users see all animations)
+              // Restore active view: Authenticated users stay in their designated view (defaulting to chat or saved view, not marketing hero)
               const urlView = urlParams.get('view') || window.location.hash.replace('#', '');
-              const targetView = (urlView && ['chat', 'voice', 'learning', 'calls', 'home', 'hero'].includes(urlView)) ? urlView : ((lastView === 'chat' || lastView === 'learning') ? lastView : 'hero');
+              const targetView = (urlView && ['chat', 'voice', 'learning', 'calls', 'home', 'messages', 'hero'].includes(urlView))
+                ? urlView
+                : ((lastView && ['chat', 'home', 'messages', 'calls', 'learning', 'voice'].includes(lastView)) ? lastView : 'chat');
               switchMainView(targetView);
               if (urlParams.get('sidebar') === 'members') {
                 setTimeout(() => { if (typeof toggleMembersSidebar === 'function') toggleMembersSidebar(true); }, 300);
