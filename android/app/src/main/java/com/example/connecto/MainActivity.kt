@@ -19,8 +19,10 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -59,6 +61,8 @@ import com.example.connecto.ui.screens.HomeChatScreen
 import com.example.connecto.ui.screens.ProfileScreen
 import com.example.connecto.ui.security.BiometricLockScreen
 import com.example.connecto.ui.theme.ConnectoTheme
+import com.example.connecto.ui.components.FullScreenCallUI
+import com.example.connecto.ui.components.MinimizedCallPill
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
 
@@ -259,6 +263,16 @@ fun ConnectoApp(
     val unreadNotifCount by com.example.connecto.network.ConnectoApiClient.unreadNotificationCount.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
     val incomingCallData by VoiceCallManager.incomingCall.collectAsState()
+    val managerCallTitle by VoiceCallManager.activeCallTitle.collectAsState()
+    val managerRoomCode by VoiceCallManager.activeCallRoomCode.collectAsState()
+    var isCallMinimized by remember { mutableStateOf(false) }
+
+    // Auto-reset minimization when call finishes
+    androidx.compose.runtime.LaunchedEffect(callState) {
+        if (callState == CallState.IDLE) {
+            isCallMinimized = false
+        }
+    }
 
     // Only ask Notification permission when a new user downloaded the app for the first time
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -516,17 +530,37 @@ fun ConnectoApp(
                         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
                         bottomBar = {
                             if (showBottomBar) {
-                                ConnectoBottomBar(
-                                    currentTab = currentTab,
-                                    onTabSelected = { selectedTab ->
-                                        updateCurrentTab(selectedTab)
-                                    },
-                                    hasUnreadChats = hasUnreadChats,
-                                    hasUnreadCalls = false,
-                                    unreadMessagesCount = unreadNotifCount,
-                                    userInitial = authenticatedUsername.trim().firstOrNull()?.uppercase() ?: "U",
-                                    modifier = Modifier.navigationBarsPadding()
-                                )
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .navigationBarsPadding()
+                                ) {
+                                    // Minimized Call Floating Capsule Dock
+                                    if (isCallMinimized && callState != CallState.IDLE) {
+                                        MinimizedCallPill(
+                                            callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
+                                            avatarUrl = null,
+                                            onExpand = { isCallMinimized = false },
+                                            onEndCall = {
+                                                isCallMinimized = false
+                                                VoiceCallManager.leaveVoiceRoom()
+                                                VoiceCallManager.endCall()
+                                            }
+                                        )
+                                    }
+
+                                    ConnectoBottomBar(
+                                        currentTab = currentTab,
+                                        onTabSelected = { selectedTab ->
+                                            updateCurrentTab(selectedTab)
+                                        },
+                                        hasUnreadChats = hasUnreadChats,
+                                        hasUnreadCalls = false,
+                                        isCallActive = callState != CallState.IDLE,
+                                        unreadMessagesCount = unreadNotifCount,
+                                        userInitial = authenticatedUsername.trim().firstOrNull()?.uppercase() ?: "U"
+                                    )
+                                }
                             }
                         }
                     ) { innerPadding ->
@@ -707,6 +741,38 @@ fun ConnectoApp(
                 onDecline = {
                     VoiceCallManager.declineIncomingCall()
                 }
+            )
+        }
+
+        // Global Full-Screen Audio Call Overlay
+        val isCallActiveGlobal = callState != CallState.IDLE
+        androidx.compose.animation.AnimatedVisibility(
+            visible = isCallActiveGlobal && !isCallMinimized,
+            enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
+                    androidx.compose.animation.slideInVertically(
+                        initialOffsetY = { fullHeight -> fullHeight / 4 },
+                        animationSpec = androidx.compose.animation.core.tween(300)
+                    ),
+            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) +
+                    androidx.compose.animation.slideOutVertically(
+                        targetOffsetY = { fullHeight -> fullHeight / 4 },
+                        animationSpec = androidx.compose.animation.core.tween(250)
+                    ),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            FullScreenCallUI(
+                callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
+                participantCount = 2,
+                roomCode = managerRoomCode,
+                onMinimize = {
+                    isCallMinimized = true
+                },
+                onEndCall = {
+                    isCallMinimized = false
+                    VoiceCallManager.leaveVoiceRoom()
+                    VoiceCallManager.endCall()
+                },
+                modifier = Modifier.fillMaxSize()
             )
         }
 

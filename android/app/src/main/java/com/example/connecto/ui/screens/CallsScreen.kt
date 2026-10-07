@@ -755,27 +755,13 @@ fun CallsScreen(
             )
         }
 
-        // Full Screen Active Call Overlay
-        val isCallVisible = (callState != CallState.IDLE) || isInActiveCall
-        AnimatedVisibility(
-            visible = isCallVisible,
-            enter = fadeIn(animationSpec = tween(300)),
-            exit = fadeOut(animationSpec = tween(250)),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            FullScreenCallUI(
-                callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else activeCallTitle,
-                participantCount = activeCallParticipants,
-                roomCode = managerRoomCode ?: activeCallRoomCode,
-                onEndCall = {
-                    isInActiveCall = false
-                    activeCallRoomCode = null
-                    VoiceCallManager.leaveVoiceRoom()
-                    VoiceCallManager.endCall()
-                    refreshCallLogs()
-                },
-                modifier = Modifier.fillMaxSize()
-            )
+        // Active call state handled globally by MainActivity FullScreenCallUI overlay
+        LaunchedEffect(callState) {
+            if (callState == CallState.IDLE && isInActiveCall) {
+                isInActiveCall = false
+                activeCallRoomCode = null
+                refreshCallLogs()
+            }
         }
 
         if (showAddFriendDialog) {

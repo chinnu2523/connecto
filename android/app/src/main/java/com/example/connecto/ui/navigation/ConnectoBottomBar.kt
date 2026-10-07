@@ -4,6 +4,10 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -87,6 +91,7 @@ fun ConnectoBottomBar(
     modifier: Modifier = Modifier,
     hasUnreadChats: Boolean = false,
     hasUnreadCalls: Boolean = false,
+    isCallActive: Boolean = false,
     unreadMessagesCount: Int = 0,
     userInitial: String = "U"
 ) {
@@ -313,8 +318,34 @@ fun ConnectoBottomBar(
                                     )
                                 }
 
-                                // Badges with subtle bounce
-                                if (tab == ConnectoTab.MESSAGES && hasUnreadChats) {
+                                // Badges with subtle bounce & Active Call Pulse
+                                if (tab == ConnectoTab.CALLS && isCallActive) {
+                                    val pulseTransition = rememberInfiniteTransition(label = "bottomBarCallPulse")
+                                    val pulseAlpha by pulseTransition.animateFloat(
+                                        initialValue = 0.35f,
+                                        targetValue = 1.0f,
+                                        animationSpec = infiniteRepeatable(tween(750), RepeatMode.Reverse),
+                                        label = "callDotAlpha"
+                                    )
+                                    val pulseScale by pulseTransition.animateFloat(
+                                        initialValue = 0.9f,
+                                        targetValue = 1.25f,
+                                        animationSpec = infiniteRepeatable(tween(750), RepeatMode.Reverse),
+                                        label = "callDotScale"
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(9.dp)
+                                            .graphicsLayer {
+                                                alpha = pulseAlpha
+                                                scaleX = pulseScale
+                                                scaleY = pulseScale
+                                            }
+                                            .clip(CircleShape)
+                                            .background(colors.success)
+                                            .border(1.5.dp, colors.surface, CircleShape)
+                                    )
+                                } else if (tab == ConnectoTab.MESSAGES && hasUnreadChats) {
                                     Box(
                                         modifier = Modifier
                                             .size(8.dp)
