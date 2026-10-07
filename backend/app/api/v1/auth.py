@@ -14,6 +14,7 @@ from app.core.otp import send_unified_otp, verify_unified_otp, clean_phone_numbe
 from app.db.models.user import User, UserSession, OTPVerification
 from app.schemas.user import (
     UserSignup, UserLogin, UserResponse,
+    SignupRequestOtp, SignupVerifyOtp,
     ForgotPasswordRequest, ForgotPasswordVerify, ForgotPasswordReset,
     TwoFactorToggleRequest, TwoFactorRequestOtp, TwoFactorVerifyOtp, TwoFactorLoginVerify
 )
@@ -52,6 +53,59 @@ async def find_user_by_identifier(db: AsyncSession, identifier: str) -> Optional
     stmt = select(User).where(or_(*conditions))
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
+@router.post("/signup/request-otp")
+async def signup_request_otp(
+    req: SignupRequestOtp,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Sends a 6-digit email OTP for sign-up verification.
+    Ensures email is not already registered.
+    """
+    clean_e = req.email.strip().lower()
+    stmt = select(User).where(func.lower(User.email) == clean_e)
+    existing = (await db.execute(stmt)).scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This email address is already registered. Please sign in instead."
+        )
+
+    res = await send_unified_otp(
+        db=db,
+        identifier=clean_e,
+        method="email",
+        purpose="signup_verification"
+    )
+    return {
+        "status": "ok",
+        "message": f"Verification code sent to {res.get('masked_destination', clean_e)}",
+        "masked_destination": res.get("masked_destination", mask_email(clean_e)),
+        "dev_otp": res.get("dev_otp")
+    }
+
+@router.post("/signup/verify-otp")
+async def signup_verify_otp(
+    req: SignupVerifyOtp,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Verifies the email OTP before account creation.
+    """
+    clean_e = req.email.strip().lower()
+    otp_record = await verify_unified_otp(
+        db=db,
+        identifier=clean_e,
+        otp_code=req.otp_code.strip(),
+        purpose="signup_verification"
+    )
+    return {
+        "status": "ok",
+        "verified": True,
+        "email": clean_e,
+        "message": "Email verified successfully ✓"
+    }
 
 @router.get("/check-username")
 async def check_username(
@@ -223,6 +277,32 @@ async def signup(
                 detail="An account with this email address already exists. Please sign in instead."
             )
 
+    # Verify email OTP if provided, or verify that a signup OTP verification record exists for this email
+    if signup_data.otp_code:
+        await verify_unified_otp(
+            db=db,
+            identifier=clean_email,
+            otp_code=signup_data.otp_code.strip(),
+            purpose="signup_verification"
+        )
+    else:
+        # Check if email was previously verified in this session via /auth/signup/verify-otp
+        verified_stmt = (
+            select(OTPVerification)
+            .where(
+                OTPVerification.identifier == clean_email,
+                OTPVerification.purpose == "signup_verification",
+                OTPVerification.is_verified == True
+            )
+            .order_by(OTPVerification.created_at.desc())
+        )
+        verified_record = (await db.execute(verified_stmt)).scalars().first()
+        if not verified_record:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Please verify your email address with the 6-digit OTP code before creating an account."
+            )
+
     # Hash password with Argon2id
     hashed_pwd = hash_password(signup_data.password)
 
@@ -232,6 +312,7 @@ async def signup(
         display_name=clean_display_name,
         email=clean_email,
         password_hash=hashed_pwd,
+        date_of_birth=signup_data.date_of_birth,
         username_changed=False
     )
     db.add(new_user)

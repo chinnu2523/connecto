@@ -400,11 +400,60 @@ object ConnectoApiClient {
         false
     }
 
+    suspend fun requestSignupOtp(email: String): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("email", email.trim().lowercase())
+            }
+            val response = executeRequest(
+                endpoint = "/api/auth/signup/request-otp",
+                method = "POST",
+                body = body.toString(),
+                token = null
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                Result.success(json.optString("message", "Verification code sent to your email"))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Failed to send OTP"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun verifySignupOtp(email: String, otpCode: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("email", email.trim().lowercase())
+                put("otp_code", otpCode.trim())
+            }
+            val response = executeRequest(
+                endpoint = "/api/auth/signup/verify-otp",
+                method = "POST",
+                body = body.toString(),
+                token = null
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                Result.success(json.optBoolean("verified", true))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Invalid verification code"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun signup(
         email: String,
         username: String,
         displayName: String,
-        password: String
+        password: String,
+        dateOfBirth: String? = null,
+        age: Int? = null,
+        agreedToTerms: Boolean = true,
+        otpCode: String? = null
     ): Result<AuthResult> = withContext(Dispatchers.IO) {
         try {
             val cleanUser = username.trim().lowercase()
@@ -418,6 +467,10 @@ object ConnectoApiClient {
                 put("display_name", cleanName)
                 put("email", cleanEmail)
                 put("password", password)
+                if (!dateOfBirth.isNullOrEmpty()) put("date_of_birth", dateOfBirth)
+                if (age != null) put("age", age)
+                put("agreed_to_terms", agreedToTerms)
+                if (!otpCode.isNullOrEmpty()) put("otp_code", otpCode)
             }
 
             var response = executeRequest(

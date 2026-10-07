@@ -20931,14 +20931,37 @@ pre, .code-block, .chat-code-snippet {
           <div id="signUpUsernameAvailability" style="font-size:11.5px; margin-top:4px; font-weight:600; display:none; align-items:center; gap:4px;"></div>
         </div>
 
-        <!-- 2. Email Address -->
+        <!-- 2. Email Address & OTP Verification -->
         <div class="form-group" style="position:relative; z-index:1;">
           <label for="signUpEmail">Email Address <span style="color:var(--red);">*</span></label>
-          <div class="auth-input-wrap">
-            <span class="auth-input-icon">✉️</span>
-            <input type="email" class="auth-input-field" id="signUpEmail" placeholder="Enter email address" autocomplete="email" oninput="handleEmailInput(this.value)" required>
+          <div style="display:flex; gap:8px;">
+            <div class="auth-input-wrap" style="flex:1;">
+              <span class="auth-input-icon">✉️</span>
+              <input type="email" class="auth-input-field" id="signUpEmail" placeholder="Enter email address" autocomplete="email" oninput="handleEmailInput(this.value)" required>
+            </div>
+            <button type="button" class="btn" id="signUpSendOtpBtn" onclick="handleSendSignupOtp()" style="padding:0 14px; font-size:12px; font-weight:700; white-space:nowrap; border-radius:12px; height:46px; background:var(--chakra-cyan, #06b6d4); color:#000;">
+              Verify Email ⚡
+            </button>
           </div>
           <div id="signUpEmailFeedback" style="font-size:11.5px; margin-top:4px; font-weight:600; display:none;"></div>
+        </div>
+
+        <!-- 2.1 Email OTP Input Box (Revealed after clicking Verify Email) -->
+        <div class="form-group" id="signUpOtpGroup" style="position:relative; z-index:1; display:none; background:rgba(6,182,212,0.06); border:1px dashed rgba(6,182,212,0.3); border-radius:14px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signUpOtpInput" style="font-size:11px; font-weight:800; color:var(--chakra-cyan); text-transform:uppercase; margin:0;">Enter 6-Digit Email OTP <span style="color:var(--red);">*</span></label>
+            <span id="signUpOtpTimer" style="font-size:11px; color:var(--text-muted);">Code sent to inbox</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <div class="auth-input-wrap" style="flex:1;">
+              <span class="auth-input-icon">🔢</span>
+              <input type="text" class="auth-input-field" id="signUpOtpInput" placeholder="6-digit code (e.g. 123456)" maxlength="6" inputmode="numeric" style="letter-spacing:2px; font-weight:700;">
+            </div>
+            <button type="button" class="btn btn-primary" id="signUpConfirmOtpBtn" onclick="handleVerifySignupOtp()" style="padding:0 16px; font-size:12.5px; font-weight:800; border-radius:12px; height:46px;">
+              Verify Code ✓
+            </button>
+          </div>
+          <div id="signUpOtpFeedback" style="font-size:11.5px; margin-top:6px; font-weight:700; display:none;"></div>
         </div>
 
         <!-- 3. Password -->
@@ -20960,6 +20983,29 @@ pre, .code-block, .chat-code-snippet {
             <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpConfirmPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
           </div>
           <div id="signUpConfirmFeedback" style="font-size:12px; margin-top:4px; font-weight:700; display:none;"></div>
+        </div>
+
+        <!-- 5. Age Verification (18 or above strictly enforced) -->
+        <div class="form-group" style="position:relative; z-index:1;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signUpDob" style="margin:0; font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Date of Birth (Must be 18+ years) <span style="color:var(--red);">*</span></label>
+            <span style="font-size:10.5px; color:#22c55e; font-weight:700; background:rgba(34,197,94,0.1); padding:2px 6px; border-radius:6px; border:1px solid rgba(34,197,94,0.25);">18+ Verified</span>
+          </div>
+          <div class="auth-input-wrap">
+            <span class="auth-input-icon">🎂</span>
+            <input type="date" class="auth-input-field" id="signUpDob" style="color:var(--text-header); font-size:13.5px;" onchange="validateSignUpAge(this.value)" required>
+          </div>
+          <div id="signUpAgeFeedback" style="font-size:11.5px; margin-top:4px; font-weight:700; display:none;"></div>
+        </div>
+
+        <!-- 6. Agreed to Terms and Conditions Checkbox -->
+        <div class="form-group" style="position:relative; z-index:1; margin-top:16px;">
+          <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:12.5px; color:var(--text-normal); line-height:1.45; text-transform:none; font-weight:500;">
+            <input type="checkbox" id="signUpTermsCheckbox" style="margin-top:2px; width:17px; height:17px; accent-color:var(--chakra-cyan, #06b6d4); cursor:pointer; flex-shrink:0;" required>
+            <span>
+              I agree to the <a href="javascript:void(0)" onclick="openTermsModal()" style="color:var(--chakra-cyan); font-weight:700; text-decoration:underline;">Terms of Service</a> and <a href="javascript:void(0)" onclick="openPrivacyModal()" style="color:var(--chakra-cyan); font-weight:700; text-decoration:underline;">Privacy Policy</a>, and I certify that I am at least 18 years of age. <span style="color:var(--red);">*</span>
+            </span>
+          </label>
         </div>
 
         <div class="auth-alert" id="signUpFeedback" style="position:relative; z-index:1; display:none;"></div>
@@ -31007,6 +31053,59 @@ function handleNavCommunityClick() {
         return;
       }
 
+      // 1. Enforce Email OTP Verification
+      if (!signupEmailVerified || signupVerifiedEmailAddress !== email.toLowerCase()) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.innerHTML = '<span>⚠️</span><span>Please verify your email address with the 6-digit OTP code before creating an account. Click "Verify Email ⚡" above.</span>';
+          fb.style.display = 'flex';
+          fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        const otpGroup = document.getElementById('signUpOtpGroup');
+        if (otpGroup) otpGroup.style.display = 'block';
+        const otpInput = document.getElementById('signUpOtpInput');
+        if (otpInput && !otpInput.value) otpInput.focus();
+        return;
+      }
+
+      // 2. Enforce Age Verification (18 or above)
+      const dobInput = document.getElementById('signUpDob');
+      const dobValue = dobInput ? dobInput.value : '';
+      if (!dobValue) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.innerHTML = '<span>⚠️</span><span>Please enter your date of birth. You must be at least 18 years old to join Connecto.</span>';
+          fb.style.display = 'flex';
+          fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        if (dobInput) dobInput.focus();
+        return;
+      }
+
+      const age = calculateAgeFromDob(dobValue);
+      if (age < 18) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.innerHTML = `<span>❌</span><span>Registration restricted: You must be at least 18 years old to join Connecto (Calculated age: ${age}).</span>`;
+          fb.style.display = 'flex';
+          fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        return;
+      }
+
+      // 3. Enforce Agreed to Terms and Conditions Checkbox
+      const termsCheckbox = document.getElementById('signUpTermsCheckbox');
+      if (!termsCheckbox || !termsCheckbox.checked) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.innerHTML = '<span>⚠️</span><span>You must certify that you are 18+ and agree to the Terms of Service & Privacy Policy to proceed.</span>';
+          fb.style.display = 'flex';
+          fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        if (termsCheckbox) termsCheckbox.focus();
+        return;
+      }
+
       if (btn) {
         btn.disabled = true;
         btn.innerText = 'Creating Account...';
@@ -31020,9 +31119,13 @@ function handleNavCommunityClick() {
             username: username,
             password: password,
             nickname: username,
+            display_name: username,
             email: email,
             phone: '',
-            date_of_birth: '2000-01-01',
+            date_of_birth: dobValue,
+            age: age,
+            agreed_to_terms: true,
+            otp_code: signupVerifiedOtpCode,
             gender: 'prefer_not_to_say',
             bio: 'Connecto Member',
             avatar: selectedAuthAvatar || '🔥'
@@ -31032,7 +31135,6 @@ function handleNavCommunityClick() {
 
         const user = data.user || data;
         if (res.ok && (user.username || user.id)) {
-          // Automatic seamless login
           currentUser = user.username;
           currentAvatar = user.avatar || user.avatar_url || '🔥';
           authToken = data.token || user.token || '';
@@ -31057,7 +31159,6 @@ function handleNavCommunityClick() {
             fb.className = 'auth-alert error';
             const detailMsg = data.detail || 'Registration failed.';
             
-            // If already taken, provide a direct 1-tap button to Switch to Login
             if (detailMsg.toLowerCase().includes('already taken') || detailMsg.toLowerCase().includes('already exists')) {
               fb.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
@@ -31088,6 +31189,185 @@ function handleNavCommunityClick() {
         }
       }
     }
+
+    let signupEmailVerified = false;
+    let signupVerifiedEmailAddress = '';
+    let signupVerifiedOtpCode = '';
+
+    function calculateAgeFromDob(dobStr) {
+      if (!dobStr) return 0;
+      const birthDate = new Date(dobStr);
+      if (isNaN(birthDate.getTime())) return 0;
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    }
+
+    function validateSignUpAge(dobValue) {
+      const fb = document.getElementById('signUpAgeFeedback');
+      if (!dobValue) {
+        if (fb) fb.style.display = 'none';
+        return false;
+      }
+      const age = calculateAgeFromDob(dobValue);
+      if (age < 18) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerHTML = `❌ You are ${age} years old. Connecto strictly requires users to be 18 years or older.`;
+        }
+        return false;
+      } else {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#22c55e';
+          fb.innerHTML = `✅ Age verified: ${age} years old (18+ eligible)`;
+        }
+        return true;
+      }
+    }
+
+    async function handleSendSignupOtp() {
+      const emailInput = document.getElementById('signUpEmail');
+      const email = emailInput ? emailInput.value.trim() : '';
+      const fb = document.getElementById('signUpEmailFeedback');
+      const btn = document.getElementById('signUpSendOtpBtn');
+      const otpGroup = document.getElementById('signUpOtpGroup');
+
+      if (!email || !isValidEmail(email)) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerHTML = '⚠️ Please enter a valid email address first.';
+        }
+        if (emailInput) emailInput.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Sending OTP...';
+      }
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = 'var(--chakra-cyan)';
+        fb.innerHTML = '⚡ Transmitting 6-digit verification code to your email...';
+      }
+
+      try {
+        const res = await fetch('/api/auth/signup/request-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (fb) {
+            fb.style.color = '#22c55e';
+            fb.innerHTML = `✅ ${escapeHTML(data.message || 'Verification code sent to your inbox!')}`;
+          }
+          if (otpGroup) otpGroup.style.display = 'block';
+          const otpInput = document.getElementById('signUpOtpInput');
+          if (otpInput) {
+            otpInput.value = '';
+            otpInput.focus();
+          }
+          if (btn) btn.innerText = 'Resend OTP';
+        } else {
+          if (fb) {
+            fb.style.color = '#ef4444';
+            fb.innerHTML = `⚠️ ${escapeHTML(data.detail || data.message || 'Failed to send OTP code.')}`;
+          }
+          if (btn) btn.innerText = 'Verify Email ⚡';
+        }
+      } catch (err) {
+        if (fb) {
+          fb.style.color = '#ef4444';
+          fb.innerHTML = `⚠️ Error: ${escapeHTML(err.message)}`;
+        }
+        if (btn) btn.innerText = 'Verify Email ⚡';
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function handleVerifySignupOtp() {
+      const emailInput = document.getElementById('signUpEmail');
+      const email = emailInput ? emailInput.value.trim() : '';
+      const otpInput = document.getElementById('signUpOtpInput');
+      const code = otpInput ? otpInput.value.trim() : '';
+      const fb = document.getElementById('signUpOtpFeedback');
+      const btn = document.getElementById('signUpConfirmOtpBtn');
+      const emailFb = document.getElementById('signUpEmailFeedback');
+
+      if (!code || code.length < 6) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerHTML = '⚠️ Please enter the full 6-digit verification code.';
+        }
+        if (otpInput) otpInput.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Verifying...';
+      }
+
+      try {
+        const res = await fetch('/api/auth/signup/verify-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, otp_code: code })
+        });
+        const data = await res.json();
+        if (res.ok && data.verified) {
+          signupEmailVerified = true;
+          signupVerifiedEmailAddress = email.toLowerCase();
+          signupVerifiedOtpCode = code;
+          if (fb) {
+            fb.style.display = 'block';
+            fb.style.color = '#22c55e';
+            fb.innerHTML = '✅ Email verified successfully! You may now complete sign-up.';
+          }
+          if (emailFb) {
+            emailFb.style.display = 'block';
+            emailFb.style.color = '#22c55e';
+            emailFb.innerHTML = '✅ Email verified ✓';
+          }
+          if (btn) btn.innerText = 'Verified ✓';
+          const sendBtn = document.getElementById('signUpSendOtpBtn');
+          if (sendBtn) {
+            sendBtn.style.background = '#22c55e';
+            sendBtn.style.color = '#fff';
+            sendBtn.innerText = 'Verified ✓';
+            sendBtn.disabled = true;
+          }
+        } else {
+          if (fb) {
+            fb.style.display = 'block';
+            fb.style.color = '#ef4444';
+            fb.innerHTML = `⚠️ ${escapeHTML(data.detail || data.message || 'Invalid or expired OTP code.')}`;
+          }
+          if (btn) btn.innerText = 'Verify Code ✓';
+        }
+      } catch (err) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerHTML = `⚠️ Error: ${escapeHTML(err.message)}`;
+        }
+        if (btn) btn.innerText = 'Verify Code ✓';
+      } finally {
+        if (btn && !signupEmailVerified) btn.disabled = false;
+      }
+    }
+
 
     function switchToLoginForUser(username) {
       switchAuthTab('login');

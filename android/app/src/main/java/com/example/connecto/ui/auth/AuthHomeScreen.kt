@@ -36,8 +36,10 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Shield
@@ -45,6 +47,8 @@ import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -118,11 +122,60 @@ fun AuthHomeScreen(
     var emailValidation by remember { mutableStateOf(FieldValidationStatus.IDLE) }
     var emailMessage by remember { mutableStateOf("") }
 
+    // Sign Up OTP verification states
+    var isSendingOtp by remember { mutableStateOf(false) }
+    var isVerifyingOtp by remember { mutableStateOf(false) }
+    var isEmailOtpSent by remember { mutableStateOf(false) }
+    var isEmailOtpVerified by remember { mutableStateOf(false) }
+    var emailOtpCode by remember { mutableStateOf("") }
+    var otpStatusMessage by remember { mutableStateOf<String?>(null) }
+    var otpStatusIsError by remember { mutableStateOf(false) }
+
+    // Date of birth and Age verification states (18+)
+    var dateOfBirth by remember { mutableStateOf("") }
+    var calculatedAge by remember { mutableStateOf<Int?>(null) }
+    var dobErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Terms and Conditions agreement state
+    var agreedToTerms by remember { mutableStateOf(false) }
+
     // Sign In Form states
     var loginUsernameOrEmail by remember { mutableStateOf("") }
     var loginPassword by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
+
+    // Helper function to calculate age and validate 18+
+    fun validateAndCalculateAge(dobStr: String) {
+        val trimmed = dobStr.trim()
+        if (trimmed.length != 10 || !trimmed.matches(Regex("^\\d{4}-\\d{2}-\\d{2}$"))) {
+            calculatedAge = null
+            dobErrorMessage = if (trimmed.isNotEmpty()) "Format: YYYY-MM-DD" else null
+            return
+        }
+        try {
+            val parts = trimmed.split("-")
+            val y = parts[0].toInt()
+            val m = parts[1].toInt()
+            val d = parts[2].toInt()
+            val today = java.util.Calendar.getInstance()
+            var a = today.get(java.util.Calendar.YEAR) - y
+            val curMonth = today.get(java.util.Calendar.MONTH) + 1
+            val curDay = today.get(java.util.Calendar.DAY_OF_MONTH)
+            if (curMonth < m || (curMonth == m && curDay < d)) {
+                a--
+            }
+            calculatedAge = a
+            if (a < 18) {
+                dobErrorMessage = "You must be at least 18 years old to join Connecto (Age: $a)"
+            } else {
+                dobErrorMessage = null
+            }
+        } catch (_: Exception) {
+            calculatedAge = null
+            dobErrorMessage = "Invalid date format (YYYY-MM-DD)"
+        }
+    }
 
     // Forgot Password & 2FA states
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
@@ -378,7 +431,6 @@ fun AuthHomeScreen(
             // ===== INPUT FIELDS =====
             Crossfade(targetState = isSignUp, animationSpec = tween(300), label = "authFormCrossfade") { signUpMode ->
                 if (signUpMode) {
-                    // SIGN UP FIELDS WITH LIVE VERIFICATION
                     Column {
                         // Email Field
                         AuthTextField(
@@ -386,6 +438,12 @@ fun AuthHomeScreen(
                             onValueChange = {
                                 email = it
                                 errorMessage = null
+                                // Reset OTP verification if email changes
+                                if (isEmailOtpVerified) {
+                                    isEmailOtpVerified = false
+                                    isEmailOtpSent = false
+                                    otpStatusMessage = null
+                                }
                             },
                             placeholder = "Email Address",
                             icon = Icons.Outlined.Email,
@@ -396,6 +454,149 @@ fun AuthHomeScreen(
                             status = emailValidation,
                             message = emailMessage
                         )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Email OTP Verification Controls
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = if (isEmailOtpVerified) "Email Verified ✓" else "Email Verification required",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isEmailOtpVerified) ConnectoTheme.colors.success else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            if (!isEmailOtpVerified) {
+                                Button(
+                                    onClick = {
+                                        val clean = email.trim()
+                                        if (clean.isBlank() || !clean.matches(emailPattern)) {
+                                            errorMessage = "Please enter a valid email address first."
+                                            return@Button
+                                        }
+                                        if (emailValidation == FieldValidationStatus.TAKEN) {
+                                            errorMessage = "This email is already registered."
+                                            return@Button
+                                        }
+                                        isSendingOtp = true
+                                        otpStatusMessage = null
+                                        coroutineScope.launch {
+                                            val res = ConnectoApiClient.requestSignupOtp(clean)
+                                            isSendingOtp = false
+                                            if (res.isSuccess) {
+                                                isEmailOtpSent = true
+                                                otpStatusIsError = false
+                                                otpStatusMessage = "OTP sent to $clean. Check your inbox!"
+                                            } else {
+                                                otpStatusIsError = true
+                                                otpStatusMessage = res.exceptionOrNull()?.message ?: "Failed to send OTP code"
+                                            }
+                                        }
+                                    },
+                                    enabled = !isSendingOtp && email.isNotBlank() && emailValidation != FieldValidationStatus.TAKEN,
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(34.dp)
+                                ) {
+                                    if (isSendingOtp) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            strokeWidth = 2.dp,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    } else {
+                                        Text(
+                                            text = if (isEmailOtpSent) "Resend OTP" else "Send OTP ⚡",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // OTP Code Input Field (when OTP sent)
+                        if (isEmailOtpSent && !isEmailOtpVerified) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.weight(1f)) {
+                                    AuthTextField(
+                                        value = emailOtpCode,
+                                        onValueChange = {
+                                            if (it.length <= 6) emailOtpCode = it.filter { ch -> ch.isDigit() }
+                                        },
+                                        placeholder = "6-digit OTP Code",
+                                        icon = Icons.Outlined.MarkEmailRead,
+                                        keyboardType = KeyboardType.Number
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Button(
+                                    onClick = {
+                                        val code = emailOtpCode.trim()
+                                        if (code.length != 6) {
+                                            otpStatusIsError = true
+                                            otpStatusMessage = "Please enter the 6-digit code."
+                                            return@Button
+                                        }
+                                        isVerifyingOtp = true
+                                        otpStatusMessage = null
+                                        coroutineScope.launch {
+                                            val res = ConnectoApiClient.verifySignupOtp(email.trim(), code)
+                                            isVerifyingOtp = false
+                                            if (res.isSuccess && res.getOrNull() == true) {
+                                                isEmailOtpVerified = true
+                                                otpStatusIsError = false
+                                                otpStatusMessage = "Email verified successfully ✓"
+                                            } else {
+                                                otpStatusIsError = true
+                                                otpStatusMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code"
+                                            }
+                                        }
+                                    },
+                                    enabled = !isVerifyingOtp && emailOtpCode.length == 6,
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = ConnectoTheme.colors.success,
+                                        contentColor = Color.White
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(48.dp)
+                                ) {
+                                    if (isVerifyingOtp) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = Color.White
+                                        )
+                                    } else {
+                                        Text("Verify", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!otpStatusMessage.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = otpStatusMessage ?: "",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (otpStatusIsError) Color(0xFFEF4444) else ConnectoTheme.colors.success,
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -430,6 +631,54 @@ fun AuthHomeScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
+                        // Date of Birth Field (Age Verification 18+)
+                        AuthTextField(
+                            value = dateOfBirth,
+                            onValueChange = { input ->
+                                // Auto format as YYYY-MM-DD
+                                val digits = input.filter { it.isDigit() }
+                                val formatted = when {
+                                    digits.length <= 4 -> digits
+                                    digits.length <= 6 -> "${digits.substring(0, 4)}-${digits.substring(4)}"
+                                    else -> "${digits.substring(0, 4)}-${digits.substring(4, 6.coerceAtMost(digits.length))}-${digits.substring(6, 8.coerceAtMost(digits.length))}"
+                                }
+                                dateOfBirth = formatted
+                                validateAndCalculateAge(formatted)
+                                errorMessage = null
+                            },
+                            placeholder = "Date of Birth (YYYY-MM-DD)",
+                            icon = Icons.Outlined.DateRange,
+                            keyboardType = KeyboardType.Number
+                        )
+
+                        // Date of Birth / Age Verification feedback
+                        if (calculatedAge != null || dobErrorMessage != null) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (dobErrorMessage != null) {
+                                    Text(
+                                        text = dobErrorMessage ?: "",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFFEF4444)
+                                    )
+                                } else if (calculatedAge != null) {
+                                    Text(
+                                        text = "Age: $calculatedAge years old (18+ Verified ✓)",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = ConnectoTheme.colors.success
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         // Password Field
                         AuthTextField(
                             value = password,
@@ -443,6 +692,33 @@ fun AuthHomeScreen(
                             passwordVisible = passwordVisible,
                             onTogglePassword = { passwordVisible = !passwordVisible }
                         )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Terms and Conditions Checkbox
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { agreedToTerms = !agreedToTerms }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = agreedToTerms,
+                                onCheckedChange = { agreedToTerms = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = MaterialTheme.colorScheme.primary,
+                                    checkmarkColor = Color.White
+                                )
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "I confirm I am 18+ years of age and agree to the Terms and Conditions",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                lineHeight = 16.sp
+                            )
+                        }
                     }
                 } else {
                     // SIGN IN FIELDS
@@ -527,6 +803,9 @@ fun AuthHomeScreen(
                 email.isNotBlank() &&
                 username.isNotBlank() &&
                 password.length >= 4 &&
+                isEmailOtpVerified &&
+                (calculatedAge != null && (calculatedAge ?: 0) >= 18) &&
+                agreedToTerms &&
                 usernameValidation != FieldValidationStatus.TAKEN &&
                 usernameValidation != FieldValidationStatus.INVALID_FORMAT &&
                 emailValidation != FieldValidationStatus.TAKEN &&
@@ -550,6 +829,10 @@ fun AuthHomeScreen(
                             errorMessage = "Please enter a valid email address (e.g. name@example.com)."
                             return@Button
                         }
+                        if (!isEmailOtpVerified) {
+                            errorMessage = "Please verify your email address with the OTP code first."
+                            return@Button
+                        }
                         if (cleanUsername.length < 3) {
                             errorMessage = "Username must be at least 3 characters."
                             return@Button
@@ -563,11 +846,23 @@ fun AuthHomeScreen(
                             return@Button
                         }
                         if (usernameValidation == FieldValidationStatus.TAKEN) {
-                            errorMessage = "Username  is already taken. Please choose another."
+                            errorMessage = "Username is already taken. Please choose another."
                             return@Button
                         }
                         if (emailValidation == FieldValidationStatus.TAKEN) {
-                            errorMessage = "Email  is already registered. Please sign in."
+                            errorMessage = "Email is already registered. Please sign in."
+                            return@Button
+                        }
+                        if (dateOfBirth.isBlank()) {
+                            errorMessage = "Please enter your date of birth (YYYY-MM-DD)."
+                            return@Button
+                        }
+                        if (calculatedAge == null || (calculatedAge ?: 0) < 18) {
+                            errorMessage = "You must be at least 18 years old to join Connecto."
+                            return@Button
+                        }
+                        if (!agreedToTerms) {
+                            errorMessage = "Please agree to the Terms and Conditions to create an account."
                             return@Button
                         }
                         if (password.length < 4) {
@@ -581,7 +876,11 @@ fun AuthHomeScreen(
                                 email = cleanEmail,
                                 username = cleanUsername,
                                 displayName = cleanDisplayName.ifEmpty { cleanUsername },
-                                password = password
+                                password = password,
+                                dateOfBirth = dateOfBirth.trim(),
+                                age = calculatedAge,
+                                agreedToTerms = true,
+                                otpCode = emailOtpCode.trim().ifEmpty { null }
                             )
                             isLoading = false
                             if (result.isSuccess) {

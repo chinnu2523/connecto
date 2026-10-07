@@ -4,11 +4,15 @@ from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 
 class UserSignup(BaseModel):
-    """Signup form schema - contains ONLY account creation fields."""
+    """Signup form schema - contains account creation fields, age verification, terms agreement, and email OTP."""
     email: str = Field(..., min_length=3, max_length=128)
     username: str = Field(..., min_length=3, max_length=32)
     display_name: Optional[str] = Field(default="", max_length=64)
     password: str = Field(..., min_length=4, max_length=128)
+    date_of_birth: Optional[str] = Field(default=None, description="YYYY-MM-DD format for age verification")
+    age: Optional[int] = Field(default=None, description="Age in years, must be 18 or above")
+    agreed_to_terms: bool = Field(default=False, description="Must be true to agree to terms and conditions")
+    otp_code: Optional[str] = Field(default=None, description="Verified 6-digit email OTP code")
 
     @field_validator("username")
     def validate_username(cls, v: str) -> str:
@@ -28,6 +32,42 @@ class UserSignup(BaseModel):
     @field_validator("display_name")
     def validate_display_name(cls, v: Optional[str]) -> str:
         return (v or "").strip()
+
+    @model_validator(mode="after")
+    def validate_age_and_terms(self):
+        if not self.agreed_to_terms:
+            raise ValueError("You must agree to the Terms and Conditions to create an account.")
+
+        calculated_age = None
+        if self.date_of_birth:
+            try:
+                dob = datetime.strptime(self.date_of_birth.strip(), "%Y-%m-%d").date()
+                today = datetime.now().date()
+                calculated_age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+            except ValueError:
+                raise ValueError("Invalid date of birth format. Please use YYYY-MM-DD.")
+        elif self.age is not None:
+            calculated_age = self.age
+
+        if calculated_age is None or calculated_age < 18:
+            raise ValueError("You must be at least 18 years old to register an account on Connecto.")
+
+        return self
+
+class SignupRequestOtp(BaseModel):
+    email: str = Field(..., min_length=3, max_length=128)
+
+    @field_validator("email")
+    def validate_email(cls, v: str) -> str:
+        v = v.strip().lower()
+        email_regex = r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$"
+        if not re.match(email_regex, v) or len(v) < 5:
+            raise ValueError("Please provide a valid email address.")
+        return v
+
+class SignupVerifyOtp(BaseModel):
+    email: str = Field(..., min_length=3, max_length=128)
+    otp_code: str = Field(..., min_length=4, max_length=16)
 
 class UserLogin(BaseModel):
     """Login form schema - contains ONLY login identifier and password."""
