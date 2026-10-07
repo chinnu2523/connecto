@@ -1336,13 +1336,6 @@
       background: #e4e4e7 !important;
       box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2) !important;
     }
-    html[data-theme="noir"] .connecto-attach-inline-btn {
-      color: #52525b !important;
-    }
-    html[data-theme="noir"] .connecto-attach-inline-btn:hover {
-      color: #d4d4d8 !important;
-      background: rgba(255, 255, 255, 0.06) !important;
-    }
     html[data-theme="noir"] .input-box-wrap {
       background: #0a0a0a !important;
       border: 1px solid rgba(255, 255, 255, 0.10) !important;
@@ -2495,13 +2488,6 @@
     html[data-theme="parchment"] .input-btn.send-cta:hover {
       background: #000000 !important;
       box-shadow: 0 4px 12px rgba(20, 19, 18, 0.25) !important;
-    }
-    html[data-theme="parchment"] .connecto-attach-inline-btn {
-      color: #78716c !important;
-    }
-    html[data-theme="parchment"] .connecto-attach-inline-btn:hover {
-      color: #141312 !important;
-      background: rgba(68, 64, 60, 0.08) !important;
     }
     html[data-theme="parchment"] .input-box-wrap {
       background: #ffffff !important;
@@ -17411,61 +17397,71 @@ pre, .code-block, .chat-code-snippet {
   /* Tactical Mobile Touch Composer */
   .input-area {
     margin-bottom: 74px !important;
-    padding: 4px 12px !important;
+    padding: 6px 12px !important;
     background: transparent !important;
   }
   .stitch-input-card {
-    padding: 2px 4px !important;
+    padding: 0 !important;
     border-radius: 28px !important;
     height: auto !important;
     min-height: 48px !important;
     box-sizing: border-box !important;
     display: flex !important;
     align-items: center !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   .stitch-input-toolbar {
-    display: none !important; /* Hide tiny desktop tools on mobile */
+    display: none !important; /* Hide desktop tools on mobile */
   }
   .connecto-enhanced-input-row,
   .stitch-input-row {
     margin: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding: 2px 4px !important;
+    padding: 0 !important;
     width: 100% !important;
   }
   .connecto-input-capsule-wrapper {
-    min-height: 40px !important;
-    background: transparent !important;
-    border: none !important;
-    padding: 0 4px !important;
+    min-height: 46px !important;
+    background: rgba(14, 18, 28, 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 28px !important;
+    padding: 4px 6px 4px 12px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
-  .connecto-attach-inline-btn {
-    display: inline-flex !important;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.08);
-    border: none;
-    color: #94A3B8;
-    cursor: pointer;
-    flex-shrink: 0;
-    margin-right: 4px;
+  .connecto-input-capsule-wrapper.focused {
+    border-color: rgba(99, 102, 241, 0.6) !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 4px 20px rgba(0, 0, 0, 0.6) !important;
   }
-  .connecto-attach-inline-btn:active {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.16);
+  .connecto-emoji-inline-btn {
+    font-size: 20px !important;
+    width: 36px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
   }
   .stitch-input-field {
     font-size: 15px !important;
-    padding: 8px 10px !important;
+    padding: 8px 6px !important;
+    background: transparent !important;
+    color: #fff !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
   }
   .connecto-send-circle-btn {
     width: 38px !important;
     height: 38px !important;
-    flex-shrink: 0;
+    flex-shrink: 0 !important;
+    border-radius: 50% !important;
   }
 
   /* Floating Bottom Island Dock on Mobile */
@@ -17505,8 +17501,7 @@ pre, .code-block, .chat-code-snippet {
   /* Mobile-only buttons hidden on Desktop */
   .mobile-sidebar-toggle,
   .mobile-chat-back-btn,
-  .channels-sidebar-mobile-close,
-  .connecto-attach-inline-btn {
+  .channels-sidebar-mobile-close {
     display: none !important;
   }
 
@@ -17930,10 +17925,6 @@ pre, .code-block, .chat-code-snippet {
             <!-- Top Utility Bar -->
             <div class="stitch-input-toolbar">
               <div class="stitch-toolbar-left">
-                <input type="file" id="fileInput" aria-label="Upload file attachment" style="display:none;" onchange="handleFileUpload(this)">
-                <button type="button" class="stitch-tool-btn" title="Upload Media" onclick="document.getElementById('fileInput').click()">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                </button>
                 <button type="button" class="stitch-tool-btn" title="Insert Code Snippet" onclick="insertCodeSnippet()">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                 </button>
@@ -17960,9 +17951,6 @@ pre, .code-block, .chat-code-snippet {
                 🔒 Only administrators can post in #announcements
               </div>
               <div class="connecto-input-capsule-wrapper" id="connectoInputBoxWrapper">
-                <button type="button" class="connecto-attach-inline-btn" id="mobileAttachBtn" title="Upload Media" onclick="document.getElementById('fileInput').click()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
-                </button>
                 <button type="button" class="connecto-emoji-inline-btn" id="emojiPickerBtn" title="Emoji Reactions" onclick="toggleEmojiPicker()">😊</button>
                 <input type="text" class="stitch-input-field input-box" id="msgInput" aria-label="Type your message" placeholder="Message #general..." onkeydown="handleKeyDown(event)" oninput="handleMsgInputChange(this)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)">
                 <button type="button" class="connecto-send-circle-btn" id="sendBtn" title="Send Message" onclick="sendCurrentMessage()">
@@ -20089,14 +20077,7 @@ pre, .code-block, .chat-code-snippet {
                 </div>
               </div>
 
-              <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-                <input type="file" id="settingsBannerFileInput" accept="image/*" style="display:none;" onchange="handleSettingsBannerUpload(event)">
-                <button type="button" class="btn btn-outline" style="padding:7px 14px; font-size:12px; border-radius:8px; color:var(--ninja-gold,#f0a500); border-color:rgba(240,165,0,0.4);" onclick="document.getElementById('settingsBannerFileInput').click()">
-                  🖼️ Upload Cover Photo
-                </button>
-                <span style="color:var(--text-muted); font-size:11px;">Crop & fit to banner</span>
-              </div>
-              <div style="margin-top:4px;">
+              <div style="margin-top:12px; margin-bottom:10px;">
                 <label for="setUserBannerUrl" style="font-size:11.5px; color:var(--text-muted); font-weight:700;">Or Paste Custom Banner Image URL</label>
                 <div class="auth-input-wrap" style="height:42px; margin-top:4px;">
                   <span class="auth-input-icon">🔗</span>
@@ -20107,7 +20088,7 @@ pre, .code-block, .chat-code-snippet {
 
             <!-- Avatar & Visual Identity Controls -->
             <div class="profile-card-section">
-              <div class="profile-card-title"><span>🎭</span> Profile Avatar & Photo</div>
+              <div class="profile-card-title"><span>🎭</span> Profile Avatar</div>
               
               <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
                 <!-- Emoji Presets Grid -->
@@ -20121,16 +20102,7 @@ pre, .code-block, .chat-code-snippet {
                   <div class="avatar-preset-item" style="width:34px; height:34px; font-size:16px; cursor:pointer;" onclick="selectSettingsAvatar('🥷', this)">🥷</div>
                   <div class="avatar-preset-item" style="width:34px; height:34px; font-size:16px; cursor:pointer;" onclick="selectSettingsAvatar('🛡️', this)">🛡️</div>
                 </div>
-
-                <!-- Custom Photo Upload Action -->
-                <div>
-                  <input type="file" id="settingsAvatarFileInput" accept="image/*" style="display:none;" onchange="handleSettingsAvatarUpload(event)">
-                  <button type="button" class="btn btn-outline" style="padding:6px 12px; font-size:12px; border-radius:8px;" onclick="document.getElementById('settingsAvatarFileInput').click()">
-                    📷 Upload Photo
-                  </button>
-                </div>
               </div>
-              <span id="settingsAvatarUploadStatus" style="font-size:11px; color:var(--text-muted);">PNG, JPG, GIF (Max 5MB)</span>
               <input type="hidden" id="setUserAvatar" value="🔥">
               <input type="hidden" id="setUserPicture" value="">
             </div>
