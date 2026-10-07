@@ -83,7 +83,7 @@ export default {
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
       if (localServerStatus !== "UP") {
-        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.0.0/connecto-fun.apk", 302);
+        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.0/connecto-fun.apk", 302);
       }
     }
 
@@ -2236,14 +2236,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.0.0",
-      version_name: "v4.0.0",
-      version_code: 43,
-      build: 43,
-      sha256: "2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9",
+      version: "4.2.0",
+      version_name: "v4.2.0",
+      version_code: 48,
+      build: 48,
+      sha256: "b10fb3bff10fb4efae4af91b1dfec810ce7d29af72a5df9ce0e9434c92016aba",
       filename: "connecto-fun.apk",
-      size_bytes: 56854629,
-      size_display: "54.2 MB",
+      size_bytes: 65726929,
+      size_display: "62.7 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",

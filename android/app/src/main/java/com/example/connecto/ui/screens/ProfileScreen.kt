@@ -179,7 +179,9 @@ private fun Context.findFragmentActivity(): FragmentActivity? {
 @Composable
 fun ProfileScreen(
     username: String = "Gamer",
-    isDarkTheme: Boolean = true,
+    currentThemeMode: com.example.connecto.ui.designsystem.ThemeMode = com.example.connecto.ui.designsystem.ThemeMode.NOIR,
+    onSelectThemeMode: (com.example.connecto.ui.designsystem.ThemeMode) -> Unit = {},
+    isDarkTheme: Boolean = currentThemeMode.isDark,
     onToggleTheme: (Boolean) -> Unit = {},
     onSignOut: () -> Unit = {},
     onLockApp: () -> Unit = {},
@@ -1443,7 +1445,7 @@ fun ProfileScreen(
                     ) {
                         SectionHeader(
                             title = "Appearance & Display Theme",
-                            subtitle = "Switch between Dark Mode and Light Mode"
+                            subtitle = "Personalize your visual experience across the entire app"
                         )
                         Box(
                             modifier = Modifier
@@ -1457,7 +1459,7 @@ fun ProfileScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                // 1. Quick Switch Row
+                                // 1. Active Theme Summary Header
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1467,162 +1469,182 @@ fun ProfileScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        Icon(
-                                            imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(22.dp)
+                                        Text(
+                                            text = currentThemeMode.iconEmoji,
+                                            fontSize = 24.sp
                                         )
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = currentThemeMode.displayName,
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "ACTIVE",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
                                             Text(
-                                                text = if (isDarkTheme) "Dark Theme" else "Light Theme",
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Text(
-                                                text = if (isDarkTheme) "Pure Black (OLED) mode for maximum battery savings and high contrast" else "Crisp daylight mode for high visibility",
+                                                text = currentThemeMode.subtitle,
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
 
+                                    // Quick toggle between Dark and Light
                                     Switch(
-                                        checked = isDarkTheme,
-                                        onCheckedChange = { onToggleTheme(it) },
+                                        checked = currentThemeMode.isDark,
+                                        onCheckedChange = { isDark ->
+                                            val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                                            onSelectThemeMode(newMode)
+                                            onToggleTheme(isDark)
+                                        },
                                         colors = getMonochromeSwitchColors()
                                     )
                                 }
 
                                 HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
 
-                                // 2. Interactive Mode Selection Cards
-                                Row(
+                                Text(
+                                    text = "SELECT COLOR PALETTE & ATMOSPHERE",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                // 2. Theme Selection Cards Grid (All 5 themes)
+                                Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
-                                    // Dark Mode Card
-                                    val isDarkSelected = isDarkTheme
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(
-                                                if (isDarkSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                            )
-                                            .border(
-                                                width = if (isDarkSelected) 2.dp else 1.dp,
-                                                color = if (isDarkSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                                shape = RoundedCornerShape(14.dp)
-                                            )
-                                            .clickable { onToggleTheme(true) }
-                                            .padding(12.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    com.example.connecto.ui.designsystem.ThemeMode.values().forEach { mode ->
+                                        val isSelected = currentThemeMode == mode
+                                        val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 2.dp else 1.dp,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                                    shape = RoundedCornerShape(14.dp)
+                                                )
+                                                .clickable {
+                                                    onSelectThemeMode(mode)
+                                                }
+                                                .padding(12.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(42.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(Color(0xFF000000))
-                                                    .border(1.dp, Color(0xFF1E1E24), RoundedCornerShape(8.dp))
-                                                    .padding(6.dp),
-                                                contentAlignment = Alignment.Center
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
+                                                // Left: Emoji + Name + Subtitle
                                                 Row(
                                                     verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                    modifier = Modifier.weight(1f)
                                                 ) {
-                                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(ConnectoTheme.colors.info))
-                                                    Box(modifier = Modifier.width(36.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFF1E1E24)))
+                                                    // Live Palette Preview Pill
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(42.dp)
+                                                            .clip(RoundedCornerShape(10.dp))
+                                                            .background(modeColors.background)
+                                                            .border(1.dp, modeColors.border, RoundedCornerShape(10.dp)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = mode.iconEmoji,
+                                                            fontSize = 18.sp
+                                                        )
+                                                    }
+
+                                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                                    Column {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(
+                                                                text = mode.displayName,
+                                                                fontSize = 14.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            if (isSelected) {
+                                                                Spacer(modifier = Modifier.width(6.dp))
+                                                                Icon(
+                                                                    imageVector = Icons.Default.CheckCircle,
+                                                                    contentDescription = "Selected",
+                                                                    tint = MaterialTheme.colorScheme.primary,
+                                                                    modifier = Modifier.size(16.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = mode.subtitle,
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
                                                 }
-                                            }
 
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.DarkMode,
-                                                    contentDescription = null,
-                                                    tint = if (isDarkSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Text(
-                                                    text = "Pure Black (OLED)",
-                                                    fontSize = 13.sp,
-                                                    fontWeight = if (isDarkSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    color = if (isDarkSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // Light Mode Card
-                                    val isLightSelected = !isDarkTheme
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(
-                                                if (isLightSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                                            )
-                                            .border(
-                                                width = if (isLightSelected) 2.dp else 1.dp,
-                                                color = if (isLightSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                                shape = RoundedCornerShape(14.dp)
-                                            )
-                                            .clickable { onToggleTheme(false) }
-                                            .padding(12.dp)
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(42.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(Color(0xFFFFFFFF))
-                                                    .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
-                                                    .padding(6.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
+                                                // Right: Color Swatches Preview
                                                 Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
                                                 ) {
-                                                    Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF4F46E5)))
-                                                    Box(modifier = Modifier.width(36.dp).height(6.dp).clip(RoundedCornerShape(3.dp)).background(Color(0xFFE2E8F0)))
+                                                    // Primary accent swatch
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(16.dp)
+                                                            .clip(CircleShape)
+                                                            .background(modeColors.primary)
+                                                            .border(1.dp, modeColors.border, CircleShape)
+                                                    )
+                                                    // Info / Secondary swatch
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(16.dp)
+                                                            .clip(CircleShape)
+                                                            .background(modeColors.info)
+                                                            .border(1.dp, modeColors.border, CircleShape)
+                                                    )
+                                                    // Surface swatch
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(16.dp)
+                                                            .clip(CircleShape)
+                                                            .background(modeColors.surface)
+                                                            .border(1.dp, modeColors.border, CircleShape)
+                                                    )
+                                                    // Background swatch
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(16.dp)
+                                                            .clip(CircleShape)
+                                                            .background(modeColors.background)
+                                                            .border(1.dp, modeColors.border, CircleShape)
+                                                    )
                                                 }
-                                            }
-
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.LightMode,
-                                                    contentDescription = null,
-                                                    tint = if (isLightSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                                Text(
-                                                    text = "Light Mode",
-                                                    fontSize = 13.sp,
-                                                    fontWeight = if (isLightSelected) FontWeight.Bold else FontWeight.Medium,
-                                                    color = if (isLightSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                )
                                             }
                                         }
                                     }

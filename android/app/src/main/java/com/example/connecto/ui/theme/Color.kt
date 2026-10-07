@@ -80,18 +80,22 @@ val FramerMotionSpring = androidx.compose.animation.core.spring<Float>(
 // Theme-Aware Dynamic Gradient Helper
 @Composable
 fun getDynamicAccentGradientColors(): List<Color> {
-    return if (isAppInLightTheme()) LightAccentGradientColors else DarkAccentGradientColors
+    val primaryColor = com.example.connecto.ui.designsystem.ConnectoTheme.colors.primary
+    val infoColor = com.example.connecto.ui.designsystem.ConnectoTheme.colors.info
+    return if (isAppInLightTheme()) {
+        listOf(primaryColor, Color(0xFF292524))
+    } else {
+        listOf(primaryColor, infoColor)
+    }
 }
 
 // Bulletproof Light/Dark Theme Detector
 @Composable
 fun isAppInLightTheme(): Boolean {
-    val bg = MaterialTheme.colorScheme.background
-    val luminance = 0.299f * bg.red + 0.587f * bg.green + 0.114f * bg.blue
-    return luminance > 0.5f
+    return !com.example.connecto.ui.designsystem.ConnectoTheme.colors.isDark
 }
 
 @Composable
 fun getContentColorOnAccentGradient(): Color {
-    return if (isAppInLightTheme()) Color.White else Color.Black
+    return com.example.connecto.ui.designsystem.ConnectoTheme.colors.onPrimary
 }

@@ -195,18 +195,32 @@ fun ConnectoAppWrapper() {
     var authenticatedUsername by remember {
         mutableStateOf(sessionPrefs.getString("username", "Alex") ?: "Alex")
     }
-    var isDarkTheme by remember {
-        mutableStateOf(profilePrefs.getBoolean("dark_theme_$authenticatedUsername", true))
+    val defaultThemeId = if (profilePrefs.getBoolean("dark_theme_$authenticatedUsername", true)) "noir" else "parchment"
+    var currentThemeMode by remember(authenticatedUsername) {
+        val savedThemeId = profilePrefs.getString("theme_mode_$authenticatedUsername", defaultThemeId) ?: defaultThemeId
+        mutableStateOf(com.example.connecto.ui.designsystem.ThemeMode.fromId(savedThemeId))
     }
 
-    ConnectoTheme(darkTheme = isDarkTheme) {
+    ConnectoTheme(themeMode = currentThemeMode) {
         ConnectoApp(
             authenticatedUsername = authenticatedUsername,
             onUsernameChange = { newUsername -> authenticatedUsername = newUsername },
-            isDarkTheme = isDarkTheme,
+            currentThemeMode = currentThemeMode,
+            onSelectThemeMode = { newMode ->
+                currentThemeMode = newMode
+                profilePrefs.edit()
+                    .putString("theme_mode_$authenticatedUsername", newMode.id)
+                    .putBoolean("dark_theme_$authenticatedUsername", newMode.isDark)
+                    .apply()
+            },
+            isDarkTheme = currentThemeMode.isDark,
             onToggleTheme = { isDark ->
-                isDarkTheme = isDark
-                profilePrefs.edit().putBoolean("dark_theme_$authenticatedUsername", isDark).apply()
+                val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                currentThemeMode = newMode
+                profilePrefs.edit()
+                    .putString("theme_mode_$authenticatedUsername", newMode.id)
+                    .putBoolean("dark_theme_$authenticatedUsername", isDark)
+                    .apply()
             }
         )
     }
@@ -217,8 +231,10 @@ fun ConnectoAppWrapper() {
 fun ConnectoApp(
     authenticatedUsername: String,
     onUsernameChange: (String) -> Unit,
-    isDarkTheme: Boolean,
-    onToggleTheme: (Boolean) -> Unit
+    currentThemeMode: com.example.connecto.ui.designsystem.ThemeMode = com.example.connecto.ui.designsystem.ThemeMode.NOIR,
+    onSelectThemeMode: (com.example.connecto.ui.designsystem.ThemeMode) -> Unit = {},
+    isDarkTheme: Boolean = true,
+    onToggleTheme: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
@@ -609,6 +625,8 @@ fun ConnectoApp(
                                     ConnectoTab.PROFILE -> {
                                         ProfileScreen(
                                             username = authenticatedUsername,
+                                            currentThemeMode = currentThemeMode,
+                                            onSelectThemeMode = onSelectThemeMode,
                                             isDarkTheme = isDarkTheme,
                                             onToggleTheme = onToggleTheme,
                                             onLockApp = { flowState = AppFlowState.BIOMETRIC_LOCK },

@@ -26,13 +26,14 @@ object ConnectoTheme {
  */
 @Composable
 fun ConnectoDesignTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    themeMode: ThemeMode = ThemeMode.NOIR,
+    darkTheme: Boolean = themeMode.isDark,
     content: @Composable () -> Unit
 ) {
-    val connectoColors = if (darkTheme) DarkConnectoColors else LightConnectoColors
+    val connectoColors = getColorsForTheme(themeMode)
     val connectoTypography = ConnectoTypography()
 
-    val m3ColorScheme = if (darkTheme) {
+    val m3ColorScheme = if (connectoColors.isDark) {
         darkColorScheme(
             primary = connectoColors.primary,
             onPrimary = connectoColors.onPrimary,
