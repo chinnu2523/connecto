@@ -7,9 +7,9 @@
         var urlParams = new URLSearchParams(window.location.search);
         var queryTheme = urlParams.get('theme');
         var storedTheme = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_chakra_theme');
-        var theme = queryTheme || storedTheme || 'noir';
-        var lightThemes = ['parchment', 'ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'];
-        var canonical = lightThemes.includes(theme) ? 'parchment' : 'noir';
+        var theme = (queryTheme || storedTheme || 'noir').toLowerCase();
+        var validThemes = ['noir', 'parchment', 'cyberpunk', 'midnight', 'emerald'];
+        var canonical = validThemes.indexOf(theme) !== -1 ? theme : (['ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'].indexOf(theme) !== -1 ? 'parchment' : 'noir');
         document.documentElement.setAttribute('data-theme', canonical);
       } catch (_) {}
     })();
@@ -385,6 +385,90 @@
       --hero-grad-start: #141312;
       --hero-grad-end: #292524;
       --theme-name: "Ivory Paper";
+    }
+
+    /* Edition 3: Cyberpunk Neon (High-Voltage Neon Magenta & Cyan) */
+    html[data-theme="cyberpunk"] {
+      --accent: #ff007f;
+      --accent-hover: #e60072;
+      --accent-tint: rgba(255, 0, 127, 0.15);
+      --accent-border: rgba(255, 0, 127, 0.35);
+      --accent-glow: rgba(255, 0, 127, 0.30);
+      --accent-secondary: #c084fc;
+      --accent-secondary-hover: #e879f9;
+      --chakra-cyan: #00e5ff;
+      --bg-darkest: #070712;
+      --bg-darker: #0c0d1c;
+      --bg-dark: #121429;
+      --bg-card: rgba(18, 20, 41, 0.95);
+      --bg-card-hover: rgba(26, 29, 61, 0.98);
+      --bg-modal: #0d0e1d;
+      --bg-nav: rgba(7, 7, 18, 0.92);
+      --card-border: rgba(255, 0, 127, 0.22);
+      --text-normal: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-header: #ffffff;
+      --hero-glow-1: rgba(255, 0, 127, 0.18);
+      --hero-glow-2: rgba(0, 229, 255, 0.18);
+      --hero-grad-start: #ff007f;
+      --hero-grad-end: #00e5ff;
+      --theme-name: "Cyberpunk Neon";
+    }
+
+    /* Edition 4: Midnight Navy (Deep Oceanic Navy & Electric Azure) */
+    html[data-theme="midnight"] {
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --accent-tint: rgba(56, 189, 248, 0.15);
+      --accent-border: rgba(56, 189, 248, 0.32);
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --accent-secondary: #93c5fd;
+      --accent-secondary-hover: #bfdbfe;
+      --chakra-cyan: #38bdf8;
+      --bg-darkest: #050b14;
+      --bg-darker: #0a1526;
+      --bg-dark: #0e1e36;
+      --bg-card: rgba(10, 21, 38, 0.95);
+      --bg-card-hover: rgba(15, 30, 54, 0.98);
+      --bg-modal: #070e1b;
+      --bg-nav: rgba(5, 11, 20, 0.92);
+      --card-border: rgba(56, 189, 248, 0.20);
+      --text-normal: #bae6fd;
+      --text-muted: #64748b;
+      --text-header: #f0f9ff;
+      --hero-glow-1: rgba(56, 189, 248, 0.18);
+      --hero-glow-2: rgba(30, 58, 138, 0.25);
+      --hero-grad-start: #38bdf8;
+      --hero-grad-end: #818cf8;
+      --theme-name: "Midnight Navy";
+    }
+
+    /* Edition 5: Emerald Matrix (Terminal Jade & Luminous Matrix Emerald) */
+    html[data-theme="emerald"] {
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --accent-tint: rgba(16, 185, 129, 0.15);
+      --accent-border: rgba(16, 185, 129, 0.35);
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --accent-secondary: #6ee7b7;
+      --accent-secondary-hover: #a7f3d0;
+      --chakra-cyan: #10b981;
+      --bg-darkest: #040d09;
+      --bg-darker: #081812;
+      --bg-dark: #0d251c;
+      --bg-card: rgba(8, 24, 18, 0.95);
+      --bg-card-hover: rgba(13, 37, 28, 0.98);
+      --bg-modal: #05120d;
+      --bg-nav: rgba(4, 13, 9, 0.92);
+      --card-border: rgba(16, 185, 129, 0.22);
+      --text-normal: #a7f3d0;
+      --text-muted: #4b6e5f;
+      --text-header: #ecfdf5;
+      --hero-glow-1: rgba(16, 185, 129, 0.18);
+      --hero-glow-2: rgba(6, 78, 59, 0.28);
+      --hero-grad-start: #10b981;
+      --hero-grad-end: #34d399;
+      --theme-name: "Emerald Matrix";
     }
 
     /* Editorial Typography Refinements */
@@ -19686,9 +19770,12 @@ pre, .code-block, .chat-code-snippet {
         <!-- Interactive Theme Customizer -->
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         <div class="mobile-drawer-label">Theme</div>
-        <div class="chakra-palette-row" style="display:flex; gap:12px; align-items:center;">
+        <div class="chakra-palette-row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('parchment')" title="☀️ Ivory Paper">☀️</button>
           <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('noir')" title="🌙 Pure Black OLED">🌙</button>
+          <button class="chakra-theme-dot" data-theme="cyberpunk" style="background:#15102a; border:2px solid #ff007f; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('cyberpunk')" title="⚡ Cyberpunk Neon">⚡</button>
+          <button class="chakra-theme-dot" data-theme="midnight" style="background:#0a1526; border:2px solid #38bdf8; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('midnight')" title="🌌 Midnight Navy">🌌</button>
+          <button class="chakra-theme-dot" data-theme="emerald" style="background:#081812; border:2px solid #10b981; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('emerald')" title="💎 Emerald Matrix">💎</button>
         </div>
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         
@@ -20294,6 +20381,48 @@ pre, .code-block, .chat-code-snippet {
                     <span class="theme-active-pill" id="themePillNoir" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ffffff; color:#000000;">ACTIVE</span>
                   </div>
                   <div style="font-size:11.5px; color:#a1a1aa; line-height:1.4;">Zero pixel emission, true pure black OLED contrast for maximum focus.</div>
+                </div>
+
+                <div class="theme-selection-card" id="themeCardCyberpunk" onclick="setHomepageTheme('cyberpunk')" style="padding:16px; border-radius:14px; border:2px solid rgba(255,0,127,0.25); background:#0c0d1c; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:30px; height:30px; border-radius:50%; background:#15102a; border:2px solid #ff007f; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">⚡</span>
+                      <div>
+                        <div style="font-weight:800; font-size:14px; color:#ff007f;">Cyberpunk Neon</div>
+                        <div style="font-size:11px; color:#c084fc;">High-voltage neon magenta & cyan</div>
+                      </div>
+                    </div>
+                    <span class="theme-active-pill" id="themePillCyberpunk" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ff007f; color:#ffffff;">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#e2e8f0; line-height:1.4;">Night city high-energy aesthetic with glowing cyan & purple elements.</div>
+                </div>
+
+                <div class="theme-selection-card" id="themeCardMidnight" onclick="setHomepageTheme('midnight')" style="padding:16px; border-radius:14px; border:2px solid rgba(56,189,248,0.25); background:#0a1526; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:30px; height:30px; border-radius:50%; background:#0e1e36; border:2px solid #38bdf8; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">🌌</span>
+                      <div>
+                        <div style="font-weight:800; font-size:14px; color:#38bdf8;">Midnight Navy</div>
+                        <div style="font-size:11px; color:#93c5fd;">Deep oceanic navy with electric azure</div>
+                      </div>
+                    </div>
+                    <span class="theme-active-pill" id="themePillMidnight" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#38bdf8; color:#082f49;">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#bae6fd; line-height:1.4;">Deep tactical blue hues and starlight accents for calm evening work.</div>
+                </div>
+
+                <div class="theme-selection-card" id="themeCardEmerald" onclick="setHomepageTheme('emerald')" style="padding:16px; border-radius:14px; border:2px solid rgba(16,185,129,0.25); background:#081812; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:30px; height:30px; border-radius:50%; background:#0d251c; border:2px solid #10b981; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">💎</span>
+                      <div>
+                        <div style="font-weight:800; font-size:14px; color:#10b981;">Emerald Matrix</div>
+                        <div style="font-size:11px; color:#6ee7b7;">Tactical obsidian & matrix emerald</div>
+                      </div>
+                    </div>
+                    <span class="theme-active-pill" id="themePillEmerald" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#10b981; color:#022c22;">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#a7f3d0; line-height:1.4;">Cyber-terminal aesthetic inspired by matrix consoles and jade minerals.</div>
                 </div>
               </div>
             </div>
@@ -30319,27 +30448,34 @@ function selectSettingsAvatar(emoji, el) {
           ivory: 'parchment',
           light: 'parchment',
           paper: 'parchment',
-          cyberpunk: 'parchment',
           cashmere: 'parchment',
           forge: 'parchment',
           gold: 'parchment',
           crimson: 'parchment',
 
-          // Dark Edition -> 'noir'
+          // Dark OLED -> 'noir'
           noir: 'noir',
           black: 'noir',
           dark: 'noir',
           oled: 'noir',
           obsidian: 'noir',
           slate: 'noir',
-          aurora: 'noir',
-          alpine: 'noir',
-          vaporwave: 'noir',
-          cyan: 'noir',
-          amethyst: 'noir',
-          emerald: 'noir',
-          indigo: 'noir',
-          purple: 'noir'
+
+          // Cyberpunk Neon
+          cyberpunk: 'cyberpunk',
+          neon: 'cyberpunk',
+          synthwave: 'cyberpunk',
+
+          // Midnight Navy
+          midnight: 'midnight',
+          navy: 'midnight',
+          ocean: 'midnight',
+          indigo: 'midnight',
+
+          // Emerald Matrix
+          emerald: 'emerald',
+          matrix: 'emerald',
+          jade: 'emerald'
         };
         const canonicalTheme = aliasMap[themeId] || 'parchment';
 
@@ -30389,27 +30525,28 @@ function selectSettingsAvatar(emoji, el) {
         }
 
         // Synchronize Settings Modal Appearance Tab Cards & Active Pills
-        const pillParchment = document.getElementById('themePillParchment');
-        const pillNoir = document.getElementById('themePillNoir');
-        const cardParchment = document.getElementById('themeCardParchment');
-        const cardNoir = document.getElementById('themeCardNoir');
-        if (pillParchment && pillNoir && cardParchment && cardNoir) {
-          if (canonicalTheme === 'parchment') {
-            pillParchment.style.display = 'inline-block';
-            pillNoir.style.display = 'none';
-            cardParchment.style.borderColor = '#141312';
-            cardParchment.style.boxShadow = '0 0 0 1px #141312, 0 8px 24px rgba(20,19,18,0.12)';
-            cardNoir.style.borderColor = 'rgba(255,255,255,0.12)';
-            cardNoir.style.boxShadow = 'none';
-          } else {
-            pillParchment.style.display = 'none';
-            pillNoir.style.display = 'inline-block';
-            cardParchment.style.borderColor = 'rgba(68,64,60,0.15)';
-            cardParchment.style.boxShadow = 'none';
-            cardNoir.style.borderColor = '#ffffff';
-            cardNoir.style.boxShadow = '0 0 0 1px #ffffff, 0 8px 24px rgba(255,255,255,0.12)';
+        const allThemes = [
+          { id: 'parchment', pillId: 'themePillParchment', cardId: 'themeCardParchment', activeBorder: '#141312', shadow: '0 0 0 1px #141312, 0 8px 24px rgba(20,19,18,0.12)', inactiveBorder: 'rgba(68,64,60,0.15)' },
+          { id: 'noir', pillId: 'themePillNoir', cardId: 'themeCardNoir', activeBorder: '#ffffff', shadow: '0 0 0 1px #ffffff, 0 8px 24px rgba(255,255,255,0.12)', inactiveBorder: 'rgba(255,255,255,0.12)' },
+          { id: 'cyberpunk', pillId: 'themePillCyberpunk', cardId: 'themeCardCyberpunk', activeBorder: '#ff007f', shadow: '0 0 0 1px #ff007f, 0 8px 24px rgba(255,0,127,0.25)', inactiveBorder: 'rgba(255,0,127,0.2)' },
+          { id: 'midnight', pillId: 'themePillMidnight', cardId: 'themeCardMidnight', activeBorder: '#38bdf8', shadow: '0 0 0 1px #38bdf8, 0 8px 24px rgba(56,189,248,0.25)', inactiveBorder: 'rgba(56,189,248,0.2)' },
+          { id: 'emerald', pillId: 'themePillEmerald', cardId: 'themeCardEmerald', activeBorder: '#10b981', shadow: '0 0 0 1px #10b981, 0 8px 24px rgba(16,185,129,0.25)', inactiveBorder: 'rgba(16,185,129,0.2)' }
+        ];
+
+        allThemes.forEach(t => {
+          const pill = document.getElementById(t.pillId);
+          const card = document.getElementById(t.cardId);
+          if (pill) pill.style.display = (canonicalTheme === t.id) ? 'inline-block' : 'none';
+          if (card) {
+            if (canonicalTheme === t.id) {
+              card.style.borderColor = t.activeBorder;
+              card.style.boxShadow = t.shadow;
+            } else {
+              card.style.borderColor = t.inactiveBorder;
+              card.style.boxShadow = 'none';
+            }
           }
-        }
+        });
 
         // Synchronize mobile drawer & modal theme selectors
         document.querySelectorAll('.chakra-theme-dot').forEach(d => {
@@ -30436,12 +30573,7 @@ function selectSettingsAvatar(emoji, el) {
 
     // Chakra Theme Customization Engine (Compat & in-app settings)
     function setChakraTheme(themeName) {
-      const lightPresets = ['parchment', 'ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'];
-      if (lightPresets.includes(themeName)) {
-        setHomepageTheme('parchment');
-      } else {
-        setHomepageTheme('noir');
-      }
+      setHomepageTheme(themeName);
     }
 
     // Initialize saved theme on page load (support ?theme= query param)

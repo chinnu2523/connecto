@@ -7,9 +7,9 @@
         var urlParams = new URLSearchParams(window.location.search);
         var queryTheme = urlParams.get('theme');
         var storedTheme = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_chakra_theme');
-        var theme = queryTheme || storedTheme || 'noir';
-        var lightThemes = ['parchment', 'ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'];
-        var canonical = lightThemes.includes(theme) ? 'parchment' : 'noir';
+        var theme = (queryTheme || storedTheme || 'noir').toLowerCase();
+        var validThemes = ['noir', 'parchment', 'cyberpunk', 'midnight', 'emerald'];
+        var canonical = validThemes.indexOf(theme) !== -1 ? theme : (['ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'].indexOf(theme) !== -1 ? 'parchment' : 'noir');
         document.documentElement.setAttribute('data-theme', canonical);
       } catch (_) {}
     })();
@@ -385,6 +385,90 @@
       --hero-grad-start: #141312;
       --hero-grad-end: #292524;
       --theme-name: "Ivory Paper";
+    }
+
+    /* Edition 3: Cyberpunk Neon (High-Voltage Neon Magenta & Cyan) */
+    html[data-theme="cyberpunk"] {
+      --accent: #ff007f;
+      --accent-hover: #e60072;
+      --accent-tint: rgba(255, 0, 127, 0.15);
+      --accent-border: rgba(255, 0, 127, 0.35);
+      --accent-glow: rgba(255, 0, 127, 0.30);
+      --accent-secondary: #c084fc;
+      --accent-secondary-hover: #e879f9;
+      --chakra-cyan: #00e5ff;
+      --bg-darkest: #070712;
+      --bg-darker: #0c0d1c;
+      --bg-dark: #121429;
+      --bg-card: rgba(18, 20, 41, 0.95);
+      --bg-card-hover: rgba(26, 29, 61, 0.98);
+      --bg-modal: #0d0e1d;
+      --bg-nav: rgba(7, 7, 18, 0.92);
+      --card-border: rgba(255, 0, 127, 0.22);
+      --text-normal: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-header: #ffffff;
+      --hero-glow-1: rgba(255, 0, 127, 0.18);
+      --hero-glow-2: rgba(0, 229, 255, 0.18);
+      --hero-grad-start: #ff007f;
+      --hero-grad-end: #00e5ff;
+      --theme-name: "Cyberpunk Neon";
+    }
+
+    /* Edition 4: Midnight Navy (Deep Oceanic Navy & Electric Azure) */
+    html[data-theme="midnight"] {
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --accent-tint: rgba(56, 189, 248, 0.15);
+      --accent-border: rgba(56, 189, 248, 0.32);
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --accent-secondary: #93c5fd;
+      --accent-secondary-hover: #bfdbfe;
+      --chakra-cyan: #38bdf8;
+      --bg-darkest: #050b14;
+      --bg-darker: #0a1526;
+      --bg-dark: #0e1e36;
+      --bg-card: rgba(10, 21, 38, 0.95);
+      --bg-card-hover: rgba(15, 30, 54, 0.98);
+      --bg-modal: #070e1b;
+      --bg-nav: rgba(5, 11, 20, 0.92);
+      --card-border: rgba(56, 189, 248, 0.20);
+      --text-normal: #bae6fd;
+      --text-muted: #64748b;
+      --text-header: #f0f9ff;
+      --hero-glow-1: rgba(56, 189, 248, 0.18);
+      --hero-glow-2: rgba(30, 58, 138, 0.25);
+      --hero-grad-start: #38bdf8;
+      --hero-grad-end: #818cf8;
+      --theme-name: "Midnight Navy";
+    }
+
+    /* Edition 5: Emerald Matrix (Terminal Jade & Luminous Matrix Emerald) */
+    html[data-theme="emerald"] {
+      --accent: #10b981;
+      --accent-hover: #059669;
+      --accent-tint: rgba(16, 185, 129, 0.15);
+      --accent-border: rgba(16, 185, 129, 0.35);
+      --accent-glow: rgba(16, 185, 129, 0.25);
+      --accent-secondary: #6ee7b7;
+      --accent-secondary-hover: #a7f3d0;
+      --chakra-cyan: #10b981;
+      --bg-darkest: #040d09;
+      --bg-darker: #081812;
+      --bg-dark: #0d251c;
+      --bg-card: rgba(8, 24, 18, 0.95);
+      --bg-card-hover: rgba(13, 37, 28, 0.98);
+      --bg-modal: #05120d;
+      --bg-nav: rgba(4, 13, 9, 0.92);
+      --card-border: rgba(16, 185, 129, 0.22);
+      --text-normal: #a7f3d0;
+      --text-muted: #4b6e5f;
+      --text-header: #ecfdf5;
+      --hero-glow-1: rgba(16, 185, 129, 0.18);
+      --hero-glow-2: rgba(6, 78, 59, 0.28);
+      --hero-grad-start: #10b981;
+      --hero-grad-end: #34d399;
+      --theme-name: "Emerald Matrix";
     }
 
     /* Editorial Typography Refinements */
@@ -17578,11 +17662,11 @@ pre, .code-block, .chat-code-snippet {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
     </div>
 
-    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v3.9.9 Live • Pure Black OLED & Vault • 54.3 MB)" style="text-decoration:none; color:#10b981; position:relative;">
+    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.2.0 Live • Pure Black OLED & Vault • 54 MB)" style="text-decoration:none; color:#10b981; position:relative;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="3"/><path d="M12 18h.01"/><path d="m9 10 3 3 3-3"/><path d="M12 6v7"/></svg>
       <div class="rail-unread-badge rail-apk-badge" style="display:flex; align-items:center; gap:2px; background:linear-gradient(135deg, #10b981, #06b6d4); color:#020617; font-weight:900; font-size:7.5px; padding:1px 4px; min-width:auto; height:16px; border-radius:8px; box-shadow:0 0 8px rgba(16,185,129,0.5);">
         <span class="live-dot-pulse-mini"></span>
-        <span class="apk-version-val">v3.9.9</span>
+        <span class="apk-version-val">v4.2.0</span>
       </div>
     </a>
         <div class="guild-icon" id="tabVaultRailBtn" onclick="openConnectoVault()" title="Connecto Hardware Vault (Biometrics & OLED Keyguard)" style="position:relative; color:#10b981;">
@@ -17684,14 +17768,14 @@ pre, .code-block, .chat-code-snippet {
         <div class="sidebar-apk-meta">
           <div class="sidebar-apk-title-row">
             <span class="sidebar-apk-title">Connecto App</span>
-            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v3.9.9</span></span>
+            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.2.0</span></span>
           </div>
           <div class="sidebar-apk-sub">
-            <span class="apk-size-val">54.3 MB</span> • OLED Vault • Sub-5ms
+            <span class="apk-size-val">54 MB</span> • OLED Vault • Sub-5ms
           </div>
         </div>
       </div>
-      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v3.9.9)">
+      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v4.2.0)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>GET</span>
       </a>
@@ -18248,10 +18332,10 @@ pre, .code-block, .chat-code-snippet {
             <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
             <a class="landing-link" id="navLinkVault" onclick="openConnectoVault()" style="display:inline-flex; align-items:center; gap:6px; color:#10b981; font-weight:700; cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm"></i>Vault</a>
-            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v3.9.9 Live • 54.3 MB)">
+            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.2.0 Live • 54 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
-              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v3.9.9</span></span>
+              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.2.0</span></span>
             </a>
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
           </div>
@@ -18282,7 +18366,7 @@ pre, .code-block, .chat-code-snippet {
         <!-- SECTION 1: HERO & INTERACTIVE STAGE -->
         <div class="hero-grid">
           <div class="hero-text">
-            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v3.9.9</div>
+            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v4.2.0</div>
             <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
             <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
@@ -18466,24 +18550,24 @@ pre, .code-block, .chat-code-snippet {
             <!-- Left: Specs & Features Bento -->
             <div class="android-showcase-card-left interactive-tilt-card">
               <div class="android-release-tag-row">
-                <span class="android-release-badge"><span class="pulse-emerald-dot"></span> <span class="apk-version-val">v3.9.9</span> STABLE (BUILD 42)</span>
+                <span class="android-release-badge"><span class="pulse-emerald-dot"></span> <span class="apk-version-val">v4.2.0</span> STABLE (BUILD 48)</span>
                 <span class="android-release-device-chip"><i data-lucide="smartphone" class="lucide-xs"></i> Android 7.0 to 16+ (POCO / HyperOS Verified)</span>
                 <span class="android-release-device-chip" style="border-color:rgba(16,185,129,0.3); color:#10b981;"><i data-lucide="shield-check" class="lucide-xs"></i> Touch-Scroll Isolation Hardened</span>
               </div>
 
               <h3 class="android-showcase-title">Direct APK Package • Hardened for Android 16 & HyperOS</h3>
               <p class="android-showcase-desc">
-                Experience total privacy, instant voice calls, and zero-crash performance. The official Connecto Android APK (v3.9.9, Build 42) is built directly from source with ultra-low latency WebRTC calling (16k TURN ports), touch-scroll isolation gesture engine, zero Google Play Services dependencies, and true OLED deep blacks.
+                Experience total privacy, instant voice calls, and zero-crash performance. The official Connecto Android APK (v4.2.0, Build 48) is built directly from source with ultra-low latency WebRTC calling (16k TURN ports), touch-scroll isolation gesture engine, zero Google Play Services dependencies, and true OLED deep blacks.
               </p>
 
               <div class="android-specs-row">
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-size-val">54.3 MB</span>
+                  <span class="android-spec-val apk-size-val">63 MB</span>
                   <span class="android-spec-lbl">Package Size</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-version-val">v3.9.9</span>
-                  <span class="android-spec-lbl">Live Build 42</span>
+                  <span class="android-spec-val apk-version-val">v4.2.0</span>
+                  <span class="android-spec-lbl">Live Build 48</span>
                 </div>
                 <div class="android-spec-item">
                   <span class="android-spec-val" style="color:#10b981;">Android 16+</span>
@@ -18531,9 +18615,17 @@ pre, .code-block, .chat-code-snippet {
                 <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.05);">
                   <div class="android-feat-card-top">
                     <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="cpu" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#10b981;">v3.9.9 Touch-Scroll Isolation Engine</span>
+                    <span class="android-feat-card-title" style="color:#10b981;">v4.2.0 Profile Accordion &amp; Touch-Scroll Isolation</span>
                   </div>
                   <div class="android-feat-card-desc">Zero accidental clicks or selections. Replaced unthrottled pointerInput with Compose-native MutableInteractionSource clickable handlers across emojis, buttons, and chat bubbles.</div>
+                </div>
+
+                <div class="android-feat-card" style="border-color: rgba(168, 85, 247, 0.3); background: rgba(168, 85, 247, 0.05);">
+                  <div class="android-feat-card-top">
+                    <span class="android-feat-card-icon" style="color:#a855f7;"><i data-lucide="users" class="lucide-md"></i></span>
+                    <span class="android-feat-card-title" style="color:#a855f7;">v4.2.0 Group Chat &amp; Community Mesh</span>
+                  </div>
+                  <div class="android-feat-card-desc">Create and manage multi-user group chats directly from the Home tab (👥 icon). Instant group channel navigation, real-time message broadcasting, member rosters, and low-latency sync.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
@@ -18548,7 +18640,7 @@ pre, .code-block, .chat-code-snippet {
               <div class="android-cta-row">
                 <a href="/download/apk" download="connecto-fun.apk" class="android-primary-download-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>Download Connecto APK (<span class="apk-size-val">54.3 MB</span>)</span>
+                  <span>Download Connecto APK (<span class="apk-size-val">54 MB</span>)</span>
                 </a>
                 <button class="android-secondary-action-btn" onclick="copyApkDownloadLink()" id="btnCopyApkLink">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -18563,15 +18655,15 @@ pre, .code-block, .chat-code-snippet {
               <div class="android-security-note" style="margin-top:14px; padding:12px 14px; background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <span style="display:flex; align-items:center; gap:6px; color:#10b981; font-weight:700; font-size:12px;">
-                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v3.9.9 (Build 42)
+                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v4.2.0 (Build 48) • Oct 3, 2026
                   </span>
                   <span style="font-size:11px; color:#94a3b8;">
-                    arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16) • 54.3 MB
+                    arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16) • 54 MB
                   </span>
                 </div>
                 <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10.5px; color:#94a3b8; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); word-break:break-all;">
                   <span style="color:#38bdf8; font-weight:700;">SHA-256:</span>
-                  <span style="color:#e2e8f0; user-select:all; margin-left:4px;">8fb0268a95e001dbb5abe78427c16655973da290239e61cd29c86600f8ab35a1</span>
+                  <span style="color:#e2e8f0; user-select:all; margin-left:4px;">2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9</span>
                 </div>
               </div>
             </div>
@@ -18639,7 +18731,7 @@ pre, .code-block, .chat-code-snippet {
 
                     <div class="phone-chat-msg">
                       <span class="phone-chat-user">alex:</span>
-                      <span style="color:#cbd5e1;">v3.9.9 connects instantly! Smooth touch scrolling with zero accidental emoji or button selections on Android 7 to 16.</span>
+                      <span style="color:#cbd5e1;">v4.2.0 connects instantly! Profile accordion UI, smooth touch scrolling with zero accidental emoji or button selections on Android 7 to 16.</span>
                     </div>
 
                     <div class="phone-chat-msg">
@@ -18648,7 +18740,7 @@ pre, .code-block, .chat-code-snippet {
                     </div>
 
                     <div class="phone-chat-poll">
-                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v3.9.9 Stability:</div>
+                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v4.2.0 Stability:</div>
                       <div style="display:flex; justify-content:space-between; margin-top:4px; color:#94a3b8;">
                         <span>Voice Teardown Mutex</span>
                         <strong style="color:#10b981;">100% Stable</strong>
@@ -18818,7 +18910,7 @@ pre, .code-block, .chat-code-snippet {
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Connecto Android Native</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v3.9.9</span>
+                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v4.2.0</span>
                   </div>
                   <p class="ecosystem-card-desc">Native Android client engineered with Jetpack Compose, low-latency voice rooms, pure black OLED power saving, and background call listener.</p>
                 </div>
@@ -18830,7 +18922,7 @@ pre, .code-block, .chat-code-snippet {
                 <span class="ecosystem-feature-chip">OLED Black Mode</span>
               </div>
               <div class="ecosystem-card-action">
-                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v3.9.9</span> • <span class="apk-size-val">54.3 MB</span></span>
+                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.2.0</span> • <span class="apk-size-val">54 MB</span></span>
                 <a href="/download/apk" download="connecto-fun.apk" class="ecosystem-card-btn" style="color:#06b6d4; text-decoration:none;">Download Android App <i data-lucide="download" class="lucide-sm"></i></a>
               </div>
             </div>
@@ -19126,7 +19218,7 @@ pre, .code-block, .chat-code-snippet {
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  Yes! Connecto is available as an official native Android app (v3.9.9, 54.3 MB) engineered with Pure Black OLED aesthetics, Connecto Vault biometric & device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
+                  Yes! Connecto is available as an official native Android app (v4.2.0, 54 MB) engineered with Pure Black OLED aesthetics, Connecto Vault biometric & device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
                 </div>
               </div>
             </div>
@@ -19186,7 +19278,7 @@ pre, .code-block, .chat-code-snippet {
             <div class="footer-col">
               <h5>Product</h5>
               <ul>
-                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v3.9.9</span> Live)</a></li>
+                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v4.2.0</span> Live)</a></li>
                 <li><a href="/architecture"><i data-lucide="cpu" class="lucide-sm" style="margin-right:6px;"></i> Architecture Deep-Dive</a></li>
                 <li><a href="/status" target="_blank"><i data-lucide="activity" class="lucide-sm" style="color:var(--green); margin-right:6px;"></i> Live Status Page</a></li>
                 <li><a onclick="switchMainView('learning')"><i data-lucide="graduation-cap" class="lucide-sm" style="margin-right:6px;"></i> Learning Academy</a></li>
@@ -19617,7 +19709,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="mobile-drawer-apk-card">
           <div class="drawer-apk-badge-row">
             <span class="drawer-apk-chip"><span class="pulse-emerald-dot"></span> OFFICIAL ANDROID APP</span>
-            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v3.9.9</span> Live</span>
+            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.2.0</span> Live</span>
           </div>
           <div class="drawer-apk-main">
             <div class="drawer-apk-icon">
@@ -19628,12 +19720,12 @@ pre, .code-block, .chat-code-snippet {
             </div>
             <div class="drawer-apk-details">
               <strong>Connecto for Android</strong>
-              <span>Pure Black OLED • Vault Biometrics • <span class="apk-size-val">54.3 MB</span></span>
+              <span>Pure Black OLED • Vault Biometrics • <span class="apk-size-val">54 MB</span></span>
             </div>
           </div>
           <a href="/download/apk" download="connecto-fun.apk" class="drawer-apk-download-btn">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Download Native APK (<span class="apk-size-val">54.3 MB</span>)</span>
+            <span>Download Native APK (<span class="apk-size-val">54 MB</span>)</span>
           </a>
           <div class="drawer-apk-trust">
             <span><i data-lucide="shield-check" class="lucide-xs"></i> Hardware Biometrics</span> • <span><i data-lucide="zap" class="lucide-xs"></i> Low Latency</span> • <span>Android 7.0 - 16+ (HyperOS)</span>
@@ -19678,9 +19770,12 @@ pre, .code-block, .chat-code-snippet {
         <!-- Interactive Theme Customizer -->
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         <div class="mobile-drawer-label">Theme</div>
-        <div class="chakra-palette-row" style="display:flex; gap:12px; align-items:center;">
+        <div class="chakra-palette-row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
           <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('parchment')" title="☀️ Ivory Paper">☀️</button>
           <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('noir')" title="🌙 Pure Black OLED">🌙</button>
+          <button class="chakra-theme-dot" data-theme="cyberpunk" style="background:#15102a; border:2px solid #ff007f; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('cyberpunk')" title="⚡ Cyberpunk Neon">⚡</button>
+          <button class="chakra-theme-dot" data-theme="midnight" style="background:#0a1526; border:2px solid #38bdf8; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('midnight')" title="🌌 Midnight Navy">🌌</button>
+          <button class="chakra-theme-dot" data-theme="emerald" style="background:#081812; border:2px solid #10b981; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('emerald')" title="💎 Emerald Matrix">💎</button>
         </div>
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         
@@ -20286,6 +20381,48 @@ pre, .code-block, .chat-code-snippet {
                     <span class="theme-active-pill" id="themePillNoir" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ffffff; color:#000000;">ACTIVE</span>
                   </div>
                   <div style="font-size:11.5px; color:#a1a1aa; line-height:1.4;">Zero pixel emission, true pure black OLED contrast for maximum focus.</div>
+                </div>
+
+                <div class="theme-selection-card" id="themeCardCyberpunk" onclick="setHomepageTheme('cyberpunk')" style="padding:16px; border-radius:14px; border:2px solid rgba(255,0,127,0.25); background:#0c0d1c; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:30px; height:30px; border-radius:50%; background:#15102a; border:2px solid #ff007f; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">⚡</span>
+                      <div>
+                        <div style="font-weight:800; font-size:14px; color:#ff007f;">Cyberpunk Neon</div>
+                        <div style="font-size:11px; color:#c084fc;">High-voltage neon magenta & cyan</div>
+                      </div>
+                    </div>
+                    <span class="theme-active-pill" id="themePillCyberpunk" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ff007f; color:#ffffff;">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#e2e8f0; line-height:1.4;">Night city high-energy aesthetic with glowing cyan & purple elements.</div>
+                </div>
+
+                <div class="theme-selection-card" id="themeCardMidnight" onclick="setHomepageTheme('midnight')" style="padding:16px; border-radius:14px; border:2px solid rgba(56,189,248,0.25); background:#0a1526; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:30px; height:30px; border-radius:50%; background:#0e1e36; border:2px solid #38bdf8; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">🌌</span>
+                      <div>
+                        <div style="font-weight:800; font-size:14px; color:#38bdf8;">Midnight Navy</div>
+                        <div style="font-size:11px; color:#93c5fd;">Deep oceanic navy with electric azure</div>
+                      </div>
+                    </div>
+                    <span class="theme-active-pill" id="themePillMidnight" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#38bdf8; color:#082f49;">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#bae6fd; line-height:1.4;">Deep tactical blue hues and starlight accents for calm evening work.</div>
+                </div>
+
+                <div class="theme-selection-card" id="themeCardEmerald" onclick="setHomepageTheme('emerald')" style="padding:16px; border-radius:14px; border:2px solid rgba(16,185,129,0.25); background:#081812; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                      <span style="width:30px; height:30px; border-radius:50%; background:#0d251c; border:2px solid #10b981; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">💎</span>
+                      <div>
+                        <div style="font-weight:800; font-size:14px; color:#10b981;">Emerald Matrix</div>
+                        <div style="font-size:11px; color:#6ee7b7;">Tactical obsidian & matrix emerald</div>
+                      </div>
+                    </div>
+                    <span class="theme-active-pill" id="themePillEmerald" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#10b981; color:#022c22;">ACTIVE</span>
+                  </div>
+                  <div style="font-size:11.5px; color:#a7f3d0; line-height:1.4;">Cyber-terminal aesthetic inspired by matrix consoles and jade minerals.</div>
                 </div>
               </div>
             </div>
@@ -30311,27 +30448,34 @@ function selectSettingsAvatar(emoji, el) {
           ivory: 'parchment',
           light: 'parchment',
           paper: 'parchment',
-          cyberpunk: 'parchment',
           cashmere: 'parchment',
           forge: 'parchment',
           gold: 'parchment',
           crimson: 'parchment',
 
-          // Dark Edition -> 'noir'
+          // Dark OLED -> 'noir'
           noir: 'noir',
           black: 'noir',
           dark: 'noir',
           oled: 'noir',
           obsidian: 'noir',
           slate: 'noir',
-          aurora: 'noir',
-          alpine: 'noir',
-          vaporwave: 'noir',
-          cyan: 'noir',
-          amethyst: 'noir',
-          emerald: 'noir',
-          indigo: 'noir',
-          purple: 'noir'
+
+          // Cyberpunk Neon
+          cyberpunk: 'cyberpunk',
+          neon: 'cyberpunk',
+          synthwave: 'cyberpunk',
+
+          // Midnight Navy
+          midnight: 'midnight',
+          navy: 'midnight',
+          ocean: 'midnight',
+          indigo: 'midnight',
+
+          // Emerald Matrix
+          emerald: 'emerald',
+          matrix: 'emerald',
+          jade: 'emerald'
         };
         const canonicalTheme = aliasMap[themeId] || 'parchment';
 
@@ -30381,27 +30525,28 @@ function selectSettingsAvatar(emoji, el) {
         }
 
         // Synchronize Settings Modal Appearance Tab Cards & Active Pills
-        const pillParchment = document.getElementById('themePillParchment');
-        const pillNoir = document.getElementById('themePillNoir');
-        const cardParchment = document.getElementById('themeCardParchment');
-        const cardNoir = document.getElementById('themeCardNoir');
-        if (pillParchment && pillNoir && cardParchment && cardNoir) {
-          if (canonicalTheme === 'parchment') {
-            pillParchment.style.display = 'inline-block';
-            pillNoir.style.display = 'none';
-            cardParchment.style.borderColor = '#141312';
-            cardParchment.style.boxShadow = '0 0 0 1px #141312, 0 8px 24px rgba(20,19,18,0.12)';
-            cardNoir.style.borderColor = 'rgba(255,255,255,0.12)';
-            cardNoir.style.boxShadow = 'none';
-          } else {
-            pillParchment.style.display = 'none';
-            pillNoir.style.display = 'inline-block';
-            cardParchment.style.borderColor = 'rgba(68,64,60,0.15)';
-            cardParchment.style.boxShadow = 'none';
-            cardNoir.style.borderColor = '#ffffff';
-            cardNoir.style.boxShadow = '0 0 0 1px #ffffff, 0 8px 24px rgba(255,255,255,0.12)';
+        const allThemes = [
+          { id: 'parchment', pillId: 'themePillParchment', cardId: 'themeCardParchment', activeBorder: '#141312', shadow: '0 0 0 1px #141312, 0 8px 24px rgba(20,19,18,0.12)', inactiveBorder: 'rgba(68,64,60,0.15)' },
+          { id: 'noir', pillId: 'themePillNoir', cardId: 'themeCardNoir', activeBorder: '#ffffff', shadow: '0 0 0 1px #ffffff, 0 8px 24px rgba(255,255,255,0.12)', inactiveBorder: 'rgba(255,255,255,0.12)' },
+          { id: 'cyberpunk', pillId: 'themePillCyberpunk', cardId: 'themeCardCyberpunk', activeBorder: '#ff007f', shadow: '0 0 0 1px #ff007f, 0 8px 24px rgba(255,0,127,0.25)', inactiveBorder: 'rgba(255,0,127,0.2)' },
+          { id: 'midnight', pillId: 'themePillMidnight', cardId: 'themeCardMidnight', activeBorder: '#38bdf8', shadow: '0 0 0 1px #38bdf8, 0 8px 24px rgba(56,189,248,0.25)', inactiveBorder: 'rgba(56,189,248,0.2)' },
+          { id: 'emerald', pillId: 'themePillEmerald', cardId: 'themeCardEmerald', activeBorder: '#10b981', shadow: '0 0 0 1px #10b981, 0 8px 24px rgba(16,185,129,0.25)', inactiveBorder: 'rgba(16,185,129,0.2)' }
+        ];
+
+        allThemes.forEach(t => {
+          const pill = document.getElementById(t.pillId);
+          const card = document.getElementById(t.cardId);
+          if (pill) pill.style.display = (canonicalTheme === t.id) ? 'inline-block' : 'none';
+          if (card) {
+            if (canonicalTheme === t.id) {
+              card.style.borderColor = t.activeBorder;
+              card.style.boxShadow = t.shadow;
+            } else {
+              card.style.borderColor = t.inactiveBorder;
+              card.style.boxShadow = 'none';
+            }
           }
-        }
+        });
 
         // Synchronize mobile drawer & modal theme selectors
         document.querySelectorAll('.chakra-theme-dot').forEach(d => {
@@ -30428,12 +30573,7 @@ function selectSettingsAvatar(emoji, el) {
 
     // Chakra Theme Customization Engine (Compat & in-app settings)
     function setChakraTheme(themeName) {
-      const lightPresets = ['parchment', 'ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'];
-      if (lightPresets.includes(themeName)) {
-        setHomepageTheme('parchment');
-      } else {
-        setHomepageTheme('noir');
-      }
+      setHomepageTheme(themeName);
     }
 
     // Initialize saved theme on page load (support ?theme= query param)
