@@ -12567,9 +12567,9 @@
   color: #94A3B8 !important;
 }
 
-/* Mobile Bottom Dock (5-Tab Architecture) */
+/* Mobile Bottom Dock (5-Tab Architecture) - strictly hidden until user logs in and enters app */
 .connecto-mobile-dock {
-  display: flex !important;
+  display: none !important;
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
@@ -13258,17 +13258,30 @@ body.in-app-view #heroView,
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
   .chat-mockup-card {
     width: 100% !important;
     max-width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    aspect-ratio: auto !important;
+    height: 400px !important;
+    min-height: 400px !important;
+    max-height: 460px !important;
+    contain: none !important;
+    display: flex !important;
+    flex-direction: column !important;
     box-sizing: border-box !important;
+  }
+  .mock-body-layout {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: calc(100% - 38px) !important;
+    display: flex !important;
   }
   .hero-pill-badge {
     font-size: 11px !important;
@@ -14209,6 +14222,129 @@ html[data-theme="light"] .connecto-call-search-card,
 html[data-theme="ivory"] .connecto-call-search-card {
   background: #ffffff !important;
   border: 1px solid rgba(68, 64, 60, 0.14) !important;
+}
+
+/* --- Dedicated Parchment / Light Mode Styling Overrides for Mobile Navigation Drawer --- */
+html[data-theme="parchment"] .mobile-nav-drawer-overlay,
+html[data-theme="light"] .mobile-nav-drawer-overlay,
+html[data-theme="ivory"] .mobile-nav-drawer-overlay {
+  background: rgba(20, 19, 18, 0.45) !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-drawer,
+html[data-theme="light"] .mobile-nav-drawer,
+html[data-theme="ivory"] .mobile-nav-drawer {
+  background: #fbf8f2 !important;
+  border-left: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: -16px 0 48px rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-head,
+html[data-theme="light"] .mobile-drawer-head,
+html[data-theme="ivory"] .mobile-drawer-head {
+  border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+  background: #f5f1e8 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-close,
+html[data-theme="light"] .mobile-drawer-close,
+html[data-theme="ivory"] .mobile-drawer-close {
+  background: rgba(68, 64, 60, 0.08) !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-telemetry,
+html[data-theme="light"] .mobile-drawer-telemetry,
+html[data-theme="ivory"] .mobile-drawer-telemetry {
+  background: rgba(68, 64, 60, 0.04) !important;
+  border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+}
+
+html[data-theme="parchment"] .drawer-stat-pill,
+html[data-theme="light"] .drawer-stat-pill,
+html[data-theme="ivory"] .drawer-stat-pill {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  color: #44403c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-apk-card,
+html[data-theme="light"] .mobile-drawer-apk-card,
+html[data-theme="ivory"] .mobile-drawer-apk-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(44, 40, 37, 0.06) !important;
+}
+
+html[data-theme="parchment"] .drawer-apk-details strong,
+html[data-theme="light"] .drawer-apk-details strong,
+html[data-theme="ivory"] .drawer-apk-details strong {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .drawer-apk-details span,
+html[data-theme="light"] .drawer-apk-details span,
+html[data-theme="ivory"] .drawer-apk-details span {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-link,
+html[data-theme="light"] .mobile-drawer-link,
+html[data-theme="ivory"] .mobile-drawer-link {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-link:hover,
+html[data-theme="light"] .mobile-drawer-link:hover,
+html[data-theme="ivory"] .mobile-drawer-link:hover {
+  background: #f5f1e8 !important;
+  border-color: rgba(68, 64, 60, 0.25) !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-text strong,
+html[data-theme="light"] .mobile-drawer-text strong,
+html[data-theme="ivory"] .mobile-drawer-text strong {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-text span,
+html[data-theme="light"] .mobile-drawer-text span,
+html[data-theme="ivory"] .mobile-drawer-text span {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-label,
+html[data-theme="light"] .mobile-drawer-label,
+html[data-theme="ivory"] .mobile-drawer-label {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-foot,
+html[data-theme="light"] .mobile-drawer-foot,
+html[data-theme="ivory"] .mobile-drawer-foot {
+  border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
+  background: #f5f1e8 !important;
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-btn.btn-outline,
+html[data-theme="light"] .mobile-drawer-btn.btn-outline,
+html[data-theme="ivory"] .mobile-drawer-btn.btn-outline {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-btn.nav-cta-shimmer,
+html[data-theme="light"] .mobile-drawer-btn.nav-cta-shimmer,
+html[data-theme="ivory"] .mobile-drawer-btn.nav-cta-shimmer {
+  background: #141312 !important;
+  color: #ffffff !important;
+  border: 1px solid #141312 !important;
 }
 </style>
 
@@ -16323,6 +16459,9 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
 }
 @media (max-width: 768px) {
   .connecto-mobile-dock {
+    display: none !important;
+  }
+  body.in-app-view .connecto-mobile-dock {
     display: flex !important;
     position: fixed !important;
     bottom: 12px !important;
@@ -16339,7 +16478,7 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
     z-index: 9999 !important;
     pointer-events: auto !important;
   }
-  body {
+  body.in-app-view {
     padding-bottom: 78px !important;
   }
   body.mobile-in-chat {
@@ -32220,6 +32359,9 @@ function handleNavCommunityClick() {
       localStorage.setItem('connecto_last_view', 'hero');
       updateNavAuthUI();
       ensureLucideIcons();
+      if (typeof updateConnectoMobileDock === 'function') {
+        updateConnectoMobileDock('hero');
+      }
 
       // Deep link support for direct /signup, /register, /login or ?auth= / ?mode= URLs
       const pathLower = (window.location.pathname || '').toLowerCase();
@@ -33268,8 +33410,10 @@ function updateConnectoMobileDock(view) {
   const dock = document.getElementById('connectoMobileDock');
   if (!dock) return;
   const isMobile = window.innerWidth <= 768;
+  const isLoggedIn = (typeof currentUser !== 'undefined' && currentUser && currentUser !== 'guest') || (localStorage.getItem('connecto_token') && localStorage.getItem('connecto_user'));
+  const isInApp = document.body.classList.contains('in-app-view') || (view && view !== 'hero');
 
-  if (isMobile) {
+  if (isMobile && isLoggedIn && isInApp) {
     dock.style.display = 'flex';
   } else {
     dock.style.display = 'none';
@@ -33283,7 +33427,7 @@ function updateConnectoMobileDock(view) {
   }
 }
 window.addEventListener('resize', () => {
-  const lastView = localStorage.getItem('connecto_last_view') || 'chat';
+  const lastView = localStorage.getItem('connecto_last_view') || 'hero';
   updateConnectoMobileDock(lastView);
 });
 </script>
