@@ -98,6 +98,15 @@ class MainActivity : FragmentActivity() {
     companion object {
         var pendingIntentAction by mutableStateOf<String?>(null)
         var pendingOpenChatTarget by mutableStateOf<String?>(null)
+        var isServerMaintenanceOpen by mutableStateOf(false)
+
+        fun openMaintenanceScreen() {
+            isServerMaintenanceOpen = true
+        }
+
+        fun closeMaintenanceScreen() {
+            isServerMaintenanceOpen = false
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -358,6 +367,30 @@ fun ConnectoApp(
             while (isActive) {
                 com.example.connecto.network.ConnectoApiClient.getUnreadNotificationCount(authenticatedUsername)
                 delay(20000L)
+            }
+        }
+    }
+
+    // Automated Server Maintenance Detection
+    val isWsConnectedGlobal by VoiceCallManager.isWsConnectedFlow.collectAsState()
+    var autoMaintenanceTriggered by rememberSaveable { mutableStateOf(false) }
+
+    androidx.compose.runtime.LaunchedEffect(isWsConnectedGlobal, flowState) {
+        if (!isWsConnectedGlobal) {
+            delay(12000L)
+            if (!isWsConnectedGlobal && !autoMaintenanceTriggered) {
+                val healthy = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.example.connecto.network.ConnectoApiClient.checkHealth()
+                }
+                if (!healthy) {
+                    autoMaintenanceTriggered = true
+                    MainActivity.openMaintenanceScreen()
+                }
+            }
+        } else {
+            autoMaintenanceTriggered = false
+            if (MainActivity.isServerMaintenanceOpen) {
+                MainActivity.closeMaintenanceScreen()
             }
         }
     }
@@ -808,6 +841,25 @@ fun ConnectoApp(
                     VoiceCallManager.endCall()
                 },
                 modifier = Modifier.fillMaxSize()
+            )
+        }
+
+        // Global Server Maintenance Screen Overlay
+        androidx.compose.animation.AnimatedVisibility(
+            visible = MainActivity.isServerMaintenanceOpen,
+            enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
+                    androidx.compose.animation.scaleIn(initialScale = 0.95f, animationSpec = androidx.compose.animation.core.tween(300)),
+            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) +
+                    androidx.compose.animation.scaleOut(targetScale = 0.95f, animationSpec = androidx.compose.animation.core.tween(250)),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            com.example.connecto.ui.screens.ServerMaintenanceScreen(
+                onDismissToOffline = {
+                    MainActivity.closeMaintenanceScreen()
+                },
+                onServerRestored = {
+                    MainActivity.closeMaintenanceScreen()
+                }
             )
         }
 

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
@@ -112,7 +113,7 @@ fun ConnectoTopHeader(
     val statusText = when {
         effectiveStealth -> "Stealth Mode"
         isActuallyOnline -> "Online"
-        connectTimedOut -> "Server Offline"
+        connectTimedOut -> "Server in Maintenance"
         else -> "Connecting..."
     }
 
@@ -197,7 +198,15 @@ fun ConnectoTopHeader(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable(enabled = connectTimedOut || !isActuallyOnline) {
+                                com.example.connecto.MainActivity.openMaintenanceScreen()
+                            }
+                            .padding(vertical = 1.dp, horizontal = 2.dp)
+                    ) {
                         if (presence == ConnectoPresenceStatus.ONLINE) {
                             PulsingOnlineDot(
                                 color = colors.success,
@@ -222,7 +231,7 @@ fun ConnectoTopHeader(
                         Text(
                             text = statusText,
                             fontSize = 11.sp,
-                            color = colors.textSecondary,
+                            color = if (connectTimedOut) colors.warning else colors.textSecondary,
                             maxLines = 1
                         )
                     }

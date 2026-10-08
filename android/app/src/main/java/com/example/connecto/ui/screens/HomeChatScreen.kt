@@ -439,7 +439,15 @@ fun HomeChatScreen(
                             color = colors.textPrimary
                         )
                         Spacer(modifier = Modifier.height(2.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable(enabled = !isWsConnected) {
+                                    com.example.connecto.MainActivity.openMaintenanceScreen()
+                                }
+                                .padding(vertical = 2.dp, horizontal = 2.dp)
+                        ) {
                             if (isWsConnected) {
                                 PulsingOnlineDot(
                                     color = colors.success,
@@ -462,7 +470,7 @@ fun HomeChatScreen(
                             Text(
                                 text = when {
                                     isWsConnected -> "Connected to Connecto Network (Tailscale)"
-                                    connectTimedOut -> "Server Offline · Tap to retry"
+                                    connectTimedOut -> "Server in Maintenance · Tap to view details"
                                     else -> "Connecting..."
                                 },
                                 fontSize = 12.sp,
