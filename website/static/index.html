@@ -14224,7 +14224,29 @@ html[data-theme="ivory"] .connecto-call-search-card {
   border: 1px solid rgba(68, 64, 60, 0.14) !important;
 }
 
-/* --- Dedicated Parchment / Light Mode Styling Overrides for Mobile Navigation Drawer --- */
+/* --- Dedicated Parchment / Light Mode Styling Overrides for Mobile Navigation Drawer & Toggle Button --- */
+html[data-theme="parchment"] .mobile-nav-toggle,
+html[data-theme="light"] .mobile-nav-toggle,
+html[data-theme="ivory"] .mobile-nav-toggle {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  color: #141312 !important;
+  box-shadow: 0 1px 4px rgba(68, 64, 60, 0.08) !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-toggle:hover,
+html[data-theme="light"] .mobile-nav-toggle:hover,
+html[data-theme="ivory"] .mobile-nav-toggle:hover {
+  background: #f5f1e8 !important;
+  border-color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-toggle .hamburger-bar,
+html[data-theme="light"] .mobile-nav-toggle .hamburger-bar,
+html[data-theme="ivory"] .mobile-nav-toggle .hamburger-bar {
+  background: #141312 !important;
+}
+
 html[data-theme="parchment"] .mobile-nav-drawer-overlay,
 html[data-theme="light"] .mobile-nav-drawer-overlay,
 html[data-theme="ivory"] .mobile-nav-drawer-overlay {
