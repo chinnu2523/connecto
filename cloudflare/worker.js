@@ -55,32 +55,66 @@ export default {
 
     // Edge Version API (Always return latest canonical app release specs)
     if (url.pathname === "/api/v1/app/version" || url.pathname === "/api/app/version") {
+      let dbRelease = null;
+      if (env.DB) {
+        try {
+          dbRelease = await env.DB.prepare("SELECT * FROM app_releases WHERE is_latest = 1 ORDER BY created_at DESC LIMIT 1").first();
+        } catch (_) {}
+      }
+
+      if (dbRelease) {
+        let features = [];
+        try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
+        return jsonResponse({
+          status: "success",
+          app_name: "Connecto",
+          package_name: "com.connecto.app",
+          version: dbRelease.version,
+          version_name: "v" + dbRelease.version,
+          version_code: dbRelease.version_code,
+          build: dbRelease.version_code,
+          sha256: dbRelease.sha256,
+          md5: dbRelease.md5,
+          filename: dbRelease.filename,
+          size_bytes: dbRelease.size_bytes,
+          size_display: "54.4 MB",
+          min_android: "Android 7.0 (API 24)",
+          target_android: "Android 16+ (API 37 / HyperOS Verified)",
+          url: "https://connecto.fun/download/apk",
+          download_url: "/download/apk",
+          direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
+          features: features.length ? features : [
+            "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
+            "v4.2.4 Profile Tab Sub-Page Navigation Buttons: Dedicated full views for Personal Info, Stealth & Appearance",
+            "v4.2.4 Auto-Recovery Watchdog & Status Probe",
+            "v4.2.4 Zero Accordion Clutter & Silky Spring Motion Transitions"
+          ]
+        });
+      }
+
       return jsonResponse({
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.3",
-        version_name: "v4.2.3",
-        version_code: 51,
-        build: 51,
-        sha256: "ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d",
-        md5: "e99f0e1af68b2a0052048cd5b5798e4f",
+        version: "4.2.4",
+        version_name: "v4.2.4",
+        version_code: 52,
+        build: 52,
+        sha256: "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4",
+        md5: "77ed951aa695aa45da500abb44115531",
         filename: "connecto-fun.apk",
-        size_bytes: 56974989,
-        size_display: "54.3 MB",
+        size_bytes: 57007757,
+        size_display: "54.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "v4.2.3 Delete Group (Admin) & Exit Group (Members): Full management in Group Profile dialog and Profile tab",
-          "v4.2.3 High-Transition Spring Physics Navigation: Tactile compression, overshoot bounce, tilt kick and dynamic indicator across all bottom navigation buttons",
-          "v4.2.3 Profile Screen De-duplication: Resolved root cause of duplicate bottom section cards in Profile tab",
-          "v4.2.3 Single Full-Screen Group Profile: Comprehensive full-screen tab with group details, members list, and creator ADMIN badge",
-          "v4.2.3 Group Admin Customization: Allows admin to edit group name and upload group profile avatar",
-          "v4.2.3 Group Chat Wallpaper: Custom chat wallpaper selection per group",
-          "v4.2.3 Add Members Modal: Search and add friends into the group"
+          "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
+          "v4.2.4 Profile Tab Sub-Page Navigation Buttons: Dedicated full views for Personal Info, Stealth & Appearance",
+          "v4.2.4 Auto-Recovery Watchdog & Status Probe",
+          "v4.2.4 Zero Accordion Clutter & Silky Spring Motion Transitions"
         ]
       });
     }
@@ -111,10 +145,10 @@ export default {
       });
     }
 
-    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.3 Build 51 release asset)
+    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.4 Build 52 release asset)
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.4/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -156,21 +190,20 @@ export default {
           const contentType = originResponse.headers.get("content-type") || "";
           if (contentType.includes("text/html")) {
             let htmlText = await originResponse.text();
-            // Automatically patch any stale origin HTML strings to v4.2.3 Build 51
-            if (htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d")) {
+            // Automatically patch any stale origin HTML strings to v4.2.4 Build 52
+            if (htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49")) {
               htmlText = htmlText
-                .replace(/v4\.2\.[12]/g, "v4.2.3")
-                .replace(/4\.2\.[12]-prod/g, "4.2.3-prod")
-                .replace(/"4\.2\.[12]"/g, '"4.2.3"')
-                .replace(/Build 50/g, "Build 51")
-                .replace(/BUILD 50/g, "BUILD 51")
-                .replace(/build 50/g, "build 51")
-                .replace(/Build 49/g, "Build 51")
-                .replace(/BUILD 49/g, "BUILD 51")
-                .replace(/build 49/g, "build 51")
-                .replace(/7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d/g, "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687")
-                .replace(/e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad/g, "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687")
-                .replace(/2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9/g, "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687");
+                .replace(/v4\.2\.[123]/g, "v4.2.4")
+                .replace(/4\.2\.[123]-prod/g, "4.2.4-prod")
+                .replace(/"4\.2\.[123]"/g, '"4.2.4"')
+                .replace(/Build 51/g, "Build 52")
+                .replace(/BUILD 51/g, "BUILD 52")
+                .replace(/build 51/g, "build 52")
+                .replace(/Build 50/g, "Build 52")
+                .replace(/BUILD 50/g, "BUILD 52")
+                .replace(/build 50/g, "build 52")
+                .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4")
+                .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4");
             }
             return new Response(htmlText, {
               status: originResponse.status,
