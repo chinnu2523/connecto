@@ -12065,6 +12065,15 @@
   cursor: pointer !important;
   white-space: nowrap !important;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.connecto-action-pill * {
+  pointer-events: none !important;
 }
 .connecto-action-pill:hover {
   background: var(--accent-tint, #1E2338) !important;
@@ -13051,8 +13060,10 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
   backdrop-filter: blur(8px) !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: 10000 !important;
+  z-index: 100000 !important;
   opacity: 1 !important;
+  touch-action: auto !important;
+  pointer-events: auto !important;
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 </style>
@@ -20826,8 +20837,8 @@ pre, .code-block, .chat-code-snippet {
   </div>
 
   <!-- Add Friend Modal -->
-  <div class="modal-overlay" id="addFriendModal" style="display:none;" onclick="closeAddFriendModal(event)">
-    <div class="modal-card border-beam-card" style="width:460px; max-width:94vw; padding:24px; border-radius:20px; background:var(--bg-modal, #0F121D); box-shadow:0 12px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; position:relative;" onclick="event.stopPropagation()">
+  <div class="modal-overlay" id="addFriendModal" style="display:none; z-index:100001 !important; touch-action:auto !important;" onclick="closeAddFriendModal(event)">
+    <div class="modal-card border-beam-card" style="width:460px; max-width:94vw; padding:24px; border-radius:20px; background:var(--bg-modal, #0F121D); box-shadow:0 12px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; position:relative; touch-action:auto !important; pointer-events:auto !important;" onclick="event.stopPropagation()">
       <div class="border-beam"></div>
       
       <!-- Modal Header -->
@@ -33598,6 +33609,7 @@ function openAddFriendModal() {
   const m = document.getElementById('addFriendModal');
   if (m) {
     m.style.display = 'flex';
+    m.classList.add('active');
     const inp = document.getElementById('modalAddFriendInput');
     if (inp) {
       inp.value = '';
@@ -33617,7 +33629,10 @@ function openAddFriendModal() {
 function closeAddFriendModal(e) {
   if (e && e.target && e.target !== document.getElementById('addFriendModal')) return;
   const m = document.getElementById('addFriendModal');
-  if (m) m.style.display = 'none';
+  if (m) {
+    m.style.display = 'none';
+    m.classList.remove('active');
+  }
 }
 
 async function sendFriendRequestFromModal() {

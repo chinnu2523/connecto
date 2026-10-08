@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -142,12 +143,12 @@ fun EmailVerificationModal(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
-    var otpCode by remember { mutableStateOf("") }
+    var otpCode by rememberSaveable { mutableStateOf("") }
     var isSendingOtp by remember { mutableStateOf(false) }
     var isVerifying by remember { mutableStateOf(false) }
-    var otpSent by remember { mutableStateOf(false) }
-    var statusMessage by remember { mutableStateOf<String?>(null) }
-    var isError by remember { mutableStateOf(false) }
+    var otpSent by rememberSaveable { mutableStateOf(false) }
+    var statusMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    var isError by rememberSaveable { mutableStateOf(false) }
 
     Dialog(
         onDismissRequest = {

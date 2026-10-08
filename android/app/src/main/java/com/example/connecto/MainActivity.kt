@@ -449,9 +449,10 @@ fun ConnectoApp(
                                 VoiceCallManager.updateCredentialsAndConnect(savedUsername, savedUserId, savedToken)
                                 val profilePrefs = context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)
                                 val isBiometricEnabled = profilePrefs.getBoolean("biometric_lock_$savedUsername", false)
+                                val autoLock = profilePrefs.getBoolean("auto_lock_background_$savedUsername", true)
 
-                                // Always enforce lock screen when enabled by user, regardless of Android version
-                                if (isBiometricEnabled) {
+                                // Enforce lock screen on launch only when biometric lock is enabled AND auto-lock in background is enabled
+                                if (isBiometricEnabled && autoLock) {
                                     flowState = AppFlowState.BIOMETRIC_LOCK
                                 } else {
                                     flowState = AppFlowState.CHAT_APP
@@ -520,7 +521,7 @@ fun ConnectoApp(
                     val isImeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(density) > 100
 
                     val emailVerification by com.example.connecto.network.ConnectoApiClient.emailVerificationState.collectAsState()
-                    var showManualVerifyModal by remember { mutableStateOf(false) }
+                    var showManualVerifyModal by rememberSaveable { mutableStateOf(false) }
 
                     val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && !isImeVisible
 

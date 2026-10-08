@@ -122,6 +122,13 @@ async def deliver_email_otp(to_email: str, otp_code: str, purpose: str, raw_purp
         border_color = "#e3b341"
         text_color = "#fde047"
         guidance_text = "This verification code is strictly for <b>resetting your forgotten password</b>. <b>Do NOT use this code for 2FA activation or sign-in.</b>"
+    elif raw_p in ("email_verification", "signup_verification"):
+        subject = f"[Connecto Email Verification] Your 6-Digit Verification Code: {otp_code}"
+        badge_title = "ACCOUNT EMAIL VERIFICATION"
+        badge_bg = "#059669"
+        border_color = "#10b981"
+        text_color = "#6ee7b7"
+        guidance_text = "This verification code is to <b>verify your email address</b> on Connecto. Enter this 6-digit code in the app to complete account verification."
     else:
         subject = f"[Connecto Security] Your {purpose} Verification Code: {otp_code}"
         badge_title = f"{purpose.upper()} VERIFICATION"
@@ -448,7 +455,9 @@ async def send_unified_otp(
     friendly_purpose = {
         "two_factor_login": "Two-Factor Sign In",
         "forgot_password": "Password Recovery",
-        "two_factor_setup": "Two-Factor Security Setup"
+        "two_factor_setup": "Two-Factor Security Setup",
+        "email_verification": "Email Verification",
+        "signup_verification": "Email Verification"
     }.get(purpose, "Verification")
 
     delivery_success = False
