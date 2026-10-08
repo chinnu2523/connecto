@@ -30,9 +30,12 @@ class Channel(Base):
     server_id = Column(String(36), ForeignKey("servers.id", ondelete="CASCADE"), nullable=True, index=True) # Null for DMs
     name = Column(String(64), nullable=False, index=True)
     type = Column(String(16), nullable=False, default="text") # 'text' or 'voice'
+    icon_url = Column(String(512), nullable=True) # Group chat icon / avatar
+    owner_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True) # Group creator / admin
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     server = relationship("Server", back_populates="channels")
+    owner = relationship("User", foreign_keys=[owner_id])
     messages = relationship("Message", back_populates="channel", cascade="all, delete-orphan")
     dm_participants = relationship("DMParticipant", back_populates="channel", cascade="all, delete-orphan")
 

@@ -59,14 +59,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.2",
-        version_name: "v4.2.2",
-        version_code: 50,
-        build: 50,
-        sha256: "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d",
-        md5: "4d4446ea9a05d389da827b58d8cd3cc0",
+        version: "4.2.3",
+        version_name: "v4.2.3",
+        version_code: 51,
+        build: 51,
+        sha256: "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687",
+        md5: "ea34d34e7d80423736c8d296af07c840",
         filename: "connecto-fun.apk",
-        size_bytes: 56925833,
+        size_bytes: 56952800,
         size_display: "54.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -74,11 +74,13 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups) with real-time counters and dedicated empty state action shortcuts",
-          "v4.2.2 Multi-User Group Messaging: Full group chat navigation, instant SQLite caching, channel WebSocket subscription, and zero pairwise AES encryption conflicts",
-          "v4.2.2 Profile Interactive Title Buttons & Detail Popups: Converted Presence, Personal Info, 2FA, Biometric, and Appearance titles into interactive buttons with status badges and dedicated modal dialogs",
-          "v4.2.1 Compliance & Verification: Added mandatory 18+ age verification, Terms & Conditions consent, and email OTP verification during sign up",
-          "v4.2.1 Friend Profile UI & Security: Fixed header stability with stationary avatar, removed Personal button and 2FA card from friend profile view, added custom photo gallery wallpaper per chat, and enforced FLAG_SECURE screenshot prevention when inspecting profile picture fullscreen"
+          "v4.2.3 Profile Screen De-duplication: Resolved root cause of duplicate bottom section cards in Profile tab",
+          "v4.2.3 Verified Added Groups: Zero synthetic/fake groups in Added Groups list",
+          "v4.2.3 Single Full-Screen Group Profile: Comprehensive full-screen tab with group details, members list, and creator ADMIN badge",
+          "v4.2.3 Group Admin Customization: Allows admin to edit group name and upload group profile avatar",
+          "v4.2.3 Group Chat Wallpaper: Custom chat wallpaper selection per group",
+          "v4.2.3 Add Members Modal: Search and add friends into the group",
+          "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups)"
         ]
       });
     }
@@ -109,10 +111,10 @@ export default {
       });
     }
 
-    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.2 Build 50 release asset)
+    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.3 Build 51 release asset)
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.2/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.3/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -154,17 +156,21 @@ export default {
           const contentType = originResponse.headers.get("content-type") || "";
           if (contentType.includes("text/html")) {
             let htmlText = await originResponse.text();
-            // Automatically patch any stale origin HTML strings to v4.2.2 Build 50
-            if (htmlText.includes("4.2.1") || htmlText.includes("Build 49") || htmlText.includes("e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad")) {
+            // Automatically patch any stale origin HTML strings to v4.2.3 Build 51
+            if (htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d")) {
               htmlText = htmlText
-                .replace(/v4\.2\.1/g, "v4.2.2")
-                .replace(/4\.2\.1-prod/g, "4.2.2-prod")
-                .replace(/"4\.2\.1"/g, '"4.2.2"')
-                .replace(/Build 49/g, "Build 50")
-                .replace(/BUILD 49/g, "BUILD 50")
-                .replace(/build 49/g, "build 50")
-                .replace(/e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad/g, "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d")
-                .replace(/2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9/g, "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d");
+                .replace(/v4\.2\.[12]/g, "v4.2.3")
+                .replace(/4\.2\.[12]-prod/g, "4.2.3-prod")
+                .replace(/"4\.2\.[12]"/g, '"4.2.3"')
+                .replace(/Build 50/g, "Build 51")
+                .replace(/BUILD 50/g, "BUILD 51")
+                .replace(/build 50/g, "build 51")
+                .replace(/Build 49/g, "Build 51")
+                .replace(/BUILD 49/g, "BUILD 51")
+                .replace(/build 49/g, "build 51")
+                .replace(/7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d/g, "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687")
+                .replace(/e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad/g, "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687")
+                .replace(/2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9/g, "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687");
             }
             return new Response(htmlText, {
               status: originResponse.status,
@@ -2286,13 +2292,13 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.2",
-      version_name: "v4.2.2",
-      version_code: 50,
-      build: 50,
-      sha256: "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d",
+      version: "4.2.3",
+      version_name: "v4.2.3",
+      version_code: 51,
+      build: 51,
+      sha256: "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687",
       filename: "connecto-fun.apk",
-      size_bytes: 56925833,
+      size_bytes: 56952800,
       size_display: "54.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

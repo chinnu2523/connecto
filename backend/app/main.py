@@ -1793,6 +1793,8 @@ async def create_group_chat_endpoint(
         server_id=None,
         name=name,
         type="group",
+        owner_id=current_u.id,
+        icon_url=None,
         created_at=datetime.now(timezone.utc)
     )
     db.add(new_channel)
@@ -1839,6 +1841,7 @@ async def create_group_chat_endpoint(
             "group_id": new_channel.id,
             "group_name": new_channel.name,
             "creator": current_u.username,
+            "admin": current_u.username,
             "members": actual_members
         }
         for mu in member_users:
@@ -1852,12 +1855,18 @@ async def create_group_chat_endpoint(
             "id": new_channel.id,
             "name": new_channel.name,
             "type": "group",
+            "icon_url": None,
             "description": f"Group Chat • {len(actual_members)} member(s)",
             "category": "GROUPS",
             "member_count": len(actual_members),
-            "members": actual_members
+            "members": actual_members,
+            "admin": current_u.username,
+            "creator": current_u.username,
+            "is_admin": True,
+            "is_creator": True
         }
     }
+
 
 @app.get("/api/groups")
 @app.get("/api/v1/chat/groups")
@@ -1880,21 +1889,230 @@ async def get_user_groups_endpoint(
     groups_list = []
     for ch in channels:
         part_stmt = (
-            select(User.username)
+            select(User.username, User.id)
             .join(DMParticipant, DMParticipant.user_id == User.id)
             .where(DMParticipant.channel_id == ch.id)
         )
-        members = list((await db.execute(part_stmt)).scalars().all())
+        member_rows = (await db.execute(part_stmt)).all()
+        members = [r[0] for r in member_rows]
+        
+        # Determine owner / admin username
+        admin_username = ""
+        if ch.owner_id:
+            owner_u = (await db.execute(select(User).where(User.id == ch.owner_id))).scalar_one_or_none()
+            if owner_u:
+                admin_username = owner_u.username
+        if not admin_username and members:
+            # Fallback to the first participant if owner_id was not explicitly recorded
+            admin_username = members[0]
+
+        is_user_admin = (ch.owner_id == current_u.id) or (admin_username.lower() == current_u.username.lower())
+
         groups_list.append({
             "id": ch.id,
             "name": ch.name,
             "type": "group",
             "category": "GROUPS",
+            "icon_url": ch.icon_url,
             "description": f"Group Chat • {len(members)} member(s)",
             "member_count": len(members),
-            "members": members
+            "members": members,
+            "admin": admin_username,
+            "creator": admin_username,
+            "is_admin": is_user_admin,
+            "is_creator": is_user_admin
         })
     return {"status": "ok", "groups": groups_list}
+
+
+class GroupUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    icon_url: Optional[str] = None
+
+@app.post("/api/groups/{group_id}/update")
+@app.put("/api/groups/{group_id}")
+async def update_group_endpoint(
+    group_id: str,
+    req: GroupUpdateRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows group admin to edit the name and profile picture (icon_url) of the group."""
+    from app.core.ws import ws_manager
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    clean_id = group_id.strip()
+    ch_stmt = select(Channel).where(Channel.id == clean_id, Channel.type == "group")
+    channel = (await db.execute(ch_stmt)).scalar_one_or_none()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Group not found.")
+
+    # Check admin privileges: owner_id or first participant
+    part_stmt = (
+        select(User)
+        .join(DMParticipant, DMParticipant.user_id == User.id)
+        .where(DMParticipant.channel_id == channel.id)
+        .order_by(DMParticipant.created_at.asc())
+    )
+    parts = list((await db.execute(part_stmt)).scalars().all())
+    is_admin = False
+    if channel.owner_id and channel.owner_id == current_u.id:
+        is_admin = True
+    elif not channel.owner_id and parts and parts[0].id == current_u.id:
+        is_admin = True
+        channel.owner_id = current_u.id
+    elif current_u.is_admin:
+        is_admin = True
+
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only the group admin can edit group details.")
+
+    if req.name is not None:
+        trimmed_name = req.name.strip()
+        if trimmed_name:
+            channel.name = trimmed_name[:64]
+
+    if req.icon_url is not None:
+        channel.icon_url = req.icon_url.strip()
+
+    await db.commit()
+    await db.refresh(channel)
+
+    # Invalidate channels cache
+    await app_cache.delete(CACHE_KEY_CHANNELS)
+
+    # Broadcast update event to all participants
+    try:
+        update_payload = {
+            "type": "group_updated",
+            "group_id": channel.id,
+            "group_name": channel.name,
+            "icon_url": channel.icon_url
+        }
+        for p in parts:
+            await ws_manager.send_personal_event(p.id, update_payload)
+    except Exception as e:
+        logger.debug(f"[GROUP_UPDATE_NOTIFY] WebSocket notify error: {e}")
+
+    return {
+        "status": "ok",
+        "group": {
+            "id": channel.id,
+            "name": channel.name,
+            "icon_url": channel.icon_url,
+            "type": "group",
+            "is_admin": True
+        }
+    }
+
+
+class AddGroupMembersRequest(BaseModel):
+    members: List[str]
+
+@app.post("/api/groups/{group_id}/members/add")
+async def add_group_members_endpoint(
+    group_id: str,
+    req: AddGroupMembersRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows group admin to add members to the group."""
+    from app.core.ws import ws_manager
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    clean_id = group_id.strip()
+    ch_stmt = select(Channel).where(Channel.id == clean_id, Channel.type == "group")
+    channel = (await db.execute(ch_stmt)).scalar_one_or_none()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Group not found.")
+
+    # Check admin privileges
+    part_stmt = (
+        select(User)
+        .join(DMParticipant, DMParticipant.user_id == User.id)
+        .where(DMParticipant.channel_id == channel.id)
+        .order_by(DMParticipant.created_at.asc())
+    )
+    existing_users = list((await db.execute(part_stmt)).scalars().all())
+    existing_user_ids = {u.id for u in existing_users}
+    existing_usernames = {u.username.lower() for u in existing_users}
+
+    is_admin = False
+    if channel.owner_id and channel.owner_id == current_u.id:
+        is_admin = True
+    elif not channel.owner_id and existing_users and existing_users[0].id == current_u.id:
+        is_admin = True
+        channel.owner_id = current_u.id
+    elif current_u.is_admin:
+        is_admin = True
+
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only the group admin can add new members.")
+
+    new_usernames = [
+        m.strip().lower().removeprefix("@")
+        for m in req.members
+        if m.strip().lower().removeprefix("@") and m.strip().lower().removeprefix("@") not in existing_usernames
+    ]
+
+    added_usernames = []
+    if new_usernames:
+        new_users_stmt = select(User).where(func.lower(User.username).in_(new_usernames))
+        new_users = list((await db.execute(new_users_stmt)).scalars().all())
+        for nu in new_users:
+            if nu.id not in existing_user_ids:
+                part = DMParticipant(
+                    channel_id=channel.id,
+                    user_id=nu.id,
+                    created_at=datetime.now(timezone.utc)
+                )
+                db.add(part)
+                added_usernames.append(nu.username)
+
+        if added_usernames:
+            # Post an announcement message in the group
+            announcement = Message(
+                id=f"msg_{uuid.uuid4().hex[:12]}",
+                channel_id=channel.id,
+                sender_id=current_u.id,
+                content=f"👋 @{current_u.username} added " + ", ".join([f"@{u}" for u in added_usernames]) + " to the group.",
+                attachments={},
+                nonce=str(int(time.time() * 1000)),
+                created_at=datetime.now(timezone.utc)
+            )
+            db.add(announcement)
+            await db.commit()
+
+            # WebSocket notify
+            try:
+                add_payload = {
+                    "type": "group_members_added",
+                    "group_id": channel.id,
+                    "added_members": added_usernames
+                }
+                for u in existing_users + new_users:
+                    await ws_manager.send_personal_event(u.id, add_payload)
+            except Exception as e:
+                logger.debug(f"[GROUP_ADD_NOTIFY] WebSocket error: {e}")
+
+    # Fetch updated members
+    updated_members_stmt = (
+        select(User.username)
+        .join(DMParticipant, DMParticipant.user_id == User.id)
+        .where(DMParticipant.channel_id == channel.id)
+    )
+    all_members = list((await db.execute(updated_members_stmt)).scalars().all())
+
+    return {
+        "status": "ok",
+        "added": added_usernames,
+        "members": all_members,
+        "member_count": len(all_members)
+    }
 
 @app.post("/api/dm/start")
 @app.post("/api/chat/dm/start")
@@ -4997,12 +5215,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.2",
-        "version_name": "v4.2.2",
-        "version_code": 50,
-        "release_tag": "v4.2.2-stable",
-        "sha256": "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d",
-        "md5": "4d4446ea9a05d389da827b58d8cd3cc0",
+        "version": "4.2.3",
+        "version_name": "v4.2.3",
+        "version_code": 51,
+        "release_tag": "v4.2.3-stable",
+        "sha256": "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687",
+        "md5": "ea34d34e7d80423736c8d296af07c840",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5012,16 +5230,13 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups) with real-time counters and dedicated empty state action shortcuts",
-            "v4.2.2 Multi-User Group Messaging: Full group chat navigation, instant SQLite caching, channel WebSocket subscription, and zero pairwise AES encryption conflicts",
-            "v4.2.2 Profile Interactive Title Buttons & Detail Popups: Converted Presence, Personal Info, 2FA, Biometric, and Appearance titles into interactive buttons with status badges and dedicated modal dialogs",
-            "v4.2.1 Compliance & Verification: Added mandatory 18+ age verification, Terms & Conditions consent, and email OTP verification during sign up",
-            "v4.2.1 Friend Profile UI & Security: Fixed header stability with stationary avatar, removed Personal button and 2FA card from friend profile view, added custom photo gallery wallpaper per chat, and enforced FLAG_SECURE screenshot prevention when inspecting profile picture fullscreen",
-            "v4.2.0 Add Friends & Requests Fix: Fixed Find Friends tab so community directory users are not displayed by default when empty, only displaying matching users when explicitly typed; fixed Find Friends & Requests tab switcher buttons and high-contrast styling",
-            "v4.2.0 End-to-End Chat Encryption (E2EE): Client-side AES-256-GCM encryption with SHA-256 HKDF key derivation, zero plaintext storage on servers, and transparent decryption in chat view",
-            "v4.2.0 Swipe-to-Reply & Quoting: Interactive swipe right on any message with haptic response to quote and reply inline with quote banners",
-            "v4.1.1 Open Profile Cards: Restored clear, accessible Profile sections with open cards for faster navigation",
-            "v4.0.0 New App Identity & Social Discovery: Redesigned brand icon with neon-glow glassmorphic aesthetic, Group Chat creation (👥 icon) from Home tab, and Profile quick-actions card"
+            "v4.2.3 Profile Screen De-duplication: Resolved root cause of duplicated section cards at the bottom of the profile tab",
+            "v4.2.3 Verified Added Groups: Zero synthetic/fake groups; pure real-user group channels with dynamic member counts",
+            "v4.2.3 Group Profile Full-Screen Tab: Single full-screen tab displaying group avatar, creator ADMIN badge, and live members roster",
+            "v4.2.3 Group Admin Controls: Allows group admin to edit group name, upload group avatar, and add new members via interactive search",
+            "v4.2.3 Group Chat Wallpaper: Dedicated wallpaper customization per group chat",
+            "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups)",
+            "v4.2.2 Multi-User Group Messaging: Full group chat navigation, instant SQLite caching, and channel WebSocket subscriptions"
         ]
     }
 
@@ -5032,6 +5247,24 @@ async def get_platform_changelog():
     return {
         "status": "success",
         "releases": [
+            {
+                "version": "v4.2.3",
+                "date": "Oct 8, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.2.3: Clean Profile Screen, Full-Screen Group Profile & Admin Controls",
+                "summary": "Fixes duplicate profile section rendering, eliminates fake groups, and introduces a comprehensive single full-screen group profile tab with admin controls for group name, avatar, members, and chat wallpaper.",
+                "highlights": [
+                    "Profile Screen De-duplication: Fixed root cause where section header click listeners launched duplicate section dialogs at the bottom of the profile tab.",
+                    "Zero Fake Groups: Strictly displays authentic user groups in Added Groups with zero dummy data.",
+                    "Full-Screen Group Profile: Single full-screen dialog when tapping the group profile header.",
+                    "Group Admin Controls: Creator is default Admin with badge; group admin can edit group name and upload group profile avatar.",
+                    "Group Chat Wallpaper: Dedicated wallpaper selection for group chats.",
+                    "Add Members Picker: Admin can search and add existing friends directly into the group.",
+                    "Android Native App v4.2.3 (Build 51 • 54 MB): SHA-256 5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687."
+                ],
+                "author": "Connecto Core Team"
+            },
             {
                 "version": "v4.2.2",
                 "date": "Oct 8, 2026",

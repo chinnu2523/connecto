@@ -86,9 +86,12 @@ data class GroupDto(
     val name: String,
     val type: String = "group",
     val description: String = "",
+    val iconUrl: String? = null,
     val memberCount: Int = 0,
     val members: List<String> = emptyList(),
-    val isCreatedByMe: Boolean = false
+    val isCreatedByMe: Boolean = false,
+    val admin: String = "",
+    val creator: String = ""
 )
 
 data class PollOptionDto(
@@ -1253,8 +1256,11 @@ object ConnectoApiClient {
                         for (m in 0 until mArr.length()) {
                             mList.add(mArr.optString(m))
                         }
-                        val isCreated = item.optBoolean("is_creator", false) ||
-                            item.optString("creator").lowercase().removePrefix("@") == myUser ||
+                        val gIcon = item.optString("icon_url").takeIf { it.isNotBlank() && it != "null" }
+                        val gAdmin = item.optString("admin").ifEmpty { item.optString("creator") }
+                        val isCreated = item.optBoolean("is_admin", false) ||
+                            item.optBoolean("is_creator", false) ||
+                            gAdmin.lowercase().removePrefix("@") == myUser ||
                             item.optString("owner_id") == currentUserId
                         list.add(
                             GroupDto(
@@ -1262,9 +1268,12 @@ object ConnectoApiClient {
                                 name = gName,
                                 type = item.optString("type", "group"),
                                 description = desc,
+                                iconUrl = gIcon,
                                 memberCount = item.optInt("member_count", mList.size),
                                 members = mList,
-                                isCreatedByMe = isCreated
+                                isCreatedByMe = isCreated,
+                                admin = gAdmin,
+                                creator = gAdmin
                             )
                         )
                     }
@@ -1281,8 +1290,11 @@ object ConnectoApiClient {
                         for (m in 0 until mArr.length()) {
                             mList.add(mArr.optString(m))
                         }
-                        val isCreated = item.optBoolean("is_creator", false) ||
-                            item.optString("creator").lowercase().removePrefix("@") == myUser ||
+                        val gIcon = item.optString("icon_url").takeIf { it.isNotBlank() && it != "null" }
+                        val gAdmin = item.optString("admin").ifEmpty { item.optString("creator") }
+                        val isCreated = item.optBoolean("is_admin", false) ||
+                            item.optBoolean("is_creator", false) ||
+                            gAdmin.lowercase().removePrefix("@") == myUser ||
                             item.optString("owner_id") == currentUserId
                         list.add(
                             GroupDto(
@@ -1290,9 +1302,12 @@ object ConnectoApiClient {
                                 name = gName,
                                 type = item.optString("type", "group"),
                                 description = desc,
+                                iconUrl = gIcon,
                                 memberCount = item.optInt("member_count", mList.size),
                                 members = mList,
-                                isCreatedByMe = isCreated
+                                isCreatedByMe = isCreated,
+                                admin = gAdmin,
+                                creator = gAdmin
                             )
                         )
                     }
@@ -1300,6 +1315,46 @@ object ConnectoApiClient {
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch groups"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateGroup(
+        groupId: String,
+        name: String? = null,
+        iconUrl: String? = null
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                if (name != null) put("name", name)
+                if (iconUrl != null) put("icon_url", iconUrl)
+            }.toString()
+            val response = executeRequest("/api/groups/$groupId/update", "POST", body, sessionToken)
+            if (response.isSuccess) {
+                Result.success(JSONObject(response.getOrThrow()))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Failed to update group"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun addGroupMembers(
+        groupId: String,
+        members: List<String>
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("members", org.json.JSONArray(members))
+            }.toString()
+            val response = executeRequest("/api/groups/$groupId/members/add", "POST", body, sessionToken)
+            if (response.isSuccess) {
+                Result.success(JSONObject(response.getOrThrow()))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Failed to add group members"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -3107,6 +3162,103 @@ object ConnectoApiClient {
                 }
             }
             Result.failure(lastException ?: Exception("Avatar upload failed — no reachable server"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun uploadGroupAvatar(
+        context: android.content.Context,
+        imageUri: android.net.Uri,
+        token: String? = null
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val activeToken = token ?: sessionToken
+            val boundary = "ConnectoGroupAvatarBoundary_${System.currentTimeMillis()}"
+
+            val inputStream = context.contentResolver.openInputStream(imageUri)
+                ?: return@withContext Result.failure(Exception("Cannot read image from device"))
+            val imageBytes = inputStream.use { it.readBytes() }
+
+            val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+            val extension = when {
+                mimeType.contains("png") -> "png"
+                mimeType.contains("webp") -> "webp"
+                else -> "jpg"
+            }
+            val fileName = "group_avatar.$extension"
+
+            val candidateBases = listOf(ConnectoNetworkConfig.activeBaseUrl)
+            var lastException: Exception? = null
+
+            for (base in candidateBases) {
+                var conn: java.net.HttpURLConnection? = null
+                try {
+                    val uploadUrl = "$base/api/upload"
+                    val url = java.net.URL(uploadUrl)
+                    conn = (url.openConnection() as java.net.HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 15000
+                        readTimeout = 20000
+                        doOutput = true
+                        setRequestProperty("User-Agent", USER_AGENT)
+                        setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+                        if (!activeToken.isNullOrEmpty()) {
+                            setRequestProperty("Authorization", "Bearer $activeToken")
+                        }
+                        if (!sessionCookie.isNullOrEmpty()) {
+                            setRequestProperty("Cookie", sessionCookie)
+                        }
+                    }
+
+                    conn.outputStream.use { output ->
+                        val writer = java.io.PrintWriter(java.io.OutputStreamWriter(output, "UTF-8"), true)
+                        writer.append("--$boundary\r\n")
+                        writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
+                        writer.append("Content-Type: $mimeType\r\n")
+                        writer.append("\r\n")
+                        writer.flush()
+                        output.write(imageBytes)
+                        output.flush()
+                        writer.append("\r\n--$boundary--\r\n")
+                        writer.flush()
+                    }
+
+                    val responseCode = conn.responseCode
+                    val isSuccess = responseCode in 200..299
+
+                    val cookieHeaders = conn.headerFields["Set-Cookie"]
+                    if (!cookieHeaders.isNullOrEmpty()) {
+                        sessionCookie = cookieHeaders.first().substringBefore(";")
+                    }
+
+                    val stream = if (isSuccess) conn.inputStream else conn.errorStream
+                    val responseText = stream?.bufferedReader(Charsets.UTF_8)?.readText() ?: ""
+
+                    if (isSuccess) {
+                        ConnectoNetworkConfig.activeBaseUrl = base
+                        val json = JSONObject(responseText)
+                        val returnedPath = json.optString("url").ifEmpty {
+                            json.optString("avatar_url").ifEmpty {
+                                json.optJSONObject("user")?.optString("avatar_url") ?: ""
+                            }
+                        }
+                        val fullAvatarUrl = if (returnedPath.startsWith("http://") || returnedPath.startsWith("https://") || returnedPath.startsWith("data:")) {
+                            returnedPath
+                        } else {
+                            "$base$returnedPath"
+                        }
+                        return@withContext Result.success(fullAvatarUrl)
+                    } else {
+                        lastException = Exception("Group avatar upload failed ($responseCode): $responseText")
+                    }
+                } catch (e: Exception) {
+                    lastException = e
+                } finally {
+                    conn?.disconnect()
+                }
+            }
+            Result.failure(lastException ?: Exception("Group avatar upload failed"))
         } catch (e: Exception) {
             Result.failure(e)
         }

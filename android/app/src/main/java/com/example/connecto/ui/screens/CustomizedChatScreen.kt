@@ -158,6 +158,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.runtime.collectAsState
 import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.CreateGroupChatDialog
+import com.example.connecto.ui.components.FullScreenGroupProfileDialog
 import com.example.connecto.ui.components.ConnectoEmojiPicker
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.components.WebRtcCallOverlay
@@ -172,6 +173,9 @@ import com.example.connecto.ui.theme.breathingPulse
 import com.example.connecto.ui.theme.pressScaleEffect
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
@@ -397,7 +401,9 @@ data class FriendItem(
     val isGroup: Boolean = false,
     val isCreatedByMe: Boolean = false,
     val memberCount: Int = 0,
-    val members: List<String> = emptyList()
+    val members: List<String> = emptyList(),
+    val admin: String = "",
+    val creator: String = ""
 )
 
 data class CustomMessageItem(
@@ -434,6 +440,8 @@ fun CustomizedChatScreen(
     var selectedFriendProfileData by remember { mutableStateOf<ProfileDataDto?>(null) }
     var friendProfileSelectedTab by remember { mutableStateOf("settings") } // "settings", "customization", "actions"
     var showFriendProfileDialog by remember { mutableStateOf(false) }
+    var showGroupProfileDialog by remember { mutableStateOf(false) }
+    var showAddGroupMembersDialog by remember { mutableStateOf(false) }
     var showUnfriendConfirmDialog by remember { mutableStateOf(false) }
     var isUnfriending by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
@@ -712,7 +720,7 @@ fun CustomizedChatScreen(
                     val mappedGroups = serverGroups.map { g ->
                         val init = if (g.name.isNotBlank()) g.name.first().toString().uppercase() else "G"
                         val count = if (g.memberCount > 0) g.memberCount else (g.members.size.coerceAtLeast(1))
-                        val isCreated = g.isCreatedByMe || g.description.contains(effUsername, ignoreCase = true)
+                        val isCreated = g.isCreatedByMe || g.description.contains(effUsername, ignoreCase = true) || g.admin.lowercase().removePrefix("@") == myUsernameLower
                         FriendItem(
                             id = g.id,
                             name = g.name,
@@ -724,11 +732,13 @@ fun CustomizedChatScreen(
                             timeAgo = "Active",
                             unreadCount = 0,
                             isOnline = true,
-                            avatarUrl = null,
+                            avatarUrl = g.iconUrl,
                             isGroup = true,
                             isCreatedByMe = isCreated,
                             memberCount = count,
-                            members = g.members
+                            members = g.members,
+                            admin = g.admin,
+                            creator = g.creator
                         )
                     }
                     val gIds = mappedGroups.map { it.id }.toSet()
@@ -2414,6 +2424,40 @@ fun CustomizedChatScreen(
         )
     }
 
+    if (showGroupProfileDialog && selectedFriend != null && selectedFriend!!.isGroup) {
+        val groupItem = selectedFriend!!
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+        FullScreenGroupProfileDialog(
+            group = groupItem,
+            currentUsername = effUser,
+            chatWallpaperId = chatWallpaperId,
+            customWallpaperUri = customWallpaperUri,
+            onWallpaperSelected = { wId, customUri ->
+                chatWallpaperId = wId
+                customWallpaperUri = customUri
+                val fId = groupItem.id
+                if (wId == "custom" && !customUri.isNullOrBlank()) {
+                    friendPrefs.edit()
+                        .putString("chat_wallpaper_custom_$fId", customUri)
+                        .putString("chat_wallpaper_$fId", "custom")
+                        .apply()
+                } else {
+                    friendPrefs.edit()
+                        .putString("chat_wallpaper_$fId", wId)
+                        .apply()
+                }
+            },
+            onGroupUpdated = { updatedGroup ->
+                selectedFriend = updatedGroup
+                val idx = userGroupsList.indexOfFirst { it.id == updatedGroup.id }
+                if (idx != -1) {
+                    userGroupsList[idx] = updatedGroup
+                }
+            },
+            onDismissRequest = { showGroupProfileDialog = false }
+        )
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -2483,26 +2527,38 @@ fun CustomizedChatScreen(
                                     if (isGroupChat) {
                                         showCreateGroupChatDialog = false
                                         showFriendProfileDialog = false
+                                        showGroupProfileDialog = true
                                     } else {
                                         showFriendProfileDialog = true
                                     }
                                 }
                         ) {
                             if (isGroupChat) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(42.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                        .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Groups,
-                                        contentDescription = "Group",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(22.dp)
+                                if (!selectedFriend?.avatarUrl.isNullOrBlank()) {
+                                    ConnectoAvatar(
+                                        name = selectedFriend?.name ?: "Group",
+                                        avatarUrl = selectedFriend?.avatarUrl,
+                                        customSizeDp = 42.dp,
+                                        customFontSizeSp = 16,
+                                        borderWidth = 1.5.dp,
+                                        borderColor = MaterialTheme.colorScheme.primary
                                     )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(42.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                            .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Groups,
+                                            contentDescription = "Group",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
                                 }
                             } else {
                                 ConnectoAvatar(
@@ -2597,20 +2653,43 @@ fun CustomizedChatScreen(
                                     )
                                 }
                             } else {
-                                // Group Header Tag Chip
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                                // Group Header Tag Chip & Info Action
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = if (selectedFriend?.isCreatedByMe == true) "CREATED" else "JOINED",
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
+                                            .clickable { showGroupProfileDialog = true },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = "Group Profile Info",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                            .clickable { showGroupProfileDialog = true }
+                                            .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    ) {
+                                        Text(
+                                            text = if (selectedFriend?.isCreatedByMe == true) "ADMIN" else "MEMBER",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -2957,20 +3036,31 @@ fun CustomizedChatScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     if (friend.isGroup) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Groups,
-                                                contentDescription = "Group",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
+                                        if (!friend.avatarUrl.isNullOrBlank()) {
+                                            ConnectoAvatar(
+                                                name = friend.name,
+                                                avatarUrl = friend.avatarUrl,
+                                                customSizeDp = 48.dp,
+                                                customFontSizeSp = 18,
+                                                borderWidth = 1.5.dp,
+                                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                             )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(48.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                    .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Groups,
+                                                    contentDescription = "Group",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
                                         }
                                     } else {
                                         // Avatar with online status ring
