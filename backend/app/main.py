@@ -2114,6 +2114,125 @@ async def add_group_members_endpoint(
         "member_count": len(all_members)
     }
 
+@app.delete("/api/groups/{group_id}")
+@app.post("/api/groups/{group_id}/delete")
+async def delete_group_endpoint(
+    group_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows group admin or owner to delete a group permanently."""
+    from app.core.ws import ws_manager
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    clean_id = group_id.strip()
+    ch_stmt = select(Channel).where(Channel.id == clean_id, Channel.type == "group")
+    channel = (await db.execute(ch_stmt)).scalar_one_or_none()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Group not found.")
+
+    part_stmt = (
+        select(User)
+        .join(DMParticipant, DMParticipant.user_id == User.id)
+        .where(DMParticipant.channel_id == channel.id)
+        .order_by(DMParticipant.created_at.asc())
+    )
+    existing_users = list((await db.execute(part_stmt)).scalars().all())
+
+    is_admin = False
+    if channel.owner_id and channel.owner_id == current_u.id:
+        is_admin = True
+    elif not channel.owner_id and existing_users and existing_users[0].id == current_u.id:
+        is_admin = True
+    elif current_u.is_admin:
+        is_admin = True
+
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only the group admin can delete this group.")
+
+    # Broadcast group_deleted to all participants
+    try:
+        del_payload = {
+            "type": "group_deleted",
+            "group_id": channel.id,
+            "group_name": channel.name
+        }
+        for u in existing_users:
+            await ws_manager.send_personal_event(u.id, del_payload)
+    except Exception as e:
+        logger.debug(f"[GROUP_DELETE_NOTIFY] WebSocket error: {e}")
+
+    # Delete participants, messages, and channel
+    await db.execute(delete(DMParticipant).where(DMParticipant.channel_id == channel.id))
+    await db.execute(delete(Message).where(Message.channel_id == channel.id))
+    await db.execute(delete(Channel).where(Channel.id == channel.id))
+    await db.commit()
+
+    return {"status": "ok", "message": f"Group #{channel.name} deleted successfully"}
+
+@app.post("/api/groups/{group_id}/leave")
+@app.post("/api/groups/{group_id}/members/leave")
+async def leave_group_endpoint(
+    group_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows a member to exit from a group."""
+    from app.core.ws import ws_manager
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    clean_id = group_id.strip()
+    ch_stmt = select(Channel).where(Channel.id == clean_id, Channel.type == "group")
+    channel = (await db.execute(ch_stmt)).scalar_one_or_none()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Group not found.")
+
+    # Remove user from DMParticipants
+    part_stmt = select(DMParticipant).where(
+        DMParticipant.channel_id == channel.id,
+        DMParticipant.user_id == current_u.id
+    )
+    participant = (await db.execute(part_stmt)).scalar_one_or_none()
+    if participant:
+        await db.delete(participant)
+
+        # Post an announcement message in the group
+        announcement = Message(
+            id=f"msg_{uuid.uuid4().hex[:12]}",
+            channel_id=channel.id,
+            sender_id=current_u.id,
+            content=f"👋 @{current_u.username} left the group.",
+            attachments={},
+            nonce=str(int(time.time() * 1000)),
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(announcement)
+        await db.commit()
+
+        # Notify remaining participants via WebSocket
+        try:
+            remaining_stmt = (
+                select(User.id)
+                .join(DMParticipant, DMParticipant.user_id == User.id)
+                .where(DMParticipant.channel_id == channel.id)
+            )
+            remaining_ids = list((await db.execute(remaining_stmt)).scalars().all())
+            leave_payload = {
+                "type": "group_member_left",
+                "group_id": channel.id,
+                "username": current_u.username
+            }
+            for uid in remaining_ids:
+                await ws_manager.send_personal_event(uid, leave_payload)
+        except Exception as e:
+            logger.debug(f"[GROUP_LEAVE_NOTIFY] WebSocket error: {e}")
+
+    return {"status": "ok", "message": f"Successfully left group #{channel.name}"}
+
 @app.post("/api/dm/start")
 @app.post("/api/chat/dm/start")
 @app.post("/api/v1/chat/dm/start")

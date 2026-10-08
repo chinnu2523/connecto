@@ -1657,6 +1657,71 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({ status: "ok", read: true });
   }
 
+  // 13b. Group Management Endpoints (Cloudflare D1 & Edge Mesh)
+  if (path === "/api/groups" && method === "GET") {
+    let groups = [];
+    if (env.DB) {
+      try {
+        const rows = await env.DB.prepare("SELECT id, name, type, created_at FROM channels WHERE type = 'group'").all();
+        const rawGroups = rows.results || [];
+        for (const g of rawGroups) {
+          const parts = await env.DB.prepare(
+            "SELECT u.username FROM users u JOIN dm_participants p ON p.user_id = u.id WHERE p.channel_id = ?"
+          ).bind(g.id).all();
+          const members = (parts.results || []).map(r => r.username);
+          groups.push({
+            id: g.id,
+            name: g.name,
+            description: "Connecto Group",
+            member_count: members.length,
+            members: members,
+            admin: members[0] || "",
+            creator: members[0] || "",
+            is_created_by_me: false,
+            created_at: g.created_at
+          });
+        }
+      } catch (e) {
+        console.error("D1 groups query error:", e);
+      }
+    }
+    return jsonResponse({ status: "ok", groups: groups });
+  }
+
+  // Delete Group (DELETE or POST /api/groups/:id/delete)
+  const groupDeleteMatch = path.match(/^\/api\/groups\/([^\/]+)(?:\/delete)?$/);
+  if (groupDeleteMatch && (method === "DELETE" || (method === "POST" && path.endsWith("/delete")))) {
+    const groupId = groupDeleteMatch[1];
+    if (env.DB) {
+      try {
+        await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(groupId).run();
+        await env.DB.prepare("DELETE FROM messages WHERE channel_id = ?").bind(groupId).run();
+        await env.DB.prepare("DELETE FROM channels WHERE id = ?").bind(groupId).run();
+      } catch (e) {
+        console.error("D1 group delete error:", e);
+      }
+    }
+    return jsonResponse({ status: "ok", message: `Group ${groupId} deleted successfully` });
+  }
+
+  // Leave Group (POST /api/groups/:id/leave or /api/groups/:id/members/leave)
+  const groupLeaveMatch = path.match(/^\/api\/groups\/([^\/]+)\/(?:leave|members\/leave)$/);
+  if (groupLeaveMatch && method === "POST") {
+    const groupId = groupLeaveMatch[1];
+    const username = (request.headers.get("X-User-Username") || "").trim().toLowerCase();
+    if (env.DB && username) {
+      try {
+        const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(username).first();
+        if (u) {
+          await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ? AND user_id = ?").bind(groupId, u.id).run();
+        }
+      } catch (e) {
+        console.error("D1 group leave error:", e);
+      }
+    }
+    return jsonResponse({ status: "ok", message: `Left group ${groupId} successfully` });
+  }
+
   // 14. Channels List (Clean Public Channels Only)
   if (path === "/api/channels" || path === "/api/v1/chat/channels") {
     let channels = [];
