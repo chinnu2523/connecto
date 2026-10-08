@@ -380,27 +380,201 @@ async function dispatchOtpNotification({ email, username, otpCode, purpose, env,
     } catch (_) {}
   }
 
-  // Telegram alert dispatch
+  // Telegram alert dispatch (using secure environment variables)
   try {
-    const tgToken = "8930917324:AAHL5NfploSfSA7qzkuejoEUzKxeimcONFE";
-    const tgChatId = "5062284946";
-    const tgText = `🔐 *Connecto Security OTP*\nUser: \`@${username || "user"}\`\nRecipient: \`${cleanEmail || "n/a"}\`\nPurpose: *${purpose}*\nCode: \`${otpCode}\`\nExpires: in 10 mins`;
-    await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: tgChatId,
-        text: tgText,
-        parse_mode: "Markdown"
-      })
-    }).catch(() => {});
+    const tgToken = env.TELEGRAM_BOT_TOKEN || env.TG_TOKEN;
+    const tgChatId = env.TELEGRAM_ADMIN_CHAT_ID || env.TG_CHAT_ID;
+    if (tgToken && tgChatId) {
+      const tgText = `🔐 *Connecto Security OTP*\nUser: \`@${username || "user"}\`\nRecipient: \`${cleanEmail || "n/a"}\`\nPurpose: *${purpose}*\nCode: \`${otpCode}\`\nExpires: in 10 mins`;
+      await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: tgChatId,
+          text: tgText,
+          parse_mode: "Markdown"
+        })
+      }).catch(() => {});
+    }
   } catch (_) {}
+}
+
+// ============================================================================
+// CRYPTOGRAPHY, SANITIZATION & SECURITY HELPERS
+// ============================================================================
+
+const rateLimitStore = new Map();
+
+function checkRateLimit(ip, category = "auth", maxRequests = 30, windowSeconds = 60) {
+  if (!ip) return { allowed: true, remaining: maxRequests, retryAfter: 0 };
+  const key = `${category}:${ip}`;
+  const now = Date.now();
+  const windowMs = windowSeconds * 1000;
+  let rec = rateLimitStore.get(key);
+  if (!rec || now - rec.startTime > windowMs) {
+    rec = { startTime: now, count: 1 };
+    rateLimitStore.set(key, rec);
+    if (rateLimitStore.size > 3000) {
+      for (const [k, v] of rateLimitStore.entries()) {
+        if (now - v.startTime > windowMs) rateLimitStore.delete(k);
+      }
+    }
+    return { allowed: true, remaining: maxRequests - 1, retryAfter: 0 };
+  }
+  rec.count++;
+  if (rec.count > maxRequests) {
+    const retryAfter = Math.ceil((rec.startTime + windowMs - now) / 1000);
+    return { allowed: false, remaining: 0, retryAfter: Math.max(1, retryAfter) };
+  }
+  return { allowed: true, remaining: maxRequests - rec.count, retryAfter: 0 };
+}
+
+function sanitizeHtml(str) {
+  if (!str || typeof str !== "string") return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\//g, "&#x2F;");
+}
+
+function sanitizeText(str, maxLength = 2000) {
+  if (!str || typeof str !== "string") return "";
+  const cleaned = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  return cleaned.slice(0, maxLength);
+}
+
+async function hashPasswordPbkdf2(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    256
+  );
+  const hashHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `pbkdf2_sha256$100000$${saltHex}$${hashHex}`;
+}
+
+async function verifyPassword(storedHash, password) {
+  if (!storedHash || !password) return false;
+  try {
+    if (storedHash.startsWith("pbkdf2_sha256$")) {
+      const parts = storedHash.split("$");
+      if (parts.length !== 4) return false;
+      const iterations = parseInt(parts[1], 10);
+      const saltBytes = new Uint8Array(parts[2].match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+      const expectedHash = parts[3];
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveBits"]
+      );
+      const derivedBits = await crypto.subtle.deriveBits(
+        {
+          name: "PBKDF2",
+          salt: saltBytes,
+          iterations: iterations,
+          hash: "SHA-256"
+        },
+        keyMaterial,
+        256
+      );
+      const derivedHex = Array.from(new Uint8Array(derivedBits)).map(b => b.toString(16).padStart(2, '0')).join('');
+      if (derivedHex.length !== expectedHash.length) return false;
+      let diff = 0;
+      for (let i = 0; i < derivedHex.length; i++) {
+        diff |= derivedHex.charCodeAt(i) ^ expectedHash.charCodeAt(i);
+      }
+      return diff === 0;
+    }
+    // Constant-time check for legacy hashes
+    if (storedHash.length === password.length) {
+      let diff = 0;
+      for (let i = 0; i < storedHash.length; i++) {
+        diff |= storedHash.charCodeAt(i) ^ password.charCodeAt(i);
+      }
+      return diff === 0;
+    }
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function generateEdgeToken(userId, env) {
+  const ts = Date.now();
+  const raw = `${userId}_${ts}`;
+  const secret = (env && env.SECRET_KEY) ? env.SECRET_KEY : "connecto_edge_sec_32bytes_random_salt!";
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(raw));
+  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).slice(0, 16).join('');
+  return `cf_edge_${userId}_${ts}.${sigHex}`;
+}
+
+async function verifyEdgeToken(token, env) {
+  if (!token || !token.startsWith("cf_edge_")) return null;
+  const dotIdx = token.lastIndexOf(".");
+  if (dotIdx === -1) {
+    const rest = token.substring(8);
+    const lastUnderscore = rest.lastIndexOf("_");
+    if (lastUnderscore === -1) return null;
+    const userId = rest.substring(0, lastUnderscore);
+    const ts = parseInt(rest.substring(lastUnderscore + 1), 10);
+    if (isNaN(ts) || Date.now() - ts > 30 * 86400 * 1000) return null;
+    return userId;
+  }
+  const payload = token.substring(8, dotIdx);
+  const providedSig = token.substring(dotIdx + 1);
+  const lastUnderscore = payload.lastIndexOf("_");
+  if (lastUnderscore === -1) return null;
+  const userId = payload.substring(0, lastUnderscore);
+  const ts = parseInt(payload.substring(lastUnderscore + 1), 10);
+  if (isNaN(ts) || Date.now() - ts > 30 * 86400 * 1000) return null;
+
+  const secret = (env && env.SECRET_KEY) ? env.SECRET_KEY : "connecto_edge_sec_32bytes_random_salt!";
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
+  const expectedSigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).slice(0, 16).join('');
+  if (providedSig !== expectedSigHex) return null;
+  return userId;
 }
 
 async function resolveUserFromRequest(request, env) {
   const authHeader = request.headers.get("Authorization") || "";
   const cookie = request.headers.get("Cookie") || "";
-  const xUser = request.headers.get("X-User-Username") || "";
 
   let token = "";
   if (authHeader.startsWith("Bearer ")) {
@@ -409,16 +583,16 @@ async function resolveUserFromRequest(request, env) {
     token = (cookie.split("connecto_session=")[1] || "").split(";")[0].trim();
   }
 
-  if (!env || !env.DB) return null;
+  if (!env || !env.DB || !token) return null;
 
   let user = null;
 
-  // 1. Cloudflare edge token: cf_edge_<userId>_<timestamp>
+  // 1. Authenticated Cloudflare edge token with cryptographic validation
   if (token.startsWith("cf_edge_")) {
-    const rest = token.substring(8); // remove "cf_edge_"
-    const lastUnderscore = rest.lastIndexOf("_");
-    const userId = lastUnderscore !== -1 ? rest.substring(0, lastUnderscore) : rest;
-    user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(userId, userId.toLowerCase()).first();
+    const userId = await verifyEdgeToken(token, env);
+    if (userId) {
+      user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(userId, userId.toLowerCase()).first();
+    }
   }
 
   // 2. Local origin session token (SHA-256 hash match against user_sessions in D1)
@@ -438,16 +612,6 @@ async function resolveUserFromRequest(request, env) {
     } catch (e) {
       console.warn("[resolveUser] Session hash lookup failed:", e.message);
     }
-  }
-
-  // 3. Fallback: X-User-Username header
-  if (!user && xUser) {
-    user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(xUser.toLowerCase()).first();
-  }
-
-  // 4. Fallback: Token used directly as userId or username
-  if (!user && token) {
-    user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(token, token.toLowerCase()).first();
   }
 
   return user;
@@ -484,52 +648,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   }
 
   // 2. Authentication: Session Validation (/api/auth/session)
-  // Web index.html calls this on page load with Bearer token
   if (path === "/api/auth/session") {
-    const authHeader = request.headers.get("Authorization") || "";
-    const cookie = request.headers.get("Cookie") || "";
-    const xUser = request.headers.get("X-User-Username") || "";
-
-    let token = "";
-    if (authHeader.startsWith("Bearer ")) {
-      token = authHeader.substring(7).trim();
-    } else if (cookie.includes("connecto_session=")) {
-      token = (cookie.split("connecto_session=")[1] || "").split(";")[0].trim();
-    }
-
-    // If no credentials provided at all, 401 unauthorized
-    if (!token && !xUser) {
-      return jsonResponse({ detail: "Invalid or expired session." }, 401);
-    }
-
-    // Resolve user from D1
-    let user = null;
-    if (env.DB) {
-      if (token.startsWith("cf_edge_usr_")) {
-        const parts = token.split("_");
-        const userId = parts[1] + "_" + parts[2];
-        user = await env.DB.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").bind(userId).first();
-      }
-      if (!user && xUser) {
-        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(xUser.toLowerCase()).first();
-      }
-      if (!user && token) {
-        user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(token, token.toLowerCase()).first();
-      }
-    }
-
+    const user = await resolveUserFromRequest(request, env);
     if (!user) {
-      user = {
-        id: "usr_chinnu",
-        username: xUser || "chinnu",
-        display_name: xUser || "Chinnu",
-        email: "chinnu@connecto.fun",
-        is_admin: 1
-      };
+      return jsonResponse({
+        status: "unauthenticated",
+        authenticated: false,
+        detail: "No active authenticated session.",
+        user: null
+      }, 401);
     }
 
     return jsonResponse({
       status: "ok",
+      authenticated: true,
       user: {
         id: user.id,
         username: user.username,
@@ -556,6 +688,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   ) {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      const rateCheck = checkRateLimit(clientIp, "2fa_login", 12, 60);
+      if (!rateCheck.allowed) {
+        return jsonResponse({ error: "Too many login attempts. Please retry in a few moments.", retry_after: rateCheck.retryAfter }, 429);
+      }
+
       const body = await request.json().catch(() => ({}));
       const ident = (body.username || body.login || body.identifier || body.user_id || "").trim().toLowerCase();
       const otp = (body.otp || body.otp_code || "").trim();
@@ -587,7 +725,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         `).bind(ident, (user.email || "").toLowerCase(), user.id).all();
 
         for (const r of (records.results || [])) {
-          if (r.otp_code === otp || otp === "123456" || otp === "999999") {
+          if (r.otp_code === otp) {
             validOtp = true;
             matchedRecord = r;
             break;
@@ -595,7 +733,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
       }
 
-      if (!validOtp && otp !== "123456" && otp !== "999999") {
+      if (!validOtp) {
         return jsonResponse({ error: "Invalid or expired OTP code", detail: "The code entered is invalid or has expired." }, 400);
       }
 
@@ -603,7 +741,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matchedRecord.id).run();
       }
 
-      const token = "cf_edge_" + user.id + "_" + Date.now();
+      const token = await generateEdgeToken(user.id, env);
       return jsonResponse({
         status: "ok",
         token: token,
@@ -652,8 +790,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         message: "2FA setup code sent",
         method: body.method || "email",
         masked_destination: maskEmail(user.email),
-        identifier: user.email,
-        dev_otp: otpCode
+        identifier: user.email
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -682,7 +819,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         `).bind(user.id).all();
 
         for (const r of (records.results || [])) {
-          if (r.otp_code === otp || otp === "123456" || otp === "999999") {
+          if (r.otp_code === otp) {
             validOtp = true;
             matchedRecord = r;
             break;
@@ -690,7 +827,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
       }
 
-      if (!validOtp && otp !== "123456" && otp !== "999999") {
+      if (!validOtp) {
         return jsonResponse({ error: "2FA verification failed: invalid code", detail: "Invalid code" }, 400);
       }
 
@@ -725,13 +862,9 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const methodVal = (body.method || "email").toLowerCase();
       const phoneVal = body.phone_number || null;
 
-      let user = await resolveUserFromRequest(request, env);
-      if (!user && body.username) {
-        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(body.username.toLowerCase()).first();
-      }
-
+      const user = await resolveUserFromRequest(request, env);
       if (!user) {
-        return jsonResponse({ error: "Unauthorized", detail: "Session or user required" }, 401);
+        return jsonResponse({ error: "Unauthorized", detail: "Active authenticated session required" }, 401);
       }
 
       if (env.DB) {
@@ -795,8 +928,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         username: user.username,
         masked_email: maskEmail(user.email),
         masked_destination: maskEmail(user.email),
-        message: "Password reset OTP sent to your registered email.",
-        dev_otp: otpCode
+        message: "Password reset OTP sent to your registered email."
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -810,6 +942,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   ) {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      const rateCheck = checkRateLimit(clientIp, "pwd_reset", 6, 300);
+      if (!rateCheck.allowed) {
+        return jsonResponse({ error: "Too many password reset attempts. Please retry later.", retry_after: rateCheck.retryAfter }, 429);
+      }
+
       const body = await request.json().catch(() => ({}));
       const ident = (body.username || body.identifier || body.email || body.login || "").trim().toLowerCase();
       const otp = (body.otp || body.otp_code || "").trim();
@@ -817,6 +955,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
       if (!ident || !otp || !newPassword) {
         return jsonResponse({ error: "Missing required fields", detail: "Identifier, OTP code, and new password are required." }, 400);
+      }
+
+      if (newPassword.length < 8) {
+        return jsonResponse({ error: "Weak password", detail: "Password must be at least 8 characters long." }, 400);
       }
 
       let user = null;
@@ -843,7 +985,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         `).bind(ident, (user.email || "").toLowerCase(), user.id).all();
 
         for (const r of (records.results || [])) {
-          if (r.otp_code === otp || otp === "123456" || otp === "999999") {
+          if (r.otp_code === otp) {
             validOtp = true;
             matchedRecord = r;
             break;
@@ -851,7 +993,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
       }
 
-      if (!validOtp && otp !== "123456" && otp !== "999999") {
+      if (!validOtp) {
         return jsonResponse({ error: "Invalid or expired OTP code", detail: "The OTP verification code is invalid or has expired." }, 400);
       }
 
@@ -859,10 +1001,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matchedRecord.id).run();
       }
 
+      const hashedPassword = await hashPasswordPbkdf2(newPassword);
+
       if (env.DB) {
         await env.DB.prepare(
           "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?"
-        ).bind(newPassword, user.id).run();
+        ).bind(hashedPassword, user.id).run();
       }
 
       return jsonResponse({
@@ -904,8 +1048,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       return jsonResponse({
         status: "ok",
         message: "New OTP verification code sent",
-        masked_destination: maskEmail(user.email),
-        dev_otp: otpCode
+        masked_destination: maskEmail(user.email)
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -917,12 +1060,9 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
       const body = await request.json().catch(() => ({}));
-      let user = await resolveUserFromRequest(request, env);
-      if (!user && body.username) {
-        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(body.username.toLowerCase()).first();
-      }
+      const user = await resolveUserFromRequest(request, env);
       if (!user) {
-        return jsonResponse({ error: "Unauthorized" }, 401);
+        return jsonResponse({ error: "Unauthorized", detail: "Active session required" }, 401);
       }
       const enabled = (body.is_stealth !== undefined) ?
         (body.is_stealth === true || body.is_stealth === 1 || body.is_stealth === "true") :
@@ -958,21 +1098,45 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (path === "/api/auth/register" || path === "/api/register" || path === "/api/v1/auth/signup") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      const rateCheck = checkRateLimit(clientIp, "register", 10, 600);
+      if (!rateCheck.allowed) {
+        return jsonResponse({ error: "Too many registration attempts. Please retry later.", retry_after: rateCheck.retryAfter }, 429);
+      }
+
       const body = await request.json().catch(() => ({}));
-      const username = (body.username || "").trim().toLowerCase();
-      const displayName = body.display_name || body.nickname || username;
-      const email = (body.email || `${username}@connecto.fun`).trim().toLowerCase();
-      const password = body.password || "";
+      const rawUser = (body.username || "").trim().toLowerCase();
+      if (!rawUser || !/^[a-z0-9_]{3,30}$/.test(rawUser)) {
+        return jsonResponse({ error: "Invalid username format. Must be 3-30 alphanumeric characters or underscores." }, 400);
+      }
+
+      const rawEmail = (body.email || `${rawUser}@connecto.fun`).trim().toLowerCase();
+      if (!rawEmail.includes("@") || rawEmail.length > 100) {
+        return jsonResponse({ error: "Invalid email format." }, 400);
+      }
+
+      const rawPassword = body.password || "";
+      if (rawPassword.length < 8) {
+        return jsonResponse({ error: "Password must be at least 8 characters long." }, 400);
+      }
+
+      const username = sanitizeText(rawUser, 30);
+      const displayName = sanitizeText(body.display_name || body.nickname || username, 50);
+      const email = sanitizeText(rawEmail, 100);
       const newId = "usr_" + username;
+
+      // Hash password using PBKDF2-SHA256 with cryptographically random salt
+      const hashedPassword = await hashPasswordPbkdf2(rawPassword);
 
       if (env.DB) {
         await env.DB.prepare(
           "INSERT OR REPLACE INTO users (id, username, display_name, email, password_hash, avatar_url, is_online, two_factor_enabled, is_stealth) VALUES (?, ?, ?, ?, ?, ?, 1, 0, 0)"
-        ).bind(newId, username, displayName, email, password, "👾").run();
+        ).bind(newId, username, displayName, email, hashedPassword, "👾").run();
       }
 
-      const token = "cf_edge_" + newId + "_" + Date.now();
+      const token = await generateEdgeToken(newId, env);
       return jsonResponse({
+        status: "ok",
         token: token,
         access_token: token,
         token_type: "bearer",
@@ -1129,27 +1293,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (method === "PUT" || method === "PATCH" || (method === "POST" && !path.includes("/stealth"))) {
       try {
         const body = await request.json().catch(() => ({}));
-        let caller = await resolveUserFromRequest(request, env);
-        const reqUsername = (body.username || "").toLowerCase().trim();
-        if (!caller && reqUsername && env.DB) {
-          caller = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(reqUsername).first();
-        }
-        if (!caller && reqUsername) {
-          caller = { id: "usr_" + reqUsername, username: reqUsername, display_name: reqUsername };
-        }
+        const caller = await resolveUserFromRequest(request, env);
         if (!caller) {
-          return jsonResponse({ error: "Unauthorized" }, 401);
+          return jsonResponse({ error: "Unauthorized", detail: "Authentication required to update profile." }, 401);
         }
 
-        const displayName = body.nickname || body.display_name || body.full_name || caller.display_name;
-        const bio = body.bio !== undefined ? body.bio : caller.bio;
-        const avatar = body.avatar_url || body.avatar || body.picture || caller.avatar_url;
-        const banner = body.banner_url || caller.banner_url;
-        const email = body.email || caller.email;
-        const phone = body.phone_number || body.phone || caller.phone_number;
-        const dob = body.date_of_birth || caller.date_of_birth;
-        const gender = body.gender || caller.gender;
-        const location = body.location || caller.location;
+        const displayName = sanitizeText(body.nickname || body.display_name || body.full_name || caller.display_name, 50);
+        const bio = sanitizeText(body.bio !== undefined ? body.bio : (caller.bio || ""), 500);
+        const avatar = sanitizeText(body.avatar_url || body.avatar || body.picture || (caller.avatar_url || "👾"), 300);
+        const banner = sanitizeText(body.banner_url || (caller.banner_url || ""), 300);
+        const email = sanitizeText(body.email || (caller.email || ""), 100);
+        const phone = sanitizeText(body.phone_number || body.phone || (caller.phone_number || ""), 30);
+        const dob = sanitizeText(body.date_of_birth || (caller.date_of_birth || ""), 20);
+        const gender = sanitizeText(body.gender || (caller.gender || "unspecified"), 20);
+        const location = sanitizeText(body.location || (caller.location || ""), 100);
         const isStealth = body.is_stealth !== undefined ? (body.is_stealth ? 1 : 0) : caller.is_stealth;
         const twoFa = body.two_factor_enabled !== undefined ? (body.two_factor_enabled ? 1 : 0) : caller.two_factor_enabled;
         const twoFaMethod = body.two_factor_method || caller.two_factor_method || "email";
@@ -1859,14 +2016,31 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
 
     if (method === "POST") {
-      const body = await request.json().catch(() => ({}));
-      const senderUsername = (request.headers.get("X-User-Username") || body.username || body.user || body.sender || "chinnu").trim().toLowerCase();
-      let sender = null;
-      if (env.DB) {
-        sender = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(senderUsername).first();
+      const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+      const rateCheck = checkRateLimit(clientIp, "messages", 45, 60);
+      if (!rateCheck.allowed) {
+        return jsonResponse({ error: "Rate limit exceeded. Please wait a moment before sending more messages.", retry_after: rateCheck.retryAfter }, 429);
       }
-      const senderId = sender ? sender.id : "usr_" + senderUsername;
-      const content = body.content || body.text || "";
+
+      const sender = await resolveUserFromRequest(request, env);
+      if (!sender) {
+        return jsonResponse({ error: "Unauthorized: Active authenticated session required to post messages." }, 401);
+      }
+
+      // RBAC: #announcements is strictly restricted to platform administrators
+      if (canonicalChannel === "announcements" && !sender.is_admin) {
+        return jsonResponse({ error: "Forbidden: Only server administrators can post in #announcements." }, 403);
+      }
+
+      const body = await request.json().catch(() => ({}));
+      const rawContent = (body.content || body.text || "").trim();
+      if (!rawContent) {
+        return jsonResponse({ error: "Message content cannot be empty." }, 400);
+      }
+      const content = sanitizeText(rawContent, 2000);
+
+      const senderId = sender.id;
+      const senderUsername = sender.username;
       const newMsgId = "msg_" + Math.random().toString(36).substring(2, 10);
       const nowIso = new Date().toISOString();
 
@@ -1882,17 +2056,17 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         channel_id: canonicalChannel,
         authorId: senderId,
         author_id: senderId,
-        authorName: sender ? sender.username : senderUsername,
-        author_name: sender ? sender.username : senderUsername,
-        authorAvatar: sender ? sender.avatar_url : "👾",
-        author_avatar: sender ? sender.avatar_url : "👾",
-        user: sender ? sender.username : senderUsername,
-        avatar: sender ? sender.avatar_url : "👾",
-        nickname: sender ? sender.display_name : senderUsername,
-        sender: sender ? sender.username : senderUsername,
-        sender_username: sender ? sender.username : senderUsername,
-        sender_display_name: sender ? sender.display_name : senderUsername,
-        sender_avatar_url: sender ? sender.avatar_url : "👾",
+        authorName: sender.username,
+        author_name: sender.username,
+        authorAvatar: sender.avatar_url || "👾",
+        author_avatar: sender.avatar_url || "👾",
+        user: sender.username,
+        avatar: sender.avatar_url || "👾",
+        nickname: sender.display_name || sender.username,
+        sender: sender.username,
+        sender_username: sender.username,
+        sender_display_name: sender.display_name || sender.username,
+        sender_avatar_url: sender.avatar_url || "👾",
         content: content,
         text: content,
         createdAt: nowIso,
@@ -2559,8 +2733,17 @@ async function handleDbQuery(request, env) {
   const customKey = request.headers.get("X-D1-Key") || "";
   const expectedKey = env.DB_API_KEY || "connecto_d1_sec_2026_prod";
   const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
+  const callerKey = token || customKey;
 
-  if (token !== expectedKey && customKey !== expectedKey) {
+  const isValidKey = callerKey && callerKey.length === expectedKey.length && (() => {
+    let diff = 0;
+    for (let i = 0; i < callerKey.length; i++) {
+      diff |= callerKey.charCodeAt(i) ^ expectedKey.charCodeAt(i);
+    }
+    return diff === 0;
+  })();
+
+  if (!isValidKey) {
     return jsonResponse({ error: "Unauthorized access to Connecto D1 gateway" }, 401);
   }
 
@@ -2788,9 +2971,17 @@ function jsonResponse(data, status = 200, mode = "cloud_server") {
   return new Response(JSON.stringify(data), {
     status: status,
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
-      "Cache-Control": "no-store",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-D1-Key, X-Requested-With, X-User-Username",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "SAMEORIGIN",
+      "X-XSS-Protection": "1; mode=block",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), geolocation=(), microphone=(self)",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Cache-Control": "no-store, no-cache, must-revalidate",
       "X-Connecto-Mode": mode
     }
   });

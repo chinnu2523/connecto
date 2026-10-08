@@ -40,6 +40,10 @@ backups/
 uploads/
 logs/
 *.log
+cloudflare/sync_*.sql
+cloudflare/restore_*.sql
+*.dump
+*.bak
 
 # Android & Gradle
 android/.gradle/
@@ -54,11 +58,14 @@ android/*.aab
 *.aab
 
 # Python & Backend
+backend/.venv/
 backend/venv/
 backend/__pycache__/
 backend/app/__pycache__/
 backend/*/__pycache__/
 backend/*/*/__pycache__/
+backend/app/data/
+backend/data/
 *.pyc
 *.pyo
 *.pyd

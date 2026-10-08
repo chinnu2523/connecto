@@ -1,5 +1,6 @@
 from app.core.rate_limit import enforce_rate_limit
 import os
+import asyncio
 import re
 import time
 import json
@@ -43,8 +44,13 @@ def _save_data(data):
 
 data_store = _load_data()
 
-def sanitize_str(s: str) -> str:
-    return re.sub(r"[<>]", "", str(s)).strip()
+import html
+
+def sanitize_str(s: str, max_length: int = 5000) -> str:
+    if not s:
+        return ""
+    cleaned = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", "", str(s)).strip()
+    return html.escape(cleaned, quote=True)[:max_length]
 
 def validate_email_format(email: str) -> bool:
     return bool(re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", email.strip()))

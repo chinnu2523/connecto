@@ -6,12 +6,12 @@ DEFAULT_DB_PATH = os.path.join(BACKEND_DIR, "connecto_staging.db")
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Connecto Real-Time Community Platform"
-    ENV: str = "production"
-    SECRET_KEY: str = "super-secret-connecto-key-change-in-production-32bytes!"
+    ENV: str = os.getenv("CONNECTO_ENV", os.getenv("ENV", "production"))
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-connecto-key-change-in-production-32bytes!")
     DATABASE_URL: str = f"sqlite+aiosqlite:///{DEFAULT_DB_PATH}"
 
     COOKIE_NAME: str = "connecto_session"
-    COOKIE_SECURE: bool = False
+    COOKIE_SECURE: bool = (os.getenv("CONNECTO_ENV", os.getenv("ENV", "production")) == "production")
     COOKIE_SAMESITE: str = "lax"
     SESSION_EXPIRE_DAYS: int = 30
 

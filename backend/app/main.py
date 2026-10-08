@@ -6348,7 +6348,7 @@ async def admin_passkey_auth(request: Request, req: AdminPasskeyAuthRequest):
         })
         resp.set_cookie("vconnect_server_key", pk, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
         resp.set_cookie("vconnect_passkey", pk, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
-        resp.set_cookie("vconnect_admin_token", token, max_age=86400*30, httponly=False, samesite="lax", secure=is_secure)
+        resp.set_cookie("vconnect_admin_token", token, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
         return resp
     raise HTTPException(status_code=401, detail="Invalid hardware passkey.")
 

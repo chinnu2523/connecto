@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import secrets
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, VerificationError
@@ -16,8 +17,19 @@ def hash_password(password: str) -> str:
     return ph.hash(password)
 
 def verify_password(password_hash: str, password: str) -> bool:
-    """Verifies a raw password against an Argon2id hash."""
+    """Verifies a raw password against Argon2id or standard PBKDF2-SHA256 hashes."""
+    if not password_hash or not password:
+        return False
     try:
+        if password_hash.startswith("pbkdf2_sha256$"):
+            # Format: pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>
+            parts = password_hash.split("$")
+            if len(parts) == 4:
+                iterations = int(parts[1])
+                salt = bytes.fromhex(parts[2])
+                expected_hash = bytes.fromhex(parts[3])
+                derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations, dklen=len(expected_hash))
+                return hmac.compare_digest(derived, expected_hash)
         return ph.verify(password_hash, password)
     except Exception:
         return False
