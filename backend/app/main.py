@@ -5056,10 +5056,13 @@ async def get_platform_changelog():
                 "category": "feature",
                 "tag": "Latest Release",
                 "title": "Connecto v4.2.1: 7-Day Email Verification Grace Period, Compose Touch-Scroll Isolation & Group Mesh",
-                "summary": "Major security and mobile UX release introducing a mandatory 7-day email verification countdown for existing accounts with real-time countdown banners and instant OTP unblocking, alongside multi-user Group Chat mesh and touch-scroll gesture isolation on Android.",
+                "summary": "Major security, mobile UX, and reliability release introducing a mandatory 7-day email verification countdown for existing accounts with real-time countdown banners and instant OTP unblocking, background auto-lock honoring, verification state retention across app switching, and multi-user Group Chat mesh on Android.",
                 "highlights": [
                     "7-Day Email Verification Grace Period: Enforced mandatory email verification for all existing member accounts with a 7-day grace window. Active accounts display a real-time countdown banner.",
                     "Instant OTP Unblocking Gate: Accounts exceeding the 7-day grace period enter a temporary safety hold, unlockable instantly upon entering a 6-digit email OTP.",
+                    "Background Auto-Lock Setting Respected: Resolved issue where biometric vault lock was enforced on cold-start or app resume even when 'Auto-Lock in Background' was switched OFF.",
+                    "Verification Dialog State Retention: Preserved 6-digit verification modal and progress when switching to Gmail/email clients in the background via rememberSaveable state retention.",
+                    "Email Deliverability & Spam Protection: Deployed branded [Connecto Email Verification] templates to prevent generic subject line flags and ensure inbox delivery.",
                     "Touch-Scroll Gesture Isolation: Replaced unthrottled pointerInput with Compose-native MutableInteractionSource clickable handlers across chat bubbles, emojis, and buttons for fluid scrolling on Android 7 to 16.",
                     "Multi-User Group Chat Mesh: Create and manage persistent group conversations directly from the Home navigation tab with instant channel switching.",
                     "Android Native App v4.2.1 (Build 49 • 54 MB): Verified live on physical POCO HyperOS and Android 16 with SHA-256 e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad."
