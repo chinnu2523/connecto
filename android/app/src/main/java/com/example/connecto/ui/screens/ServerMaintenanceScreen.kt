@@ -75,7 +75,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ServerMaintenanceScreen(
-    onDismissToOffline: () -> Unit,
+    onDismissToOffline: (() -> Unit)? = null,
     onServerRestored: () -> Unit
 ) {
     val context = LocalContext.current
@@ -127,13 +127,13 @@ fun ServerMaintenanceScreen(
 
             val healthy = ConnectoApiClient.checkHealth()
             if (healthy) {
-                checkFeedbackText = "✓ Server restored! Resuming session..."
+                checkFeedbackText = "✓ Server restored! Reconnecting session..."
                 checkFeedbackColor = Color(0xFF34D399)
                 VoiceCallManager.connectWebSocket()
-                delay(900L)
+                delay(800L)
                 onServerRestored()
             } else {
-                checkFeedbackText = "⚠️ Server is still in maintenance. Auto-rechecking in background."
+                checkFeedbackText = "⚠️ Server is currently under maintenance. Origin (Box-1) is offline."
                 checkFeedbackColor = Color(0xFFF87171)
             }
             isCheckingStatus = false
@@ -423,21 +423,6 @@ fun ServerMaintenanceScreen(
                         text = "View Web Maintenance Page",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Button 3: Continue Offline
-                TextButton(
-                    onClick = onDismissToOffline,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "Continue in Offline Mode (View Cached Chats)",
-                        fontSize = 13.sp,
-                        color = Color(0xFF64748B),
-                        fontWeight = FontWeight.Medium
                     )
                 }
             }

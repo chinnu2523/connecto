@@ -422,7 +422,32 @@ object ConnectoApiClient {
                     }
                     val code = conn.responseCode
                     android.util.Log.d("ConnectoSync", "checkHealth: $base$path returned $code")
+                    if (code == 503) {
+                        android.util.Log.w("ConnectoSync", "checkHealth: $base$path returned 503 Service Unavailable (Maintenance Mode)")
+                        return@withContext false
+                    }
                     if (code in 200..299) {
+                        val body = try {
+                            conn.inputStream.bufferedReader().use { it.readText() }
+                        } catch (_: Exception) { "" }
+
+                        val isMaintenance = try {
+                            val json = JSONObject(body)
+                            json.optBoolean("maintenance", false) ||
+                            json.optString("status").equals("maintenance", ignoreCase = true) ||
+                            json.optString("mode").equals("maintenance", ignoreCase = true) ||
+                            json.optString("active_server").equals("maintenance", ignoreCase = true) ||
+                            json.optString("origin_status").equals("DOWN", ignoreCase = true) ||
+                            json.optString("origin_state").equals("DOWN", ignoreCase = true)
+                        } catch (_: Exception) {
+                            body.contains("\"maintenance\":true") || body.contains("\"status\":\"maintenance\"")
+                        }
+
+                        if (isMaintenance) {
+                            android.util.Log.w("ConnectoSync", "checkHealth: Server response indicates MAINTENANCE mode: $body")
+                            return@withContext false
+                        }
+
                         ConnectoNetworkConfig.activeBaseUrl = base
                         return@withContext true
                     }

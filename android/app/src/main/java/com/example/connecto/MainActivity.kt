@@ -300,7 +300,12 @@ fun ConnectoApp(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        com.example.connecto.network.ConnectoApiClient.checkHealth()
+        val isHealthy = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.example.connecto.network.ConnectoApiClient.checkHealth()
+        }
+        if (!isHealthy) {
+            MainActivity.openMaintenanceScreen()
+        }
         VoiceCallManager.init(context)
         ConnectoNotificationManager.init(context)
 
@@ -373,22 +378,19 @@ fun ConnectoApp(
 
     // Automated Server Maintenance Detection
     val isWsConnectedGlobal by VoiceCallManager.isWsConnectedFlow.collectAsState()
-    var autoMaintenanceTriggered by rememberSaveable { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(isWsConnectedGlobal, flowState) {
         if (!isWsConnectedGlobal) {
-            delay(12000L)
-            if (!isWsConnectedGlobal && !autoMaintenanceTriggered) {
+            delay(2500L)
+            if (!isWsConnectedGlobal) {
                 val healthy = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     com.example.connecto.network.ConnectoApiClient.checkHealth()
                 }
                 if (!healthy) {
-                    autoMaintenanceTriggered = true
                     MainActivity.openMaintenanceScreen()
                 }
             }
         } else {
-            autoMaintenanceTriggered = false
             if (MainActivity.isServerMaintenanceOpen) {
                 MainActivity.closeMaintenanceScreen()
             }
@@ -854,9 +856,6 @@ fun ConnectoApp(
             modifier = Modifier.fillMaxSize()
         ) {
             com.example.connecto.ui.screens.ServerMaintenanceScreen(
-                onDismissToOffline = {
-                    MainActivity.closeMaintenanceScreen()
-                },
                 onServerRestored = {
                     MainActivity.closeMaintenanceScreen()
                 }
