@@ -718,6 +718,17 @@ async def trigger_sync_now():
         "tables_synced": res
     }
 
+@app.post("/api/v1/sync/pull")
+@app.post("/api/sync/pull")
+async def trigger_pull_now():
+    from app.db.d1_sync import d1_sync_manager
+    res = await asyncio.to_thread(d1_sync_manager.pull_from_cloud)
+    return {
+        "status": "success",
+        "message": "Cloud changes merged into local database successfully",
+        "results": res
+    }
+
 # ==================== STRUCTURED ERROR LOGGING & MONITORING ====================
 LOGS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
 os.makedirs(LOGS_DIR, exist_ok=True)

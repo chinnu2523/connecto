@@ -223,16 +223,120 @@ class D1SyncManager:
             logger.error(f"[D1_SYNC] Error pushing single message to D1: {e}")
             return False
 
+    def pull_from_cloud(self) -> Dict[str, int]:
+        """Pulls recent changes from Cloudflare D1 into local SQLite to prevent regressions.
+        
+        Runs on local server startup before broadcasting 'UP' status:
+        1. Syncs any messages sent during failover.
+        2. Syncs updated user profile fields (avatar_url, banner_url, bio, display_name).
+        3. Syncs new channels or friendships created in cloud mode.
+        """
+        results = {"messages_pulled": 0, "users_updated": 0, "friendships_pulled": 0}
+        try:
+            conn = sqlite3.connect(self.local_db_path)
+            conn.row_factory = sqlite3.Row
+            cur = conn.cursor()
+
+            # 1. Pull New Messages from Cloud
+            cloud_msgs = self.query_cloud_d1(
+                "SELECT id, channel_id, sender_id, content, created_at, reply_to_id, reply_to_content, reply_to_author "
+                "FROM messages ORDER BY created_at DESC LIMIT 100;"
+            )
+            if cloud_msgs:
+                for msg in cloud_msgs:
+                    mid = msg.get("id")
+                    if not mid:
+                        continue
+                    cur.execute("SELECT id FROM messages WHERE id = ?", (mid,))
+                    if not cur.fetchone():
+                        # Message exists in cloud but not locally -> insert into local SQLite
+                        cur.execute(
+                            "INSERT OR IGNORE INTO messages (id, channel_id, sender_id, content, created_at, reply_to_id, reply_to_content, reply_to_author) "
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                            (
+                                mid,
+                                msg.get("channel_id"),
+                                msg.get("sender_id"),
+                                msg.get("content"),
+                                msg.get("created_at"),
+                                msg.get("reply_to_id"),
+                                msg.get("reply_to_content"),
+                                msg.get("reply_to_author")
+                            )
+                        )
+                        results["messages_pulled"] += 1
+
+            # 2. Reconcile Users (Avatar, Banner, Bio, Display Name, Online State)
+            cloud_users = self.query_cloud_d1(
+                "SELECT id, username, display_name, avatar_url, banner_url, bio, is_stealth, updated_at FROM users;"
+            )
+            if cloud_users:
+                for cu in cloud_users:
+                    uid = cu.get("id")
+                    if not uid:
+                        continue
+                    cur.execute("SELECT id, avatar_url, banner_url, bio, display_name, updated_at FROM users WHERE id = ?", (uid,))
+                    loc_u = cur.fetchone()
+                    if loc_u:
+                        c_updated = cu.get("updated_at") or ""
+                        l_updated = loc_u["updated_at"] or ""
+                        # If cloud version has avatar/banner or newer timestamp, pull cloud profile
+                        if (cu.get("avatar_url") and cu.get("avatar_url") != loc_u["avatar_url"]) or \
+                           (cu.get("banner_url") and cu.get("banner_url") != loc_u["banner_url"]) or \
+                           (c_updated > l_updated):
+                            cur.execute(
+                                "UPDATE users SET "
+                                "display_name = coalesce(?, display_name), "
+                                "avatar_url = coalesce(?, avatar_url), "
+                                "banner_url = coalesce(?, banner_url), "
+                                "bio = coalesce(?, bio), "
+                                "updated_at = datetime('now') "
+                                "WHERE id = ?",
+                                (
+                                    cu.get("display_name"),
+                                    cu.get("avatar_url"),
+                                    cu.get("banner_url"),
+                                    cu.get("bio"),
+                                    uid
+                                )
+                            )
+                            results["users_updated"] += 1
+
+            # 3. Pull Friendships created in cloud mode
+            cloud_friends = self.query_cloud_d1("SELECT user_id, friend_id, status, created_at FROM friendships;")
+            if cloud_friends:
+                for f in cloud_friends:
+                    cur.execute("SELECT 1 FROM friendships WHERE user_id = ? AND friend_id = ?", (f.get("user_id"), f.get("friend_id")))
+                    if not cur.fetchone():
+                        cur.execute(
+                            "INSERT OR IGNORE INTO friendships (user_id, friend_id, status, created_at) VALUES (?, ?, ?, ?)",
+                            (f.get("user_id"), f.get("friend_id"), f.get("status", "accepted"), f.get("created_at"))
+                        )
+                        results["friendships_pulled"] += 1
+
+            conn.commit()
+            conn.close()
+            logger.info(f"[D1_SYNC] Reverse catch-up complete: {results}")
+        except Exception as e:
+            logger.error(f"[D1_SYNC] Error during reverse catch-up from cloud: {e}")
+        return results
+
     async def run_worker(self):
         """Continuous background worker loop for periodic heartbeat and sync."""
         self.is_running = True
         logger.info("[D1_SYNC] Cloud Sync & Heartbeat worker started.")
         
-        # Initial probe and sync
+        # Initial probe and bidirectional catch-up
         try:
             if self.is_cloud_online():
-                logger.info("[D1_SYNC] Cloud server is ONLINE. Sending initial UP heartbeat and syncing data...")
+                logger.info("[D1_SYNC] Cloud server is ONLINE. Performing reverse catch-up before broadcast...")
+                # 1. Pull changes made during downtime
+                await asyncio.to_thread(self.pull_from_cloud)
+
+                # 2. Send UP heartbeat
                 self.send_heartbeat(state="UP", details="Local server started operational")
+
+                # 3. Push any local delta to cloud
                 await asyncio.to_thread(self.sync_all_to_cloud)
             else:
                 logger.warning("[D1_SYNC] Cloud server offline or unreachable on startup.")
