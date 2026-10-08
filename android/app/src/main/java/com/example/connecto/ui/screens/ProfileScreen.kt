@@ -270,6 +270,7 @@ fun ProfileScreen(
     var show2FaSetupDialog by remember { mutableStateOf(false) }
     var twoFaSetupMaskedDest by remember { mutableStateOf<String?>(null) }
     var twoFaErrorMessage by remember { mutableStateOf<String?>(null) }
+    var activeSectionPopup by remember { mutableStateOf<String?>(null) }
 
     // Live sync with backend SQLite database on launch
     LaunchedEffect(username) {
@@ -785,7 +786,10 @@ fun ProfileScreen(
                         SectionHeader(
                             title = "Presence & Stealth Mode",
                             subtitle = "Control how others see your online status",
-                            icon = Icons.Default.VisibilityOff
+                            icon = Icons.Default.VisibilityOff,
+                            badgeText = if (stealthModeEnabled) "STEALTH" else "ONLINE",
+                            badgeColor = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen,
+                            onClick = { activeSectionPopup = "presence" }
                         )
                         Box(
                             modifier = Modifier
@@ -883,7 +887,10 @@ fun ProfileScreen(
                         SectionHeader(
                             title = "Personal Information",
                             subtitle = "Manage your identity, personal information, and contact details",
-                            icon = Icons.Default.Person
+                            icon = Icons.Default.Person,
+                            badgeText = "DETAILS",
+                            badgeColor = MaterialTheme.colorScheme.primary,
+                            onClick = { activeSectionPopup = "personal" }
                         )
 
                         Box(
@@ -1073,7 +1080,10 @@ fun ProfileScreen(
                         SectionHeader(
                             title = "Two-Factor Auth & Password Security",
                             subtitle = "Email 2FA verification & instant inbox recovery",
-                            icon = Icons.Default.Shield
+                            icon = Icons.Default.Shield,
+                            badgeText = if (twoFactorEnabled) "ENABLED" else "DISABLED",
+                            badgeColor = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error,
+                            onClick = { activeSectionPopup = "2fa" }
                         )
                         Box(
                             modifier = Modifier
@@ -1344,7 +1354,10 @@ fun ProfileScreen(
                         SectionHeader(
                             title = "Biometric & App Lock",
                             subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
-                            icon = Icons.Default.Fingerprint
+                            icon = Icons.Default.Fingerprint,
+                            badgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
+                            badgeColor = if (isAppLockEnabled) OnlineGreen else TextDisabledColor,
+                            onClick = { activeSectionPopup = "biometric" }
                         )
                         Box(
                             modifier = Modifier
@@ -1557,7 +1570,10 @@ fun ProfileScreen(
                         SectionHeader(
                             title = "Appearance & Display Theme",
                             subtitle = "Personalize your visual experience across the entire app",
-                            icon = Icons.Default.Tune
+                            icon = Icons.Default.Tune,
+                            badgeText = currentThemeMode.displayName.uppercase(),
+                            badgeColor = MaterialTheme.colorScheme.primary,
+                            onClick = { activeSectionPopup = "appearance" }
                         )
                         Box(
                             modifier = Modifier
@@ -1926,6 +1942,435 @@ fun ProfileScreen(
             }
         )
     }
+
+    // ================= DEDICATED SECTION DETAILS POPUPS =================
+    if (activeSectionPopup != null) {
+        val popupSection = activeSectionPopup!!
+        Dialog(onDismissRequest = { activeSectionPopup = null }) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Dialog Header with Title, Icon & Close Button
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val (headerTitle, headerIcon) = when (popupSection) {
+                                "presence" -> Pair("Presence & Stealth Mode", Icons.Default.VisibilityOff)
+                                "personal" -> Pair("Personal Information", Icons.Default.Person)
+                                "2fa" -> Pair("Two-Factor Auth Security", Icons.Default.Shield)
+                                "biometric" -> Pair("Biometric & App Lock", Icons.Default.Fingerprint)
+                                "appearance" -> Pair("Appearance & Display Theme", Icons.Default.Tune)
+                                else -> Pair("Section Details", Icons.Default.Info)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = headerIcon,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = headerTitle,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        IconButton(
+                            onClick = { activeSectionPopup = null },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
+
+                    when (popupSection) {
+                        "presence" -> {
+                            // Presence & Stealth Details
+                            Text(
+                                text = "Stealth Mode allows you to browse servers and read channels without broadcasting online presence to other users.",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 18.sp
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .border(1.dp, if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(14.dp))
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Stealth Mode Status",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (stealthModeEnabled) "Active: You appear offline everywhere" else "Disabled: Visible to online friends",
+                                            fontSize = 12.sp,
+                                            color = if (stealthModeEnabled) ConnectoTheme.colors.info else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Switch(
+                                        checked = stealthModeEnabled,
+                                        onCheckedChange = { isChecked ->
+                                            stealthModeEnabled = isChecked
+                                            prefs.edit().putBoolean("stealth_mode_$username", isChecked).apply()
+                                            coroutineScope.launch {
+                                                try {
+                                                    ConnectoApiClient.setStealthMode(enabled = isChecked)
+                                                } catch (_: Exception) {}
+                                            }
+                                            triggerAutoSave()
+                                        },
+                                        colors = getMonochromeSwitchColors()
+                                    )
+                                }
+                            }
+                        }
+
+                        "personal" -> {
+                            // Personal Info Details
+                            ProfileStyledInputField(
+                                label = "Full Name",
+                                placeholder = "e.g. Shadow Hayate",
+                                value = fullNameInput,
+                                icon = Icons.Default.Person,
+                                isLocked = false,
+                                onValueChange = {
+                                    fullNameInput = it
+                                    prefs.edit().putString("full_name_$currentUsernameState", it).apply()
+                                    triggerAutoSave()
+                                }
+                            )
+
+                            ProfileStyledInputField(
+                                label = "Display Name / Nickname",
+                                placeholder = "e.g. Shadow",
+                                value = displayNameInput,
+                                icon = Icons.Default.Badge,
+                                isLocked = false,
+                                onValueChange = {
+                                    displayNameInput = it
+                                    prefs.edit().putString("display_name_$currentUsernameState", it).apply()
+                                    triggerAutoSave()
+                                }
+                            )
+
+                            ContactStyledField(
+                                label = "Email Address",
+                                value = if (revealEmail) emailInput else emailInput.maskEmail(),
+                                icon = Icons.Default.Email,
+                                isMasked = !revealEmail,
+                                onToggleMask = { revealEmail = !revealEmail },
+                                onChangeClick = { 
+                                    activeSectionPopup = null
+                                    changeContactTarget = "email" 
+                                }
+                            )
+
+                            Column {
+                                Text(
+                                    text = "Personal Bio",
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(min = 68.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                                        .padding(12.dp)
+                                ) {
+                                    BasicTextField(
+                                        value = bioInput,
+                                        onValueChange = { newBio ->
+                                            bioInput = newBio
+                                            prefs.edit().putString("bio_$currentUsernameState", newBio).apply()
+                                            triggerAutoSave()
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp),
+                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                        maxLines = 4
+                                    )
+                                }
+                            }
+                        }
+
+                        "2fa" -> {
+                            // 2FA Details
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Email Two-Factor Authentication",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = if (twoFactorEnabled) "Enabled: Login requires 6-digit verification code" else "Disabled: Login requires only password",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = twoFactorEnabled,
+                                    onCheckedChange = { isChecked ->
+                                        val activeSessionToken = ConnectoApiClient.sessionToken
+                                            ?: context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE).getString("token", null)
+                                        if (!isChecked) {
+                                            coroutineScope.launch {
+                                                val res = ConnectoApiClient.toggle2Fa(false, token = activeSessionToken)
+                                                if (res.isSuccess) {
+                                                    twoFactorEnabled = false
+                                                    prefs.edit().putBoolean("two_factor_enabled_$username", false).apply()
+                                                }
+                                            }
+                                        } else {
+                                            if (emailInput.isNotBlank()) {
+                                                coroutineScope.launch {
+                                                    val res = ConnectoApiClient.request2FaSetupOtp(
+                                                        method = "email",
+                                                        phoneNumber = emailInput.trim(),
+                                                        token = activeSessionToken
+                                                    )
+                                                    if (res.isSuccess) {
+                                                        twoFaSetupMaskedDest = res.getOrNull()?.maskedDestination
+                                                        activeSectionPopup = null
+                                                        show2FaSetupDialog = true
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    colors = getMonochromeSwitchColors()
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+
+                            Button(
+                                onClick = {
+                                    activeSectionPopup = null
+                                    showForgotPasswordDialog = true
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                )
+                            ) {
+                                Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Reset / Change Account Password", fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        "biometric" -> {
+                            // Biometric Details
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Biometric App Lock",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = if (isAppLockEnabled) "App locked with fingerprint/face/screen lock" else "App opens directly without lock screen",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Switch(
+                                    checked = isAppLockEnabled,
+                                    onCheckedChange = { isChecked ->
+                                        isAppLockEnabled = isChecked
+                                        prefs.edit().putBoolean("biometric_lock_$username", isChecked).apply()
+                                    },
+                                    colors = getMonochromeSwitchColors()
+                                )
+                            }
+
+                            if (isAppLockEnabled) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Auto-Lock on Background",
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "Immediately lock when leaving Connecto",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    Switch(
+                                        checked = autoLockOnBackground,
+                                        onCheckedChange = { isChecked ->
+                                            autoLockOnBackground = isChecked
+                                            prefs.edit().putBoolean("auto_lock_background_$username", isChecked).apply()
+                                        },
+                                        colors = getMonochromeSwitchColors()
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        activeSectionPopup = null
+                                        onLockApp()
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Test App Lock Authentication Now", fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        "appearance" -> {
+                            // Appearance Details: theme cards
+                            Text(
+                                text = "Choose your preferred visual atmosphere:",
+                                fontSize = 13.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            com.example.connecto.ui.designsystem.ThemeMode.values().forEach { mode ->
+                                val isSelected = currentThemeMode == mode
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .border(if (isSelected) 2.dp else 1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                        .clickable {
+                                            onSelectThemeMode(mode)
+                                            onToggleTheme(mode.isDark)
+                                        }
+                                        .padding(12.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(text = mode.iconEmoji, fontSize = 20.sp)
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column {
+                                                Text(
+                                                    text = mode.displayName,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    fontSize = 14.sp,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = mode.subtitle,
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Button(
+                        onClick = { activeSectionPopup = null },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    ) {
+                        Text("DONE", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+    }
 }
 
 // ================= HELPER COMPOSABLES =================
@@ -2182,18 +2627,33 @@ private fun TwoFactorSetupDialog(
 private fun SectionHeader(
     title: String,
     subtitle: String,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    badgeText: String? = null,
+    badgeColor: Color? = null,
+    onClick: (() -> Unit)? = null
 ) {
-    Row(
-        modifier = Modifier
+    val clickableModifier = if (onClick != null) {
+        Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick)
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 4.dp)
+    }
+
+    Row(
+        modifier = clickableModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
             Box(
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(36.dp)
                     .clip(RoundedCornerShape(10.dp))
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
                 contentAlignment = Alignment.Center
@@ -2202,10 +2662,10 @@ private fun SectionHeader(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(12.dp))
         } else {
             Box(
                 modifier = Modifier
@@ -2217,19 +2677,57 @@ private fun SectionHeader(
             Spacer(modifier = Modifier.width(10.dp))
         }
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 20.sp
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 20.sp
+                )
+                if (badgeText != null) {
+                    val bColor = badgeColor ?: MaterialTheme.colorScheme.primary
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(bColor.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = bColor
+                        )
+                    }
+                }
+            }
             Text(
                 text = subtitle,
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 lineHeight = 16.sp
             )
+        }
+        if (onClick != null) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open Section",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
         }
     }
 }

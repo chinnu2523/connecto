@@ -81,6 +81,16 @@ data class ChannelDto(
     val type: String
 )
 
+data class GroupDto(
+    val id: String,
+    val name: String,
+    val type: String = "group",
+    val description: String = "",
+    val memberCount: Int = 0,
+    val members: List<String> = emptyList(),
+    val isCreatedByMe: Boolean = false
+)
+
 data class PollOptionDto(
     val text: String,
     val votes: List<String> = emptyList()
@@ -1202,6 +1212,94 @@ object ConnectoApiClient {
                 Result.success(JSONObject(response.getOrThrow()))
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to create group"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getUserGroups(token: String? = null): Result<List<GroupDto>> = withContext(Dispatchers.IO) {
+        try {
+            var response = executeRequest(
+                endpoint = "/api/groups",
+                method = "GET",
+                body = null,
+                token = token ?: sessionToken
+            )
+
+            if (!response.isSuccess) {
+                response = executeRequest(
+                    endpoint = "/api/v1/chat/groups",
+                    method = "GET",
+                    body = null,
+                    token = token ?: sessionToken
+                )
+            }
+
+            if (response.isSuccess) {
+                val respText = response.getOrThrow()
+                val list = mutableListOf<GroupDto>()
+                val myUser = (currentUsername ?: "").trim().lowercase().removePrefix("@")
+
+                if (respText.trim().startsWith("[")) {
+                    val arr = JSONArray(respText)
+                    for (i in 0 until arr.length()) {
+                        val item = arr.optJSONObject(i) ?: continue
+                        val gId = item.optString("id").ifEmpty { item.optString("group_id") }
+                        val gName = item.optString("name").ifEmpty { gId }
+                        val desc = item.optString("description", "")
+                        val mArr = item.optJSONArray("members") ?: JSONArray()
+                        val mList = mutableListOf<String>()
+                        for (m in 0 until mArr.length()) {
+                            mList.add(mArr.optString(m))
+                        }
+                        val isCreated = item.optBoolean("is_creator", false) ||
+                            item.optString("creator").lowercase().removePrefix("@") == myUser ||
+                            item.optString("owner_id") == currentUserId
+                        list.add(
+                            GroupDto(
+                                id = gId,
+                                name = gName,
+                                type = item.optString("type", "group"),
+                                description = desc,
+                                memberCount = item.optInt("member_count", mList.size),
+                                members = mList,
+                                isCreatedByMe = isCreated
+                            )
+                        )
+                    }
+                } else if (respText.trim().startsWith("{")) {
+                    val obj = JSONObject(respText)
+                    val arr = obj.optJSONArray("groups") ?: JSONArray()
+                    for (i in 0 until arr.length()) {
+                        val item = arr.optJSONObject(i) ?: continue
+                        val gId = item.optString("id").ifEmpty { item.optString("group_id") }
+                        val gName = item.optString("name").ifEmpty { gId }
+                        val desc = item.optString("description", "")
+                        val mArr = item.optJSONArray("members") ?: JSONArray()
+                        val mList = mutableListOf<String>()
+                        for (m in 0 until mArr.length()) {
+                            mList.add(mArr.optString(m))
+                        }
+                        val isCreated = item.optBoolean("is_creator", false) ||
+                            item.optString("creator").lowercase().removePrefix("@") == myUser ||
+                            item.optString("owner_id") == currentUserId
+                        list.add(
+                            GroupDto(
+                                id = gId,
+                                name = gName,
+                                type = item.optString("type", "group"),
+                                description = desc,
+                                memberCount = item.optInt("member_count", mList.size),
+                                members = mList,
+                                isCreatedByMe = isCreated
+                            )
+                        )
+                    }
+                }
+                Result.success(list)
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch groups"))
             }
         } catch (e: Exception) {
             Result.failure(e)

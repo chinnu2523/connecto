@@ -59,26 +59,26 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.1",
-        version_name: "v4.2.1",
-        version_code: 49,
-        build: 49,
-        sha256: "e88affe5785745f58c3df31566808b807760e3e46826852c36ef935cc631687e",
-        md5: "04c740ea4b7ce40d5b0248108b8ca3c2",
+        version: "4.2.2",
+        version_name: "v4.2.2",
+        version_code: 50,
+        build: 50,
+        sha256: "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d",
+        md5: "4d4446ea9a05d389da827b58d8cd3cc0",
         filename: "connecto-fun.apk",
-        size_bytes: 56876685,
-        size_display: "54.2 MB",
+        size_bytes: 56925833,
+        size_display: "54.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups) with real-time counters and dedicated empty state action shortcuts",
+          "v4.2.2 Multi-User Group Messaging: Full group chat navigation, instant SQLite caching, channel WebSocket subscription, and zero pairwise AES encryption conflicts",
+          "v4.2.2 Profile Interactive Title Buttons & Detail Popups: Converted Presence, Personal Info, 2FA, Biometric, and Appearance titles into interactive buttons with status badges and dedicated modal dialogs",
           "v4.2.1 Compliance & Verification: Added mandatory 18+ age verification, Terms & Conditions consent, and email OTP verification during sign up",
-          "v4.2.1 Friend Profile UI & Security: Fixed header stability with stationary avatar, removed Personal button and 2FA card from friend profile view, added custom photo gallery wallpaper per chat, and enforced FLAG_SECURE screenshot prevention when inspecting profile picture fullscreen",
-          "v4.2.0 Add Friends & Requests Fix: Fixed Find Friends tab so community directory users are not displayed by default when empty, only displaying matching users when explicitly typed; fixed Find Friends & Requests tab switcher buttons and high-contrast styling",
-          "v4.2.0 End-to-End Chat Encryption (E2EE): Client-side AES-256-GCM encryption with SHA-256 HKDF key derivation, zero plaintext storage on servers, and transparent decryption in chat view",
-          "v4.2.0 Swipe-to-Reply & Quoting: Interactive swipe right on any message with haptic response to quote and reply inline with quote banners"
+          "v4.2.1 Friend Profile UI & Security: Fixed header stability with stationary avatar, removed Personal button and 2FA card from friend profile view, added custom photo gallery wallpaper per chat, and enforced FLAG_SECURE screenshot prevention when inspecting profile picture fullscreen"
         ]
       });
     }
@@ -113,7 +113,7 @@ export default {
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
       if (localServerStatus !== "UP") {
-        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.1/connecto-fun.apk", 302);
+        return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.2/connecto-fun.apk", 302);
       }
     }
 
@@ -2266,14 +2266,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.1",
-      version_name: "v4.2.1",
-      version_code: 49,
-      build: 49,
-      sha256: "b682eab8c70e251ec2a5aebe32c77d77dcaf50a42ea89865f230b2c970629c59",
+      version: "4.2.2",
+      version_name: "v4.2.2",
+      version_code: 50,
+      build: 50,
+      sha256: "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d",
       filename: "connecto-fun.apk",
-      size_bytes: 56876685,
-      size_display: "54.2 MB",
+      size_bytes: 56925833,
+      size_display: "54.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",

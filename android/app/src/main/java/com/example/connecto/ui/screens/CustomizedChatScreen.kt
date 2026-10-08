@@ -67,6 +67,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Info
@@ -75,6 +76,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Schedule
@@ -391,7 +393,11 @@ data class FriendItem(
     val timeAgo: String = "10:14 AM",
     var unreadCount: Int = 0,
     val isOnline: Boolean = false,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val isGroup: Boolean = false,
+    val isCreatedByMe: Boolean = false,
+    val memberCount: Int = 0,
+    val members: List<String> = emptyList()
 )
 
 data class CustomMessageItem(
@@ -545,6 +551,10 @@ fun CustomizedChatScreen(
     val friendsList = remember { mutableStateListOf<FriendItem>() }
     var isFriendsLoadedOnce by remember { mutableStateOf(false) }
 
+    // User Groups State (Created & Added / Joined Groups)
+    val userGroupsList = remember { mutableStateListOf<FriendItem>() }
+    var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "CREATED_GROUPS", "ADDED_GROUPS"
+
     // Auto-select chat when opened from push notification intent
     LaunchedEffect(targetChatUserOrChannel, friendsList.size) {
         val target = targetChatUserOrChannel?.trim()
@@ -692,6 +702,43 @@ fun CustomizedChatScreen(
             } else {
                 isFriendsLoadedOnce = true
             }
+
+            // Sync user groups (Created & Added / Joined groups)
+            try {
+                val groupsRes = ConnectoApiClient.getUserGroups()
+                if (groupsRes.isSuccess) {
+                    val serverGroups = groupsRes.getOrThrow()
+                    val myUsernameLower = effUsername.trim().lowercase().removePrefix("@")
+                    val mappedGroups = serverGroups.map { g ->
+                        val init = if (g.name.isNotBlank()) g.name.first().toString().uppercase() else "G"
+                        val count = if (g.memberCount > 0) g.memberCount else (g.members.size.coerceAtLeast(1))
+                        val isCreated = g.isCreatedByMe || g.description.contains(effUsername, ignoreCase = true)
+                        FriendItem(
+                            id = g.id,
+                            name = g.name,
+                            handle = "#${g.name.lowercase().replace(" ", "-")}",
+                            initial = init,
+                            status = "$count members • ${if (isCreated) "Created Group" else "Joined Group"}",
+                            bio = g.description.ifBlank { "Connecto Group Chat • $count members" },
+                            lastMessage = "Group Chat • Tap to open and talk",
+                            timeAgo = "Active",
+                            unreadCount = 0,
+                            isOnline = true,
+                            avatarUrl = null,
+                            isGroup = true,
+                            isCreatedByMe = isCreated,
+                            memberCount = count,
+                            members = g.members
+                        )
+                    }
+                    val gIds = mappedGroups.map { it.id }.toSet()
+                    userGroupsList.removeAll { it.id !in gIds }
+                    for (item in mappedGroups) {
+                        val idx = userGroupsList.indexOfFirst { it.id == item.id }
+                        if (idx == -1) userGroupsList.add(item) else userGroupsList[idx] = item
+                    }
+                }
+            } catch (_: Exception) {}
         } catch (e: Exception) {
             isFriendsLoadedOnce = true
             // Ignore transient network errors
@@ -735,8 +782,14 @@ fun CustomizedChatScreen(
 
     val filteredFriends by remember {
         derivedStateOf {
-            if (friendSearchQuery.isBlank()) friendsList.toList()
-            else friendsList.filter {
+            val baseList: List<FriendItem> = when (messageTabFilter) {
+                "DIRECT" -> friendsList.toList()
+                "CREATED_GROUPS" -> userGroupsList.filter { it.isCreatedByMe }
+                "ADDED_GROUPS" -> userGroupsList.filter { !it.isCreatedByMe }
+                else -> friendsList.toList() + userGroupsList.toList()
+            }
+            if (friendSearchQuery.isBlank()) baseList
+            else baseList.filter {
                 it.name.contains(friendSearchQuery, ignoreCase = true) || it.handle.contains(friendSearchQuery, ignoreCase = true)
             }
         }
@@ -935,16 +988,24 @@ fun CustomizedChatScreen(
 
             val cleanTarget = friend.handle.removePrefix("@")
             val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
-            val canonicalName = "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
+            val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
+
+            if (friend.isGroup) {
+                activeDmChannelId = friend.id
+            }
 
             // 1. Instant SQLite Cache Load (0ms UI latency across all channel aliases)
             val cachedMessages = withContext(Dispatchers.IO) {
-                dbHelper.getDirectMessages(
-                    myUsername = myUser,
-                    friendUsername = cleanTarget,
-                    channelId = activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()],
-                    limit = 50
-                )
+                if (friend.isGroup) {
+                    dbHelper.getMessagesForChannel(friend.id, limit = 50)
+                } else {
+                    dbHelper.getDirectMessages(
+                        myUsername = myUser,
+                        friendUsername = cleanTarget,
+                        channelId = activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()],
+                        limit = 50
+                    )
+                }
             }
 
             if (cachedMessages.isNotEmpty()) {
@@ -984,69 +1045,75 @@ fun CustomizedChatScreen(
                 isLoadingMessages = true
             }
 
-            // Immediately subscribe to canonical DM channel over WebSocket
-            VoiceCallManager.subscribeChannel(canonicalName)
+            // Immediately subscribe to channel over WebSocket
+            VoiceCallManager.subscribeChannel(if (friend.isGroup) friend.id else canonicalName)
 
-            // Resolve DM channel on backend and subscribe in background
-            coroutineScope.launch {
-                try {
-                    val startRes = ConnectoApiClient.startDM(cleanTarget)
-                    if (startRes.isSuccess) {
-                        val ch = startRes.getOrThrow()
-                        activeDmChannelId = ch.id
-                        ConnectoApiClient.channelCache[canonicalName.lowercase()] = ch.id
-                        ConnectoApiClient.channelCache[ch.id.lowercase()] = canonicalName.lowercase()
-                        VoiceCallManager.subscribeChannel(ch.id)
-                        VoiceCallManager.subscribeChannel(ch.name)
-                    }
-                } catch (_: Exception) {}
-            }
+            if (!friend.isGroup) {
+                // Resolve DM channel on backend and subscribe in background
+                coroutineScope.launch {
+                    try {
+                        val startRes = ConnectoApiClient.startDM(cleanTarget)
+                        if (startRes.isSuccess) {
+                            val ch = startRes.getOrThrow()
+                            activeDmChannelId = ch.id
+                            ConnectoApiClient.channelCache[canonicalName.lowercase()] = ch.id
+                            ConnectoApiClient.channelCache[ch.id.lowercase()] = canonicalName.lowercase()
+                            VoiceCallManager.subscribeChannel(ch.id)
+                            VoiceCallManager.subscribeChannel(ch.name)
+                        }
+                    } catch (_: Exception) {}
+                }
 
-            // Mark this DM as read on backend asynchronously
-            coroutineScope.launch {
-                try {
-                    ConnectoApiClient.markDmRead(cleanTarget)
-                } catch (_: Exception) {}
-            }
+                // Mark this DM as read on backend asynchronously
+                coroutineScope.launch {
+                    try {
+                        ConnectoApiClient.markDmRead(cleanTarget)
+                    } catch (_: Exception) {}
+                }
 
-            // Re-fetch fresh profile data on view — avoids indefinite caching of avatar or display name
-            coroutineScope.launch {
-                try {
-                    val profRes = ConnectoApiClient.getProfile(cleanTarget)
-                    if (profRes.isSuccess) {
-                        val prof = profRes.getOrThrow()
-                        val freshAvatar = prof.avatarUrl
-                        val freshName = prof.displayName.ifBlank { prof.username }
-                        val freshBio = prof.bio ?: ""
-                        val freshOnline = prof.isOnline
-                        selectedFriend = selectedFriend?.copy(
-                            avatarUrl = freshAvatar ?: selectedFriend?.avatarUrl,
-                            name = if (freshName.isNotBlank()) freshName else (selectedFriend?.name ?: cleanTarget),
-                            bio = freshBio,
-                            isOnline = freshOnline,
-                            status = if (freshOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
-                        )
-                        val fIdx = friendsList.indexOfFirst { it.id == friendId }
-                        if (fIdx != -1) {
-                            friendsList[fIdx] = friendsList[fIdx].copy(
-                                avatarUrl = freshAvatar ?: friendsList[fIdx].avatarUrl,
-                                name = if (freshName.isNotBlank()) freshName else friendsList[fIdx].name,
+                // Re-fetch fresh profile data on view — avoids indefinite caching of avatar or display name
+                coroutineScope.launch {
+                    try {
+                        val profRes = ConnectoApiClient.getProfile(cleanTarget)
+                        if (profRes.isSuccess) {
+                            val prof = profRes.getOrThrow()
+                            val freshAvatar = prof.avatarUrl
+                            val freshName = prof.displayName.ifBlank { prof.username }
+                            val freshBio = prof.bio ?: ""
+                            val freshOnline = prof.isOnline
+                            selectedFriend = selectedFriend?.copy(
+                                avatarUrl = freshAvatar ?: selectedFriend?.avatarUrl,
+                                name = if (freshName.isNotBlank()) freshName else (selectedFriend?.name ?: cleanTarget),
                                 bio = freshBio,
                                 isOnline = freshOnline,
                                 status = if (freshOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
                             )
+                            val fIdx = friendsList.indexOfFirst { it.id == friendId }
+                            if (fIdx != -1) {
+                                friendsList[fIdx] = friendsList[fIdx].copy(
+                                    avatarUrl = freshAvatar ?: friendsList[fIdx].avatarUrl,
+                                    name = if (freshName.isNotBlank()) freshName else friendsList[fIdx].name,
+                                    bio = freshBio,
+                                    isOnline = freshOnline,
+                                    status = if (freshOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
+                                )
+                            }
                         }
-                    }
-                } catch (_: Exception) {}
+                    } catch (_: Exception) {}
+                }
             }
 
             // Continuous live polling every 1.5s
             while (true) {
                 try {
-                    val dmId = activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()] ?: canonicalName
+                    val dmId = if (friend.isGroup) friend.id else (activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()] ?: canonicalName)
 
                     if (dmId.isNotBlank()) {
-                        val msgRes = ConnectoApiClient.getMessages(channelId = dmId, friendUsername = cleanTarget)
+                        val msgRes = if (friend.isGroup) {
+                            ConnectoApiClient.getMessages(channelId = friend.id)
+                        } else {
+                            ConnectoApiClient.getMessages(channelId = dmId, friendUsername = cleanTarget)
+                        }
                         if (msgRes.isSuccess) {
                             val dtoList = msgRes.getOrThrow()
                             val unexpiredList = dtoList.distinctBy { it.id }
@@ -1056,18 +1123,18 @@ fun CustomizedChatScreen(
                                 val serverChId = unexpiredList.firstOrNull {
                                     !it.channelId.isNullOrBlank() && !it.channelId.startsWith("dm-") && !it.channelId.startsWith("dm_")
                                 }?.channelId
-                                if (serverChId != null) {
+                                if (serverChId != null && !friend.isGroup) {
                                     if (activeDmChannelId == null) activeDmChannelId = serverChId
                                     ConnectoApiClient.channelCache[canonicalName.lowercase()] = serverChId
                                     ConnectoApiClient.channelCache[serverChId.lowercase()] = canonicalName.lowercase()
                                 }
 
                                 withContext(Dispatchers.IO) {
-                                    dbHelper.saveMessages(canonicalName, unexpiredList)
-                                    if (dmId != canonicalName) {
+                                    dbHelper.saveMessages(if (friend.isGroup) friend.id else canonicalName, unexpiredList)
+                                    if (!friend.isGroup && dmId != canonicalName) {
                                         dbHelper.saveMessages(dmId, unexpiredList)
                                     }
-                                    if (serverChId != null && serverChId != dmId && serverChId != canonicalName) {
+                                    if (!friend.isGroup && serverChId != null && serverChId != dmId && serverChId != canonicalName) {
                                         dbHelper.saveMessages(serverChId, unexpiredList)
                                     }
                                 }
@@ -1088,15 +1155,21 @@ fun CustomizedChatScreen(
                                     val msgAvatar = if (isMe) {
                                         ConnectoApiClient.currentUserAvatarUrl
                                     } else {
-                                        dto.authorAvatar ?: selectedFriend?.avatarUrl
+                                        dto.authorAvatar ?: (if (friend.isGroup) null else selectedFriend?.avatarUrl)
                                     }
-                                    val otherUser = friend.handle.removePrefix("@")
-                                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
-                                    val isEnc = ConnectoE2EEncryption.isEncrypted(dto.content)
-                                    val decryptedContent = if (isEnc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
-                                    val decryptedReplyContent = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
-                                        ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
-                                    } else dto.replyToContent
+                                    
+                                    val (decryptedContent, decryptedReplyContent, isEnc) = if (friend.isGroup) {
+                                        Triple(dto.content, dto.replyToContent, false)
+                                    } else {
+                                        val otherUser = friend.handle.removePrefix("@")
+                                        val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+                                        val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
+                                        val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                                        val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
+                                            ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                                        } else dto.replyToContent
+                                        Triple(decMsg, decReply, enc)
+                                    }
 
                                     CustomMessageItem(
                                         id = dto.id,
@@ -2400,27 +2473,53 @@ fun CustomizedChatScreen(
 
                         Spacer(modifier = Modifier.width(10.dp))
 
-                        // Friend Name & Avatar Row (Triggers Friend Profile Dialog)
+                        // Friend / Group Name & Avatar Row
+                        val isGroupChat = selectedFriend?.isGroup == true
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { showFriendProfileDialog = true }
+                                .clickable {
+                                    if (isGroupChat) {
+                                        showCreateGroupChatDialog = false
+                                        showFriendProfileDialog = false
+                                    } else {
+                                        showFriendProfileDialog = true
+                                    }
+                                }
                         ) {
-                            ConnectoAvatar(
-                                name = selectedFriend?.name ?: "Friend",
-                                avatarUrl = selectedFriend?.avatarUrl,
-                                customSizeDp = 42.dp,
-                                customFontSizeSp = 16,
-                                borderWidth = 1.5.dp,
-                                borderColor = MaterialTheme.colorScheme.primary
-                            )
+                            if (isGroupChat) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(42.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                        .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Groups,
+                                        contentDescription = "Group",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            } else {
+                                ConnectoAvatar(
+                                    name = selectedFriend?.name ?: "Friend",
+                                    avatarUrl = selectedFriend?.avatarUrl,
+                                    customSizeDp = 42.dp,
+                                    customFontSizeSp = 16,
+                                    borderWidth = 1.5.dp,
+                                    borderColor = MaterialTheme.colorScheme.primary
+                                )
+                            }
 
                             Spacer(modifier = Modifier.width(10.dp))
 
                             Column {
                                 Text(
-                                    text = selectedFriend!!.name,
+                                    text = if (isGroupChat) "#${selectedFriend!!.name}" else selectedFriend!!.name,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Bold,
@@ -2433,14 +2532,19 @@ fun CustomizedChatScreen(
                                         modifier = Modifier
                                             .size(7.dp)
                                             .clip(CircleShape)
-                                            .background(if (isSelectedOnline) OnlineGreen else Color.Gray)
+                                            .background(if (isGroupChat || isSelectedOnline) OnlineGreen else Color.Gray)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
+                                    val subText = if (isGroupChat) {
+                                        "${selectedFriend?.memberCount ?: 0} members • Group Chat"
+                                    } else {
+                                        if (isFriendTyping) "typing..." else if (isSelectedOnline) "Online • Direct Chat" else "Offline • Direct Chat"
+                                    }
                                     Text(
-                                        text = if (isFriendTyping) "typing..." else if (isSelectedOnline) "Online • Direct Chat" else "Offline • Direct Chat",
-                                        color = if (isFriendTyping) MaterialTheme.colorScheme.primary else if (isSelectedOnline) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        text = subText,
+                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (isGroupChat || isSelectedOnline) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp,
-                                        fontWeight = if (isFriendTyping) FontWeight.Bold else FontWeight.Medium,
+                                        fontWeight = if (!isGroupChat && isFriendTyping) FontWeight.Bold else FontWeight.Medium,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -2453,43 +2557,61 @@ fun CustomizedChatScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
-                                    .clickable { showFriendProfileDialog = true },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Info,
-                                    contentDescription = "Friend Profile Info",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            if (!isGroupChat) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
+                                        .clickable { showFriendProfileDialog = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "Friend Profile Info",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
 
-                            Box(
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                    .clickable {
-                                        val friend = selectedFriend
-                                        if (friend != null) {
-                                            initiateVoiceCallWithFriend(friend)
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Call,
-                                    contentDescription = "Voice Call",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                        .clickable {
+                                            val friend = selectedFriend
+                                            if (friend != null) {
+                                                initiateVoiceCallWithFriend(friend)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Call,
+                                        contentDescription = "Voice Call",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            } else {
+                                // Group Header Tag Chip
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                                ) {
+                                    Text(
+                                        text = if (selectedFriend?.isCreatedByMe == true) "CREATED" else "JOINED",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
                     }
@@ -2597,9 +2719,60 @@ fun CustomizedChatScreen(
                             }
                         }
 
+                        // Message Tab Filter Button Group (Segmented Controls)
+                        item(key = "friends_filter_button_group") {
+                            val filterOptions = listOf(
+                                "ALL" to "All",
+                                "DIRECT" to "Direct",
+                                "CREATED_GROUPS" to "Created Groups",
+                                "ADDED_GROUPS" to "Added Groups"
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                    .padding(3.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                filterOptions.forEach { (key, label) ->
+                                    val isSelected = (messageTabFilter == key)
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(34.dp)
+                                            .clip(RoundedCornerShape(9.dp))
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primary
+                                                else Color.Transparent
+                                            )
+                                            .clickable { messageTabFilter = key }
+                                            .padding(horizontal = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         item(key = "friends_section_title") {
+                            val titleText = when (messageTabFilter) {
+                                "DIRECT" -> "ACTIVE DIRECT CONVERSATIONS"
+                                "CREATED_GROUPS" -> "CREATED GROUPS"
+                                "ADDED_GROUPS" -> "ADDED & JOINED GROUPS"
+                                else -> "ALL CONVERSATIONS & GROUPS"
+                            }
                             Text(
-                                text = "ACTIVE DIRECT CONVERSATIONS",
+                                text = titleText,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp,
@@ -2624,6 +2797,26 @@ fun CustomizedChatScreen(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             verticalArrangement = Arrangement.spacedBy(14.dp)
                                         ) {
+                                            val emptyIcon = when (messageTabFilter) {
+                                                "CREATED_GROUPS", "ADDED_GROUPS" -> Icons.Default.Groups
+                                                else -> Icons.Default.PersonAdd
+                                            }
+                                            val emptyTitle = if (friendSearchQuery.isNotBlank()) "No Matching Conversations"
+                                            else when (messageTabFilter) {
+                                                "CREATED_GROUPS" -> "No Created Groups"
+                                                "ADDED_GROUPS" -> "No Joined Groups"
+                                                "DIRECT" -> "No Direct Messages Yet"
+                                                else -> "No Active Conversations"
+                                            }
+                                            val emptySubtitle = if (friendSearchQuery.isNotBlank())
+                                                "No conversations or groups matching '$friendSearchQuery' found."
+                                            else when (messageTabFilter) {
+                                                "CREATED_GROUPS" -> "You haven't created any group channels yet. Create your first group to start group chats!"
+                                                "ADDED_GROUPS" -> "You haven't joined any groups yet. When you join or get added to groups, they will appear here."
+                                                "DIRECT" -> "Direct chat is private between accepted friends. Send a friend request to start messaging!"
+                                                else -> "Start chatting with friends or create a group to talk with multiple members together!"
+                                            }
+
                                             Box(
                                                 modifier = Modifier
                                                     .breathingPulse(minScale = 0.94f, maxScale = 1.06f)
@@ -2633,7 +2826,7 @@ fun CustomizedChatScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.PersonAdd,
+                                                    imageVector = emptyIcon,
                                                     contentDescription = null,
                                                     tint = contentOnGradient,
                                                     modifier = Modifier.size(28.dp)
@@ -2641,7 +2834,7 @@ fun CustomizedChatScreen(
                                             }
 
                                             Text(
-                                                text = if (friendSearchQuery.isNotBlank()) "No Matching Friends" else "No Accepted Friends Yet",
+                                                text = emptyTitle,
                                                 fontSize = 17.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface,
@@ -2649,10 +2842,7 @@ fun CustomizedChatScreen(
                                             )
 
                                             Text(
-                                                text = if (friendSearchQuery.isNotBlank())
-                                                    "No accepted friend matching '$friendSearchQuery' found."
-                                                else
-                                                    "Direct chat is private between accepted friends. Send a friend request and once they accept, you can chat with them here!",
+                                                text = emptySubtitle,
                                                 fontSize = 13.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 textAlign = TextAlign.Center,
@@ -2661,11 +2851,15 @@ fun CustomizedChatScreen(
 
                                             Spacer(modifier = Modifier.height(2.dp))
 
+                                            val isGroupFilter = messageTabFilter == "CREATED_GROUPS" || messageTabFilter == "ADDED_GROUPS"
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(14.dp))
                                                     .background(Brush.linearGradient(gradientColors))
-                                                    .clickable { showAddFriendDialog = true }
+                                                    .clickable {
+                                                        if (isGroupFilter) showCreateGroupChatDialog = true
+                                                        else showAddFriendDialog = true
+                                                    }
                                                     .padding(horizontal = 20.dp, vertical = 12.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
@@ -2674,13 +2868,13 @@ fun CustomizedChatScreen(
                                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.PersonAdd,
+                                                        imageVector = if (isGroupFilter) Icons.Default.GroupAdd else Icons.Default.PersonAdd,
                                                         contentDescription = null,
                                                         tint = contentOnGradient,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                     Text(
-                                                        text = "Find & Add Friends",
+                                                        text = if (isGroupFilter) "Create New Group" else "Find & Add Friends",
                                                         color = contentOnGradient,
                                                         fontSize = 14.sp,
                                                         fontWeight = FontWeight.Bold
@@ -2762,16 +2956,34 @@ fun CustomizedChatScreen(
                                         .padding(horizontal = 14.dp, vertical = 12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Avatar with online status ring
-                                    ConnectoAvatar(
-                                        name = friend.name,
-                                        avatarUrl = friend.avatarUrl,
-                                        customSizeDp = 48.dp,
-                                        customFontSizeSp = 18,
-                                        status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
-                                        borderWidth = 1.5.dp,
-                                        borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                    )
+                                    if (friend.isGroup) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Groups,
+                                                contentDescription = "Group",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    } else {
+                                        // Avatar with online status ring
+                                        ConnectoAvatar(
+                                            name = friend.name,
+                                            avatarUrl = friend.avatarUrl,
+                                            customSizeDp = 48.dp,
+                                            customFontSizeSp = 18,
+                                            status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
+                                            borderWidth = 1.5.dp,
+                                            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                        )
+                                    }
 
                                     Spacer(modifier = Modifier.width(12.dp))
 
@@ -2784,7 +2996,7 @@ fun CustomizedChatScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Text(
-                                                text = friend.name,
+                                                text = if (friend.isGroup) "#${friend.name}" else friend.name,
                                                 fontSize = 15.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface,
@@ -2792,6 +3004,22 @@ fun CustomizedChatScreen(
                                                 overflow = TextOverflow.Ellipsis,
                                                 modifier = Modifier.weight(1f, fill = false)
                                             )
+                                            if (friend.isGroup) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${friend.memberCount} members",
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                            }
                                             if (isFriendLocked) {
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Icon(
@@ -3186,7 +3414,7 @@ fun CustomizedChatScreen(
                         }
 
                         // ================= 3. ADVANCED CHAT INPUT BAR & SEND BUTTON =================
-                        val isAcceptedFriend = selectedFriend == null || friendsList.any {
+                        val isAcceptedFriend = selectedFriend == null || selectedFriend?.isGroup == true || friendsList.any {
                             it.id == selectedFriend!!.id ||
                             it.handle.removePrefix("@").equals(selectedFriend!!.handle.removePrefix("@"), ignoreCase = true)
                         }
@@ -3426,6 +3654,7 @@ fun CustomizedChatScreen(
                                     val currentReply = replyingTo
                                     replyingTo = null // Clear reply banner immediately
 
+                                    val isCurGroup = selectedFriend?.isGroup == true
                                     val localItem = CustomMessageItem(
                                         id = tempId,
                                         senderName = myName,
@@ -3439,7 +3668,7 @@ fun CustomizedChatScreen(
                                         replyToId = currentReply?.id,
                                         replyToContent = currentReply?.content,
                                         replyToAuthor = currentReply?.senderName,
-                                        isEncrypted = true
+                                        isEncrypted = !isCurGroup
                                     )
                                     val updatedList = friendMessages + localItem
                                     friendMessages = updatedList
@@ -3447,24 +3676,33 @@ fun CustomizedChatScreen(
                                     coroutineScope.launch {
                                         try {
                                             val friend = selectedFriend
-                                            val dmId = activeDmChannelId ?: if (friend != null) {
-                                                val r = ConnectoApiClient.startDM(friend.handle.removePrefix("@"))
-                                                if (r.isSuccess) {
-                                                    val id = r.getOrThrow().id
-                                                    activeDmChannelId = id
-                                                    id
+                                            val isGrp = friend?.isGroup == true
+                                            val targetChannelId = if (isGrp) {
+                                                activeDmChannelId ?: friend?.id
+                                            } else {
+                                                activeDmChannelId ?: if (friend != null) {
+                                                    val r = ConnectoApiClient.startDM(friend.handle.removePrefix("@"))
+                                                    if (r.isSuccess) {
+                                                        val id = r.getOrThrow().id
+                                                        activeDmChannelId = id
+                                                        id
+                                                    } else null
                                                 } else null
-                                            } else null
+                                            }
 
-                                            if (dmId != null) {
-                                                // Encrypt outgoing content with conversation key (AES-256-GCM)
-                                                val otherUser = friend?.handle?.removePrefix("@") ?: ""
-                                                val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myName, otherUser)
-                                                val encryptedContent = ConnectoE2EEncryption.encryptMessage(userMsg, conversationKey)
+                                            if (targetChannelId != null) {
+                                                val contentToSend = if (isGrp) {
+                                                    userMsg // Group chats use server-routed messaging
+                                                } else {
+                                                    // Encrypt outgoing content with conversation key (AES-256-GCM)
+                                                    val otherUser = friend?.handle?.removePrefix("@") ?: ""
+                                                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myName, otherUser)
+                                                    ConnectoE2EEncryption.encryptMessage(userMsg, conversationKey)
+                                                }
 
                                                 val sendRes = ConnectoApiClient.sendMessage(
-                                                    channelId = dmId,
-                                                    content = encryptedContent,
+                                                    channelId = targetChannelId,
+                                                    content = contentToSend,
                                                     replyToId = currentReply?.id,
                                                     replyToContent = currentReply?.content,
                                                     replyToAuthor = currentReply?.senderName
@@ -3473,12 +3711,16 @@ fun CustomizedChatScreen(
                                                     val sentDto = sendRes.getOrThrow()
                                                     withContext(Dispatchers.IO) {
                                                         dbHelper.saveMessage(sentDto)
-                                                        val cleanTarget = friend?.handle?.removePrefix("@") ?: ""
-                                                        val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
-                                                        val canonicalName = "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
-                                                        dbHelper.saveMessages(canonicalName, listOf(sentDto))
-                                                        if (dmId.isNotBlank() && dmId != canonicalName) {
-                                                            dbHelper.saveMessages(dmId, listOf(sentDto))
+                                                        if (isGrp) {
+                                                            dbHelper.saveMessages(targetChannelId, listOf(sentDto))
+                                                        } else {
+                                                            val cleanTarget = friend?.handle?.removePrefix("@") ?: ""
+                                                            val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                                                            val canonicalName = "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
+                                                            dbHelper.saveMessages(canonicalName, listOf(sentDto))
+                                                            if (targetChannelId.isNotBlank() && targetChannelId != canonicalName) {
+                                                                dbHelper.saveMessages(targetChannelId, listOf(sentDto))
+                                                            }
                                                         }
                                                     }
                                                     val realItem = CustomMessageItem(
@@ -3494,7 +3736,7 @@ fun CustomizedChatScreen(
                                                         replyToId = sentDto.replyToId ?: currentReply?.id,
                                                         replyToContent = sentDto.replyToContent ?: currentReply?.content,
                                                         replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
-                                                        isEncrypted = true
+                                                        isEncrypted = !isGrp
                                                     )
                                                     val curList = friendMessages.toMutableList()
                                                     val optIdx = curList.indexOfFirst {
