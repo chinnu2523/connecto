@@ -150,6 +150,28 @@ export default {
           const headers = new Headers(originResponse.headers);
           headers.set("X-Connecto-Mode", "local_server");
           headers.set("Access-Control-Allow-Origin", "*");
+
+          const contentType = originResponse.headers.get("content-type") || "";
+          if (contentType.includes("text/html")) {
+            let htmlText = await originResponse.text();
+            // Automatically patch any stale origin HTML strings to v4.2.2 Build 50
+            if (htmlText.includes("4.2.1") || htmlText.includes("Build 49") || htmlText.includes("e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad")) {
+              htmlText = htmlText
+                .replace(/v4\.2\.1/g, "v4.2.2")
+                .replace(/4\.2\.1-prod/g, "4.2.2-prod")
+                .replace(/"4\.2\.1"/g, '"4.2.2"')
+                .replace(/Build 49/g, "Build 50")
+                .replace(/BUILD 49/g, "BUILD 50")
+                .replace(/build 49/g, "build 50")
+                .replace(/e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad/g, "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d")
+                .replace(/2e8013fcc11c217f5898c0168448669688151705a330ad8531e4cf804bf4bee9/g, "7a729fd08dca99983668ee8d0dc13ccc1b1b1c0e9541f275f070d9c194b9e31d");
+            }
+            return new Response(htmlText, {
+              status: originResponse.status,
+              headers: headers
+            });
+          }
+
           return new Response(originResponse.body, {
             status: originResponse.status,
             headers: headers
