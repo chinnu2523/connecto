@@ -5051,10 +5051,26 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.2.1",
+                "date": "Oct 8, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.2.1: 7-Day Email Verification Grace Period, Compose Touch-Scroll Isolation & Group Mesh",
+                "summary": "Major security and mobile UX release introducing a mandatory 7-day email verification countdown for existing accounts with real-time countdown banners and instant OTP unblocking, alongside multi-user Group Chat mesh and touch-scroll gesture isolation on Android.",
+                "highlights": [
+                    "7-Day Email Verification Grace Period: Enforced mandatory email verification for all existing member accounts with a 7-day grace window. Active accounts display a real-time countdown banner.",
+                    "Instant OTP Unblocking Gate: Accounts exceeding the 7-day grace period enter a temporary safety hold, unlockable instantly upon entering a 6-digit email OTP.",
+                    "Touch-Scroll Gesture Isolation: Replaced unthrottled pointerInput with Compose-native MutableInteractionSource clickable handlers across chat bubbles, emojis, and buttons for fluid scrolling on Android 7 to 16.",
+                    "Multi-User Group Chat Mesh: Create and manage persistent group conversations directly from the Home navigation tab with instant channel switching.",
+                    "Android Native App v4.2.1 (Build 49 • 54 MB): Verified live on physical POCO HyperOS and Android 16 with SHA-256 e9e81e6b093e7651b2e22088c45ec9a72aa1433abddc491a52e59f9242753cad."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v3.9.8",
                 "date": "Oct 2, 2026",
                 "category": "bugfix",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v3.9.8: Touch-Scroll Isolation Gesture Engine & Unified Multi-Cloud Synchronization",
                 "summary": "Flagship touch stability and web harmonization release eliminating accidental emoji, button, and text selection during scrolling across Android and Web, while fully synchronizing Edge Gateways and Cloudflare CDN assets.",
                 "highlights": [
