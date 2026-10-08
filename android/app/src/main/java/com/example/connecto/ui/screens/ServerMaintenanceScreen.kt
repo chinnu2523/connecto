@@ -35,12 +35,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Dns
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -122,19 +123,19 @@ fun ServerMaintenanceScreen(
         scope.launch {
             if (isCheckingStatus) return@launch
             isCheckingStatus = true
-            checkFeedbackText = "Probing primary server and cloud gateway..."
+            checkFeedbackText = "Checking maintenance progress..."
             checkFeedbackColor = Color(0xFF60A5FA)
 
             val healthy = ConnectoApiClient.checkHealth()
             if (healthy) {
-                checkFeedbackText = "✓ Server restored! Reconnecting session..."
+                checkFeedbackText = "✓ Upgrades complete! Reconnecting session..."
                 checkFeedbackColor = Color(0xFF34D399)
                 VoiceCallManager.connectWebSocket()
                 delay(800L)
                 onServerRestored()
             } else {
-                checkFeedbackText = "⚠️ Server is currently under maintenance. Origin (Box-1) is offline."
-                checkFeedbackColor = Color(0xFFF87171)
+                checkFeedbackText = "⚙️ Scheduled maintenance is currently underway. We'll be back shortly."
+                checkFeedbackColor = Color(0xFFFBBF24)
             }
             isCheckingStatus = false
         }
@@ -220,10 +221,10 @@ fun ServerMaintenanceScreen(
                     )
                     // Core Icon
                     Icon(
-                        imageVector = Icons.Default.WarningAmber,
-                        contentDescription = "Maintenance Icon",
-                        tint = Color(0xFFF59E0B),
-                        modifier = Modifier.size(38.dp)
+                        imageVector = Icons.Default.Build,
+                        contentDescription = "Maintenance & Upgrades",
+                        tint = Color(0xFF818CF8),
+                        modifier = Modifier.size(36.dp)
                     )
                 }
 
@@ -234,23 +235,23 @@ fun ServerMaintenanceScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x1AF59E0B))
-                        .border(1.dp, Color(0x4DF59E0B), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                        .background(Color(0x1A818CF8))
+                        .border(1.dp, Color(0x4D818CF8), RoundedCornerShape(16.dp))
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFF59E0B).copy(alpha = pulseAlpha))
+                            .background(Color(0xFF818CF8).copy(alpha = pulseAlpha))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "SERVER IS IN MAINTENANCE",
+                        text = "ROUTINE SERVICE UPGRADE",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.6.sp,
-                        color = Color(0xFFFBBF24)
+                        color = Color(0xFFA5B4FC)
                     )
                 }
 
@@ -270,7 +271,7 @@ fun ServerMaintenanceScreen(
 
                 // Explanatory Body Text
                 Text(
-                    text = "The primary server (Box-1) is temporarily offline and cloud edge limits are currently in standby. Scheduled maintenance is running to protect database consistency and message encryption.",
+                    text = "We are currently performing routine scheduled maintenance to upgrade our backend infrastructure and deploy service enhancements. Connecto will be back online shortly with improved speed and reliability.",
                     fontSize = 14.sp,
                     color = Color(0xFF94A3B8),
                     textAlign = TextAlign.Center,
@@ -278,52 +279,54 @@ fun ServerMaintenanceScreen(
                     modifier = Modifier.padding(horizontal = 8.dp)
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(26.dp))
 
-                // Telemetry Status Card
+                // System Upgrades Highlights Card
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
                         .background(Color(0xFF12151E))
                         .border(1.dp, Color(0xFF1E2433), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
+                        .padding(18.dp)
                 ) {
-                    Text(
-                        text = "LIVE TELEMETRY AUDIT",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        color = Color(0xFF64748B)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF818CF8))
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "SYSTEM UPGRADES IN PROGRESS",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            color = Color(0xFF818CF8)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    UpgradeFeatureRow(
+                        icon = Icons.Default.Speed,
+                        iconTint = Color(0xFF60A5FA),
+                        title = "Speed & Performance",
+                        description = "Optimizing real-time message routing and low-latency networking"
                     )
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    // Row 1: Box-1 Server
-                    TelemetryItem(
-                        icon = Icons.Default.Dns,
-                        title = "Primary Origin (box-1)",
-                        value = "OFFLINE",
-                        valueColor = Color(0xFFEF4444)
+                    UpgradeFeatureRow(
+                        icon = Icons.Default.Security,
+                        iconTint = Color(0xFF34D399),
+                        title = "Security & Encryption",
+                        description = "Deploying enhanced end-to-end cryptographic protocols and vault protection"
                     )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Row 2: Cloudflare Worker
-                    TelemetryItem(
-                        icon = Icons.Default.CloudOff,
-                        title = "Cloudflare Edge",
-                        value = "QUOTA STANDBY",
-                        valueColor = Color(0xFFF59E0B)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Row 3: Security & Storage
-                    TelemetryItem(
-                        icon = Icons.Default.Lock,
-                        title = "Encryption & Vault",
-                        value = "100% SECURED",
-                        valueColor = Color(0xFF10B981)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    UpgradeFeatureRow(
+                        icon = Icons.Default.CloudSync,
+                        iconTint = Color(0xFFA78BFA),
+                        title = "Platform Resilience",
+                        description = "Expanding server capacity and database infrastructure"
                     )
                 }
 
@@ -431,38 +434,45 @@ fun ServerMaintenanceScreen(
 }
 
 @Composable
-private fun TelemetryItem(
+private fun UpgradeFeatureRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
     title: String,
-    value: String,
-    valueColor: Color
+    description: String
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(iconTint.copy(alpha = 0.12f)),
+            contentAlignment = Alignment.Center
+        ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color(0xFF64748B),
+                tint = iconTint,
                 modifier = Modifier.size(16.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+        }
+        Spacer(modifier = Modifier.width(12.dp))
+        Column(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = title,
                 fontSize = 13.sp,
-                color = Color(0xFFCBD5E1),
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = description,
+                fontSize = 12.sp,
+                color = Color(0xFF94A3B8),
+                lineHeight = 16.sp
             )
         }
-        Text(
-            text = value,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            color = valueColor,
-            letterSpacing = 0.5.sp
-        )
     }
 }
