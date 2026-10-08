@@ -41,6 +41,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.BorderStroke
@@ -78,7 +84,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.AlternateEmail
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.DarkMode
@@ -184,6 +190,47 @@ private fun Context.findFragmentActivity(): FragmentActivity? {
         currentContext = currentContext.baseContext
     }
     return null
+}
+
+/**
+ * Dedicated sub-pages for Profile Settings.
+ * Clicking a section button changes the entire UI to open that specific sub-page.
+ */
+enum class ProfileSubPage(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector
+) {
+    PRESENCE_STEALTH(
+        title = "Presence & Stealth Mode",
+        subtitle = "Control how others see your online status",
+        icon = Icons.Default.VisibilityOff
+    ),
+    PERSONAL_INFO(
+        title = "Personal Information",
+        subtitle = "Manage your identity, personal information, and contact details",
+        icon = Icons.Default.Person
+    ),
+    TWO_FACTOR_SECURITY(
+        title = "Two-Factor Auth & Password Security",
+        subtitle = "Email 2FA verification & instant inbox recovery",
+        icon = Icons.Default.Shield
+    ),
+    BIOMETRIC_LOCK(
+        title = "Biometric & App Lock",
+        subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
+        icon = Icons.Default.Fingerprint
+    ),
+    APPEARANCE_THEME(
+        title = "Appearance & Display Theme",
+        subtitle = "Personalize your visual experience across the entire app",
+        icon = Icons.Default.Tune
+    ),
+    GROUPS_COMMUNITIES(
+        title = "Groups & Communities",
+        subtitle = "Manage created & joined groups",
+        icon = Icons.Default.Groups
+    )
 }
 
 @Composable
@@ -395,11 +442,8 @@ fun ProfileScreen(
         }
     }
 
-    // Section Expand/Collapse State (Clean profile view: details show only on clicking dedicated button)
-    var expandedSection by rememberSaveable { mutableStateOf<String?>(null) }
-    val toggleSection: (String) -> Unit = { sectionKey ->
-        expandedSection = if (expandedSection == sectionKey) null else sectionKey
-    }
+    // Active dedicated sub-page (null = main profile menu, non-null = dedicated sub-screen)
+    var activeSubPage by rememberSaveable { mutableStateOf<ProfileSubPage?>(null) }
 
     // Saved feedback banner
     var showSavedBadge by remember { mutableStateOf(false) }
@@ -495,83 +539,97 @@ fun ProfileScreen(
 
     val userInitial = if (username.isNotBlank()) username.first().toString().uppercase() else "C"
 
+    BackHandler(enabled = activeSubPage != null) {
+        activeSubPage = null
+    }
+
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-
-            // ========== SHARED TOP HEADER ==========
-            ConnectoTopHeader(
-                title = "PROFILE SETTINGS",
-                subtitle = if (stealthModeEnabled) "Stealth Mode Active" else "@$username",
-                userInitial = userInitial,
-                avatarUrl = profilePhotoUri,
-                isStealthModeOn = stealthModeEnabled,
-                isOnline = true,
-                showProfileButton = false
-            )
-
-            val listState = androidx.compose.foundation.lazy.rememberLazyListState()
-            val parallaxTranslationY by remember {
-                androidx.compose.runtime.derivedStateOf {
-                    if (listState.firstVisibleItemIndex <= 1) {
-                        (listState.firstVisibleItemScrollOffset * 0.45f).coerceAtMost(100f)
-                    } else 0f
+        AnimatedContent(
+            targetState = activeSubPage,
+            transitionSpec = {
+                if (targetState != null) {
+                    (slideInHorizontally { width -> width } + fadeIn(tween(250))).togetherWith(
+                        slideOutHorizontally { width -> -width / 4 } + fadeOut(tween(200))
+                    )
+                } else {
+                    (slideInHorizontally { width -> -width / 4 } + fadeIn(tween(250))).togetherWith(
+                        slideOutHorizontally { width -> width } + fadeOut(tween(200))
+                    )
                 }
-            }
+            },
+            label = "profile_subpage_navigation",
+            modifier = Modifier.fillMaxSize()
+        ) { currentSubPage ->
+            if (currentSubPage == null) {
+                // ========== 1. MAIN PROFILE OVERVIEW SCREEN ==========
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // ========== SHARED TOP HEADER ==========
+                    ConnectoTopHeader(
+                        title = "PROFILE SETTINGS",
+                        subtitle = if (stealthModeEnabled) "Stealth Mode Active" else "@$username",
+                        userInitial = userInitial,
+                        avatarUrl = profilePhotoUri,
+                        isStealthModeOn = stealthModeEnabled,
+                        isOnline = true,
+                        showProfileButton = false
+                    )
 
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item { Spacer(modifier = Modifier.height(4.dp)) }
+                    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
 
-                // ================= AUTO-SAVE CONFIRMATION BADGE =================
-                item(key = "auto_save_badge") {
-                    AnimatedVisibility(
-                        visible = showSavedBadge,
-                        enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + androidx.compose.animation.scaleIn(
-                            initialScale = 0.85f,
-                            animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
-                        ),
-                        exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.85f)
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(OnlineGreen.copy(alpha = 0.15f))
-                                .border(1.dp, OnlineGreen.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 14.dp, vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = OnlineGreen,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Personal details updated & securely saved",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = OnlineGreen
-                                )
+                        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+                        // ================= AUTO-SAVE CONFIRMATION BADGE =================
+                        item(key = "auto_save_badge") {
+                            AnimatedVisibility(
+                                visible = showSavedBadge,
+                                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + androidx.compose.animation.scaleIn(
+                                    initialScale = 0.85f,
+                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
+                                ),
+                                exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.85f)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(OnlineGreen.copy(alpha = 0.15f))
+                                        .border(1.dp, OnlineGreen.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = OnlineGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Personal details updated & securely saved",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = OnlineGreen
+                                        )
+                                    }
+                                }
                             }
                         }
-                    }
-                }
 
-                // ================= 1. AVATAR & USER SUMMARY CARD WITH COVER =================
-                item(key = "avatar_summary_card") {
+                        // ================= 1. AVATAR & USER SUMMARY CARD WITH COVER =================
+                        item(key = "avatar_summary_card") {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -849,30 +907,144 @@ fun ProfileScreen(
                     }
                 }
 
-                // ================= PRESENCE & STEALTH MODE =================
-                item(key = "presence_stealth_section") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SectionHeader(
-                            title = "Presence & Stealth Mode",
-                            subtitle = "Control how others see your online status",
-                            icon = Icons.Default.VisibilityOff,
-                            badgeText = if (stealthModeEnabled) "STEALTH" else "ONLINE",
-                            badgeColor = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen,
-                            isExpanded = expandedSection == "presence_stealth",
-                            onClick = { toggleSection("presence_stealth") }
-                        )
+                                // ================= 2. PRESENCE & STEALTH MODE BUTTON =================
+                item(key = "menu_presence_stealth") {
+                    ProfileNavigationMenuButton(
+                        title = "Presence & Stealth Mode",
+                        subtitle = "Control how others see your online status",
+                        icon = Icons.Default.VisibilityOff,
+                        badgeText = if (stealthModeEnabled) "STEALTH" else "ONLINE",
+                        badgeColor = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen,
+                        onClick = { activeSubPage = ProfileSubPage.PRESENCE_STEALTH }
+                    )
+                }
 
-                        AnimatedVisibility(
-                            visible = expandedSection == "presence_stealth",
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                    expandVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                   shrinkVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
-                        ) {
-                            Box(
+                // ================= 3. PERSONAL INFORMATION BUTTON =================
+                item(key = "menu_personal_details") {
+                    ProfileNavigationMenuButton(
+                        title = "Personal Information",
+                        subtitle = "Manage identity, personal info & contact details",
+                        icon = Icons.Default.Person,
+                        badgeText = "DETAILS",
+                        badgeColor = MaterialTheme.colorScheme.primary,
+                        onClick = { activeSubPage = ProfileSubPage.PERSONAL_INFO }
+                    )
+                }
+
+                // ================= 4. TWO-FACTOR AUTH & PASSWORD SECURITY BUTTON =================
+                item(key = "menu_two_factor_auth") {
+                    ProfileNavigationMenuButton(
+                        title = "Two-Factor Auth & Password Security",
+                        subtitle = "Email 2FA verification & instant inbox recovery",
+                        icon = Icons.Default.Shield,
+                        badgeText = if (twoFactorEnabled) "ENABLED" else "DISABLED",
+                        badgeColor = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error,
+                        onClick = { activeSubPage = ProfileSubPage.TWO_FACTOR_SECURITY }
+                    )
+                }
+
+                // ================= 5. BIOMETRIC & APP LOCK BUTTON =================
+                item(key = "menu_biometric_vault") {
+                    ProfileNavigationMenuButton(
+                        title = "Biometric & App Lock",
+                        subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
+                        icon = Icons.Default.Fingerprint,
+                        badgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
+                        badgeColor = if (isAppLockEnabled) OnlineGreen else TextDisabledColor,
+                        onClick = { activeSubPage = ProfileSubPage.BIOMETRIC_LOCK }
+                    )
+                }
+
+                // ================= 6. APPEARANCE & DISPLAY THEME BUTTON =================
+                item(key = "menu_appearance_theme") {
+                    ProfileNavigationMenuButton(
+                        title = "Appearance & Display Theme",
+                        subtitle = "Personalize your visual experience across the entire app",
+                        icon = Icons.Default.Tune,
+                        badgeText = currentThemeMode.displayName.uppercase(),
+                        badgeColor = MaterialTheme.colorScheme.primary,
+                        onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
+                    )
+                }
+
+                // ================= 7. GROUPS & COMMUNITIES BUTTON =================
+                item(key = "menu_groups_management") {
+                    ProfileNavigationMenuButton(
+                        title = "Groups & Communities",
+                        subtitle = "Manage created & joined groups",
+                        icon = Icons.Default.Groups,
+                        badgeText = if (isLoadingProfileGroups) "LOADING" else "${profileGroupsList.size} GROUPS",
+                        badgeColor = MaterialTheme.colorScheme.primary,
+                        onClick = { activeSubPage = ProfileSubPage.GROUPS_COMMUNITIES }
+                    )
+                }
+
+                item(key = "sign_out_button") {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .pressScaleEffect(
+                                onClick = onSignOut,
+                                targetScale = 0.95f
+                            )
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.12f))
+                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ExitToApp,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Sign Out Account",
+                                color = Color(0xFFEF4444),
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.3.sp
+                            )
+                        }
+                    }
+                }
+
+                
+                        item { Spacer(modifier = Modifier.height(32.dp)) }
+                    }
+                }
+            } else {
+                // ========== 2. DEDICATED FULL-SCREEN SUB-PAGE TAB ==========
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                ) {
+                    ProfileSubPageHeader(
+                        title = currentSubPage.title,
+                        subtitle = currentSubPage.subtitle,
+                        icon = currentSubPage.icon,
+                        onBack = { activeSubPage = null }
+                    )
+
+                    val subpageListState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+                    LazyColumn(
+                        state = subpageListState,
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 40.dp)
+                    ) {
+                        when (currentSubPage) {
+                            ProfileSubPage.PRESENCE_STEALTH -> {
+                                item(key = "sub_presence_stealth_card") {
+                                    Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(18.dp))
@@ -956,34 +1128,45 @@ fun ProfileScreen(
                                     )
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ================= PERSONAL DETAILS SECTION =================
-                item(key = "personal_details_section") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SectionHeader(
-                            title = "Personal Information",
-                            subtitle = "Manage your identity, personal information, and contact details",
-                            icon = Icons.Default.Person,
-                            badgeText = if (expandedSection == "personal_details") "OPEN" else "DETAILS",
-                            badgeColor = MaterialTheme.colorScheme.primary,
-                            isExpanded = expandedSection == "personal_details",
-                            onClick = { toggleSection("personal_details") }
-                        )
-
-                        AnimatedVisibility(
-                            visible = expandedSection == "personal_details",
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                    expandVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                   shrinkVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
-                        ) {
-                            Box(
+                                }
+                                item(key = "sub_presence_stealth_info") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
+                                            .padding(16.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Info,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "How Stealth Mode Works",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            Text(
+                                                text = "When stealth mode is turned on, your presence dot is hidden from all channels, direct messages, and friends lists. You can still read and send messages without broadcasting that you are online.",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 18.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            ProfileSubPage.PERSONAL_INFO -> {
+                                item(key = "sub_personal_info_form") {
+                                    Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(18.dp))
@@ -1158,34 +1341,11 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ================= 7B. TWO-FACTOR AUTH (2FA) & PASSWORD RECOVERY =================
-                item(key = "two_factor_auth_section") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SectionHeader(
-                            title = "Two-Factor Auth & Password Security",
-                            subtitle = "Email 2FA verification & instant inbox recovery",
-                            icon = Icons.Default.Shield,
-                            badgeText = if (twoFactorEnabled) "ENABLED" else "DISABLED",
-                            badgeColor = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error,
-                            isExpanded = expandedSection == "two_factor_auth",
-                            onClick = { toggleSection("two_factor_auth") }
-                        )
-
-                        AnimatedVisibility(
-                            visible = expandedSection == "two_factor_auth",
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                    expandVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                   shrinkVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
-                        ) {
-                            Box(
+                                }
+                            }
+                            ProfileSubPage.TWO_FACTOR_SECURITY -> {
+                                item(key = "sub_two_factor_security_form") {
+                                    Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(18.dp))
@@ -1439,37 +1599,14 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ================= 7C. BIOMETRIC & APP LOCK =================
-                item(key = "biometric_vault_section") {
-                    val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
+                                }
+                            }
+                            ProfileSubPage.BIOMETRIC_LOCK -> {
+                                item(key = "sub_biometric_lock_form") {
+                                                        val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
                     val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
                     val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SectionHeader(
-                            title = "Biometric & App Lock",
-                            subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
-                            icon = Icons.Default.Fingerprint,
-                            badgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
-                            badgeColor = if (isAppLockEnabled) OnlineGreen else TextDisabledColor,
-                            isExpanded = expandedSection == "biometric_vault",
-                            onClick = { toggleSection("biometric_vault") }
-                        )
-
-                        AnimatedVisibility(
-                            visible = expandedSection == "biometric_vault",
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                    expandVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                   shrinkVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
-                        ) {
-                            Box(
+                                    Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(18.dp))
@@ -1668,34 +1805,11 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ================= 7D. APPEARANCE & DISPLAY THEME =================
-                item(key = "appearance_theme_section") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SectionHeader(
-                            title = "Appearance & Display Theme",
-                            subtitle = "Personalize your visual experience across the entire app",
-                            icon = Icons.Default.Tune,
-                            badgeText = currentThemeMode.displayName.uppercase(),
-                            badgeColor = MaterialTheme.colorScheme.primary,
-                            isExpanded = expandedSection == "appearance_theme",
-                            onClick = { toggleSection("appearance_theme") }
-                        )
-
-                        AnimatedVisibility(
-                            visible = expandedSection == "appearance_theme",
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                    expandVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                   shrinkVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
-                        ) {
-                            Box(
+                                }
+                            }
+                            ProfileSubPage.APPEARANCE_THEME -> {
+                                item(key = "sub_appearance_theme_form") {
+                                    Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(18.dp))
@@ -1899,34 +2013,11 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-
-                // ================= 7. GROUPS & COMMUNITIES MANAGEMENT (Delete for Admin / Exit for Member) =================
-                item(key = "groups_management_section") {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        SectionHeader(
-                            title = "Groups & Communities",
-                            subtitle = "Manage created & joined groups",
-                            icon = Icons.Default.Groups,
-                            badgeText = if (isLoadingProfileGroups) "LOADING" else "${profileGroupsList.size} GROUPS",
-                            badgeColor = MaterialTheme.colorScheme.primary,
-                            isExpanded = expandedSection == "groups_management",
-                            onClick = { toggleSection("groups_management") }
-                        )
-
-                        AnimatedVisibility(
-                            visible = expandedSection == "groups_management",
-                            enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                    expandVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)),
-                            exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
-                                   shrinkVertically(spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
-                        ) {
-                            Card(
+                                }
+                            }
+                            ProfileSubPage.GROUPS_COMMUNITIES -> {
+                                item(key = "sub_groups_communities_form") {
+                                    Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(18.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -2110,49 +2201,14 @@ fun ProfileScreen(
                             }
                         }
                     }
-                }
-                }
-                }
-
-                // ================= 8. PRIMARY SIGN OUT BUTTON =================
-                item(key = "sign_out_button") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .pressScaleEffect(
-                                onClick = onSignOut,
-                                targetScale = 0.95f
-                            )
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFEF4444).copy(alpha = 0.12f))
-                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = null,
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Sign Out Account",
-                                color = Color(0xFFEF4444),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.3.sp
-                            )
+                                }
+                            }
                         }
                     }
                 }
-
-                item { Spacer(modifier = Modifier.height(32.dp)) }
             }
         }
     }
-
     if (showAddFriendDialog) {
         AddFriendDialog(
             currentUsername = username,
@@ -3556,3 +3612,178 @@ private fun PersonalDetailRow(
     }
 }
 
+
+
+@Composable
+private fun ProfileNavigationMenuButton(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    badgeText: String? = null,
+    badgeColor: Color? = null,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .pressScaleEffect(onClick = onClick, targetScale = 0.98f)
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(
+                1.dp,
+                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                RoundedCornerShape(18.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 15.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        lineHeight = 20.sp,
+                        maxLines = 1,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (badgeText != null) {
+                        val bColor = badgeColor ?: MaterialTheme.colorScheme.primary
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(bColor.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = badgeText,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = bColor,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 16.sp,
+                    maxLines = 1
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = "Open $title",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileSubPageHeader(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    onBack: () -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 3.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back to Profile Settings",
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+    }
+}
