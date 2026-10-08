@@ -30,7 +30,17 @@ data class AuthResult(
     val twoFactorMethod: String? = "sms",
     val requires2Fa: Boolean = false,
     val maskedDestination: String? = null,
-    val devOtp: String? = null
+    val devOtp: String? = null,
+    val isEmailVerified: Boolean = false,
+    val isTemporarilyBlocked: Boolean = false,
+    val verificationDaysLeft: Int? = null
+)
+
+data class EmailVerificationStatus(
+    val isEmailVerified: Boolean = true,
+    val isTemporarilyBlocked: Boolean = false,
+    val verificationDaysLeft: Int? = null,
+    val verificationDeadline: String? = null
 )
 
 data class OtpRequestResult(
@@ -237,7 +247,11 @@ data class ProfileDataDto(
     val twoFactorEnabled: Boolean = false,
     val twoFactorMethod: String? = "sms",
     val isStealth: Boolean = false,
-    val isOnline: Boolean = true
+    val isOnline: Boolean = true,
+    val isEmailVerified: Boolean = true,
+    val isTemporarilyBlocked: Boolean = false,
+    val verificationDaysLeft: Int? = null,
+    val verificationDeadline: String? = null
 )
 
 object ConnectoApiClient {
@@ -288,6 +302,18 @@ object ConnectoApiClient {
     fun updateStealthModeState(stealth: Boolean) {
         isStealthMode = stealth
         _isStealthModeState.value = stealth
+    }
+
+    private val _emailVerificationState = MutableStateFlow<EmailVerificationStatus>(EmailVerificationStatus())
+    val emailVerificationState: StateFlow<EmailVerificationStatus> = _emailVerificationState.asStateFlow()
+
+    fun updateVerificationState(isVerified: Boolean, isBlocked: Boolean, daysLeft: Int?, deadline: String? = null) {
+        _emailVerificationState.value = EmailVerificationStatus(
+            isEmailVerified = isVerified,
+            isTemporarilyBlocked = isBlocked,
+            verificationDaysLeft = daysLeft,
+            verificationDeadline = deadline
+        )
     }
 
     suspend fun setPresenceOffline(username: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
@@ -437,6 +463,57 @@ object ConnectoApiClient {
             if (response.isSuccess) {
                 val json = JSONObject(response.getOrThrow())
                 Result.success(json.optBoolean("verified", true))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Invalid verification code"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun requestEmailVerificationOtp(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val response = executeRequest(
+                endpoint = "/api/v1/auth/verify-email/request-otp",
+                method = "POST",
+                body = "{}",
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                Result.success(json.optString("message", "Verification code sent to your email"))
+            } else {
+                Result.failure(response.exceptionOrNull() ?: Exception("Failed to send verification code"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun confirmEmailVerification(otpCode: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("email", currentUserEmail ?: "")
+                put("otp_code", otpCode.trim())
+            }
+            val response = executeRequest(
+                endpoint = "/api/v1/auth/verify-email/confirm",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                val verified = json.optBoolean("verified", true)
+                if (verified) {
+                    updateVerificationState(
+                        isVerified = true,
+                        isBlocked = false,
+                        daysLeft = null,
+                        deadline = null
+                    )
+                }
+                Result.success(verified)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Invalid verification code"))
             }
@@ -668,6 +745,11 @@ object ConnectoApiClient {
                 val phone = userObj.optString("phone_number").takeIf { it.isNotEmpty() }
                 val devOtpStr = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() }
                     ?: userObj.optString("dev_otp").takeIf { it.isNotEmpty() }
+                val isEmailVerified = jsonObj.optBoolean("is_email_verified", false) || userObj.optBoolean("is_email_verified", false)
+                val isBlocked = jsonObj.optBoolean("is_temporarily_blocked", false) || userObj.optBoolean("is_temporarily_blocked", false)
+                val daysLeft = if (jsonObj.has("verification_days_left")) jsonObj.optInt("verification_days_left")
+                               else if (userObj.has("verification_days_left")) userObj.optInt("verification_days_left") else null
+
                 val authResult = AuthResult(
                     id = userObj.optString("id").ifEmpty { userObj.optString("uid", UUID.randomUUID().toString()) },
                     username = userObj.optString("username", cleanIdentifier),
@@ -680,7 +762,10 @@ object ConnectoApiClient {
                     twoFactorMethod = twoFaMethod,
                     requires2Fa = req2Fa,
                     maskedDestination = maskedDest,
-                    devOtp = devOtpStr
+                    devOtp = devOtpStr,
+                    isEmailVerified = isEmailVerified,
+                    isTemporarilyBlocked = isBlocked,
+                    verificationDaysLeft = daysLeft
                 )
 
                 if (!req2Fa) {
@@ -690,6 +775,11 @@ object ConnectoApiClient {
                     currentUserEmail = authResult.email
                     currentUserDisplayName = authResult.displayName
                     updateAvatarState(parsedAvatar)
+                    updateVerificationState(
+                        isVerified = isEmailVerified,
+                        isBlocked = isBlocked,
+                        daysLeft = daysLeft
+                    )
                 }
                 Result.success(authResult)
             } else {
@@ -3343,6 +3433,11 @@ object ConnectoApiClient {
                     bUrl = "${ConnectoNetworkConfig.activeBaseUrl}$bUrl"
                 }
 
+                val isVerified = userObj.optBoolean("is_email_verified", true)
+                val isBlocked = userObj.optBoolean("is_temporarily_blocked", false)
+                val daysLeft = if (userObj.has("verification_days_left") && !userObj.isNull("verification_days_left")) userObj.optInt("verification_days_left") else null
+                val deadlineStr = userObj.optString("verification_deadline").takeIf { it.isNotEmpty() }
+
                 val prof = ProfileDataDto(
                     id = userObj.optString("id"),
                     username = userObj.optString("username", u),
@@ -3360,7 +3455,11 @@ object ConnectoApiClient {
                     twoFactorEnabled = userObj.optBoolean("two_factor_enabled", false),
                     twoFactorMethod = userObj.optString("two_factor_method", "sms"),
                     isStealth = isStealth,
-                    isOnline = isOnline
+                    isOnline = isOnline,
+                    isEmailVerified = isVerified,
+                    isTemporarilyBlocked = isBlocked,
+                    verificationDaysLeft = daysLeft,
+                    verificationDeadline = deadlineStr
                 )
                 val isSelf = u.equals(currentUsername, ignoreCase = true)
                 if (isSelf) {
@@ -3371,6 +3470,7 @@ object ConnectoApiClient {
                         updateAvatarState(prof.avatarUrl)
                     }
                     updateStealthModeState(prof.isStealth)
+                    updateVerificationState(isVerified, isBlocked, daysLeft, deadlineStr)
                 }
                 Result.success(prof)
             } else {

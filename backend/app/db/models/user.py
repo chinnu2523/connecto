@@ -34,6 +34,8 @@ class User(Base):
     location = Column(String(128), nullable=True, default=None)
     two_factor_enabled = Column(Boolean, nullable=False, default=False)
     two_factor_method = Column(String(16), nullable=False, default="sms")
+    is_email_verified = Column(Boolean, nullable=False, default=False)
+    verification_deadline = Column(DateTime(timezone=True), nullable=True, default=None)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
 

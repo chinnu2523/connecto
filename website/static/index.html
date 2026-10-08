@@ -21141,6 +21141,49 @@ pre, .code-block, .chat-code-snippet {
         </div>
       </form>
     </div>
+  <!-- ==================== EMAIL VERIFICATION GRACE BANNER & MODAL ==================== -->
+  <div id="emailGracePeriodBanner" style="display:none; position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:9998; width:calc(100% - 32px); max-width:960px; background:linear-gradient(90deg, rgba(234,179,8,0.2), rgba(249,115,22,0.25)); backdrop-filter:blur(16px); border:1px solid rgba(234,179,8,0.45); border-radius:12px; padding:10px 16px; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.5);">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚠️</span>
+        <div>
+          <div style="font-weight:800; font-size:13px; color:#fef08a;" id="emailGraceDaysTitle">Email Verification Notice (7 days remaining)</div>
+          <div style="font-size:11.5px; color:rgba(255,255,255,0.85);">For existing accounts, please verify your email address to prevent account suspension.</div>
+        </div>
+      </div>
+      <button type="button" class="btn" onclick="openEmailVerificationModal(false)" style="background:#f59e0b; color:#0f172a; font-weight:800; font-size:11.5px; padding:6px 14px; border-radius:8px; border:none; cursor:pointer;">Verify Email ⚡</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="emailVerificationModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px); align-items:center; justify-content:center; padding:16px;">
+    <div class="auth-card" style="max-width:440px; width:100%; background:rgba(15,23,42,0.96); border:1px solid rgba(99,102,241,0.4); border-radius:24px; padding:28px; position:relative; box-shadow:0 24px 60px rgba(0,0,0,0.8);">
+      <button type="button" id="closeEmailVerificationBtn" onclick="closeEmailVerificationModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding:6px;">✕</button>
+      
+      <div style="text-align:center; margin-bottom:20px;">
+        <div id="emailVerifyIconBox" style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #3b82f6); display:inline-flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:12px;">✉️</div>
+        <h3 id="emailVerifyTitle" style="font-size:20px; font-weight:900; color:#fff; margin-bottom:6px;">Verify Your Email</h3>
+        <p id="emailVerifyDesc" style="font-size:13px; color:rgba(255,255,255,0.7); line-height:1.5;">Confirm your registered email address with a 6-digit OTP code to maintain full access to Connecto.</p>
+      </div>
+
+      <div id="emailVerifyStepRequest">
+        <button type="button" class="btn auth-submit-shimmer" id="emailVerifySendOtpBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800;" onclick="handleRequestEmailVerificationOtp()">Send 6-Digit Code ✉️</button>
+      </div>
+
+      <div id="emailVerifyStepConfirm" style="display:none;">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:12px; font-weight:700; color:#a5b4fc;">Enter 6-Digit OTP Code</label>
+          <div class="auth-input-wrap" style="margin-top:6px;">
+            <input type="text" maxlength="6" class="auth-input-field" id="emailVerifyOtpInput" placeholder="123456" style="text-align:center; font-size:20px; letter-spacing:6px; font-weight:800;">
+          </div>
+        </div>
+        <button type="button" class="btn auth-submit-shimmer" id="emailVerifySubmitBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800; background:linear-gradient(135deg, #10b981, #06b6d4);" onclick="handleConfirmEmailVerificationOtp()">Verify & Unlock ➔</button>
+        <div style="text-align:center; margin-top:12px;">
+          <button type="button" class="btn-text" onclick="handleRequestEmailVerificationOtp()" style="color:#818cf8; background:none; border:none; font-size:12px; font-weight:700; cursor:pointer;">Resend Code</button>
+        </div>
+      </div>
+
+      <div class="auth-alert" id="emailVerifyFeedback" style="display:none; margin-top:14px;"></div>
+    </div>
   </div>
 
   <script>
@@ -21404,6 +21447,222 @@ pre, .code-block, .chat-code-snippet {
       } catch (e) {
         console.error('[NOTIFS_CHECK_ERROR]', e);
       }
+    // ==================== EMAIL VERIFICATION FOR EXISTING USERS ====================
+    let userEmailVerification = {
+      isEmailVerified: true,
+      isTemporarilyBlocked: false,
+      verificationDaysLeft: null
+    };
+
+    async function checkEmailVerificationStatus() {
+      if (!currentUser || currentUser === 'guest') return;
+      try {
+        const res = await fetch(`/api/user/profile?username=${encodeURIComponent(currentUser)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const user = data.user || data;
+        const isVerified = (user.is_email_verified === true || user.is_email_verified === 1);
+        const isBlocked = (user.is_temporarily_blocked === true || user.is_temporarily_blocked === 1);
+        const daysLeft = (typeof user.verification_days_left === 'number') ? user.verification_days_left : 7;
+
+        userEmailVerification = {
+          isEmailVerified: isVerified,
+          isTemporarilyBlocked: isBlocked,
+          verificationDaysLeft: daysLeft
+        };
+
+        const graceBanner = document.getElementById('emailGracePeriodBanner');
+        const daysTitle = document.getElementById('emailGraceDaysTitle');
+
+        if (!isVerified) {
+          if (isBlocked) {
+            if (graceBanner) graceBanner.style.display = 'none';
+            openEmailVerificationModal(true);
+          } else {
+            if (graceBanner) {
+              if (daysTitle) {
+                daysTitle.innerText = `Email Verification Notice (${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining)`;
+              }
+              graceBanner.style.display = 'block';
+            }
+          }
+        } else {
+          if (graceBanner) graceBanner.style.display = 'none';
+          const modal = document.getElementById('emailVerificationModal');
+          if (modal) modal.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('[EMAIL_VERIFY_CHECK_ERROR]', err);
+      }
+    }
+
+    function openEmailVerificationModal(isBlocked = false) {
+      const modal = document.getElementById('emailVerificationModal');
+      if (!modal) return;
+      const closeBtn = document.getElementById('closeEmailVerificationBtn');
+      const title = document.getElementById('emailVerifyTitle');
+      const desc = document.getElementById('emailVerifyDesc');
+      const iconBox = document.getElementById('emailVerifyIconBox');
+      const fb = document.getElementById('emailVerifyFeedback');
+
+      if (fb) {
+        fb.style.display = 'none';
+        fb.className = 'auth-alert';
+        fb.innerHTML = '';
+      }
+
+      if (isBlocked) {
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (title) title.innerText = 'Account Temporarily Blocked';
+        if (desc) desc.innerText = 'Your 7-day grace period has expired. Please verify your registered email address with an OTP code to unlock your account.';
+        if (iconBox) {
+          iconBox.innerText = '🔒';
+          iconBox.style.background = 'linear-gradient(135deg, #ef4444, #b91c1c)';
+        }
+      } else {
+        if (closeBtn) closeBtn.style.display = 'block';
+        const days = userEmailVerification.verificationDaysLeft || 7;
+        if (title) title.innerText = 'Verify Your Email';
+        if (desc) desc.innerText = `You have ${days} day${days === 1 ? '' : 's'} remaining to verify your email. Verify now to prevent temporary account suspension.`;
+        if (iconBox) {
+          iconBox.innerText = '✉️';
+          iconBox.style.background = 'linear-gradient(135deg, #6366f1, #3b82f6)';
+        }
+      }
+
+      document.getElementById('emailVerifyStepRequest').style.display = 'block';
+      document.getElementById('emailVerifyStepConfirm').style.display = 'none';
+      modal.style.display = 'flex';
+    }
+
+    function closeEmailVerificationModal() {
+      if (userEmailVerification.isTemporarilyBlocked) return;
+      const modal = document.getElementById('emailVerificationModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function handleRequestEmailVerificationOtp() {
+      const btn = document.getElementById('emailVerifySendOtpBtn');
+      const fb = document.getElementById('emailVerifyFeedback');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Sending Code...';
+      }
+      try {
+        const token = localStorage.getItem('connecto_token') || authToken;
+        const res = await fetch('/api/v1/auth/verify-email/request-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('emailVerifyStepRequest').style.display = 'none';
+          document.getElementById('emailVerifyStepConfirm').style.display = 'block';
+          if (fb) {
+            fb.className = 'auth-alert success';
+            fb.style.display = 'block';
+            fb.innerHTML = `<span>✅</span> <span>${escapeHTML(data.message || 'Verification code sent to your email!')}</span>`;
+          }
+          const inp = document.getElementById('emailVerifyOtpInput');
+          if (inp) {
+            inp.value = '';
+            inp.focus();
+          }
+        } else {
+          if (fb) {
+            fb.className = 'auth-alert error';
+            fb.style.display = 'block';
+            fb.innerHTML = `<span>⚠️</span> <span>${escapeHTML(data.detail || 'Failed to dispatch verification code.')}</span>`;
+          }
+        }
+      } catch (err) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.style.display = 'block';
+          fb.innerHTML = `<span>⚠️</span> <span>Network error: ${escapeHTML(err.message)}</span>`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Send 6-Digit Code ✉️';
+        }
+      }
+    }
+
+    async function handleConfirmEmailVerificationOtp() {
+      const inp = document.getElementById('emailVerifyOtpInput');
+      const otp = inp ? inp.value.trim() : '';
+      const btn = document.getElementById('emailVerifySubmitBtn');
+      const fb = document.getElementById('emailVerifyFeedback');
+
+      if (!otp || otp.length !== 6) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.style.display = 'block';
+          fb.innerHTML = '<span>⚠️</span> <span>Please enter the complete 6-digit OTP code.</span>';
+        }
+        if (inp) inp.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Verifying Code...';
+      }
+
+      try {
+        const token = localStorage.getItem('connecto_token') || authToken;
+        const res = await fetch('/api/v1/auth/verify-email/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({ otp_code: otp })
+        });
+        const data = await res.json();
+        if (res.ok && data.verified) {
+          userEmailVerification.isEmailVerified = true;
+          userEmailVerification.isTemporarilyBlocked = false;
+          userEmailVerification.verificationDaysLeft = null;
+
+          const graceBanner = document.getElementById('emailGracePeriodBanner');
+          if (graceBanner) graceBanner.style.display = 'none';
+
+          if (fb) {
+            fb.className = 'auth-alert success';
+            fb.style.display = 'block';
+            fb.innerHTML = '<span>🎉</span> <span>Email verified! Your account is unlocked.</span>';
+          }
+
+          showNotificationToast('Email Verified', 'Your email address is verified! Full access restored.');
+          setTimeout(() => {
+            const modal = document.getElementById('emailVerificationModal');
+            if (modal) modal.style.display = 'none';
+          }, 1200);
+        } else {
+          if (fb) {
+            fb.className = 'auth-alert error';
+            fb.style.display = 'block';
+            fb.innerHTML = `<span>⚠️</span> <span>${escapeHTML(data.detail || 'Invalid verification code. Please try again.')}</span>`;
+          }
+        }
+      } catch (err) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.style.display = 'block';
+          fb.innerHTML = `<span>⚠️</span> <span>Network error: ${escapeHTML(err.message)}</span>`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Verify & Unlock ➔';
+        }
+      }
     }
 
     function initInAppServices() {
@@ -21423,6 +21682,7 @@ pre, .code-block, .chat-code-snippet {
         checkUserNotifications();
         updateUserStatusText();
         loadNotifPreferences();
+        checkEmailVerificationStatus();
         document.getElementById('userStatusBadge').style.background = 'var(--green)';
       } else {
         updateUserStatusText('', '');

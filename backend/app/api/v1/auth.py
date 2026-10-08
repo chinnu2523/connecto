@@ -107,6 +107,65 @@ async def signup_verify_otp(
         "message": "Email verified successfully ✓"
     }
 
+@router.post("/verify-email/request-otp")
+async def verify_email_request_otp(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Sends a 6-digit email OTP to existing users to verify their email within the 7-day grace period.
+    """
+    if current_user.is_email_verified:
+        return {
+            "status": "ok",
+            "message": "Your email is already verified.",
+            "is_email_verified": True
+        }
+
+    clean_e = current_user.email.strip().lower()
+    res = await send_unified_otp(
+        db=db,
+        identifier=clean_e,
+        method="email",
+        purpose="email_verification",
+        user_id=current_user.id
+    )
+    return {
+        "status": "ok",
+        "message": f"Verification code sent to {res.get('masked_destination', clean_e)}",
+        "masked_destination": res.get("masked_destination", mask_email(clean_e)),
+        "dev_otp": res.get("dev_otp")
+    }
+
+@router.post("/verify-email/confirm")
+async def verify_email_confirm(
+    req: SignupVerifyOtp,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Confirms email verification OTP for an existing user and unblocks their account.
+    """
+    clean_e = current_user.email.strip().lower()
+    otp_record = await verify_unified_otp(
+        db=db,
+        identifier=clean_e,
+        otp_code=req.otp_code.strip(),
+        purpose="email_verification"
+    )
+    current_user.is_email_verified = True
+    current_user.verification_deadline = None
+    await db.commit()
+    await db.refresh(current_user)
+
+    return {
+        "status": "ok",
+        "verified": True,
+        "is_email_verified": True,
+        "is_temporarily_blocked": False,
+        "message": "Email successfully verified! Your account is fully unlocked."
+    }
+
 @router.get("/check-username")
 async def check_username(
     request: Request,
@@ -313,7 +372,9 @@ async def signup(
         email=clean_email,
         password_hash=hashed_pwd,
         date_of_birth=signup_data.date_of_birth,
-        username_changed=False
+        username_changed=False,
+        is_email_verified=True,
+        verification_deadline=None
     )
     db.add(new_user)
     await db.commit()
@@ -358,6 +419,8 @@ async def signup(
         "avatar_url": new_user.avatar_url,
         "is_admin": bool(getattr(new_user, "is_admin", False)),
         "username_changed": new_user.username_changed,
+        "is_email_verified": True,
+        "verification_deadline": None,
         "created_at": new_user.created_at,
         "banner_url": getattr(new_user, "banner_url", None),
         "token": raw_token
@@ -476,6 +539,8 @@ async def login(
         "avatar_url": user.avatar_url,
         "is_admin": is_adm,
         "username_changed": user.username_changed,
+        "is_email_verified": getattr(user, "is_email_verified", False),
+        "verification_deadline": getattr(user, "verification_deadline", None),
         "created_at": user.created_at,
         "banner_url": getattr(user, "banner_url", None),
         "token": raw_token
@@ -589,6 +654,8 @@ async def verify_login_2fa(
         "avatar_url": user.avatar_url,
         "is_admin": is_adm,
         "username_changed": user.username_changed,
+        "is_email_verified": getattr(user, "is_email_verified", False),
+        "verification_deadline": getattr(user, "verification_deadline", None),
         "created_at": user.created_at,
         "banner_url": getattr(user, "banner_url", None),
         "token": raw_token

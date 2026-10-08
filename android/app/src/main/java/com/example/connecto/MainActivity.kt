@@ -51,6 +51,8 @@ import com.example.connecto.security.BiometricAuthManager
 import com.example.connecto.security.BiometricStatus
 import com.example.connecto.ui.auth.AuthHomeScreen
 import com.example.connecto.ui.components.IncomingCallDialog
+import com.example.connecto.ui.components.EmailGracePeriodBanner
+import com.example.connecto.ui.components.EmailVerificationModal
 import com.example.connecto.ui.intro.SplashScreen
 import com.example.connecto.ui.navigation.ConnectoBottomBar
 import com.example.connecto.ui.navigation.ConnectoTab
@@ -517,6 +519,9 @@ fun ConnectoApp(
                     val density = androidx.compose.ui.platform.LocalDensity.current
                     val isImeVisible = androidx.compose.foundation.layout.WindowInsets.ime.getBottom(density) > 100
 
+                    val emailVerification by com.example.connecto.network.ConnectoApiClient.emailVerificationState.collectAsState()
+                    var showManualVerifyModal by remember { mutableStateOf(false) }
+
                     val showBottomBar = !(currentTab == ConnectoTab.MESSAGES && isDirectChatOpen) && !isImeVisible
 
                     val activity = context as? android.app.Activity
@@ -564,11 +569,30 @@ fun ConnectoApp(
                             }
                         }
                     ) { innerPadding ->
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(bottom = innerPadding.calculateBottomPadding())
                         ) {
+                            // Top Grace Period Banner if email is not verified and account is not blocked
+                            if (!emailVerification.isEmailVerified && !emailVerification.isTemporarilyBlocked) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    EmailGracePeriodBanner(
+                                        daysLeft = emailVerification.verificationDaysLeft,
+                                        onVerifyClick = { showManualVerifyModal = true }
+                                    )
+                                }
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
                             AnimatedContent(
                                 targetState = currentTab,
                                 transitionSpec = {
@@ -698,6 +722,16 @@ fun ConnectoApp(
                                 }
                             }
                         }
+
+                        // Modal for manual verification or account blocked
+                        if (emailVerification.isTemporarilyBlocked || showManualVerifyModal) {
+                            EmailVerificationModal(
+                                isBlocked = emailVerification.isTemporarilyBlocked,
+                                daysLeft = emailVerification.verificationDaysLeft,
+                                onDismiss = { showManualVerifyModal = false }
+                            )
+                        }
+                    }
                 }
             }
         }

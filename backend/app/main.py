@@ -3933,6 +3933,27 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
 
     can_view_pii = is_self or (session_user is not None and bool(getattr(session_user, "is_admin", False)))
 
+    is_verified = bool(getattr(user, "is_email_verified", False))
+    v_deadline = getattr(user, "verification_deadline", None)
+    is_blocked = False
+    days_left = None
+
+    if not is_verified:
+        from datetime import timezone
+        now = datetime.now(timezone.utc)
+        if v_deadline:
+            dl = v_deadline if v_deadline.tzinfo else v_deadline.replace(tzinfo=timezone.utc)
+            diff = dl - now
+            if diff.total_seconds() <= 0:
+                is_blocked = True
+                days_left = 0
+            else:
+                is_blocked = False
+                days_left = max(1, int(diff.total_seconds() // 86400) + 1)
+        else:
+            is_blocked = False
+            days_left = 7
+
     user_dict = {
         "id": user.id,
         "username": user.username,
@@ -3954,6 +3975,10 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
         "two_factor_enabled": bool(getattr(user, "two_factor_enabled", False)) if can_view_pii else False,
         "is_stealth": is_stealth if is_self else False,
         "is_online": is_online,
+        "is_email_verified": is_verified,
+        "verification_deadline": v_deadline.isoformat() if v_deadline else None,
+        "is_temporarily_blocked": is_blocked,
+        "verification_days_left": days_left,
         "status": presence_status
     }
 
