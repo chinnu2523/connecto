@@ -2,13 +2,14 @@ name = "connecto-worker"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+workers_dev = true
+preview_urls = true
+
 routes = [
   { pattern = "connecto.fun/*", zone_name = "connecto.fun" },
   { pattern = "*.connecto.fun/*", zone_name = "connecto.fun" }
 ]
 
-[triggers]
-crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"

@@ -406,11 +406,7 @@ object ConnectoApiClient {
     private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36 Connecto/2.5"
 
     suspend fun checkHealth(): Boolean = withContext(Dispatchers.IO) {
-        val candidateUrls = if (ConnectoNetworkConfig.activeBaseUrl.contains("localhost") || ConnectoNetworkConfig.activeBaseUrl.contains("10.0.2.2")) {
-            listOf(ConnectoNetworkConfig.activeBaseUrl, "http://localhost:8000", "http://10.0.2.2:8000").distinct()
-        } else {
-            listOf(ConnectoNetworkConfig.activeBaseUrl)
-        }
+        val candidateUrls = ConnectoNetworkConfig.getCandidateBases()
         val healthEndpoints = listOf("/api/health", "/api/status", "/api/v1/health", "/api/members")
         for (base in candidateUrls) {
             for (path in healthEndpoints) {
@@ -3104,7 +3100,7 @@ object ConnectoApiClient {
             }
             val fileName = "avatar.$extension"
 
-            val candidateBases = listOf(ConnectoNetworkConfig.activeBaseUrl)
+            val candidateBases = ConnectoNetworkConfig.getCandidateBases()
             var lastException: Exception? = null
 
             for (base in candidateBases) {
@@ -3236,7 +3232,7 @@ object ConnectoApiClient {
             }
             val fileName = "group_avatar.$extension"
 
-            val candidateBases = listOf(ConnectoNetworkConfig.activeBaseUrl)
+            val candidateBases = ConnectoNetworkConfig.getCandidateBases()
             var lastException: Exception? = null
 
             for (base in candidateBases) {
@@ -3381,7 +3377,7 @@ object ConnectoApiClient {
             val fileName = "banner.webp"
             val mimeType = "image/webp"
 
-            val candidateBases = listOf(ConnectoNetworkConfig.activeBaseUrl)
+            val candidateBases = ConnectoNetworkConfig.getCandidateBases()
             var lastException: Exception? = null
 
             for (base in candidateBases) {
@@ -3538,11 +3534,7 @@ object ConnectoApiClient {
         body: String?,
         token: String?
     ): Result<String> {
-        val candidateBases = if (ConnectoNetworkConfig.activeBaseUrl.contains("localhost") || ConnectoNetworkConfig.activeBaseUrl.contains("10.0.2.2")) {
-            listOf(ConnectoNetworkConfig.activeBaseUrl, "http://localhost:8000", "http://10.0.2.2:8000").distinct()
-        } else {
-            listOf(ConnectoNetworkConfig.activeBaseUrl)
-        }
+        val candidateBases = ConnectoNetworkConfig.getCandidateBases()
 
         val isAuthEndpoint = endpoint.contains("/auth/login") || endpoint.contains("/login") || endpoint.contains("/register")
         val activeToken = if (isAuthEndpoint) null else (token ?: getPersistedToken())

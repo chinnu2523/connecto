@@ -15,6 +15,14 @@ object ConnectoNetworkConfig {
     @Volatile
     var activeServerMode: String = "cloud_server" // "cloud_server" or "local_server"
 
+    fun getCandidateBases(): List<String> {
+        val list = mutableListOf<String>()
+        if (activeBaseUrl.isNotBlank()) list.add(activeBaseUrl)
+        if (BuildConfig.BASE_URL.isNotBlank() && !list.contains(BuildConfig.BASE_URL)) list.add(BuildConfig.BASE_URL)
+        if (!list.contains(CLOUD_SERVER_URL)) list.add(CLOUD_SERVER_URL)
+        return list
+    }
+
     fun getApiUrl(endpoint: String): String {
         val cleanEndpoint = if (endpoint.startsWith("/")) endpoint else "/$endpoint"
         return "$activeBaseUrl$cleanEndpoint"

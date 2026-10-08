@@ -26,8 +26,8 @@ android {
     buildTypes {
         debug {
             // Debug: use Tailscale for developer builds (on-VPN only)
-            buildConfigField("String", "BASE_URL", "\"http://100.87.184.30\"")
-            buildConfigField("String", "WS_BASE_URL", "\"ws://100.87.184.30\"")
+            buildConfigField("String", "BASE_URL", "\"https://connecto.fun\"")
+            buildConfigField("String", "WS_BASE_URL", "\"wss://connecto.fun\"")
         }
         release {
             isDebuggable = false
