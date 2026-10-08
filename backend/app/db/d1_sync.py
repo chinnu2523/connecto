@@ -198,7 +198,8 @@ class D1SyncManager:
             "bookmarks",
             "referrals",
             "moderation_reports",
-            "audit_logs"
+            "audit_logs",
+            "user_email_aliases"
         ]
         results = {}
         for tbl in target_tables:
