@@ -12575,13 +12575,14 @@
   left: 0 !important;
   right: 0 !important;
   height: 64px !important;
-  background: #0A0C13 !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-card, #0A0C13) !important;
+  border-top: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
   z-index: 9999 !important;
   justify-content: space-around !important;
   align-items: center !important;
   padding: 0 8px !important;
   backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 .mobile-dock-btn {
   display: flex !important;
@@ -14074,6 +14075,141 @@ body.in-app-view #heroView,
   }
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Dedicated Parchment / Light Mode Styling Overrides for Mobile Phone View */
+html[data-theme="parchment"] .connecto-mobile-dock,
+html[data-theme="light"] .connecto-mobile-dock,
+html[data-theme="ivory"] .connecto-mobile-dock {
+  background: rgba(251, 248, 242, 0.94) !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+  box-shadow: 0 10px 30px rgba(68, 64, 60, 0.12), 0 0 16px rgba(212, 175, 125, 0.18) !important;
+}
+
+html[data-theme="parchment"] .mobile-dock-btn,
+html[data-theme="light"] .mobile-dock-btn,
+html[data-theme="ivory"] .mobile-dock-btn {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-dock-btn:hover,
+html[data-theme="light"] .mobile-dock-btn:hover,
+html[data-theme="ivory"] .mobile-dock-btn:hover {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-dock-btn.active,
+html[data-theme="light"] .mobile-dock-btn.active,
+html[data-theme="ivory"] .mobile-dock-btn.active {
+  background: rgba(20, 19, 18, 0.08) !important;
+  border-color: rgba(20, 19, 18, 0.22) !important;
+  color: #141312 !important;
+  box-shadow: 0 2px 8px rgba(20, 19, 18, 0.12) !important;
+}
+
+html[data-theme="parchment"] .connecto-greeting-card,
+html[data-theme="light"] .connecto-greeting-card,
+html[data-theme="ivory"] .connecto-greeting-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  box-shadow: 0 4px 18px rgba(68, 64, 60, 0.06) !important;
+}
+
+html[data-theme="parchment"] .connecto-greeting-title,
+html[data-theme="light"] .connecto-greeting-title,
+html[data-theme="ivory"] .connecto-greeting-title {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-search-bar,
+html[data-theme="light"] .connecto-search-bar,
+html[data-theme="ivory"] .connecto-search-bar {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-search-bar input,
+html[data-theme="light"] .connecto-search-bar input,
+html[data-theme="ivory"] .connecto-search-bar input {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-card,
+html[data-theme="light"] .connecto-channel-card,
+html[data-theme="ivory"] .connecto-channel-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-card:hover,
+html[data-theme="light"] .connecto-channel-card:hover,
+html[data-theme="ivory"] .connecto-channel-card:hover {
+  background: #fcfbf9 !important;
+  border-color: rgba(20, 19, 18, 0.28) !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-name,
+html[data-theme="light"] .connecto-channel-name,
+html[data-theme="ivory"] .connecto-channel-name {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-hash,
+html[data-theme="light"] .connecto-channel-hash,
+html[data-theme="ivory"] .connecto-channel-hash {
+  color: #44403c !important;
+}
+
+html[data-theme="parchment"] .connecto-dm-card,
+html[data-theme="light"] .connecto-dm-card,
+html[data-theme="ivory"] .connecto-dm-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-dm-card:hover,
+html[data-theme="light"] .connecto-dm-card:hover,
+html[data-theme="ivory"] .connecto-dm-card:hover {
+  background: #fcfbf9 !important;
+  border-color: rgba(20, 19, 18, 0.28) !important;
+}
+
+html[data-theme="parchment"] .connecto-action-pill,
+html[data-theme="light"] .connecto-action-pill,
+html[data-theme="ivory"] .connecto-action-pill {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-action-pill:hover,
+html[data-theme="light"] .connecto-action-pill:hover,
+html[data-theme="ivory"] .connecto-action-pill:hover {
+  background: rgba(20, 19, 18, 0.06) !important;
+  border-color: #141312 !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-section-title,
+html[data-theme="light"] .connecto-section-title,
+html[data-theme="ivory"] .connecto-section-title {
+  color: #57534e !important;
+}
+
+html[data-theme="parchment"] .connecto-screen-header .connecto-header-title,
+html[data-theme="light"] .connecto-screen-header .connecto-header-title,
+html[data-theme="ivory"] .connecto-screen-header .connecto-header-title {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-call-search-card,
+html[data-theme="light"] .connecto-call-search-card,
+html[data-theme="ivory"] .connecto-call-search-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+}
 </style>
 
 <style id="connecto-android-showcase-styles">
@@ -21168,6 +21304,7 @@ pre, .code-block, .chat-code-snippet {
         </div>
       </form>
     </div>
+  </div>
   <!-- ==================== EMAIL VERIFICATION GRACE BANNER & MODAL ==================== -->
   <div id="emailGracePeriodBanner" style="display:none; position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:9998; width:calc(100% - 32px); max-width:960px; background:linear-gradient(90deg, rgba(234,179,8,0.2), rgba(249,115,22,0.25)); backdrop-filter:blur(16px); border:1px solid rgba(234,179,8,0.45); border-radius:12px; padding:10px 16px; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.5);">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
@@ -21484,7 +21621,15 @@ pre, .code-block, .chat-code-snippet {
     };
 
     async function checkEmailVerificationStatus() {
-      if (!currentUser || currentUser === 'guest') return;
+      const graceBanner = document.getElementById('emailGracePeriodBanner');
+      const authModalEl = document.getElementById('authModal');
+      const isAuthModalOpen = authModalEl && (authModalEl.style.display === 'flex' || authModalEl.style.display === 'block');
+      const isLandingView = !inAppInitialized || (typeof activeMainView !== 'undefined' && activeMainView === 'hero');
+
+      if (!currentUser || currentUser === 'guest' || isAuthModalOpen || isLandingView) {
+        if (graceBanner) graceBanner.style.display = 'none';
+        return;
+      }
       try {
         const res = await fetch(`/api/user/profile?username=${encodeURIComponent(currentUser)}`);
         if (!res.ok) return;
@@ -21500,7 +21645,6 @@ pre, .code-block, .chat-code-snippet {
           verificationDaysLeft: daysLeft
         };
 
-        const graceBanner = document.getElementById('emailGracePeriodBanner');
         const daysTitle = document.getElementById('emailGraceDaysTitle');
 
         if (!isVerified) {
@@ -21508,7 +21652,9 @@ pre, .code-block, .chat-code-snippet {
             if (graceBanner) graceBanner.style.display = 'none';
             openEmailVerificationModal(true);
           } else {
-            if (graceBanner) {
+            // Re-verify modal/landing state before showing banner
+            const modalOpenNow = authModalEl && (authModalEl.style.display === 'flex' || authModalEl.style.display === 'block');
+            if (graceBanner && !modalOpenNow && inAppInitialized) {
               if (daysTitle) {
                 daysTitle.innerText = `Email Verification Notice (${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining)`;
               }
@@ -30382,6 +30528,10 @@ function selectSettingsAvatar(emoji, el) {
 
     function openAuthModal(mode = 'login') {
       document.querySelectorAll('.modal-overlay').forEach(m => { if (m.id !== 'authModal') m.style.display = 'none'; });
+      const graceBanner = document.getElementById('emailGracePeriodBanner');
+      if (graceBanner) graceBanner.style.display = 'none';
+      const emailModal = document.getElementById('emailVerificationModal');
+      if (emailModal) emailModal.style.display = 'none';
       const popover = document.getElementById('userPopoverCard');
       if (popover) popover.style.display = 'none';
       const nav = document.querySelector('.auth-segmented-nav');
@@ -32070,6 +32220,15 @@ function handleNavCommunityClick() {
       localStorage.setItem('connecto_last_view', 'hero');
       updateNavAuthUI();
       ensureLucideIcons();
+
+      // Deep link support for direct /signup, /register, /login or ?auth= / ?mode= URLs
+      const pathLower = (window.location.pathname || '').toLowerCase();
+      const authParam = (urlParams.get('auth') || urlParams.get('mode') || urlParams.get('action') || '').toLowerCase();
+      if (pathLower.includes('signup') || pathLower.includes('register') || authParam === 'signup' || authParam === 'register') {
+        setTimeout(() => openAuthModal('register'), 100);
+      } else if (pathLower.includes('login') || pathLower.includes('signin') || authParam === 'login' || authParam === 'signin') {
+        setTimeout(() => openAuthModal('login'), 100);
+      }
     }
 
     function ensureLucideIcons() {
