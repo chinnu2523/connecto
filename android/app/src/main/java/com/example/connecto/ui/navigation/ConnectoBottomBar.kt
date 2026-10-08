@@ -138,28 +138,38 @@ fun ConnectoBottomBar(
                 val interactionSource = remember { MutableInteractionSource() }
                 val isPressed by interactionSource.collectIsPressedAsState()
 
-                // Tactile button compression on touch
+                // Tactile spring physics button compression on touch
                 val buttonPressScale by animateFloatAsState(
-                    targetValue = if (isPressed) 0.88f else 1.0f,
-                    animationSpec = spring(stiffness = 650f, dampingRatio = 0.70f),
+                    targetValue = if (isPressed) 0.86f else 1.0f,
+                    animationSpec = spring(stiffness = 550f, dampingRatio = Spring.DampingRatioMediumBouncy),
                     label = "buttonPressScale"
                 )
 
-                // Playful icon bounce when selected
+                // High-transition playful icon bounce with overshoot when selected
                 val iconScale by animateFloatAsState(
-                    targetValue = if (isSelected) 1.20f else 1.0f,
+                    targetValue = if (isSelected) 1.24f else 1.0f,
                     animationSpec = spring(
-                        stiffness = 380f,
+                        stiffness = 320f,
                         dampingRatio = Spring.DampingRatioMediumBouncy
                     ),
                     label = "tabIconBounceScale"
                 )
 
+                // Subtle rotational tilt kick on tab activation for ultra-fluid sensation
+                val iconRotation by animateFloatAsState(
+                    targetValue = if (isSelected) -4f else 0f,
+                    animationSpec = spring(
+                        stiffness = 400f,
+                        dampingRatio = Spring.DampingRatioMediumBouncy
+                    ),
+                    label = "tabIconRotation"
+                )
+
                 // Smooth vertical floating translation
                 val iconOffsetY by animateDpAsState(
-                    targetValue = if (isSelected) (-2.5).dp else 0.dp,
+                    targetValue = if (isSelected) (-3.5).dp else 0.dp,
                     animationSpec = spring(
-                        stiffness = 380f,
+                        stiffness = 340f,
                         dampingRatio = Spring.DampingRatioMediumBouncy
                     ),
                     label = "tabIconOffsetY"
@@ -178,7 +188,7 @@ fun ConnectoBottomBar(
                 )
 
                 val pillWidth by animateDpAsState(
-                    targetValue = if (isSelected) 54.dp else 36.dp,
+                    targetValue = if (isSelected) 56.dp else 36.dp,
                     animationSpec = spring(
                         stiffness = Spring.StiffnessMediumLow,
                         dampingRatio = Spring.DampingRatioMediumBouncy
@@ -187,12 +197,18 @@ fun ConnectoBottomBar(
                 )
 
                 val indicatorWidth by animateDpAsState(
-                    targetValue = if (isSelected) 18.dp else 0.dp,
+                    targetValue = if (isSelected) 22.dp else 0.dp,
                     animationSpec = spring(
-                        stiffness = 420f,
-                        dampingRatio = 0.70f
+                        stiffness = 360f,
+                        dampingRatio = Spring.DampingRatioMediumBouncy
                     ),
                     label = "indicatorWidth"
+                )
+
+                val indicatorGlowAlpha by animateFloatAsState(
+                    targetValue = if (isSelected) 1.0f else 0.0f,
+                    animationSpec = tween(durationMillis = 300),
+                    label = "indicatorGlowAlpha"
                 )
 
                 Box(
@@ -229,8 +245,8 @@ fun ConnectoBottomBar(
                                     if (isSelected) {
                                         Brush.linearGradient(
                                             listOf(
-                                                colors.primary.copy(alpha = 0.24f),
-                                                colors.primary.copy(alpha = 0.08f)
+                                                colors.primary.copy(alpha = 0.28f),
+                                                colors.primary.copy(alpha = 0.09f)
                                             )
                                         )
                                     } else {
@@ -240,8 +256,8 @@ fun ConnectoBottomBar(
                                     }
                                 )
                                 .border(
-                                    width = if (isSelected) 1.dp else 0.dp,
-                                    color = if (isSelected) colors.primary.copy(alpha = 0.50f) else Color.Transparent,
+                                    width = if (isSelected) 1.2.dp else 0.dp,
+                                    color = if (isSelected) colors.primary.copy(alpha = 0.60f) else Color.Transparent,
                                     shape = RoundedCornerShape(16.dp)
                                 ),
                             contentAlignment = Alignment.Center
@@ -252,6 +268,7 @@ fun ConnectoBottomBar(
                                     .graphicsLayer {
                                         scaleX = iconScale
                                         scaleY = iconScale
+                                        rotationZ = iconRotation
                                     },
                                 contentAlignment = Alignment.TopEnd
                             ) {
@@ -377,21 +394,36 @@ fun ConnectoBottomBar(
 
                         Spacer(modifier = Modifier.height(2.dp))
 
-                        // Modern Accent Dash Indicator with Soft Radiant Glow
+                        // Modern Accent Dash Indicator with Soft Radiant Glow & Specular Aura
                         Box(
-                            modifier = Modifier
-                                .width(indicatorWidth)
-                                .height(2.5.dp)
-                                .clip(RoundedCornerShape(1.5.dp))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(
-                                            colors.primary,
-                                            Color(0xFF818CF8)
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.height(4.dp)
+                        ) {
+                            if (isSelected) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(indicatorWidth + 8.dp)
+                                        .height(4.dp)
+                                        .graphicsLayer { alpha = indicatorGlowAlpha * 0.45f }
+                                        .clip(RoundedCornerShape(2.dp))
+                                        .background(colors.primary)
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .width(indicatorWidth)
+                                    .height(2.5.dp)
+                                    .clip(RoundedCornerShape(1.5.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(
+                                                colors.primary,
+                                                Color(0xFF818CF8)
+                                            )
                                         )
                                     )
-                                )
-                        )
+                            )
+                        }
                     }
                 }
             }

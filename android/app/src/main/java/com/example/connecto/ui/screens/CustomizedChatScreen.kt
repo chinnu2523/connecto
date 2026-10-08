@@ -2454,6 +2454,18 @@ fun CustomizedChatScreen(
                     userGroupsList[idx] = updatedGroup
                 }
             },
+            onDeleteGroup = {
+                val gId = groupItem.id
+                userGroupsList.removeAll { it.id == gId }
+                selectedFriend = null
+                showGroupProfileDialog = false
+            },
+            onLeaveGroup = {
+                val gId = groupItem.id
+                userGroupsList.removeAll { it.id == gId }
+                selectedFriend = null
+                showGroupProfileDialog = false
+            },
             onDismissRequest = { showGroupProfileDialog = false }
         )
     }

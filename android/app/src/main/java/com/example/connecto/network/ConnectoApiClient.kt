@@ -1361,6 +1361,54 @@ object ConnectoApiClient {
         }
     }
 
+    suspend fun deleteGroup(
+        groupId: String
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val cleanId = groupId.trim()
+            val response = executeRequest("/api/groups/$cleanId", "DELETE", null, sessionToken)
+            if (response.isSuccess) {
+                val raw = response.getOrThrow()
+                Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
+            } else {
+                // Also attempt POST /api/groups/$cleanId/delete fallback
+                val fbResponse = executeRequest("/api/groups/$cleanId/delete", "POST", "{}", sessionToken)
+                if (fbResponse.isSuccess) {
+                    val raw = fbResponse.getOrThrow()
+                    Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
+                } else {
+                    Result.failure(response.exceptionOrNull() ?: Exception("Failed to delete group"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun leaveGroup(
+        groupId: String
+    ): Result<JSONObject> = withContext(Dispatchers.IO) {
+        try {
+            val cleanId = groupId.trim()
+            val response = executeRequest("/api/groups/$cleanId/leave", "POST", "{}", sessionToken)
+            if (response.isSuccess) {
+                val raw = response.getOrThrow()
+                Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
+            } else {
+                // Fallback route POST /api/groups/$cleanId/members/leave
+                val fbResponse = executeRequest("/api/groups/$cleanId/members/leave", "POST", "{}", sessionToken)
+                if (fbResponse.isSuccess) {
+                    val raw = fbResponse.getOrThrow()
+                    Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
+                } else {
+                    Result.failure(response.exceptionOrNull() ?: Exception("Failed to exit group"))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getMessages(
         token: String? = null,
         channelId: String,

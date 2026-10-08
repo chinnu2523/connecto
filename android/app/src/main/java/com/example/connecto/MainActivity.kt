@@ -599,30 +599,30 @@ fun ConnectoApp(
                                 transitionSpec = {
                                     val isForward = targetState.ordinal > initialState.ordinal
                                     val slideSpring = spring<androidx.compose.ui.unit.IntOffset>(
-                                        stiffness = Spring.StiffnessMediumLow,
-                                        dampingRatio = 0.86f
+                                        stiffness = 380f,
+                                        dampingRatio = 0.82f
                                     )
                                     val scaleSpring = spring<Float>(
-                                        stiffness = Spring.StiffnessMediumLow,
-                                        dampingRatio = 0.86f
+                                        stiffness = 380f,
+                                        dampingRatio = 0.82f
                                     )
                                     (slideInHorizontally(
                                         animationSpec = slideSpring,
-                                        initialOffsetX = { fullWidth -> if (isForward) (fullWidth * 0.16f).toInt() else (-fullWidth * 0.16f).toInt() }
+                                        initialOffsetX = { fullWidth -> if (isForward) (fullWidth * 0.22f).toInt() else (-fullWidth * 0.22f).toInt() }
                                     ) + scaleIn(
-                                        initialScale = 0.96f,
+                                        initialScale = 0.94f,
                                         animationSpec = scaleSpring
                                     ) + fadeIn(
-                                        animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)
+                                        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
                                     )).togetherWith(
                                         slideOutHorizontally(
                                             animationSpec = slideSpring,
-                                            targetOffsetX = { fullWidth -> if (isForward) (-fullWidth * 0.16f).toInt() else (fullWidth * 0.16f).toInt() }
+                                            targetOffsetX = { fullWidth -> if (isForward) (-fullWidth * 0.22f).toInt() else (fullWidth * 0.22f).toInt() }
                                         ) + scaleOut(
-                                            targetScale = 0.98f,
+                                            targetScale = 0.96f,
                                             animationSpec = scaleSpring
                                         ) + fadeOut(
-                                            animationSpec = tween(durationMillis = 180, easing = FastOutSlowInEasing)
+                                            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
                                         )
                                     )
                                 },

@@ -63,10 +63,10 @@ export default {
         version_name: "v4.2.3",
         version_code: 51,
         build: 51,
-        sha256: "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687",
-        md5: "ea34d34e7d80423736c8d296af07c840",
+        sha256: "ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d",
+        md5: "e99f0e1af68b2a0052048cd5b5798e4f",
         filename: "connecto-fun.apk",
-        size_bytes: 56952800,
+        size_bytes: 56974989,
         size_display: "54.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -74,13 +74,13 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "v4.2.3 Delete Group (Admin) & Exit Group (Members): Full management in Group Profile dialog and Profile tab",
+          "v4.2.3 High-Transition Spring Physics Navigation: Tactile compression, overshoot bounce, tilt kick and dynamic indicator across all bottom navigation buttons",
           "v4.2.3 Profile Screen De-duplication: Resolved root cause of duplicate bottom section cards in Profile tab",
-          "v4.2.3 Verified Added Groups: Zero synthetic/fake groups in Added Groups list",
           "v4.2.3 Single Full-Screen Group Profile: Comprehensive full-screen tab with group details, members list, and creator ADMIN badge",
           "v4.2.3 Group Admin Customization: Allows admin to edit group name and upload group profile avatar",
           "v4.2.3 Group Chat Wallpaper: Custom chat wallpaper selection per group",
-          "v4.2.3 Add Members Modal: Search and add friends into the group",
-          "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups)"
+          "v4.2.3 Add Members Modal: Search and add friends into the group"
         ]
       });
     }
@@ -2296,9 +2296,9 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       version_name: "v4.2.3",
       version_code: 51,
       build: 51,
-      sha256: "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687",
+      sha256: "ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d",
       filename: "connecto-fun.apk",
-      size_bytes: 56952800,
+      size_bytes: 56974989,
       size_display: "54.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

@@ -23,9 +23,14 @@ import com.example.connecto.ui.components.CropMode
 import com.example.connecto.ui.components.PhotoLightboxDialog
 import com.example.connecto.ui.components.InteractiveCropFitDialog
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Security
+import androidx.compose.material3.AlertDialog
+import com.example.connecto.ui.components.FullScreenGroupProfileDialog
+import com.example.connecto.ui.designsystem.ConnectoAvatar
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.AnimatedVisibility
@@ -120,6 +125,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -271,8 +277,65 @@ fun ProfileScreen(
     var twoFaSetupMaskedDest by remember { mutableStateOf<String?>(null) }
     var twoFaErrorMessage by remember { mutableStateOf<String?>(null) }
 
+    // User Groups Management State in Profile Tab
+    val profileGroupsList = remember { mutableStateListOf<FriendItem>() }
+    var isLoadingProfileGroups by remember { mutableStateOf(false) }
+    var selectedGroupForProfileDialog by remember { mutableStateOf<FriendItem?>(null) }
+    var groupToConfirmDelete by remember { mutableStateOf<FriendItem?>(null) }
+    var isDeletingProfileGroup by remember { mutableStateOf(false) }
+    var groupToConfirmLeave by remember { mutableStateOf<FriendItem?>(null) }
+    var isLeavingProfileGroup by remember { mutableStateOf(false) }
+
+    // Function to reload groups for profile tab
+    fun reloadProfileGroups() {
+        coroutineScope.launch {
+            isLoadingProfileGroups = true
+            try {
+                val groupsRes = ConnectoApiClient.getUserGroups()
+                if (groupsRes.isSuccess) {
+                    val serverGroups = groupsRes.getOrThrow()
+                    val myUsernameLower = username.trim().lowercase().removePrefix("@")
+                    val mappedGroups = serverGroups.map { g ->
+                        val init = if (g.name.isNotBlank()) g.name.first().toString().uppercase() else "G"
+                        val count = if (g.memberCount > 0) g.memberCount else (g.members.size.coerceAtLeast(1))
+                        val isCreated = g.isCreatedByMe || g.description.contains(username, ignoreCase = true) || g.admin.lowercase().removePrefix("@") == myUsernameLower
+                        FriendItem(
+                            id = g.id,
+                            name = g.name,
+                            handle = "#${g.name.lowercase().replace(" ", "-")}",
+                            initial = init,
+                            status = "$count members • ${if (isCreated) "Created Group" else "Joined Group"}",
+                            bio = g.description.ifBlank { "Connecto Group Chat • $count members" },
+                            lastMessage = "Group Chat • Tap to manage",
+                            timeAgo = "Active",
+                            unreadCount = 0,
+                            isOnline = true,
+                            avatarUrl = g.iconUrl,
+                            isGroup = true,
+                            isCreatedByMe = isCreated,
+                            memberCount = count,
+                            members = g.members,
+                            admin = g.admin,
+                            creator = g.creator
+                        )
+                    }
+                    val gIds = mappedGroups.map { it.id }.toSet()
+                    profileGroupsList.removeAll { it.id !in gIds }
+                    for (item in mappedGroups) {
+                        val idx = profileGroupsList.indexOfFirst { it.id == item.id }
+                        if (idx == -1) profileGroupsList.add(item) else profileGroupsList[idx] = item
+                    }
+                }
+            } catch (_: Exception) {}
+            finally {
+                isLoadingProfileGroups = false
+            }
+        }
+    }
+
     // Live sync with backend SQLite database on launch
     LaunchedEffect(username) {
+        reloadProfileGroups()
         try {
             val res = ConnectoApiClient.getProfile(username)
             if (res.isSuccess) {
@@ -1776,7 +1839,227 @@ fun ProfileScreen(
                     }
                 }
 
-                // ================= 7. PRIMARY SIGN OUT BUTTON =================
+                // ================= 7. GROUPS & COMMUNITIES MANAGEMENT (Delete for Admin / Exit for Member) =================
+                item(key = "groups_management_section") {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Groups,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "Groups & Communities",
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "Manage created & joined groups",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                if (isLoadingProfileGroups) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                thickness = 1.dp
+                            )
+
+                            if (profileGroupsList.isEmpty() && !isLoadingProfileGroups) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No active groups found. Create or join groups from the Messages tab.",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            } else {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    profileGroupsList.forEach { groupItem ->
+                                        val myClean = username.trim().lowercase().removePrefix("@")
+                                        val adminClean = groupItem.admin.trim().lowercase().removePrefix("@")
+                                        val creatorClean = groupItem.creator.trim().lowercase().removePrefix("@")
+                                        val isGroupAdmin = groupItem.isCreatedByMe ||
+                                            (adminClean.isNotBlank() && adminClean == myClean) ||
+                                            (creatorClean.isNotBlank() && creatorClean == myClean) ||
+                                            (groupItem.admin.isBlank() && groupItem.creator.isBlank() && groupItem.members.firstOrNull()?.trim()?.lowercase()?.removePrefix("@") == myClean)
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
+                                                .border(
+                                                    1.dp,
+                                                    if (isGroupAdmin) MaterialTheme.colorScheme.primary.copy(alpha = 0.3f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .padding(12.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    ConnectoAvatar(
+                                                        name = groupItem.name,
+                                                        avatarUrl = groupItem.avatarUrl,
+                                                        customSizeDp = 42.dp,
+                                                        customFontSizeSp = 16,
+                                                        borderWidth = 1.dp,
+                                                        borderColor = if (isGroupAdmin) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(
+                                                                text = "#${groupItem.name}",
+                                                                fontSize = 14.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.onSurface,
+                                                                maxLines = 1,
+                                                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                                            )
+                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(4.dp))
+                                                                    .background(
+                                                                        if (isGroupAdmin) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                                                        else MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                                                    )
+                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = if (isGroupAdmin) "ADMIN" else "MEMBER",
+                                                                    fontSize = 9.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = if (isGroupAdmin) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = "${groupItem.members.size.coerceAtLeast(groupItem.memberCount)} members",
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                // Action Button: Delete Group (Admin) or Exit Group (Member)
+                                                if (isGroupAdmin) {
+                                                    Button(
+                                                        onClick = { groupToConfirmDelete = groupItem },
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = Color(0xFFEF4444).copy(alpha = 0.15f),
+                                                            contentColor = Color(0xFFEF4444)
+                                                        ),
+                                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                                        modifier = Modifier.height(34.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.DeleteOutline,
+                                                            contentDescription = "Delete Group",
+                                                            tint = Color(0xFFEF4444),
+                                                            modifier = Modifier.size(15.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = "Delete",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFFEF4444)
+                                                        )
+                                                    }
+                                                } else {
+                                                    Button(
+                                                        onClick = { groupToConfirmLeave = groupItem },
+                                                        shape = RoundedCornerShape(10.dp),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            containerColor = Color(0xFFF97316).copy(alpha = 0.15f),
+                                                            contentColor = Color(0xFFF97316)
+                                                        ),
+                                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                                        modifier = Modifier.height(34.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                                            contentDescription = "Exit Group",
+                                                            tint = Color(0xFFF97316),
+                                                            modifier = Modifier.size(15.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = "Exit",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = Color(0xFFF97316)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ================= 8. PRIMARY SIGN OUT BUTTON =================
                 item(key = "sign_out_button") {
                     Box(
                         modifier = Modifier
@@ -1820,6 +2103,134 @@ fun ProfileScreen(
             currentUsername = username,
             onDismissRequest = { showAddFriendDialog = false },
             onFriendAdded = { showAddFriendDialog = false }
+        )
+    }
+
+    // Confirmation Dialog for Deleting Group from Profile (Admin)
+    if (groupToConfirmDelete != null) {
+        val targetGroup = groupToConfirmDelete!!
+        AlertDialog(
+            onDismissRequest = { if (!isDeletingProfileGroup) groupToConfirmDelete = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete #${targetGroup.name}?", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete this group? All group chat history and member associations will be erased.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isDeletingProfileGroup = true
+                            try {
+                                val res = ConnectoApiClient.deleteGroup(targetGroup.id)
+                                if (res.isSuccess) {
+                                    Toast.makeText(context, "Group #${targetGroup.name} deleted", Toast.LENGTH_SHORT).show()
+                                    profileGroupsList.removeAll { it.id == targetGroup.id }
+                                    groupToConfirmDelete = null
+                                } else {
+                                    Toast.makeText(context, "Delete failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isDeletingProfileGroup = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = !isDeletingProfileGroup
+                ) {
+                    if (isDeletingProfileGroup) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { groupToConfirmDelete = null },
+                    enabled = !isDeletingProfileGroup
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Confirmation Dialog for Leaving Group from Profile (Member)
+    if (groupToConfirmLeave != null) {
+        val targetGroup = groupToConfirmLeave!!
+        AlertDialog(
+            onDismissRequest = { if (!isLeavingProfileGroup) groupToConfirmLeave = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = null,
+                        tint = Color(0xFFF97316),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Exit #${targetGroup.name}?", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    "Are you sure you want to exit this group? You will no longer receive updates or messages.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isLeavingProfileGroup = true
+                            try {
+                                val res = ConnectoApiClient.leaveGroup(targetGroup.id)
+                                if (res.isSuccess) {
+                                    Toast.makeText(context, "You left #${targetGroup.name}", Toast.LENGTH_SHORT).show()
+                                    profileGroupsList.removeAll { it.id == targetGroup.id }
+                                    groupToConfirmLeave = null
+                                } else {
+                                    Toast.makeText(context, "Failed to exit: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isLeavingProfileGroup = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = !isLeavingProfileGroup
+                ) {
+                    if (isLeavingProfileGroup) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Exit Group", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { groupToConfirmLeave = null },
+                    enabled = !isLeavingProfileGroup
+                ) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 

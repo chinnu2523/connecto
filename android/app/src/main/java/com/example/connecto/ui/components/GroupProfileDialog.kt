@@ -90,6 +90,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material3.AlertDialog
+
 /**
  * Full-screen group profile details tab & management screen.
  * Displays group details, allows group admin (creator) to:
@@ -98,6 +102,7 @@ import kotlinx.coroutines.launch
  * 3. Set custom or preset chat wallpaper for the group
  * 4. View all members with default Admin badge for creator
  * 5. Add new members via integrated member picker
+ * 6. Delete group (Admin only) or Exit/Leave group (Members)
  */
 @Composable
 fun FullScreenGroupProfileDialog(
@@ -107,6 +112,8 @@ fun FullScreenGroupProfileDialog(
     customWallpaperUri: String?,
     onWallpaperSelected: (wallpaperId: String, customUri: String?) -> Unit,
     onGroupUpdated: (updatedGroup: FriendItem) -> Unit,
+    onDeleteGroup: (() -> Unit)? = null,
+    onLeaveGroup: (() -> Unit)? = null,
     onDismissRequest: () -> Unit
 ) {
     val context = LocalContext.current
@@ -140,6 +147,10 @@ fun FullScreenGroupProfileDialog(
 
     val membersList = remember { mutableStateListOf<String>().apply { addAll(group.members) } }
     var showAddMembersModal by remember { mutableStateOf(false) }
+    var showDeleteGroupConfirm by remember { mutableStateOf(false) }
+    var isDeletingGroup by remember { mutableStateOf(false) }
+    var showLeaveGroupConfirm by remember { mutableStateOf(false) }
+    var isLeavingGroup by remember { mutableStateOf(false) }
 
     // Group Avatar Picker Launcher
     val avatarPickerLauncher = rememberLauncherForActivityResult(
@@ -805,10 +816,227 @@ fun FullScreenGroupProfileDialog(
                         }
                     }
 
-                    item { Spacer(modifier = Modifier.height(32.dp)) }
+                    // ================= 4. DANGER ZONE: DELETE GROUP / EXIT GROUP =================
+                    item(key = "group_danger_zone") {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isAdmin) {
+                                // Admin Action: Delete Entire Group
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(Color(0xFFEF4444).copy(alpha = 0.10f))
+                                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                                        .clickable { showDeleteGroupConfirm = true }
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DeleteOutline,
+                                            contentDescription = "Delete Group",
+                                            tint = Color(0xFFEF4444),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Delete Group",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFEF4444),
+                                            letterSpacing = 0.3.sp
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "As the group admin, deleting this group removes it permanently for all members.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                                )
+                            } else {
+                                // Member Action: Exit / Leave Group
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(Color(0xFFF97316).copy(alpha = 0.10f))
+                                        .border(1.dp, Color(0xFFF97316).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                                        .clickable { showLeaveGroupConfirm = true }
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                            contentDescription = "Exit Group",
+                                            tint = Color(0xFFF97316),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Exit Group",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFFF97316),
+                                            letterSpacing = 0.3.sp
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "You will be removed from this group chat and will not receive further messages.",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(40.dp)) }
                 }
             }
         }
+    }
+
+    // Confirmation Dialog for Deleting Group (Admin)
+    if (showDeleteGroupConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!isDeletingGroup) showDeleteGroupConfirm = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Delete #${group.name}?", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete this group? All group chat history and member connections will be removed.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isDeletingGroup = true
+                            try {
+                                val res = ConnectoApiClient.deleteGroup(group.id)
+                                if (res.isSuccess) {
+                                    Toast.makeText(context, "Group #${group.name} deleted", Toast.LENGTH_SHORT).show()
+                                    showDeleteGroupConfirm = false
+                                    onDismissRequest()
+                                    onDeleteGroup?.invoke()
+                                } else {
+                                    Toast.makeText(context, "Delete failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isDeletingGroup = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = !isDeletingGroup
+                ) {
+                    if (isDeletingGroup) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Delete", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteGroupConfirm = false },
+                    enabled = !isDeletingGroup
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    // Confirmation Dialog for Leaving Group (Member)
+    if (showLeaveGroupConfirm) {
+        AlertDialog(
+            onDismissRequest = { if (!isLeavingGroup) showLeaveGroupConfirm = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                        contentDescription = null,
+                        tint = Color(0xFFF97316),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Exit #${group.name}?", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Text(
+                    "Are you sure you want to exit this group? You will no longer receive group messages.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            isLeavingGroup = true
+                            try {
+                                val res = ConnectoApiClient.leaveGroup(group.id)
+                                if (res.isSuccess) {
+                                    Toast.makeText(context, "You left #${group.name}", Toast.LENGTH_SHORT).show()
+                                    showLeaveGroupConfirm = false
+                                    onDismissRequest()
+                                    onLeaveGroup?.invoke()
+                                } else {
+                                    Toast.makeText(context, "Failed to exit: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            } finally {
+                                isLeavingGroup = false
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                    shape = RoundedCornerShape(10.dp),
+                    enabled = !isLeavingGroup
+                ) {
+                    if (isLeavingGroup) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Exit Group", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showLeaveGroupConfirm = false },
+                    enabled = !isLeavingGroup
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Modal to search and add new members to this group
