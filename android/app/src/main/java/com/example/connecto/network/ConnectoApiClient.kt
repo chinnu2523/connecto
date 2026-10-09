@@ -1499,19 +1499,21 @@ object ConnectoApiClient {
                 for (i in 0 until jsonArr.length()) {
                     val obj = jsonArr.getJSONObject(i)
                     val authorId = when {
-                        obj.has("user") && obj.optString("user").isNotBlank() -> obj.optString("user")
                         obj.has("sender_username") && obj.optString("sender_username").isNotBlank() -> obj.optString("sender_username")
+                        obj.has("user") && obj.optString("user").isNotBlank() -> obj.optString("user")
                         obj.has("sender_id") && obj.optString("sender_id").isNotBlank() -> obj.optString("sender_id")
                         obj.has("author_id") && obj.optString("author_id").isNotBlank() -> obj.optString("author_id")
+                        obj.has("authorId") && obj.optString("authorId").isNotBlank() -> obj.optString("authorId")
                         else -> "gamer"
                     }
 
                     val authorName = when {
-                        obj.has("nickname") && obj.optString("nickname").isNotBlank() -> obj.optString("nickname")
                         obj.has("sender_display_name") && obj.optString("sender_display_name").isNotBlank() -> obj.optString("sender_display_name")
-                        obj.has("user") && obj.optString("user").isNotBlank() -> obj.optString("user")
+                        obj.has("nickname") && obj.optString("nickname").isNotBlank() -> obj.optString("nickname")
                         obj.has("sender_username") && obj.optString("sender_username").isNotBlank() -> obj.optString("sender_username")
                         obj.has("author_name") && obj.optString("author_name").isNotBlank() -> obj.optString("author_name")
+                        obj.has("authorName") && obj.optString("authorName").isNotBlank() -> obj.optString("authorName")
+                        obj.has("user") && obj.optString("user").isNotBlank() -> obj.optString("user")
                         else -> authorId
                     }
 
@@ -1524,12 +1526,14 @@ object ConnectoApiClient {
                     val authorAvatar = when {
                         obj.has("avatar_url") && obj.optString("avatar_url").isNotBlank() -> obj.optString("avatar_url")
                         obj.has("sender_avatar_url") && obj.optString("sender_avatar_url").isNotBlank() -> obj.optString("sender_avatar_url")
-                        obj.has("avatar") && obj.optString("avatar").isNotBlank() && obj.optString("avatar").length > 3 -> obj.optString("avatar")
+                        obj.has("author_avatar") && obj.optString("author_avatar").isNotBlank() -> obj.optString("author_avatar")
+                        obj.has("authorAvatar") && obj.optString("authorAvatar").isNotBlank() -> obj.optString("authorAvatar")
+                        obj.has("avatar") && obj.optString("avatar").isNotBlank() -> obj.optString("avatar")
                         else -> null
                     }
 
                     val resolvedAvatar = if (authorAvatar.isNullOrBlank()) null
-                        else if (authorAvatar.startsWith("http://") || authorAvatar.startsWith("https://") || authorAvatar.startsWith("data:")) authorAvatar
+                        else if (authorAvatar.startsWith("http://") || authorAvatar.startsWith("https://") || authorAvatar.startsWith("data:") || authorAvatar.codePointCount(0, authorAvatar.length) <= 3) authorAvatar
                         else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${authorAvatar.trimStart('/')}"
 
                     var msgType = obj.optString("type").ifEmpty { "text" }
@@ -2444,21 +2448,21 @@ object ConnectoApiClient {
                     val friendsArr = obj.optJSONArray("friends") ?: JSONArray()
                     for (i in 0 until friendsArr.length()) {
                         val item = friendsArr.getJSONObject(i)
-                        val uName = item.optString("username").ifEmpty { item.optString("friend_username") }
-                        val dName = item.optString("nickname").ifEmpty { item.optString("display_name", uName) }
+                        val uName = item.optString("friend_username").ifEmpty { item.optString("username").ifEmpty { item.optString("id") } }
+                        val dName = item.optString("friend_display_name").ifEmpty { item.optString("nickname").ifEmpty { item.optString("display_name", uName) } }
                         val isStealth = item.optBoolean("is_stealth", false)
                         val statusStr = item.optString("status", "offline").lowercase()
                         val isOnline = !isStealth && (item.optBoolean("is_online", false) || statusStr == "online")
-                        val rawAvatar = item.optString("avatar_url").ifEmpty { item.optString("friend_avatar_url").ifEmpty { item.optString("avatar") } }.takeIf { it.isNotBlank() && it.length > 3 }
+                        val rawAvatar = item.optString("avatar_url").ifEmpty { item.optString("friend_avatar_url").ifEmpty { item.optString("avatar") } }.takeIf { it.isNotBlank() }
                         val resolvedAvatar = if (rawAvatar.isNullOrBlank()) null
-                            else if (rawAvatar.startsWith("http://") || rawAvatar.startsWith("https://") || rawAvatar.startsWith("data:")) rawAvatar
+                            else if (rawAvatar.startsWith("http://") || rawAvatar.startsWith("https://") || rawAvatar.startsWith("data:") || rawAvatar.codePointCount(0, rawAvatar.length) <= 3) rawAvatar
                             else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawAvatar.trimStart('/')}"
                         val itemBio = item.optString("bio").takeIf { it.isNotBlank() }
                         list.add(
                             FriendshipDto(
-                                id = item.optString("id").ifEmpty { uName },
+                                id = item.optString("id").ifEmpty { item.optString("friend_id").ifEmpty { uName } },
                                 userId = myUsername,
-                                friendId = uName,
+                                friendId = item.optString("friend_id").ifEmpty { uName },
                                 friendUsername = uName,
                                 friendDisplayName = dName,
                                 friendAvatarUrl = resolvedAvatar,
@@ -2473,21 +2477,23 @@ object ConnectoApiClient {
                     val arr = JSONArray(respText)
                     for (i in 0 until arr.length()) {
                         val item = arr.getJSONObject(i)
+                        val uName = item.optString("friend_username").ifEmpty { item.optString("username").ifEmpty { item.optString("id") } }
+                        val dName = item.optString("friend_display_name").ifEmpty { item.optString("nickname").ifEmpty { item.optString("display_name", uName) } }
                         val isStealth = item.optBoolean("is_stealth", false)
                         val statusStr = item.optString("status", "offline").lowercase()
                         val isOnline = !isStealth && (item.optBoolean("is_online", false) || statusStr == "online")
-                        val rawAvatar = item.optString("avatar_url").ifEmpty { item.optString("friend_avatar_url").ifEmpty { item.optString("avatar") } }.takeIf { it.isNotBlank() && it.length > 3 }
+                        val rawAvatar = item.optString("avatar_url").ifEmpty { item.optString("friend_avatar_url").ifEmpty { item.optString("avatar") } }.takeIf { it.isNotBlank() }
                         val resolvedAvatar = if (rawAvatar.isNullOrBlank()) null
-                            else if (rawAvatar.startsWith("http://") || rawAvatar.startsWith("https://") || rawAvatar.startsWith("data:")) rawAvatar
+                            else if (rawAvatar.startsWith("http://") || rawAvatar.startsWith("https://") || rawAvatar.startsWith("data:") || rawAvatar.codePointCount(0, rawAvatar.length) <= 3) rawAvatar
                             else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawAvatar.trimStart('/')}"
                         val itemBio = item.optString("bio").takeIf { it.isNotBlank() }
                         list.add(
                             FriendshipDto(
-                                id = item.optString("id"),
-                                userId = item.optString("user_id"),
-                                friendId = item.optString("friend_id"),
-                                friendUsername = item.optString("friend_username"),
-                                friendDisplayName = item.optString("friend_display_name"),
+                                id = item.optString("id").ifEmpty { item.optString("friend_id").ifEmpty { uName } },
+                                userId = item.optString("user_id").ifEmpty { myUsername },
+                                friendId = item.optString("friend_id").ifEmpty { uName },
+                                friendUsername = uName,
+                                friendDisplayName = dName,
                                 friendAvatarUrl = resolvedAvatar,
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,

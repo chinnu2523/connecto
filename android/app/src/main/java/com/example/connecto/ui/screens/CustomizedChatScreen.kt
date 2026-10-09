@@ -1031,15 +1031,24 @@ fun CustomizedChatScreen(
                         dto.authorId.equals(currentUsername, ignoreCase = true) ||
                         dto.authorName.equals(currentUsername, ignoreCase = true)
                     )
-                    val init = if (dto.authorName.isNotBlank()) dto.authorName.first().toString().uppercase() else "U"
+                    val effectiveSenderName = if (isMe) {
+                        if (myDisplayName.isNotBlank()) myDisplayName else myUsername
+                    } else {
+                        if (dto.authorName.isNotBlank() && !dto.authorName.equals("gamer", ignoreCase = true)) {
+                            dto.authorName
+                        } else {
+                            if (friend.isGroup) dto.authorName else (selectedFriend?.name ?: friend.name)
+                        }
+                    }
+                    val init = if (effectiveSenderName.isNotBlank()) effectiveSenderName.first().toString().uppercase() else "U"
                     val msgAvatar = if (isMe) {
                         ConnectoApiClient.currentUserAvatarUrl
                     } else {
-                        dto.authorAvatar ?: friend.avatarUrl
+                        dto.authorAvatar ?: (if (friend.isGroup) null else (selectedFriend?.avatarUrl ?: friend.avatarUrl))
                     }
                     CustomMessageItem(
                         id = dto.id,
-                        senderName = dto.authorName,
+                        senderName = effectiveSenderName,
                         initial = init,
                         content = dto.content,
                         time = formatIsoTime(dto.createdAt),
@@ -1161,11 +1170,20 @@ fun CustomizedChatScreen(
                                         dto.authorId.equals(currentUsername, ignoreCase = true) ||
                                         dto.authorName.equals(currentUsername, ignoreCase = true)
                                     )
-                                    val init = if (dto.authorName.isNotBlank()) dto.authorName.first().toString().uppercase() else "U"
+                                    val effectiveSenderName = if (isMe) {
+                                        if (myDisplayName.isNotBlank()) myDisplayName else myUsername
+                                    } else {
+                                        if (dto.authorName.isNotBlank() && !dto.authorName.equals("gamer", ignoreCase = true)) {
+                                            dto.authorName
+                                        } else {
+                                            if (friend.isGroup) dto.authorName else (selectedFriend?.name ?: friend.name)
+                                        }
+                                    }
+                                    val init = if (effectiveSenderName.isNotBlank()) effectiveSenderName.first().toString().uppercase() else "U"
                                     val msgAvatar = if (isMe) {
                                         ConnectoApiClient.currentUserAvatarUrl
                                     } else {
-                                        dto.authorAvatar ?: (if (friend.isGroup) null else selectedFriend?.avatarUrl)
+                                        dto.authorAvatar ?: (if (friend.isGroup) null else (selectedFriend?.avatarUrl ?: friend.avatarUrl))
                                     }
                                     
                                     val (decryptedContent, decryptedReplyContent, isEnc) = if (friend.isGroup) {
@@ -1183,7 +1201,7 @@ fun CustomizedChatScreen(
 
                                     CustomMessageItem(
                                         id = dto.id,
-                                        senderName = dto.authorName,
+                                        senderName = effectiveSenderName,
                                         initial = init,
                                         content = decryptedContent,
                                         time = formatIsoTime(dto.createdAt),
@@ -3959,6 +3977,17 @@ fun CustomChatBubble(
             horizontalAlignment = if (message.isMe) Alignment.End else Alignment.Start,
             modifier = Modifier.widthIn(min = 60.dp, max = 290.dp)
         ) {
+            if (!message.isMe && message.senderName.isNotBlank() && !message.senderName.equals("gamer", ignoreCase = true)) {
+                Text(
+                    text = message.senderName,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
+                )
+            }
             Box(
                 modifier = Modifier
                     .graphicsLayer {

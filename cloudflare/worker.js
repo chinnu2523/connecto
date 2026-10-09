@@ -1476,15 +1476,26 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   }
 
   // 8. Friends List & Management (Web & Android)
-  if (path === "/api/friends" || path === "/api/v1/chat/friends") {
+  if (path === "/api/friends" || path === "/api/v1/chat/friends" || path === "/api/chat/friends" || path === "/api/v1/friends" || path === "/api/chat/friends/requests/received") {
     if (method === "GET") {
-      const myUsername = (
+      let myUsername = (
         url.searchParams.get("username") ||
+        url.searchParams.get("user") ||
         request.headers.get("X-User-Username") ||
-        "chinnu"
+        ""
       ).trim().toLowerCase().replace(/^@/, "");
 
+      if (!myUsername) {
+        const authUser = await resolveUserFromRequest(request, env);
+        if (authUser && authUser.username) {
+          myUsername = authUser.username.trim().toLowerCase().replace(/^@/, "");
+        }
+      }
+      if (!myUsername) myUsername = "chinnu";
+
       let friendsList = [];
+      let incomingList = [];
+      let outgoingList = [];
       if (env.DB) {
         const caller = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(myUsername).first();
         if (caller) {
@@ -1501,19 +1512,46 @@ async function handleCloudApiRequest(request, url, env, ctx) {
               seen.add(r.id);
               const isStealth = Boolean(r.is_stealth);
               const isOnline = isStealth ? false : (r.is_online === 1 || r.is_online === true);
+              const dName = r.display_name || r.username;
+              const av = r.avatar_url || "👾";
               friendsList.push({
                 id: r.id,
+                user_id: caller.id,
+                friend_id: r.id,
                 username: r.username,
-                display_name: r.display_name || r.username,
-                nickname: r.display_name || r.username,
-                avatar: r.avatar_url || "👾",
-                avatar_url: r.avatar_url || "👾",
+                friend_username: r.username,
+                display_name: dName,
+                friend_display_name: dName,
+                nickname: dName,
+                avatar: av,
+                avatar_url: av,
+                friend_avatar_url: av,
                 status: isOnline ? "online" : "offline",
                 is_online: isOnline,
                 is_stealth: isStealth,
                 bio: r.bio || "Connecto friend"
               });
             }
+          }
+
+          // Fetch pending incoming requests
+          const incRes = await env.DB.prepare(`
+            SELECT f.id as request_id, u.id as sender_id, u.username as sender_username, u.display_name as sender_display_name, u.avatar_url, f.created_at
+            FROM friendships f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.friend_id = ? AND f.status = 'pending'
+          `).bind(caller.id).all();
+          for (const inc of (incRes.results || [])) {
+            incomingList.push({
+              id: inc.request_id,
+              request_id: inc.request_id,
+              user_id: inc.sender_id,
+              friend_username: inc.sender_username,
+              friend_display_name: inc.sender_display_name || inc.sender_username,
+              friend_avatar_url: inc.avatar_url || "👾",
+              status: "pending",
+              created_at: inc.created_at
+            });
           }
         }
       }
@@ -1522,22 +1560,32 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         friendsList = [
           {
             id: "usr_vivek",
+            user_id: "usr_chinnu",
+            friend_id: "usr_vivek",
             username: "vivek",
+            friend_username: "vivek",
             display_name: "Vivek",
+            friend_display_name: "Vivek",
             nickname: "Vivek",
             avatar: "⚡",
             avatar_url: "⚡",
+            friend_avatar_url: "⚡",
             status: "online",
             is_online: true,
             bio: "Core Developer"
           },
           {
             id: "usr_vance",
+            user_id: "usr_chinnu",
+            friend_id: "usr_vance",
             username: "vance",
+            friend_username: "vance",
             display_name: "Vance",
+            friend_display_name: "Vance",
             nickname: "Vance",
             avatar: "🔥",
             avatar_url: "🔥",
+            friend_avatar_url: "🔥",
             status: "online",
             is_online: true,
             bio: "Cloud Architect"
@@ -1545,11 +1593,16 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         ];
       }
 
+      // If called specifically as received requests endpoint, return incoming array
+      if (path.includes("requests/received")) {
+        return jsonResponse(incomingList);
+      }
+
       return jsonResponse({
         status: "ok",
         friends: friendsList,
-        incoming: [],
-        outgoing: []
+        incoming: incomingList,
+        outgoing: outgoingList
       });
     }
 
@@ -1704,6 +1757,55 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({});
   }
 
+  // 11b. Direct Messages: Start / Resolve DM Channel (/api/dm/start, /api/chat/dm/start, /api/v1/chat/dm/start)
+  if (path === "/api/dm/start" || path === "/api/chat/dm/start" || path === "/api/v1/chat/dm/start") {
+    let body = {};
+    if (method === "POST") {
+      body = await request.json().catch(() => ({}));
+    }
+    const targetUser = (
+      url.searchParams.get("target_username") ||
+      url.searchParams.get("target") ||
+      body.target_username ||
+      body.target ||
+      ""
+    ).trim().toLowerCase().replace(/^@/, "");
+
+    let myUser = (
+      url.searchParams.get("my_username") ||
+      body.my_username ||
+      request.headers.get("X-User-Username") ||
+      ""
+    ).trim().toLowerCase().replace(/^@/, "");
+
+    if (!myUser) {
+      const authUser = await resolveUserFromRequest(request, env);
+      if (authUser && authUser.username) {
+        myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
+      }
+    }
+    if (!myUser) myUser = "chinnu";
+
+    const canonName = "dm-" + [myUser, targetUser].sort().join("-");
+    const channelObj = {
+      id: canonName,
+      name: canonName,
+      type: "dm",
+      server_id: null,
+      created_at: new Date().toISOString(),
+      recipient: targetUser,
+      participants: [myUser, targetUser]
+    };
+
+    if (env.DB) {
+      await env.DB.prepare(
+        "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'dm')"
+      ).bind(canonName, canonName).run();
+    }
+
+    return jsonResponse(channelObj);
+  }
+
   // 12. Direct Messages: Messages for a Specific User (/api/dms/:target/messages)
   const dmMatch = path.match(/^\/api\/dms\/([^\/]+)\/messages/);
   if (dmMatch) {
@@ -1715,6 +1817,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       url.searchParams.get("user") ||
       ""
     ).trim().toLowerCase().replace(/^@/, "");
+
+    if (!currentUser) {
+      const authUser = await resolveUserFromRequest(request, env);
+      if (authUser && authUser.username) {
+        currentUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
+      }
+    }
+    if (!currentUser) currentUser = "chinnu";
 
     const dmChannelId = "dm-" + [currentUser, targetUser].sort().join("-");
 
@@ -1746,10 +1856,18 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           author_avatar: r.author_avatar,
           user: r.author_name,
           avatar: r.author_avatar,
-          nickname: r.author_display_name,
+          avatar_url: r.author_avatar,
+          nickname: r.author_display_name || r.author_name,
+          sender: r.author_name,
+          sender_id: r.author_id,
+          sender_username: r.author_name,
+          sender_display_name: r.author_display_name || r.author_name,
+          sender_avatar_url: r.author_avatar,
           content: r.content,
+          text: r.content,
           createdAt: r.created_at,
           created_at: r.created_at,
+          timestamp: r.created_at,
           type: "text",
           reactions: {}
         }));
@@ -1763,6 +1881,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         const body = await request.json().catch(() => ({}));
         if (!currentUser && (body.sender || body.sender_username)) {
           currentUser = (body.sender || body.sender_username).trim().toLowerCase().replace(/^@/, "");
+        }
+        if (!currentUser) {
+          const authUser = await resolveUserFromRequest(request, env);
+          if (authUser && authUser.username) {
+            currentUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
+          }
         }
         if (!currentUser) currentUser = "guest";
         const content = body.content || body.text || "";

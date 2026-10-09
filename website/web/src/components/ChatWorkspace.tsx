@@ -123,10 +123,19 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
     wsClient.connect();
 
     const removeWsListener = wsClient.addListener(async (event) => {
-      if (event.type === 'message_created') {
-        const newMsg: Message = event.data;
+      if (event.type === 'message_created' || event.type === 'new_message' || event.type === 'dm_message') {
+        const rawMsg = event.data || event.message || event.payload;
+        if (!rawMsg) return;
+        const newMsg: Message = {
+          ...rawMsg,
+          sender_username: rawMsg.sender_username || rawMsg.author_name || rawMsg.user || rawMsg.sender || '',
+          sender_display_name: rawMsg.sender_display_name || rawMsg.author_display_name || rawMsg.nickname || rawMsg.sender_username || rawMsg.user || 'Shinobi',
+          sender_id: rawMsg.sender_id || rawMsg.author_id || '',
+          sender_avatar_url: rawMsg.sender_avatar_url || rawMsg.author_avatar || rawMsg.avatar_url || rawMsg.avatar || null,
+          created_at: rawMsg.created_at || rawMsg.timestamp || rawMsg.createdAt || new Date().toISOString()
+        };
         const currentCh = activeChannel;
-        const eventChId = event.channel_id || newMsg.channel_id;
+        const eventChId = event.channel_id || event.channel || newMsg.channel_id;
         const eventChName = event.channel_name || '';
 
         const isMatch = currentCh && (
@@ -137,8 +146,8 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
           (currentCh.name && eventChName && eventChName.toLowerCase() === currentCh.name.toLowerCase()) ||
           (currentCh.name && newMsg.channel_id && newMsg.channel_id.toLowerCase() === currentCh.name.toLowerCase()) ||
           (currentCh.name && (
-            newMsg.sender_username === currentCh.name ||
-            (currentCh.name.startsWith('dm-') && currentCh.name.includes(newMsg.sender_username))
+            (newMsg.sender_username && newMsg.sender_username.toLowerCase() === currentCh.name.toLowerCase()) ||
+            (currentCh.name.startsWith('dm-') && newMsg.sender_username && currentCh.name.toLowerCase().includes(newMsg.sender_username.toLowerCase()))
           ))
         );
 
@@ -160,10 +169,10 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
         }
 
         // Real-time friend list preview update
-        if (newMsg.sender_username && newMsg.sender_username !== currentUser.username) {
+        if (newMsg.sender_username && currentUser?.username && newMsg.sender_username.toLowerCase() !== currentUser.username.toLowerCase()) {
           setFriends((prev) =>
             prev.map((f) => {
-              if (f.friend_username.toLowerCase() === newMsg.sender_username.toLowerCase()) {
+              if (f.friend_username && f.friend_username.toLowerCase() === newMsg.sender_username.toLowerCase()) {
                 return {
                   ...f,
                   last_message: newMsg.content,
@@ -1289,9 +1298,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
                 </div>
               ) : (
                 messages.map((msg) => {
+                  const senderUser = msg.sender_username || '';
+                  const currentUserName = currentUser?.username || '';
                   const isMine =
-                    msg.sender_username.toLowerCase() === currentUser.username.toLowerCase() ||
-                    msg.sender_id === currentUser.id;
+                    (senderUser && currentUserName && senderUser.toLowerCase() === currentUserName.toLowerCase()) ||
+                    (msg.sender_id && currentUser?.id && msg.sender_id === currentUser.id);
 
                   if (isMine) {
                     return (
@@ -1316,19 +1327,28 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
                     );
                   }
 
+                  const displayName = msg.sender_display_name || msg.sender_username || 'Friend';
+                  const avatarUrl = msg.sender_avatar_url;
+
                   return (
                     <div
                       key={msg.id}
                       className={`flex items-start space-x-3 my-2 ${msg.pending ? 'opacity-50' : ''}`}
                     >
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 bg-gradient-to-tr from-cyan-600 to-blue-600">
-                        {msg.sender_display_name ? msg.sender_display_name[0].toUpperCase() : 'G'}
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs text-white shrink-0 bg-gradient-to-tr from-cyan-600 to-blue-600 overflow-hidden shadow-sm">
+                        {avatarUrl && (avatarUrl.startsWith('http') || avatarUrl.startsWith('/')) ? (
+                          <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                        ) : avatarUrl ? (
+                          <span className="text-base">{avatarUrl}</span>
+                        ) : (
+                          <span>{displayName ? displayName[0].toUpperCase() : 'G'}</span>
+                        )}
                       </div>
 
                       <div className="max-w-[75%] md:max-w-md flex flex-col items-start">
                         <div className="flex items-baseline space-x-2 mb-1">
-                          <span className="font-bold text-sm text-white">{msg.sender_display_name}</span>
-                          <span className="text-[11px] font-mono text-cyanglow">@{msg.sender_username}</span>
+                          <span className="font-bold text-sm text-white">{displayName}</span>
+                          {msg.sender_username && <span className="text-[11px] font-mono text-cyanglow">@{msg.sender_username}</span>}
                           <span className="text-[10px] text-slate-500">
                             {msg.created_at
                               ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

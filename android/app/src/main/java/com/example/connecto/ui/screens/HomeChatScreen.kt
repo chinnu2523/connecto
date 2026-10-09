@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.connecto.crypto.ConnectoE2EEncryption
 import com.example.connecto.data.ConnectoDatabaseHelper
 import com.example.connecto.network.ChannelDto
 import com.example.connecto.network.ConnectoApiClient
@@ -240,13 +241,30 @@ fun HomeChatScreen(
                     }).take(6).map { friend ->
                         val cleanHandle = (friend.friendUsername.ifEmpty { friend.friendDisplayName }).removePrefix("@")
                         val unread = unreadMap[cleanHandle.lowercase()] ?: 0
+                        val myUName = currentUsername.removePrefix("@")
+                        val lastDm = try {
+                            dbHelper.getDirectMessages(myUName, cleanHandle, limit = 1).firstOrNull()
+                        } catch (_: Exception) { null }
+                        val lastMsgText = when {
+                            lastDm != null && lastDm.content.isNotBlank() -> {
+                                if (ConnectoE2EEncryption.isEncrypted(lastDm.content)) {
+                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle)
+                                    ConnectoE2EEncryption.decryptMessage(lastDm.content, key)
+                                } else lastDm.content
+                            }
+                            else -> "Tap to open chat"
+                        }
+                        val lastMsgTime = lastDm?.createdAt?.let {
+                            formatTimeAgoShort(it)
+                        } ?: if (friend.isOnline) "Online" else "Active"
+
                         RecentConversationItem(
                             id = friend.id,
                             name = friend.friendDisplayName,
                             username = cleanHandle,
                             avatarUrl = friend.friendAvatarUrl,
-                            lastMessage = "Tap to open chat",
-                            timestamp = "Active",
+                            lastMessage = lastMsgText,
+                            timestamp = lastMsgTime,
                             unreadCount = unread,
                             isOnline = friend.isOnline
                         )
@@ -266,17 +284,35 @@ fun HomeChatScreen(
                         dbHelper.saveChannels(channelsList)
                     }
                     if (friendsList.isNotEmpty()) {
+                        val myUName = currentUsername.removePrefix("@")
                         val mappedFriends = friendsList.map { f: FriendshipDto ->
+                            val cleanHandle = f.friendUsername.removePrefix("@")
+                            val lastDm = try {
+                                dbHelper.getDirectMessages(myUName, cleanHandle, limit = 1).firstOrNull()
+                            } catch (_: Exception) { null }
+                            val lastMsgText = when {
+                                lastDm != null && lastDm.content.isNotBlank() -> {
+                                    if (ConnectoE2EEncryption.isEncrypted(lastDm.content)) {
+                                        val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle)
+                                        ConnectoE2EEncryption.decryptMessage(lastDm.content, key)
+                                    } else lastDm.content
+                                }
+                                else -> "Tap to open chat"
+                            }
+                            val lastMsgTime = lastDm?.createdAt?.let {
+                                formatTimeAgoShort(it)
+                            } ?: if (f.isOnline) "Online" else "Active"
+
                             FriendItem(
                                 id = f.friendId.ifBlank { f.id },
                                 name = f.friendDisplayName,
-                                handle = "@" + f.friendUsername.removePrefix("@"),
+                                handle = "@" + cleanHandle,
                                 initial = (f.friendDisplayName.ifBlank { f.friendUsername }).take(1).uppercase(),
                                 status = if (f.isOnline) "Online" else "Offline",
                                 bio = "Connecto Member • Friend",
-                                lastMessage = "Tap to open chat",
-                                timeAgo = "Active",
-                                unreadCount = unreadMap[f.friendUsername.lowercase().removePrefix("@")] ?: 0,
+                                lastMessage = lastMsgText,
+                                timeAgo = lastMsgTime,
+                                unreadCount = unreadMap[cleanHandle.lowercase()] ?: 0,
                                 isOnline = f.isOnline,
                                 avatarUrl = f.friendAvatarUrl
                             )
@@ -1042,5 +1078,32 @@ private fun GlobalSearchDialog(
                 }
             }
         }
+    }
+}
+
+private fun formatTimeAgoShort(isoString: String): String {
+    return try {
+        val trimmed = isoString.trim()
+        if (trimmed.isEmpty() || trimmed.equals("just now", ignoreCase = true)) return "Just now"
+        if (trimmed.equals("active", ignoreCase = true)) return "Active"
+        if (trimmed.matches(Regex("""\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?"""))) return trimmed
+        val timePart = when {
+            trimmed.contains("T") -> trimmed.substringAfter("T").substringBefore(".").substringBefore("Z")
+            trimmed.contains(" ") -> trimmed.substringAfter(" ").substringBefore(".")
+            else -> trimmed
+        }
+        val parts = timePart.split(":")
+        if (parts.size >= 2) {
+            var hour = parts[0].trim().toIntOrNull() ?: 0
+            val min = parts[1].trim()
+            val ampm = if (hour >= 12) "PM" else "AM"
+            if (hour > 12) hour -= 12
+            if (hour == 0) hour = 12
+            "$hour:$min $ampm"
+        } else {
+            "Active"
+        }
+    } catch (_: Exception) {
+        "Active"
     }
 }

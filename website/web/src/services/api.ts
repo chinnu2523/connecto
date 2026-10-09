@@ -176,7 +176,16 @@ export async function getMessages(channelId: string): Promise<Message[]> {
     method: 'GET',
     credentials: 'include',
   });
-  return handleResponse<Message[]>(res);
+  const data = await handleResponse<any>(res);
+  const rawList = Array.isArray(data) ? data : (data?.messages || []);
+  return rawList.map((m: any) => ({
+    ...m,
+    sender_username: m.sender_username || m.author_name || m.user || m.sender || '',
+    sender_display_name: m.sender_display_name || m.author_display_name || m.nickname || m.sender_username || m.user || 'Shinobi',
+    sender_id: m.sender_id || m.author_id || '',
+    sender_avatar_url: m.sender_avatar_url || m.author_avatar || m.avatar_url || m.avatar || null,
+    created_at: m.created_at || m.timestamp || new Date().toISOString()
+  }));
 }
 
 export async function sendMessage(channelId: string, content: string, nonce: string): Promise<Message> {
@@ -202,7 +211,19 @@ export async function getFriends(): Promise<Friendship[]> {
     method: 'GET',
     credentials: 'include',
   });
-  return handleResponse<Friendship[]>(res);
+  const data = await handleResponse<any>(res);
+  const rawList = Array.isArray(data) ? data : (data?.friends || []);
+  return rawList.map((f: any) => ({
+    ...f,
+    id: f.id || f.friend_id || f.username,
+    user_id: f.user_id || '',
+    friend_id: f.friend_id || f.id || f.username,
+    friend_username: f.friend_username || f.username || '',
+    friend_display_name: f.friend_display_name || f.display_name || f.nickname || f.username || 'Friend',
+    friend_avatar_url: f.friend_avatar_url || f.avatar_url || f.avatar || null,
+    status: f.status || 'accepted',
+    created_at: f.created_at || new Date().toISOString()
+  }));
 }
 
 export async function getReceivedFriendRequests(): Promise<FriendRequestItem[]> {
@@ -210,7 +231,16 @@ export async function getReceivedFriendRequests(): Promise<FriendRequestItem[]> 
     method: 'GET',
     credentials: 'include',
   });
-  return handleResponse<FriendRequestItem[]>(res);
+  const data = await handleResponse<any>(res);
+  const rawList = Array.isArray(data) ? data : (data?.incoming || data?.requests || []);
+  return rawList.map((r: any) => ({
+    ...r,
+    id: r.id || r.request_id || '',
+    sender_username: r.sender_username || r.friend_username || r.username || '',
+    sender_display_name: r.sender_display_name || r.friend_display_name || r.display_name || r.sender_username || 'Shinobi',
+    sender_avatar_url: r.sender_avatar_url || r.friend_avatar_url || r.avatar_url || null,
+    created_at: r.created_at || new Date().toISOString()
+  }));
 }
 
 export async function sendFriendRequest(friendUsername: string): Promise<Friendship> {

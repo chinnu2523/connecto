@@ -1056,10 +1056,10 @@ object VoiceCallManager {
                 "pong" -> {
                     // Keepalive pong received
                 }
-                "message_created", "new_message" -> {
-                    val data = json.optJSONObject("data") ?: json.optJSONObject("message")
+                "message_created", "new_message", "dm_message" -> {
+                    val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload")
                     if (data != null) {
-                        val rawChId = json.optString("channel_id").ifEmpty { data.optString("channel_id") }
+                        val rawChId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { data.optString("channel_id").ifEmpty { data.optString("channel") } } }
                         val rawChName = json.optString("channel_name").ifEmpty { data.optString("channel_name") }
                         val chId = if (rawChName.isNotBlank() && !rawChName.startsWith("dm-") && !rawChName.startsWith("dm_")) {
                             ConnectoApiClient.channelCache[rawChName.lowercase()] = rawChId
@@ -1068,12 +1068,12 @@ object VoiceCallManager {
                         } else {
                             rawChId
                         }
-                        val senderUsername = data.optString("sender_username").ifEmpty { data.optString("user").ifEmpty { data.optString("sender") } }
+                        val senderUsername = data.optString("sender_username").ifEmpty { data.optString("user").ifEmpty { data.optString("sender").ifEmpty { json.optString("sender") } } }
                         val senderDisplay = data.optString("sender_display_name").ifEmpty { data.optString("nickname").ifEmpty { senderUsername } }
                         val content = data.optString("content").ifEmpty { data.optString("text") }
                         val msgId = data.optString("id")
                         val createdAt = data.optString("created_at").ifEmpty { data.optString("timestamp") }
-                        val authorAvatar = data.optString("avatar_url").ifEmpty { data.optString("author_avatar").ifEmpty { data.optString("avatar").ifEmpty { null } } }
+                        val authorAvatar = data.optString("avatar_url").ifEmpty { data.optString("sender_avatar_url").ifEmpty { data.optString("author_avatar").ifEmpty { data.optString("authorAvatar").ifEmpty { data.optString("avatar").ifEmpty { null } } } } }
                         var poll = if (data.has("poll") && !data.isNull("poll")) ConnectoApiClient.parsePollDto(data.optJSONObject("poll")) else null
                         var pollId = data.optString("poll_id").ifEmpty { poll?.id }
                         var type = data.optString("type").ifEmpty { if (poll != null) "poll" else "text" }
