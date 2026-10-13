@@ -37,6 +37,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -247,5 +249,278 @@ fun AnimatedEqualizerBars(
             )
         }
     }
+}
+
+/**
+ * Animated moving specular reflection sweep across glass surfaces.
+ * Creates a fluid, diagonal prismatic gleam that tracks across cards and containers.
+ */
+@Composable
+fun Modifier.glassSpecularSweep(
+    shape: Shape = RoundedCornerShape(16.dp),
+    durationMillis: Int = 3600,
+    sweepColor: Color = Color(0x3838BDF8)
+): Modifier {
+    val infiniteTransition = rememberInfiniteTransition(label = "glassSpecularSweep")
+    val sweepOffset by infiniteTransition.animateFloat(
+        initialValue = -500f,
+        targetValue = 1500f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = durationMillis, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "specularSweepOffset"
+    )
+
+    return this.drawWithContent {
+        drawContent()
+        val brush = Brush.linearGradient(
+            colors = listOf(
+                Color.Transparent,
+                sweepColor.copy(alpha = 0.04f),
+                sweepColor.copy(alpha = 0.28f),
+                sweepColor.copy(alpha = 0.04f),
+                Color.Transparent
+            ),
+            start = Offset(sweepOffset, 0f),
+            end = Offset(sweepOffset + 320f, size.height)
+        )
+        drawRect(brush = brush)
+    }.clip(shape)
+}
+
+/**
+ * Ambient background mesh with floating luminous orbs (Ice Cyan + Deep Indigo).
+ * Provides optical depth and background luminance behind translucent glass surfaces.
+ */
+@Composable
+fun Modifier.glassCanvasMesh(
+    enabled: Boolean = true
+): Modifier {
+    if (!enabled) return this
+    val infiniteTransition = rememberInfiniteTransition(label = "glassMeshAmbient")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.88f,
+        targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4200, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "glassMeshPulse"
+    )
+
+    return this.drawBehind {
+        // Deep obsidian crystal backdrop
+        drawRect(Color(0xFF090D16))
+
+        // Ambient Cyan Glass Orb (Top Right)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x3838BDF8),
+                    Color(0x150284C7),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.82f, size.height * 0.12f),
+                radius = size.width * 0.65f * pulse
+            ),
+            radius = size.width * 0.65f * pulse,
+            center = Offset(size.width * 0.82f, size.height * 0.12f)
+        )
+
+        // Ambient Indigo Glass Orb (Bottom Left)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x2D6366F1),
+                    Color(0x12312E81),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.15f, size.height * 0.82f),
+                radius = size.width * 0.70f / pulse
+            ),
+            radius = size.width * 0.70f / pulse,
+            center = Offset(size.width * 0.15f, size.height * 0.82f)
+        )
+
+        // Subtle Aurora Prism Center Accent
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x1E22D3EE),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.5f, size.height * 0.45f),
+                radius = size.width * 0.50f
+            ),
+            radius = size.width * 0.50f,
+            center = Offset(size.width * 0.5f, size.height * 0.45f)
+        )
+    }
+}
+
+/**
+ * High-End Frosted Glass Container Card.
+ * Multi-layer translucent acrylic with dual-tone specular border and optional reflection sweep.
+ */
+@Composable
+fun Modifier.glassCard(
+    shape: Shape = RoundedCornerShape(16.dp),
+    backgroundColor: Color = Color(0xFF111827),
+    borderColor: Color = Color(0xFF38BDF8),
+    borderWidth: Dp = 1.dp,
+    hasShimmer: Boolean = false
+): Modifier {
+    val base = this
+        .clip(shape)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    backgroundColor.copy(alpha = 0.82f),
+                    backgroundColor.copy(alpha = 0.58f)
+                )
+            )
+        )
+        .border(
+            width = borderWidth,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    borderColor.copy(alpha = 0.65f),
+                    borderColor.copy(alpha = 0.20f),
+                    borderColor.copy(alpha = 0.06f)
+                ),
+                start = Offset.Zero,
+                end = Offset(400f, 400f)
+            ),
+            shape = shape
+        )
+
+    return if (hasShimmer) {
+        base.glassSpecularSweep(shape = shape, sweepColor = borderColor)
+    } else {
+        base
+    }
+}
+
+/**
+ * Tactile Glass Button with spring scale compression, vertical translation, and specular edge bloom.
+ */
+@Composable
+fun Modifier.glassInteractiveButton(
+    onClick: () -> Unit,
+    shape: Shape = RoundedCornerShape(12.dp),
+    containerColor: Color = Color(0xFF1E293B),
+    borderColor: Color = Color(0xFF38BDF8),
+    targetScale: Float = 0.94f
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) targetScale else 1.0f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = 520f),
+        label = "glassBtnScale"
+    )
+    val translateY by animateFloatAsState(
+        targetValue = if (isPressed) 2f else 0f,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 520f),
+        label = "glassBtnTranslate"
+    )
+    val glowAlpha by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 0.45f,
+        animationSpec = tween(150),
+        label = "glassBtnGlow"
+    )
+
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+            this.translationY = translateY
+        }
+        .clip(shape)
+        .background(
+            brush = Brush.verticalGradient(
+                listOf(
+                    containerColor.copy(alpha = if (isPressed) 0.94f else 0.78f),
+                    containerColor.copy(alpha = if (isPressed) 0.78f else 0.52f)
+                )
+            )
+        )
+        .border(
+            width = if (isPressed) 1.5.dp else 1.dp,
+            brush = Brush.linearGradient(
+                listOf(
+                    borderColor.copy(alpha = glowAlpha),
+                    borderColor.copy(alpha = glowAlpha * 0.35f)
+                )
+            ),
+            shape = shape
+        )
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null
+        ) {
+            try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+            onClick()
+        }
+}
+
+/**
+ * Translucent Glass Chat Bubble styling for direct messages and channels.
+ */
+@Composable
+fun Modifier.glassBubble(
+    isMe: Boolean,
+    shape: Shape,
+    isPressed: Boolean = false
+): Modifier {
+    val bgBrush = if (isMe) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xEE0C2A4A),
+                Color(0xD4081E36)
+            )
+        )
+    } else {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color(0xEE1E293B),
+                Color(0xD4111827)
+            )
+        )
+    }
+
+    val borderBrush = if (isMe) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0xCC38BDF8),
+                Color(0x4D38BDF8),
+                Color(0x1838BDF8)
+            ),
+            start = Offset.Zero,
+            end = Offset(240f, 240f)
+        )
+    } else {
+        Brush.linearGradient(
+            colors = listOf(
+                Color(0x8094A3B8),
+                Color(0x33475569),
+                Color(0x121E293B)
+            ),
+            start = Offset.Zero,
+            end = Offset(240f, 240f)
+        )
+    }
+
+    return this
+        .clip(shape)
+        .background(bgBrush)
+        .border(
+            width = if (isPressed) 1.5.dp else 1.dp,
+            brush = borderBrush,
+            shape = shape
+        )
 }
 

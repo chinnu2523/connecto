@@ -97,6 +97,8 @@ import com.example.connecto.ui.theme.ShimmerChannelItem
 import com.example.connecto.ui.theme.StaggeredReveal
 import com.example.connecto.ui.theme.PulsingOnlineDot
 import com.example.connecto.ui.theme.pressScaleEffect
+import com.example.connecto.ui.theme.glassCanvasMesh
+import com.example.connecto.ui.theme.glassCard
 import com.example.connecto.voice.VoiceCallManager
 import com.example.connecto.ui.screens.FriendItem
 import kotlinx.coroutines.Dispatchers
@@ -389,7 +391,10 @@ fun HomeChatScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.background)
+            .then(
+                if (colors.isGlass) Modifier.glassCanvasMesh()
+                else Modifier.background(colors.background)
+            )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // 1. Standardized Top Header with Status and Profile Avatar
@@ -408,13 +413,21 @@ fun HomeChatScreen(
             ) {
                 // Interactive Search Bar (inside LazyColumn to enable smooth top scrolling)
                 item {
+                    val searchShape = RoundedCornerShape(ConnectoRadius.sm)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.xs)
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.surface)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
+                            .then(
+                                if (colors.isGlass) {
+                                    Modifier.glassCard(shape = searchShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8))
+                                } else {
+                                    Modifier
+                                        .clip(searchShape)
+                                        .background(colors.surface)
+                                        .border(1.dp, colors.borderSubtle, searchShape)
+                                }
+                            )
                             .padding(horizontal = ConnectoSpacing.md, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -885,12 +898,20 @@ private fun QuickActionChip(
     onClick: () -> Unit
 ) {
     val colors = LocalConnectoColors.current
+    val chipShape = RoundedCornerShape(ConnectoRadius.full)
     Row(
         modifier = Modifier
             .pressScaleEffect(onClick = onClick, targetScale = 0.92f)
-            .clip(RoundedCornerShape(ConnectoRadius.full))
-            .background(colors.surface)
-            .border(1.dp, colors.borderSubtle.copy(alpha = 0.8f), RoundedCornerShape(ConnectoRadius.full))
+            .then(
+                if (colors.isGlass) {
+                    Modifier.glassCard(shape = chipShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
+                } else {
+                    Modifier
+                        .clip(chipShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.borderSubtle.copy(alpha = 0.8f), chipShape)
+                }
+            )
             .padding(start = 6.dp, end = ConnectoSpacing.md, top = 5.dp, bottom = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

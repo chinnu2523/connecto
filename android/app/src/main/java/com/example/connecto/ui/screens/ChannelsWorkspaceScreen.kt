@@ -123,6 +123,8 @@ import com.example.connecto.ui.theme.StaggeredReveal
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
+import com.example.connecto.ui.theme.glassCanvasMesh
+import com.example.connecto.ui.theme.glassBubble
 import com.example.connecto.voice.VoiceCallManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -355,7 +357,10 @@ fun ChannelsWorkspaceScreen(
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(colors.background)
+                .then(
+                    if (colors.isGlass) Modifier.glassCanvasMesh()
+                    else Modifier.background(colors.background)
+                )
         ) {
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -711,10 +716,22 @@ fun ChannelsWorkspaceScreen(
                                 ambientColor = Color.Black.copy(alpha = 0.35f)
                             )
                             .clip(RoundedCornerShape(24.dp))
-                            .background(if (colors.isDark) Color(0xFF0E1017) else Color(0xFFFFFFFF))
+                            .background(
+                                if (colors.isGlass) Color(0xD9111827)
+                                else (if (colors.isDark) Color(0xFF0E1017) else Color(0xFFFFFFFF))
+                            )
                             .border(
                                 width = if (isInputFocused) 1.5.dp else 1.dp,
-                                color = focusBorderColor,
+                                brush = if (colors.isGlass) {
+                                    Brush.linearGradient(
+                                        listOf(
+                                            if (isInputFocused) Color(0xEE38BDF8) else Color(0x8038BDF8),
+                                            if (isInputFocused) Color(0x8038BDF8) else Color(0x20334A6E)
+                                        )
+                                    )
+                                } else {
+                                    SolidColor(focusBorderColor)
+                                },
                                 shape = RoundedCornerShape(24.dp)
                             )
                             .padding(horizontal = 8.dp, vertical = 5.dp)
@@ -940,21 +957,26 @@ private fun ChannelMessageCard(
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
                 modifier = Modifier.widthIn(min = 80.dp, max = 310.dp)
             ) {
+                val bubbleShape = if (isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
+                else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
                 Box(
                     modifier = Modifier
-                        .clip(
-                            if (isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-                            else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
-                        )
-                        .background(
-                            if (isMe) colors.primary.copy(alpha = 0.12f)
-                            else colors.surfaceVariant
-                        )
-                        .border(
-                            width = 1.dp,
-                            color = if (isMe) colors.primary.copy(alpha = 0.35f) else colors.borderSubtle,
-                            shape = if (isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-                            else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+                        .then(
+                            if (colors.isGlass) {
+                                Modifier.glassBubble(isMe = isMe, shape = bubbleShape)
+                            } else {
+                                Modifier
+                                    .clip(bubbleShape)
+                                    .background(
+                                        if (isMe) colors.primary.copy(alpha = 0.12f)
+                                        else colors.surfaceVariant
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = if (isMe) colors.primary.copy(alpha = 0.35f) else colors.borderSubtle,
+                                        shape = bubbleShape
+                                    )
+                            }
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },

@@ -171,6 +171,8 @@ import com.example.connecto.ui.theme.ShimmerMessageFeed
 import com.example.connecto.ui.theme.StaggeredReveal
 import com.example.connecto.ui.theme.breathingPulse
 import com.example.connecto.ui.theme.pressScaleEffect
+import com.example.connecto.ui.theme.glassCanvasMesh
+import com.example.connecto.ui.theme.glassBubble
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -330,6 +332,21 @@ val AVAILABLE_CHAT_THEMES = listOf(
         friendBubbleBgDark = Color(0xFF29150B),
         friendBubbleTextLight = Color(0xFF9A3412),
         friendBubbleTextDark = Color(0xFFFFEDD5)
+    ),
+    ChatThemeOption(
+        id = "glass",
+        name = "Frosted Glass",
+        subtitle = "Translucent crystal acrylic & prism cyan glow",
+        primaryColor = Color(0xFF38BDF8),
+        secondaryColor = Color(0xFF67E8F9),
+        ownBubbleBgLight = Color(0xDD0284C7),
+        ownBubbleBgDark = Color(0xEE0C2A4A),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFF0F9FF),
+        friendBubbleBgLight = Color(0xE6F0F9FF),
+        friendBubbleBgDark = Color(0xEE1E293B),
+        friendBubbleTextLight = Color(0xFF0C4A6E),
+        friendBubbleTextDark = Color(0xFFCBD5E1)
     )
 )
 
@@ -348,6 +365,13 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         subtitle = "Subtle theme background",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF5F1E8))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF0A0A0A)))
+    ),
+    ChatWallpaperOption(
+        id = "glass_mesh",
+        name = "Prism Glass Aurora",
+        subtitle = "Translucent crystal canvas with floating luminous orbs",
+        lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F2FE), Color(0xFFF1F5F9))),
+        darkBrush = Brush.radialGradient(listOf(Color(0xFF0D1B2A), Color(0xFF070B14)))
     ),
     ChatWallpaperOption(
         id = "oled",
@@ -530,12 +554,25 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Active Chat Theme & Wallpaper Resolution
-    val activeChatTheme = remember(chatThemeId) {
-        AVAILABLE_CHAT_THEMES.firstOrNull { it.id == chatThemeId } ?: AVAILABLE_CHAT_THEMES.first()
+    // Active Chat Theme & Wallpaper Resolution (Auto-adapts to Frosted Glass when app is in glass theme)
+    val isGlassTheme = ConnectoTheme.isGlass
+    val activeChatTheme = remember(chatThemeId, isGlassTheme) {
+        if (chatThemeId != "default") {
+            AVAILABLE_CHAT_THEMES.firstOrNull { it.id == chatThemeId } ?: AVAILABLE_CHAT_THEMES.first()
+        } else if (isGlassTheme) {
+            AVAILABLE_CHAT_THEMES.firstOrNull { it.id == "glass" } ?: AVAILABLE_CHAT_THEMES.first()
+        } else {
+            AVAILABLE_CHAT_THEMES.first()
+        }
     }
-    val activeChatWallpaper = remember(chatWallpaperId) {
-        AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == chatWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme) {
+        if (chatWallpaperId != "default") {
+            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == chatWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+        } else if (isGlassTheme) {
+            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "glass_mesh" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+        } else {
+            AVAILABLE_CHAT_WALLPAPERS.first()
+        }
     }
 
     // Dynamic Accent Colors & Light/Dark Theme Detector
@@ -548,10 +585,10 @@ fun CustomizedChatScreen(
     val ownBubbleBg = if (isLight) activeChatTheme.ownBubbleBgLight else activeChatTheme.ownBubbleBgDark
     val ownBubbleText = if (isLight) activeChatTheme.ownBubbleTextLight else activeChatTheme.ownBubbleTextDark
     val friendBubbleBg = if (isLight) activeChatTheme.friendBubbleBgLight else activeChatTheme.friendBubbleBgDark
-    val friendBubbleBorder = if (chatThemeId == "default") {
+    val friendBubbleBorder = if (chatThemeId == "default" && !isGlassTheme) {
         if (isLight) Color(0xFFE2E8F0) else Color(0xFF27272A)
     } else {
-        activeChatTheme.primaryColor.copy(alpha = 0.35f)
+        activeChatTheme.primaryColor.copy(alpha = if (isGlassTheme) 0.50f else 0.35f)
     }
     val friendBubbleText = if (isLight) activeChatTheme.friendBubbleTextLight else activeChatTheme.friendBubbleTextDark
 
@@ -3035,8 +3072,14 @@ fun CustomizedChatScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
+                                    .then(
+                                        if (isGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "glass_mesh")) {
+                                            Modifier.glassCanvasMesh()
+                                        } else {
+                                            Modifier.background(
+                                                brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
+                                            )
+                                        }
                                     )
                             )
                         }
@@ -3494,10 +3537,22 @@ fun CustomizedChatScreen(
                                     .weight(1f)
                                     .heightIn(min = 46.dp, max = 120.dp)
                                     .clip(RoundedCornerShape(22.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                                    .background(
+                                        if (isGlassTheme) Color(0xD9111827)
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
                                     .border(
-                                        width = 1.dp,
-                                        color = if (isInputFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
+                                        width = if (isGlassTheme && isInputFocused) 1.5.dp else 1.dp,
+                                        brush = if (isGlassTheme) {
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    if (isInputFocused) Color(0xEE38BDF8) else Color(0x8038BDF8),
+                                                    if (isInputFocused) Color(0x8038BDF8) else Color(0x20334A6E)
+                                                )
+                                            )
+                                        } else {
+                                            SolidColor(if (isInputFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+                                        },
                                         shape = RoundedCornerShape(22.dp)
                                     )
                                     .padding(horizontal = 14.dp, vertical = 8.dp),
@@ -3677,12 +3732,26 @@ fun CustomizedChatScreen(
                                     }
                                     .clip(CircleShape)
                                     .background(
-                                        if (typedMessage.isNotBlank()) Brush.linearGradient(gradientColors)
-                                        else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                        if (typedMessage.isNotBlank()) {
+                                            if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
+                                            else Brush.linearGradient(gradientColors)
+                                        } else {
+                                            if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
+                                            else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
+                                        }
                                     )
                                     .border(
-                                        width = 1.dp,
-                                        color = if (typedMessage.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.outline,
+                                        width = if (isGlassTheme) 1.2.dp else 1.dp,
+                                        brush = if (isGlassTheme) {
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    if (typedMessage.isNotBlank()) Color(0xFFE0F2FE) else Color(0x6638BDF8),
+                                                    if (typedMessage.isNotBlank()) Color(0x8038BDF8) else Color(0x2038BDF8)
+                                                )
+                                            )
+                                        } else {
+                                            SolidColor(if (typedMessage.isNotBlank()) Color.Transparent else MaterialTheme.colorScheme.outline)
+                                        },
                                         shape = CircleShape
                                     )
                                     .clickable {
@@ -3778,16 +3847,28 @@ fun CustomChatBubble(
                     modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
                 )
             }
-            Box(
-                modifier = Modifier
+            val isGlassTheme = ConnectoTheme.isGlass
+            val bubbleShape = if (message.isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
+                              else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+
+            val bubbleModifier = if (isGlassTheme) {
+                Modifier
                     .graphicsLayer {
                         scaleX = bubbleScale
                         scaleY = bubbleScale
                     }
-                    .clip(
-                        if (message.isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-                        else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+                    .glassBubble(
+                        isMe = message.isMe,
+                        shape = bubbleShape,
+                        isPressed = isBubblePressed
                     )
+            } else {
+                Modifier
+                    .graphicsLayer {
+                        scaleX = bubbleScale
+                        scaleY = bubbleScale
+                    }
+                    .clip(bubbleShape)
                     .background(
                         if (message.isMe) {
                             SolidColor(ownBg)
@@ -3798,9 +3879,12 @@ fun CustomChatBubble(
                     .border(
                         width = 1.dp,
                         color = if (message.isMe) ownText.copy(alpha = 0.15f) else friendBorder,
-                        shape = if (message.isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-                        else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+                        shape = bubbleShape
                     )
+            }
+
+            Box(
+                modifier = bubbleModifier
                     .pointerInput(message.id) {
                         detectTapGestures(
                             onPress = {
@@ -3910,8 +3994,8 @@ fun CustomChatBubble(
                         modifier = Modifier
                             .offset(y = (-8).dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
+                            .background(if (isGlassTheme) Color(0xD91E293B) else MaterialTheme.colorScheme.surface)
+                            .border(1.dp, if (isGlassTheme) Color(0x8038BDF8) else MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(text = message.reaction!!, fontSize = 12.sp)
@@ -3932,8 +4016,16 @@ fun CustomChatBubble(
                     modifier = Modifier
                         .padding(top = 4.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                        .background(
+                            if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xF0111827), Color(0xDD090D16)))
+                            else SolidColor(MaterialTheme.colorScheme.surface)
+                        )
+                        .border(
+                            width = 1.2.dp,
+                            brush = if (isGlassTheme) Brush.linearGradient(listOf(Color(0xCC38BDF8), Color(0x3338BDF8)))
+                                    else SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                            shape = RoundedCornerShape(16.dp)
+                        )
                         .shadow(6.dp, RoundedCornerShape(16.dp))
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

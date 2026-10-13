@@ -80,6 +80,9 @@ import com.example.connecto.ui.theme.StaggeredReveal
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
+import com.example.connecto.ui.theme.glassCanvasMesh
+import com.example.connecto.ui.theme.glassCard
+import com.example.connecto.ui.designsystem.LocalConnectoColors
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -348,10 +351,15 @@ fun CallsScreen(
         }
     }
 
+    val colors = LocalConnectoColors.current
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .then(
+                if (colors.isGlass) Modifier.glassCanvasMesh()
+                else Modifier.background(MaterialTheme.colorScheme.background)
+            )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
@@ -384,13 +392,21 @@ fun CallsScreen(
             }
 
             // Quick Tab Filter Bar (All, Incoming, Outgoing, Missed)
+            val filterShape = RoundedCornerShape(14.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                    .then(
+                        if (colors.isGlass) {
+                            Modifier.glassCard(shape = filterShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
+                        } else {
+                            Modifier
+                                .clip(filterShape)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), filterShape)
+                        }
+                    )
                     .padding(4.dp)
             ) {
                 Row(
@@ -572,12 +588,20 @@ fun CallsScreen(
 
                 itemsIndexed(filteredLogs, key = { _, log -> "call_${log.id}" }) { idx, log ->
                     StaggeredReveal(index = idx) {
+                        val callCardShape = RoundedCornerShape(16.dp)
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surface)
-                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                                .then(
+                                    if (colors.isGlass) {
+                                        Modifier.glassCard(shape = callCardShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
+                                    } else {
+                                        Modifier
+                                            .clip(callCardShape)
+                                            .background(MaterialTheme.colorScheme.surface)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), callCardShape)
+                                    }
+                                )
                                 .padding(12.dp)
                         ) {
                             Row(

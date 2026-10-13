@@ -51,6 +51,9 @@ enum class ThemeMode(val id: String, val displayName: String, val subtitle: Stri
     val isDark: Boolean
         get() = this != PARCHMENT
 
+    val isGlass: Boolean
+        get() = this == GLASS
+
     companion object {
         fun fromId(id: String?): ThemeMode {
             return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: NOIR

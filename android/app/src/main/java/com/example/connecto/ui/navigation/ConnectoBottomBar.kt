@@ -102,27 +102,48 @@ fun ConnectoBottomBar(
         if (rawUserAvatar == "null" || rawUserAvatar.isNullOrBlank()) null else rawUserAvatar
     }
 
+    val gleamBrush = if (colors.isGlass) {
+        val infiniteTransition = rememberInfiniteTransition(label = "glassNavGleam")
+        val gleamOffset by infiniteTransition.animateFloat(
+            initialValue = -400f,
+            targetValue = 1400f,
+            animationSpec = infiniteRepeatable(tween(3600, easing = androidx.compose.animation.core.LinearEasing), RepeatMode.Restart),
+            label = "navGleam"
+        )
+        Brush.linearGradient(
+            colors = listOf(
+                Color.Transparent,
+                colors.primary.copy(alpha = 0.30f),
+                Color.White.copy(alpha = 0.85f),
+                colors.primary.copy(alpha = 0.30f),
+                Color.Transparent
+            ),
+            start = androidx.compose.ui.geometry.Offset(gleamOffset, 0f),
+            end = androidx.compose.ui.geometry.Offset(gleamOffset + 350f, 0f)
+        )
+    } else {
+        Brush.horizontalGradient(
+            colors = listOf(
+                Color.Transparent,
+                colors.primary.copy(alpha = 0.20f),
+                colors.primary.copy(alpha = 0.75f),
+                colors.primary.copy(alpha = 0.20f),
+                Color.Transparent
+            )
+        )
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surface)
+            .background(if (colors.isGlass) Color(0xF2090D16) else colors.surface)
     ) {
-        // High-end glowing gradient top border line
+        // High-end glowing gradient top border line with animated specular gleam in glass theme
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            colors.primary.copy(alpha = 0.20f),
-                            colors.primary.copy(alpha = 0.75f),
-                            colors.primary.copy(alpha = 0.20f),
-                            Color.Transparent
-                        )
-                    )
-                )
+                .background(gleamBrush)
         )
 
         Row(
@@ -245,8 +266,8 @@ fun ConnectoBottomBar(
                                     if (isSelected) {
                                         Brush.linearGradient(
                                             listOf(
-                                                colors.primary.copy(alpha = 0.28f),
-                                                colors.primary.copy(alpha = 0.09f)
+                                                colors.primary.copy(alpha = if (colors.isGlass) 0.40f else 0.28f),
+                                                colors.primary.copy(alpha = if (colors.isGlass) 0.14f else 0.09f)
                                             )
                                         )
                                     } else {
@@ -256,8 +277,8 @@ fun ConnectoBottomBar(
                                     }
                                 )
                                 .border(
-                                    width = if (isSelected) 1.2.dp else 0.dp,
-                                    color = if (isSelected) colors.primary.copy(alpha = 0.60f) else Color.Transparent,
+                                    width = if (isSelected) (if (colors.isGlass) 1.5.dp else 1.2.dp) else 0.dp,
+                                    color = if (isSelected) colors.primary.copy(alpha = if (colors.isGlass) 0.85f else 0.60f) else Color.Transparent,
                                     shape = RoundedCornerShape(16.dp)
                                 ),
                             contentAlignment = Alignment.Center

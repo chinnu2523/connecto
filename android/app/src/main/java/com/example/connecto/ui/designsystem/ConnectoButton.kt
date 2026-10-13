@@ -99,35 +99,70 @@ fun ConnectoButton(
 
     val shape = RoundedCornerShape(8.dp) // Consistent 8px radius
 
-    val contentColor = when (variant) {
-        ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFF0A0A0F) else Color.White
-        ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFFF4F4F6) else Color(0xFF18181B)
-        ConnectoButtonVariant.OUTLINED -> colors.primary
-        ConnectoButtonVariant.DESTRUCTIVE -> colors.onError
-        ConnectoButtonVariant.TEXT -> colors.primary
+    val contentColor = when {
+        colors.isGlass -> when (variant) {
+            ConnectoButtonVariant.PRIMARY -> Color(0xFF031627)
+            ConnectoButtonVariant.SECONDARY -> Color(0xFFF8FAFC)
+            ConnectoButtonVariant.OUTLINED -> colors.primary
+            ConnectoButtonVariant.DESTRUCTIVE -> colors.onError
+            ConnectoButtonVariant.TEXT -> colors.primary
+        }
+        else -> when (variant) {
+            ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFF0A0A0F) else Color.White
+            ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFFF4F4F6) else Color(0xFF18181B)
+            ConnectoButtonVariant.OUTLINED -> colors.primary
+            ConnectoButtonVariant.DESTRUCTIVE -> colors.onError
+            ConnectoButtonVariant.TEXT -> colors.primary
+        }
     }
 
-    val containerColor = when (variant) {
-        ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFFF5F5F7) else Color(0xFF111116)
-        ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFF1F1F27) else Color(0xFFF4F4F6)
-        ConnectoButtonVariant.OUTLINED -> Color.Transparent
-        ConnectoButtonVariant.DESTRUCTIVE -> colors.error
-        ConnectoButtonVariant.TEXT -> Color.Transparent
+    val containerColor = when {
+        colors.isGlass -> when (variant) {
+            ConnectoButtonVariant.PRIMARY -> colors.primary // Electric Ice Cyan 400
+            ConnectoButtonVariant.SECONDARY -> Color(0xFF1E293B) // Frosted Slate Acrylic
+            ConnectoButtonVariant.OUTLINED -> Color.Transparent
+            ConnectoButtonVariant.DESTRUCTIVE -> colors.error
+            ConnectoButtonVariant.TEXT -> Color.Transparent
+        }
+        else -> when (variant) {
+            ConnectoButtonVariant.PRIMARY -> if (colors.isDark) Color(0xFFF5F5F7) else Color(0xFF111116)
+            ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFF1F1F27) else Color(0xFFF4F4F6)
+            ConnectoButtonVariant.OUTLINED -> Color.Transparent
+            ConnectoButtonVariant.DESTRUCTIVE -> colors.error
+            ConnectoButtonVariant.TEXT -> Color.Transparent
+        }
     }
 
-    val disabledContainerColor = when (variant) {
-        ConnectoButtonVariant.PRIMARY,
-        ConnectoButtonVariant.DESTRUCTIVE -> if (colors.isDark) Color(0xFF16161D) else Color(0xFFE2E8F0)
-        ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFF14141A) else Color(0xFFF1F5F9)
-        ConnectoButtonVariant.OUTLINED,
-        ConnectoButtonVariant.TEXT -> Color.Transparent
+    val disabledContainerColor = when {
+        colors.isGlass -> when (variant) {
+            ConnectoButtonVariant.PRIMARY,
+            ConnectoButtonVariant.DESTRUCTIVE -> Color(0xFF0D1B2A)
+            ConnectoButtonVariant.SECONDARY -> Color(0xFF0F172A)
+            ConnectoButtonVariant.OUTLINED,
+            ConnectoButtonVariant.TEXT -> Color.Transparent
+        }
+        else -> when (variant) {
+            ConnectoButtonVariant.PRIMARY,
+            ConnectoButtonVariant.DESTRUCTIVE -> if (colors.isDark) Color(0xFF16161D) else Color(0xFFE2E8F0)
+            ConnectoButtonVariant.SECONDARY -> if (colors.isDark) Color(0xFF14141A) else Color(0xFFF1F5F9)
+            ConnectoButtonVariant.OUTLINED,
+            ConnectoButtonVariant.TEXT -> Color.Transparent
+        }
     }
 
-    val border = when (variant) {
-        ConnectoButtonVariant.PRIMARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFFD4D4D8) else Color(0xFF1E1E24))
-        ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFF3F3F46) else Color(0xFFE4E4E7))
-        ConnectoButtonVariant.OUTLINED -> BorderStroke(1.dp, if (enabled) colors.border else colors.border.copy(alpha = 0.5f))
-        else -> null
+    val border = when {
+        colors.isGlass -> when (variant) {
+            ConnectoButtonVariant.PRIMARY -> BorderStroke(1.2.dp, Color(0xFFE0F2FE)) // Specular White Rim
+            ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, Color(0x6638BDF8)) // Cyan Hairline
+            ConnectoButtonVariant.OUTLINED -> BorderStroke(1.2.dp, if (enabled) colors.primary.copy(alpha = 0.8f) else colors.border.copy(alpha = 0.3f))
+            else -> null
+        }
+        else -> when (variant) {
+            ConnectoButtonVariant.PRIMARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFFD4D4D8) else Color(0xFF1E1E24))
+            ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFF3F3F46) else Color(0xFFE4E4E7))
+            ConnectoButtonVariant.OUTLINED -> BorderStroke(1.dp, if (enabled) colors.border else colors.border.copy(alpha = 0.5f))
+            else -> null
+        }
     }
 
     val elevation = if (variant == ConnectoButtonVariant.PRIMARY && enabled) {

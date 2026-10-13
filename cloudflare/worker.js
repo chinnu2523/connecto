@@ -98,10 +98,10 @@ export default {
         package_name: "com.connecto.app",
         version: "4.2.5",
         version_name: "v4.2.5",
-        version_code: 53,
-        build: 53,
-        sha256: "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198",
-        md5: "d84ae84db28a5818d75e397276de0f61",
+        version_code: 54,
+        build: 54,
+        sha256: "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2",
+        md5: "29069829a8ad225e8e86c2fac32f6908",
         filename: "connecto-fun.apk",
         size_bytes: 57023685,
         size_display: "54.4 MB",
@@ -111,6 +111,7 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions across all screens",
           "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance",
           "v4.2.5 Streamlined Personal Chat Friend Profile (Chat & Lock UNFRIEND-only + Wallpaper)",
           "v4.2.5 Admin 5-Wallpaper Group Selector & Cloudflare D1 Group Persistence",
@@ -202,23 +203,24 @@ export default {
 
             if (contentType.includes("text/html")) {
               let htmlText = await originResponse.text();
-              // Automatically patch any stale origin HTML strings to v4.2.5 Build 53
-              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d") || htmlText.includes("ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d") || htmlText.includes("d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")) {
+              // Automatically patch any stale origin HTML strings to v4.2.5 Build 54
+              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 53") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198") || htmlText.includes("a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d") || htmlText.includes("ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d") || htmlText.includes("d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")) {
                 htmlText = htmlText
                   .replace(/v4\.2\.[1234]/g, "v4.2.5")
                   .replace(/4\.2\.[1234]-prod/g, "4.2.5-prod")
                   .replace(/"4\.2\.[1234]"/g, '"4.2.5"')
-                  .replace(/Build 5[012]/g, "Build 53")
-                  .replace(/BUILD 5[012]/g, "BUILD 53")
-                  .replace(/build 5[012]/g, "build 53")
-                  .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-                  .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198");
+                  .replace(/Build 5[0123]/g, "Build 54")
+                  .replace(/BUILD 5[0123]/g, "BUILD 54")
+                  .replace(/build 5[0123]/g, "build 54")
+                  .replace(/2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+                  .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2");
               }
               return new Response(htmlText, {
                 status: originResponse.status,
@@ -3111,10 +3113,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       package_name: "com.connecto.app",
       version: "4.2.5",
       version_name: "v4.2.5",
-      version_code: 53,
-      build: 53,
-      sha256: "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198",
-      md5: "d84ae84db28a5818d75e397276de0f61",
+      version_code: 54,
+      build: 54,
+      sha256: "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2",
+      md5: "29069829a8ad225e8e86c2fac32f6908",
       filename: "connecto-fun.apk",
       size_bytes: 57023685,
       size_display: "54.4 MB",
@@ -3134,14 +3136,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           date: "Oct 13, 2026",
           category: "feature",
           tag: "Latest Release",
-          title: "Connecto v4.2.5: Redesigned Profile Sub-Screens, Streamlined Friend Profile Controls, Admin Group Wallpapers & D1 Sync",
-          summary: "Overhauls all 6 Profile sub-screens with status hero cards and status-bar clearance, streamlines Personal Chat Friend Profile to Chat & Lock (UNFRIEND-only) and Theme & Wallpaper (Chat Background Wallpaper), adds Admin 5-Wallpaper Group Selector, and synchronizes all user accounts and DMs across Cloudflare D1 and Origin.",
+          title: "Connecto v4.2.5: Frosted Glass Theme, Redesigned Profile Sub-Screens & Admin Group Controls",
+          summary: "Introduces complete application-wide Frosted Glass theme (luminous ambient mesh, specular borders, frosted chat bubbles, and spring motion physics), overhauls Profile sub-screens, streamlines Friend Profile, and synchronizes accounts across Cloudflare D1 and Origin.",
           highlights: [
+            "Frosted Glass Theme: Complete application-wide frosted acrylic glass effect with specular dual-tone borders, floating luminous canvas mesh, frosted chat bubbles, and tactile spring button physics.",
             "Profile Sub-Screen UI Overhaul: Redesigned Presence & Stealth Mode, Personal Information, Two-Factor & Security, Biometric & App Lock, Appearance & Display Theme, and Groups & Communities with status-bar clearance, hero summary cards, and instant touch response.",
             "Streamlined Personal Chat Friend Profile: Simplified to Chat & Lock (showing only the UNFRIEND action button) and Theme & Wallpaper (dedicated to Chat Background Wallpaper selection).",
             "Group Admin 5-Wallpaper Selector & Cloud Sync: Restricted Group Wallpaper customization to Group Admins with a 5-preset selector popup and full Cloudflare D1 group persistence.",
             "Friend Chat User Data & UUID DM Resolution: Full synchronization of 21 user accounts, friendships, and 144+ direct messages across Cloudflare D1 and Origin with cf_edge_ WebSocket auth.",
-            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198."
+            "Android Native App v4.2.5 (Build 54 • 54.4 MB): SHA-256 831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2."
           ],
           author: "Connecto Core Team"
         },
@@ -3227,11 +3230,12 @@ async function handlePagesEdgeFallback(request, url, host) {
       if (ct.includes("text/html")) {
         let htmlText = await pagesResponse.text();
         htmlText = htmlText
-          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
-          .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198");
+          .replace(/2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
+          .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2");
         return new Response(htmlText, {
           status: pagesResponse.status,
           headers: resHeaders

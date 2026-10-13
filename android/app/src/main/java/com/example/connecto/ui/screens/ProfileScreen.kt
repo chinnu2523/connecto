@@ -174,6 +174,9 @@ import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.rotatingGlowHalo
+import com.example.connecto.ui.theme.glassCanvasMesh
+import com.example.connecto.ui.theme.glassCard
+import com.example.connecto.ui.theme.glassSpecularSweep
 import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
 import com.example.connecto.ui.designsystem.getAvatarGradient
 import com.example.connecto.ui.designsystem.ConnectoTheme
@@ -547,7 +550,10 @@ fun ProfileScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .then(
+                if (currentThemeMode.isGlass) Modifier.glassCanvasMesh()
+                else Modifier.background(MaterialTheme.colorScheme.background)
+            )
     ) {
         AnimatedContent(
             targetState = activeSubPage,
@@ -631,29 +637,37 @@ fun ProfileScreen(
 
                         // ================= 1. AVATAR & USER SUMMARY CARD WITH COVER =================
                         item(key = "avatar_summary_card") {
+                    val avatarCardShape = RoundedCornerShape(24.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.surface,
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                    )
-                                )
-                            )
-                            .border(
-                                BorderStroke(
-                                    1.dp,
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            .then(
+                                if (currentThemeMode.isGlass) {
+                                    Modifier.glassCard(shape = avatarCardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = true)
+                                } else {
+                                    Modifier
+                                        .clip(avatarCardShape)
+                                        .background(
+                                            Brush.verticalGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.surface,
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                            )
                                         )
-                                    )
-                                ),
-                                RoundedCornerShape(24.dp)
+                                        .border(
+                                            BorderStroke(
+                                                1.dp,
+                                                Brush.verticalGradient(
+                                                    colors = listOf(
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                                    )
+                                                )
+                                            ),
+                                            avatarCardShape
+                                        )
+                                }
                             )
                     ) {
                         Column(
@@ -3717,16 +3731,25 @@ private fun ProfileNavigationMenuButton(
     badgeColor: Color? = null,
     onClick: () -> Unit
 ) {
+    val isGlass = ConnectoTheme.isGlass
+    val cardShape = RoundedCornerShape(18.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .pressScaleEffect(onClick = onClick, targetScale = 0.98f)
-            .clip(RoundedCornerShape(18.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .border(
-                1.dp,
-                MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                RoundedCornerShape(18.dp)
+            .then(
+                if (isGlass) {
+                    Modifier.glassCard(shape = cardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = true)
+                } else {
+                    Modifier
+                        .clip(cardShape)
+                        .background(MaterialTheme.colorScheme.surface)
+                        .border(
+                            1.dp,
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                            cardShape
+                        )
+                }
             )
             .padding(horizontal = 16.dp, vertical = 15.dp)
     ) {
