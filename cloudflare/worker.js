@@ -100,8 +100,8 @@ export default {
         version_name: "v4.2.5",
         version_code: 53,
         build: 53,
-        sha256: "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05",
-        md5: "cb6b383f65e6fd90efb5c06502af4c8e",
+        sha256: "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d",
+        md5: "582243b6be383ef427b924810812d9fa",
         filename: "connecto-fun.apk",
         size_bytes: 57007757,
         size_display: "54.4 MB",
@@ -203,9 +203,9 @@ export default {
                   .replace(/Build 5[012]/g, "Build 53")
                   .replace(/BUILD 5[012]/g, "BUILD 53")
                   .replace(/build 5[012]/g, "build 53")
-                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")
-                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")
-                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05");
+                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d");
               }
               return new Response(htmlText, {
                 status: originResponse.status,
@@ -1995,26 +1995,86 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   }
 
   // 13b. Group Management Endpoints (Cloudflare D1 & Edge Mesh)
+  if (path === "/api/groups/create" && method === "POST") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const rawName = (body.name || "New Group").trim();
+      const rawMembers = Array.isArray(body.members) ? body.members : [];
+      const reqUser = (request.headers.get("X-User-Username") || body.creator || body.admin || "").trim().toLowerCase().replace(/^@/, "");
+      const groupId = "grp-" + rawName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).substring(2, 6);
+      const allMembers = [];
+      if (reqUser) allMembers.push(reqUser);
+      for (const m of rawMembers) {
+        const cleanM = String(m || "").trim().toLowerCase().replace(/^@/, "");
+        if (cleanM && !allMembers.includes(cleanM)) allMembers.push(cleanM);
+      }
+
+      if (env.DB) {
+        await env.DB.prepare(
+          "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'group')"
+        ).bind(groupId, rawName).run();
+
+        for (const memberUsername of allMembers) {
+          let u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(memberUsername).first();
+          if (!u) {
+            const newId = "usr_" + memberUsername;
+            await env.DB.prepare(
+              "INSERT OR IGNORE INTO users (id, username, display_name, email, avatar_url, is_online) VALUES (?, ?, ?, ?, '👾', 1)"
+            ).bind(newId, memberUsername, memberUsername, `${memberUsername}@connecto.fun`).run();
+            u = { id: newId };
+          }
+          await env.DB.prepare(
+            "INSERT OR IGNORE INTO dm_participants (channel_id, user_id) VALUES (?, ?)"
+          ).bind(groupId, u.id).run();
+        }
+      }
+
+      const adminUser = reqUser || allMembers[0] || "";
+      return jsonResponse({
+        status: "ok",
+        group: {
+          id: groupId,
+          name: rawName,
+          description: `Created by @${adminUser}`,
+          member_count: allMembers.length,
+          members: allMembers,
+          admin: adminUser,
+          creator: adminUser,
+          is_admin: true,
+          is_creator: true,
+          is_created_by_me: true
+        }
+      }, 201);
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
   if (path === "/api/groups" && method === "GET") {
     let groups = [];
+    const reqUser = (request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
     if (env.DB) {
       try {
         const rows = await env.DB.prepare("SELECT id, name, type, created_at FROM channels WHERE type = 'group'").all();
         const rawGroups = rows.results || [];
         for (const g of rawGroups) {
           const parts = await env.DB.prepare(
-            "SELECT u.username FROM users u JOIN dm_participants p ON p.user_id = u.id WHERE p.channel_id = ?"
+            "SELECT u.username FROM dm_participants p JOIN users u ON p.user_id = u.id WHERE p.channel_id = ? ORDER BY p.rowid ASC"
           ).bind(g.id).all();
           const members = (parts.results || []).map(r => r.username);
+          const adminUser = (members[0] || "").toLowerCase().replace(/^@/, "");
+          const isCreatedByMe = Boolean(reqUser && adminUser && reqUser === adminUser);
           groups.push({
             id: g.id,
             name: g.name,
-            description: "Connecto Group",
+            description: adminUser ? `Created by @${members[0]}` : "Connecto Group",
             member_count: members.length,
             members: members,
             admin: members[0] || "",
             creator: members[0] || "",
-            is_created_by_me: false,
+            is_admin: isCreatedByMe,
+            is_creator: isCreatedByMe,
+            is_created_by_me: isCreatedByMe,
             created_at: g.created_at
           });
         }
@@ -2023,6 +2083,51 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
     }
     return jsonResponse({ status: "ok", groups: groups });
+  }
+
+  // Update Group (POST /api/groups/:id/update)
+  const groupUpdateMatch = path.match(/^\/api\/groups\/([^\/]+)\/update$/);
+  if (groupUpdateMatch && method === "POST") {
+    const groupId = groupUpdateMatch[1];
+    const body = await request.json().catch(() => ({}));
+    if (env.DB && body.name) {
+      try {
+        await env.DB.prepare("UPDATE channels SET name = ? WHERE id = ?").bind(body.name.trim(), groupId).run();
+      } catch (e) {
+        console.error("D1 group update error:", e);
+      }
+    }
+    return jsonResponse({ status: "ok", group: { id: groupId, name: body.name, icon_url: body.icon_url } });
+  }
+
+  // Add Group Members (POST /api/groups/:id/members/add)
+  const groupAddMembersMatch = path.match(/^\/api\/groups\/([^\/]+)\/members\/add$/);
+  if (groupAddMembersMatch && method === "POST") {
+    const groupId = groupAddMembersMatch[1];
+    const body = await request.json().catch(() => ({}));
+    const rawMembers = Array.isArray(body.members) ? body.members : [];
+    if (env.DB) {
+      try {
+        for (const m of rawMembers) {
+          const cleanM = String(m || "").trim().toLowerCase().replace(/^@/, "");
+          if (!cleanM) continue;
+          let u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(cleanM).first();
+          if (!u) {
+            const newId = "usr_" + cleanM;
+            await env.DB.prepare(
+              "INSERT OR IGNORE INTO users (id, username, display_name, email, avatar_url, is_online) VALUES (?, ?, ?, ?, '👾', 1)"
+            ).bind(newId, cleanM, cleanM, `${cleanM}@connecto.fun`).run();
+            u = { id: newId };
+          }
+          await env.DB.prepare(
+            "INSERT OR IGNORE INTO dm_participants (channel_id, user_id) VALUES (?, ?)"
+          ).bind(groupId, u.id).run();
+        }
+      } catch (e) {
+        console.error("D1 group add members error:", e);
+      }
+    }
+    return jsonResponse({ status: "ok", added: rawMembers });
   }
 
   // Delete Group (DELETE or POST /api/groups/:id/delete)
@@ -2721,8 +2826,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       version_name: "v4.2.5",
       version_code: 53,
       build: 53,
-      sha256: "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05",
-      md5: "cb6b383f65e6fd90efb5c06502af4c8e",
+      sha256: "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d",
+      md5: "582243b6be383ef427b924810812d9fa",
       filename: "connecto-fun.apk",
       size_bytes: 57007757,
       size_display: "54.4 MB",
@@ -2749,7 +2854,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             "UUID DM Channel Resolution: Fixed /api/dm/start and /api/dms/:target/messages in Cloudflare Worker to query messages by both canonical channel names and UUID channel IDs while joining user avatars across ID and username formats.",
             "Edge Token WebSocket & REST Authentication: Added cf_edge_ session token verification to FastAPI WebSocket (authenticate_ws_session) and REST (get_current_user) endpoints.",
             "End-to-End Android Emulator Verification: Verified live DM threads (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile settings on Android 16.",
-            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05."
+            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d."
           ],
           author: "Connecto Core Team"
         },

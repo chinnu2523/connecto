@@ -2415,7 +2415,38 @@ fun CustomizedChatScreen(
         CreateGroupChatDialog(
             currentUsername = effUser,
             onDismissRequest = { showCreateGroupChatDialog = false },
-            onGroupCreated = { _, _, _ -> showCreateGroupChatDialog = false }
+            onGroupCreated = { gName, gId, gMembers ->
+                showCreateGroupChatDialog = false
+                val cleanAdmin = effUser.trim().removePrefix("@")
+                val allMembers = (listOf(cleanAdmin) + gMembers.map { it.trim().removePrefix("@") }).filter { it.isNotBlank() }.distinct()
+                val resolvedId = gId.ifBlank { "grp-${gName.lowercase().replace(" ", "-")}" }
+                val newGroupItem = FriendItem(
+                    id = resolvedId,
+                    name = gName,
+                    handle = "#${gName.lowercase().replace(" ", "-")}",
+                    initial = gName.firstOrNull()?.uppercase() ?: "G",
+                    status = "${allMembers.size} members • Created Group",
+                    bio = "Created by @$cleanAdmin",
+                    lastMessage = "Group Chat • Tap to open and talk",
+                    timeAgo = "Just now",
+                    unreadCount = 0,
+                    isOnline = true,
+                    avatarUrl = null,
+                    isGroup = true,
+                    isCreatedByMe = true,
+                    memberCount = allMembers.size,
+                    members = allMembers,
+                    admin = cleanAdmin,
+                    creator = cleanAdmin
+                )
+                val existingIdx = userGroupsList.indexOfFirst { it.id == resolvedId }
+                if (existingIdx == -1) {
+                    userGroupsList.add(0, newGroupItem)
+                } else {
+                    userGroupsList[existingIdx] = newGroupItem
+                }
+                selectedFriend = newGroupItem
+            }
         )
     }
 
