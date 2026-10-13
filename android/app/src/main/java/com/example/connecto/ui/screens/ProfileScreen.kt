@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -212,7 +213,7 @@ enum class ProfileSubPage(
         icon = Icons.Default.Person
     ),
     TWO_FACTOR_SECURITY(
-        title = "Two-Factor Auth & Password Security",
+        title = "Two-Factor & Security",
         subtitle = "Email 2FA verification & instant inbox recovery",
         icon = Icons.Default.Shield
     ),
@@ -909,7 +910,7 @@ fun ProfileScreen(
                 // ================= 4. TWO-FACTOR AUTH & PASSWORD SECURITY BUTTON =================
                 item(key = "menu_two_factor_auth") {
                     ProfileNavigationMenuButton(
-                        title = "Two-Factor Auth & Password Security",
+                        title = "Two-Factor & Security",
                         subtitle = "Email 2FA verification & instant inbox recovery",
                         icon = Icons.Default.Shield,
                         badgeText = if (twoFactorEnabled) "ENABLED" else "DISABLED",
@@ -1014,8 +1015,93 @@ fun ProfileScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(top = 16.dp, bottom = 40.dp)
+                        contentPadding = PaddingValues(top = 16.dp, bottom = 48.dp)
                     ) {
+                        // Auto-save confirmation banner inside sub-screen
+                        if (showSavedBadge) {
+                            item(key = "subpage_auto_save_badge") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(OnlineGreen.copy(alpha = 0.15f))
+                                        .border(1.dp, OnlineGreen.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = null,
+                                            tint = OnlineGreen,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Changes synced & saved to your profile",
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = OnlineGreen
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Sub-Page Hero Summary Banner
+                        item(key = "subpage_hero_summary_${currentSubPage.name}") {
+                            when (currentSubPage) {
+                                ProfileSubPage.PRESENCE_STEALTH -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Privacy & Visibility",
+                                    title = "Presence & Stealth",
+                                    description = "Manage whether your active status dot is visible across channels, direct chats, and friend lists while staying connected.",
+                                    icon = if (stealthModeEnabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    statusBadgeText = if (stealthModeEnabled) "STEALTH ON" else "ONLINE",
+                                    statusBadgeActive = !stealthModeEnabled
+                                )
+                                ProfileSubPage.PERSONAL_INFO -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Account Identity",
+                                    title = fullNameInput.ifBlank { displayNameInput.ifBlank { username } },
+                                    description = "Update your display identity, nickname, verified email address, and public bio across Connecto.",
+                                    icon = Icons.Default.Person,
+                                    statusBadgeText = "@$currentUsernameState",
+                                    statusBadgeActive = true
+                                )
+                                ProfileSubPage.TWO_FACTOR_SECURITY -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Account Protection",
+                                    title = "2FA & Password Security",
+                                    description = "Protect your account with real-time email OTP verification on sign-in and instant password recovery.",
+                                    icon = Icons.Default.Shield,
+                                    statusBadgeText = if (twoFactorEnabled) "2FA ACTIVE" else "2FA OFF",
+                                    statusBadgeActive = twoFactorEnabled
+                                )
+                                ProfileSubPage.BIOMETRIC_LOCK -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Device Hardware Lock",
+                                    title = "Biometric & Screen Lock",
+                                    description = "Require fingerprint, face unlock, or device PIN authentication before opening Connecto on this device.",
+                                    icon = Icons.Default.Fingerprint,
+                                    statusBadgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
+                                    statusBadgeActive = isAppLockEnabled
+                                )
+                                ProfileSubPage.APPEARANCE_THEME -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Design System",
+                                    title = "${currentThemeMode.iconEmoji} ${currentThemeMode.displayName}",
+                                    description = "Customize your global color palette, contrast, and atmosphere across all screens in real time.",
+                                    icon = Icons.Default.Tune,
+                                    statusBadgeText = if (currentThemeMode.isDark) "DARK" else "LIGHT",
+                                    statusBadgeActive = true
+                                )
+                                ProfileSubPage.GROUPS_COMMUNITIES -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Community Hub",
+                                    title = "Groups & Communities",
+                                    description = "View and manage all private groups you have created as Admin or joined as a Member.",
+                                    icon = Icons.Default.Groups,
+                                    statusBadgeText = "${profileGroupsList.size} ACTIVE",
+                                    statusBadgeActive = profileGroupsList.isNotEmpty()
+                                )
+                            }
+                        }
+
                         when (currentSubPage) {
                             ProfileSubPage.PRESENCE_STEALTH -> {
                                 item(key = "sub_presence_stealth_card") {
@@ -2176,6 +2262,39 @@ fun ProfileScreen(
                             }
                         }
                     }
+                                }
+                            }
+                        }
+
+                        // Bottom Return to Profile Overview Action
+                        item(key = "subpage_bottom_return") {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp)
+                                    .pressScaleEffect(
+                                        onClick = { activeSubPage = null },
+                                        targetScale = 0.96f
+                                    )
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "Back to Profile Overview",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             }
                         }
@@ -3609,7 +3728,6 @@ private fun ProfileNavigationMenuButton(
                 MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
                 RoundedCornerShape(18.dp)
             )
-            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 15.dp)
     ) {
         Row(
@@ -3647,6 +3765,7 @@ private fun ProfileNavigationMenuButton(
                         color = MaterialTheme.colorScheme.onSurface,
                         lineHeight = 20.sp,
                         maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     if (badgeText != null) {
@@ -3673,7 +3792,8 @@ private fun ProfileNavigationMenuButton(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
             }
             Spacer(modifier = Modifier.width(10.dp))
@@ -3702,63 +3822,209 @@ private fun ProfileSubPageHeader(
     icon: ImageVector,
     onBack: () -> Unit
 ) {
+    val gradientColors = getDynamicAccentGradientColors()
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+        tonalElevation = 4.dp,
+        shadowElevation = 2.dp
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .statusBarsPadding()
         ) {
-            IconButton(
-                onClick = onBack,
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back to Profile Settings",
-                    tint = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.size(22.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .pressScaleEffect(onClick = onBack, targetScale = 0.92f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back to Profile Settings",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Brush.linearGradient(gradientColors.map { it.copy(alpha = 0.16f) }))
+                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        fontSize = 11.5.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(12.dp))
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    .fillMaxWidth()
+                    .height(1.5.dp)
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProfileSubPageHeroCard(
+    categoryLabel: String,
+    title: String,
+    description: String,
+    icon: ImageVector,
+    statusBadgeText: String,
+    statusBadgeActive: Boolean = true
+) {
+    val gradientColors = getDynamicAccentGradientColors()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        border = BorderStroke(
+            1.dp,
+            Brush.linearGradient(
+                colors = listOf(
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
                 )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
+            )
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
                 )
+                .padding(18.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Brush.linearGradient(gradientColors))
+                                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = getContentColorOnAccentGradient(),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = categoryLabel.uppercase(),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 1.sp,
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = title,
+                                fontSize = 15.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    val badgeColor = if (statusBadgeActive) OnlineGreen else MaterialTheme.colorScheme.primary
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(badgeColor.copy(alpha = 0.14f))
+                            .border(1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = statusBadgeText,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = badgeColor,
+                            letterSpacing = 0.4.sp,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+                }
+
                 Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
+                    text = description,
+                    fontSize = 12.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    lineHeight = 18.sp
                 )
             }
         }
     }
 }
+
