@@ -146,7 +146,7 @@ fun ConnectoBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                if (colors.isLiquidGlass) Color(0xF2061120)
+                if (colors.isLiquidGlass) Color(0x66061120)
                 else if (colors.isGlass) Color(0xF2090D16)
                 else colors.surface
             )

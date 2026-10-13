@@ -124,6 +124,7 @@ import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.glassCanvasMesh
+import com.example.connecto.ui.theme.liquidGlassCanvasMesh
 import com.example.connecto.ui.theme.glassBubble
 import com.example.connecto.voice.VoiceCallManager
 import kotlinx.coroutines.Dispatchers
@@ -358,7 +359,8 @@ fun ChannelsWorkspaceScreen(
             modifier = modifier
                 .fillMaxSize()
                 .then(
-                    if (colors.isGlass) Modifier.glassCanvasMesh()
+                    if (colors.isLiquidGlass) Modifier.liquidGlassCanvasMesh()
+                    else if (colors.isGlass) Modifier.glassCanvasMesh()
                     else Modifier.background(colors.background)
                 )
         ) {

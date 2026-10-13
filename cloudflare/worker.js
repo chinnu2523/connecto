@@ -726,30 +726,6 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         passwordValid = await verifyPassword(user.password_hash, password.trim());
       }
 
-      // Self-healing fallback for verified user accounts
-      if (!passwordValid) {
-        const u = user.username.toLowerCase();
-        if (u === "chinnu14754x" && (password === "password" || password === "Connecto123!" || password === "Password123!")) {
-          passwordValid = true;
-        } else if (u === "connecto_admin" && (password === "Connecto123!" || password === "admin123")) {
-          passwordValid = true;
-        } else if ((u === "test1" || u === "test2" || u === "siddhartha") && (password === "TestPass123!" || password === "Password123!")) {
-          passwordValid = true;
-        } else if ((u === "guest" || u === "srinu" || u === "divya1736") && password === "password") {
-          passwordValid = true;
-        } else if (u === "devi" && password === "devi1234") {
-          passwordValid = true;
-        } else if (u === "meghana" && password === "Megha@2005") {
-          passwordValid = true;
-        }
-
-        // If matched via fallback, auto-update hash in D1
-        if (passwordValid && env.DB) {
-          const freshHash = await hashPasswordPbkdf2(password);
-          await env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?").bind(freshHash, user.id).run().catch(() => {});
-        }
-      }
-
       if (!passwordValid) {
         return jsonResponse({ detail: "Invalid username/email or password.", error: "Unauthorized" }, 401);
       }

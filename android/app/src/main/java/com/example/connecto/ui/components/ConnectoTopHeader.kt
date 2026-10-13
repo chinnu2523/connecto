@@ -155,7 +155,8 @@ fun ConnectoTopHeader(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (colors.isGlass) Modifier.background(Color(0xD9090D16))
+                if (colors.isLiquidGlass) Modifier.background(Color(0x66061120))
+                else if (colors.isGlass) Modifier.background(Color(0xD9090D16))
                 else Modifier.background(colors.surface)
             )
             .statusBarsPadding()

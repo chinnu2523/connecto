@@ -48,7 +48,7 @@ enum class ThemeMode(val id: String, val displayName: String, val subtitle: Stri
     MIDNIGHT("midnight", "Midnight Navy", "Deep oceanic navy with electric azure & cobalt", "🌌"),
     EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with luminous matrix emerald", "💎"),
     GLASS("glass", "Frosted Glass", "Translucent crystal glassmorphism with prism specular glow", "🧊"),
-    LIQUID_GLASS("liquid_glass", "Liquid Glass", "Fluid aqua refraction, water droplet reflections & liquid sheen", "💧");
+    LIQUID_GLASS("liquid_glass", "Transparent Liquid Glass", "Ultra-clear fluid aqua refraction, transparent liquid glass & water droplet sheen", "💧");
 
     val isDark: Boolean
         get() = this != PARCHMENT
@@ -232,19 +232,19 @@ val GlassConnectoColors = ConnectoColors(
 val LiquidGlassConnectoColors = ConnectoColors(
     primary = Color(0xFF00E5FF),          // Fluid Electric Aqua Cyan (#00E5FF)
     onPrimary = Color(0xFF002233),
-    primaryContainer = Color(0xFF0A3355), // Aquatic Liquid Container
+    primaryContainer = Color(0x3300E5FF), // Transparent Liquid Aqua Container (20% alpha)
     onPrimaryContainer = Color(0xFFE0F7FA),
-    background = Color(0xFF061120),       // Deep Oceanic Liquid Obsidian (#061120)
+    background = Color(0xFF040A14),       // Deep Oceanic Liquid Obsidian Canvas (#040A14)
     onBackground = Color(0xFFF0FDF4),
-    surface = Color(0xFF0D1E36),          // Liquid Glass Fluid Surface (#0D1E36)
+    surface = Color(0x330D1E36),          // Transparent Liquid Glass Acrylic Base (20% alpha)
     onSurface = Color(0xFFF8FAFC),
-    surfaceVariant = Color(0xFF162D4D),   // Elevated Hydro-Glass Layer (#162D4D)
+    surfaceVariant = Color(0x59162D4D),   // Elevated Hydro-Glass Layer (35% alpha)
     onSurfaceVariant = Color(0xFF7DD3FC), // Water Ripple Text (#7DD3FC)
     textPrimary = Color(0xFFFFFFFF),      // Pure Water Drop White (#FFFFFF)
     textSecondary = Color(0xFFBAE6FD),    // Soft Cyan Aquatic Silver (#BAE6FD)
-    textDisabled = Color(0xFF476585),     // Deep Trench Slate (#476585)
-    border = Color(0xFF0284C7),           // Liquid Droplet Specular Rim (#0284C7)
-    borderSubtle = Color(0xFF0E3A5F),     // Subtle Fluid Edge (#0E3A5F)
+    textDisabled = Color(0xFF5B7A99),     // Deep Trench Slate (#5B7A99)
+    border = Color(0x6600E5FF),           // Specular Aqua Rim (40% alpha)
+    borderSubtle = Color(0x3300E5FF),     // Subtle Translucent Liquid Edge (20% alpha)
     success = Color(0xFF10B981),          // Aqua Marine Green (#10B981)
     onSuccess = Color(0xFF022C22),
     warning = Color(0xFFF59E0B),          // Solar Flare Amber (#F59E0B)

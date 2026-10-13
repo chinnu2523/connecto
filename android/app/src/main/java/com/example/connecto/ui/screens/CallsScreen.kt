@@ -82,6 +82,8 @@ import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.glassCanvasMesh
 import com.example.connecto.ui.theme.glassCard
+import com.example.connecto.ui.theme.liquidGlassCanvasMesh
+import com.example.connecto.ui.theme.liquidGlassCard
 import com.example.connecto.ui.designsystem.LocalConnectoColors
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
@@ -357,7 +359,8 @@ fun CallsScreen(
         modifier = modifier
             .fillMaxSize()
             .then(
-                if (colors.isGlass) Modifier.glassCanvasMesh()
+                if (colors.isLiquidGlass) Modifier.liquidGlassCanvasMesh()
+                else if (colors.isGlass) Modifier.glassCanvasMesh()
                 else Modifier.background(MaterialTheme.colorScheme.background)
             )
     ) {
@@ -398,7 +401,9 @@ fun CallsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .then(
-                        if (colors.isGlass) {
+                        if (colors.isLiquidGlass) {
+                            Modifier.liquidGlassCard(shape = filterShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                        } else if (colors.isGlass) {
                             Modifier.glassCard(shape = filterShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
                         } else {
                             Modifier
@@ -593,7 +598,9 @@ fun CallsScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .then(
-                                    if (colors.isGlass) {
+                                    if (colors.isLiquidGlass) {
+                                        Modifier.liquidGlassCard(shape = callCardShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                                    } else if (colors.isGlass) {
                                         Modifier.glassCard(shape = callCardShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
                                     } else {
                                         Modifier

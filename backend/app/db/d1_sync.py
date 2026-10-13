@@ -152,7 +152,17 @@ class D1SyncManager:
                     cols = list(r.keys())
                     col_names = ", ".join(cols)
                     placeholders = ", ".join(["?" for _ in cols])
-                    stmt = f"INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({placeholders});"
+                    if table_name == "users":
+                        # CRITICAL: Preserve password_hash and security credentials in Cloudflare D1
+                        update_cols = [c for c in cols if c not in ("id", "password_hash")]
+                        set_clause = ", ".join([f"{c} = excluded.{c}" for c in update_cols])
+                        stmt = (
+                            f"INSERT INTO users ({col_names}) VALUES ({placeholders}) "
+                            f"ON CONFLICT(id) DO UPDATE SET {set_clause}, "
+                            f"password_hash = CASE WHEN users.password_hash IS NULL OR users.password_hash = '' THEN excluded.password_hash ELSE users.password_hash END;"
+                        )
+                    else:
+                        stmt = f"INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({placeholders});"
                     items.append({"sql": stmt, "params": [r[c] for c in cols]})
 
                 success = self.execute_batch_cloud_d1(items)
@@ -266,30 +276,34 @@ class D1SyncManager:
                         )
                         results["messages_pulled"] += 1
 
-            # 2. Reconcile Users (Avatar, Banner, Bio, Display Name, Online State)
+            # 2. Reconcile Users (Avatar, Banner, Bio, Display Name, Password Hash, Online State)
             cloud_users = self.query_cloud_d1(
-                "SELECT id, username, display_name, avatar_url, banner_url, bio, is_stealth, updated_at FROM users;"
+                "SELECT id, username, display_name, avatar_url, banner_url, bio, is_stealth, password_hash, updated_at FROM users;"
             )
             if cloud_users:
                 for cu in cloud_users:
                     uid = cu.get("id")
                     if not uid:
                         continue
-                    cur.execute("SELECT id, avatar_url, banner_url, bio, display_name, updated_at FROM users WHERE id = ?", (uid,))
+                    cur.execute("SELECT id, avatar_url, banner_url, bio, display_name, password_hash, updated_at FROM users WHERE id = ?", (uid,))
                     loc_u = cur.fetchone()
                     if loc_u:
                         c_updated = cu.get("updated_at") or ""
                         l_updated = loc_u["updated_at"] or ""
-                        # If cloud version has avatar/banner or newer timestamp, pull cloud profile
+                        c_pwd = cu.get("password_hash")
+                        l_pwd = loc_u["password_hash"]
+                        should_update_pwd = bool(c_pwd and (c_pwd != l_pwd) and (c_updated >= l_updated or not l_pwd or not str(l_pwd).startswith("pbkdf2_sha256$")))
+                        # If cloud version has avatar/banner or newer timestamp or updated password, pull cloud profile
                         if (cu.get("avatar_url") and cu.get("avatar_url") != loc_u["avatar_url"]) or \
                            (cu.get("banner_url") and cu.get("banner_url") != loc_u["banner_url"]) or \
-                           (c_updated > l_updated):
+                           (c_updated > l_updated) or should_update_pwd:
                             cur.execute(
                                 "UPDATE users SET "
                                 "display_name = coalesce(?, display_name), "
                                 "avatar_url = coalesce(?, avatar_url), "
                                 "banner_url = coalesce(?, banner_url), "
                                 "bio = coalesce(?, bio), "
+                                "password_hash = CASE WHEN ? IS NOT NULL AND ? != '' THEN ? ELSE password_hash END, "
                                 "updated_at = datetime('now') "
                                 "WHERE id = ?",
                                 (
@@ -297,6 +311,9 @@ class D1SyncManager:
                                     cu.get("avatar_url"),
                                     cu.get("banner_url"),
                                     cu.get("bio"),
+                                    c_pwd if should_update_pwd else None,
+                                    c_pwd if should_update_pwd else None,
+                                    c_pwd if should_update_pwd else None,
                                     uid
                                 )
                             )

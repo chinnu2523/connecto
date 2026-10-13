@@ -175,6 +175,7 @@ import com.example.connecto.ui.theme.TextDisabledColor
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.glassCard
+import com.example.connecto.ui.theme.liquidGlassCard
 import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
 import com.example.connecto.ui.designsystem.getAvatarGradient
 import com.example.connecto.ui.designsystem.ConnectoTheme
@@ -629,7 +630,9 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (currentThemeMode.isGlass) {
+                                if (currentThemeMode.isLiquidGlass) {
+                                    Modifier.liquidGlassCard(shape = avatarCardShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                                } else if (currentThemeMode.isGlass) {
                                     Modifier.glassCard(shape = avatarCardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = false)
                                 } else {
                                     Modifier
@@ -3691,13 +3694,16 @@ private fun ProfileNavigationMenuButton(
     onClick: () -> Unit
 ) {
     val isGlass = ConnectoTheme.isGlass
+    val isLiquidGlass = ConnectoTheme.isLiquidGlass
     val cardShape = RoundedCornerShape(18.dp)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .then(
-                if (isGlass) {
+                if (isLiquidGlass) {
+                    Modifier.liquidGlassCard(shape = cardShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                } else if (isGlass) {
                     Modifier.glassCard(shape = cardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = false)
                 } else {
                     Modifier

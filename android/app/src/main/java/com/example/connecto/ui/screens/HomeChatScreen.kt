@@ -99,6 +99,8 @@ import com.example.connecto.ui.theme.PulsingOnlineDot
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.glassCanvasMesh
 import com.example.connecto.ui.theme.glassCard
+import com.example.connecto.ui.theme.liquidGlassCanvasMesh
+import com.example.connecto.ui.theme.liquidGlassCard
 import com.example.connecto.voice.VoiceCallManager
 import com.example.connecto.ui.screens.FriendItem
 import kotlinx.coroutines.Dispatchers
@@ -392,7 +394,8 @@ fun HomeChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .then(
-                if (colors.isGlass) Modifier.glassCanvasMesh()
+                if (colors.isLiquidGlass) Modifier.liquidGlassCanvasMesh()
+                else if (colors.isGlass) Modifier.glassCanvasMesh()
                 else Modifier.background(colors.background)
             )
     ) {
@@ -419,7 +422,9 @@ fun HomeChatScreen(
                             .fillMaxWidth()
                             .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.xs)
                             .then(
-                                if (colors.isGlass) {
+                                if (colors.isLiquidGlass) {
+                                    Modifier.liquidGlassCard(shape = searchShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                                } else if (colors.isGlass) {
                                     Modifier.glassCard(shape = searchShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8))
                                 } else {
                                     Modifier
@@ -903,7 +908,9 @@ private fun QuickActionChip(
         modifier = Modifier
             .pressScaleEffect(onClick = onClick, targetScale = 0.92f)
             .then(
-                if (colors.isGlass) {
+                if (colors.isLiquidGlass) {
+                    Modifier.liquidGlassCard(shape = chipShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                } else if (colors.isGlass) {
                     Modifier.glassCard(shape = chipShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
                 } else {
                     Modifier

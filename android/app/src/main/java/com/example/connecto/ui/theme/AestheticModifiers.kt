@@ -403,6 +403,112 @@ fun Modifier.glassCard(
 }
 
 /**
+ * Ultra-Clear Liquid Glass Canvas Mesh.
+ * Fluid oceanic gradients, caustic water orb refractions, and deep aqua reflections.
+ */
+@Composable
+fun Modifier.liquidGlassCanvasMesh(
+    enabled: Boolean = true
+): Modifier {
+    if (!enabled) return this
+    val infiniteTransition = rememberInfiniteTransition(label = "liquidMeshAmbient")
+    val pulse by infiniteTransition.animateFloat(
+        initialValue = 0.90f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "liquidMeshPulse"
+    )
+
+    return this.drawBehind {
+        // Deep oceanic midnight canvas
+        drawRect(Color(0xFF040A14))
+
+        // Ambient Fluid Aqua Orb (Top Right)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x3800E5FF),
+                    Color(0x120284C7),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.82f, size.height * 0.12f),
+                radius = size.width * 0.68f * pulse
+            ),
+            radius = size.width * 0.68f * pulse,
+            center = Offset(size.width * 0.82f, size.height * 0.12f)
+        )
+
+        // Deep Oceanic Trench Orb (Bottom Left)
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x280369A1),
+                    Color(0x100C4A6E),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.15f, size.height * 0.82f),
+                radius = size.width * 0.72f / pulse
+            ),
+            radius = size.width * 0.72f / pulse,
+            center = Offset(size.width * 0.15f, size.height * 0.82f)
+        )
+
+        // Central Caustic Aqua Glow
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0x2038BDF8),
+                    Color.Transparent
+                ),
+                center = Offset(size.width * 0.5f, size.height * 0.45f),
+                radius = size.width * 0.52f
+            ),
+            radius = size.width * 0.52f,
+            center = Offset(size.width * 0.5f, size.height * 0.45f)
+        )
+    }
+}
+
+/**
+ * Transparent Liquid Glass Card.
+ * Ultra-clear hydro-acrylic body with fluid transparency, water droplet rim, and specular highlight.
+ */
+@Composable
+fun Modifier.liquidGlassCard(
+    shape: Shape = RoundedCornerShape(16.dp),
+    backgroundColor: Color = Color(0x330D1E36),
+    borderColor: Color = Color(0xFF00E5FF),
+    borderWidth: Dp = 1.dp
+): Modifier {
+    return this
+        .clip(shape)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0x330D1E36), // Transparent aqua acrylic (20% alpha)
+                    Color(0x1A061120)  // Ultra-translucent bottom (10% alpha)
+                )
+            )
+        )
+        .border(
+            width = borderWidth,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.75f),   // Specular glare reflection on top rim
+                    borderColor.copy(alpha = 0.50f),  // Aqua cyan rim
+                    borderColor.copy(alpha = 0.12f)   // Translucent subtle bottom edge
+                ),
+                start = Offset.Zero,
+                end = Offset(400f, 400f)
+            ),
+            shape = shape
+        )
+}
+
+/**
  * Tactile Glass Button with spring scale compression, vertical translation, and specular edge bloom.
  */
 @Composable
@@ -474,44 +580,87 @@ fun Modifier.glassInteractiveButton(
 fun Modifier.glassBubble(
     isMe: Boolean,
     shape: Shape,
-    isPressed: Boolean = false
+    isPressed: Boolean = false,
+    isLiquid: Boolean = false
 ): Modifier {
-    val bgBrush = if (isMe) {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xEE0C2A4A),
-                Color(0xD4081E36)
+    val bgBrush = if (isLiquid) {
+        if (isMe) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0x5900E5FF),
+                    Color(0x280284C7)
+                )
             )
-        )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0x400D1E36),
+                    Color(0x1F061120)
+                )
+            )
+        }
     } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                Color(0xEE1E293B),
-                Color(0xD4111827)
+        if (isMe) {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xEE0C2A4A),
+                    Color(0xD4081E36)
+                )
             )
-        )
+        } else {
+            Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xEE1E293B),
+                    Color(0xD4111827)
+                )
+            )
+        }
     }
 
-    val borderBrush = if (isMe) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color(0xCC38BDF8),
-                Color(0x4D38BDF8),
-                Color(0x1838BDF8)
-            ),
-            start = Offset.Zero,
-            end = Offset(240f, 240f)
-        )
+    val borderBrush = if (isLiquid) {
+        if (isMe) {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.85f),
+                    Color(0x8000E5FF),
+                    Color(0x2600E5FF)
+                ),
+                start = Offset.Zero,
+                end = Offset(240f, 240f)
+            )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.50f),
+                    Color(0x807DD3FC),
+                    Color(0x200284C7)
+                ),
+                start = Offset.Zero,
+                end = Offset(240f, 240f)
+            )
+        }
     } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color(0x8094A3B8),
-                Color(0x33475569),
-                Color(0x121E293B)
-            ),
-            start = Offset.Zero,
-            end = Offset(240f, 240f)
-        )
+        if (isMe) {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0xCC38BDF8),
+                    Color(0x4D38BDF8),
+                    Color(0x1838BDF8)
+                ),
+                start = Offset.Zero,
+                end = Offset(240f, 240f)
+            )
+        } else {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color(0x8094A3B8),
+                    Color(0x33475569),
+                    Color(0x121E293B)
+                ),
+                start = Offset.Zero,
+                end = Offset(240f, 240f)
+            )
+        }
     }
 
     return this
