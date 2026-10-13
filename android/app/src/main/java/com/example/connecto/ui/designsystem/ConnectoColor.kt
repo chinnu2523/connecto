@@ -37,206 +37,130 @@ data class ConnectoColors(
     val info: Color,
     val onInfo: Color,
     val isDark: Boolean,
-    val isGlass: Boolean = false,
-    val isLiquidGlass: Boolean = false
+    val isGlass: Boolean = true,
+    val isLiquidGlass: Boolean = true
 )
 
 enum class ThemeMode(val id: String, val displayName: String, val subtitle: String, val iconEmoji: String) {
-    NOIR("noir", "Pure Black OLED", "0-nit pitch black luxury with crisp white accents", "🌙"),
-    PARCHMENT("parchment", "Ivory Paper", "Warm archival light parchment with sumi ink", "☀️"),
-    CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-voltage neon purple & cyan night city glow", "⚡"),
-    MIDNIGHT("midnight", "Midnight Navy", "Deep oceanic navy with electric azure & cobalt", "🌌"),
-    EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with luminous matrix emerald", "💎"),
-    GLASS("glass", "Frosted Glass", "Translucent crystal glassmorphism with prism specular glow", "🧊"),
-    LIQUID_GLASS("liquid_glass", "Transparent Liquid Glass", "Ultra-clear fluid aqua refraction, transparent liquid glass & water droplet sheen", "💧");
+    NOIR("noir", "Pure Black OLED", "0-nit pitch black luxury with transparent liquid obsidian refraction", "🌙"),
+    EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with transparent liquid matrix emerald refraction", "💎"),
+    MIDNIGHT("midnight", "Midnight Navy", "Deep oceanic navy with transparent liquid azure refraction", "🌌"),
+    CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-voltage neon purple & cyan transparent liquid glass glow", "⚡"),
+    PARCHMENT("parchment", "Ivory Paper", "Warm archival light parchment with translucent liquid glass sheen", "☀️");
 
     val isDark: Boolean
         get() = this != PARCHMENT
 
     val isGlass: Boolean
-        get() = this == GLASS || this == LIQUID_GLASS
+        get() = true
 
     val isLiquidGlass: Boolean
-        get() = this == LIQUID_GLASS
+        get() = true
 
     companion object {
         fun fromId(id: String?): ThemeMode {
+            if (id.equals("liquid_glass", ignoreCase = true)) return MIDNIGHT
+            if (id.equals("glass", ignoreCase = true)) return MIDNIGHT
             return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: NOIR
         }
     }
 }
 
 val LightConnectoColors = ConnectoColors(
-    primary = Color(0xFF141312),          // Sumi Ink Accent
+    primary = Color(0xFFB45309),          // Warm Amber Ink Accent (#B45309)
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFEBE6DC), // Level 2 Warm Archival Surface
+    primaryContainer = Color(0x33B45309), // Translucent Amber Glass Container (20% alpha)
     onPrimaryContainer = Color(0xFF141312),
-    background = Color(0xFFFBF8F2),       // Ivory Paper Canvas (#FBF8F2)
+    background = Color(0xFFFBF8F2),       // Warm Archival Ivory Paper Canvas (#FBF8F2)
     onBackground = Color(0xFF141312),
-    surface = Color(0xFFFFFFFF),          // Pure White Card Surface (#FFFFFF)
+    surface = Color(0x4DF5EFE6),          // Translucent Archival Hydro Glass Base (30% alpha)
     onSurface = Color(0xFF141312),
-    surfaceVariant = Color(0xFFF5F1E8),   // Level 1 Warm Surface (#F5F1E8)
-    onSurfaceVariant = Color(0xFF44403C), // Warm Secondary Ink (#44403C)
+    surfaceVariant = Color(0x80EBE3D5),   // Elevated Archival Glass Layer (50% alpha)
+    onSurfaceVariant = Color(0xFF78350F), // Rich Sienna Muted Text (#78350F)
     textPrimary = Color(0xFF141312),      // Deep Ink Header (#141312)
-    textSecondary = Color(0xFF44403C),    // Normal Body Ink (#44403C)
-    textDisabled = Color(0xFF78716C),     // Muted Archival Ink (#78716C)
-    border = Color(0xFFE7E2D8),           // Archival Border (#E7E2D8)
-    borderSubtle = Color(0xFFF0ECE4),     // Subtle Archival Border (#F0ECE4)
-    success = Color(0xFF10B981),          // Emerald 500
+    textSecondary = Color(0xFF57534E),    // Normal Body Ink (#57534E)
+    textDisabled = Color(0xFFA8A29E),     // Muted Archival Ink (#A8A29E)
+    border = Color(0x4D141312),           // Specular Sumi Ink Rim (30% alpha)
+    borderSubtle = Color(0x26141312),     // Subtle Translucent Rim (15% alpha)
+    success = Color(0xFF15803D),          // Forest Green
     onSuccess = Color(0xFFFFFFFF),
-    warning = Color(0xFFD97706),          // Warm Amber 600
+    warning = Color(0xFFB45309),          // Warm Amber 600
     onWarning = Color(0xFFFFFFFF),
-    error = Color(0xFFDC2626),            // Crimson 600
+    error = Color(0xFFB91C1C),            // Crimson 600
     onError = Color(0xFFFFFFFF),
-    info = Color(0xFF0891B2),             // Cyan 600
+    info = Color(0xFF0284C7),             // Azure Sky
     onInfo = Color(0xFFFFFFFF),
-    isDark = false
+    isDark = false,
+    isGlass = true,
+    isLiquidGlass = true
 )
 
 val DarkConnectoColors = ConnectoColors(
-    primary = Color(0xFFFFFFFF),          // Crisp White Noir Accent
+    primary = Color(0xFFFFFFFF),          // Pure White Crisp Accent
     onPrimary = Color(0xFF000000),
-    primaryContainer = Color(0xFF141418), // Deep Elevated Dark Container
+    primaryContainer = Color(0x33FFFFFF), // Translucent White Glass Highlight (20% alpha)
     onPrimaryContainer = Color(0xFFFFFFFF),
     background = Color(0xFF000000),       // OLED True 0-nit Pure Black (#000000)
     onBackground = Color(0xFFFFFFFF),
-    surface = Color(0xFF080808),          // Deep Modal & Nav Base (#080808)
+    surface = Color(0x330B0B0E),          // Translucent 0-nit Obsidian Glass Base (20% alpha)
     onSurface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0xFF0A0A0A),   // Obsidian Card Surface (#0A0A0A)
+    surfaceVariant = Color(0x59141418),   // Elevated Translucent Obsidian Layer (35% alpha)
     onSurfaceVariant = Color(0xFFD4D4D8), // Secondary Text (#D4D4D8)
     textPrimary = Color(0xFFFFFFFF),      // Pure Crisp White (#FFFFFF)
     textSecondary = Color(0xFFD4D4D8),    // Normal Body Text (#D4D4D8)
     textDisabled = Color(0xFF8E8E93),     // Muted Gray (#8E8E93)
-    border = Color(0xFF222228),           // Sleek 1dp OLED Border (#222228)
-    borderSubtle = Color(0xFF16161C),     // Hairline OLED Border (#16161C)
+    border = Color(0x4DFFFFFF),           // Specular White Rim Highlight (30% alpha)
+    borderSubtle = Color(0x26FFFFFF),     // Subtle Translucent Rim (15% alpha)
     success = Color(0xFF34D399),          // Emerald 400
     onSuccess = Color(0xFF064E3B),
     warning = Color(0xFFFBBF24),          // Amber 400
     onWarning = Color(0xFF78350F),
     error = Color(0xFFF87171),            // Red 400
     onError = Color(0xFF7F1D1D),
-    info = Color(0xFF22D3EE),             // Cyber Cyan 400
+    info = Color(0xFF38BDF8),             // Sky Cyan Accent
     onInfo = Color(0xFF083344),
-    isDark = true
+    isDark = true,
+    isGlass = true,
+    isLiquidGlass = true
 )
 
 val CyberpunkConnectoColors = ConnectoColors(
-    primary = Color(0xFFEC4899),          // Neon Fuchsia / Pink 500
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFF2A123D), // Deep Violet Glow Container
-    onPrimaryContainer = Color(0xFFFDF2F8),
-    background = Color(0xFF0D0A1A),       // Deep Cyberpunk Void (#0D0A1A)
-    onBackground = Color(0xFFF8FAFC),
-    surface = Color(0xFF15102A),          // Dark Synthwave Surface (#15102A)
-    onSurface = Color(0xFFF8FAFC),
-    surfaceVariant = Color(0xFF1E173B),   // Electric Violet Elevation (#1E173B)
-    onSurfaceVariant = Color(0xFFC084FC), // Lavender / Purple Accent
-    textPrimary = Color(0xFFF8FAFC),      // Bright Neon White
-    textSecondary = Color(0xFFE2E8F0),    // Crisp Subtitle
-    textDisabled = Color(0xFF818CF8),     // Indigo Muted
-    border = Color(0xFF3B2768),           // Violet Border (#3B2768)
-    borderSubtle = Color(0xFF271A46),     // Subtle Border
-    success = Color(0xFF06B6D4),          // Cyber Cyan (#06B6D4)
-    onSuccess = Color(0xFF083344),
-    warning = Color(0xFFF59E0B),          // Electric Amber
-    onWarning = Color(0xFF78350F),
-    error = Color(0xFFEF4444),            // Laser Red
-    onError = Color(0xFFFFFFFF),
-    info = Color(0xFF38BDF8),             // Electric Cyan Accent (#38BDF8)
-    onInfo = Color(0xFF0C4A6E),
-    isDark = true
+    primary = Color(0xFFD946EF),          // Electric Neon Magenta Glow
+    onPrimary = Color(0xFF2E0238),
+    primaryContainer = Color(0x33D946EF), // Transparent Neon Magenta Container (20% alpha)
+    onPrimaryContainer = Color(0xFFFDF4FF),
+    background = Color(0xFF07040D),       // Abyssal Neon Night City Canvas (#07040D)
+    onBackground = Color(0xFFFAF5FF),
+    surface = Color(0x33100A1C),          // Translucent Neon Violet Hydro Glass (20% alpha)
+    onSurface = Color(0xFFFAF5FF),
+    surfaceVariant = Color(0x591B102E),   // Elevated Translucent Cyber Layer (35% alpha)
+    onSurfaceVariant = Color(0xFFE879F9), // Soft Neon Fuchsia Text (#E879F9)
+    textPrimary = Color(0xFFFAF5FF),      // Bright Neon White
+    textSecondary = Color(0xFFC084FC),    // Lavender / Purple Accent
+    textDisabled = Color(0xFF6B21A8),     // Indigo Muted
+    border = Color(0x66D946EF),           // Specular Neon Magenta Rim (40% alpha)
+    borderSubtle = Color(0x3306B6D4),     // Subtle Electric Cyan Hairline Rim (20% alpha)
+    success = Color(0xFF22C55E),          // Cyber Green
+    onSuccess = Color(0xFF052E16),
+    warning = Color(0xFFFACC15),          // Electric Gold
+    onWarning = Color(0xFF713F12),
+    error = Color(0xFFFF2A85),            // Laser Pink Red
+    onError = Color(0xFF4C0519),
+    info = Color(0xFF06B6D4),             // Electric Neon Cyan (#06B6D4)
+    onInfo = Color(0xFF083344),
+    isDark = true,
+    isGlass = true,
+    isLiquidGlass = true
 )
 
 val MidnightConnectoColors = ConnectoColors(
-    primary = Color(0xFF38BDF8),          // Electric Sky Blue 400
-    onPrimary = Color(0xFF082F49),
-    primaryContainer = Color(0xFF0C2442), // Deep Ocean Trench Container
-    onPrimaryContainer = Color(0xFFE0F2FE),
-    background = Color(0xFF050B14),       // Deep Abyssal Navy (#050B14)
-    onBackground = Color(0xFFF0F9FF),
-    surface = Color(0xFF0A1526),          // Midnight Hull Surface (#0A1526)
-    onSurface = Color(0xFFF0F9FF),
-    surfaceVariant = Color(0xFF0E1E36),   // Deep Cobalt Surface (#0E1E36)
-    onSurfaceVariant = Color(0xFF93C5FD), // Soft Azure Text (#93C5FD)
-    textPrimary = Color(0xFFF0F9FF),      // Crisp Starlight White
-    textSecondary = Color(0xFFBAE6FD),    // Pale Sky Blue
-    textDisabled = Color(0xFF64748B),     // Slate Gray
-    border = Color(0xFF1E3A5F),           // Deep Oceanic Border (#1E3A5F)
-    borderSubtle = Color(0xFF132842),     // Subtle Abyss Border
-    success = Color(0xFF10B981),          // Seafoam Emerald
-    onSuccess = Color(0xFF022C22),
-    warning = Color(0xFFF59E0B),          // Solar Flare Gold
-    onWarning = Color(0xFF78350F),
-    error = Color(0xFFFB7185),            // Rose Red
-    onError = Color(0xFF4C0519),
-    info = Color(0xFF60A5FA),             // Azure 400 (#60A5FA)
-    onInfo = Color(0xFF172554),
-    isDark = true
-)
-
-val EmeraldConnectoColors = ConnectoColors(
-    primary = Color(0xFF10B981),          // Luminous Matrix Emerald 500
-    onPrimary = Color(0xFF022C22),
-    primaryContainer = Color(0xFF063327), // Jade Terminal Container
-    onPrimaryContainer = Color(0xFFD1FAE5),
-    background = Color(0xFF040D09),       // Deep Matrix Black-Green (#040D09)
-    onBackground = Color(0xFFECFDF5),
-    surface = Color(0xFF081812),          // Obsidian Jade Surface (#081812)
-    onSurface = Color(0xFFECFDF5),
-    surfaceVariant = Color(0xFF0D251C),   // Elevated Terminal Base (#0D251C)
-    onSurfaceVariant = Color(0xFF6EE7B7), // Mint Green Text (#6EE7B7)
-    textPrimary = Color(0xFFECFDF5),      // Terminal Green White
-    textSecondary = Color(0xFFA7F3D0),    // Soft Mint
-    textDisabled = Color(0xFF4B6E5F),     // Camo Olive Muted
-    border = Color(0xFF144D39),           // Emerald Glow Border (#144D39)
-    borderSubtle = Color(0xFF0D3325),     // Subtle Foliage Border
-    success = Color(0xFF34D399),          // Emerald 400
-    onSuccess = Color(0xFF064E3B),
-    warning = Color(0xFFFBBF24),          // Warning Gold
-    onWarning = Color(0xFF78350F),
-    error = Color(0xFFF87171),            // Alert Red
-    onError = Color(0xFF7F1D1D),
-    info = Color(0xFF2DD4BF),             // Teal 400 (#2DD4BF)
-    onInfo = Color(0xFF134E4A),
-    isDark = true
-)
-
-val GlassConnectoColors = ConnectoColors(
-    primary = Color(0xFF38BDF8),          // Electric Ice Prism Cyan (#38BDF8)
-    onPrimary = Color(0xFF021727),
-    primaryContainer = Color(0xFF0C2A4A), // Translucent Ice Glass Container
-    onPrimaryContainer = Color(0xFFE0F2FE),
-    background = Color(0xFF090D16),       // Deep Crystal Obsidian Canvas (#090D16)
-    onBackground = Color(0xFFF1F5F9),
-    surface = Color(0xFF111827),          // Frosted Glass Acrylic Base (#111827)
-    onSurface = Color(0xFFF8FAFC),
-    surfaceVariant = Color(0xFF1E293B),   // Elevated Frosted Glass Card Surface (#1E293B)
-    onSurfaceVariant = Color(0xFF94A3B8), // Glacial Mist Secondary Text (#94A3B8)
-    textPrimary = Color(0xFFFFFFFF),      // Pure Frost White (#FFFFFF)
-    textSecondary = Color(0xFFCBD5E1),    // Crisp Frosted Silver (#CBD5E1)
-    textDisabled = Color(0xFF64748B),     // Muted Glacial Slate (#64748B)
-    border = Color(0xFF334A6E),           // Specular Glass Edge Highlight (#334A6E)
-    borderSubtle = Color(0xFF1E2D44),     // Subtle Hairline Glass Rim (#1E2D44)
-    success = Color(0xFF34D399),          // Aurora Mint Frost 400
-    onSuccess = Color(0xFF022C22),
-    warning = Color(0xFFFBBF24),          // Amber Prism Glow 400
-    onWarning = Color(0xFF451A03),
-    error = Color(0xFFFB7185),            // Crystal Rose Red 400
-    onError = Color(0xFF4C0519),
-    info = Color(0xFF22D3EE),             // Luminous Prism Cyan 400 (#22D3EE)
-    onInfo = Color(0xFF083344),
-    isDark = true,
-    isGlass = true
-)
-
-val LiquidGlassConnectoColors = ConnectoColors(
     primary = Color(0xFF00E5FF),          // Fluid Electric Aqua Cyan (#00E5FF)
     onPrimary = Color(0xFF002233),
-    primaryContainer = Color(0x3300E5FF), // Transparent Liquid Aqua Container (20% alpha)
+    primaryContainer = Color(0x3300E5FF), // Transparent Azure Liquid Container (20% alpha)
     onPrimaryContainer = Color(0xFFE0F7FA),
-    background = Color(0xFF040A14),       // Deep Oceanic Liquid Obsidian Canvas (#040A14)
+    background = Color(0xFF040A14),       // Deep Oceanic Midnight Canvas (#040A14)
     onBackground = Color(0xFFF0FDF4),
-    surface = Color(0x330D1E36),          // Transparent Liquid Glass Acrylic Base (20% alpha)
+    surface = Color(0x330D1E36),          // Transparent Liquid Navy Acrylic Base (20% alpha)
     onSurface = Color(0xFFF8FAFC),
     surfaceVariant = Color(0x59162D4D),   // Elevated Hydro-Glass Layer (35% alpha)
     onSurfaceVariant = Color(0xFF7DD3FC), // Water Ripple Text (#7DD3FC)
@@ -244,7 +168,7 @@ val LiquidGlassConnectoColors = ConnectoColors(
     textSecondary = Color(0xFFBAE6FD),    // Soft Cyan Aquatic Silver (#BAE6FD)
     textDisabled = Color(0xFF5B7A99),     // Deep Trench Slate (#5B7A99)
     border = Color(0x6600E5FF),           // Specular Aqua Rim (40% alpha)
-    borderSubtle = Color(0x3300E5FF),     // Subtle Translucent Liquid Edge (20% alpha)
+    borderSubtle = Color(0x3300E5FF),     // Subtle Translucent Rim (20% alpha)
     success = Color(0xFF10B981),          // Aqua Marine Green (#10B981)
     onSuccess = Color(0xFF022C22),
     warning = Color(0xFFF59E0B),          // Solar Flare Amber (#F59E0B)
@@ -258,6 +182,35 @@ val LiquidGlassConnectoColors = ConnectoColors(
     isLiquidGlass = true
 )
 
+val EmeraldConnectoColors = ConnectoColors(
+    primary = Color(0xFF10B981),          // Luminous Matrix Emerald 500
+    onPrimary = Color(0xFF022C22),
+    primaryContainer = Color(0x3310B981), // Transparent Emerald Glass Container (20% alpha)
+    onPrimaryContainer = Color(0xFFD1FAE5),
+    background = Color(0xFF040D09),       // Deep Matrix Black-Green (#040D09)
+    onBackground = Color(0xFFECFDF5),
+    surface = Color(0x33081812),          // Translucent Obsidian Jade Glass Base (20% alpha)
+    onSurface = Color(0xFFECFDF5),
+    surfaceVariant = Color(0x590D251C),   // Elevated Translucent Jade Hydro Layer (35% alpha)
+    onSurfaceVariant = Color(0xFF6EE7B7), // Mint Green Text (#6EE7B7)
+    textPrimary = Color(0xFFECFDF5),      // Terminal Green White
+    textSecondary = Color(0xFFA7F3D0),    // Soft Mint
+    textDisabled = Color(0xFF4B6E5F),     // Camo Olive Muted
+    border = Color(0x6610B981),           // Specular Emerald Rim (40% alpha)
+    borderSubtle = Color(0x3310B981),     // Subtle Translucent Emerald Rim (20% alpha)
+    success = Color(0xFF34D399),          // Emerald 400
+    onSuccess = Color(0xFF064E3B),
+    warning = Color(0xFFFBBF24),          // Warning Gold
+    onWarning = Color(0xFF78350F),
+    error = Color(0xFFF87171),            // Alert Red
+    onError = Color(0xFF7F1D1D),
+    info = Color(0xFF2DD4BF),             // Teal 400 (#2DD4BF)
+    onInfo = Color(0xFF134E4A),
+    isDark = true,
+    isGlass = true,
+    isLiquidGlass = true
+)
+
 fun getColorsForTheme(themeMode: ThemeMode): ConnectoColors {
     return when (themeMode) {
         ThemeMode.NOIR -> DarkConnectoColors
@@ -265,8 +218,6 @@ fun getColorsForTheme(themeMode: ThemeMode): ConnectoColors {
         ThemeMode.CYBERPUNK -> CyberpunkConnectoColors
         ThemeMode.MIDNIGHT -> MidnightConnectoColors
         ThemeMode.EMERALD -> EmeraldConnectoColors
-        ThemeMode.GLASS -> GlassConnectoColors
-        ThemeMode.LIQUID_GLASS -> LiquidGlassConnectoColors
     }
 }
 

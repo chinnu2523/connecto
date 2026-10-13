@@ -549,10 +549,7 @@ fun ProfileScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .then(
-                if (currentThemeMode.isGlass) Modifier.background(Color(0xFF090D16))
-                else Modifier.background(MaterialTheme.colorScheme.background)
-            )
+            .background(MaterialTheme.colorScheme.background)
     ) {
         AnimatedContent(
             targetState = activeSubPage,
@@ -630,34 +627,11 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .then(
-                                if (currentThemeMode.isLiquidGlass) {
-                                    Modifier.liquidGlassCard(shape = avatarCardShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
-                                } else if (currentThemeMode.isGlass) {
-                                    Modifier.glassCard(shape = avatarCardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = false)
-                                } else {
-                                    Modifier
-                                        .clip(avatarCardShape)
-                                        .background(
-                                            Brush.verticalGradient(
-                                                colors = listOf(
-                                                    MaterialTheme.colorScheme.surface,
-                                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                            )
-                                        )
-                                        .border(
-                                            BorderStroke(
-                                                1.dp,
-                                                Brush.verticalGradient(
-                                                    colors = listOf(
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                                                        MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                                    )
-                                                )
-                                            ),
-                                            avatarCardShape
-                                        )
-                                }
+                                Modifier.liquidGlassCard(
+                                    shape = avatarCardShape,
+                                    backgroundColor = MaterialTheme.colorScheme.surface,
+                                    borderColor = MaterialTheme.colorScheme.primary
+                                )
                             )
                     ) {
                         Column(
@@ -1935,12 +1909,12 @@ fun ProfileScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
 
-                                    // 2. Theme Selection Cards Grid (All 6 themes)
+                                    // 2. Theme Selection Cards Grid (5 Transparent Liquid Glass Themes)
                                     Column(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalArrangement = Arrangement.spacedBy(10.dp)
                                     ) {
-                                        com.example.connecto.ui.designsystem.ThemeMode.values().forEach { mode ->
+                                        com.example.connecto.ui.designsystem.ThemeMode.entries.forEach { mode ->
                                             val isSelected = currentThemeMode == mode
                                             val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
 
@@ -3701,20 +3675,11 @@ private fun ProfileNavigationMenuButton(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .then(
-                if (isLiquidGlass) {
-                    Modifier.liquidGlassCard(shape = cardShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
-                } else if (isGlass) {
-                    Modifier.glassCard(shape = cardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = false)
-                } else {
-                    Modifier
-                        .clip(cardShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                            cardShape
-                        )
-                }
+                Modifier.liquidGlassCard(
+                    shape = cardShape,
+                    backgroundColor = MaterialTheme.colorScheme.surface,
+                    borderColor = MaterialTheme.colorScheme.primary
+                )
             )
             .padding(horizontal = 16.dp, vertical = 15.dp)
     ) {

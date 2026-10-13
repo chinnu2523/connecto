@@ -67,16 +67,16 @@ fun ConnectoCard(
 
         val cardBgBrush = Brush.verticalGradient(
             colors = listOf(
-                colors.surface.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.88f else 0.78f),
-                colors.surfaceVariant.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.72f else 0.52f)
+                colors.surface.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.35f else 0.22f),
+                colors.surfaceVariant.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.22f else 0.12f)
             )
         )
 
         val cardBorderBrush = border?.brush ?: Brush.linearGradient(
             colors = listOf(
-                colors.primary.copy(alpha = if (isPressed) 0.85f else 0.50f),
-                colors.border.copy(alpha = 0.25f),
-                colors.borderSubtle.copy(alpha = 0.08f)
+                Color.White.copy(alpha = if (isPressed) 0.85f else 0.65f),
+                colors.primary.copy(alpha = if (isPressed) 0.65f else 0.40f),
+                colors.borderSubtle.copy(alpha = 0.10f)
             )
         )
 

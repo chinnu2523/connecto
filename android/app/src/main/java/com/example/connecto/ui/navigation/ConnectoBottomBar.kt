@@ -122,9 +122,9 @@ fun ConnectoBottomBar(
         Brush.linearGradient(
             colors = listOf(
                 Color.Transparent,
-                (if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary).copy(alpha = 0.35f),
+                colors.primary.copy(alpha = 0.35f),
                 Color.White.copy(alpha = 0.85f),
-                (if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary).copy(alpha = 0.35f),
+                colors.primary.copy(alpha = 0.35f),
                 Color.Transparent
             ),
             start = Offset(gleamOffset, 0f),
@@ -146,9 +146,7 @@ fun ConnectoBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                if (colors.isLiquidGlass) Color(0x66061120)
-                else if (colors.isGlass) Color(0xF2090D16)
-                else colors.surface
+                colors.background.copy(alpha = if (!colors.isDark) 0.70f else 0.40f)
             )
     ) {
         // Glowing gradient top border line with animated specular gleam in glass / liquid theme
@@ -206,7 +204,7 @@ fun ConnectoBottomBar(
                     val outerRadius = (5.dp.toPx() + 34.dp.toPx() * progress)
                     val outerAlpha = ((1f - progress) * 0.55f).coerceIn(0f, 1f)
                     drawCircle(
-                        color = (if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary).copy(alpha = outerAlpha),
+                        color = colors.primary.copy(alpha = outerAlpha),
                         radius = outerRadius,
                         center = rippleCenter,
                         style = Stroke(width = 2.dp.toPx())
@@ -236,8 +234,8 @@ fun ConnectoBottomBar(
                     .background(
                         Brush.radialGradient(
                             colors = listOf(
-                                (if (colors.isLiquidGlass) Color(0x6600E5FF) else colors.primary.copy(alpha = 0.38f)),
-                                (if (colors.isLiquidGlass) Color(0x280284C7) else colors.primary.copy(alpha = 0.16f)),
+                                colors.primary.copy(alpha = 0.40f),
+                                colors.info.copy(alpha = 0.18f),
                                 Color.Transparent
                             ),
                             radius = 65f
@@ -246,8 +244,8 @@ fun ConnectoBottomBar(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                (if (colors.isLiquidGlass) Color(0x4D00E5FF) else colors.primary.copy(alpha = 0.30f)),
-                                (if (colors.isLiquidGlass) Color(0x1A00E5FF) else colors.primary.copy(alpha = 0.08f))
+                                colors.primary.copy(alpha = 0.32f),
+                                colors.primary.copy(alpha = 0.08f)
                             )
                         )
                     )
@@ -256,7 +254,7 @@ fun ConnectoBottomBar(
                         brush = Brush.verticalGradient(
                             listOf(
                                 Color.White.copy(alpha = 0.80f),
-                                (if (colors.isLiquidGlass) Color(0x9900E5FF) else colors.primary.copy(alpha = 0.65f)),
+                                colors.primary.copy(alpha = 0.65f),
                                 Color.Transparent
                             )
                         ),
@@ -300,7 +298,7 @@ fun ConnectoBottomBar(
                         .matchParentSize()
                         .graphicsLayer { alpha = 0.5f }
                         .clip(CircleShape)
-                        .background(if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary)
+                        .background(colors.primary)
                 )
                 // Crisp fluid bead
                 Box(
@@ -310,9 +308,9 @@ fun ConnectoBottomBar(
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
-                                    if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary,
+                                    colors.primary,
                                     Color.White.copy(alpha = 0.95f),
-                                    if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary
+                                    colors.primary
                                 )
                             )
                         )
@@ -358,17 +356,13 @@ fun ConnectoBottomBar(
                     )
 
                     val iconColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary
-                        } else colors.textSecondary,
+                        targetValue = if (isSelected) colors.primary else colors.textSecondary,
                         animationSpec = spring(stiffness = 500f, dampingRatio = 0.85f),
                         label = "tabIconColor"
                     )
 
                     val textColor by animateColorAsState(
-                        targetValue = if (isSelected) {
-                            if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary
-                        } else colors.textSecondary,
+                        targetValue = if (isSelected) colors.primary else colors.textSecondary,
                         animationSpec = spring(stiffness = 500f, dampingRatio = 0.85f),
                         label = "tabTextColor"
                     )
@@ -423,9 +417,7 @@ fun ConnectoBottomBar(
                                                     .clip(CircleShape)
                                                     .border(
                                                         width = if (isSelected) 1.8.dp else 1.dp,
-                                                        color = if (isSelected) {
-                                                            if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary
-                                                        } else colors.borderSubtle,
+                                                        color = if (isSelected) colors.primary else colors.borderSubtle,
                                                         shape = CircleShape
                                                     ),
                                                 contentAlignment = Alignment.Center
@@ -447,8 +439,8 @@ fun ConnectoBottomBar(
                                                     .background(
                                                         Brush.linearGradient(
                                                             listOf(
-                                                                if (colors.isLiquidGlass) Color(0xFF00E5FF) else colors.primary,
-                                                                if (colors.isLiquidGlass) Color(0xFF0284C7) else Color(0xFF8B5CF6)
+                                                                colors.primary,
+                                                                colors.info
                                                             )
                                                         )
                                                     )

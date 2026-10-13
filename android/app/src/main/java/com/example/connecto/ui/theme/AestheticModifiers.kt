@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.connecto.ui.designsystem.ConnectoTheme
 
 @Composable
 fun Modifier.glassmorphicCard(
@@ -366,8 +367,8 @@ fun Modifier.glassCanvasMesh(
 @Composable
 fun Modifier.glassCard(
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundColor: Color = Color(0xFF111827),
-    borderColor: Color = Color(0xFF38BDF8),
+    backgroundColor: Color = ConnectoTheme.colors.surface,
+    borderColor: Color = ConnectoTheme.colors.primary,
     borderWidth: Dp = 1.dp,
     hasShimmer: Boolean = false
 ): Modifier {
@@ -404,7 +405,7 @@ fun Modifier.glassCard(
 
 /**
  * Ultra-Clear Liquid Glass Canvas Mesh.
- * Fluid oceanic gradients, caustic water orb refractions, and deep aqua reflections.
+ * Fluid oceanic gradients, caustic water orb refractions, and theme-adaptive liquid reflections.
  */
 @Composable
 fun Modifier.liquidGlassCanvasMesh(
@@ -422,16 +423,23 @@ fun Modifier.liquidGlassCanvasMesh(
         label = "liquidMeshPulse"
     )
 
-    return this.drawBehind {
-        // Deep oceanic midnight canvas
-        drawRect(Color(0xFF040A14))
+    val colors = ConnectoTheme.colors
+    val isDark = colors.isDark
 
-        // Ambient Fluid Aqua Orb (Top Right)
+    return this.drawBehind {
+        // Base canvas color according to the active theme palette
+        drawRect(colors.background)
+
+        val primaryGlow = colors.primary.copy(alpha = if (isDark) 0.22f else 0.12f)
+        val infoGlow = colors.info.copy(alpha = if (isDark) 0.14f else 0.08f)
+        val surfaceGlow = colors.surfaceVariant.copy(alpha = if (isDark) 0.18f else 0.10f)
+
+        // Top right fluid caustic orb
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0x3800E5FF),
-                    Color(0x120284C7),
+                    primaryGlow,
+                    infoGlow,
                     Color.Transparent
                 ),
                 center = Offset(size.width * 0.82f, size.height * 0.12f),
@@ -441,12 +449,12 @@ fun Modifier.liquidGlassCanvasMesh(
             center = Offset(size.width * 0.82f, size.height * 0.12f)
         )
 
-        // Deep Oceanic Trench Orb (Bottom Left)
+        // Bottom left deep fluid orb
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0x280369A1),
-                    Color(0x100C4A6E),
+                    surfaceGlow,
+                    infoGlow,
                     Color.Transparent
                 ),
                 center = Offset(size.width * 0.15f, size.height * 0.82f),
@@ -456,11 +464,11 @@ fun Modifier.liquidGlassCanvasMesh(
             center = Offset(size.width * 0.15f, size.height * 0.82f)
         )
 
-        // Central Caustic Aqua Glow
+        // Central caustic glow
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    Color(0x2038BDF8),
+                    primaryGlow.copy(alpha = if (isDark) 0.12f else 0.06f),
                     Color.Transparent
                 ),
                 center = Offset(size.width * 0.5f, size.height * 0.45f),
@@ -479,17 +487,19 @@ fun Modifier.liquidGlassCanvasMesh(
 @Composable
 fun Modifier.liquidGlassCard(
     shape: Shape = RoundedCornerShape(16.dp),
-    backgroundColor: Color = Color(0x330D1E36),
-    borderColor: Color = Color(0xFF00E5FF),
+    backgroundColor: Color = ConnectoTheme.colors.surface,
+    borderColor: Color = ConnectoTheme.colors.primary,
     borderWidth: Dp = 1.dp
 ): Modifier {
+    val isDark = ConnectoTheme.colors.isDark
+    val glareColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color.White.copy(alpha = 0.90f)
     return this
         .clip(shape)
         .background(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    Color(0x330D1E36), // Transparent aqua acrylic (20% alpha)
-                    Color(0x1A061120)  // Ultra-translucent bottom (10% alpha)
+                    backgroundColor,
+                    backgroundColor.copy(alpha = (backgroundColor.alpha * 0.55f).coerceAtLeast(0.08f))
                 )
             )
         )
@@ -497,9 +507,9 @@ fun Modifier.liquidGlassCard(
             width = borderWidth,
             brush = Brush.linearGradient(
                 colors = listOf(
-                    Color.White.copy(alpha = 0.75f),   // Specular glare reflection on top rim
-                    borderColor.copy(alpha = 0.50f),  // Aqua cyan rim
-                    borderColor.copy(alpha = 0.12f)   // Translucent subtle bottom edge
+                    glareColor,                      // Specular glare reflection on top rim
+                    borderColor.copy(alpha = 0.50f), // Themed rim glow
+                    borderColor.copy(alpha = 0.12f)  // Translucent subtle bottom edge
                 ),
                 start = Offset.Zero,
                 end = Offset(400f, 400f)
@@ -581,21 +591,24 @@ fun Modifier.glassBubble(
     isMe: Boolean,
     shape: Shape,
     isPressed: Boolean = false,
-    isLiquid: Boolean = false
+    isLiquid: Boolean = true
 ): Modifier {
+    val colors = ConnectoTheme.colors
+    val isDark = colors.isDark
+
     val bgBrush = if (isLiquid) {
         if (isMe) {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color(0x5900E5FF),
-                    Color(0x280284C7)
+                    colors.primary.copy(alpha = if (isDark) 0.35f else 0.45f),
+                    colors.primary.copy(alpha = if (isDark) 0.18f else 0.25f)
                 )
             )
         } else {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color(0x400D1E36),
-                    Color(0x1F061120)
+                    colors.surfaceVariant.copy(alpha = if (isDark) 0.35f else 0.50f),
+                    colors.surface.copy(alpha = if (isDark) 0.15f else 0.30f)
                 )
             )
         }
@@ -603,64 +616,40 @@ fun Modifier.glassBubble(
         if (isMe) {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xEE0C2A4A),
-                    Color(0xD4081E36)
+                    colors.primary.copy(alpha = 0.85f),
+                    colors.primary.copy(alpha = 0.65f)
                 )
             )
         } else {
             Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xEE1E293B),
-                    Color(0xD4111827)
+                    colors.surfaceVariant.copy(alpha = 0.85f),
+                    colors.surface.copy(alpha = 0.65f)
                 )
             )
         }
     }
 
-    val borderBrush = if (isLiquid) {
-        if (isMe) {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.85f),
-                    Color(0x8000E5FF),
-                    Color(0x2600E5FF)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
-        } else {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.50f),
-                    Color(0x807DD3FC),
-                    Color(0x200284C7)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
-        }
+    val borderBrush = if (isMe) {
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.85f),
+                colors.primary.copy(alpha = 0.60f),
+                colors.primary.copy(alpha = 0.20f)
+            ),
+            start = Offset.Zero,
+            end = Offset(240f, 240f)
+        )
     } else {
-        if (isMe) {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color(0xCC38BDF8),
-                    Color(0x4D38BDF8),
-                    Color(0x1838BDF8)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
-        } else {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color(0x8094A3B8),
-                    Color(0x33475569),
-                    Color(0x121E293B)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
-        }
+        Brush.linearGradient(
+            colors = listOf(
+                Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
+                colors.border.copy(alpha = 0.45f),
+                colors.borderSubtle.copy(alpha = 0.15f)
+            ),
+            start = Offset.Zero,
+            end = Offset(240f, 240f)
+        )
     }
 
     return this
