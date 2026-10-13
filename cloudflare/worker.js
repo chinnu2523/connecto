@@ -100,8 +100,8 @@ export default {
         version_name: "v4.2.5",
         version_code: 53,
         build: 53,
-        sha256: "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d",
-        md5: "f431794440b419205682e149fc7d328b",
+        sha256: "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05",
+        md5: "cb6b383f65e6fd90efb5c06502af4c8e",
         filename: "connecto-fun.apk",
         size_bytes: 57007757,
         size_display: "54.4 MB",
@@ -203,9 +203,9 @@ export default {
                   .replace(/Build 5[012]/g, "Build 53")
                   .replace(/BUILD 5[012]/g, "BUILD 53")
                   .replace(/build 5[012]/g, "build 53")
-                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d")
-                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d")
-                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d");
+                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05");
               }
               return new Response(htmlText, {
                 status: originResponse.status,
@@ -2721,8 +2721,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       version_name: "v4.2.5",
       version_code: 53,
       build: 53,
-      sha256: "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d",
-      md5: "f431794440b419205682e149fc7d328b",
+      sha256: "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05",
+      md5: "cb6b383f65e6fd90efb5c06502af4c8e",
       filename: "connecto-fun.apk",
       size_bytes: 57007757,
       size_display: "54.4 MB",
@@ -2749,7 +2749,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             "UUID DM Channel Resolution: Fixed /api/dm/start and /api/dms/:target/messages in Cloudflare Worker to query messages by both canonical channel names and UUID channel IDs while joining user avatars across ID and username formats.",
             "Edge Token WebSocket & REST Authentication: Added cf_edge_ session token verification to FastAPI WebSocket (authenticate_ws_session) and REST (get_current_user) endpoints.",
             "End-to-End Android Emulator Verification: Verified live DM threads (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile settings on Android 16.",
-            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d."
+            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05."
           ],
           author: "Connecto Core Team"
         },

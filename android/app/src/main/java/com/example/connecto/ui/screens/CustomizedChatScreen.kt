@@ -1500,30 +1500,7 @@ fun CustomizedChatScreen(
                             }
                         }
 
-                        // Synced Pill
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(OnlineGreen.copy(alpha = 0.12f))
-                                .border(1.dp, OnlineGreen.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 9.dp, vertical = 4.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = OnlineGreen,
-                                    modifier = Modifier.size(12.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Synced",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = OnlineGreen
-                                )
-                            }
-                        }
+                        // Background sync remains active; visual Synced pill hidden per user preference
                     }
 
                     // Interactive Tab Selector Buttons (Personal, Chat & Lock, Theme & Wallpaper, Actions)

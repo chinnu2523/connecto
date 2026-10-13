@@ -5348,8 +5348,8 @@ async def get_app_version_endpoint(response: Response = None):
         "version_name": "v4.2.5",
         "version_code": 53,
         "release_tag": "v4.2.5-stable",
-        "sha256": "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d",
-        "md5": "f431794440b419205682e149fc7d328b",
+        "sha256": "d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05",
+        "md5": "cb6b383f65e6fd90efb5c06502af4c8e",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5388,7 +5388,7 @@ async def get_platform_changelog():
                     "UUID DM Channel Resolution: Fixed /api/dm/start and /api/dms/:target/messages in Cloudflare Worker to query messages by both canonical channel names and UUID channel IDs while joining user avatars across ID and username formats.",
                     "Edge Token WebSocket & REST Authentication: Added cf_edge_ session token verification to FastAPI WebSocket (authenticate_ws_session) and REST (get_current_user) endpoints.",
                     "End-to-End Android Emulator Verification: Verified live DM threads (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile settings on Android 16.",
-                    "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d."
+                    "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05."
                 ],
                 "author": "Connecto Core Team"
             },

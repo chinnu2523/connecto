@@ -829,32 +829,7 @@ fun ProfileScreen(
                                     }
                                 }
 
-                                // Cloud Synced Pill
-                                if (profilePhotoUri?.startsWith("http") == true && profilePhotoUri != "null") {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(OnlineGreen.copy(alpha = 0.12f))
-                                            .border(1.dp, OnlineGreen.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = null,
-                                                tint = OnlineGreen,
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(5.dp))
-                                            Text(
-                                                text = "Synced",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = OnlineGreen
-                                            )
-                                        }
-                                    }
-                                }
+                                // Background sync remains active; visual Synced pill hidden per user preference
 
                                 // Encrypted E2E Pill
                                 Box(
