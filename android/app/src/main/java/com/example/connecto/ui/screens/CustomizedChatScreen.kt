@@ -1,6 +1,11 @@
 package com.example.connecto.ui.screens
 
 import android.content.Context
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import com.example.connecto.network.MessageDto
 import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.compose.BackHandler
@@ -946,16 +951,32 @@ fun CustomizedChatScreen(
                 } else {
                     dto.authorAvatar ?: currentFriend?.avatarUrl
                 }
+                val (decryptedContent, decryptedReplyContent, isEnc) = if (currentFriend.isGroup) {
+                    Triple(dto.content, dto.replyToContent, false)
+                } else {
+                    val otherUser = currentFriend.handle.removePrefix("@")
+                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+                    val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
+                    val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                    val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
+                        ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                    } else dto.replyToContent
+                    Triple(decMsg, decReply, enc)
+                }
                 val newItem = CustomMessageItem(
                     id = dto.id,
                     senderName = dto.authorName,
                     initial = init,
-                    content = dto.content,
+                    content = decryptedContent,
                     time = formatIsoTime(dto.createdAt),
                     isMe = isMe,
                     isDelivered = true,
                     isRead = true,
-                    avatarUrl = msgAvatar
+                    avatarUrl = msgAvatar,
+                    replyToId = dto.replyToId,
+                    replyToContent = decryptedReplyContent,
+                    replyToAuthor = dto.replyToAuthor,
+                    isEncrypted = isEnc
                 )
                 // Reconcile and deduplicate:
                 val existingIdx = friendMessages.indexOfFirst {
@@ -1266,12 +1287,20 @@ fun CustomizedChatScreen(
                                     )
                                 }
 
-                                // Merge with any in-flight optimistic message that has not yet reached the server
-                                val inFlight = friendMessages.filter {
-                                    it.isMe && (it.id.startsWith("opt-") || it.time == "Just now") &&
-                                    mapped.none { m -> m.content.trim() == it.content.trim() }
+                                // Merge with any in-flight or pending local messages that have not yet reached the server
+                                val mappedIds = mapped.map { it.id }.toSet()
+                                val unconfirmedLocal = friendMessages.filter { localMsg ->
+                                    if (mappedIds.contains(localMsg.id)) {
+                                        false // Already confirmed in server list
+                                    } else if (localMsg.id.startsWith("opt-")) {
+                                        // Optimistic message: keep unless mapped already has a confirmed server message from me with identical content
+                                        mapped.none { m -> m.isMe && m.content.trim() == localMsg.content.trim() }
+                                    } else {
+                                        // Confirmed locally or cached from DB: NEVER drop simply because server poll didn't return it!
+                                        true
+                                    }
                                 }
-                                val merged = mapped + inFlight
+                                val merged = (mapped + unconfirmedLocal).distinctBy { it.id }
                                 if (friendMessages != merged) {
                                     friendMessages = merged
                                 }
@@ -3670,7 +3699,7 @@ fun CustomizedChatScreen(
                                     selectedFriend?.let { messageDrafts.remove(it.id) }
                                     showEmojiPicker = false
 
-                                    val myName = ConnectoApiClient.currentUsername ?: currentUsername
+                                    val myName = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@")
                                     val tempId = "opt-${UUID.randomUUID()}"
                                     val currentReply = replyingTo
                                     replyingTo = null // Clear reply banner immediately
@@ -3689,91 +3718,105 @@ fun CustomizedChatScreen(
                                         replyToId = currentReply?.id,
                                         replyToContent = currentReply?.content,
                                         replyToAuthor = currentReply?.senderName,
-                                        isEncrypted = !isCurGroup
+                                        isEncrypted = false
                                     )
                                     val updatedList = friendMessages + localItem
                                     friendMessages = updatedList
 
                                     coroutineScope.launch {
                                         try {
-                                            val friend = selectedFriend
-                                            val isGrp = friend?.isGroup == true
-                                            val targetChannelId = if (isGrp) {
-                                                activeDmChannelId ?: friend?.id
-                                            } else {
-                                                activeDmChannelId ?: if (friend != null) {
-                                                    val r = ConnectoApiClient.startDM(friend.handle.removePrefix("@"))
-                                                    if (r.isSuccess) {
-                                                        val id = r.getOrThrow().id
-                                                        activeDmChannelId = id
-                                                        id
-                                                    } else null
-                                                } else null
-                                            }
+                                            val friend = selectedFriend ?: return@launch
+                                            val isGrp = friend.isGroup
+                                            val cleanTarget = friend.handle.removePrefix("@").trim()
+                                            val myUser = myName.lowercase()
+                                            val canonicalName = if (isGrp) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
 
-                                            if (targetChannelId != null) {
-                                                val contentToSend = if (isGrp) {
-                                                    userMsg // Group chats use server-routed messaging
-                                                } else {
-                                                    // Encrypt outgoing content with conversation key (AES-256-GCM)
-                                                    val otherUser = friend?.handle?.removePrefix("@") ?: ""
-                                                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myName, otherUser)
-                                                    ConnectoE2EEncryption.encryptMessage(userMsg, conversationKey)
-                                                }
-
-                                                val sendRes = ConnectoApiClient.sendMessage(
-                                                    channelId = targetChannelId,
-                                                    content = contentToSend,
+                                            // Persist optimistic message immediately to local SQLite database so it never disappears across screens
+                                            withContext(Dispatchers.IO) {
+                                                val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
+                                                val optDto = MessageDto(
+                                                    id = tempId,
+                                                    channelId = if (isGrp) friend.id else canonicalName,
+                                                    authorId = myName,
+                                                    authorName = myName,
+                                                    content = userMsg,
+                                                    createdAt = nowIso,
+                                                    authorAvatar = ConnectoApiClient.currentUserAvatarUrl,
                                                     replyToId = currentReply?.id,
                                                     replyToContent = currentReply?.content,
                                                     replyToAuthor = currentReply?.senderName
                                                 )
-                                                if (sendRes.isSuccess) {
-                                                    val sentDto = sendRes.getOrThrow()
-                                                    withContext(Dispatchers.IO) {
-                                                        dbHelper.saveMessage(sentDto)
-                                                        if (isGrp) {
+                                                dbHelper.saveMessage(optDto)
+                                                dbHelper.saveMessages(if (isGrp) friend.id else canonicalName, listOf(optDto))
+                                            }
+
+                                            val targetChannelId = if (isGrp) {
+                                                activeDmChannelId ?: friend.id
+                                            } else {
+                                                activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()] ?: canonicalName
+                                            }
+
+                                            val sendRes = ConnectoApiClient.sendMessage(
+                                                channelId = targetChannelId,
+                                                content = userMsg,
+                                                replyToId = currentReply?.id,
+                                                replyToContent = currentReply?.content,
+                                                replyToAuthor = currentReply?.senderName
+                                            )
+                                            if (sendRes.isSuccess) {
+                                                val sentDto = sendRes.getOrThrow()
+                                                withContext(Dispatchers.IO) {
+                                                    dbHelper.saveMessage(sentDto)
+                                                    if (isGrp) {
+                                                        dbHelper.saveMessages(targetChannelId, listOf(sentDto))
+                                                    } else {
+                                                        dbHelper.saveMessages(canonicalName, listOf(sentDto))
+                                                        if (targetChannelId.isNotBlank() && targetChannelId != canonicalName) {
                                                             dbHelper.saveMessages(targetChannelId, listOf(sentDto))
-                                                        } else {
-                                                            val cleanTarget = friend?.handle?.removePrefix("@") ?: ""
-                                                            val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
-                                                            val canonicalName = "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
-                                                            dbHelper.saveMessages(canonicalName, listOf(sentDto))
-                                                            if (targetChannelId.isNotBlank() && targetChannelId != canonicalName) {
-                                                                dbHelper.saveMessages(targetChannelId, listOf(sentDto))
-                                                            }
                                                         }
                                                     }
-                                                    val realItem = CustomMessageItem(
-                                                        id = sentDto.id,
-                                                        senderName = sentDto.authorName,
-                                                        initial = userInitial,
-                                                        content = userMsg, // Keep decrypted plaintext for local display
-                                                        time = formatIsoTime(sentDto.createdAt),
-                                                        isMe = true,
-                                                        isDelivered = true,
-                                                        isRead = true,
-                                                        avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
-                                                        replyToId = sentDto.replyToId ?: currentReply?.id,
-                                                        replyToContent = sentDto.replyToContent ?: currentReply?.content,
-                                                        replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
-                                                        isEncrypted = !isGrp
-                                                    )
-                                                    val curList = friendMessages.toMutableList()
-                                                    val optIdx = curList.indexOfFirst {
-                                                        it.id == tempId || (it.isMe && (it.id.startsWith("opt-") || it.time == "Just now") && it.content.trim() == userMsg)
-                                                    }
-                                                    if (optIdx != -1) {
-                                                        curList[optIdx] = realItem.copy(reaction = curList[optIdx].reaction ?: realItem.reaction)
-                                                        friendMessages = curList
-                                                    } else if (curList.none { it.id == realItem.id }) {
-                                                        curList.add(realItem)
-                                                        friendMessages = curList
-                                                    }
+                                                }
+                                                val realItem = CustomMessageItem(
+                                                    id = sentDto.id,
+                                                    senderName = sentDto.authorName,
+                                                    initial = userInitial,
+                                                    content = userMsg,
+                                                    time = formatIsoTime(sentDto.createdAt),
+                                                    isMe = true,
+                                                    isDelivered = true,
+                                                    isRead = true,
+                                                    avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
+                                                    replyToId = sentDto.replyToId ?: currentReply?.id,
+                                                    replyToContent = sentDto.replyToContent ?: currentReply?.content,
+                                                    replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
+                                                    isEncrypted = false
+                                                )
+                                                val curList = friendMessages.toMutableList()
+                                                val optIdx = curList.indexOfFirst { it.id == tempId }
+                                                if (optIdx != -1) {
+                                                    curList[optIdx] = realItem.copy(reaction = curList[optIdx].reaction ?: realItem.reaction)
+                                                    friendMessages = curList
+                                                } else if (curList.none { it.id == realItem.id }) {
+                                                    curList.add(realItem)
+                                                    friendMessages = curList
+                                                }
+                                            } else {
+                                                // Server delivery failed: keep local message in friendMessages with delivery failure indicator
+                                                val curList = friendMessages.toMutableList()
+                                                val optIdx = curList.indexOfFirst { it.id == tempId }
+                                                if (optIdx != -1) {
+                                                    curList[optIdx] = curList[optIdx].copy(isDelivered = false)
+                                                    friendMessages = curList
                                                 }
                                             }
                                         } catch (e: Exception) {
-                                            // Local message remains visible
+                                            // Local message remains visible in friendMessages with isDelivered = false
+                                            val curList = friendMessages.toMutableList()
+                                            val optIdx = curList.indexOfFirst { it.id == tempId }
+                                            if (optIdx != -1) {
+                                                curList[optIdx] = curList[optIdx].copy(isDelivered = false)
+                                                friendMessages = curList
+                                            }
                                         }
                                     }
                                 }
