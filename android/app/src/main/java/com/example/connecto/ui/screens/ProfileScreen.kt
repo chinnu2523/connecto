@@ -1950,7 +1950,7 @@ fun ProfileScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
 
-                                    // 2. Theme Selection Cards Grid (All 5 themes)
+                                    // 2. Theme Selection Cards Grid (All 6 themes)
                                     Column(
                                         modifier = Modifier.fillMaxWidth(),
                                         verticalArrangement = Arrangement.spacedBy(10.dp)

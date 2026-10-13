@@ -8,7 +8,7 @@
         var queryTheme = urlParams.get('theme');
         var storedTheme = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_chakra_theme');
         var theme = (queryTheme || storedTheme || 'noir').toLowerCase();
-        var validThemes = ['noir', 'parchment', 'cyberpunk', 'midnight', 'emerald'];
+        var validThemes = ['noir', 'parchment', 'cyberpunk', 'midnight', 'emerald', 'glass'];
         var canonical = validThemes.indexOf(theme) !== -1 ? theme : (['ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'].indexOf(theme) !== -1 ? 'parchment' : 'noir');
         document.documentElement.setAttribute('data-theme', canonical);
       } catch (_) {}
@@ -469,6 +469,34 @@
       --hero-grad-start: #10b981;
       --hero-grad-end: #34d399;
       --theme-name: "Emerald Matrix";
+    }
+
+    /* Edition 6: Frosted Glass (Translucent Crystal Glassmorphism & Prism Specular Glow) */
+    html[data-theme="glass"] {
+      --accent: #38bdf8;
+      --accent-hover: #0ea5e9;
+      --accent-tint: rgba(56, 189, 248, 0.16);
+      --accent-border: rgba(56, 189, 248, 0.36);
+      --accent-glow: rgba(56, 189, 248, 0.28);
+      --accent-secondary: #67e8f9;
+      --accent-secondary-hover: #a5f3fc;
+      --chakra-cyan: #38bdf8;
+      --bg-darkest: #070a10;
+      --bg-darker: #0d121c;
+      --bg-dark: #131a29;
+      --bg-card: rgba(19, 27, 43, 0.75);
+      --bg-card-hover: rgba(26, 36, 59, 0.85);
+      --bg-modal: rgba(13, 18, 28, 0.92);
+      --bg-nav: rgba(7, 10, 16, 0.85);
+      --card-border: rgba(56, 189, 248, 0.25);
+      --text-normal: #cbd5e1;
+      --text-muted: #64748b;
+      --text-header: #f8fafc;
+      --hero-glow-1: rgba(56, 189, 248, 0.22);
+      --hero-glow-2: rgba(34, 211, 238, 0.22);
+      --hero-grad-start: #38bdf8;
+      --hero-grad-end: #67e8f9;
+      --theme-name: "Frosted Glass";
     }
 
     /* Editorial Typography Refinements */

@@ -36,7 +36,8 @@ data class ConnectoColors(
     val onError: Color,
     val info: Color,
     val onInfo: Color,
-    val isDark: Boolean
+    val isDark: Boolean,
+    val isGlass: Boolean = false
 )
 
 enum class ThemeMode(val id: String, val displayName: String, val subtitle: String, val iconEmoji: String) {
@@ -44,7 +45,8 @@ enum class ThemeMode(val id: String, val displayName: String, val subtitle: Stri
     PARCHMENT("parchment", "Ivory Paper", "Warm archival light parchment with sumi ink", "☀️"),
     CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-voltage neon purple & cyan night city glow", "⚡"),
     MIDNIGHT("midnight", "Midnight Navy", "Deep oceanic navy with electric azure & cobalt", "🌌"),
-    EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with luminous matrix emerald", "💎");
+    EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with luminous matrix emerald", "💎"),
+    GLASS("glass", "Frosted Glass", "Translucent crystal glassmorphism with prism specular glow", "🧊");
 
     val isDark: Boolean
         get() = this != PARCHMENT
@@ -191,6 +193,34 @@ val EmeraldConnectoColors = ConnectoColors(
     isDark = true
 )
 
+val GlassConnectoColors = ConnectoColors(
+    primary = Color(0xFF38BDF8),          // Electric Ice Prism Cyan (#38BDF8)
+    onPrimary = Color(0xFF021727),
+    primaryContainer = Color(0xFF0C2A4A), // Translucent Ice Glass Container
+    onPrimaryContainer = Color(0xFFE0F2FE),
+    background = Color(0xFF090D16),       // Deep Crystal Obsidian Canvas (#090D16)
+    onBackground = Color(0xFFF1F5F9),
+    surface = Color(0xFF111827),          // Frosted Glass Acrylic Base (#111827)
+    onSurface = Color(0xFFF8FAFC),
+    surfaceVariant = Color(0xFF1E293B),   // Elevated Frosted Glass Card Surface (#1E293B)
+    onSurfaceVariant = Color(0xFF94A3B8), // Glacial Mist Secondary Text (#94A3B8)
+    textPrimary = Color(0xFFFFFFFF),      // Pure Frost White (#FFFFFF)
+    textSecondary = Color(0xFFCBD5E1),    // Crisp Frosted Silver (#CBD5E1)
+    textDisabled = Color(0xFF64748B),     // Muted Glacial Slate (#64748B)
+    border = Color(0xFF334A6E),           // Specular Glass Edge Highlight (#334A6E)
+    borderSubtle = Color(0xFF1E2D44),     // Subtle Hairline Glass Rim (#1E2D44)
+    success = Color(0xFF34D399),          // Aurora Mint Frost 400
+    onSuccess = Color(0xFF022C22),
+    warning = Color(0xFFFBBF24),          // Amber Prism Glow 400
+    onWarning = Color(0xFF451A03),
+    error = Color(0xFFFB7185),            // Crystal Rose Red 400
+    onError = Color(0xFF4C0519),
+    info = Color(0xFF22D3EE),             // Luminous Prism Cyan 400 (#22D3EE)
+    onInfo = Color(0xFF083344),
+    isDark = true,
+    isGlass = true
+)
+
 fun getColorsForTheme(themeMode: ThemeMode): ConnectoColors {
     return when (themeMode) {
         ThemeMode.NOIR -> DarkConnectoColors
@@ -198,6 +228,7 @@ fun getColorsForTheme(themeMode: ThemeMode): ConnectoColors {
         ThemeMode.CYBERPUNK -> CyberpunkConnectoColors
         ThemeMode.MIDNIGHT -> MidnightConnectoColors
         ThemeMode.EMERALD -> EmeraldConnectoColors
+        ThemeMode.GLASS -> GlassConnectoColors
     }
 }
 

@@ -18,6 +18,10 @@ object ConnectoTheme {
     val typography: ConnectoTypography
         @Composable
         get() = LocalConnectoTypography.current
+
+    val isGlass: Boolean
+        @Composable
+        get() = LocalConnectoColors.current.isGlass
 }
 
 /**
