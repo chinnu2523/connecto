@@ -54,7 +54,7 @@ export default {
     }
 
     // Edge Version API (Always return latest canonical app release specs)
-    if (url.pathname === "/api/v1/app/version" || url.pathname === "/api/app/version") {
+    if (url.pathname === "/api/v1/app/version" || url.pathname === "/api/app/version" || url.pathname === "/api/app/latest" || url.pathname === "/api/v1/app/latest") {
       let dbRelease = null;
       if (env.DB) {
         try {
@@ -3298,7 +3298,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
     return jsonResponse({ users: users });
   }
-  if (path === "/api/v1/app/version" || path === "/api/app/version") {
+  if (path === "/api/v1/app/version" || path === "/api/app/version" || path === "/api/app/latest" || path === "/api/v1/app/latest") {
     return jsonResponse({
       status: "success",
       app_name: "Connecto",
