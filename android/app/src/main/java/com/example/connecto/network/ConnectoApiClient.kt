@@ -771,11 +771,20 @@ object ConnectoApiClient {
                     rawAvatar
                 }
 
-                val req2Fa = jsonObj.optBoolean("requires_2fa", false) || userObj.optBoolean("requires_2fa", false)
-                val twoFaEnabled = jsonObj.optBoolean("two_factor_enabled", false) || userObj.optBoolean("two_factor_enabled", false)
-                val twoFaMethod = userObj.optString("two_factor_method", "sms")
+                val req2Fa = jsonObj.optBoolean("requires_2fa", false) ||
+                    userObj.optBoolean("requires_2fa", false) ||
+                    jsonObj.optBoolean("two_factor_required", false) ||
+                    userObj.optBoolean("two_factor_required", false) ||
+                    jsonObj.optString("status") == "2fa_required"
+                val twoFaEnabled = jsonObj.optBoolean("two_factor_enabled", false) ||
+                    userObj.optBoolean("two_factor_enabled", false) ||
+                    req2Fa
+                val twoFaMethod = userObj.optString("two_factor_method", "").ifEmpty {
+                    jsonObj.optString("two_factor_method", "email")
+                }
                 val maskedDest = userObj.optString("masked_destination").takeIf { it.isNotEmpty() }
                     ?: jsonObj.optString("masked_destination").takeIf { it.isNotEmpty() }
+                    ?: jsonObj.optString("masked_phone").takeIf { it.isNotEmpty() }
                 val phone = userObj.optString("phone_number").takeIf { it.isNotEmpty() }
                 val devOtpStr = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() }
                     ?: userObj.optString("dev_otp").takeIf { it.isNotEmpty() }
@@ -803,6 +812,9 @@ object ConnectoApiClient {
                 )
 
                 if (!req2Fa) {
+                    if (tokenStr.isNullOrEmpty()) {
+                        return@withContext Result.failure(Exception("Authentication token was not returned by the server."))
+                    }
                     sessionToken = authResult.token
                     currentUserId = authResult.id
                     currentUsername = authResult.username

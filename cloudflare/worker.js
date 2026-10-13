@@ -766,10 +766,22 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         return jsonResponse({
           status: "2fa_required",
           two_factor_required: true,
+          requires_2fa: true,
+          two_factor_enabled: true,
+          two_factor_method: "email",
           username: user.username,
           masked_phone: maskEmail(user.email),
           masked_destination: maskEmail(user.email),
-          message: "Two-factor authentication required. A verification code has been sent."
+          message: "Two-factor authentication required. A verification code has been sent.",
+          user: {
+            id: user.id,
+            username: user.username,
+            requires_2fa: true,
+            two_factor_required: true,
+            two_factor_enabled: true,
+            two_factor_method: "email",
+            masked_destination: maskEmail(user.email)
+          }
         });
       }
 
