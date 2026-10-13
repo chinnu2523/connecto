@@ -84,11 +84,12 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
+            "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
+            "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
+            "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
+            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync",
             "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
-            "v4.2.6 Profile Tab Animation Removal: Clean static background, zero shimmer lag, and instant snappy subpage navigation",
-            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs",
-            "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions",
-            "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance"
+            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs"
           ]
         });
       }
@@ -97,12 +98,12 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.6",
-        version_name: "v4.2.6",
-        version_code: 55,
-        build: 55,
-        sha256: "a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82",
-        md5: "e0fa307654f65fd58ba35b8a2d7a1baf",
+        version: "4.2.7",
+        version_name: "v4.2.7",
+        version_code: 56,
+        build: 56,
+        sha256: "743d303564fc57ccd0e24235c4c422e9420c6812b020ecd73649ef4ad8ec9884",
+        md5: "17c087dae08f51a3afde7b4b4598e058",
         filename: "connecto-fun.apk",
         size_bytes: 57040069,
         size_display: "54.4 MB",
@@ -112,11 +113,12 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
+          "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
+          "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
+          "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync",
           "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
-          "v4.2.6 Profile Tab Animation Removal: Clean static background, zero shimmer lag, and instant snappy subpage navigation",
-          "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs",
-          "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions",
-          "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance"
+          "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs"
         ]
       });
     }
@@ -147,7 +149,7 @@ export default {
       });
     }
 
-    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.5 Build 53 release asset)
+    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.7 Build 56 release asset)
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
     if (!isStaticAsset && (
@@ -158,7 +160,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.6/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.7/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -3301,12 +3303,12 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.6",
-      version_name: "v4.2.6",
-      version_code: 55,
-      build: 55,
-      sha256: "a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82",
-      md5: "e0fa307654f65fd58ba35b8a2d7a1baf",
+      version: "4.2.7",
+      version_name: "v4.2.7",
+      version_code: 56,
+      build: 56,
+      sha256: "743d303564fc57ccd0e24235c4c422e9420c6812b020ecd73649ef4ad8ec9884",
+      md5: "17c087dae08f51a3afde7b4b4598e058",
       filename: "connecto-fun.apk",
       size_bytes: 57040069,
       size_display: "54.4 MB",
@@ -3322,10 +3324,26 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.2.7",
+          date: "Oct 14, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.2.7: Call History Real-Time Sync, Forgot Password Flow, 2FA Setup & Friend Notifications",
+          summary: "Delivers comprehensive synchronization across the Android client and Cloudflare edge: Call logs dynamically refresh and display call history with active duration tracking; Forgot Password supports end-to-end 6-digit OTP verification; Two-Factor Authentication (2FA) supports quick mail verification and autofill; and Android notification shade receives instant heads-up friend message alerts.",
+          highlights: [
+            "Call History Real-Time Sync & Dynamic Updates: Automatic call log creation for completed, missed, and rejected calls with duration and relative timestamps, plus reactive UI updates.",
+            "Forgot Password Verified Flow: 6-digit OTP code sent via verified mail service, edge token validation, and password reset with instant auto-fill code chips.",
+            "Two-Factor Authentication (2FA) Setup: Verified mail OTP challenge upon enabling 2FA, OTP auto-fill chip in setup dialog, and seamless toggle state persistence.",
+            "Friend Message Push Notifications: Foreground service WebSocket sync triggering native Android heads-up notifications with direct sender avatar, preview, and tap-to-chat action.",
+            "Android Native App v4.2.7 (Build 56 • 54.4 MB): SHA-256 743d303564fc57ccd0e24235c4c422e9420c6812b020ecd73649ef4ad8ec9884."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
           version: "v4.2.6",
           date: "Oct 13, 2026",
           category: "feature",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.2.6: Liquid Glass Theme, Static Profile Tab & Bottom Bar Water Drop Animation",
           summary: "Introduces the brand new Liquid Glass theme with fluid aqua refraction, eliminates all animations in the Profile tab for instant, solid, snappy navigation, and adds a moving liquid water drop indicator with liquid stretch physics, ripple splashes, and specular glints across all 5 bottom navigation tabs.",
           highlights: [
