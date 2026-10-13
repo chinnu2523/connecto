@@ -22,10 +22,12 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- Foreground service for voice calls & audio -->
+    <!-- Foreground service for voice calls, audio, and persistent real-time background sync -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -48,7 +50,28 @@
             android:name=".voice.VoiceCallForegroundService"
             android:enabled="true"
             android:exported="false"
+            android:stopWithTask="false"
             android:foregroundServiceType="microphone" />
+
+        <!-- Persistent Real-Time Background Service for Calls & Notifications when app is closed -->
+        <service
+            android:name=".notifications.ConnectoRealtimeService"
+            android:enabled="true"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="dataSync" />
+
+        <!-- Auto-start receiver for boot, app update, and task-removal recovery -->
+        <receiver
+            android:name=".notifications.ConnectoBootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="com.connecto.app.RESTART_REALTIME_SERVICE" />
+            </intent-filter>
+        </receiver>
 
         <!-- Firebase Cloud Messaging — receives push notifications when app is backgrounded/killed -->
         <service

@@ -2785,6 +2785,19 @@ async def post_channel_message_compat(
                 "message": event_data
             })
             try:
+                await create_user_notification(
+                    db=db,
+                    user_id=p_id,
+                    type="message",
+                    title=user.display_name or user.username,
+                    content=new_msg.content,
+                    sender_username=user.username,
+                    sender_avatar=norm_user_avatar,
+                    reference_id=user.username
+                )
+            except Exception as _notif_err:
+                pass
+            try:
                 p_user = (await db.execute(select(User).where(User.id == p_id))).scalar_one_or_none()
                 if p_user and p_user.fcm_token:
                     from app.core.push import send_push_notification

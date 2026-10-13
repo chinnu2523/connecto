@@ -108,6 +108,11 @@ object VoiceCallManager {
     private val _activeCallPartner = MutableStateFlow<String?>(null)
     val activeCallPartner: StateFlow<String?> = _activeCallPartner.asStateFlow()
 
+    private val _activeCallPartnerUsername = MutableStateFlow<String?>(null)
+    val activeCallPartnerUsername: StateFlow<String?> = _activeCallPartnerUsername.asStateFlow()
+
+    private val notifiedMessageIds = java.util.Collections.synchronizedSet(java.util.LinkedHashSet<String>())
+
     private val _activeCallAvatar = MutableStateFlow<String?>(null)
     val activeCallAvatar: StateFlow<String?> = _activeCallAvatar.asStateFlow()
 
@@ -874,7 +879,12 @@ object VoiceCallManager {
         startPeriodicPing()
     }
 
-    fun updateCredentialsAndConnect(username: String?, userId: String?, token: String?) {
+    fun updateCredentialsAndConnect(
+        username: String?,
+        userId: String?,
+        token: String? = null,
+        displayName: String? = null
+    ) {
         if (!username.isNullOrBlank()) {
             ConnectoApiClient.currentUsername = username
         }
@@ -883,6 +893,9 @@ object VoiceCallManager {
         }
         if (!token.isNullOrBlank()) {
             ConnectoApiClient.sessionToken = token
+        }
+        if (!displayName.isNullOrBlank()) {
+            ConnectoApiClient.currentUserDisplayName = displayName
         }
         Log.d(TAG, "Updating credentials and reconnecting voice signaling WebSocket: $username ($userId)")
         try {
@@ -1056,50 +1069,50 @@ object VoiceCallManager {
                 "pong" -> {
                     // Keepalive pong received
                 }
-                "message_created", "new_message", "dm_message" -> {
-                    val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload")
-                    if (data != null) {
-                        val rawChId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { data.optString("channel_id").ifEmpty { data.optString("channel") } } }
-                        val rawChName = json.optString("channel_name").ifEmpty { data.optString("channel_name") }
-                        val chId = if (rawChName.isNotBlank() && !rawChName.startsWith("dm-") && !rawChName.startsWith("dm_")) {
-                            ConnectoApiClient.channelCache[rawChName.lowercase()] = rawChId
-                            ConnectoApiClient.channelCache[rawChId.lowercase()] = rawChName.lowercase()
-                            rawChName.lowercase()
-                        } else {
-                            rawChId
+                "message_created", "new_message", "dm_message", "new_dm_alert" -> {
+                    val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json
+                    val rawChId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { data.optString("channel_id").ifEmpty { data.optString("channel") } } }
+                    val rawChName = json.optString("channel_name").ifEmpty { data.optString("channel_name") }
+                    val chId = if (rawChName.isNotBlank() && !rawChName.startsWith("dm-") && !rawChName.startsWith("dm_")) {
+                        ConnectoApiClient.channelCache[rawChName.lowercase()] = rawChId
+                        ConnectoApiClient.channelCache[rawChId.lowercase()] = rawChName.lowercase()
+                        rawChName.lowercase()
+                    } else {
+                        rawChId
+                    }
+                    val senderUsername = data.optString("sender_username").ifEmpty { data.optString("user").ifEmpty { data.optString("sender").ifEmpty { json.optString("sender") } } }
+                    val senderDisplay = data.optString("sender_display_name").ifEmpty { data.optString("nickname").ifEmpty { senderUsername } }
+                    val content = data.optString("content").ifEmpty { data.optString("text") }
+                    val msgId = data.optString("id").ifEmpty { json.optString("message_id") }
+                    val createdAt = data.optString("created_at").ifEmpty { data.optString("timestamp") }
+                    val authorAvatar = data.optString("avatar_url").ifEmpty { data.optString("sender_avatar_url").ifEmpty { data.optString("author_avatar").ifEmpty { data.optString("authorAvatar").ifEmpty { data.optString("avatar").ifEmpty { json.optString("sender_avatar").ifEmpty { null } } } } } }
+                    var poll = if (data.has("poll") && !data.isNull("poll")) ConnectoApiClient.parsePollDto(data.optJSONObject("poll")) else null
+                    var pollId = data.optString("poll_id").ifEmpty { poll?.id }
+                    var type = data.optString("type").ifEmpty { if (poll != null) "poll" else "text" }
+
+                    if (poll == null) {
+                        val att = data.opt("attachments")
+                        val attObj = when (att) {
+                            is org.json.JSONObject -> att
+                            is String -> try { if (att.trim().startsWith("{")) org.json.JSONObject(att) else null } catch (_: Exception) { null }
+                            else -> null
                         }
-                        val senderUsername = data.optString("sender_username").ifEmpty { data.optString("user").ifEmpty { data.optString("sender").ifEmpty { json.optString("sender") } } }
-                        val senderDisplay = data.optString("sender_display_name").ifEmpty { data.optString("nickname").ifEmpty { senderUsername } }
-                        val content = data.optString("content").ifEmpty { data.optString("text") }
-                        val msgId = data.optString("id")
-                        val createdAt = data.optString("created_at").ifEmpty { data.optString("timestamp") }
-                        val authorAvatar = data.optString("avatar_url").ifEmpty { data.optString("sender_avatar_url").ifEmpty { data.optString("author_avatar").ifEmpty { data.optString("authorAvatar").ifEmpty { data.optString("avatar").ifEmpty { null } } } } }
-                        var poll = if (data.has("poll") && !data.isNull("poll")) ConnectoApiClient.parsePollDto(data.optJSONObject("poll")) else null
-                        var pollId = data.optString("poll_id").ifEmpty { poll?.id }
-                        var type = data.optString("type").ifEmpty { if (poll != null) "poll" else "text" }
-
-                        if (poll == null) {
-                            val att = data.opt("attachments")
-                            val attObj = when (att) {
-                                is org.json.JSONObject -> att
-                                is String -> try { if (att.trim().startsWith("{")) org.json.JSONObject(att) else null } catch (_: Exception) { null }
-                                else -> null
-                            }
-                            if (attObj != null) {
-                                if (attObj.optString("type") == "poll") type = "poll"
-                                if (pollId.isNullOrBlank() && attObj.has("poll_id")) pollId = attObj.optString("poll_id")
-                                if (attObj.has("poll")) poll = ConnectoApiClient.parsePollDto(attObj.optJSONObject("poll"))
-                            }
+                        if (attObj != null) {
+                            if (attObj.optString("type") == "poll") type = "poll"
+                            if (pollId.isNullOrBlank() && attObj.has("poll_id")) pollId = attObj.optString("poll_id")
+                            if (attObj.has("poll")) poll = ConnectoApiClient.parsePollDto(attObj.optJSONObject("poll"))
                         }
+                    }
 
-                        val timerSeconds = if (data.has("timer_seconds")) data.optInt("timer_seconds", 0).let { if (it > 0) it else null } else null
-                        val expiresAt = data.optString("expires_at").ifEmpty { null }
-                        val replyToId = if (data.has("reply_to_id") && !data.isNull("reply_to_id")) data.optString("reply_to_id") else null
-                        val replyToContent = if (data.has("reply_to_content") && !data.isNull("reply_to_content")) data.optString("reply_to_content") else null
-                        val replyToAuthor = if (data.has("reply_to_author") && !data.isNull("reply_to_author")) data.optString("reply_to_author") else null
+                    val timerSeconds = if (data.has("timer_seconds")) data.optInt("timer_seconds", 0).let { if (it > 0) it else null } else null
+                    val expiresAt = data.optString("expires_at").ifEmpty { null }
+                    val replyToId = if (data.has("reply_to_id") && !data.isNull("reply_to_id")) data.optString("reply_to_id") else null
+                    val replyToContent = if (data.has("reply_to_content") && !data.isNull("reply_to_content")) data.optString("reply_to_content") else null
+                    val replyToAuthor = if (data.has("reply_to_author") && !data.isNull("reply_to_author")) data.optString("reply_to_author") else null
 
+                    if (chId.isNotBlank() && content.isNotBlank()) {
                         val msgDto = MessageDto(
-                            id = msgId,
+                            id = msgId.ifEmpty { "ws_${System.currentTimeMillis()}" },
                             channelId = chId,
                             authorId = senderUsername,
                             authorName = senderDisplay,
@@ -1127,6 +1140,39 @@ object VoiceCallManager {
                         }
                         _incomingChannelMessages.tryEmit(msgDto)
                         Log.d(TAG, "Real-time message received via WebSocket for channel $chId: $content")
+                    }
+
+                    val myUsername = ConnectoApiClient.currentUsername ?: ""
+                    if (senderUsername.isNotBlank() && !senderUsername.equals(myUsername, ignoreCase = true) && content.isNotBlank()) {
+                        val dedupKey = msgId.ifEmpty { "${senderUsername}_${chId}_${content.hashCode()}" }
+                        if (notifiedMessageIds.add(dedupKey)) {
+                            if (notifiedMessageIds.size > 500) {
+                                val first = notifiedMessageIds.firstOrNull()
+                                if (first != null) notifiedMessageIds.remove(first)
+                            }
+                            val displayTitle = senderDisplay.ifEmpty { senderUsername }
+                            val navRef = if (chId.startsWith("dm-") || chId.startsWith("dm_") || rawChName.startsWith("dm-") || rawChName.startsWith("dm_")) {
+                                senderUsername
+                            } else {
+                                chId.ifEmpty { senderUsername }
+                            }
+                            ConnectoNotificationManager.showMessageNotification(
+                                senderName = displayTitle,
+                                messageText = content,
+                                channelOrDmId = navRef,
+                                senderAvatar = authorAvatar
+                            )
+                            com.example.connecto.ui.components.InAppNotificationController.show(
+                                com.example.connecto.ui.components.InAppNotificationData(
+                                    title = displayTitle,
+                                    message = content,
+                                    avatarUrl = authorAvatar,
+                                    username = senderUsername,
+                                    actionType = "chat",
+                                    referenceId = navRef
+                                )
+                            )
+                        }
                     }
                 }
 
@@ -1297,7 +1343,7 @@ object VoiceCallManager {
                             json.optString("callee").ifEmpty {
                                 json.optString("callee_username").ifEmpty {
                                     json.optString("username").ifEmpty {
-                                        _activeCallPartner.value ?: ""
+                                        _activeCallPartnerUsername.value ?: _activeCallPartner.value ?: ""
                                     }
                                 }
                             }
@@ -1403,7 +1449,9 @@ object VoiceCallManager {
                 "voice_offer", "call:offer" -> {
                     val senderId = json.optString("sender_user_id").ifEmpty {
                         json.optString("sender_username").ifEmpty {
-                            json.optString("caller")
+                            json.optString("caller").ifEmpty {
+                                _activeCallPartnerUsername.value ?: _activeCallPartner.value ?: ""
+                            }
                         }
                     }
                     val sdp = if (json.optJSONObject("sdp") != null) {
@@ -1418,10 +1466,14 @@ object VoiceCallManager {
                 }
 
                 "voice_answer", "call:answer" -> {
-                    val senderUsername = json.optString("sender_username")
+                    val senderUsername = json.optString("sender_username").ifEmpty {
+                        _activeCallPartnerUsername.value ?: ""
+                    }
                     val senderId = json.optString("sender_user_id").ifEmpty {
                         senderUsername.ifEmpty {
-                            json.optString("caller")
+                            json.optString("caller").ifEmpty {
+                                _activeCallPartner.value ?: ""
+                            }
                         }
                     }
                     val sdp = if (json.optJSONObject("sdp") != null) {
@@ -1436,10 +1488,14 @@ object VoiceCallManager {
                 }
 
                 "voice_ice_candidate", "call:ice-candidate" -> {
-                    val senderUsername = json.optString("sender_username")
+                    val senderUsername = json.optString("sender_username").ifEmpty {
+                        _activeCallPartnerUsername.value ?: ""
+                    }
                     val senderId = json.optString("sender_user_id").ifEmpty {
                         senderUsername.ifEmpty {
-                            json.optString("caller")
+                            json.optString("caller").ifEmpty {
+                                _activeCallPartner.value ?: ""
+                            }
                         }
                     }
                     val candidate = json.optJSONObject("candidate") ?: run {
@@ -1602,28 +1658,32 @@ object VoiceCallManager {
                                 }
                             }
                             "message" -> {
-                                ConnectoNotificationManager.showMessageNotification(
-                                    senderName = nSender.ifEmpty { nTitle },
-                                    messageText = nContent,
-                                    channelOrDmId = nRefId,
-                                    senderAvatar = nAvatar
-                                )
-                                com.example.connecto.ui.components.InAppNotificationController.show(
-                                    com.example.connecto.ui.components.InAppNotificationData(
-                                        title = nSender.ifEmpty { nTitle },
-                                        message = nContent,
-                                        avatarUrl = nAvatar,
-                                        username = nSender,
-                                        actionType = "chat",
-                                        referenceId = nRefId
+                                val dedupKey = nRefId.ifEmpty { "${nSender}_${nContent.hashCode()}" }
+                                if (notifiedMessageIds.add(dedupKey)) {
+                                    ConnectoNotificationManager.showMessageNotification(
+                                        senderName = nSender.ifEmpty { nTitle },
+                                        messageText = nContent,
+                                        channelOrDmId = nRefId.ifEmpty { nSender },
+                                        senderAvatar = nAvatar
                                     )
-                                )
+                                    com.example.connecto.ui.components.InAppNotificationController.show(
+                                        com.example.connecto.ui.components.InAppNotificationData(
+                                            title = nSender.ifEmpty { nTitle },
+                                            message = nContent,
+                                            avatarUrl = nAvatar,
+                                            username = nSender,
+                                            actionType = "chat",
+                                            referenceId = nRefId.ifEmpty { nSender }
+                                        )
+                                    )
+                                }
                             }
                             "call", "call_invite" -> {
-                                ConnectoNotificationManager.showIncomingCallNotification(
-                                    callerName = nSender.ifEmpty { "Gamer" },
+                                triggerIncomingCallFromPushOrBackground(
                                     roomId = nRefId,
+                                    callerId = nSender,
                                     callerUsername = nSender.ifEmpty { "Gamer" },
+                                    callerName = nSender.ifEmpty { "Gamer" },
                                     callerAvatar = nAvatar
                                 )
                             }
@@ -1654,6 +1714,34 @@ object VoiceCallManager {
         }
     }
 
+    fun triggerIncomingCallFromPushOrBackground(
+        roomId: String,
+        callerId: String = "",
+        callerUsername: String,
+        callerName: String,
+        callerAvatar: String? = null
+    ) {
+        if (roomId.isBlank()) return
+        if (_callState.value != CallState.IDLE && _incomingCall.value?.roomId == roomId) {
+            return
+        }
+        Log.d(TAG, "Triggering incoming call (background/push/poll) from $callerName ($roomId)")
+        _incomingCall.value = IncomingCallData(
+            roomId = roomId,
+            callerId = callerId.ifEmpty { callerUsername },
+            callerUsername = callerUsername,
+            callerName = callerName.ifEmpty { callerUsername },
+            callerAvatar = callerAvatar
+        )
+        _callState.value = CallState.INCOMING_RINGING
+        ConnectoNotificationManager.showIncomingCallNotification(
+            callerName = callerName.ifEmpty { callerUsername },
+            roomId = roomId,
+            callerUsername = callerUsername,
+            callerAvatar = callerAvatar
+        )
+    }
+
     // ----------------------------------------------------
     // Public Call Controls
     // ----------------------------------------------------
@@ -1678,6 +1766,7 @@ object VoiceCallManager {
         isCallCaller = true
         _activeRoomId.value = roomId
         _activeCallPartner.value = cleanDisplayName
+        _activeCallPartnerUsername.value = cleanTarget
         _activeCallTitle.value = "1:1 Voice Call with $cleanDisplayName"
         _activeCallAvatar.value = avatarUrl
         _participantCount.value = 2
@@ -1735,6 +1824,7 @@ object VoiceCallManager {
         isCallCaller = false
         _activeRoomId.value = call.roomId
         _activeCallPartner.value = call.callerName
+        _activeCallPartnerUsername.value = call.callerUsername.ifEmpty { call.callerName }
         _activeCallTitle.value = "1:1 Voice Call with ${call.callerName}"
         _activeCallAvatar.value = call.callerAvatar
         _callState.value = CallState.CONNECTED
@@ -1747,6 +1837,7 @@ object VoiceCallManager {
             put("action", "call:accept")
             put("type", "call:accept")   // FIX: was "call_accept" — production reads type field
             put("target", call.callerUsername)
+            put("target_user", call.callerUsername)
             put("call_id", call.roomId)
             put("room_id", call.roomId)
         }
@@ -1763,7 +1854,7 @@ object VoiceCallManager {
         sendWsMessage(calleeJoinMsg)
 
         scope.launch {
-            ConnectoApiClient.respondToVoiceCall(call.roomId, "accept")
+            ConnectoApiClient.respondToVoiceCall(call.roomId, "accept", call.callerUsername)
         }
 
         startAudioHardware()
@@ -1788,6 +1879,7 @@ object VoiceCallManager {
             put("action", "call:decline")
             put("type", "call:decline")   // FIX: was "call_decline"
             put("target", call.callerUsername)
+            put("target_user", call.callerUsername)
             put("call_id", call.roomId)
             put("room_id", call.roomId)
             put("reason", "declined")
@@ -1795,7 +1887,7 @@ object VoiceCallManager {
         sendWsMessage(declineMsg)
 
         scope.launch {
-            ConnectoApiClient.respondToVoiceCall(call.roomId, "decline")
+            ConnectoApiClient.respondToVoiceCall(call.roomId, "decline", call.callerUsername)
         }
 
         // Record as a missed incoming call
@@ -1817,6 +1909,7 @@ object VoiceCallManager {
         _activeRoomId.value = roomId
         _activeCallTitle.value = roomName
         _activeCallPartner.value = null
+        _activeCallPartnerUsername.value = null
         _activeCallRoomCode.value = roomCode
         _callState.value = CallState.CONNECTED
         appContext?.let {
@@ -1871,13 +1964,15 @@ object VoiceCallManager {
 
     fun endCall() {
         val roomId = _activeRoomId.value
-        val partner = _activeCallPartner.value
+        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
         if (!roomId.isNullOrBlank()) {
             val endMsg = JSONObject().apply {
                 put("action", "call:end")
                 put("type", "call:end")   // FIX: was "call_end"
                 if (!partner.isNullOrBlank()) {
-                    put("target", partner.trim().removePrefix("@"))
+                    val cleanPartner = partner.trim().removePrefix("@")
+                    put("target", cleanPartner)
+                    put("target_user", cleanPartner)
                 }
                 put("call_id", roomId)
                 put("room_id", roomId)
@@ -1894,7 +1989,7 @@ object VoiceCallManager {
             sendWsMessage(leaveMsg)
 
             scope.launch {
-                ConnectoApiClient.endVoiceCall(roomId)
+                ConnectoApiClient.endVoiceCall(roomId, partner?.trim()?.removePrefix("@"))
             }
         }
 
@@ -1947,6 +2042,7 @@ object VoiceCallManager {
             isCallCaller = false
             _activeRoomId.value = null
             _activeCallPartner.value = null
+            _activeCallPartnerUsername.value = null
             _activeCallAvatar.value = null
             _activeCallRoomCode.value = null
             _incomingCall.value = null

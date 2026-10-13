@@ -322,10 +322,22 @@ fun ConnectoApp(
         }
     }
 
-    // Fetch initial profile & avatar from production backend
+    // Fetch initial profile & avatar from production backend and ensure real-time WS + service are active
     androidx.compose.runtime.LaunchedEffect(flowState, authenticatedUsername) {
         if (flowState == AppFlowState.CHAT_APP && authenticatedUsername.isNotBlank()) {
             try {
+                val userId = com.example.connecto.network.ConnectoApiClient.currentUserId
+                    ?: prefs.getString("user_id", authenticatedUsername)
+                    ?: authenticatedUsername
+                val displayName = com.example.connecto.network.ConnectoApiClient.currentUserDisplayName
+                    ?: prefs.getString("display_name", authenticatedUsername)
+                    ?: authenticatedUsername
+                VoiceCallManager.updateCredentialsAndConnect(
+                    userId = userId,
+                    username = authenticatedUsername,
+                    displayName = displayName
+                )
+                com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
                 com.example.connecto.network.ConnectoApiClient.getProfile(authenticatedUsername)
             } catch (e: Exception) {
                 // Ignore network error on startup
@@ -420,23 +432,21 @@ fun ConnectoApp(
         MainActivity.pendingIntentAction = null
     }
 
-    // Auto-lock when returning from background if app lock is enabled
+    // Keep real-time WebSocket & background service alive when backgrounded; auto-lock on return if enabled
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, authenticatedUsername) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_STOP) {
-                val user = authenticatedUsername
-                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                    try {
-                        com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
-                        if (user.isNotBlank()) {
-                            com.example.connecto.network.ConnectoApiClient.setPresenceOffline(user)
-                        }
-                    } catch (_: Exception) {}
+                val isLoggedIn = prefs.getBoolean("is_logged_in", false)
+                if (isLoggedIn) {
+                    // Keep WebSocket and persistent real-time background service running so incoming calls & notifications work when app is closed!
+                    com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
+                    com.example.connecto.voice.VoiceCallManager.connectWebSocket()
                 }
             } else if (event == Lifecycle.Event.ON_START) {
                 val isLoggedIn = prefs.getBoolean("is_logged_in", false)
                 if (isLoggedIn && flowState == AppFlowState.CHAT_APP) {
+                    com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
                     com.example.connecto.voice.VoiceCallManager.connectWebSocket()
                     val profilePrefs = context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)
                     val isLockEnabled = profilePrefs.getBoolean("biometric_lock_$authenticatedUsername", false)
@@ -737,6 +747,8 @@ fun ConnectoApp(
                                                     } catch (_: Exception) {}
                                                 }
                                                 // Clear ALL persistent data — no leftover state from previous account
+                                                com.example.connecto.notifications.ConnectoRealtimeService.stopService(context)
+                                                com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
                                                 context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE)
                                                     .edit().clear().apply()
                                                 context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)

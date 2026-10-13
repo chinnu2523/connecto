@@ -3061,13 +3061,20 @@ object ConnectoApiClient {
     suspend fun respondToVoiceCall(
         roomId: String,
         action: String,
+        targetUser: String? = null,
         token: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val payload = JSONObject().apply {
                 put("room_id", roomId)
+                put("call_id", roomId)
                 put("user_id", currentUserId ?: currentUsername ?: "")
+                put("username", currentUsername ?: "")
                 put("action", action)
+                if (!targetUser.isNullOrBlank()) {
+                    put("target_user", targetUser)
+                    put("target", targetUser)
+                }
             }
             val response = executeRequest(
                 endpoint = "/api/voice/call/respond",
@@ -3083,12 +3090,19 @@ object ConnectoApiClient {
 
     suspend fun endVoiceCall(
         roomId: String,
+        targetUser: String? = null,
         token: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val payload = JSONObject().apply {
                 put("room_id", roomId)
+                put("call_id", roomId)
                 put("user_id", currentUserId ?: currentUsername ?: "")
+                put("username", currentUsername ?: "")
+                if (!targetUser.isNullOrBlank()) {
+                    put("target_user", targetUser)
+                    put("target", targetUser)
+                }
             }
             val response = executeRequest(
                 endpoint = "/api/voice/call/end",
@@ -3097,6 +3111,35 @@ object ConnectoApiClient {
                 token = token ?: sessionToken
             )
             Result.success(response.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun checkPendingVoiceCall(
+        username: String? = currentUsername,
+        token: String? = null
+    ): Result<JSONObject?> = withContext(Dispatchers.IO) {
+        try {
+            val u = username ?: currentUsername ?: return@withContext Result.success(null)
+            if (u.isBlank()) return@withContext Result.success(null)
+            val encoded = java.net.URLEncoder.encode(u, "UTF-8")
+            val response = executeRequest(
+                endpoint = "/api/voice/call/pending?username=$encoded",
+                method = "GET",
+                body = null,
+                token = token ?: sessionToken
+            )
+            if (response.isSuccess) {
+                val obj = JSONObject(response.getOrThrow())
+                if (obj.optBoolean("has_pending", false) || obj.optString("room_id").isNotBlank()) {
+                    Result.success(obj)
+                } else {
+                    Result.success(null)
+                }
+            } else {
+                Result.success(null)
+            }
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -4013,7 +4056,7 @@ object ConnectoApiClient {
             val response = executeRequest(endpoint, "GET", null, token ?: sessionToken)
             if (response.isSuccess) {
                 val obj = JSONObject(response.getOrThrow())
-                val count = obj.optInt("unread_count", 0)
+                val count = if (obj.has("unread_count")) obj.optInt("unread_count", 0) else obj.optInt("unread", obj.optInt("count", 0))
                 _unreadNotificationCount.value = count
                 Result.success(count)
             } else {

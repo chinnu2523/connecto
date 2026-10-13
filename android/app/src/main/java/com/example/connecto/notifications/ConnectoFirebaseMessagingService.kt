@@ -53,10 +53,12 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
             "call_invite", "call", "incoming_call" -> {
                 val callerAvatar = data["caller_avatar"] ?: data["avatar"]
                 val callerUser = data["caller_username"] ?: sender.ifBlank { title }
-                ConnectoNotificationManager.showIncomingCallNotification(
-                    callerName = sender.ifBlank { title },
+                com.example.connecto.voice.VoiceCallManager.init(applicationContext)
+                com.example.connecto.voice.VoiceCallManager.triggerIncomingCallFromPushOrBackground(
                     roomId = referenceId,
+                    callerId = callerUser,
                     callerUsername = callerUser,
+                    callerName = sender.ifBlank { title },
                     callerAvatar = callerAvatar
                 )
             }

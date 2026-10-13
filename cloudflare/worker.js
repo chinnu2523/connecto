@@ -1623,13 +1623,16 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const body = await request.json().catch(() => ({}));
       let senderName = (body.sender || body.sender_username || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
       let recipientName = (body.recipient || body.friend_username || body.target_username || body.username || "").trim().toLowerCase().replace(/^@/, "");
+      let fId = "fr_" + Math.random().toString(36).substring(2, 12);
+      let senderAvatar = body.sender_avatar || body.avatar || "👾";
       if (senderName && recipientName && env.DB) {
-        let sender = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(senderName).first();
+        let sender = await env.DB.prepare("SELECT id, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(senderName).first();
         if (!sender) {
           const sId = "usr_" + senderName;
           await env.DB.prepare("INSERT OR IGNORE INTO users (id, username, display_name, email, is_online) VALUES (?, ?, ?, ?, 1)").bind(sId, senderName, senderName, `${senderName}@connecto.fun`).run();
-          sender = { id: sId };
+          sender = { id: sId, avatar_url: "👾" };
         }
+        if (sender.avatar_url) senderAvatar = sender.avatar_url;
         let recipient = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(recipientName).first();
         if (!recipient) {
           const rId = "usr_" + recipientName;
@@ -1638,9 +1641,19 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
         const existing = await env.DB.prepare("SELECT id, status FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?) LIMIT 1").bind(sender.id, recipient.id, recipient.id, sender.id).first();
         if (!existing) {
-          const fId = "fr_" + Math.random().toString(36).substring(2, 12);
           await env.DB.prepare("INSERT INTO friendships (id, user_id, friend_id, status, created_at) VALUES (?, ?, ?, 'pending', datetime('now'))").bind(fId, sender.id, recipient.id).run();
+        } else {
+          fId = existing.id;
         }
+      }
+      if (senderName && recipientName && ctx) {
+        ctx.waitUntil(broadcastRealtime(env, {
+          type: "friend_request_received",
+          target: recipientName,
+          sender: senderName,
+          sender_avatar: senderAvatar,
+          request_id: fId
+        }));
       }
     } catch (_) {}
     return jsonResponse({ status: "ok", message: "Friend request processed" });
@@ -1649,14 +1662,24 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (path === "/api/friends/accept" || path === "/api/v1/friends/accept") {
     try {
       const body = await request.json().catch(() => ({}));
-      let senderName = (body.sender || "").trim().toLowerCase().replace(/^@/, "");
+      let senderName = (body.sender || body.friend_username || "").trim().toLowerCase().replace(/^@/, "");
       let recipientName = (body.recipient || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      let recipientAvatar = "👾";
       if (senderName && recipientName && env.DB) {
         const u1 = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(senderName).first();
-        const u2 = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(recipientName).first();
+        const u2 = await env.DB.prepare("SELECT id, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(recipientName).first();
+        if (u2 && u2.avatar_url) recipientAvatar = u2.avatar_url;
         if (u1 && u2) {
           await env.DB.prepare("UPDATE friendships SET status = 'accepted' WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").bind(u1.id, u2.id, u2.id, u1.id).run();
         }
+      }
+      if (senderName && recipientName && ctx) {
+        ctx.waitUntil(broadcastRealtime(env, {
+          type: "friend_accepted",
+          target: senderName,
+          sender: recipientName,
+          sender_avatar: recipientAvatar
+        }));
       }
     } catch (_) {}
     return jsonResponse({ status: "ok", message: "Friend request accepted" });
@@ -2565,10 +2588,107 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({ sound: true, desktop: true, email: false });
   }
   if (path.startsWith("/api/notifications")) {
-    if (path.includes("/count")) {
-      return jsonResponse({ count: 0, unread: 0 });
+    let myUser = (
+      url.searchParams.get("username") ||
+      url.searchParams.get("user") ||
+      request.headers.get("X-User-Username") ||
+      ""
+    ).trim().toLowerCase().replace(/^@/, "");
+    if (!myUser) {
+      const authUser = await resolveUserFromRequest(request, env);
+      if (authUser && authUser.username) myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     }
-    return jsonResponse([]);
+    if (!myUser) myUser = "chinnu";
+
+    if (path.endsWith("/read-all") && method === "POST") {
+      if (env.REALTIME_ROOM) {
+        try {
+          const id = env.REALTIME_ROOM.idFromName("global_hub");
+          const stub = env.REALTIME_ROOM.get(id);
+          await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications/read-all?username=${encodeURIComponent(myUser)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      return jsonResponse({ status: "ok", unread_count: 0 });
+    }
+
+    const readMatch = path.match(/^\/api\/notifications\/([^\/]+)\/read$/);
+    if (readMatch && method === "POST") {
+      const notifId = decodeURIComponent(readMatch[1]);
+      if (env.REALTIME_ROOM) {
+        try {
+          const id = env.REALTIME_ROOM.idFromName("global_hub");
+          const stub = env.REALTIME_ROOM.get(id);
+          await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications/read?username=${encodeURIComponent(myUser)}&id=${encodeURIComponent(notifId)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      return jsonResponse({ status: "ok" });
+    }
+
+    if (method === "DELETE") {
+      if (env.REALTIME_ROOM) {
+        try {
+          const id = env.REALTIME_ROOM.idFromName("global_hub");
+          const stub = env.REALTIME_ROOM.get(id);
+          await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications/clear?username=${encodeURIComponent(myUser)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      return jsonResponse({ status: "ok" });
+    }
+
+    let notifs = [];
+    if (env.REALTIME_ROOM) {
+      try {
+        const id = env.REALTIME_ROOM.idFromName("global_hub");
+        const stub = env.REALTIME_ROOM.get(id);
+        const res = await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications?username=${encodeURIComponent(myUser)}`));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.notifications)) notifs = data.notifications;
+        }
+      } catch (_) {}
+    }
+
+    // Merge pending friend requests from D1 as notifications if not already present
+    if (env.DB) {
+      try {
+        const caller = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(myUser).first();
+        if (caller) {
+          const incRes = await env.DB.prepare(`
+            SELECT f.id as request_id, u.username as sender_username, u.display_name as sender_display_name, u.avatar_url, f.created_at
+            FROM friendships f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.friend_id = ? AND f.status = 'pending'
+          `).bind(caller.id).all();
+          const existingIds = new Set(notifs.map(n => n.id));
+          for (const inc of (incRes.results || [])) {
+            const nid = inc.request_id || `fr_${inc.sender_username}`;
+            if (!existingIds.has(nid)) {
+              notifs.push({
+                id: nid,
+                user_id: myUser,
+                type: "friend_request",
+                title: "New Friend Request",
+                content: `${inc.sender_display_name || inc.sender_username} sent you a friend request`,
+                sender_username: inc.sender_username,
+                sender_avatar: inc.avatar_url || "👾",
+                reference_id: nid,
+                is_read: false,
+                created_at: inc.created_at || new Date().toISOString()
+              });
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    const unreadOnly = url.searchParams.get("unread_only") === "true";
+    const filtered = unreadOnly ? notifs.filter(n => !n.is_read) : notifs;
+    const unreadCount = notifs.filter(n => !n.is_read).length;
+
+    if (path.includes("/count")) {
+      return jsonResponse({ unread_count: unreadCount, count: unreadCount, unread: unreadCount });
+    }
+    return jsonResponse(filtered);
   }
 
   // 20. Voice Rooms, Stages & WebRTC ICE Servers
@@ -2711,11 +2831,34 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     });
   }
 
+  // Pending Incoming Voice Call Check (Background Service & Reconnect Fallback)
+  if (path === "/api/voice/call/pending") {
+    const target = (
+      url.searchParams.get("username") ||
+      url.searchParams.get("user") ||
+      request.headers.get("X-User-Username") ||
+      ""
+    ).toLowerCase().trim().replace(/^@/, "");
+    if (target && env.REALTIME_ROOM) {
+      try {
+        const id = env.REALTIME_ROOM.idFromName("global_hub");
+        const stub = env.REALTIME_ROOM.get(id);
+        const res = await stub.fetch(new Request(`https://realtime.connecto.internal/internal/call/pending?username=${encodeURIComponent(target)}`));
+        if (res.ok) {
+          const data = await res.json();
+          return jsonResponse(data);
+        }
+      } catch (_) {}
+    }
+    return jsonResponse({ has_pending: false });
+  }
+
   // Voice Call Invite (REST Fallback for Push Notifications & Cross-Device Alerting)
   if (path === "/api/voice/call/invite") {
     const body = await request.json().catch(() => ({}));
-    const caller = body.caller_username || body.caller || "chinnu";
-    const target = (body.target_user || body.target || "").toLowerCase().trim();
+    const caller = (body.caller_username || body.caller || request.headers.get("X-User-Username") || "chinnu").trim().replace(/^@/, "");
+    const callerName = body.caller_name || caller;
+    const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
     const roomId = body.room_id || body.call_id || "call_" + Date.now();
     const avatar = body.caller_avatar || "👤";
 
@@ -2723,6 +2866,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       ctx.waitUntil(broadcastRealtime(env, {
         type: "call_invite",
         caller: caller,
+        caller_name: callerName,
         target: target,
         room_id: roomId,
         caller_avatar: avatar
@@ -2741,13 +2885,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (path === "/api/voice/call/respond") {
     const body = await request.json().catch(() => ({}));
     const action = body.action || "accept";
-    const target = (body.target_user || body.target || "").toLowerCase().trim();
+    const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
+    const responder = (body.username || body.user_id || request.headers.get("X-User-Username") || "").toLowerCase().trim().replace(/^@/, "");
     const callId = body.call_id || body.room_id;
 
     if (ctx) {
       ctx.waitUntil(broadcastRealtime(env, {
         type: action === "accept" ? "call_accepted" : "call_declined",
         target: target,
+        responder: responder,
         call_id: callId
       }));
     }
@@ -2758,13 +2904,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   // Voice Call End
   if (path === "/api/voice/call/end") {
     const body = await request.json().catch(() => ({}));
-    const target = (body.target_user || body.target || "").toLowerCase().trim();
+    const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
+    const sender = (body.username || body.user_id || request.headers.get("X-User-Username") || "").toLowerCase().trim().replace(/^@/, "");
     const callId = body.call_id || body.room_id;
 
     if (ctx) {
       ctx.waitUntil(broadcastRealtime(env, {
         type: "call_ended",
         target: target,
+        sender: sender,
         call_id: callId
       }));
     }
@@ -3360,6 +3508,52 @@ export class ConnectoRealtimeRoom {
     this.socketMeta = new Map();
     this.userSockets = new Map();
     this.channelSockets = new Map();
+    this.voiceRooms = new Map(); // roomId -> Set<username>
+    this.pendingCalls = new Map(); // callId -> { callId, caller, callerName, callerAvatar, target, status, createdAt }
+    this.userNotifications = new Map(); // username -> Array<Notification>
+  }
+
+  addNotification(username, notif) {
+    if (!username) return;
+    const clean = String(username).toLowerCase().trim().replace(/^@/, "");
+    if (!this.userNotifications.has(clean)) {
+      this.userNotifications.set(clean, []);
+    }
+    const list = this.userNotifications.get(clean);
+    const item = {
+      id: notif.id || ("notif_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7)),
+      user_id: clean,
+      type: notif.type || "message",
+      title: notif.title || "Connecto",
+      content: notif.content || "",
+      sender_username: notif.sender_username || "",
+      sender_avatar: notif.sender_avatar || "👾",
+      reference_id: notif.reference_id || "",
+      is_read: false,
+      created_at: notif.created_at || new Date().toISOString()
+    };
+    if (!list.some(existing => existing.id === item.id)) {
+      list.unshift(item);
+      if (list.length > 50) list.pop();
+    }
+    this.sendToUser(clean, {
+      type: "notification_received",
+      notification: item
+    });
+  }
+
+  resolveCallPeer(callId, senderUsername, explicitTarget) {
+    if (explicitTarget) {
+      return String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
+    }
+    if (callId && this.pendingCalls.has(callId)) {
+      const info = this.pendingCalls.get(callId);
+      const cleanSender = String(senderUsername || "").toLowerCase().trim().replace(/^@/, "");
+      if (cleanSender && info.caller === cleanSender) return info.target;
+      if (cleanSender && info.target === cleanSender) return info.caller;
+      return info.caller || info.target || "";
+    }
+    return "";
   }
 
   async fetch(request) {
@@ -3376,6 +3570,54 @@ export class ConnectoRealtimeRoom {
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 400 });
       }
+    }
+
+    // 1b. Pending Voice Call Lookup for Background / Reconnecting Clients
+    if (url.pathname === "/internal/call/pending") {
+      const username = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
+      const now = Date.now();
+      for (const [callId, info] of this.pendingCalls.entries()) {
+        if (now - info.createdAt > 60000) {
+          this.pendingCalls.delete(callId);
+          continue;
+        }
+        if (info.target === username && info.status === "ringing") {
+          return new Response(JSON.stringify({
+            has_pending: true,
+            call_id: info.callId,
+            room_id: info.callId,
+            caller_id: info.caller,
+            caller_username: info.caller,
+            caller_name: info.callerName || info.caller,
+            caller_avatar: info.callerAvatar || "👤"
+          }), { headers: { "Content-Type": "application/json" } });
+        }
+      }
+      return new Response(JSON.stringify({ has_pending: false }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // 1c. Internal Real-Time Notifications Store
+    if (url.pathname.startsWith("/internal/notifications")) {
+      const username = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
+      const list = this.userNotifications.get(username) || [];
+      if (url.pathname.endsWith("/read-all")) {
+        list.forEach(n => { n.is_read = true; });
+        return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/read")) {
+        const nid = url.searchParams.get("id") || "";
+        list.forEach(n => { if (n.id === nid) n.is_read = true; });
+        return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/clear")) {
+        this.userNotifications.set(username, []);
+        return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+      }
+      return new Response(JSON.stringify({ notifications: list }), {
+        headers: { "Content-Type": "application/json" }
+      });
     }
 
     // 2. Real-time telemetry & cluster stats
@@ -3506,13 +3748,39 @@ export class ConnectoRealtimeRoom {
       }));
     } catch (_) {}
 
+    // If there is an active ringing call for this user, immediately deliver it upon WS connect!
+    const now = Date.now();
+    for (const [callId, info] of this.pendingCalls.entries()) {
+      if (now - info.createdAt <= 60000 && info.target === cleanUser && info.status === "ringing") {
+        try {
+          server.send(JSON.stringify({
+            type: "call:incoming",
+            action: "call:incoming",
+            call_id: info.callId,
+            room_id: info.callId,
+            caller: info.caller,
+            caller_id: info.caller,
+            caller_username: info.caller,
+            caller_name: info.callerName || info.caller,
+            caller_avatar: info.callerAvatar || "👤",
+            avatar: info.callerAvatar || "👤",
+            timestamp: new Date().toISOString()
+          }));
+        } catch (_) {}
+      }
+    }
+
     // Broadcast presence to all other peers if user is not in stealth mode
     let userIsStealth = false;
     if (this.env && this.env.DB) {
       try {
-        const uRec = await this.env.DB.prepare("SELECT is_stealth FROM users WHERE lower(username) = ? LIMIT 1").bind(cleanUser.toLowerCase()).first();
-        if (uRec && (uRec.is_stealth === 1 || uRec.is_stealth === true)) {
-          userIsStealth = true;
+        const uRec = await this.env.DB.prepare("SELECT is_stealth, display_name, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(cleanUser.toLowerCase()).first();
+        if (uRec) {
+          if (uRec.display_name) meta.displayName = uRec.display_name;
+          if (uRec.avatar_url) meta.avatar = uRec.avatar_url;
+          if (uRec.is_stealth === 1 || uRec.is_stealth === true) {
+            userIsStealth = true;
+          }
         }
       } catch (_) {}
     }
@@ -3561,23 +3829,35 @@ export class ConnectoRealtimeRoom {
         }
 
         // 3. Typing Indicators
-        if (data.action === "typing" || data.type === "typing") {
+        if (data.action === "typing" || data.type === "typing" || data.type === "typing_start" || data.type === "typing_stop") {
           const targetCh = (data.channel_id || data.channel || "general").toLowerCase().trim();
+          const isStop = data.type === "typing_stop" || data.action === "typing:stop";
           this.broadcastToChannel(targetCh, {
-            type: "typing",
+            type: isStop ? "typing_stop" : "typing_start",
             user: meta.username,
             username: meta.username,
+            display_name: meta.displayName,
             channel_id: targetCh
           }, server);
           return;
         }
 
-        // 4. WebRTC 1:1 Voice Call Signaling
+        // 4. WebRTC 1:1 Voice Call Signaling & Voice Room Audio Relay
         const action = data.action || data.type;
         if (action === "call:initiate" || action === "call_invite") {
           const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
           const callId = data.call_id || data.room_id || "call_" + Math.random().toString(36).substring(2, 9);
           const callerAvatar = data.avatar || meta.avatar || "👾";
+
+          this.pendingCalls.set(callId, {
+            callId,
+            caller: meta.username,
+            callerName: meta.displayName,
+            callerAvatar,
+            target,
+            status: "ringing",
+            createdAt: Date.now()
+          });
 
           const targetPayload = {
             type: "call:incoming",
@@ -3585,6 +3865,7 @@ export class ConnectoRealtimeRoom {
             call_id: callId,
             room_id: callId,
             caller: meta.username,
+            caller_id: meta.username,
             caller_username: meta.username,
             caller_name: meta.displayName,
             caller_avatar: callerAvatar,
@@ -3593,98 +3874,232 @@ export class ConnectoRealtimeRoom {
           };
 
           const count = this.sendToUser(target, targetPayload);
+          this.addNotification(target, {
+            id: "call_" + callId,
+            type: "call_invite",
+            title: "Incoming Voice Call",
+            content: `${meta.displayName} is calling you`,
+            sender_username: meta.username,
+            sender_avatar: callerAvatar,
+            reference_id: callId
+          });
+
           server.send(JSON.stringify({
             type: "call:ringing",
             action: "call:ringing",
             target: target,
             call_id: callId,
+            room_id: callId,
             peer_online: count > 0
           }));
           return;
         }
 
         if (action === "call:accept" || action === "call_accept") {
-          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
           const callId = data.call_id || data.room_id;
-          this.sendToUser(target, {
-            type: "call:accepted",
-            action: "call:accepted",
-            callee: meta.username,
-            callee_username: meta.username,
-            target: meta.username,
-            call_id: callId,
-            room_id: callId
-          });
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          if (callId && this.pendingCalls.has(callId)) {
+            this.pendingCalls.get(callId).status = "connected";
+          }
+          if (target) {
+            this.sendToUser(target, {
+              type: "call:accepted",
+              action: "call:accepted",
+              callee: meta.username,
+              callee_username: meta.username,
+              target: meta.username,
+              target_user: meta.username,
+              call_id: callId,
+              room_id: callId
+            });
+          }
           return;
         }
 
         if (action === "call:decline" || action === "call_decline") {
-          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
           const callId = data.call_id || data.room_id;
-          this.sendToUser(target, {
-            type: "call:declined",
-            action: "call:declined",
-            target: meta.username,
-            call_id: callId,
-            room_id: callId
-          });
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          if (callId) this.pendingCalls.delete(callId);
+          if (target) {
+            this.sendToUser(target, {
+              type: "call:declined",
+              action: "call:declined",
+              target: meta.username,
+              call_id: callId,
+              room_id: callId
+            });
+          }
           return;
         }
 
         if (action === "call:offer" || action === "voice_offer") {
-          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
-          const callId = data.call_id || data.room_id;
-          this.sendToUser(target, {
+          const callId = data.call_id || data.room_id || meta.currentVoiceRoom;
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          const offerPayload = {
             type: "call:offer",
             action: "call:offer",
             caller: meta.username,
             sender_username: meta.username,
+            sender_user_id: meta.username,
             sender_id: meta.username,
             call_id: callId,
             room_id: callId,
             sdp: data.sdp || data.description
-          });
+          };
+          if (target) {
+            this.sendToUser(target, offerPayload);
+          } else if (callId) {
+            this.broadcastToChannel(`voice_room:${callId}`, offerPayload, server);
+          }
           return;
         }
 
         if (action === "call:answer" || action === "voice_answer") {
-          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
-          const callId = data.call_id || data.room_id;
-          this.sendToUser(target, {
+          const callId = data.call_id || data.room_id || meta.currentVoiceRoom;
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          const answerPayload = {
             type: "call:answer",
             action: "call:answer",
             callee: meta.username,
+            caller: meta.username,
             sender_username: meta.username,
+            sender_user_id: meta.username,
             sender_id: meta.username,
             call_id: callId,
             room_id: callId,
             sdp: data.sdp || data.description
-          });
+          };
+          if (target) {
+            this.sendToUser(target, answerPayload);
+          } else if (callId) {
+            this.broadcastToChannel(`voice_room:${callId}`, answerPayload, server);
+          }
           return;
         }
 
         if (action === "call:ice-candidate" || action === "voice_ice_candidate") {
-          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
-          const callId = data.call_id || data.room_id;
-          this.sendToUser(target, {
+          const callId = data.call_id || data.room_id || meta.currentVoiceRoom;
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          const icePayload = {
             type: "call:ice-candidate",
             action: "call:ice-candidate",
+            caller: meta.username,
+            sender_username: meta.username,
+            sender_user_id: meta.username,
+            sender_id: meta.username,
             candidate: data.candidate,
             call_id: callId,
             room_id: callId
-          });
+          };
+          if (target) {
+            this.sendToUser(target, icePayload);
+          } else if (callId) {
+            this.broadcastToChannel(`voice_room:${callId}`, icePayload, server);
+          }
           return;
         }
 
         if (action === "call:end" || action === "call:ended" || action === "call_end") {
-          const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
           const callId = data.call_id || data.room_id;
-          this.sendToUser(target, {
-            type: "call:ended",
-            action: "call:ended",
-            call_id: callId,
-            room_id: callId
-          });
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          if (callId) this.pendingCalls.delete(callId);
+          if (target) {
+            this.sendToUser(target, {
+              type: "call:ended",
+              action: "call:ended",
+              call_id: callId,
+              room_id: callId
+            });
+          } else if (callId) {
+            this.broadcastToChannel(`voice_room:${callId}`, {
+              type: "call:ended",
+              action: "call:ended",
+              call_id: callId,
+              room_id: callId
+            }, server);
+          }
+          return;
+        }
+
+        // 4b. Voice Room Join / Leave & PCM Audio Relay (voice_join, voice_leave, voice_data)
+        if (action === "voice_join" || action === "voice:join") {
+          const rId = String(data.room_id || data.channel_id || "").trim();
+          if (rId) {
+            meta.currentVoiceRoom = rId;
+            const roomChan = `voice_room:${rId}`;
+            meta.channels.add(roomChan);
+            if (!this.channelSockets.has(roomChan)) this.channelSockets.set(roomChan, new Set());
+            this.channelSockets.get(roomChan).add(server);
+
+            if (!this.voiceRooms.has(rId)) this.voiceRooms.set(rId, new Set());
+            const peersSet = this.voiceRooms.get(rId);
+            const existingPeers = Array.from(peersSet).filter(p => p !== meta.username);
+            peersSet.add(meta.username);
+
+            server.send(JSON.stringify({
+              type: "voice_room_joined",
+              room_id: rId,
+              channel_id: rId,
+              existing_peer_ids: existingPeers,
+              participants: Array.from(peersSet)
+            }));
+
+            this.broadcastToChannel(roomChan, {
+              type: "voice_peer_joined",
+              room_id: rId,
+              peer_id: meta.username,
+              username: meta.username
+            }, server);
+          }
+          return;
+        }
+
+        if (action === "voice_leave" || action === "voice:leave") {
+          const rId = String(data.room_id || data.channel_id || meta.currentVoiceRoom || "").trim();
+          if (rId) {
+            const roomChan = `voice_room:${rId}`;
+            meta.channels.delete(roomChan);
+            if (this.channelSockets.has(roomChan)) {
+              this.channelSockets.get(roomChan).delete(server);
+            }
+            if (this.voiceRooms.has(rId)) {
+              this.voiceRooms.get(rId).delete(meta.username);
+            }
+            if (meta.currentVoiceRoom === rId) meta.currentVoiceRoom = null;
+            this.broadcastToChannel(roomChan, {
+              type: "voice_peer_left",
+              room_id: rId,
+              peer_id: meta.username,
+              username: meta.username
+            }, server);
+          }
+          return;
+        }
+
+        if (action === "voice_data" || action === "voice:data" || data.type === "voice_data") {
+          const rId = String(data.room_id || data.channel_id || meta.currentVoiceRoom || "").trim();
+          const audio = data.audio;
+          if (rId && audio) {
+            const audioPayload = {
+              type: "voice_data",
+              room_id: rId,
+              sender_id: meta.username,
+              sender_username: meta.username,
+              audio: audio
+            };
+            const roomChan = `voice_room:${rId}`;
+            const chSet = this.channelSockets.get(roomChan);
+            if (chSet && chSet.size > 0) {
+              const msg = JSON.stringify(audioPayload);
+              for (const ws of chSet) {
+                if (ws === server) continue;
+                try { ws.send(msg); } catch (_) {}
+              }
+            } else {
+              const peer = this.resolveCallPeer(rId, meta.username, data.target);
+              if (peer) this.sendToUser(peer, audioPayload);
+            }
+          }
           return;
         }
 
@@ -3754,6 +4169,15 @@ export class ConnectoRealtimeRoom {
             };
             this.sendToUser(recipient, dmPayload);
             this.sendToUser(recipient, { type: "new_message", channel_id: targetCh, message: msgObj });
+            this.addNotification(recipient, {
+              id: msgId,
+              type: "message",
+              title: meta.displayName || meta.username,
+              content: rawContent,
+              sender_username: meta.username,
+              sender_avatar: meta.avatar,
+              reference_id: meta.username
+            });
             server.send(JSON.stringify({ type: "new_message", channel_id: targetCh, message: msgObj }));
           } else {
             this.broadcastToChannel(targetCh, {
@@ -3783,6 +4207,10 @@ export class ConnectoRealtimeRoom {
 
     this.sockets.delete(server);
     this.socketMeta.delete(server);
+
+    if (meta.currentVoiceRoom && this.voiceRooms.has(meta.currentVoiceRoom)) {
+      this.voiceRooms.get(meta.currentVoiceRoom).delete(meta.username);
+    }
 
     for (const ch of meta.channels) {
       const chSet = this.channelSockets.get(ch);
@@ -3833,7 +4261,7 @@ export class ConnectoRealtimeRoom {
         if (ws === excludeSocket) continue;
         try { ws.send(msg); } catch (_) {}
       }
-    } else {
+    } else if (!clean.startsWith("voice_room:")) {
       this.broadcastToAll(payload, excludeSocket);
     }
   }
@@ -3870,33 +4298,120 @@ export class ConnectoRealtimeRoom {
         channel_name: payload.channel,
         message: payload.message
       });
+      if (payload.message) {
+        this.addNotification(payload.target, {
+          id: payload.message.id,
+          type: "message",
+          title: payload.message.sender_display_name || payload.sender,
+          content: payload.message.content || payload.message.text || "",
+          sender_username: payload.sender,
+          sender_avatar: payload.message.avatar || payload.message.sender_avatar_url || "👾",
+          reference_id: payload.sender
+        });
+      }
       this.sendToUser(payload.sender, {
         type: "new_message",
         channel_id: payload.channel,
         channel_name: payload.channel,
         message: payload.message
       });
-    } else if (payload.type === "call_invite") {
+    } else if (payload.type === "friend_request_received") {
       this.sendToUser(payload.target, {
+        type: "friend_request_received",
+        data: {
+          id: payload.request_id,
+          sender: payload.sender,
+          sender_username: payload.sender,
+          sender_avatar: payload.sender_avatar || "👾"
+        }
+      });
+      this.addNotification(payload.target, {
+        id: payload.request_id || ("fr_" + Date.now()),
+        type: "friend_request",
+        title: "New Friend Request",
+        content: `${payload.sender} sent you a friend request`,
+        sender_username: payload.sender,
+        sender_avatar: payload.sender_avatar || "👾",
+        reference_id: payload.request_id || payload.sender
+      });
+    } else if (payload.type === "friend_accepted") {
+      this.sendToUser(payload.target, {
+        type: "friend_accepted",
+        data: {
+          friend_username: payload.sender,
+          friend_display_name: payload.sender,
+          friend_avatar: payload.sender_avatar || "👾"
+        }
+      });
+      this.addNotification(payload.target, {
+        id: "fa_" + Date.now(),
+        type: "friend_accepted",
+        title: "🤝 Alliance Forged",
+        content: `You and @${payload.sender} are now friends!`,
+        sender_username: payload.sender,
+        sender_avatar: payload.sender_avatar || "👾",
+        reference_id: payload.sender
+      });
+    } else if (payload.type === "call_invite") {
+      const callId = payload.room_id || payload.call_id;
+      const caller = (payload.caller || "").toLowerCase().trim().replace(/^@/, "");
+      const target = (payload.target || "").toLowerCase().trim().replace(/^@/, "");
+      if (callId && target) {
+        this.pendingCalls.set(callId, {
+          callId,
+          caller,
+          callerName: payload.caller_name || payload.caller,
+          callerAvatar: payload.caller_avatar || "👤",
+          target,
+          status: "ringing",
+          createdAt: Date.now()
+        });
+      }
+      this.sendToUser(target, {
         type: "call:incoming",
         action: "call:incoming",
         caller: payload.caller,
+        caller_id: payload.caller,
         caller_username: payload.caller,
-        caller_name: payload.caller,
+        caller_name: payload.caller_name || payload.caller,
         avatar: payload.caller_avatar || "👤",
         caller_avatar: payload.caller_avatar || "👤",
-        call_id: payload.room_id,
-        room_id: payload.room_id
+        call_id: callId,
+        room_id: callId
+      });
+      this.addNotification(target, {
+        id: "call_" + callId,
+        type: "call_invite",
+        title: "Incoming Voice Call",
+        content: `${payload.caller_name || payload.caller} is calling you`,
+        sender_username: payload.caller,
+        sender_avatar: payload.caller_avatar || "👤",
+        reference_id: callId
       });
     } else if (payload.type === "call_accepted" || payload.type === "call_declined" || payload.type === "call_ended") {
+      const callId = payload.call_id || payload.room_id;
+      const actor = payload.responder || payload.sender || "";
+      const target = this.resolveCallPeer(callId, actor, payload.target);
+      if (callId) {
+        if (payload.type === "call_accepted" && this.pendingCalls.has(callId)) {
+          this.pendingCalls.get(callId).status = "connected";
+        } else if (payload.type === "call_declined" || payload.type === "call_ended") {
+          this.pendingCalls.delete(callId);
+        }
+      }
       const eventName = payload.type === "call_accepted" ? "call:accepted" :
                         payload.type === "call_declined" ? "call:declined" : "call:ended";
-      this.sendToUser(payload.target, {
-        type: eventName,
-        action: eventName,
-        target: payload.target,
-        call_id: payload.call_id
-      });
+      if (target) {
+        this.sendToUser(target, {
+          type: eventName,
+          action: eventName,
+          callee: actor || target,
+          callee_username: actor || target,
+          target: actor || target,
+          call_id: callId,
+          room_id: callId
+        });
+      }
     } else if (payload.type === "voice_join" || payload.type === "voice_leave") {
       const roomKey = `voice_room:${payload.roomId}`;
       this.broadcastToChannel(roomKey, {

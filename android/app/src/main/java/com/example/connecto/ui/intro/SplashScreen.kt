@@ -89,9 +89,9 @@ fun SplashScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_connecto_logo),
+                    painter = painterResource(id = R.drawable.connecto_app_icon),
                     contentDescription = "Connecto Logo",
-                    modifier = Modifier.size(54.dp)
+                    modifier = Modifier.size(64.dp).clip(CircleShape)
                 )
             }
 
