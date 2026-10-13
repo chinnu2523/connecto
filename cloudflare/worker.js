@@ -183,38 +183,43 @@ export default {
 
         // If origin responds (< 500), return origin response directly
         if (originResponse.status < 500) {
-          const headers = new Headers(originResponse.headers);
-          headers.set("X-Connecto-Mode", "local_server");
-          headers.set("Access-Control-Allow-Origin", "*");
-
           const contentType = originResponse.headers.get("content-type") || "";
-          if (contentType.includes("text/html")) {
-            let htmlText = await originResponse.text();
-            // Automatically patch any stale origin HTML strings to v4.2.4 Build 52
-            if (htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49")) {
-              htmlText = htmlText
-                .replace(/v4\.2\.[123]/g, "v4.2.4")
-                .replace(/4\.2\.[123]-prod/g, "4.2.4-prod")
-                .replace(/"4\.2\.[123]"/g, '"4.2.4"')
-                .replace(/Build 51/g, "Build 52")
-                .replace(/BUILD 51/g, "BUILD 52")
-                .replace(/build 51/g, "build 52")
-                .replace(/Build 50/g, "Build 52")
-                .replace(/BUILD 50/g, "BUILD 52")
-                .replace(/build 50/g, "build 52")
-                .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4")
-                .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4");
+          const isApiRoute = url.pathname.startsWith("/api/");
+
+          // Never return an HTML fallback page or missing route 404 for a JSON /api/ endpoint; fall through to Edge D1 API engine
+          if (!isApiRoute || (!contentType.includes("text/html") && originResponse.status !== 404)) {
+            const headers = new Headers(originResponse.headers);
+            headers.set("X-Connecto-Mode", "local_server");
+            headers.set("Access-Control-Allow-Origin", "*");
+
+            if (contentType.includes("text/html")) {
+              let htmlText = await originResponse.text();
+              // Automatically patch any stale origin HTML strings to v4.2.4 Build 52
+              if (htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49")) {
+                htmlText = htmlText
+                  .replace(/v4\.2\.[123]/g, "v4.2.4")
+                  .replace(/4\.2\.[123]-prod/g, "4.2.4-prod")
+                  .replace(/"4\.2\.[123]"/g, '"4.2.4"')
+                  .replace(/Build 51/g, "Build 52")
+                  .replace(/BUILD 51/g, "BUILD 52")
+                  .replace(/build 51/g, "build 52")
+                  .replace(/Build 50/g, "Build 52")
+                  .replace(/BUILD 50/g, "BUILD 52")
+                  .replace(/build 50/g, "build 52")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4");
+              }
+              return new Response(htmlText, {
+                status: originResponse.status,
+                headers: headers
+              });
             }
-            return new Response(htmlText, {
+
+            return new Response(originResponse.body, {
               status: originResponse.status,
               headers: headers
             });
           }
-
-          return new Response(originResponse.body, {
-            status: originResponse.status,
-            headers: headers
-          });
         }
       } catch (err) {
         // Origin threw network timeout or connection refused - fall through to edge fallback
@@ -2038,36 +2043,42 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
   // 14. Channels List (Clean Public Channels Only)
   if (path === "/api/channels" || path === "/api/v1/chat/channels") {
-    let channels = [];
-    if (env.DB) {
-      const res = await env.DB.prepare(`
-        SELECT id, name, type FROM channels
-        WHERE name NOT LIKE 'dm-%' AND name NOT LIKE 'dm_%' AND id NOT LIKE '%-%-%-%-%'
-        ORDER BY CASE
-          WHEN name = 'general' THEN 1
-          WHEN name = 'announcements' THEN 2
-          WHEN name = 'dev-chat' THEN 3
-          WHEN name = 'gaming' THEN 4
-          WHEN name = 'war-room' THEN 5
-          WHEN name = 'tournaments' THEN 6
-          WHEN name = 'clips' THEN 7
-          WHEN name = 'voice-lounge' THEN 8
-          ELSE 9
-        END ASC
-      `).all();
-      channels = res.results || [];
+    const defaultChannels = [
+      { id: "general", name: "general", type: "text", description: "Global public community chat & discussion", category: "OFFICIAL" },
+      { id: "announcements", name: "announcements", type: "text", description: "Official updates & platform release notes", category: "OFFICIAL" },
+      { id: "dev-chat", name: "dev-chat", type: "text", description: "FastAPI, WebSockets, WebRTC & Security", category: "OFFICIAL" },
+      { id: "gaming", name: "gaming", type: "text", description: "Gaming, memes & casual talk", category: "OFFICIAL" },
+      { id: "war-room", name: "war-room", type: "text", description: "⚡ Tactical Briefings & Threat Intelligence", category: "OFFICIAL" },
+      { id: "tournaments", name: "tournaments", type: "text", description: "Free Fire esports tournaments & matches", category: "ESPORTS" },
+      { id: "clips", name: "clips", type: "text", description: "Community gaming highlights & clutches", category: "ESPORTS" },
+      { id: "voice-lounge", name: "voice-lounge", type: "voice", description: "Voice & Screen Sharing Lounge", category: "ESPORTS" }
+    ];
+    const seenNames = new Set();
+    const channels = [];
+    for (const defCh of defaultChannels) {
+      seenNames.add(defCh.name.toLowerCase());
+      channels.push(defCh);
     }
-    if (channels.length === 0) {
-      channels = [
-        { id: "general", name: "general", type: "text" },
-        { id: "announcements", name: "announcements", type: "text" },
-        { id: "dev-chat", name: "dev-chat", type: "text" },
-        { id: "gaming", name: "gaming", type: "text" },
-        { id: "war-room", name: "war-room", type: "text" },
-        { id: "tournaments", name: "tournaments", type: "text" },
-        { id: "clips", name: "clips", type: "text" },
-        { id: "voice-lounge", name: "voice-lounge", type: "voice" }
-      ];
+    if (env.DB) {
+      try {
+        const res = await env.DB.prepare(`
+          SELECT id, name, type FROM channels
+          WHERE name NOT LIKE 'dm-%' AND name NOT LIKE 'dm_%' AND type != 'dm' AND type != 'group'
+        `).all();
+        for (const r of (res.results || [])) {
+          const lowerName = (r.name || "").toLowerCase();
+          if (lowerName && !seenNames.has(lowerName) && !lowerName.startsWith("dm-") && !lowerName.startsWith("dm_")) {
+            seenNames.add(lowerName);
+            channels.push({
+              id: r.id || r.name,
+              name: r.name,
+              type: r.type || "text",
+              description: `${r.name} channel`,
+              category: "OFFICIAL"
+            });
+          }
+        }
+      } catch (_) {}
     }
     return jsonResponse(channels);
   }

@@ -46,7 +46,7 @@ async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         
-        # SQLite dynamic column additions for users table if needed
+        # SQLite dynamic column additions for users, channels, and messages tables if needed
         def migrate_sqlite_columns(connection):
             try:
                 res = connection.exec_driver_sql("PRAGMA table_info(users)").fetchall()
@@ -59,8 +59,24 @@ async def init_db():
                     connection.exec_driver_sql("ALTER TABLE users ADD COLUMN two_factor_method VARCHAR(16) DEFAULT 'sms' NOT NULL")
                 if "banner_url" not in existing_cols:
                     connection.exec_driver_sql("ALTER TABLE users ADD COLUMN banner_url VARCHAR(512)")
+
+                ch_res = connection.exec_driver_sql("PRAGMA table_info(channels)").fetchall()
+                ch_cols = {row[1] for row in ch_res}
+                if "icon_url" not in ch_cols:
+                    connection.exec_driver_sql("ALTER TABLE channels ADD COLUMN icon_url VARCHAR(512)")
+                if "owner_id" not in ch_cols:
+                    connection.exec_driver_sql("ALTER TABLE channels ADD COLUMN owner_id VARCHAR(36)")
+
+                msg_res = connection.exec_driver_sql("PRAGMA table_info(messages)").fetchall()
+                msg_cols = {row[1] for row in msg_res}
+                if "reply_to_id" not in msg_cols:
+                    connection.exec_driver_sql("ALTER TABLE messages ADD COLUMN reply_to_id VARCHAR(36)")
+                if "reply_to_content" not in msg_cols:
+                    connection.exec_driver_sql("ALTER TABLE messages ADD COLUMN reply_to_content TEXT")
+                if "reply_to_author" not in msg_cols:
+                    connection.exec_driver_sql("ALTER TABLE messages ADD COLUMN reply_to_author VARCHAR(256)")
             except Exception as e:
-                print(f"User schema migration check: {e}")
+                print(f"Schema migration check: {e}")
 
         await conn.run_sync(migrate_sqlite_columns)
 
