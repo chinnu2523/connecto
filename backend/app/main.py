@@ -5357,12 +5357,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.6",
-        "version_name": "v4.2.6",
-        "version_code": 55,
-        "release_tag": "v4.2.6-stable",
-        "sha256": "a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82",
-        "md5": "e0fa307654f65fd58ba35b8a2d7a1baf",
+        "version": "4.2.7",
+        "version_name": "v4.2.7",
+        "version_code": 56,
+        "release_tag": "v4.2.7-stable",
+        "sha256": "743d303564fc57ccd0e24235c4c422e9420c6812b020ecd73649ef4ad8ec9884",
+        "md5": "17c087dae08f51a3afde7b4b4598e058",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5372,14 +5372,12 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
+            "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
+            "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
+            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync",
             "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
-            "v4.2.6 Profile Tab Animation Removal: Clean static background, zero shimmer lag, and instant snappy subpage navigation",
-            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs",
-            "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, and frosted chat bubbles",
-            "v4.2.5 Redesigned Profile Sub-Screens: Status-bar clearance, status hero cards, and instant cloud auto-save banner",
-            "v4.2.5 Streamlined Personal Chat Friend Profile: Dedicated Chat & Lock (UNFRIEND-only) and Theme & Wallpaper tabs",
-            "v4.2.5 Admin 5-Wallpaper Group Selector & Group Creation Persistence across Cloudflare D1 and Origin",
-            "v4.2.5 Friend Chat User Data & Avatar Sync across Cloudflare D1 and Origin"
+            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs"
         ]
     }
 
@@ -5391,10 +5389,26 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.2.7",
+                "date": "Oct 14, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.2.7: Call History Sync, Forgot Password OTP, 2FA Mail Setup & Real-Time Push Notifications",
+                "summary": "Fixes call history recording and dynamic auto-refresh, repairs forgot password OTP recovery with verified token consumption, enables full 2FA mail OTP setup with quick-fill chips, and delivers real-time notifications to the Android notification shade with sound and vibration alerts.",
+                "highlights": [
+                    "Call History Synchronization: Real-time logging of incoming, outgoing, and missed voice calls with exact duration formatting and dynamic instant updates in the Calls tab.",
+                    "Forgot Password Flow: Resolved OTP verification lock, added dev_otp fallback support, and enabled instant password reset with authenticated session creation.",
+                    "Two-Factor Authentication: Complete email OTP setup, auto-fill verification chips, and active 2FA security enforcement.",
+                    "Friend Message Push Notifications: Fixed username parsing for complex handles, dual-persisted notifications in D1 and DO mesh, and restored system notification shade alerts.",
+                    "Android Native App v4.2.7 (Build 56 • 54.4 MB): SHA-256 743d303564fc57ccd0e24235c4c422e9420c6812b020ecd73649ef4ad8ec9884."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.2.6",
                 "date": "Oct 13, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.2.6: Liquid Glass Theme, Static Profile Tab & Bottom Bar Water Drop Animation",
                 "summary": "Introduces the brand new Liquid Glass theme with fluid aqua refraction, completely cleans and eliminates animations in the Profile tab for instant navigation, and adds a moving liquid water drop indicator with liquid stretch physics, ripple splashes, and specular glints across all 5 bottom navigation tabs.",
                 "highlights": [
