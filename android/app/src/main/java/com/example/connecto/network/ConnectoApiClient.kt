@@ -929,7 +929,7 @@ object ConnectoApiClient {
                         method = jsonObj.optString("method", method),
                         maskedDestination = jsonObj.optString("masked_destination").takeIf { it.isNotEmpty() },
                         identifier = jsonObj.optString("identifier", identifier),
-                        devOtp = null
+                        devOtp = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() } ?: jsonObj.optString("otp").takeIf { it.isNotEmpty() }
                     )
                 )
             } else {
@@ -1058,7 +1058,7 @@ object ConnectoApiClient {
                         method = jsonObj.optString("method", method),
                         maskedDestination = jsonObj.optString("masked_destination").takeIf { it.isNotEmpty() },
                         identifier = jsonObj.optString("identifier").takeIf { it.isNotEmpty() } ?: phoneNumber,
-                        devOtp = null
+                        devOtp = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() } ?: jsonObj.optString("otp").takeIf { it.isNotEmpty() }
                     )
                 )
             } else {
@@ -2899,8 +2899,13 @@ object ConnectoApiClient {
                 token = token ?: sessionToken
             )
             if (response.isSuccess) {
-                val obj = JSONObject(response.getOrThrow())
-                val arr = obj.optJSONArray("logs") ?: JSONArray()
+                val raw = response.getOrThrow().trim()
+                val arr = if (raw.startsWith("[")) {
+                    JSONArray(raw)
+                } else {
+                    val obj = JSONObject(raw)
+                    obj.optJSONArray("logs") ?: obj.optJSONArray("call_logs") ?: obj.optJSONArray("data") ?: JSONArray()
+                }
                 val list = mutableListOf<CallLogDto>()
                 for (i in 0 until arr.length()) {
                     val item = arr.getJSONObject(i)
@@ -4030,7 +4035,13 @@ object ConnectoApiClient {
             val endpoint = "/api/v1/notifications?username=$u&unread_only=$unreadOnly&limit=$limit"
             val response = executeRequest(endpoint, "GET", null, token ?: sessionToken)
             if (response.isSuccess) {
-                val array = JSONArray(response.getOrThrow())
+                val raw = response.getOrThrow().trim()
+                val array = if (raw.startsWith("[")) {
+                    JSONArray(raw)
+                } else {
+                    val obj = JSONObject(raw)
+                    obj.optJSONArray("notifications") ?: obj.optJSONArray("data") ?: JSONArray()
+                }
                 val list = mutableListOf<NotificationDto>()
                 for (i in 0 until array.length()) {
                     val obj = array.getJSONObject(i)

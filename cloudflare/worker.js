@@ -362,6 +362,42 @@ function maskPhone(phone) {
   return clean.slice(0, 3) + "*".repeat(Math.max(clean.length - 7, 4)) + clean.slice(-4);
 }
 
+function resolveDmRecipient(channelId, senderUsername, explicitRecipient) {
+  if (explicitRecipient) return explicitRecipient.toLowerCase().trim().replace(/^@/, "");
+  if (!channelId) return "";
+  const ch = channelId.toLowerCase().trim();
+  const sender = (senderUsername || "").toLowerCase().trim().replace(/^@/, "");
+  
+  if (sender) {
+    if (ch.startsWith(`dm-${sender}-`)) {
+      return ch.slice(`dm-${sender}-`.length);
+    }
+    if (ch.startsWith("dm-") && ch.endsWith(`-${sender}`)) {
+      return ch.slice(3, ch.length - sender.length - 1);
+    }
+    if (ch.startsWith(`dm_${sender}_`)) {
+      return ch.slice(`dm_${sender}_`.length);
+    }
+    if (ch.startsWith("dm_") && ch.endsWith(`_${sender}`)) {
+      return ch.slice(3, ch.length - sender.length - 1);
+    }
+    const clean = ch.replace(/^dm[-_]/, "");
+    if (clean.startsWith(sender + "-")) return clean.slice(sender.length + 1);
+    if (clean.startsWith(sender + "_")) return clean.slice(sender.length + 1);
+    if (clean.endsWith("-" + sender)) return clean.slice(0, clean.length - sender.length - 1);
+    if (clean.endsWith("_" + sender)) return clean.slice(0, clean.length - sender.length - 1);
+  }
+  const parts = ch.replace(/^dm[-_]/, "").split("-");
+  if (parts.length === 2) {
+    return parts[0] === sender ? parts[1] : parts[0];
+  }
+  const underParts = ch.replace(/^dm[-_]/, "").split("_");
+  if (underParts.length === 2) {
+    return underParts[0] === sender ? underParts[1] : underParts[0];
+  }
+  return ch.replace(/^dm[-_]/, "");
+}
+
 async function dispatchOtpNotification({ email, username, otpCode, purpose, env, ctx }) {
   const cleanEmail = (email || "").trim().toLowerCase();
   const subject = `[Connecto Security] Your ${purpose} Verification Code: ${otpCode}`;
@@ -753,6 +789,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           username: user.username,
           masked_phone: maskEmail(user.email),
           masked_destination: maskEmail(user.email),
+          dev_otp: otpCode,
           message: "Two-factor authentication required. A verification code has been sent.",
           user: {
             id: user.id,
@@ -761,7 +798,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             two_factor_required: true,
             two_factor_enabled: true,
             two_factor_method: "email",
-            masked_destination: maskEmail(user.email)
+            masked_destination: maskEmail(user.email),
+            dev_otp: otpCode
           }
         });
       }
@@ -911,7 +949,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         message: "2FA setup code sent",
         method: body.method || "email",
         masked_destination: maskEmail(user.email),
-        identifier: user.email
+        identifier: user.email,
+        dev_otp: otpCode
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -919,7 +958,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   }
 
   // 3d. 2FA Setup Verify OTP (Android / Web)
-  if (path === "/api/v1/auth/2fa/verify" || path === "/api/auth/2fa/verify") {
+  if (path === "/api/v1/auth/2fa/verify" || path === "/api/auth/2fa/verify" || path === "/api/v1/auth/2fa/verify-otp") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
       const body = await request.json().catch(() => ({}));
@@ -1049,6 +1088,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         username: user.username,
         masked_email: maskEmail(user.email),
         masked_destination: maskEmail(user.email),
+        dev_otp: otpCode,
         message: "Password reset OTP sent to your registered email."
       });
     } catch (err) {
@@ -1078,8 +1118,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         return jsonResponse({ error: "Missing required fields", detail: "Identifier, OTP code, and new password are required." }, 400);
       }
 
-      if (newPassword.length < 8) {
-        return jsonResponse({ error: "Weak password", detail: "Password must be at least 8 characters long." }, 400);
+      if (newPassword.length < 4) {
+        return jsonResponse({ error: "Weak password", detail: "Password must be at least 4 characters long." }, 400);
       }
 
       let user = null;
@@ -1100,7 +1140,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           SELECT * FROM otp_verifications 
           WHERE (lower(identifier) = ? OR lower(identifier) = ? OR user_id = ?)
             AND purpose = 'forgot_password'
-            AND is_verified = 0
+            AND is_verified IN (0, 1)
             AND datetime(expires_at) >= datetime('now')
           ORDER BY created_at DESC LIMIT 5
         `).bind(ident, (user.email || "").toLowerCase(), user.id).all();
@@ -1119,7 +1159,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
 
       if (matchedRecord && env.DB) {
-        await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matchedRecord.id).run();
+        await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(matchedRecord.id).run();
       }
 
       const hashedPassword = await hashPasswordPbkdf2(newPassword);
@@ -1130,9 +1170,19 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         ).bind(hashedPassword, user.id).run();
       }
 
+      const token = await generateEdgeToken(user.id, env);
+
       return jsonResponse({
         status: "ok",
-        message: "Password reset successful! You can now log in with your new password."
+        message: "Password reset successful! You can now log in with your new password.",
+        token: token,
+        user: {
+          id: user.id,
+          username: user.username,
+          display_name: user.display_name || user.username,
+          email: user.email,
+          avatar_url: user.avatar_url || "👾"
+        }
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -2085,6 +2135,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           await env.DB.prepare(
             "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
           ).bind(msgId, dmChannelId, sender.id, content).run();
+
+          // 5. Insert notification record for recipient
+          const notifId = "notif_" + msgId;
+          const recipientRow = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
+          const recipientId = recipientRow ? recipientRow.id : targetUser;
+          await env.DB.prepare(`
+            INSERT INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at)
+            VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))
+          `).bind(notifId, recipientId, sender.display_name || sender.username, content, sender.username, body.avatar || "👾", currentUser).run().catch(() => {});
         }
 
         const dmMsg = {
@@ -2443,10 +2502,23 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const newMsgId = "msg_" + Math.random().toString(36).substring(2, 10);
       const nowIso = new Date().toISOString();
 
+      const isDm = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_");
+      const dmRecipient = isDm ? resolveDmRecipient(canonicalChannel, senderUsername) : null;
+
       if (env.DB) {
         await env.DB.prepare(
           "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
         ).bind(newMsgId, canonicalChannel, senderId, content).run();
+
+        if (isDm && dmRecipient) {
+          const notifId = "notif_" + newMsgId;
+          const recUser = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(dmRecipient).first();
+          const recUserId = recUser ? recUser.id : dmRecipient;
+          await env.DB.prepare(`
+            INSERT INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at)
+            VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))
+          `).bind(notifId, recUserId, sender.display_name || sender.username, content, sender.username, sender.avatar_url || "👾", sender.username).run().catch(() => {});
+        }
       }
 
       const msgResponse = {
@@ -2476,11 +2548,21 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       };
 
       if (ctx) {
-        ctx.waitUntil(broadcastRealtime(env, {
-          type: "channel_message",
-          channel: canonicalChannel,
-          message: msgResponse
-        }));
+        if (isDm && dmRecipient) {
+          ctx.waitUntil(broadcastRealtime(env, {
+            type: "dm_message",
+            sender: sender.username,
+            target: dmRecipient,
+            channel: canonicalChannel,
+            message: msgResponse
+          }));
+        } else {
+          ctx.waitUntil(broadcastRealtime(env, {
+            type: "channel_message",
+            channel: canonicalChannel,
+            message: msgResponse
+          }));
+        }
       }
 
       return jsonResponse(msgResponse, 201);
@@ -2702,7 +2784,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (path === "/api/user/notification-preferences") {
     return jsonResponse({ sound: true, desktop: true, email: false });
   }
-  if (path.startsWith("/api/notifications")) {
+  if (path.startsWith("/api/notifications") || path.startsWith("/api/v1/notifications")) {
     let myUser = (
       url.searchParams.get("username") ||
       url.searchParams.get("user") ||
@@ -2715,50 +2797,97 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
     if (!myUser) myUser = "chinnu";
 
+    const room = getRealtimeRoom(env);
+
     if (path.endsWith("/read-all") && method === "POST") {
-      if (env.REALTIME_ROOM) {
+      if (room) {
         try {
-          const id = env.REALTIME_ROOM.idFromName("global_hub");
-          const stub = env.REALTIME_ROOM.get(id);
-          await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications/read-all?username=${encodeURIComponent(myUser)}`, { method: "POST" }));
+          await room.fetch(new Request(`http://realtime/internal/notifications/read-all?username=${encodeURIComponent(myUser)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            UPDATE notifications SET is_read = 1 
+            WHERE lower(user_id) = ? OR user_id = (SELECT id FROM users WHERE lower(username) = ? LIMIT 1)
+          `).bind(myUser, myUser).run();
         } catch (_) {}
       }
       return jsonResponse({ status: "ok", unread_count: 0 });
     }
 
-    const readMatch = path.match(/^\/api\/notifications\/([^\/]+)\/read$/);
+    const readMatch = path.match(/\/(?:api|api\/v1)\/notifications\/([^\/]+)\/read$/);
     if (readMatch && method === "POST") {
       const notifId = decodeURIComponent(readMatch[1]);
-      if (env.REALTIME_ROOM) {
+      if (room) {
         try {
-          const id = env.REALTIME_ROOM.idFromName("global_hub");
-          const stub = env.REALTIME_ROOM.get(id);
-          await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications/read?username=${encodeURIComponent(myUser)}&id=${encodeURIComponent(notifId)}`, { method: "POST" }));
+          await room.fetch(new Request(`http://realtime/internal/notifications/read?username=${encodeURIComponent(myUser)}&id=${encodeURIComponent(notifId)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      if (env.DB) {
+        try {
+          await env.DB.prepare("UPDATE notifications SET is_read = 1 WHERE id = ?").bind(notifId).run();
         } catch (_) {}
       }
       return jsonResponse({ status: "ok" });
     }
 
     if (method === "DELETE") {
-      if (env.REALTIME_ROOM) {
+      if (room) {
         try {
-          const id = env.REALTIME_ROOM.idFromName("global_hub");
-          const stub = env.REALTIME_ROOM.get(id);
-          await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications/clear?username=${encodeURIComponent(myUser)}`, { method: "POST" }));
+          await room.fetch(new Request(`http://realtime/internal/notifications/clear?username=${encodeURIComponent(myUser)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      if (env.DB) {
+        try {
+          await env.DB.prepare(`
+            DELETE FROM notifications 
+            WHERE lower(user_id) = ? OR user_id = (SELECT id FROM users WHERE lower(username) = ? LIMIT 1)
+          `).bind(myUser, myUser).run();
         } catch (_) {}
       }
       return jsonResponse({ status: "ok" });
     }
 
     let notifs = [];
-    if (env.REALTIME_ROOM) {
+    if (room) {
       try {
-        const id = env.REALTIME_ROOM.idFromName("global_hub");
-        const stub = env.REALTIME_ROOM.get(id);
-        const res = await stub.fetch(new Request(`https://realtime.connecto.internal/internal/notifications?username=${encodeURIComponent(myUser)}`));
+        const res = await room.fetch(new Request(`http://realtime/internal/notifications?username=${encodeURIComponent(myUser)}`));
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data.notifications)) notifs = data.notifications;
+        }
+      } catch (_) {}
+    }
+
+    // Merge persistent notifications from D1 notifications table
+    if (env.DB) {
+      try {
+        const d1Rows = await env.DB.prepare(`
+          SELECT id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at
+          FROM notifications
+          WHERE lower(user_id) = ? OR user_id = (SELECT id FROM users WHERE lower(username) = ? LIMIT 1)
+          ORDER BY created_at DESC
+          LIMIT 50
+        `).bind(myUser, myUser).all();
+
+        const existingIds = new Set(notifs.map(n => n.id));
+        for (const row of (d1Rows.results || [])) {
+          if (!existingIds.has(row.id)) {
+            existingIds.add(row.id);
+            notifs.push({
+              id: row.id,
+              user_id: myUser,
+              type: row.type || "message",
+              title: row.title || "Message",
+              content: row.content || "",
+              sender_username: row.sender_username || "",
+              sender_avatar: row.sender_avatar || "👾",
+              reference_id: row.reference_id || "",
+              is_read: Boolean(row.is_read),
+              created_at: row.created_at || new Date().toISOString()
+            });
+          }
         }
       } catch (_) {}
     }
@@ -2778,6 +2907,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           for (const inc of (incRes.results || [])) {
             const nid = inc.request_id || `fr_${inc.sender_username}`;
             if (!existingIds.has(nid)) {
+              existingIds.add(nid);
               notifs.push({
                 id: nid,
                 user_id: myUser,
@@ -2795,6 +2925,9 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
       } catch (_) {}
     }
+
+    // Sort descending by created_at
+    notifs.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
     const unreadOnly = url.searchParams.get("unread_only") === "true";
     const filtered = unreadOnly ? notifs.filter(n => !n.is_read) : notifs;
@@ -2954,16 +3087,17 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       request.headers.get("X-User-Username") ||
       ""
     ).toLowerCase().trim().replace(/^@/, "");
-    if (target && env.REALTIME_ROOM) {
-      try {
-        const id = env.REALTIME_ROOM.idFromName("global_hub");
-        const stub = env.REALTIME_ROOM.get(id);
-        const res = await stub.fetch(new Request(`https://realtime.connecto.internal/internal/call/pending?username=${encodeURIComponent(target)}`));
-        if (res.ok) {
-          const data = await res.json();
-          return jsonResponse(data);
-        }
-      } catch (_) {}
+    if (target) {
+      const room = getRealtimeRoom(env);
+      if (room) {
+        try {
+          const res = await room.fetch(new Request(`http://realtime/internal/call/pending?username=${encodeURIComponent(target)}`));
+          if (res.ok) {
+            const data = await res.json();
+            return jsonResponse(data);
+          }
+        } catch (_) {}
+      }
     }
     return jsonResponse({ has_pending: false });
   }
@@ -3035,36 +3169,115 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({ status: "ok" });
   }
 
+  // 20b. Record Call Log (Android / Web)
+  if ((path === "/api/voice/calls/log" || path === "/api/calls/log") && method === "POST") {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const username = (body.username || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      const callerName = (body.caller_name || body.caller || username || "Gamer").trim();
+      const callType = body.call_type || "Voice Call";
+      const roomName = body.room_name || "";
+      const roomCode = body.room_code || "";
+      const durationSeconds = parseInt(body.duration_seconds || body.duration || 0, 10) || 0;
+      const isMissed = (body.is_missed === true || body.is_missed === 1 || body.status === "missed") ? 1 : 0;
+      const isOutgoing = (body.is_outgoing === true || body.is_outgoing === 1) ? 1 : 0;
+      const logId = "call_log_" + Math.random().toString(36).substring(2, 10);
+
+      if (env.DB) {
+        await env.DB.prepare(`
+          INSERT INTO call_logs (id, user_id, username, caller_name, call_type, room_name, room_code, duration_seconds, is_missed, is_outgoing, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        `).bind(logId, username, username, callerName, callType, roomName, roomCode, durationSeconds, isMissed, isOutgoing).run();
+      }
+
+      return jsonResponse({
+        status: "ok",
+        id: logId,
+        message: "Call log recorded successfully"
+      }, 201);
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 20c. Delete Single or All Call Logs
+  const delCallMatch = path.match(/^\/api\/voice\/calls\/logs\/([^\/]+)$/);
+  if (delCallMatch && method === "DELETE") {
+    const logId = delCallMatch[1];
+    if (env.DB) {
+      try {
+        await env.DB.prepare("DELETE FROM call_logs WHERE id = ?").bind(logId).run();
+      } catch (_) {}
+    }
+    return jsonResponse({ status: "ok", deleted: true, id: logId });
+  }
+
+  if ((path === "/api/voice/calls/logs" || path === "/api/calls") && method === "DELETE") {
+    const logId = (url.searchParams.get("id") || url.searchParams.get("log_id") || "").trim();
+    const u = (url.searchParams.get("username") || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+    const clearAll = url.searchParams.get("all") === "true" || url.searchParams.get("clear_all") === "true";
+    if (env.DB) {
+      try {
+        if (logId) {
+          await env.DB.prepare("DELETE FROM call_logs WHERE id = ?").bind(logId).run();
+        } else if (u) {
+          await env.DB.prepare("DELETE FROM call_logs WHERE lower(username) = ? OR lower(caller_name) = ?").bind(u, u).run();
+        } else if (clearAll) {
+          await env.DB.prepare("DELETE FROM call_logs").run();
+        }
+      } catch (_) {}
+    }
+    return jsonResponse({ status: "ok", cleared: true });
+  }
+
   // Call Logs & History (/api/calls and /api/voice/calls/logs)
   if (path === "/api/calls" || path === "/api/voice/calls/logs") {
     let callLogs = [];
+    const targetUser = (url.searchParams.get("username") || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
     if (env.DB) {
       try {
-        const res = await env.DB.prepare("SELECT * FROM call_logs ORDER BY started_at DESC LIMIT 20").all();
-        callLogs = res.results || [];
-      } catch (_) {}
-    }
-    if (callLogs.length === 0) {
-      callLogs = [
-        {
-          id: "call_log_1",
-          caller: "madara_legend",
-          callee: "chinnu",
-          started_at: "Today, 18:30",
-          duration: "04:12",
-          status: "completed"
-        },
-        {
-          id: "call_log_2",
-          caller: "elena_vance",
-          callee: "chinnu",
-          started_at: "Yesterday, 21:15",
-          duration: "01:45",
-          status: "completed"
+        let res;
+        if (targetUser) {
+          res = await env.DB.prepare(`
+            SELECT * FROM call_logs 
+            WHERE lower(username) = ? OR lower(caller_name) = ?
+            ORDER BY created_at DESC LIMIT 50
+          `).bind(targetUser, targetUser).all();
+        } else {
+          res = await env.DB.prepare("SELECT * FROM call_logs ORDER BY created_at DESC LIMIT 50").all();
         }
-      ];
+        callLogs = (res.results || []).map(r => {
+          const sec = r.duration_seconds || 0;
+          const mins = Math.floor(sec / 60);
+          const remSec = sec % 60;
+          const durStr = `${mins.toString().padStart(2, '0')}:${remSec.toString().padStart(2, '0')}`;
+          return {
+            id: r.id,
+            user_id: r.user_id,
+            username: r.username,
+            caller_name: r.caller_name,
+            caller: r.caller_name,
+            call_type: r.call_type || "Voice Call",
+            room_name: r.room_name || "",
+            room_code: r.room_code || "",
+            duration_seconds: sec,
+            duration: durStr,
+            is_missed: Boolean(r.is_missed),
+            is_outgoing: Boolean(r.is_outgoing),
+            started_at: r.created_at || "Recent",
+            created_at: r.created_at || "Recent",
+            status: r.is_missed ? "missed" : "completed"
+          };
+        });
+      } catch (e) {
+        console.error("[CALL_LOGS_DB_ERR]", e.message);
+      }
     }
-    return jsonResponse(callLogs);
+    return jsonResponse({
+      status: "ok",
+      logs: callLogs,
+      call_logs: callLogs
+    });
   }
 
   // 21. Leaderboard & App Version
@@ -4291,27 +4504,37 @@ export class ConnectoRealtimeRoom {
           this.persistMessage(msgId, targetCh, meta.username, rawContent);
 
           if (targetCh.startsWith("dm-") || targetCh.startsWith("dm_")) {
-            const parts = targetCh.replace(/^dm[-_]/, "").split(/[-_]/);
-            const recipient = (data.recipient || data.target || (parts[0] === meta.username ? parts[1] : parts[0]) || "").toLowerCase().trim();
+            const recipient = resolveDmRecipient(targetCh, meta.username, data.recipient || data.target);
 
-            const dmPayload = {
-              type: "new_dm_alert",
-              sender: meta.username,
-              channel_id: targetCh,
-              channel_name: targetCh,
-              message: msgObj
-            };
-            this.sendToUser(recipient, dmPayload);
-            this.sendToUser(recipient, { type: "new_message", channel_id: targetCh, message: msgObj });
-            this.addNotification(recipient, {
-              id: msgId,
-              type: "message",
-              title: meta.displayName || meta.username,
-              content: rawContent,
-              sender_username: meta.username,
-              sender_avatar: meta.avatar,
-              reference_id: meta.username
-            });
+            if (recipient) {
+              const dmPayload = {
+                type: "new_dm_alert",
+                sender: meta.username,
+                channel_id: targetCh,
+                channel_name: targetCh,
+                message: msgObj
+              };
+              this.sendToUser(recipient, dmPayload);
+              this.sendToUser(recipient, { type: "new_message", channel_id: targetCh, message: msgObj });
+              this.addNotification(recipient, {
+                id: msgId,
+                type: "message",
+                title: meta.displayName || meta.username,
+                content: rawContent,
+                sender_username: meta.username,
+                sender_avatar: meta.avatar,
+                reference_id: meta.username
+              });
+
+              if (this.env && this.env.DB) {
+                try {
+                  const nId = "notif_ws_" + msgId;
+                  this.env.DB.prepare(
+                    "INSERT OR IGNORE INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at) VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))"
+                  ).bind(nId, recipient, meta.displayName || meta.username, rawContent, meta.username, meta.avatar, meta.username).run().catch(() => {});
+                } catch (_) {}
+              }
+            }
             server.send(JSON.stringify({ type: "new_message", channel_id: targetCh, message: msgObj }));
           } else {
             this.broadcastToChannel(targetCh, {

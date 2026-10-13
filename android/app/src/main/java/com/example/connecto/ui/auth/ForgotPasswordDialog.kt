@@ -90,6 +90,7 @@ fun ForgotPasswordDialog(
 
     var otpCode by remember { mutableStateOf("") }
     var maskedDestination by remember { mutableStateOf<String?>(null) }
+    var devOtp by remember { mutableStateOf<String?>(null) }
     var isOtpVerified by remember { mutableStateOf(false) }
 
     var newPassword by remember { mutableStateOf("") }
@@ -331,6 +332,10 @@ fun ForgotPasswordDialog(
                                 if (res.isSuccess) {
                                     val data = res.getOrNull()
                                     maskedDestination = data?.maskedDestination
+                                    devOtp = data?.devOtp
+                                    if (!data?.devOtp.isNullOrBlank()) {
+                                        otpCode = data!!.devOtp!!
+                                    }
                                     statusMessage = data?.message ?: "Verification code dispatched to your email!"
                                     currentStep = ForgotPasswordStep.OTP_VERIFICATION
                                 } else {
@@ -371,6 +376,27 @@ fun ForgotPasswordDialog(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    if (!devOtp.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                .clickable {
+                                    otpCode = devOtp ?: ""
+                                    errorMessage = null
+                                }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = "🔑 Dev Code: $devOtp (Tap to Auto-fill)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -436,6 +462,11 @@ fun ForgotPasswordDialog(
                                     coroutineScope.launch {
                                         val res = ConnectoApiClient.requestForgotPasswordOtp(identifier.trim(), selectedMethod)
                                         if (res.isSuccess) {
+                                            val data = res.getOrNull()
+                                            devOtp = data?.devOtp
+                                            if (!data?.devOtp.isNullOrBlank()) {
+                                                otpCode = data!!.devOtp!!
+                                            }
                                             statusMessage = "New code sent!"
                                         } else {
                                             errorMessage = res.exceptionOrNull()?.message ?: "Failed to resend."

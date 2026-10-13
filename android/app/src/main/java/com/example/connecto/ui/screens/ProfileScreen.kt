@@ -331,6 +331,7 @@ fun ProfileScreen(
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
     var show2FaSetupDialog by remember { mutableStateOf(false) }
     var twoFaSetupMaskedDest by remember { mutableStateOf<String?>(null) }
+    var twoFaSetupDevOtp by remember { mutableStateOf<String?>(null) }
     var twoFaErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // User Groups Management State in Profile Tab
@@ -1495,6 +1496,7 @@ fun ProfileScreen(
                                                     if (res.isSuccess) {
                                                         val data = res.getOrNull()
                                                         twoFaSetupMaskedDest = data?.maskedDestination
+                                                        twoFaSetupDevOtp = data?.devOtp
                                                         show2FaSetupDialog = true
                                                     } else {
                                                         twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch setup OTP."
@@ -2569,6 +2571,7 @@ fun ProfileScreen(
             method = "email",
             destination = emailInput.trim(),
             maskedDestination = twoFaSetupMaskedDest,
+            devOtp = twoFaSetupDevOtp,
             onDismiss = { show2FaSetupDialog = false },
             onSuccess = {
                 show2FaSetupDialog = false
@@ -2615,6 +2618,13 @@ private fun TwoFactorSetupDialog(
     val isLight = isAppInLightTheme()
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
+
+    // Auto-fill devOtp if available
+    LaunchedEffect(devOtp) {
+        if (!devOtp.isNullOrBlank() && otpCode.isEmpty()) {
+            otpCode = devOtp
+        }
+    }
 
     // Real-time verification when 6 digits are typed
     LaunchedEffect(otpCode) {
@@ -2745,6 +2755,27 @@ private fun TwoFactorSetupDialog(
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                if (!devOtp.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            .clickable {
+                                otpCode = devOtp
+                                errorMessage = null
+                            }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "🔑 Setup Code: $devOtp (Tap to Auto-fill)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
