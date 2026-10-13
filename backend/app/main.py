@@ -5344,12 +5344,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.3",
-        "version_name": "v4.2.3",
-        "version_code": 51,
-        "release_tag": "v4.2.3-stable",
-        "sha256": "5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687",
-        "md5": "ea34d34e7d80423736c8d296af07c840",
+        "version": "4.2.5",
+        "version_name": "v4.2.5",
+        "version_code": 53,
+        "release_tag": "v4.2.5-stable",
+        "sha256": "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d",
+        "md5": "f431794440b419205682e149fc7d328b",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5359,13 +5359,13 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "v4.2.3 Profile Screen De-duplication: Resolved root cause of duplicated section cards at the bottom of the profile tab",
-            "v4.2.3 Verified Added Groups: Zero synthetic/fake groups; pure real-user group channels with dynamic member counts",
-            "v4.2.3 Group Profile Full-Screen Tab: Single full-screen tab displaying group avatar, creator ADMIN badge, and live members roster",
-            "v4.2.3 Group Admin Controls: Allows group admin to edit group name, upload group avatar, and add new members via interactive search",
-            "v4.2.3 Group Chat Wallpaper: Dedicated wallpaper customization per group chat",
-            "v4.2.2 Messages Tab Filter Pills: Added segmented filter pill buttons (All, Direct, Created Groups, Added Groups)",
-            "v4.2.2 Multi-User Group Messaging: Full group chat navigation, instant SQLite caching, and channel WebSocket subscriptions"
+            "v4.2.5 Friend Chat User Data & Avatar Sync: Complete synchronization of all user profiles, avatars, friendships, and 144+ direct message histories between Cloudflare D1 and Origin",
+            "v4.2.5 UUID DM Channel Resolution: Fixed Cloudflare Worker /api/dm/start and /api/dms/:target/messages to resolve UUID channel IDs and sender avatars seamlessly",
+            "v4.2.5 Cloud Edge WebSocket Auth (cf_edge_): Full authentication support for Cloudflare Edge session tokens across WebSocket and REST endpoints",
+            "v4.2.5 End-to-End Emulator & Live Verification: All friend chats (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile tabs verified",
+            "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
+            "v4.2.4 Profile Tab Sub-Page Navigation Buttons: Dedicated full views for Personal Info, Stealth & Appearance",
+            "v4.2.3 Clean Profile Screen, Full-Screen Group Profile & Admin Controls"
         ]
     }
 
@@ -5377,10 +5377,41 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.2.5",
+                "date": "Oct 13, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.2.5: Full Friend Chat User Data Sync, UUID DM Channel Resolution & Edge WebSocket Auth",
+                "summary": "Synchronizes all user accounts, friend lists, avatars, and historical direct messages between Cloudflare D1 and Origin databases, resolves UUID-based DM channel message lookups on the Edge Worker, and enables seamless WebSocket authentication for cf_edge_ session tokens.",
+                "highlights": [
+                    "Friend Chat User Data & History Sync: Full synchronization of all 21 user accounts, canonical D1 user IDs, 9 friendships, 29 channels, 21 DM participant mappings, and 144+ direct messages across Cloudflare D1 and local SQLite databases.",
+                    "UUID DM Channel Resolution: Fixed /api/dm/start and /api/dms/:target/messages in Cloudflare Worker to query messages by both canonical channel names and UUID channel IDs while joining user avatars across ID and username formats.",
+                    "Edge Token WebSocket & REST Authentication: Added cf_edge_ session token verification to FastAPI WebSocket (authenticate_ws_session) and REST (get_current_user) endpoints.",
+                    "End-to-End Android Emulator Verification: Verified live DM threads (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile settings on Android 16.",
+                    "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.2.4",
+                "date": "Oct 8, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
+                "title": "Connecto v4.2.4: Automated Server Maintenance Screen, Outage Telemetry & Dedicated Profile Sub-Pages",
+                "summary": "Introduces automated server maintenance detection with real-time reconnect telemetry, dedicated full-screen profile sub-pages for Personal Info, Stealth & Appearance, and silky spring motion transitions.",
+                "highlights": [
+                    "Automated Server Maintenance Screen: Real-time outage detection, live status telemetry, and one-tap Reconnect Now verification.",
+                    "Dedicated Profile Sub-Page Navigation: Clean sub-page screens for Personal Information, Presence & Stealth, and Appearance without accordion clutter.",
+                    "Auto-Recovery Watchdog & Status Probe: Background health polling automatically restores session connectivity when servers recover.",
+                    "Android Native App v4.2.4 (Build 52 • 54.4 MB): SHA-256 07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.2.3",
                 "date": "Oct 8, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.2.3: Clean Profile Screen, Full-Screen Group Profile & Admin Controls",
                 "summary": "Fixes duplicate profile section rendering, eliminates fake groups, and introduces a comprehensive single full-screen group profile tab with admin controls for group name, avatar, members, and chat wallpaper.",
                 "highlights": [
@@ -5398,7 +5429,7 @@ async def get_platform_changelog():
                 "version": "v4.2.2",
                 "date": "Oct 8, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.2.2: Message Tab Filter Pills, Seamless Group Chat & Profile Section Popups",
                 "summary": "Major feature and interaction release introducing segmented conversation filter pills (All, Direct, Created Groups, Added Groups), frictionless group chat messaging without pairwise AES restrictions, and interactive Profile section titles with dedicated comprehensive detail modal popups.",
                 "highlights": [

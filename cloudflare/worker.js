@@ -84,10 +84,10 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
-            "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
-            "v4.2.4 Profile Tab Sub-Page Navigation Buttons: Dedicated full views for Personal Info, Stealth & Appearance",
-            "v4.2.4 Auto-Recovery Watchdog & Status Probe",
-            "v4.2.4 Zero Accordion Clutter & Silky Spring Motion Transitions"
+            "v4.2.5 Friend Chat User Data & Avatar Sync across Cloudflare D1 & Origin",
+            "v4.2.5 UUID DM Channel Resolution & Seamless Message History Loading",
+            "v4.2.5 Cloud Edge WebSocket Auth (cf_edge_) & Real-Time Delivery",
+            "v4.2.4 Automated Server Maintenance Screen & Dedicated Profile Sub-Pages"
           ]
         });
       }
@@ -96,12 +96,12 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.4",
-        version_name: "v4.2.4",
-        version_code: 52,
-        build: 52,
-        sha256: "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4",
-        md5: "77ed951aa695aa45da500abb44115531",
+        version: "4.2.5",
+        version_name: "v4.2.5",
+        version_code: 53,
+        build: 53,
+        sha256: "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d",
+        md5: "f431794440b419205682e149fc7d328b",
         filename: "connecto-fun.apk",
         size_bytes: 57007757,
         size_display: "54.4 MB",
@@ -111,10 +111,10 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
-          "v4.2.4 Profile Tab Sub-Page Navigation Buttons: Dedicated full views for Personal Info, Stealth & Appearance",
-          "v4.2.4 Auto-Recovery Watchdog & Status Probe",
-          "v4.2.4 Zero Accordion Clutter & Silky Spring Motion Transitions"
+          "v4.2.5 Friend Chat User Data & Avatar Sync across Cloudflare D1 & Origin",
+          "v4.2.5 UUID DM Channel Resolution & Seamless Message History Loading",
+          "v4.2.5 Cloud Edge WebSocket Auth (cf_edge_) & Real-Time Delivery",
+          "v4.2.4 Automated Server Maintenance Screen & Dedicated Profile Sub-Pages"
         ]
       });
     }
@@ -145,10 +145,10 @@ export default {
       });
     }
 
-    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.4 Build 52 release asset)
+    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.5 Build 53 release asset)
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (url.pathname.endsWith(".apk") || url.pathname.includes("/downloads/connecto") || url.pathname === "/download" || url.pathname === "/download/apk" || url.pathname === "/connecto-fun.apk")) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.4/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.5/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -194,20 +194,18 @@ export default {
 
             if (contentType.includes("text/html")) {
               let htmlText = await originResponse.text();
-              // Automatically patch any stale origin HTML strings to v4.2.4 Build 52
-              if (htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49")) {
+              // Automatically patch any stale origin HTML strings to v4.2.5 Build 53
+              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49")) {
                 htmlText = htmlText
-                  .replace(/v4\.2\.[123]/g, "v4.2.4")
-                  .replace(/4\.2\.[123]-prod/g, "4.2.4-prod")
-                  .replace(/"4\.2\.[123]"/g, '"4.2.4"')
-                  .replace(/Build 51/g, "Build 52")
-                  .replace(/BUILD 51/g, "BUILD 52")
-                  .replace(/build 51/g, "build 52")
-                  .replace(/Build 50/g, "Build 52")
-                  .replace(/BUILD 50/g, "BUILD 52")
-                  .replace(/build 50/g, "build 52")
-                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4")
-                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4");
+                  .replace(/v4\.2\.[1234]/g, "v4.2.5")
+                  .replace(/4\.2\.[1234]-prod/g, "4.2.5-prod")
+                  .replace(/"4\.2\.[1234]"/g, '"4.2.5"')
+                  .replace(/Build 5[012]/g, "Build 53")
+                  .replace(/BUILD 5[012]/g, "BUILD 53")
+                  .replace(/build 5[012]/g, "build 53")
+                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d");
               }
               return new Response(htmlText, {
                 status: originResponse.status,
@@ -2719,14 +2717,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.3",
-      version_name: "v4.2.3",
-      version_code: 51,
-      build: 51,
-      sha256: "ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d",
+      version: "4.2.5",
+      version_name: "v4.2.5",
+      version_code: 53,
+      build: 53,
+      sha256: "ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d",
+      md5: "f431794440b419205682e149fc7d328b",
       filename: "connecto-fun.apk",
-      size_bytes: 56974989,
-      size_display: "54.3 MB",
+      size_bytes: 57007757,
+      size_display: "54.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
