@@ -149,6 +149,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -546,10 +548,43 @@ fun ProfileScreen(
         activeSubPage = null
     }
 
+    val themeColors = ConnectoTheme.colors
+    val isThemeDark = themeColors.isDark
+
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .drawBehind {
+                drawRect(themeColors.background)
+                // Static Ambient Caustic Glare (Top-Right)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            themeColors.primary.copy(alpha = if (isThemeDark) 0.22f else 0.10f),
+                            themeColors.info.copy(alpha = if (isThemeDark) 0.10f else 0.05f),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.85f, size.height * 0.10f),
+                        radius = size.width * 0.75f
+                    ),
+                    radius = size.width * 0.75f,
+                    center = Offset(size.width * 0.85f, size.height * 0.10f)
+                )
+                // Static Deep Fluid Depth Orb (Bottom-Left)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            themeColors.surfaceVariant.copy(alpha = if (isThemeDark) 0.16f else 0.08f),
+                            themeColors.info.copy(alpha = if (isThemeDark) 0.08f else 0.04f),
+                            Color.Transparent
+                        ),
+                        center = Offset(size.width * 0.15f, size.height * 0.85f),
+                        radius = size.width * 0.80f
+                    ),
+                    radius = size.width * 0.80f,
+                    center = Offset(size.width * 0.15f, size.height * 0.85f)
+                )
+            }
     ) {
         AnimatedContent(
             targetState = activeSubPage,
@@ -1071,20 +1106,15 @@ fun ProfileScreen(
                             ProfileSubPage.PRESENCE_STEALTH -> {
                                 item(key = "sub_presence_stealth_card") {
                                     Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(
-                                        if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f)
-                                        else MaterialTheme.colorScheme.surface
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline,
-                                        RoundedCornerShape(18.dp)
-                                    )
-                                    .padding(16.dp)
-                            ) {
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (stealthModeEnabled) ConnectoTheme.colors.info else MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1193,13 +1223,15 @@ fun ProfileScreen(
                             ProfileSubPage.PERSONAL_INFO -> {
                                 item(key = "sub_personal_info_form") {
                                     Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                                    .padding(16.dp)
-                            ) {
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = MaterialTheme.colorScheme.surface,
+                                                borderColor = MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                                     // Full Name (EDITABLE)
                                     ProfileStyledInputField(
@@ -1369,13 +1401,15 @@ fun ProfileScreen(
                             ProfileSubPage.TWO_FACTOR_SECURITY -> {
                                 item(key = "sub_two_factor_security_form") {
                                     Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                                    .padding(16.dp)
-                            ) {
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = MaterialTheme.colorScheme.surface,
+                                                borderColor = MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -1627,13 +1661,15 @@ fun ProfileScreen(
                     val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
                     val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
                                     Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                                    .padding(16.dp)
-                            ) {
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = MaterialTheme.colorScheme.surface,
+                                                borderColor = MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -1830,13 +1866,15 @@ fun ProfileScreen(
                             ProfileSubPage.APPEARANCE_THEME -> {
                                 item(key = "sub_appearance_theme_form") {
                                     Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(18.dp))
-                                    .background(MaterialTheme.colorScheme.surface)
-                                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
-                                    .padding(16.dp)
-                            ) {
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(22.dp),
+                                                backgroundColor = MaterialTheme.colorScheme.surface,
+                                                borderColor = MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(18.dp)
+                                    ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -1899,7 +1937,7 @@ fun ProfileScreen(
                                         )
                                     }
 
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), thickness = 1.dp)
 
                                     Text(
                                         text = "SELECT COLOR PALETTE & ATMOSPHERE",
@@ -1921,15 +1959,48 @@ fun ProfileScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .shadow(
+                                                        elevation = if (isSelected) 6.dp else 3.dp,
+                                                        shape = RoundedCornerShape(16.dp),
+                                                        ambientColor = Color.Black.copy(alpha = if (isThemeDark) 0.35f else 0.08f),
+                                                        spotColor = if (isSelected) modeColors.primary.copy(alpha = 0.40f) else Color.Transparent
+                                                    )
+                                                    .clip(RoundedCornerShape(16.dp))
                                                     .background(
-                                                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                                        brush = Brush.verticalGradient(
+                                                            colors = if (isSelected) {
+                                                                listOf(
+                                                                    modeColors.primary.copy(alpha = if (isThemeDark) 0.22f else 0.30f),
+                                                                    modeColors.surface.copy(alpha = if (isThemeDark) 0.12f else 0.18f)
+                                                                )
+                                                            } else {
+                                                                listOf(
+                                                                    Color.White.copy(alpha = if (isThemeDark) 0.08f else 0.55f),
+                                                                    modeColors.surface.copy(alpha = if (isThemeDark) 0.05f else 0.25f)
+                                                                )
+                                                            }
+                                                        )
                                                     )
                                                     .border(
-                                                        width = if (isSelected) 2.dp else 1.dp,
-                                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                                        shape = RoundedCornerShape(14.dp)
+                                                        width = if (isSelected) 1.5.dp else 1.dp,
+                                                        brush = Brush.linearGradient(
+                                                            colors = if (isSelected) {
+                                                                listOf(
+                                                                    Color.White.copy(alpha = 0.90f),
+                                                                    modeColors.primary.copy(alpha = 0.80f),
+                                                                    modeColors.primary.copy(alpha = 0.25f)
+                                                                )
+                                                            } else {
+                                                                listOf(
+                                                                    Color.White.copy(alpha = if (isThemeDark) 0.45f else 0.75f),
+                                                                    modeColors.primary.copy(alpha = 0.25f),
+                                                                    Color.White.copy(alpha = 0.06f)
+                                                                )
+                                                            },
+                                                            start = Offset.Zero,
+                                                            end = Offset(300f, 300f)
+                                                        ),
+                                                        shape = RoundedCornerShape(16.dp)
                                                     )
                                                     .clickable {
                                                         onSelectThemeMode(mode)
@@ -1946,13 +2017,31 @@ fun ProfileScreen(
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         modifier = Modifier.weight(1f)
                                                     ) {
-                                                        // Live Palette Preview Pill
+                                                        // Live Palette Preview Pill with Glass Glare
                                                         Box(
                                                             modifier = Modifier
-                                                                .size(42.dp)
-                                                                .clip(RoundedCornerShape(10.dp))
-                                                                .background(modeColors.background)
-                                                                .border(1.dp, modeColors.border, RoundedCornerShape(10.dp)),
+                                                                .size(44.dp)
+                                                                .shadow(2.dp, RoundedCornerShape(12.dp))
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(
+                                                                    Brush.verticalGradient(
+                                                                        listOf(
+                                                                            Color.White.copy(alpha = if (isThemeDark) 0.18f else 0.70f),
+                                                                            modeColors.background.copy(alpha = 0.50f)
+                                                                        )
+                                                                    )
+                                                                )
+                                                                .border(
+                                                                    1.dp,
+                                                                    Brush.linearGradient(
+                                                                        listOf(
+                                                                            Color.White.copy(alpha = 0.70f),
+                                                                            modeColors.primary.copy(alpha = 0.45f),
+                                                                            Color.Transparent
+                                                                        )
+                                                                    ),
+                                                                    RoundedCornerShape(12.dp)
+                                                                ),
                                                             contentAlignment = Alignment.Center
                                                         ) {
                                                             Text(
@@ -1989,43 +2078,37 @@ fun ProfileScreen(
                                                         }
                                                     }
 
-                                                    // Right: Color Swatches Preview
+                                                    // Right: Color Swatches Preview with Specular Glass Beads
                                                     Row(
-                                                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        // Primary accent swatch
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(16.dp)
-                                                                .clip(CircleShape)
-                                                                .background(modeColors.primary)
-                                                                .border(1.dp, modeColors.border, CircleShape)
+                                                        val swatches = listOf(
+                                                            modeColors.primary,
+                                                            modeColors.info,
+                                                            modeColors.surface,
+                                                            modeColors.background
                                                         )
-                                                        // Info / Secondary swatch
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(16.dp)
-                                                                .clip(CircleShape)
-                                                                .background(modeColors.info)
-                                                                .border(1.dp, modeColors.border, CircleShape)
-                                                        )
-                                                        // Surface swatch
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(16.dp)
-                                                                .clip(CircleShape)
-                                                                .background(modeColors.surface)
-                                                                .border(1.dp, modeColors.border, CircleShape)
-                                                        )
-                                                        // Background swatch
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(16.dp)
-                                                                .clip(CircleShape)
-                                                                .background(modeColors.background)
-                                                                .border(1.dp, modeColors.border, CircleShape)
-                                                        )
+                                                        swatches.forEach { swatchColor ->
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(17.dp)
+                                                                    .shadow(1.dp, CircleShape)
+                                                                    .clip(CircleShape)
+                                                                    .background(
+                                                                        Brush.radialGradient(
+                                                                            colors = listOf(
+                                                                                Color.White.copy(alpha = 0.65f),
+                                                                                swatchColor,
+                                                                                swatchColor
+                                                                            ),
+                                                                            center = Offset(5f, 5f),
+                                                                            radius = 12f
+                                                                        )
+                                                                    )
+                                                                    .border(1.dp, Color.White.copy(alpha = 0.40f), CircleShape)
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
@@ -2037,12 +2120,15 @@ fun ProfileScreen(
                             }
                             ProfileSubPage.GROUPS_COMMUNITIES -> {
                                 item(key = "sub_groups_communities_form") {
-                                    Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(18.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                            ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = MaterialTheme.colorScheme.surface,
+                                                borderColor = MaterialTheme.colorScheme.primary
+                                            )
+                                    ) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -3775,16 +3861,25 @@ private fun ProfileSubPageHeader(
     icon: ImageVector,
     onBack: () -> Unit
 ) {
+    val isDark = ConnectoTheme.colors.isDark
     val gradientColors = getDynamicAccentGradientColors()
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 4.dp,
-        shadowElevation = 2.dp
+        color = Color.Transparent,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            if (!isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.10f),
+                            ConnectoTheme.colors.surface.copy(alpha = if (!isDark) 0.50f else 0.20f)
+                        )
+                    )
+                )
                 .statusBarsPadding()
         ) {
             Row(
@@ -3873,34 +3968,16 @@ private fun ProfileSubPageHeroCard(
     statusBadgeActive: Boolean = true
 ) {
     val gradientColors = getDynamicAccentGradientColors()
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        border = BorderStroke(
-            1.dp,
-            Brush.linearGradient(
-                colors = listOf(
-                    MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                )
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlassCard(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = MaterialTheme.colorScheme.surface,
+                borderColor = MaterialTheme.colorScheme.primary
             )
-        )
+            .padding(18.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.surface
-                        )
-                    )
-                )
-                .padding(18.dp)
-        ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -3978,6 +4055,5 @@ private fun ProfileSubPageHeroCard(
                 )
             }
         }
-    }
 }
 

@@ -65,19 +65,21 @@ fun ConnectoCard(
             label = "glassCardScale"
         )
 
+        val topTint = if (colors.isDark) Color.White.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.15f else 0.11f) else Color.White.copy(alpha = 0.70f)
+        val bottomTint = if (colors.isDark) colors.surface.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.10f else 0.06f) else Color.White.copy(alpha = 0.35f)
+
         val cardBgBrush = Brush.verticalGradient(
-            colors = listOf(
-                colors.surface.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.35f else 0.22f),
-                colors.surfaceVariant.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.22f else 0.12f)
-            )
+            colors = listOf(topTint, bottomTint)
         )
 
         val cardBorderBrush = border?.brush ?: Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = if (isPressed) 0.85f else 0.65f),
-                colors.primary.copy(alpha = if (isPressed) 0.65f else 0.40f),
-                colors.borderSubtle.copy(alpha = 0.10f)
-            )
+                Color.White.copy(alpha = if (isPressed) 0.85f else (if (colors.isDark) 0.70f else 0.85f)),
+                colors.primary.copy(alpha = if (isPressed) 0.70f else 0.45f),
+                colors.borderSubtle.copy(alpha = 0.08f)
+            ),
+            start = androidx.compose.ui.geometry.Offset.Zero,
+            end = androidx.compose.ui.geometry.Offset(350f, 350f)
         )
 
         Box(
@@ -87,6 +89,12 @@ fun ConnectoCard(
                     scaleX = scale
                     scaleY = scale
                 }
+                .shadow(
+                    elevation = if (variant == ConnectoCardVariant.ELEVATED) 8.dp else 5.dp,
+                    shape = shape,
+                    ambientColor = Color.Black.copy(alpha = if (colors.isDark) 0.40f else 0.10f),
+                    spotColor = colors.primary.copy(alpha = if (colors.isDark) 0.22f else 0.08f)
+                )
                 .clip(shape)
                 .background(cardBgBrush)
                 .border(

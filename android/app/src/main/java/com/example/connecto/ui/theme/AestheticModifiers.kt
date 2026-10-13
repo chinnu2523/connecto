@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -50,29 +51,45 @@ import com.example.connecto.ui.designsystem.ConnectoTheme
 @Composable
 fun Modifier.glassmorphicCard(
     shape: Shape = RoundedCornerShape(24.dp),
-    backgroundColor: Color = Color(0x2B1E2538),
-    borderColor: Color = Color(0x33A29BFE),
+    backgroundColor: Color = ConnectoTheme.colors.surface,
+    borderColor: Color = ConnectoTheme.colors.primary,
     borderWidth: Dp = 1.dp
-): Modifier = this
-    .clip(shape)
-    .background(
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                backgroundColor.copy(alpha = 0.35f),
-                backgroundColor.copy(alpha = 0.15f)
+): Modifier {
+    val isDark = ConnectoTheme.colors.isDark
+    val glareColor = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.90f)
+    val topTint = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.70f)
+    val bottomTint = if (isDark) backgroundColor.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.35f)
+
+    return this
+        .shadow(
+            elevation = 6.dp,
+            shape = shape,
+            ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.10f),
+            spotColor = borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
+        )
+        .clip(shape)
+        .background(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    topTint,
+                    bottomTint
+                )
             )
         )
-    )
-    .border(
-        width = borderWidth,
-        brush = Brush.linearGradient(
-            colors = listOf(
-                borderColor,
-                borderColor.copy(alpha = 0.05f)
-            )
-        ),
-        shape = shape
-    )
+        .border(
+            width = borderWidth,
+            brush = Brush.linearGradient(
+                colors = listOf(
+                    glareColor,
+                    borderColor.copy(alpha = if (isDark) 0.45f else 0.60f),
+                    borderColor.copy(alpha = 0.08f)
+                ),
+                start = Offset.Zero,
+                end = Offset(300f, 300f)
+            ),
+            shape = shape
+        )
+}
 
 @Composable
 fun Modifier.pressScaleEffect(
@@ -372,13 +389,24 @@ fun Modifier.glassCard(
     borderWidth: Dp = 1.dp,
     hasShimmer: Boolean = false
 ): Modifier {
+    val isDark = ConnectoTheme.colors.isDark
+    val glareColor = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.90f)
+    val topTint = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.70f)
+    val bottomTint = if (isDark) backgroundColor.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.35f)
+
     val base = this
+        .shadow(
+            elevation = 6.dp,
+            shape = shape,
+            ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.10f),
+            spotColor = borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
+        )
         .clip(shape)
         .background(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    backgroundColor.copy(alpha = 0.82f),
-                    backgroundColor.copy(alpha = 0.58f)
+                    topTint,
+                    bottomTint
                 )
             )
         )
@@ -386,12 +414,12 @@ fun Modifier.glassCard(
             width = borderWidth,
             brush = Brush.linearGradient(
                 colors = listOf(
-                    borderColor.copy(alpha = 0.65f),
-                    borderColor.copy(alpha = 0.20f),
-                    borderColor.copy(alpha = 0.06f)
+                    glareColor,
+                    borderColor.copy(alpha = if (isDark) 0.45f else 0.60f),
+                    borderColor.copy(alpha = 0.08f)
                 ),
                 start = Offset.Zero,
-                end = Offset(400f, 400f)
+                end = Offset(300f, 300f)
             ),
             shape = shape
         )
@@ -430,9 +458,9 @@ fun Modifier.liquidGlassCanvasMesh(
         // Base canvas color according to the active theme palette
         drawRect(colors.background)
 
-        val primaryGlow = colors.primary.copy(alpha = if (isDark) 0.22f else 0.12f)
-        val infoGlow = colors.info.copy(alpha = if (isDark) 0.14f else 0.08f)
-        val surfaceGlow = colors.surfaceVariant.copy(alpha = if (isDark) 0.18f else 0.10f)
+        val primaryGlow = colors.primary.copy(alpha = if (isDark) 0.26f else 0.14f)
+        val infoGlow = colors.info.copy(alpha = if (isDark) 0.16f else 0.09f)
+        val surfaceGlow = colors.surfaceVariant.copy(alpha = if (isDark) 0.20f else 0.11f)
 
         // Top right fluid caustic orb
         drawCircle(
@@ -468,7 +496,7 @@ fun Modifier.liquidGlassCanvasMesh(
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    primaryGlow.copy(alpha = if (isDark) 0.12f else 0.06f),
+                    primaryGlow.copy(alpha = if (isDark) 0.15f else 0.08f),
                     Color.Transparent
                 ),
                 center = Offset(size.width * 0.5f, size.height * 0.45f),
@@ -481,8 +509,8 @@ fun Modifier.liquidGlassCanvasMesh(
 }
 
 /**
- * Transparent Liquid Glass Card.
- * Ultra-clear hydro-acrylic body with fluid transparency, water droplet rim, and specular highlight.
+ * Transparent Liquid Glass Card (iPhone Ultra-Thin Material).
+ * Crystal-clear hydro-acrylic body with fluid transparency, hairline specular reflection, and floating depth.
  */
 @Composable
 fun Modifier.liquidGlassCard(
@@ -492,14 +520,23 @@ fun Modifier.liquidGlassCard(
     borderWidth: Dp = 1.dp
 ): Modifier {
     val isDark = ConnectoTheme.colors.isDark
-    val glareColor = if (isDark) Color.White.copy(alpha = 0.75f) else Color.White.copy(alpha = 0.90f)
+    val glareColor = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.90f)
+    val topTint = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.70f)
+    val bottomTint = if (isDark) backgroundColor.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.35f)
+
     return this
+        .shadow(
+            elevation = 6.dp,
+            shape = shape,
+            ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.10f),
+            spotColor = borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
+        )
         .clip(shape)
         .background(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    backgroundColor,
-                    backgroundColor.copy(alpha = (backgroundColor.alpha * 0.55f).coerceAtLeast(0.08f))
+                    topTint,
+                    bottomTint
                 )
             )
         )
@@ -508,11 +545,11 @@ fun Modifier.liquidGlassCard(
             brush = Brush.linearGradient(
                 colors = listOf(
                     glareColor,                      // Specular glare reflection on top rim
-                    borderColor.copy(alpha = 0.50f), // Themed rim glow
-                    borderColor.copy(alpha = 0.12f)  // Translucent subtle bottom edge
+                    borderColor.copy(alpha = if (isDark) 0.45f else 0.60f), // Themed rim glow
+                    borderColor.copy(alpha = 0.08f)  // Translucent subtle bottom edge
                 ),
                 start = Offset.Zero,
-                end = Offset(400f, 400f)
+                end = Offset(300f, 300f)
             ),
             shape = shape
         )
@@ -600,15 +637,15 @@ fun Modifier.glassBubble(
         if (isMe) {
             Brush.verticalGradient(
                 colors = listOf(
-                    colors.primary.copy(alpha = if (isDark) 0.35f else 0.45f),
-                    colors.primary.copy(alpha = if (isDark) 0.18f else 0.25f)
+                    colors.primary.copy(alpha = if (isDark) 0.30f else 0.42f),
+                    colors.primary.copy(alpha = if (isDark) 0.14f else 0.22f)
                 )
             )
         } else {
             Brush.verticalGradient(
                 colors = listOf(
-                    colors.surfaceVariant.copy(alpha = if (isDark) 0.35f else 0.50f),
-                    colors.surface.copy(alpha = if (isDark) 0.15f else 0.30f)
+                    Color.White.copy(alpha = if (isDark) 0.14f else 0.65f),
+                    colors.surface.copy(alpha = if (isDark) 0.08f else 0.32f)
                 )
             )
         }
@@ -635,7 +672,7 @@ fun Modifier.glassBubble(
             colors = listOf(
                 Color.White.copy(alpha = 0.85f),
                 colors.primary.copy(alpha = 0.60f),
-                colors.primary.copy(alpha = 0.20f)
+                colors.primary.copy(alpha = 0.15f)
             ),
             start = Offset.Zero,
             end = Offset(240f, 240f)
@@ -643,9 +680,9 @@ fun Modifier.glassBubble(
     } else {
         Brush.linearGradient(
             colors = listOf(
-                Color.White.copy(alpha = if (isDark) 0.50f else 0.70f),
-                colors.border.copy(alpha = 0.45f),
-                colors.borderSubtle.copy(alpha = 0.15f)
+                Color.White.copy(alpha = if (isDark) 0.55f else 0.75f),
+                colors.border.copy(alpha = 0.40f),
+                colors.borderSubtle.copy(alpha = 0.10f)
             ),
             start = Offset.Zero,
             end = Offset(240f, 240f)
@@ -653,6 +690,12 @@ fun Modifier.glassBubble(
     }
 
     return this
+        .shadow(
+            elevation = 3.dp,
+            shape = shape,
+            ambientColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.08f),
+            spotColor = if (isMe) colors.primary.copy(alpha = 0.20f) else Color.Transparent
+        )
         .clip(shape)
         .background(bgBrush)
         .border(

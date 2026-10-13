@@ -154,7 +154,14 @@ fun ConnectoTopHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surface.copy(alpha = if (!colors.isDark) 0.65f else 0.40f))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.10f),
+                        colors.surface.copy(alpha = if (!colors.isDark) 0.50f else 0.20f)
+                    )
+                )
+            )
             .statusBarsPadding()
             .offset(y = headerOffsetY)
             .graphicsLayer { alpha = headerAlpha }

@@ -146,7 +146,12 @@ fun ConnectoBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                colors.background.copy(alpha = if (!colors.isDark) 0.70f else 0.40f)
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.08f),
+                        colors.background.copy(alpha = if (!colors.isDark) 0.55f else 0.25f)
+                    )
+                )
             )
     ) {
         // Glowing gradient top border line with animated specular gleam in glass / liquid theme
