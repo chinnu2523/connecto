@@ -195,7 +195,7 @@ export default {
             if (contentType.includes("text/html")) {
               let htmlText = await originResponse.text();
               // Automatically patch any stale origin HTML strings to v4.2.5 Build 53
-              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d")) {
+              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d") || htmlText.includes("ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d") || htmlText.includes("d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05")) {
                 htmlText = htmlText
                   .replace(/v4\.2\.[1234]/g, "v4.2.5")
                   .replace(/4\.2\.[1234]-prod/g, "4.2.5-prod")
@@ -2939,6 +2939,18 @@ async function handlePagesEdgeFallback(request, url, host) {
       resHeaders.set("X-Served-By", "Cloudflare-Pages-Edge");
       resHeaders.set("X-Connecto-Mode", "cloud_server");
       resHeaders.set("Access-Control-Allow-Origin", "*");
+      const ct = pagesResponse.headers.get("content-type") || "";
+      if (ct.includes("text/html")) {
+        let htmlText = await pagesResponse.text();
+        htmlText = htmlText
+          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132");
+        return new Response(htmlText, {
+          status: 200,
+          headers: resHeaders
+        });
+      }
       return new Response(pagesResponse.body, {
         status: 200,
         headers: resHeaders
