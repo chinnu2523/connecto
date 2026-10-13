@@ -313,7 +313,7 @@ async def list_channel_messages(
 
     stmt = (
         select(Message, User)
-        .join(User, Message.sender_id == User.id, isouter=True)
+        .join(User, or_(Message.sender_id == User.id, func.lower(Message.sender_id) == func.lower(User.username)), isouter=True)
         .where(Message.channel_id.in_(possible_channel_ids))
     )
 
@@ -348,14 +348,15 @@ async def list_channel_messages(
         poll_obj = att.get("poll") if isinstance(att, dict) else None
         timer_seconds = att.get("timer_seconds") if isinstance(att, dict) else None
         expires_at = att.get("expires_at") if isinstance(att, dict) else None
+        fallback_uname = (msg.sender_id or "member").removeprefix("usr_")
 
         output.append(MessageResponse(
             id=msg.id,
             channel_id=msg.channel_id,
             channel_name=ch_name,
-            sender_id=msg.sender_id or (sender.id if sender else "guest"),
-            sender_username=sender.username if sender else "gamer",
-            sender_display_name=(sender.display_name or sender.username) if sender else "Gamer",
+            sender_id=(sender.id if sender else msg.sender_id) or "guest",
+            sender_username=sender.username if sender else fallback_uname,
+            sender_display_name=(sender.display_name or sender.username) if sender else fallback_uname,
             sender_avatar_url=sender.avatar_url if sender else None,
             content=msg.content,
             text=msg.content,

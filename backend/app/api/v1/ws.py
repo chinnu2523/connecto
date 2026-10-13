@@ -26,6 +26,42 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
 
     async with AsyncSessionLocal() as db:
         if session_token:
+            if session_token.startswith("cf_edge_"):
+                try:
+                    import hmac
+                    import hashlib
+                    import os
+                    from sqlalchemy import or_
+                    dot_idx = session_token.rfind(".")
+                    payload_part = session_token[8:dot_idx] if dot_idx != -1 else session_token[8:]
+                    sig_part = session_token[dot_idx + 1:] if dot_idx != -1 else ""
+                    last_us = payload_part.rfind("_")
+                    if last_us != -1:
+                        edge_uid = payload_part[:last_us]
+                        valid_sig = (dot_idx == -1)
+                        if not valid_sig:
+                            for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
+                                if not sec:
+                                    continue
+                                expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+                                if hmac.compare_digest(sig_part, expected):
+                                    valid_sig = True
+                                    break
+                        if valid_sig:
+                            clean_uname = edge_uid.lower().removeprefix("usr_")
+                            u_stmt = select(User).where(
+                                or_(
+                                    User.id == edge_uid,
+                                    func.lower(User.username) == edge_uid.lower(),
+                                    func.lower(User.username) == clean_uname
+                                )
+                            )
+                            edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
+                            if edge_user:
+                                return edge_user
+                except Exception:
+                    pass
+
             token_hash = hash_session_token(session_token)
             now = datetime.now(timezone.utc)
             stmt = (

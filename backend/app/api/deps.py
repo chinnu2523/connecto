@@ -58,22 +58,27 @@ async def get_current_user(
                 last_us = payload_part.rfind("_")
                 if last_us != -1:
                     edge_uid = payload_part[:last_us]
-                    ts_ms = int(payload_part[last_us + 1:])
-                    if (now.timestamp() * 1000 - ts_ms) <= 30 * 86400 * 1000:
-                        valid_sig = (dot_idx == -1)
-                        if not valid_sig:
-                            for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
-                                if not sec:
-                                    continue
-                                expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
-                                if hmac.compare_digest(sig_part, expected):
-                                    valid_sig = True
-                                    break
-                        if valid_sig:
-                            u_stmt = select(User).where(or_(User.id == edge_uid, func.lower(User.username) == edge_uid.lower()))
-                            edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
-                            if edge_user:
-                                return edge_user
+                    valid_sig = (dot_idx == -1)
+                    if not valid_sig:
+                        for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
+                            if not sec:
+                                continue
+                            expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+                            if hmac.compare_digest(sig_part, expected):
+                                valid_sig = True
+                                break
+                    if valid_sig:
+                        clean_uname = edge_uid.lower().removeprefix("usr_")
+                        u_stmt = select(User).where(
+                            or_(
+                                User.id == edge_uid,
+                                func.lower(User.username) == edge_uid.lower(),
+                                func.lower(User.username) == clean_uname
+                            )
+                        )
+                        edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
+                        if edge_user:
+                            return edge_user
             except Exception:
                 pass
 

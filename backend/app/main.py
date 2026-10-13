@@ -2415,7 +2415,7 @@ async def get_channel_messages_compat(
 
     msg_stmt = (
         select(Message, User)
-        .join(User, Message.sender_id == User.id, isouter=True)
+        .join(User, or_(Message.sender_id == User.id, func.lower(Message.sender_id) == func.lower(User.username)), isouter=True)
         .where(Message.channel_id.in_(possible_channel_ids))
     )
 
@@ -2446,18 +2446,28 @@ async def get_channel_messages_compat(
         poll_id = att.get("poll_id")
         poll_obj = att.get("poll")
         timer_seconds = att.get("timer_seconds")
+        fallback_uname = (msg.sender_id or "member").removeprefix("usr_")
+        resolved_uname = user.username if user else fallback_uname
+        resolved_dname = (user.display_name or user.username) if user else fallback_uname
+        resolved_avatar = (_normalize_avatar_url(user.avatar_url) or None) if user else None
+        resolved_uid = user.id if user else (msg.sender_id or "guest")
 
         messages_list.append({
             "id": msg.id,
             "channel_id": channel.id,
             "channel_name": channel.name or clean_id,
-            "user": user.username if user else "gamer",
-            "sender_username": user.username if user else "gamer",
-            "nickname": (user.display_name or user.username) if user else "Gamer",
-            "sender_display_name": (user.display_name or user.username) if user else "Gamer",
-            "avatar_url": (_normalize_avatar_url(user.avatar_url) or None) if user else None,
-            "sender_avatar_url": (_normalize_avatar_url(user.avatar_url) or None) if user else None,
-            "avatar": (_normalize_avatar_url(user.avatar_url) or None) if user else None,
+            "sender_id": resolved_uid,
+            "author_id": resolved_uid,
+            "user": resolved_uname,
+            "author": resolved_uname,
+            "author_name": resolved_uname,
+            "sender_username": resolved_uname,
+            "nickname": resolved_dname,
+            "sender_display_name": resolved_dname,
+            "avatar_url": resolved_avatar,
+            "sender_avatar_url": resolved_avatar,
+            "author_avatar": resolved_avatar,
+            "avatar": resolved_avatar,
             "content": msg.content,
             "text": msg.content,
             "type": msg_type,

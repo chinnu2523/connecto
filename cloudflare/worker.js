@@ -1791,9 +1791,27 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
     if (!myUser) myUser = "chinnu";
 
-    const canonName = "dm-" + [myUser, targetUser].sort().join("-");
+    const sortedPair = [myUser, targetUser].sort();
+    const canonName = "dm-" + sortedPair.join("-");
+    const altName = "dm_" + sortedPair.join("_");
+    const revName = "dm-" + [targetUser, myUser].join("-");
+    let resolvedId = canonName;
+
+    if (env.DB) {
+      const existingCh = await env.DB.prepare(
+        "SELECT id, name FROM channels WHERE lower(name) IN (?, ?, ?) OR id IN (?, ?) LIMIT 1"
+      ).bind(canonName, altName, revName, canonName, altName).first();
+      if (existingCh && existingCh.id) {
+        resolvedId = existingCh.id;
+      } else {
+        await env.DB.prepare(
+          "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'dm')"
+        ).bind(canonName, canonName).run();
+      }
+    }
+
     const channelObj = {
-      id: canonName,
+      id: resolvedId,
       name: canonName,
       type: "dm",
       server_id: null,
@@ -1801,12 +1819,6 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       recipient: targetUser,
       participants: [myUser, targetUser]
     };
-
-    if (env.DB) {
-      await env.DB.prepare(
-        "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'dm')"
-      ).bind(canonName, canonName).run();
-    }
 
     return jsonResponse(channelObj);
   }
@@ -1831,7 +1843,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
     if (!currentUser) currentUser = "chinnu";
 
-    const dmChannelId = "dm-" + [currentUser, targetUser].sort().join("-");
+    const sortedPair = [currentUser, targetUser].sort();
+    const dmChannelId = "dm-" + sortedPair.join("-");
+    const altChannelId = "dm_" + sortedPair.join("_");
+    const revChannelId = "dm-" + [targetUser, currentUser].join("-");
+    const revAltChannelId = "dm_" + [targetUser, currentUser].join("_");
 
     if (method === "GET") {
       let messages = [];
@@ -1839,15 +1855,19 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         const res = await env.DB.prepare(`
           SELECT m.id, m.channel_id, m.content, m.created_at,
                  COALESCE(u.username, m.sender_id) as author_name,
-                 COALESCE(u.display_name, m.sender_id) as author_display_name,
+                 COALESCE(u.display_name, u.username, m.sender_id) as author_display_name,
                  COALESCE(u.avatar_url, '👾') as author_avatar,
-                 m.sender_id as author_id
+                 COALESCE(u.id, m.sender_id) as author_id
           FROM messages m
-          LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username
-          WHERE m.channel_id = ? OR m.channel_id = ?
+          LEFT JOIN users u ON m.sender_id = u.id OR lower(m.sender_id) = lower(u.username) OR lower(m.sender_id) = lower('usr_' || u.username)
+          WHERE m.channel_id IN (?, ?, ?, ?)
+             OR m.channel_id IN (SELECT id FROM channels WHERE lower(name) IN (?, ?, ?, ?) OR id IN (?, ?))
           ORDER BY m.created_at ASC
-          LIMIT 60
-        `).bind(dmChannelId, "dm_" + [currentUser, targetUser].sort().join("_")).all();
+          LIMIT 100
+        `).bind(
+          dmChannelId, altChannelId, revChannelId, revAltChannelId,
+          dmChannelId, altChannelId, revChannelId, revAltChannelId, dmChannelId, altChannelId
+        ).all();
 
         messages = (res.results || []).map(r => ({
           id: r.id,
