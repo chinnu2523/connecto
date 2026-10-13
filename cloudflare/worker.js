@@ -100,8 +100,8 @@ export default {
         version_name: "v4.2.5",
         version_code: 53,
         build: 53,
-        sha256: "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822",
-        md5: "c1047c5b05b924990857e1e9cefc0a4d",
+        sha256: "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198",
+        md5: "d84ae84db28a5818d75e397276de0f61",
         filename: "connecto-fun.apk",
         size_bytes: 57023685,
         size_display: "54.4 MB",
@@ -211,13 +211,14 @@ export default {
                   .replace(/Build 5[012]/g, "Build 53")
                   .replace(/BUILD 5[012]/g, "BUILD 53")
                   .replace(/build 5[012]/g, "build 53")
-                  .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-                  .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-                  .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-                  .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822");
+                  .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+                  .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198");
               }
               return new Response(htmlText, {
                 status: originResponse.status,
@@ -3112,8 +3113,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       version_name: "v4.2.5",
       version_code: 53,
       build: 53,
-      sha256: "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822",
-      md5: "c1047c5b05b924990857e1e9cefc0a4d",
+      sha256: "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198",
+      md5: "d84ae84db28a5818d75e397276de0f61",
       filename: "connecto-fun.apk",
       size_bytes: 57023685,
       size_display: "54.4 MB",
@@ -3140,7 +3141,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             "Streamlined Personal Chat Friend Profile: Simplified to Chat & Lock (showing only the UNFRIEND action button) and Theme & Wallpaper (dedicated to Chat Background Wallpaper selection).",
             "Group Admin 5-Wallpaper Selector & Cloud Sync: Restricted Group Wallpaper customization to Group Admins with a 5-preset selector popup and full Cloudflare D1 group persistence.",
             "Friend Chat User Data & UUID DM Resolution: Full synchronization of 21 user accounts, friendships, and 144+ direct messages across Cloudflare D1 and Origin with cf_edge_ WebSocket auth.",
-            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822."
+            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198."
           ],
           author: "Connecto Core Team"
         },
@@ -3226,10 +3227,11 @@ async function handlePagesEdgeFallback(request, url, host) {
       if (ct.includes("text/html")) {
         let htmlText = await pagesResponse.text();
         htmlText = htmlText
-          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822")
-          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822");
+          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198")
+          .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198");
         return new Response(htmlText, {
           status: pagesResponse.status,
           headers: resHeaders
