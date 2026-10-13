@@ -100,8 +100,8 @@ export default {
         version_name: "v4.2.5",
         version_code: 53,
         build: 53,
-        sha256: "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d",
-        md5: "582243b6be383ef427b924810812d9fa",
+        sha256: "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132",
+        md5: "3d22c48600aa84b1b577646234fc73b6",
         filename: "connecto-fun.apk",
         size_bytes: 57007757,
         size_display: "54.4 MB",
@@ -111,10 +111,10 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "v4.2.5 Friend Chat User Data & Avatar Sync across Cloudflare D1 & Origin",
-          "v4.2.5 UUID DM Channel Resolution & Seamless Message History Loading",
-          "v4.2.5 Cloud Edge WebSocket Auth (cf_edge_) & Real-Time Delivery",
-          "v4.2.4 Automated Server Maintenance Screen & Dedicated Profile Sub-Pages"
+          "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance",
+          "v4.2.5 Streamlined Personal Chat Friend Profile (Chat & Lock UNFRIEND-only + Wallpaper)",
+          "v4.2.5 Admin 5-Wallpaper Group Selector & Cloudflare D1 Group Persistence",
+          "v4.2.5 Friend Chat User Data Sync, UUID DM Resolution & Edge WebSocket Auth"
         ]
       });
     }
@@ -195,7 +195,7 @@ export default {
             if (contentType.includes("text/html")) {
               let htmlText = await originResponse.text();
               // Automatically patch any stale origin HTML strings to v4.2.5 Build 53
-              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49")) {
+              if (htmlText.includes("4.2.4") || htmlText.includes("4.2.3") || htmlText.includes("4.2.2") || htmlText.includes("4.2.1") || htmlText.includes("Build 52") || htmlText.includes("Build 51") || htmlText.includes("Build 50") || htmlText.includes("Build 49") || htmlText.includes("a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d")) {
                 htmlText = htmlText
                   .replace(/v4\.2\.[1234]/g, "v4.2.5")
                   .replace(/4\.2\.[1234]-prod/g, "4.2.5-prod")
@@ -203,9 +203,12 @@ export default {
                   .replace(/Build 5[012]/g, "Build 53")
                   .replace(/BUILD 5[012]/g, "BUILD 53")
                   .replace(/build 5[012]/g, "build 53")
-                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d")
-                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d")
-                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d");
+                  .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+                  .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+                  .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+                  .replace(/07746667d917f4e6b811b086572f6f87b6fd600504df4664eadfd02deaccd7d4/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+                  .replace(/ed23f8195c8052e700a2039105d124a28b61716f7ae502730146f7f169904d9d/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132")
+                  .replace(/5c510e04c98a04cf42bd80fdddf8d6d7c8f3d0562ec0bbcc1e0da34327e37687/g, "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132");
               }
               return new Response(htmlText, {
                 status: originResponse.status,
@@ -2826,8 +2829,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       version_name: "v4.2.5",
       version_code: 53,
       build: 53,
-      sha256: "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d",
-      md5: "582243b6be383ef427b924810812d9fa",
+      sha256: "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132",
+      md5: "3d22c48600aa84b1b577646234fc73b6",
       filename: "connecto-fun.apk",
       size_bytes: 57007757,
       size_display: "54.4 MB",
@@ -2847,14 +2850,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           date: "Oct 13, 2026",
           category: "feature",
           tag: "Latest Release",
-          title: "Connecto v4.2.5: Full Friend Chat User Data Sync, UUID DM Channel Resolution & Edge WebSocket Auth",
-          summary: "Synchronizes all user accounts, friend lists, avatars, and historical direct messages between Cloudflare D1 and Origin databases, resolves UUID-based DM channel message lookups on the Edge Worker, and enables seamless WebSocket authentication for cf_edge_ session tokens.",
+          title: "Connecto v4.2.5: Redesigned Profile Sub-Screens, Streamlined Friend Profile Controls, Admin Group Wallpapers & D1 Sync",
+          summary: "Overhauls all 6 Profile sub-screens with status hero cards and status-bar clearance, streamlines Personal Chat Friend Profile to Chat & Lock (UNFRIEND-only) and Theme & Wallpaper (Chat Background Wallpaper), adds Admin 5-Wallpaper Group Selector, and synchronizes all user accounts and DMs across Cloudflare D1 and Origin.",
           highlights: [
-            "Friend Chat User Data & History Sync: Full synchronization of all 21 user accounts, canonical D1 user IDs, 9 friendships, 29 channels, 21 DM participant mappings, and 144+ direct messages across Cloudflare D1 and local SQLite databases.",
-            "UUID DM Channel Resolution: Fixed /api/dm/start and /api/dms/:target/messages in Cloudflare Worker to query messages by both canonical channel names and UUID channel IDs while joining user avatars across ID and username formats.",
-            "Edge Token WebSocket & REST Authentication: Added cf_edge_ session token verification to FastAPI WebSocket (authenticate_ws_session) and REST (get_current_user) endpoints.",
-            "End-to-End Android Emulator Verification: Verified live DM threads (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile settings on Android 16.",
-            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d."
+            "Profile Sub-Screen UI Overhaul: Redesigned Presence & Stealth Mode, Personal Information, Two-Factor & Security, Biometric & App Lock, Appearance & Display Theme, and Groups & Communities with status-bar clearance, hero summary cards, and instant touch response.",
+            "Streamlined Personal Chat Friend Profile: Simplified to Chat & Lock (showing only the UNFRIEND action button) and Theme & Wallpaper (dedicated to Chat Background Wallpaper selection).",
+            "Group Admin 5-Wallpaper Selector & Cloud Sync: Restricted Group Wallpaper customization to Group Admins with a 5-preset selector popup and full Cloudflare D1 group persistence.",
+            "Friend Chat User Data & UUID DM Resolution: Full synchronization of 21 user accounts, friendships, and 144+ direct messages across Cloudflare D1 and Origin with cf_edge_ WebSocket auth.",
+            "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132."
           ],
           author: "Connecto Core Team"
         },

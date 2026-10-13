@@ -5348,8 +5348,8 @@ async def get_app_version_endpoint(response: Response = None):
         "version_name": "v4.2.5",
         "version_code": 53,
         "release_tag": "v4.2.5-stable",
-        "sha256": "a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d",
-        "md5": "582243b6be383ef427b924810812d9fa",
+        "sha256": "b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132",
+        "md5": "3d22c48600aa84b1b577646234fc73b6",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5359,12 +5359,12 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "v4.2.5 Friend Chat User Data & Avatar Sync: Complete synchronization of all user profiles, avatars, friendships, and 144+ direct message histories between Cloudflare D1 and Origin",
-            "v4.2.5 UUID DM Channel Resolution: Fixed Cloudflare Worker /api/dm/start and /api/dms/:target/messages to resolve UUID channel IDs and sender avatars seamlessly",
-            "v4.2.5 Cloud Edge WebSocket Auth (cf_edge_): Full authentication support for Cloudflare Edge session tokens across WebSocket and REST endpoints",
-            "v4.2.5 End-to-End Emulator & Live Verification: All friend chats (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile tabs verified",
+            "v4.2.5 Redesigned Profile Sub-Screens: Status-bar clearance, status hero cards, instant cloud auto-save banner, and responsive touch navigation across all 6 sub-screens",
+            "v4.2.5 Streamlined Personal Chat Friend Profile: Dedicated Chat & Lock (with UNFRIEND-only action) and Theme & Wallpaper (Chat Background Wallpaper) tabs",
+            "v4.2.5 Admin 5-Wallpaper Group Selector & Group Creation Persistence across Cloudflare D1 and Origin",
+            "v4.2.5 Friend Chat User Data & Avatar Sync: Complete synchronization of all user profiles, avatars, friendships, and 144+ direct message histories",
+            "v4.2.5 UUID DM Channel Resolution & Cloud Edge WebSocket Auth (cf_edge_)",
             "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
-            "v4.2.4 Profile Tab Sub-Page Navigation Buttons: Dedicated full views for Personal Info, Stealth & Appearance",
             "v4.2.3 Clean Profile Screen, Full-Screen Group Profile & Admin Controls"
         ]
     }
@@ -5381,14 +5381,14 @@ async def get_platform_changelog():
                 "date": "Oct 13, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
-                "title": "Connecto v4.2.5: Full Friend Chat User Data Sync, UUID DM Channel Resolution & Edge WebSocket Auth",
-                "summary": "Synchronizes all user accounts, friend lists, avatars, and historical direct messages between Cloudflare D1 and Origin databases, resolves UUID-based DM channel message lookups on the Edge Worker, and enables seamless WebSocket authentication for cf_edge_ session tokens.",
+                "title": "Connecto v4.2.5: Redesigned Profile Sub-Screens, Streamlined Friend Profile Controls, Admin Group Wallpapers & D1 Sync",
+                "summary": "Overhauls all 6 Profile sub-screens with status hero cards and status-bar clearance, streamlines Personal Chat Friend Profile to Chat & Lock (UNFRIEND-only) and Theme & Wallpaper (Chat Background Wallpaper), adds Admin 5-Wallpaper Group Selector, and synchronizes all user accounts and DMs across Cloudflare D1 and Origin.",
                 "highlights": [
-                    "Friend Chat User Data & History Sync: Full synchronization of all 21 user accounts, canonical D1 user IDs, 9 friendships, 29 channels, 21 DM participant mappings, and 144+ direct messages across Cloudflare D1 and local SQLite databases.",
-                    "UUID DM Channel Resolution: Fixed /api/dm/start and /api/dms/:target/messages in Cloudflare Worker to query messages by both canonical channel names and UUID channel IDs while joining user avatars across ID and username formats.",
-                    "Edge Token WebSocket & REST Authentication: Added cf_edge_ session token verification to FastAPI WebSocket (authenticate_ws_session) and REST (get_current_user) endpoints.",
-                    "End-to-End Android Emulator Verification: Verified live DM threads (Meghana, Siddhartha, Srinu, Devi, Divya, Ammu), Channels, Calls, and Profile settings on Android 16.",
-                    "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d."
+                    "Profile Sub-Screen UI Overhaul: Redesigned Presence & Stealth Mode, Personal Information, Two-Factor & Security, Biometric & App Lock, Appearance & Display Theme, and Groups & Communities with status-bar clearance, hero summary cards, and instant touch response.",
+                    "Streamlined Personal Chat Friend Profile: Simplified to Chat & Lock (showing only the UNFRIEND action button) and Theme & Wallpaper (dedicated to Chat Background Wallpaper selection).",
+                    "Group Admin 5-Wallpaper Selector & Cloud Sync: Restricted Group Wallpaper customization to Group Admins with a 5-preset selector popup and full Cloudflare D1 group persistence.",
+                    "Friend Chat User Data & UUID DM Resolution: Full synchronization of 21 user accounts, friendships, and 144+ direct messages across Cloudflare D1 and Origin with cf_edge_ WebSocket auth.",
+                    "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132."
                 ],
                 "author": "Connecto Core Team"
             },
