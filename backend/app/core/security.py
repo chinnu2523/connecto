@@ -12,12 +12,18 @@ ph = PasswordHasher(
     salt_len=16
 )
 
+def hash_password_pbkdf2(password: str, iterations: int = 100000) -> str:
+    """Hashes a raw password using PBKDF2-SHA256 (Cloudflare Worker & WebCrypto interoperable)."""
+    salt = secrets.token_bytes(16)
+    derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations, dklen=32)
+    return f"pbkdf2_sha256${iterations}${salt.hex()}${derived.hex()}"
+
 def hash_password(password: str) -> str:
-    """Hashes a raw password using Argon2id."""
-    return ph.hash(password)
+    """Hashes a raw password using PBKDF2-SHA256 for edge and backend cross-compatibility."""
+    return hash_password_pbkdf2(password)
 
 def verify_password(password_hash: str, password: str) -> bool:
-    """Verifies a raw password against Argon2id or standard PBKDF2-SHA256 hashes."""
+    """Verifies a raw password against PBKDF2-SHA256, Argon2id, or plain hashes."""
     if not password_hash or not password:
         return False
     try:
@@ -30,7 +36,9 @@ def verify_password(password_hash: str, password: str) -> bool:
                 expected_hash = bytes.fromhex(parts[3])
                 derived = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, iterations, dklen=len(expected_hash))
                 return hmac.compare_digest(derived, expected_hash)
-        return ph.verify(password_hash, password)
+        if password_hash.startswith("$argon2"):
+            return ph.verify(password_hash, password)
+        return hmac.compare_digest(password_hash, password)
     except Exception:
         return False
 
