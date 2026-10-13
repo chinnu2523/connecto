@@ -5357,12 +5357,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.5",
-        "version_name": "v4.2.5",
-        "version_code": 54,
-        "release_tag": "v4.2.5-stable",
-        "sha256": "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2",
-        "md5": "29069829a8ad225e8e86c2fac32f6908",
+        "version": "4.2.6",
+        "version_name": "v4.2.6",
+        "version_code": 55,
+        "release_tag": "v4.2.6-stable",
+        "sha256": "a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82",
+        "md5": "e0fa307654f65fd58ba35b8a2d7a1baf",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5372,14 +5372,14 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions across all screens",
-            "v4.2.5 Redesigned Profile Sub-Screens: Status-bar clearance, status hero cards, instant cloud auto-save banner, and responsive touch navigation across all 6 sub-screens",
-            "v4.2.5 Streamlined Personal Chat Friend Profile: Dedicated Chat & Lock (with UNFRIEND-only action) and Theme & Wallpaper (Chat Background Wallpaper) tabs",
+            "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
+            "v4.2.6 Profile Tab Animation Removal: Clean static background, zero shimmer lag, and instant snappy subpage navigation",
+            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs",
+            "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, and frosted chat bubbles",
+            "v4.2.5 Redesigned Profile Sub-Screens: Status-bar clearance, status hero cards, and instant cloud auto-save banner",
+            "v4.2.5 Streamlined Personal Chat Friend Profile: Dedicated Chat & Lock (UNFRIEND-only) and Theme & Wallpaper tabs",
             "v4.2.5 Admin 5-Wallpaper Group Selector & Group Creation Persistence across Cloudflare D1 and Origin",
-            "v4.2.5 Friend Chat User Data & Avatar Sync: Complete synchronization of all user profiles, avatars, friendships, and 144+ direct message histories",
-            "v4.2.5 UUID DM Channel Resolution & Cloud Edge WebSocket Auth (cf_edge_)",
-            "v4.2.4 Automated Server Maintenance Screen & Outage Telemetry",
-            "v4.2.3 Clean Profile Screen, Full-Screen Group Profile & Admin Controls"
+            "v4.2.5 Friend Chat User Data & Avatar Sync across Cloudflare D1 and Origin"
         ]
     }
 
@@ -5391,10 +5391,25 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.2.5",
+                "version": "v4.2.6",
                 "date": "Oct 13, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.2.6: Liquid Glass Theme, Static Profile Tab & Bottom Bar Water Drop Animation",
+                "summary": "Introduces the brand new Liquid Glass theme with fluid aqua refraction, completely cleans and eliminates animations in the Profile tab for instant navigation, and adds a moving liquid water drop indicator with liquid stretch physics, ripple splashes, and specular glints across all 5 bottom navigation tabs.",
+                "highlights": [
+                    "Liquid Glass Theme: Fluid aqua refraction (#00E5FF), oceanic midnight canvas (#061120), water droplet reflections, and automatic chat bubble and wallpaper defaults.",
+                    "Profile Tab Animation Removal: Removed root moving mesh canvas, card shimmers, rotating avatar halo, and subpage slide delays for instant, solid, snappy navigation.",
+                    "Bottom Navigation Water Drop Animation: Unified moving water droplet indicator that translates horizontally with spring rebound, stretches during rapid transit, displays concentric aquatic ripple rings on tap, and features an ambient bottom water bead across Home, Messages, Channels, Calls, and Profile.",
+                    "Android Native App v4.2.6 (Build 55 • 54.4 MB): SHA-256 a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.2.5",
+                "date": "Oct 13, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.2.5: Redesigned Profile Sub-Screens, Streamlined Friend Profile Controls, Admin Group Wallpapers & D1 Sync",
                 "summary": "Overhauls all 6 Profile sub-screens with status hero cards and status-bar clearance, streamlines Personal Chat Friend Profile to Chat & Lock (UNFRIEND-only) and Theme & Wallpaper (Chat Background Wallpaper), adds Admin 5-Wallpaper Group Selector, and synchronizes all user accounts and DMs across Cloudflare D1 and Origin.",
                 "highlights": [
@@ -5402,7 +5417,7 @@ async def get_platform_changelog():
                     "Streamlined Personal Chat Friend Profile: Simplified to Chat & Lock (showing only the UNFRIEND action button) and Theme & Wallpaper (dedicated to Chat Background Wallpaper selection).",
                     "Group Admin 5-Wallpaper Selector & Cloud Sync: Restricted Group Wallpaper customization to Group Admins with a 5-preset selector popup and full Cloudflare D1 group persistence.",
                     "Friend Chat User Data & UUID DM Resolution: Full synchronization of 21 user accounts, friendships, and 144+ direct messages across Cloudflare D1 and Origin with cf_edge_ WebSocket auth.",
-                    "Android Native App v4.2.5 (Build 53 • 54.4 MB): SHA-256 b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132."
+                    "Android Native App v4.2.5 (Build 54 • 54.4 MB): SHA-256 831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2."
                 ],
                 "author": "Connecto Core Team"
             },

@@ -84,10 +84,11 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
-            "v4.2.5 Friend Chat User Data & Avatar Sync across Cloudflare D1 & Origin",
-            "v4.2.5 UUID DM Channel Resolution & Seamless Message History Loading",
-            "v4.2.5 Cloud Edge WebSocket Auth (cf_edge_) & Real-Time Delivery",
-            "v4.2.4 Automated Server Maintenance Screen & Dedicated Profile Sub-Pages"
+            "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
+            "v4.2.6 Profile Tab Animation Removal: Clean static background, zero shimmer lag, and instant snappy subpage navigation",
+            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs",
+            "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions",
+            "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance"
           ]
         });
       }
@@ -96,14 +97,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.5",
-        version_name: "v4.2.5",
-        version_code: 54,
-        build: 54,
-        sha256: "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2",
-        md5: "29069829a8ad225e8e86c2fac32f6908",
+        version: "4.2.6",
+        version_name: "v4.2.6",
+        version_code: 55,
+        build: 55,
+        sha256: "a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82",
+        md5: "e0fa307654f65fd58ba35b8a2d7a1baf",
         filename: "connecto-fun.apk",
-        size_bytes: 57023685,
+        size_bytes: 57040069,
         size_display: "54.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -111,11 +112,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions across all screens",
-          "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance",
-          "v4.2.5 Streamlined Personal Chat Friend Profile (Chat & Lock UNFRIEND-only + Wallpaper)",
-          "v4.2.5 Admin 5-Wallpaper Group Selector & Cloudflare D1 Group Persistence",
-          "v4.2.5 Friend Chat User Data Sync, UUID DM Resolution & Edge WebSocket Auth"
+          "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
+          "v4.2.6 Profile Tab Animation Removal: Clean static background, zero shimmer lag, and instant snappy subpage navigation",
+          "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs",
+          "v4.2.5 Frosted Glass Theme: Complete application-wide frosted glass effect, specular borders, luminous canvas mesh, frosted chat bubbles, and spring animated interactions",
+          "v4.2.5 Redesigned Profile Sub-Screens with Status Hero Cards & Status-Bar Clearance"
         ]
       });
     }
@@ -157,7 +158,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.5/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.6/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -3111,14 +3112,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.5",
-      version_name: "v4.2.5",
-      version_code: 54,
-      build: 54,
-      sha256: "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2",
-      md5: "29069829a8ad225e8e86c2fac32f6908",
+      version: "4.2.6",
+      version_name: "v4.2.6",
+      version_code: 55,
+      build: 55,
+      sha256: "a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82",
+      md5: "e0fa307654f65fd58ba35b8a2d7a1baf",
       filename: "connecto-fun.apk",
-      size_bytes: 57023685,
+      size_bytes: 57040069,
       size_display: "54.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -3132,10 +3133,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.2.5",
+          version: "v4.2.6",
           date: "Oct 13, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.2.6: Liquid Glass Theme, Static Profile Tab & Bottom Bar Water Drop Animation",
+          summary: "Introduces the brand new Liquid Glass theme with fluid aqua refraction, eliminates all animations in the Profile tab for instant, solid, snappy navigation, and adds a moving liquid water drop indicator with liquid stretch physics, ripple splashes, and specular glints across all 5 bottom navigation tabs.",
+          highlights: [
+            "Liquid Glass Theme: Fluid aqua refraction (#00E5FF), oceanic midnight canvas (#061120), water droplet reflections, and automatic chat bubble and wallpaper defaults.",
+            "Profile Tab Animation Removal: Removed root moving mesh canvas, card shimmers, rotating avatar halo, and subpage slide delays for instant, solid, snappy navigation.",
+            "Bottom Navigation Water Drop Animation: Unified moving water droplet indicator that translates horizontally with spring rebound, stretches during rapid transit, displays concentric aquatic ripple rings on tap, and features an ambient bottom water bead across Home, Messages, Channels, Calls, and Profile.",
+            "Android Native App v4.2.6 (Build 55 • 54.4 MB): SHA-256 a72ca0c266f70f2a5d5f4e33eeea6b54c1753fb017431964f0469bf320eb6a82."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.2.5",
+          date: "Oct 13, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.2.5: Frosted Glass Theme, Redesigned Profile Sub-Screens & Admin Group Controls",
           summary: "Introduces complete application-wide Frosted Glass theme (luminous ambient mesh, specular borders, frosted chat bubbles, and spring motion physics), overhauls Profile sub-screens, streamlines Friend Profile, and synchronizes accounts across Cloudflare D1 and Origin.",
           highlights: [

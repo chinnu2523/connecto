@@ -34,6 +34,8 @@ import com.example.connecto.ui.designsystem.ConnectoAvatar
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -172,11 +174,7 @@ import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.TextDisabledColor
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
-import com.example.connecto.ui.theme.pressScaleEffect
-import com.example.connecto.ui.theme.rotatingGlowHalo
-import com.example.connecto.ui.theme.glassCanvasMesh
 import com.example.connecto.ui.theme.glassCard
-import com.example.connecto.ui.theme.glassSpecularSweep
 import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
 import com.example.connecto.ui.designsystem.getAvatarGradient
 import com.example.connecto.ui.designsystem.ConnectoTheme
@@ -551,22 +549,14 @@ fun ProfileScreen(
         modifier = modifier
             .fillMaxSize()
             .then(
-                if (currentThemeMode.isGlass) Modifier.glassCanvasMesh()
+                if (currentThemeMode.isGlass) Modifier.background(Color(0xFF090D16))
                 else Modifier.background(MaterialTheme.colorScheme.background)
             )
     ) {
         AnimatedContent(
             targetState = activeSubPage,
             transitionSpec = {
-                if (targetState != null) {
-                    (slideInHorizontally { width -> width } + fadeIn(tween(250))).togetherWith(
-                        slideOutHorizontally { width -> -width / 4 } + fadeOut(tween(200))
-                    )
-                } else {
-                    (slideInHorizontally { width -> -width / 4 } + fadeIn(tween(250))).togetherWith(
-                        slideOutHorizontally { width -> width } + fadeOut(tween(200))
-                    )
-                }
+                EnterTransition.None togetherWith ExitTransition.None
             },
             label = "profile_subpage_navigation",
             modifier = Modifier.fillMaxSize()
@@ -601,11 +591,8 @@ fun ProfileScreen(
                         item(key = "auto_save_badge") {
                             AnimatedVisibility(
                                 visible = showSavedBadge,
-                                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) + androidx.compose.animation.scaleIn(
-                                    initialScale = 0.85f,
-                                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
-                                ),
-                                exit = fadeOut() + androidx.compose.animation.scaleOut(targetScale = 0.85f)
+                                enter = EnterTransition.None,
+                                exit = ExitTransition.None
                             ) {
                                 Box(
                                     modifier = Modifier
@@ -643,7 +630,7 @@ fun ProfileScreen(
                             .fillMaxWidth()
                             .then(
                                 if (currentThemeMode.isGlass) {
-                                    Modifier.glassCard(shape = avatarCardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = true)
+                                    Modifier.glassCard(shape = avatarCardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = false)
                                 } else {
                                     Modifier
                                         .clip(avatarCardShape)
@@ -676,7 +663,7 @@ fun ProfileScreen(
                                 .padding(horizontal = 20.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Centered Avatar with Glow
+                            // Centered Avatar with Static Border
                             Box(
                                 contentAlignment = Alignment.BottomEnd
                             ) {
@@ -686,20 +673,13 @@ fun ProfileScreen(
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surface)
                                         .padding(3.dp)
-                                        .rotatingGlowHalo(
-                                            glowColors = gradientColors,
-                                            borderWidth = 3.dp,
-                                            durationMillis = 4500
-                                        )
-                                        .pressScaleEffect(
-                                            onClick = {
-                                                lightboxTitle = "Profile Photo"
-                                                lightboxImageUrl = profilePhotoUri
-                                                isLightboxBanner = false
-                                                showLightbox = true
-                                            },
-                                            targetScale = 0.92f
-                                        )
+                                        .border(2.5.dp, Brush.linearGradient(gradientColors), CircleShape)
+                                        .clickable {
+                                            lightboxTitle = "Profile Photo"
+                                            lightboxImageUrl = profilePhotoUri
+                                            isLightboxBanner = false
+                                            showLightbox = true
+                                        }
                                         .padding(4.dp)
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
@@ -754,14 +734,11 @@ fun ProfileScreen(
                                         .size(34.dp)
                                         .clip(CircleShape)
                                         .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                        .pressScaleEffect(
-                                            onClick = {
-                                                photoPickerLauncher.launch(
-                                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                                )
-                                            },
-                                            targetScale = 0.88f
-                                        )
+                                        .clickable {
+                                            photoPickerLauncher.launch(
+                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                            )
+                                        }
                                         .background(Brush.linearGradient(gradientColors)),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -974,10 +951,7 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .pressScaleEffect(
-                                onClick = onSignOut,
-                                targetScale = 0.95f
-                            )
+                            .clickable(onClick = onSignOut)
                             .clip(RoundedCornerShape(16.dp))
                             .background(Color(0xFFEF4444).copy(alpha = 0.12f))
                             .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
@@ -1390,10 +1364,7 @@ fun ProfileScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(48.dp)
-                                            .pressScaleEffect(
-                                                onClick = { triggerAutoSave() },
-                                                targetScale = 0.96f
-                                            )
+                                            .clickable { triggerAutoSave() }
                                             .clip(RoundedCornerShape(14.dp))
                                             .background(Brush.linearGradient(gradientColors)),
                                         contentAlignment = Alignment.Center
@@ -1466,10 +1437,7 @@ fun ProfileScreen(
 
                                         Box(
                                             modifier = Modifier
-                                                .pressScaleEffect(
-                                                    onClick = { showForgotPasswordDialog = true },
-                                                    targetScale = 0.93f
-                                                )
+                                                .clickable { showForgotPasswordDialog = true }
                                                 .clip(RoundedCornerShape(10.dp))
                                                 .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
                                                 .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
@@ -2286,10 +2254,7 @@ fun ProfileScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(48.dp)
-                                    .pressScaleEffect(
-                                        onClick = { activeSubPage = null },
-                                        targetScale = 0.96f
-                                    )
+                                    .clickable { activeSubPage = null }
                                     .clip(RoundedCornerShape(14.dp))
                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
                                     .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
@@ -3076,10 +3041,7 @@ private fun ProfileMiniBadge(
     val haptic = LocalHapticFeedback.current
     Box(
         modifier = Modifier
-            .pressScaleEffect(
-                onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) },
-                targetScale = 0.94f
-            )
+            .clickable { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
@@ -3114,10 +3076,7 @@ private fun ProfileStatCard(
     val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
-            .pressScaleEffect(
-                onClick = { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) },
-                targetScale = 0.93f
-            )
+            .clickable { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) }
             .clip(RoundedCornerShape(14.dp))
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
@@ -3311,7 +3270,7 @@ private fun ContactStyledField(
                 // Change button
                 Box(
                     modifier = Modifier
-                        .pressScaleEffect(onClick = onChangeClick, targetScale = 0.94f)
+                        .clickable(onClick = onChangeClick)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                         .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
@@ -3736,10 +3695,10 @@ private fun ProfileNavigationMenuButton(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .pressScaleEffect(onClick = onClick, targetScale = 0.98f)
+            .clickable(onClick = onClick)
             .then(
                 if (isGlass) {
-                    Modifier.glassCard(shape = cardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = true)
+                    Modifier.glassCard(shape = cardShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8), hasShimmer = false)
                 } else {
                     Modifier
                         .clip(cardShape)
@@ -3866,7 +3825,7 @@ private fun ProfileSubPageHeader(
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .pressScaleEffect(onClick = onBack, targetScale = 0.92f)
+                        .clickable(onClick = onBack)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
                         .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),

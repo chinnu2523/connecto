@@ -347,6 +347,21 @@ val AVAILABLE_CHAT_THEMES = listOf(
         friendBubbleBgDark = Color(0xEE1E293B),
         friendBubbleTextLight = Color(0xFF0C4A6E),
         friendBubbleTextDark = Color(0xFFCBD5E1)
+    ),
+    ChatThemeOption(
+        id = "liquid_glass",
+        name = "Liquid Glass",
+        subtitle = "Fluid aqua refraction & water droplet shine",
+        primaryColor = Color(0xFF00E5FF),
+        secondaryColor = Color(0xFF38BDF8),
+        ownBubbleBgLight = Color(0xDD0097A7),
+        ownBubbleBgDark = Color(0xEE0A3355),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFE0F7FA),
+        friendBubbleBgLight = Color(0xE6E0F7FA),
+        friendBubbleBgDark = Color(0xEE0D1E36),
+        friendBubbleTextLight = Color(0xFF006064),
+        friendBubbleTextDark = Color(0xFFBAE6FD)
     )
 )
 
@@ -372,6 +387,13 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         subtitle = "Translucent crystal canvas with floating luminous orbs",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F2FE), Color(0xFFF1F5F9))),
         darkBrush = Brush.radialGradient(listOf(Color(0xFF0D1B2A), Color(0xFF070B14)))
+    ),
+    ChatWallpaperOption(
+        id = "liquid_water",
+        name = "Liquid Aqua Droplets",
+        subtitle = "Fluid oceanic ripples with water glass refraction",
+        lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F7FA), Color(0xFFF0FDF4))),
+        darkBrush = Brush.radialGradient(listOf(Color(0xFF0A2540), Color(0xFF050E1A)))
     ),
     ChatWallpaperOption(
         id = "oled",
@@ -556,18 +578,23 @@ fun CustomizedChatScreen(
 
     // Active Chat Theme & Wallpaper Resolution (Auto-adapts to Frosted Glass when app is in glass theme)
     val isGlassTheme = ConnectoTheme.isGlass
-    val activeChatTheme = remember(chatThemeId, isGlassTheme) {
+    val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
+    val activeChatTheme = remember(chatThemeId, isGlassTheme, isLiquidGlassTheme) {
         if (chatThemeId != "default") {
             AVAILABLE_CHAT_THEMES.firstOrNull { it.id == chatThemeId } ?: AVAILABLE_CHAT_THEMES.first()
+        } else if (isLiquidGlassTheme) {
+            AVAILABLE_CHAT_THEMES.firstOrNull { it.id == "liquid_glass" } ?: AVAILABLE_CHAT_THEMES.first()
         } else if (isGlassTheme) {
             AVAILABLE_CHAT_THEMES.firstOrNull { it.id == "glass" } ?: AVAILABLE_CHAT_THEMES.first()
         } else {
             AVAILABLE_CHAT_THEMES.first()
         }
     }
-    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme) {
+    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme, isLiquidGlassTheme) {
         if (chatWallpaperId != "default") {
             AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == chatWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+        } else if (isLiquidGlassTheme) {
+            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "liquid_water" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
         } else if (isGlassTheme) {
             AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "glass_mesh" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
         } else {

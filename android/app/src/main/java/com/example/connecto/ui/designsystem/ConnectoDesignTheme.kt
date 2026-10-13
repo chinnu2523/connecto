@@ -22,6 +22,10 @@ object ConnectoTheme {
     val isGlass: Boolean
         @Composable
         get() = LocalConnectoColors.current.isGlass
+
+    val isLiquidGlass: Boolean
+        @Composable
+        get() = LocalConnectoColors.current.isLiquidGlass
 }
 
 /**
