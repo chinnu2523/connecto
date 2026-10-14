@@ -51,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -60,19 +61,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import coil.compose.AsyncImage
 import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.network.FriendshipDto
 import com.example.connecto.ui.designsystem.ConnectoRadius
 import com.example.connecto.ui.designsystem.ConnectoSpacing
 import com.example.connecto.ui.designsystem.LocalConnectoColors
-import com.example.connecto.ui.theme.getDynamicAccentGradientColors
+import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import kotlinx.coroutines.launch
 
 /**
  * Dialog for creating a new group chat.
- * Lets users name the group and add members by searching existing connections.
+ * Shows the user's friends list for selecting members to add to the group chat.
  */
 @Composable
 fun CreateGroupChatDialog(
@@ -88,40 +90,47 @@ fun CreateGroupChatDialog(
 
     var groupName by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
-    var isSearching by remember { mutableStateOf(false) }
+    var isLoadingFriends by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isCreating by remember { mutableStateOf(false) }
-    val searchResults = remember { mutableStateListOf<String>() }
-    val selectedMembers = remember { mutableStateListOf<String>() }
-    var searchJob by remember { mutableStateOf<Job?>(null) }
 
-    // Debounce search
-    LaunchedEffect(searchQuery) {
-        searchJob?.cancel()
-        if (searchQuery.length < 2) {
-            searchResults.clear()
-            isSearching = false
-            return@LaunchedEffect
+    val friendsList = remember { mutableStateListOf<FriendshipDto>() }
+    val selectedMembers = remember { mutableStateListOf<String>() }
+
+    // Fetch ONLY the user's accepted friends on dialog launch
+    LaunchedEffect(currentUsername) {
+        isLoadingFriends = true
+        errorMessage = null
+        try {
+            val res = ConnectoApiClient.getFriends(username = currentUsername)
+            if (res.isSuccess) {
+                val list = res.getOrThrow()
+                friendsList.clear()
+                // Filter out invalid/empty handles and self
+                friendsList.addAll(
+                    list.filter { friend ->
+                        friend.friendUsername.isNotBlank() &&
+                        !friend.friendUsername.equals(currentUsername, ignoreCase = true)
+                    }
+                )
+            } else {
+                errorMessage = "Failed to load friends: ${res.exceptionOrNull()?.message}"
+            }
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "Failed to load friends"
+        } finally {
+            isLoadingFriends = false
         }
-        searchJob = coroutineScope.launch {
-            delay(300)
-            isSearching = true
-            try {
-                val res = ConnectoApiClient.searchUsers(searchQuery, username = currentUsername)
-                if (res.isSuccess) {
-                    val users = res.getOrThrow()
-                    searchResults.clear()
-                    searchResults.addAll(
-                        users.map { it.username }
-                            .filter { it != currentUsername && it !in selectedMembers }
-                            .take(20)
-                    )
-                } else {
-                    searchResults.clear()
-                }
-            } catch (_: Exception) {
-                searchResults.clear()
-            } finally {
-                isSearching = false
+    }
+
+    val filteredFriends = remember(friendsList, searchQuery) {
+        if (searchQuery.isBlank()) {
+            friendsList
+        } else {
+            val q = searchQuery.trim().lowercase()
+            friendsList.filter {
+                it.friendDisplayName.lowercase().contains(q) ||
+                it.friendUsername.lowercase().contains(q)
             }
         }
     }
@@ -167,7 +176,7 @@ fun CreateGroupChatDialog(
                             color = colors.textPrimary
                         )
                         Text(
-                            text = "Add members and name your group",
+                            text = "Select friends to add to your group",
                             fontSize = 11.sp,
                             color = colors.textSecondary
                         )
@@ -236,38 +245,22 @@ fun CreateGroupChatDialog(
 
                 Spacer(modifier = Modifier.height(ConnectoSpacing.md))
 
-                // ── Member Search ───────────────────────────────────────────────
-                Text(
-                    text = "ADD MEMBERS",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.textSecondary,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+                // ── Filter Friends Bar ──────────────────────────────────────────
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(ConnectoRadius.sm))
                         .background(colors.background)
                         .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
-                        .padding(horizontal = ConnectoSpacing.md, vertical = 10.dp),
+                        .padding(horizontal = ConnectoSpacing.md, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isSearching) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = colors.primary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = colors.textSecondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = null,
+                        tint = colors.textSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
                     BasicTextField(
                         value = searchQuery,
@@ -276,113 +269,94 @@ fun CreateGroupChatDialog(
                         singleLine = true,
                         textStyle = TextStyle(
                             color = colors.textPrimary,
-                            fontSize = 14.sp
+                            fontSize = 13.sp
                         ),
                         cursorBrush = SolidColor(colors.primary),
                         decorationBox = { inner ->
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    text = "Search by username...",
-                                    fontSize = 14.sp,
+                                    text = "Filter friends by name...",
+                                    fontSize = 13.sp,
                                     color = colors.textSecondary.copy(alpha = 0.6f)
                                 )
                             }
                             inner()
                         }
                     )
-                }
-
-                // Search results
-                AnimatedVisibility(
-                    visible = searchResults.isNotEmpty(),
-                    enter = fadeIn() + scaleIn(initialScale = 0.97f),
-                    exit = fadeOut() + scaleOut(targetScale = 0.97f)
-                ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 160.dp)
-                            .padding(top = 4.dp)
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .background(colors.background)
-                            .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm)),
-                        contentPadding = PaddingValues(vertical = 4.dp)
-                    ) {
-                        items(searchResults) { user ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        selectedMembers.add(user)
-                                        searchResults.remove(user)
-                                        searchQuery = ""
-                                    }
-                                    .padding(horizontal = ConnectoSpacing.md, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.primary.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = user.firstOrNull()?.uppercase() ?: "?",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = colors.primary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                                Text(
-                                    text = user,
-                                    fontSize = 13.sp,
-                                    color = colors.textPrimary,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = colors.textSecondary.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                            }
-                        }
+                    if (searchQuery.isNotEmpty()) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = colors.textSecondary,
+                            modifier = Modifier
+                                .size(16.dp)
+                                .clickable { searchQuery = "" }
+                        )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+
+                // ── Friends Header (Selection Counts & Quick Toggle) ─────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "SELECT FRIENDS (${selectedMembers.size} selected)",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (selectedMembers.isNotEmpty()) colors.primary else colors.textSecondary,
+                        letterSpacing = 1.sp
+                    )
+                    if (friendsList.isNotEmpty()) {
+                        Text(
+                            text = if (selectedMembers.size == friendsList.size) "Deselect All" else "Select All",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.primary,
+                            modifier = Modifier.clickable {
+                                if (selectedMembers.size == friendsList.size) {
+                                    selectedMembers.clear()
+                                } else {
+                                    selectedMembers.clear()
+                                    selectedMembers.addAll(friendsList.map { it.friendUsername })
+                                }
+                            }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // ── Selected Members Chips ───────────────────────────────────────
                 AnimatedVisibility(visible = selectedMembers.isNotEmpty()) {
                     Column {
-                        Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
-                        Text(
-                            text = "MEMBERS (${selectedMembers.size})",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = colors.textSecondary,
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(bottom = 8.dp)
                         ) {
-                            items(selectedMembers) { member ->
+                            items(selectedMembers) { memberUsername ->
+                                val matchedFriend = friendsList.firstOrNull { it.friendUsername == memberUsername }
+                                val label = matchedFriend?.friendDisplayName?.ifEmpty { memberUsername } ?: memberUsername
+
                                 Row(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(20.dp))
-                                        .background(colors.primary.copy(alpha = 0.12f))
+                                        .background(colors.primary.copy(alpha = 0.14f))
                                         .border(
                                             1.dp,
-                                            colors.primary.copy(alpha = 0.3f),
+                                            colors.primary.copy(alpha = 0.4f),
                                             RoundedCornerShape(20.dp)
                                         )
                                         .padding(horizontal = 10.dp, vertical = 5.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = member,
+                                        text = label,
                                         fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = colors.primary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -390,12 +364,222 @@ fun CreateGroupChatDialog(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove $member",
-                                        tint = colors.primary.copy(alpha = 0.7f),
+                                        contentDescription = "Remove $label",
+                                        tint = colors.primary.copy(alpha = 0.8f),
                                         modifier = Modifier
                                             .size(14.dp)
-                                            .clickable { selectedMembers.remove(member) }
+                                            .clickable { selectedMembers.remove(memberUsername) }
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── Friends List Body ────────────────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 140.dp, max = 220.dp)
+                        .clip(RoundedCornerShape(ConnectoRadius.sm))
+                        .background(colors.background)
+                        .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
+                ) {
+                    when {
+                        isLoadingFriends -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = colors.primary,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Loading friends...",
+                                    fontSize = 12.sp,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
+                        errorMessage != null -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp)
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = errorMessage ?: "Failed to load",
+                                    fontSize = 12.sp,
+                                    color = colors.error,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        friendsList.isEmpty() -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp)
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No friends found",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Add friends first to start a group chat.",
+                                    fontSize = 11.sp,
+                                    color = colors.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        filteredFriends.isEmpty() -> {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(140.dp)
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "No friends match \"$searchQuery\"",
+                                    fontSize = 12.sp,
+                                    color = colors.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                        else -> {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(vertical = 4.dp)
+                            ) {
+                                items(filteredFriends, key = { it.id.ifEmpty { it.friendUsername } }) { friend ->
+                                    val isSelected = friend.friendUsername in selectedMembers
+                                    val displayName = friend.friendDisplayName.ifEmpty { friend.friendUsername }
+                                    val initial = displayName.firstOrNull()?.uppercase() ?: "F"
+
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                if (isSelected) {
+                                                    selectedMembers.remove(friend.friendUsername)
+                                                } else {
+                                                    selectedMembers.add(friend.friendUsername)
+                                                }
+                                            }
+                                            .background(
+                                                if (isSelected) colors.primary.copy(alpha = 0.08f)
+                                                else Color.Transparent
+                                            )
+                                            .padding(horizontal = ConnectoSpacing.md, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // Avatar with Online dot
+                                        Box(modifier = Modifier.size(36.dp)) {
+                                            if (!friend.friendAvatarUrl.isNullOrBlank()) {
+                                                AsyncImage(
+                                                    model = friend.friendAvatarUrl,
+                                                    contentDescription = displayName,
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(CircleShape)
+                                                        .border(1.dp, colors.borderSubtle, CircleShape),
+                                                    contentScale = ContentScale.Crop
+                                                )
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(CircleShape)
+                                                        .background(colors.primary.copy(alpha = 0.16f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = initial,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = colors.primary
+                                                    )
+                                                }
+                                            }
+
+                                            if (friend.isOnline && !friend.isStealth) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(10.dp)
+                                                        .clip(CircleShape)
+                                                        .background(OnlineGreen)
+                                                        .border(1.5.dp, colors.surface, CircleShape)
+                                                        .align(Alignment.BottomEnd)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(ConnectoSpacing.md))
+
+                                        // Name & Username
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = displayName,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = colors.textPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Text(
+                                                text = "@${friend.friendUsername}",
+                                                fontSize = 11.sp,
+                                                color = colors.textSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+
+                                        // Checkbox Selection Circle
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (isSelected) Brush.linearGradient(gradientColors)
+                                                    else SolidColor(Color.Transparent)
+                                                )
+                                                .border(
+                                                    1.5.dp,
+                                                    if (isSelected) Color.Transparent else colors.borderSubtle,
+                                                    CircleShape
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = "Selected",
+                                                    tint = contentOnGradient,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -429,19 +613,16 @@ fun CreateGroupChatDialog(
                     }
 
                     // Create
+                    val isActionEnabled = groupName.isNotBlank() && selectedMembers.isNotEmpty() && !isCreating
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(ConnectoRadius.sm))
                             .background(
-                                if (groupName.isNotBlank() && selectedMembers.isNotEmpty())
-                                    Brush.linearGradient(gradientColors)
-                                else
-                                    Brush.linearGradient(listOf(colors.borderSubtle, colors.borderSubtle))
+                                if (isActionEnabled) Brush.linearGradient(gradientColors)
+                                else SolidColor(colors.borderSubtle)
                             )
-                            .clickable(
-                                enabled = groupName.isNotBlank() && selectedMembers.isNotEmpty() && !isCreating
-                            ) {
+                            .clickable(enabled = isActionEnabled) {
                                 coroutineScope.launch {
                                     isCreating = true
                                     try {
@@ -488,8 +669,7 @@ fun CreateGroupChatDialog(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = if (groupName.isNotBlank() && selectedMembers.isNotEmpty())
-                                        contentOnGradient else colors.textSecondary,
+                                    tint = if (isActionEnabled) contentOnGradient else colors.textSecondary,
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -497,8 +677,7 @@ fun CreateGroupChatDialog(
                                     text = "Create",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (groupName.isNotBlank() && selectedMembers.isNotEmpty())
-                                        contentOnGradient else colors.textSecondary,
+                                    color = if (isActionEnabled) contentOnGradient else colors.textSecondary,
                                     textAlign = TextAlign.Center
                                 )
                             }

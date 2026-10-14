@@ -2643,19 +2643,6 @@ fun CustomizedChatScreen(
                 )
             }
 
-            // ========== ACTIVE CALL OVERLAY ==========
-            val isCallVisible = (callState != CallState.IDLE)
-            AnimatedVisibility(visible = isCallVisible) {
-                Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                    WebRtcCallOverlay(
-                        callTitle = if (activeCallTitle.isNotBlank()) activeCallTitle else (selectedFriend?.name?.let { "Call with $it" } ?: "Voice Call"),
-                        participantCount = 2,
-                        allowVideo = false,
-                        onEndCall = { VoiceCallManager.endCall() }
-                    )
-                }
-            }
-
             AnimatedContent(
                 targetState = selectedFriend != null,
                 transitionSpec = {

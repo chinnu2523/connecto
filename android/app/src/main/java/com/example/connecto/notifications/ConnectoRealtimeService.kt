@@ -134,6 +134,20 @@ class ConnectoRealtimeService : Service() {
         super.onDestroy()
     }
 
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        super.onTimeout(startId, fgsType)
+        Log.w(TAG, "ConnectoRealtimeService onTimeout fired by system for fgsType $fgsType")
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
+                stopForeground(true)
+            }
+        } catch (_: Throwable) {}
+        stopSelf()
+    }
+
     private fun initializeRealtimeStack() {
         try {
             ConnectoNotificationManager.init(applicationContext)
@@ -201,13 +215,21 @@ class ConnectoRealtimeService : Service() {
                                         if (n.id.isNotBlank() && deliveredNotificationIds.add(n.id)) {
                                             when (n.type) {
                                                 "call", "call_invite", "incoming_call" -> {
-                                                    VoiceCallManager.triggerIncomingCallFromPushOrBackground(
-                                                        roomId = n.referenceId ?: "",
-                                                        callerId = n.senderUsername ?: "",
-                                                        callerUsername = n.senderUsername ?: "Gamer",
-                                                        callerName = n.senderUsername ?: n.title.ifEmpty { "Gamer" },
-                                                        callerAvatar = n.senderAvatar
-                                                    )
+                                                    val callId = n.referenceId ?: ""
+                                                    if (callId.isNotBlank() && VoiceCallManager.isCallTerminated(callId)) {
+                                                        Log.d(TAG, "Ignoring notification for already terminated call: $callId")
+                                                        serviceScope.launch {
+                                                            ConnectoApiClient.markNotificationRead(n.id)
+                                                        }
+                                                    } else {
+                                                        VoiceCallManager.triggerIncomingCallFromPushOrBackground(
+                                                            roomId = callId,
+                                                            callerId = n.senderUsername ?: "",
+                                                            callerUsername = n.senderUsername ?: "Gamer",
+                                                            callerName = n.senderUsername ?: n.title.ifEmpty { "Gamer" },
+                                                            callerAvatar = n.senderAvatar
+                                                        )
+                                                    }
                                                 }
                                                 "friend_request" -> {
                                                     ConnectoNotificationManager.showFriendRequestNotification(

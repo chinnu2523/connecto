@@ -1033,6 +1033,7 @@ object ConnectoApiClient {
     suspend fun request2FaSetupOtp(
         method: String,
         phoneNumber: String? = null,
+        purpose: String? = null,
         token: String? = null
     ): Result<OtpRequestResult> = withContext(Dispatchers.IO) {
         try {
@@ -1040,6 +1041,9 @@ object ConnectoApiClient {
                 put("method", method.lowercase())
                 if (!phoneNumber.isNullOrBlank()) {
                     put("phone_number", phoneNumber.trim())
+                }
+                if (!purpose.isNullOrBlank()) {
+                    put("purpose", purpose.trim())
                 }
             }
             val activeToken = token ?: getPersistedToken()
@@ -1113,6 +1117,7 @@ object ConnectoApiClient {
         enabled: Boolean,
         method: String? = null,
         phoneNumber: String? = null,
+        otpCode: String? = null,
         token: String? = null
     ): Result<TwoFactorToggleResult> = withContext(Dispatchers.IO) {
         try {
@@ -1123,6 +1128,10 @@ object ConnectoApiClient {
                 }
                 if (!phoneNumber.isNullOrBlank()) {
                     put("phone_number", phoneNumber.trim())
+                }
+                if (!otpCode.isNullOrBlank()) {
+                    put("otp_code", otpCode.trim())
+                    put("otp", otpCode.trim())
                 }
             }
             val activeToken = token ?: getPersistedToken()

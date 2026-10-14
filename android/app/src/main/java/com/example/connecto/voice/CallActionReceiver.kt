@@ -25,7 +25,6 @@ class CallActionReceiver : BroadcastReceiver() {
             ACTION_END_CALL -> {
                 try {
                     VoiceCallManager.endCall()
-                    VoiceCallManager.leaveVoiceRoom()
                     VoiceCallForegroundService.stopService(context)
                 } catch (t: Throwable) {
                     Log.e(TAG, "Error ending call from notification: ${t.message}", t)

@@ -111,37 +111,6 @@ fun ConnectoBottomBar(
         if (rawUserAvatar == "null" || rawUserAvatar.isNullOrBlank()) null else rawUserAvatar
     }
 
-    val gleamBrush = if (colors.isGlass) {
-        val infiniteTransition = rememberInfiniteTransition(label = "glassNavGleam")
-        val gleamOffset by infiniteTransition.animateFloat(
-            initialValue = -400f,
-            targetValue = 1400f,
-            animationSpec = infiniteRepeatable(tween(3600, easing = LinearEasing), RepeatMode.Restart),
-            label = "navGleam"
-        )
-        Brush.linearGradient(
-            colors = listOf(
-                Color.Transparent,
-                colors.primary.copy(alpha = 0.35f),
-                Color.White.copy(alpha = 0.85f),
-                colors.primary.copy(alpha = 0.35f),
-                Color.Transparent
-            ),
-            start = Offset(gleamOffset, 0f),
-            end = Offset(gleamOffset + 350f, 0f)
-        )
-    } else {
-        Brush.horizontalGradient(
-            colors = listOf(
-                Color.Transparent,
-                colors.primary.copy(alpha = 0.20f),
-                colors.primary.copy(alpha = 0.75f),
-                colors.primary.copy(alpha = 0.20f),
-                Color.Transparent
-            )
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -154,12 +123,12 @@ fun ConnectoBottomBar(
                 )
             )
     ) {
-        // Glowing gradient top border line with animated specular gleam in glass / liquid theme
+        // Clean 1dp Top Border Line
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(gleamBrush)
+                .background(colors.borderSubtle)
         )
 
         BoxWithConstraints(

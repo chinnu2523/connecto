@@ -332,6 +332,8 @@ fun ProfileScreen(
     var show2FaSetupDialog by remember { mutableStateOf(false) }
     var twoFaSetupMaskedDest by remember { mutableStateOf<String?>(null) }
     var twoFaSetupDevOtp by remember { mutableStateOf<String?>(null) }
+    var show2FaDisableDialog by remember { mutableStateOf(false) }
+    var twoFaDisableMaskedDest by remember { mutableStateOf<String?>(null) }
     var twoFaErrorMessage by remember { mutableStateOf<String?>(null) }
 
     // User Groups Management State in Profile Tab
@@ -658,234 +660,319 @@ fun ProfileScreen(
 
                         // ================= 1. AVATAR & USER SUMMARY CARD WITH COVER =================
                         item(key = "avatar_summary_card") {
-                    val avatarCardShape = RoundedCornerShape(24.dp)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(
-                                Modifier.liquidGlassCard(
-                                    shape = avatarCardShape,
-                                    backgroundColor = MaterialTheme.colorScheme.surface,
-                                    borderColor = MaterialTheme.colorScheme.primary
-                                )
-                            )
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 20.dp, vertical = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            // Centered Avatar with Static Border
+                            val avatarCardShape = RoundedCornerShape(24.dp)
                             Box(
-                                contentAlignment = Alignment.BottomEnd
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .then(
+                                        Modifier.liquidGlassCard(
+                                            shape = avatarCardShape,
+                                            backgroundColor = MaterialTheme.colorScheme.surface,
+                                            borderColor = MaterialTheme.colorScheme.primary
+                                        )
+                                    )
+                                    .clip(avatarCardShape)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(100.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .padding(3.dp)
-                                        .border(2.5.dp, Brush.linearGradient(gradientColors), CircleShape)
-                                        .clickable {
-                                            lightboxTitle = "Profile Photo"
-                                            lightboxImageUrl = profilePhotoUri
-                                            isLightboxBanner = false
-                                            showLightbox = true
-                                        }
-                                        .padding(4.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentAlignment = Alignment.Center
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    val sanitizedProfilePhoto = sanitizeAvatarUrl(profilePhotoUri)
+                                    // 1. Cover Banner (Background Picture)
                                     Box(
                                         modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(CircleShape)
-                                            .background(getAvatarGradient(username)),
-                                        contentAlignment = Alignment.Center
+                                            .fillMaxWidth()
+                                            .height(135.dp)
+                                            .background(
+                                                Brush.linearGradient(
+                                                    listOf(
+                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.55f),
+                                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.40f)
+                                                    )
+                                                )
+                                            )
+                                            .clickable {
+                                                lightboxTitle = "Background Cover"
+                                                lightboxImageUrl = bannerPhotoUri
+                                                isLightboxBanner = true
+                                                showLightbox = true
+                                            }
                                     ) {
-                                        Text(
-                                            text = userInitial,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 38.sp
-                                        )
-                                        if (sanitizedProfilePhoto != null) {
+                                        val sanitizedBannerPhoto = sanitizeAvatarUrl(bannerPhotoUri)
+                                        if (!sanitizedBannerPhoto.isNullOrBlank()) {
                                             AsyncImage(
-                                                model = sanitizedProfilePhoto,
-                                                contentDescription = "Profile Photo",
+                                                model = sanitizedBannerPhoto,
+                                                contentDescription = "Background Cover Photo",
                                                 contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+
+                                        if (isUploadingBanner) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(Color.Black.copy(alpha = 0.55f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(32.dp),
+                                                    color = Color.White,
+                                                    strokeWidth = 3.dp
+                                                )
+                                            }
+                                        }
+
+                                        // Background Picture Edit Badge
+                                        Row(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .padding(10.dp)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(Color.Black.copy(alpha = 0.65f))
+                                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                                                .clickable {
+                                                    bannerPickerLauncher.launch(
+                                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                    )
+                                                }
+                                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CameraAlt,
+                                                contentDescription = "Change Background Picture",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Text(
+                                                text = "Cover",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+
+                                    // 2. Avatar Overlapping the Bottom Edge of Cover Banner
+                                    Box(
+                                        modifier = Modifier
+                                            .offset(y = (-45).dp)
+                                            .padding(bottom = 0.dp),
+                                        contentAlignment = Alignment.BottomEnd
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(96.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surface)
+                                                .padding(3.dp)
+                                                .border(2.5.dp, Brush.linearGradient(gradientColors), CircleShape)
+                                                .clickable {
+                                                    lightboxTitle = "Profile Photo"
+                                                    lightboxImageUrl = profilePhotoUri
+                                                    isLightboxBanner = false
+                                                    showLightbox = true
+                                                }
+                                                .padding(3.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            val sanitizedProfilePhoto = sanitizeAvatarUrl(profilePhotoUri)
+                                            Box(
                                                 modifier = Modifier
                                                     .fillMaxSize()
                                                     .clip(CircleShape)
-                                            )
-                                        }
-                                    }
+                                                    .background(getAvatarGradient(username)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = userInitial,
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 36.sp
+                                                )
+                                                if (sanitizedProfilePhoto != null) {
+                                                    AsyncImage(
+                                                        model = sanitizedProfilePhoto,
+                                                        contentDescription = "Profile Photo",
+                                                        contentScale = ContentScale.Crop,
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .clip(CircleShape)
+                                                    )
+                                                }
+                                            }
 
-                                    if (isUploadingAvatar) {
+                                            if (isUploadingAvatar) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .clip(CircleShape)
+                                                        .background(Color.Black.copy(alpha = 0.6f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(26.dp),
+                                                        color = Color.White,
+                                                        strokeWidth = 2.5.dp
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Camera Badge for Profile Photo
                                         Box(
                                             modifier = Modifier
-                                                .fillMaxSize()
+                                                .size(32.dp)
                                                 .clip(CircleShape)
-                                                .background(Color.Black.copy(alpha = 0.6f)),
+                                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                                .clickable {
+                                                    photoPickerLauncher.launch(
+                                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                    )
+                                                }
+                                                .background(Brush.linearGradient(gradientColors)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(28.dp),
-                                                color = Color.White,
-                                                strokeWidth = 3.dp
+                                            Icon(
+                                                imageVector = Icons.Default.CameraAlt,
+                                                contentDescription = "Upload Profile Photo",
+                                                tint = contentOnGradient,
+                                                modifier = Modifier.size(15.dp)
                                             )
                                         }
                                     }
-                                }
 
-                                // Camera Badge Trigger
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                        .clickable {
-                                            photoPickerLauncher.launch(
-                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    // 3. User info below avatar
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .offset(y = (-32).dp)
+                                            .padding(horizontal = 20.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        // Name & Verified Badge
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Text(
+                                                text = if (displayNameInput.isNotBlank()) displayNameInput else username,
+                                                fontSize = 22.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                lineHeight = 28.sp
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.CheckCircle,
+                                                contentDescription = "Verified Account",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
                                             )
                                         }
-                                        .background(Brush.linearGradient(gradientColors)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CameraAlt,
-                                        contentDescription = "Upload Profile Photo",
-                                        tint = contentOnGradient,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                }
-                            }
 
-                            Spacer(modifier = Modifier.height(14.dp))
+                                        Spacer(modifier = Modifier.height(4.dp))
 
-                            // Name & Verified Badge
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text = if (displayNameInput.isNotBlank()) displayNameInput else username,
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                    lineHeight = 28.sp
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Verified Account",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // Username handle
-                            Text(
-                                text = "@$username",
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
-
-                            Spacer(modifier = Modifier.height(10.dp))
-
-                            // Quick Status Badges Row
-                            val isWsConnected by com.example.connecto.voice.VoiceCallManager.isWsConnectedFlow.collectAsState()
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            ) {
-                                // Status Pill (Online / Stealth / Offline)
-                                val statusColor = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor
-                                val statusText = if (stealthModeEnabled) "Stealth Mode" else if (isWsConnected) "Online" else "Offline"
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(statusColor.copy(alpha = 0.12f))
-                                        .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(7.dp)
-                                                .clip(CircleShape)
-                                                .background(statusColor)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                        // Username handle
                                         Text(
-                                            text = statusText,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = statusColor
+                                            text = "@$username",
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            fontWeight = FontWeight.SemiBold
                                         )
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        // Quick Status Badges Row
+                                        val isWsConnected by com.example.connecto.voice.VoiceCallManager.isWsConnectedFlow.collectAsState()
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                        ) {
+                                            // Status Pill (Online / Stealth / Offline)
+                                            val statusColor = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor
+                                            val statusText = if (stealthModeEnabled) "Stealth Mode" else if (isWsConnected) "Online" else "Offline"
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(statusColor.copy(alpha = 0.12f))
+                                                    .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(7.dp)
+                                                            .clip(CircleShape)
+                                                            .background(statusColor)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = statusText,
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = statusColor
+                                                    )
+                                                }
+                                            }
+
+                                            // Encrypted E2E Pill
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Shield,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Text(
+                                                        text = "E2E Secured",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        if (bioInput.isNotBlank()) {
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "“${bioInput.trim()}”",
+                                                    fontSize = 13.sp,
+                                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                    lineHeight = 19.sp
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-
-                                // Background sync remains active; visual Synced pill hidden per user preference
-
-                                // Encrypted E2E Pill
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Shield,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = "E2E Secured",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-
-                            if (bioInput.isNotBlank()) {
-                                Spacer(modifier = Modifier.height(14.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
-                                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "“${bioInput.trim()}”",
-                                        fontSize = 13.sp,
-                                        fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                        lineHeight = 19.sp
-                                    )
                                 }
                             }
                         }
-                    }
-                }
 
                                 // ================= 2. PRESENCE & STEALTH MODE BUTTON =================
                 item(key = "menu_presence_stealth") {
@@ -1472,17 +1559,29 @@ fun ProfileScreen(
                                             ?: context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE).getString("token", null)
 
                                         if (!isChecked) {
-                                            coroutineScope.launch {
-                                                val res = ConnectoApiClient.toggle2Fa(false, token = activeSessionToken)
-                                                if (res.isSuccess) {
-                                                    twoFactorEnabled = false
-                                                    prefs.edit().putBoolean("two_factor_enabled_$username", false).apply()
-                                                    twoFaErrorMessage = null
-                                                } else {
-                                                    twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to disable 2FA."
+                                            // USER WANTS TO TURN OFF 2FA: Enforce OTP sent to registered email!
+                                            if (emailInput.isBlank()) {
+                                                twoFaErrorMessage = "Please ensure your registered email address is set above first."
+                                            } else {
+                                                twoFaErrorMessage = null
+                                                coroutineScope.launch {
+                                                    val res = ConnectoApiClient.request2FaSetupOtp(
+                                                        method = "email",
+                                                        phoneNumber = emailInput.trim(),
+                                                        purpose = "two_factor_disable",
+                                                        token = activeSessionToken
+                                                    )
+                                                    if (res.isSuccess) {
+                                                        val data = res.getOrNull()
+                                                        twoFaDisableMaskedDest = data?.maskedDestination
+                                                        show2FaDisableDialog = true
+                                                    } else {
+                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch verification code to email."
+                                                    }
                                                 }
                                             }
                                         } else {
+                                            // USER WANTS TO TURN ON 2FA: Send OTP to registered email, user must type it manually!
                                             if (emailInput.isBlank()) {
                                                 twoFaErrorMessage = "Please ensure your email address is set in your profile above first."
                                             } else {
@@ -1491,12 +1590,13 @@ fun ProfileScreen(
                                                     val res = ConnectoApiClient.request2FaSetupOtp(
                                                         method = "email",
                                                         phoneNumber = emailInput.trim(),
+                                                        purpose = "two_factor_setup",
                                                         token = activeSessionToken
                                                     )
                                                     if (res.isSuccess) {
                                                         val data = res.getOrNull()
                                                         twoFaSetupMaskedDest = data?.maskedDestination
-                                                        twoFaSetupDevOtp = data?.devOtp
+                                                        twoFaSetupDevOtp = null // Strictly do not auto-fill
                                                         show2FaSetupDialog = true
                                                     } else {
                                                         twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch setup OTP."
@@ -2571,12 +2671,25 @@ fun ProfileScreen(
             method = "email",
             destination = emailInput.trim(),
             maskedDestination = twoFaSetupMaskedDest,
-            devOtp = twoFaSetupDevOtp,
             onDismiss = { show2FaSetupDialog = false },
             onSuccess = {
                 show2FaSetupDialog = false
                 twoFactorEnabled = true
                 prefs.edit().putBoolean("two_factor_enabled_$username", true).apply()
+                showSavedBadge = true
+            }
+        )
+    }
+
+    if (show2FaDisableDialog) {
+        TwoFactorDisableDialog(
+            destination = emailInput.trim(),
+            maskedDestination = twoFaDisableMaskedDest,
+            onDismiss = { show2FaDisableDialog = false },
+            onSuccess = {
+                show2FaDisableDialog = false
+                twoFactorEnabled = false
+                prefs.edit().putBoolean("two_factor_enabled_$username", false).apply()
                 showSavedBadge = true
             }
         )
@@ -2607,7 +2720,6 @@ private fun TwoFactorSetupDialog(
     method: String,
     destination: String,
     maskedDestination: String?,
-    devOtp: String? = null,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
@@ -2618,35 +2730,6 @@ private fun TwoFactorSetupDialog(
     val isLight = isAppInLightTheme()
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
-
-    // Auto-fill devOtp if available
-    LaunchedEffect(devOtp) {
-        if (!devOtp.isNullOrBlank() && otpCode.isEmpty()) {
-            otpCode = devOtp
-        }
-    }
-
-    // Real-time verification when 6 digits are typed
-    LaunchedEffect(otpCode) {
-        val clean = otpCode.trim()
-        if (clean.length == 6 && !isVerifying) {
-            isVerifying = true
-            errorMessage = null
-            coroutineScope.launch {
-                val res = ConnectoApiClient.verify2FaSetupOtp(
-                    otpCode = clean,
-                    method = method,
-                    phoneNumber = destination
-                )
-                isVerifying = false
-                if (res.isSuccess && res.getOrNull()?.twoFactorEnabled == true) {
-                    onSuccess()
-                } else {
-                    errorMessage = res.exceptionOrNull()?.message ?: "Invalid verification code."
-                }
-            }
-        }
-    }
 
     Dialog(onDismissRequest = onDismiss) {
         val dialogBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
@@ -2725,7 +2808,7 @@ private fun TwoFactorSetupDialog(
                 }
 
                 Text(
-                    text = "A 6-digit setup code was $destText.\nLook for the email titled '[Connecto 2FA Setup]'.\n(Note: Do not enter older password recovery codes).",
+                    text = "A 6-digit setup code was $destText.\nLook for the email titled '[Connecto 2FA Setup]'.\nEnter the code below to enable Two-Factor Authentication.",
                     fontSize = 13.sp,
                     color = subtitleColor,
                     lineHeight = 18.sp,
@@ -2755,27 +2838,6 @@ private fun TwoFactorSetupDialog(
                             fontWeight = FontWeight.Medium,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
-
-                if (!devOtp.isNullOrBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .clickable {
-                                otpCode = devOtp
-                                errorMessage = null
-                            }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = "🔑 Setup Code: $devOtp (Tap to Auto-fill)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -2832,15 +2894,16 @@ private fun TwoFactorSetupDialog(
 
                 Button(
                     onClick = {
-                        if (otpCode.length < 6) {
-                            errorMessage = "Please enter the 6-digit code."
+                        val clean = otpCode.trim()
+                        if (clean.length < 6) {
+                            errorMessage = "Please enter the complete 6-digit code."
                             return@Button
                         }
                         isVerifying = true
                         errorMessage = null
                         coroutineScope.launch {
                             val res = ConnectoApiClient.verify2FaSetupOtp(
-                                otpCode = otpCode.trim(),
+                                otpCode = clean,
                                 method = method,
                                 phoneNumber = destination
                             )
@@ -2848,7 +2911,7 @@ private fun TwoFactorSetupDialog(
                             if (res.isSuccess && res.getOrNull()?.twoFactorEnabled == true) {
                                 onSuccess()
                             } else {
-                                errorMessage = res.exceptionOrNull()?.message ?: "2FA verification failed."
+                                errorMessage = res.exceptionOrNull()?.message ?: "2FA verification failed. Please check the code."
                             }
                         }
                     },
@@ -2857,20 +2920,254 @@ private fun TwoFactorSetupDialog(
                         .height(50.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    enabled = !isVerifying && otpCode.length == 6
+                    enabled = !isVerifying && otpCode.trim().length == 6
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
-                            .background(Brush.horizontalGradient(gradientColors), RoundedCornerShape(14.dp)),
+                            .background(
+                                if (!isVerifying && otpCode.trim().length == 6)
+                                    Brush.horizontalGradient(gradientColors)
+                                else
+                                    Brush.horizontalGradient(listOf(Color.Gray.copy(alpha = 0.3f), Color.Gray.copy(alpha = 0.3f))),
+                                RoundedCornerShape(14.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         if (isVerifying) {
                             CircularProgressIndicator(color = contentOnGradient, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                         } else {
-                            Text("CONFIRM & ACTIVATE 2FA", color = contentOnGradient, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                text = "CONFIRM & ACTIVATE 2FA",
+                                color = if (otpCode.trim().length == 6) contentOnGradient else Color.Gray,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TwoFactorDisableDialog(
+    destination: String,
+    maskedDestination: String?,
+    onDismiss: () -> Unit,
+    onSuccess: () -> Unit
+) {
+    var otpCode by remember { mutableStateOf("") }
+    var isVerifying by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+    val isLight = isAppInLightTheme()
+
+    Dialog(onDismissRequest = onDismiss) {
+        val dialogBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
+        val cardBorder = if (isLight) Color(0xFFE2E8F0) else Color(0xFF1E1E24)
+        val textColor = if (isLight) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+        val subtitleColor = if (isLight) Color(0xFF64748B) else Color(0xFF94A3B8)
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(24.dp))
+                .background(dialogBg)
+                .border(1.dp, cardBorder, RoundedCornerShape(24.dp))
+                .padding(24.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFEF4444).copy(alpha = 0.15f))
+                                .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LockOpen,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Turn Off 2FA",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = textColor
+                            )
+                            Text(
+                                text = "Security Verification",
+                                fontSize = 12.sp,
+                                color = subtitleColor
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = subtitleColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                val destText = if (!maskedDestination.isNullOrBlank()) {
+                    "sent to $maskedDestination"
+                } else {
+                    "sent to your registered email"
+                }
+
+                Text(
+                    text = "A 6-digit confirmation code was $destText to safely disable Two-Factor Authentication.\nPlease enter the code below to confirm.",
+                    fontSize = 13.sp,
+                    color = subtitleColor,
+                    lineHeight = 18.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (errorMessage != null) {
+                    val errorBg = if (isLight) Color(0xFFFEE2E2) else Color(0xFF7F1D1D).copy(alpha = 0.35f)
+                    val errorText = if (isLight) Color(0xFFDC2626) else Color(0xFFFCA5A5)
+                    val errorBorder = if (isLight) Color(0xFFFCA5A5) else Color(0xFFEF4444).copy(alpha = 0.5f)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(errorBg)
+                            .border(1.dp, errorBorder, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        Text(
+                            text = errorMessage ?: "",
+                            color = errorText,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // 6-digit OTP Box
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(if (isLight) Color(0xFFF8FAFC) else Color(0xFF0A0A0C))
+                        .border(1.dp, cardBorder, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    BasicTextField(
+                        value = otpCode,
+                        onValueChange = {
+                            if (it.length <= 6 && it.all { ch -> ch.isDigit() }) {
+                                otpCode = it
+                                errorMessage = null
+                            }
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                        textStyle = TextStyle(
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            textAlign = TextAlign.Center,
+                            letterSpacing = 8.sp,
+                            color = textColor
+                        ),
+                        cursorBrush = SolidColor(Color(0xFFEF4444)),
+                        decorationBox = { innerTextField ->
+                            if (otpCode.isEmpty()) {
+                                Text(
+                                    text = "000000",
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace,
+                                    letterSpacing = 8.sp,
+                                    textAlign = TextAlign.Center,
+                                    color = subtitleColor.copy(alpha = 0.4f),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = {
+                        val clean = otpCode.trim()
+                        if (clean.length < 6) {
+                            errorMessage = "Please enter the complete 6-digit verification code."
+                            return@Button
+                        }
+                        isVerifying = true
+                        errorMessage = null
+                        coroutineScope.launch {
+                            val activeToken = ConnectoApiClient.sessionToken
+                            val res = ConnectoApiClient.toggle2Fa(
+                                enabled = false,
+                                method = "email",
+                                otpCode = clean,
+                                token = activeToken
+                            )
+                            isVerifying = false
+                            if (res.isSuccess) {
+                                onSuccess()
+                            } else {
+                                errorMessage = res.exceptionOrNull()?.message ?: "Failed to disable 2FA. Check the verification code."
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    enabled = !isVerifying && otpCode.trim().length == 6
+                ) {
+                    if (isVerifying) {
+                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                    } else {
+                        Text(
+                            text = "CONFIRM & DISABLE 2FA",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = Color.White
+                        )
                     }
                 }
             }

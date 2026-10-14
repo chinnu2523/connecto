@@ -499,6 +499,14 @@ object VoiceCallManager {
                         newState == PeerConnection.IceConnectionState.COMPLETED) {
                         _callState.value = CallState.CONNECTED
                         startStatsPolling(peerId)
+                    } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED ||
+                        newState == PeerConnection.IceConnectionState.CLOSED ||
+                        newState == PeerConnection.IceConnectionState.FAILED) {
+                        val is1on1 = _activeCallPartner.value != null || _activeCallPartnerUsername.value != null || isCallCaller
+                        if (is1on1 && _callState.value == CallState.CONNECTED) {
+                            Log.d(TAG, "1:1 WebRTC ICE connection disconnected/closed ($newState). Terminating call session.")
+                            endCallLocally()
+                        }
                     }
                 }
 
@@ -914,20 +922,51 @@ object VoiceCallManager {
 
     @Volatile
     private var isExplicitlyDisconnected = false
+    @Volatile
+    private var isWsConnecting = false
+    private val wsConnectLock = Any()
+
+    private val recentlyTerminatedCalls = java.util.Collections.synchronizedMap(object : java.util.LinkedHashMap<String, Long>(50, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean {
+            return size > 100
+        }
+    })
+
+    fun markCallTerminated(roomId: String?) {
+        if (!roomId.isNullOrBlank()) {
+            val clean = roomId.trim()
+            recentlyTerminatedCalls[clean] = System.currentTimeMillis()
+            Log.d(TAG, "Marked call as terminated: $clean")
+        }
+    }
+
+    fun isCallTerminated(roomId: String?): Boolean {
+        if (roomId.isNullOrBlank()) return false
+        val clean = roomId.trim()
+        val timestamp = recentlyTerminatedCalls[clean] ?: return false
+        if (System.currentTimeMillis() - timestamp < 5 * 60 * 1000L) {
+            return true
+        }
+        recentlyTerminatedCalls.remove(clean)
+        return false
+    }
 
     fun connectWebSocket(force: Boolean = false) {
-        isExplicitlyDisconnected = false
-        if (!force && isWsConnected && webSocket != null) return
+        synchronized(wsConnectLock) {
+            isExplicitlyDisconnected = false
+            if (!force && (isWsConnected || isWsConnecting) && webSocket != null) return
 
-        if (force) {
-            try {
-                webSocket?.cancel()
-            } catch (e: Exception) {
-                // ignore
+            if (force) {
+                try {
+                    webSocket?.cancel()
+                } catch (e: Exception) {
+                    // ignore
+                }
+                webSocket = null
+                isWsConnected = false
             }
-            webSocket = null
-            isWsConnected = false
-        }
+
+            isWsConnecting = true
 
         val username = ConnectoApiClient.currentUsername?.ifEmpty { "User" } ?: "User"
         val cleanUser = username.trim().lowercase().removePrefix("@")
@@ -944,71 +983,77 @@ object VoiceCallManager {
         Log.d(TAG, "Connecting voice signaling WebSocket to: $url")
         val request = Request.Builder().url(url).build()
 
-        webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
-            override fun onOpen(ws: WebSocket, response: Response) {
-                Log.d(TAG, "Voice WebSocket connected successfully to $url")
-                isWsConnected = true
-                _isWsConnectedFlow.value = true
+            webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
+                override fun onOpen(ws: WebSocket, response: Response) {
+                    Log.d(TAG, "Voice WebSocket connected successfully to $url")
+                    isWsConnecting = false
+                    isWsConnected = true
+                    _isWsConnectedFlow.value = true
 
-                // Auto-resubscribe to all active channels
-                if (subscribedChannels.isNotEmpty()) {
-                    try {
-                        for (ch in subscribedChannels) {
-                            val subAction = JSONObject().apply {
-                                put("action", "subscribe")
-                                put("channel_id", ch)
+                    // Auto-resubscribe to all active channels
+                    if (subscribedChannels.isNotEmpty()) {
+                        try {
+                            for (ch in subscribedChannels) {
+                                val subAction = JSONObject().apply {
+                                    put("action", "subscribe")
+                                    put("channel_id", ch)
+                                }
+                                ws.send(subAction.toString())
                             }
-                            ws.send(subAction.toString())
+                            val arr = JSONArray()
+                            subscribedChannels.forEach { arr.put(it) }
+                            val subMsg = JSONObject().apply {
+                                put("type", "subscribe")
+                                put("channels", arr)
+                            }
+                            ws.send(subMsg.toString())
+                            Log.d(TAG, "Resubscribed to channels on WebSocket open: $subscribedChannels")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error resubscribing to channels: ${e.message}")
                         }
-                        val arr = JSONArray()
-                        subscribedChannels.forEach { arr.put(it) }
-                        val subMsg = JSONObject().apply {
-                            put("type", "subscribe")
-                            put("channels", arr)
-                        }
-                        ws.send(subMsg.toString())
-                        Log.d(TAG, "Resubscribed to channels on WebSocket open: $subscribedChannels")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error resubscribing to channels: ${e.message}")
+                    }
+
+                    // Ensure continuous keepalive pinging
+                    startPeriodicPing()
+                }
+
+                override fun onMessage(ws: WebSocket, text: String) {
+                    handleWebSocketMessage(text)
+                }
+
+                override fun onClosing(ws: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "Voice WebSocket closing: $code / $reason")
+                    isWsConnecting = false
+                    isWsConnected = false
+                    _isWsConnectedFlow.value = false
+                }
+
+                override fun onClosed(ws: WebSocket, code: Int, reason: String) {
+                    Log.d(TAG, "Voice WebSocket closed: code=$code, reason=$reason")
+                    isWsConnecting = false
+                    isWsConnected = false
+                    _isWsConnectedFlow.value = false
+                    if (code != 1000 && !isExplicitlyDisconnected) {
+                        reconnectWebSocketAfterDelay()
                     }
                 }
 
-                // Ensure continuous keepalive pinging
-                startPeriodicPing()
-            }
-
-            override fun onMessage(ws: WebSocket, text: String) {
-                handleWebSocketMessage(text)
-            }
-
-            override fun onClosing(ws: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "Voice WebSocket closing: $code / $reason")
-                isWsConnected = false
-                _isWsConnectedFlow.value = false
-            }
-
-            override fun onClosed(ws: WebSocket, code: Int, reason: String) {
-                Log.d(TAG, "Voice WebSocket closed: code=$code, reason=$reason")
-                isWsConnected = false
-                _isWsConnectedFlow.value = false
-                if (code != 1000 && !isExplicitlyDisconnected) {
-                    reconnectWebSocketAfterDelay()
+                override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
+                    Log.e(TAG, "Voice WebSocket failure: ${t.message}")
+                    isWsConnecting = false
+                    isWsConnected = false
+                    _isWsConnectedFlow.value = false
+                    if (!isExplicitlyDisconnected) {
+                        reconnectWebSocketAfterDelay()
+                    }
                 }
-            }
-
-            override fun onFailure(ws: WebSocket, t: Throwable, response: Response?) {
-                Log.e(TAG, "Voice WebSocket failure: ${t.message}")
-                isWsConnected = false
-                _isWsConnectedFlow.value = false
-                if (!isExplicitlyDisconnected) {
-                    reconnectWebSocketAfterDelay()
-                }
-            }
-        })
+            })
+        }
     }
 
     fun disconnectWebSocket() {
         isExplicitlyDisconnected = true
+        isWsConnecting = false
         pingJob?.cancel()
         try {
             webSocket?.close(1000, "App paused or disconnected")
@@ -1045,13 +1090,28 @@ object VoiceCallManager {
         }
     }
 
-    private fun sendWsMessage(json: JSONObject) {
+    fun sendWsMessage(json: JSONObject) {
         val msg = json.toString()
         val sent = webSocket?.send(msg) ?: false
         if (!sent) {
             Log.w(TAG, "Failed to send WS message, attempting reconnect: $msg")
             connectWebSocket()
         }
+    }
+
+    fun inviteToVoiceGroup(roomId: String, groupTitle: String, targetUser: String) {
+        val inviteMsg = JSONObject().apply {
+            put("action", "call:initiate")
+            put("type", "call:initiate")
+            put("target", targetUser)
+            put("target_user", targetUser)
+            put("call_id", roomId)
+            put("room_id", roomId)
+            put("is_group", true)
+            put("group_title", groupTitle)
+            put("avatar", "🔊")
+        }
+        sendWsMessage(inviteMsg)
     }
 
     private fun handleWebSocketMessage(rawText: String) {
@@ -1283,8 +1343,12 @@ object VoiceCallManager {
                 }
 
 
-                "incoming_call", "call:incoming" -> {
+                "incoming_call", "call:incoming", "call_invite", "call:invite" -> {
                     val roomId = json.optString("room_id").ifEmpty { json.optString("call_id") }
+                    if (isCallTerminated(roomId)) {
+                        Log.d(TAG, "Ignoring incoming call for already terminated room: $roomId")
+                        return
+                    }
                     val callerId = json.optString("caller_id")
                     val callerUsername = json.optString("caller_username").ifEmpty { json.optString("caller") }
                     val callerName = json.optString("caller_name").ifEmpty { json.optString("caller").ifEmpty { callerUsername } }
@@ -1354,13 +1418,10 @@ object VoiceCallManager {
                     }
                 }
 
-                "call_rejected", "call:declined", "call:rejected" -> {
-                    Log.d(TAG, "Call rejected or declined by remote party")
-                    endCallLocally()
-                }
-
-                "call_ended", "call:ended" -> {
-                    Log.d(TAG, "Call ended by peer")
+                "call_rejected", "call:declined", "call:rejected", "call_ended", "call:ended", "call_end", "call:end", "call:cancel", "call_canceled", "call_cancelled", "call:cancelled", "call_hung_up", "call:hung_up" -> {
+                    val roomId = json.optString("room_id").ifEmpty { json.optString("call_id") }
+                    Log.d(TAG, "Call terminated by peer or server signaling: ${json.optString("type")}, roomId=$roomId")
+                    markCallTerminated(roomId)
                     endCallLocally()
                 }
 
@@ -1416,7 +1477,9 @@ object VoiceCallManager {
                 }
 
                 "voice_peer_left", "voice:user_left" -> {
-                    val peerId = json.optString("peer_id")
+                    val peerId = json.optString("peer_id").ifEmpty { json.optString("username") }
+                    val is1on1 = _activeCallPartner.value != null || _activeCallPartnerUsername.value != null || isCallCaller
+                    Log.d(TAG, "WebRTC voice peer left: $peerId (is1on1=$is1on1, callState=${_callState.value})")
                     if (peerId.isNotBlank()) {
                         synchronized(webRtcTeardownLock) {
                             val pc = peerConnections.remove(peerId)
@@ -1443,6 +1506,12 @@ object VoiceCallManager {
                     }
                     if (_participantCount.value > 1) {
                         _participantCount.value -= 1
+                    }
+
+                    // In 1:1 direct calls, if the friend leaves or disconnects, end the call locally
+                    if (is1on1 && _callState.value != CallState.IDLE) {
+                        Log.d(TAG, "Friend left 1:1 voice room, ending call session locally")
+                        endCallLocally()
                     }
                 }
 
@@ -1722,6 +1791,10 @@ object VoiceCallManager {
         callerAvatar: String? = null
     ) {
         if (roomId.isBlank()) return
+        if (isCallTerminated(roomId)) {
+            Log.d(TAG, "Ignoring incoming call trigger for already terminated room: $roomId")
+            return
+        }
         if (_callState.value != CallState.IDLE && _incomingCall.value?.roomId == roomId) {
             return
         }
@@ -1874,6 +1947,7 @@ object VoiceCallManager {
 
     fun declineIncomingCall() {
         val call = _incomingCall.value ?: return
+        markCallTerminated(call.roomId)
         ConnectoNotificationManager.cancelCallNotification()
         val declineMsg = JSONObject().apply {
             put("action", "call:decline")
@@ -1963,12 +2037,21 @@ object VoiceCallManager {
     }
 
     fun endCall() {
-        val roomId = _activeRoomId.value
-        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
+        val roomId = _activeRoomId.value ?: _incomingCall.value?.roomId ?: _activeCallRoomCode.value
+        markCallTerminated(roomId)
+        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value ?: _incomingCall.value?.callerUsername ?: _incomingCall.value?.callerName
+        val partnerTitle = _activeCallPartner.value ?: _activeCallTitle.value
+        val duration = _callDurationSeconds.value
+        val isCaller = isCallCaller
+        val roomCode = _activeCallRoomCode.value ?: ""
+
+        // Instantly switch call state to IDLE so compose overlays dismiss with zero latency
+        _callState.value = CallState.IDLE
+
         if (!roomId.isNullOrBlank()) {
             val endMsg = JSONObject().apply {
                 put("action", "call:end")
-                put("type", "call:end")   // FIX: was "call_end"
+                put("type", "call:end")
                 if (!partner.isNullOrBlank()) {
                     val cleanPartner = partner.trim().removePrefix("@")
                     put("target", cleanPartner)
@@ -1978,6 +2061,19 @@ object VoiceCallManager {
                 put("room_id", roomId)
             }
             sendWsMessage(endMsg)
+
+            val callEndMsg = JSONObject().apply {
+                put("type", "call_end")
+                put("action", "call:end")
+                if (!partner.isNullOrBlank()) {
+                    val cleanPartner = partner.trim().removePrefix("@")
+                    put("target", cleanPartner)
+                    put("target_user", cleanPartner)
+                }
+                put("room_id", roomId)
+                put("call_id", roomId)
+            }
+            sendWsMessage(callEndMsg)
 
             // Also send voice_leave to remove us from server's voice_rooms map
             val leaveMsg = JSONObject().apply {
@@ -1994,17 +2090,15 @@ object VoiceCallManager {
         }
 
         // Record persistent call log
-        val partnerTitle = _activeCallPartner.value ?: _activeCallTitle.value
-        val duration = _callDurationSeconds.value
         scope.launch {
             ConnectoApiClient.recordCallLog(
                 callerName = partnerTitle,
                 callType = "Voice Call",
                 durationSeconds = duration,
                 isMissed = false,
-                isOutgoing = isCallCaller,
-                roomName = _activeCallTitle.value,
-                roomCode = _activeCallRoomCode.value ?: ""
+                isOutgoing = isCaller,
+                roomName = partnerTitle,
+                roomCode = roomCode
             )
         }
 
@@ -2024,6 +2118,8 @@ object VoiceCallManager {
 
     private fun endCallLocally() {
         synchronized(callTeardownLock) {
+            val roomId = _activeRoomId.value ?: _incomingCall.value?.roomId ?: _activeCallRoomCode.value
+            markCallTerminated(roomId)
             if (_callState.value == CallState.IDLE && _activeRoomId.value == null && _activeCallPartner.value == null && _incomingCall.value == null) {
                 Log.d(TAG, "endCallLocally: Already idle, skipping redundant teardown")
                 return

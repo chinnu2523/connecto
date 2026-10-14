@@ -55,6 +55,8 @@ import com.example.connecto.MainActivity
 import com.example.connecto.notifications.ConnectoNotificationManager
 import com.example.connecto.ui.theme.ConnectoTheme
 import com.example.connecto.ui.theme.OnlineGreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 class IncomingCallActivity : ComponentActivity() {
 
@@ -65,6 +67,16 @@ class IncomingCallActivity : ComponentActivity() {
 
         setupLockscreenFlags()
         acquireWakeLock()
+
+        // Auto-dismiss if caller hangs up, cancels, declines, or call ends
+        lifecycleScope.launch {
+            VoiceCallManager.callState.collect { state ->
+                if (state != CallState.INCOMING_RINGING) {
+                    ConnectoNotificationManager.cancelCallNotification()
+                    finish()
+                }
+            }
+        }
 
         val roomId = intent.getStringExtra(ConnectoNotificationManager.EXTRA_ROOM_ID) ?: ""
         val callerName = intent.getStringExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME) ?: "Connecto Gamer"

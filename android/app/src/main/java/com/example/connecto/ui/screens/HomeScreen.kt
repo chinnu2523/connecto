@@ -466,7 +466,6 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .pressScaleEffect(onClick = {
                                                 isInActiveCall = false
-                                                VoiceCallManager.leaveVoiceRoom()
                                                 VoiceCallManager.endCall()
                                             })
                                             .clip(CircleShape)

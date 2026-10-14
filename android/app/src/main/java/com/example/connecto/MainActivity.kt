@@ -593,14 +593,14 @@ fun ConnectoApp(
                                         .navigationBarsPadding()
                                 ) {
                                     // Minimized Call Floating Capsule Dock
-                                    if (isCallMinimized && callState != CallState.IDLE) {
+                                    val isCallOngoing = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
+                                    if (isCallMinimized && isCallOngoing) {
                                         MinimizedCallPill(
                                             callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
                                             avatarUrl = null,
                                             onExpand = { isCallMinimized = false },
                                             onEndCall = {
                                                 isCallMinimized = false
-                                                VoiceCallManager.leaveVoiceRoom()
                                                 VoiceCallManager.endCall()
                                             }
                                         )
@@ -613,7 +613,7 @@ fun ConnectoApp(
                                         },
                                         hasUnreadChats = hasUnreadChats,
                                         hasUnreadCalls = false,
-                                        isCallActive = callState != CallState.IDLE,
+                                        isCallActive = isCallOngoing,
                                         unreadMessagesCount = unreadNotifCount,
                                         userInitial = authenticatedUsername.trim().firstOrNull()?.uppercase() ?: "U"
                                     )
@@ -832,8 +832,8 @@ fun ConnectoApp(
             )
         }
 
-        // Global Full-Screen Audio Call Overlay
-        val isCallActiveGlobal = callState != CallState.IDLE
+        // Global Full-Screen Audio Call Overlay (Only when CONNECTED or OUTGOING_RINGING, never during INCOMING_RINGING)
+        val isCallActiveGlobal = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
         androidx.compose.animation.AnimatedVisibility(
             visible = isCallActiveGlobal && !isCallMinimized,
             enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
@@ -857,7 +857,6 @@ fun ConnectoApp(
                 },
                 onEndCall = {
                     isCallMinimized = false
-                    VoiceCallManager.leaveVoiceRoom()
                     VoiceCallManager.endCall()
                 },
                 modifier = Modifier.fillMaxSize()

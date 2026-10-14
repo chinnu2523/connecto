@@ -5357,12 +5357,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.7",
-        "version_name": "v4.2.7",
-        "version_code": 56,
-        "release_tag": "v4.2.7-stable",
-        "sha256": "81a1259eb50c336f474b640625a08aaa7807a5cf666355100ce15f434308f9a3",
-        "md5": "e5c7b82ec3017e92aba950517099f6de",
+        "version": "4.2.8",
+        "version_name": "v4.2.8",
+        "version_code": 57,
+        "release_tag": "v4.2.8-stable",
+        "sha256": "6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211",
+        "md5": "1afad2e381692ddeff56a7bc73005dc9",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5372,12 +5372,12 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "v4.2.8 Voice Call De-Duplication & Teardown Hardening: Eliminated duplicate incoming call prompts and phantom call screen loops with atomic callId lock and active call state validation",
+            "v4.2.8 Clean Header & Navigation Borders: Replaced moving animated lines in the top header and bottom navigation bar with elegant, crisp static borders",
             "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
             "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
             "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
-            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync",
-            "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
-            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs"
+            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync"
         ]
     }
 
@@ -5389,10 +5389,25 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.2.7",
+                "version": "v4.2.8",
                 "date": "Oct 14, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.2.8: Voice Call De-Duplication, Teardown Hardening & Clean Static Borders",
+                "summary": "Completely eliminates duplicate incoming voice call prompts and phantom call screen loops across callers and callees with atomic callId gating, enforces immediate teardown on caller cancellation, and removes top header and bottom navigation animated moving lines in favor of ultra-clean static hairline borders.",
+                "highlights": [
+                    "Voice Call De-Duplication: Atomic callId tracking ensures incoming call UI triggers exactly once per call event across all Android devices, preventing confusing layered dialogs.",
+                    "Instant Call Teardown & Dismissal: Immediate state cleanup on cancel/decline prevents callees from seeing ghost incoming screens when caller hangs up early.",
+                    "Clean Header & Bottom Bar Borders: Removed moving animated shimmer lines on the top header and bottom navigation bar, replaced with static subtle hairline dividers for a focused, distraction-free UI.",
+                    "Android Native App v4.2.8 (Build 57 • 54.4 MB): SHA-256 6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.2.7",
+                "date": "Oct 14, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.2.7: Call History Sync, Forgot Password OTP, 2FA Mail Setup & Real-Time Push Notifications",
                 "summary": "Fixes call history recording and dynamic auto-refresh, repairs forgot password OTP recovery with verified token consumption, enables full 2FA mail OTP setup with quick-fill chips, and delivers real-time notifications to the Android notification shade with sound and vibration alerts.",
                 "highlights": [

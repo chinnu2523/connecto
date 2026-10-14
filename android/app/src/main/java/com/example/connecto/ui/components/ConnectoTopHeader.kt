@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PersonAdd
@@ -45,16 +46,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import coil.compose.AsyncImage
@@ -81,6 +76,7 @@ fun ConnectoTopHeader(
     isStealthModeOn: Boolean = false,
     isOnline: Boolean = true,
     onMenuClick: (() -> Unit)? = null,
+    onVoiceGroupClick: (() -> Unit)? = null,
     onAddFriendClick: (() -> Unit)? = null,
     pendingFriendRequestsCount: Int = 0,
     onNotificationClick: (() -> Unit)? = null,
@@ -137,18 +133,6 @@ fun ConnectoTopHeader(
         targetValue = if (isHeaderLoaded) 0.dp else (-26).dp,
         animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
         label = "headerOffsetY"
-    )
-
-    // Very subtle moving shimmer/gradient line across the header as a continuous loop
-    val infiniteTransition = rememberInfiniteTransition(label = "headerShimmerLoop")
-    val shimmerPhase by infiniteTransition.animateFloat(
-        initialValue = -0.6f,
-        targetValue = 1.6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmerPhase"
     )
 
     Column(
@@ -271,6 +255,22 @@ fun ConnectoTopHeader(
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.width(ConnectoSpacing.xxs))
+                }
+
+                if (onVoiceGroupClick != null) {
+                    IconButton(
+                        onClick = onVoiceGroupClick,
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GroupAdd,
+                            contentDescription = "Voice Group",
+                            tint = colors.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(ConnectoSpacing.xxs))
                 }
 
 
@@ -293,37 +293,12 @@ fun ConnectoTopHeader(
             }
         }
 
-        // Clean 1dp Bottom Border with continuous moving subtle shimmer/gradient line
+        // Clean 1dp Bottom Border
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
                 .background(colors.borderSubtle)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .drawWithContent {
-                        val w = size.width
-                        val startX = (shimmerPhase - 0.20f) * w
-                        val endX = (shimmerPhase + 0.20f) * w
-                        drawRect(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    colors.primary.copy(alpha = 0.15f),
-                                    colors.primary.copy(alpha = 0.85f),
-                                    colors.info.copy(alpha = 0.95f),
-                                    colors.primary.copy(alpha = 0.85f),
-                                    colors.primary.copy(alpha = 0.15f),
-                                    Color.Transparent
-                                ),
-                                startX = startX,
-                                endX = endX
-                            )
-                        )
-                    }
-            )
-        }
+        )
     }
 }

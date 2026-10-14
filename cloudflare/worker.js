@@ -84,12 +84,12 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
+            "v4.2.8 Voice Call De-Duplication & Teardown Hardening: Eliminated duplicate incoming call prompts and phantom call screen loops with atomic callId lock and active call state validation",
+            "v4.2.8 Clean Header & Navigation Borders: Replaced moving animated lines in the top header and bottom navigation bar with elegant, crisp static borders",
             "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
             "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
             "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
-            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync",
-            "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
-            "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs"
+            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync"
           ]
         });
       }
@@ -98,14 +98,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.7",
-        version_name: "v4.2.7",
-        version_code: 56,
-        build: 56,
-        sha256: "81a1259eb50c336f474b640625a08aaa7807a5cf666355100ce15f434308f9a3",
-        md5: "e5c7b82ec3017e92aba950517099f6de",
+        version: "4.2.8",
+        version_name: "v4.2.8",
+        version_code: 57,
+        build: 57,
+        sha256: "6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211",
+        md5: "1afad2e381692ddeff56a7bc73005dc9",
         filename: "connecto-fun.apk",
-        size_bytes: 57040069,
+        size_bytes: 57072837,
         size_display: "54.4 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -113,12 +113,12 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "v4.2.8 Voice Call De-Duplication & Teardown Hardening: Eliminated duplicate incoming call prompts and phantom call screen loops with atomic callId lock and active call state validation",
+          "v4.2.8 Clean Header & Navigation Borders: Replaced moving animated lines in the top header and bottom navigation bar with elegant, crisp static borders",
           "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
           "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
           "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
-          "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync",
-          "v4.2.6 Liquid Glass Theme: Fluid aqua refraction, water droplet reflections & oceanic midnight canvas in Appearance settings",
-          "v4.2.6 Bottom Navigation Water Drop: Fluid moving water droplet indicator, liquid elongation physics, ripple splash & specular glare across all 5 tabs"
+          "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync"
         ]
       });
     }
@@ -149,7 +149,7 @@ export default {
       });
     }
 
-    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.7 Build 56 release asset)
+    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.8 Build 57 release asset)
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
     if (!isStaticAsset && (
@@ -160,7 +160,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.7/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.8/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -938,7 +938,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
   }
 
-  // 3c. 2FA Setup Request OTP (Android / Web)
+  // 3c. 2FA Setup / Disable Request OTP (Android / Web)
   if (path === "/api/v1/auth/2fa/request-otp" || path === "/api/auth/2fa/request-otp") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
@@ -949,22 +949,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
       const otpCode = generateNumericOtp(6);
       const dest = user.email || `${user.username}@connecto.fun`;
+      const isDisable = body.purpose === "disable" || body.purpose === "two_factor_disable";
+      const purposeLabel = isDisable ? "2FA Disable" : "2FA Setup";
+      const dbPurpose = isDisable ? "two_factor_disable" : "two_factor_setup";
+
       if (env.DB) {
         const otpId = "otp_" + crypto.randomUUID();
         await env.DB.prepare(
-          "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'two_factor_setup', ?, 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
-        ).bind(otpId, user.id, dest, otpCode, body.method || "email").run();
+          "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
+        ).bind(otpId, user.id, dest, otpCode, dbPurpose, body.method || "email").run();
       }
       if (ctx) {
-        ctx.waitUntil(dispatchOtpNotification({ email: user.email, username: user.username, otpCode, purpose: "2FA Setup", env, ctx }));
+        ctx.waitUntil(dispatchOtpNotification({ email: user.email, username: user.username, otpCode, purpose: purposeLabel, env, ctx }));
       }
       return jsonResponse({
         status: "ok",
-        message: "2FA setup code sent",
+        message: `${purposeLabel} verification code sent to your email`,
         method: body.method || "email",
         masked_destination: maskEmail(user.email),
-        identifier: user.email,
-        dev_otp: otpCode
+        identifier: user.email
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -982,6 +985,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
       const user = await resolveUserFromRequest(request, env);
       if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+      if (!otp || otp.length !== 6) {
+        return jsonResponse({ error: "Please enter the 6-digit verification code sent to your email.", detail: "Missing code" }, 400);
+      }
 
       let validOtp = false;
       let matchedRecord = null;
@@ -1002,7 +1009,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
 
       if (!validOtp) {
-        return jsonResponse({ error: "2FA verification failed: invalid code", detail: "Invalid code" }, 400);
+        return jsonResponse({ error: "Invalid verification code. Please check your email and try again.", detail: "Invalid code" }, 400);
       }
 
       if (matchedRecord && env.DB) {
@@ -1020,14 +1027,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         two_factor_enabled: true,
         two_factor_method: methodVal,
         phone_number: phoneVal || user.phone_number || "",
-        message: "2FA enabled successfully"
+        message: "Two-Factor Authentication enabled successfully."
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
     }
   }
 
-  // 3e. 2FA Toggle (Enable/Disable 2FA)
+  // 3e. 2FA Toggle (Enable/Disable 2FA with mandatory OTP verification on disable)
   if (path === "/api/auth/2fa/toggle" || path === "/api/v1/auth/2fa/toggle") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
@@ -1035,10 +1042,50 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const enabled = (body.enabled === true || body.enabled === 1 || body.enabled === "true");
       const methodVal = (body.method || "email").toLowerCase();
       const phoneVal = body.phone_number || null;
+      const otpCode = (body.otp_code || body.otp || "").trim();
 
       const user = await resolveUserFromRequest(request, env);
       if (!user) {
         return jsonResponse({ error: "Unauthorized", detail: "Active authenticated session required" }, 401);
+      }
+
+      // When disabling 2FA, enforce valid OTP verification if 2FA was active
+      if (!enabled && (user.two_factor_enabled === 1 || user.two_factor_enabled === true)) {
+        if (!otpCode || otpCode.length !== 6) {
+          return jsonResponse({
+            error: "A valid 6-digit verification code from your email is required to disable Two-Factor Authentication.",
+            detail: "Missing OTP code"
+          }, 400);
+        }
+
+        let validOtp = false;
+        let matchedRecord = null;
+        if (env.DB) {
+          const records = await env.DB.prepare(`
+            SELECT * FROM otp_verifications 
+            WHERE user_id = ? AND is_verified = 0 AND datetime(expires_at) >= datetime('now')
+            ORDER BY created_at DESC LIMIT 5
+          `).bind(user.id).all();
+
+          for (const r of (records.results || [])) {
+            if (r.otp_code === otpCode) {
+              validOtp = true;
+              matchedRecord = r;
+              break;
+            }
+          }
+        }
+
+        if (!validOtp) {
+          return jsonResponse({
+            error: "Invalid verification code. Please check your email and enter the correct code to disable 2FA.",
+            detail: "Invalid OTP code"
+          }, 400);
+        }
+
+        if (matchedRecord && env.DB) {
+          await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matchedRecord.id).run();
+        }
       }
 
       if (env.DB) {
@@ -1052,7 +1099,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         two_factor_enabled: enabled,
         two_factor_method: methodVal,
         phone_number: phoneVal || user.phone_number || "",
-        message: enabled ? "Two-Factor Authentication enabled." : "Two-Factor Authentication disabled."
+        message: enabled ? "Two-Factor Authentication enabled." : "Two-Factor Authentication disabled successfully."
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -3001,9 +3048,18 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     // Sort descending by created_at
     notifs.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
 
+    const nowMs = Date.now();
+    const activeNotifs = notifs.filter(n => {
+      if (n.type === "call_invite" || n.type === "call" || n.type === "incoming_call") {
+        const age = nowMs - new Date(n.created_at || 0).getTime();
+        if (age > 60 * 1000) return false;
+      }
+      return true;
+    });
+
     const unreadOnly = url.searchParams.get("unread_only") === "true";
-    const filtered = unreadOnly ? notifs.filter(n => !n.is_read) : notifs;
-    const unreadCount = notifs.filter(n => !n.is_read).length;
+    const filtered = unreadOnly ? activeNotifs.filter(n => !n.is_read) : activeNotifs;
+    const unreadCount = activeNotifs.filter(n => !n.is_read).length;
 
     if (path.includes("/count")) {
       return jsonResponse({ unread_count: unreadCount, count: unreadCount, unread: unreadCount });
@@ -3210,6 +3266,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     const responder = (body.username || body.user_id || request.headers.get("X-User-Username") || "").toLowerCase().trim().replace(/^@/, "");
     const callId = body.call_id || body.room_id;
 
+    if (callId && action !== "accept") {
+      const room = getRealtimeRoom(env);
+      if (room) {
+        try {
+          await room.fetch(new Request(`http://realtime/internal/notifications/clear-call?call_id=${encodeURIComponent(callId)}&username=${encodeURIComponent(target)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      if (env.DB) {
+        try {
+          await env.DB.prepare("UPDATE notifications SET is_read = 1 WHERE reference_id = ? OR id LIKE ?").bind(callId, `%${callId}%`).run();
+        } catch (_) {}
+      }
+    }
+
     if (ctx) {
       ctx.waitUntil(broadcastRealtime(env, {
         type: action === "accept" ? "call_accepted" : "call_declined",
@@ -3228,6 +3298,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
     const sender = (body.username || body.user_id || request.headers.get("X-User-Username") || "").toLowerCase().trim().replace(/^@/, "");
     const callId = body.call_id || body.room_id;
+
+    if (callId) {
+      const room = getRealtimeRoom(env);
+      if (room) {
+        try {
+          await room.fetch(new Request(`http://realtime/internal/notifications/clear-call?call_id=${encodeURIComponent(callId)}&username=${encodeURIComponent(target)}`, { method: "POST" }));
+        } catch (_) {}
+      }
+      if (env.DB) {
+        try {
+          await env.DB.prepare("UPDATE notifications SET is_read = 1 WHERE reference_id = ? OR id LIKE ?").bind(callId, `%${callId}%`).run();
+        } catch (_) {}
+      }
+    }
 
     if (ctx) {
       ctx.waitUntil(broadcastRealtime(env, {
@@ -3373,14 +3457,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.7",
-      version_name: "v4.2.7",
-      version_code: 56,
-      build: 56,
-      sha256: "81a1259eb50c336f474b640625a08aaa7807a5cf666355100ce15f434308f9a3",
-      md5: "e5c7b82ec3017e92aba950517099f6de",
+      version: "4.2.8",
+      version_name: "v4.2.8",
+      version_code: 57,
+      build: 57,
+      sha256: "6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211",
+      md5: "1afad2e381692ddeff56a7bc73005dc9",
       filename: "connecto-fun.apk",
-      size_bytes: 57040069,
+      size_bytes: 57072837,
       size_display: "54.4 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -3394,10 +3478,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.2.7",
+          version: "v4.2.8",
           date: "Oct 14, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.2.8: Voice Call De-Duplication, Teardown Hardening & Clean Static Borders",
+          summary: "Completely eliminates duplicate incoming voice call prompts and phantom call screen loops across callers and callees with atomic callId gating, enforces immediate teardown on caller cancellation, and removes top header and bottom navigation animated moving lines in favor of ultra-clean static hairline borders.",
+          highlights: [
+            "Voice Call De-Duplication: Atomic callId tracking ensures incoming call UI triggers exactly once per call event across all Android devices, preventing confusing layered dialogs.",
+            "Instant Call Teardown & Dismissal: Immediate state cleanup on cancel/decline prevents callees from seeing ghost incoming screens when caller hangs up early.",
+            "Clean Header & Bottom Bar Borders: Removed moving animated shimmer lines on the top header and bottom navigation bar, replaced with static subtle hairline dividers for a focused, distraction-free UI.",
+            "Android Native App v4.2.8 (Build 57 • 54.4 MB): SHA-256 6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.2.7",
+          date: "Oct 14, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.2.7: Direct Chat Delivery, Call History Sync, 2FA Setup & Real-Time Push Alerts",
           summary: "Resolves direct message delivery and persistence issues across Android and Cloudflare edge D1; provides full call history logging and live updates; enables verified email 2FA and forgot password OTP recovery; and delivers real-time notifications with instant heads-up alert previews.",
           highlights: [
@@ -3978,6 +4077,28 @@ export class ConnectoRealtimeRoom {
     });
   }
 
+  clearCallNotifications(callId, userA, userB) {
+    if (!callId) return;
+    const cleanA = userA ? String(userA).toLowerCase().trim().replace(/^@/, "") : "";
+    const cleanB = userB ? String(userB).toLowerCase().trim().replace(/^@/, "") : "";
+    const isCallNotif = (n) => n.reference_id === callId || n.id === `call_${callId}` || (n.id && n.id.includes(callId));
+
+    const users = [cleanA, cleanB].filter(Boolean);
+    if (users.length > 0) {
+      for (const u of users) {
+        if (this.userNotifications.has(u)) {
+          const list = this.userNotifications.get(u) || [];
+          this.userNotifications.set(u, list.filter(n => !isCallNotif(n)));
+        }
+      }
+    }
+    for (const [u, list] of this.userNotifications.entries()) {
+      if (list && list.some(isCallNotif)) {
+        this.userNotifications.set(u, list.filter(n => !isCallNotif(n)));
+      }
+    }
+  }
+
   resolveCallPeer(callId, senderUsername, explicitTarget) {
     if (explicitTarget) {
       return String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
@@ -4049,6 +4170,12 @@ export class ConnectoRealtimeRoom {
       }
       if (url.pathname.endsWith("/clear")) {
         this.userNotifications.set(username, []);
+        return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
+      }
+      if (url.pathname.endsWith("/clear-call")) {
+        const callId = url.searchParams.get("call_id") || "";
+        const u = url.searchParams.get("username") || "";
+        this.clearCallNotifications(callId, u, username);
         return new Response(JSON.stringify({ status: "ok" }), { headers: { "Content-Type": "application/json" } });
       }
       return new Response(JSON.stringify({ notifications: list }), {
@@ -4355,7 +4482,10 @@ export class ConnectoRealtimeRoom {
         if (action === "call:decline" || action === "call_decline") {
           const callId = data.call_id || data.room_id;
           const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
-          if (callId) this.pendingCalls.delete(callId);
+          if (callId) {
+            this.pendingCalls.delete(callId);
+            this.clearCallNotifications(callId, meta.username, target);
+          }
           if (target) {
             this.sendToUser(target, {
               type: "call:declined",
@@ -4438,22 +4568,35 @@ export class ConnectoRealtimeRoom {
         if (action === "call:end" || action === "call:ended" || action === "call_end") {
           const callId = data.call_id || data.room_id;
           const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
-          if (callId) this.pendingCalls.delete(callId);
-          if (target) {
-            this.sendToUser(target, {
-              type: "call:ended",
-              action: "call:ended",
-              call_id: callId,
-              room_id: callId
-            });
-          } else if (callId) {
-            this.broadcastToChannel(`voice_room:${callId}`, {
-              type: "call:ended",
-              action: "call:ended",
-              call_id: callId,
-              room_id: callId
-            }, server);
+          if (callId) {
+            this.pendingCalls.delete(callId);
+            this.clearCallNotifications(callId, meta.username, target);
           }
+          const endPayload = {
+            type: "call:ended",
+            action: "call:ended",
+            call_id: callId,
+            room_id: callId,
+            ended_by: meta.username
+          };
+          if (target) {
+            this.sendToUser(target, endPayload);
+          }
+          if (callId) {
+            this.broadcastToChannel(`voice_room:${callId}`, endPayload, server);
+            this.broadcastToChannel(`voice_room:${callId}`, {
+              type: "voice_peer_left",
+              room_id: callId,
+              peer_id: meta.username,
+              username: meta.username
+            }, server);
+            if (this.voiceRooms.has(callId)) {
+              this.voiceRooms.delete(callId);
+            }
+          }
+          try {
+            server.send(JSON.stringify(endPayload));
+          } catch (_) {}
           return;
         }
 
@@ -4843,6 +4986,7 @@ export class ConnectoRealtimeRoom {
           this.pendingCalls.get(callId).status = "connected";
         } else if (payload.type === "call_declined" || payload.type === "call_ended") {
           this.pendingCalls.delete(callId);
+          this.clearCallNotifications(callId, actor, target);
         }
       }
       const eventName = payload.type === "call_accepted" ? "call:accepted" :

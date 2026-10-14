@@ -70,9 +70,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.network.FriendshipDto
 import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ConnectoTopHeader
+import com.example.connecto.ui.components.CreateVoiceGroupDialog
 import com.example.connecto.ui.components.WebRtcCallOverlay
+import org.json.JSONObject
 import com.example.connecto.ui.components.FullScreenCallUI
 import com.example.connecto.ui.theme.CyanGlow
 import com.example.connecto.ui.theme.OnlineGreen
@@ -125,6 +128,9 @@ fun CallsScreen(
     var showClearAllDialog by remember { mutableStateOf(false) }
     var logPendingDelete by remember { mutableStateOf<CallLogItem?>(null) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
+    var showCreateVoiceGroupDialog by remember { mutableStateOf(false) }
+    var pendingVoiceGroupTitle by remember { mutableStateOf<String?>(null) }
+    var pendingVoiceGroupFriends by remember { mutableStateOf<List<FriendshipDto>>(emptyList()) }
 
     fun showToast(msg: String) {
         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -233,6 +239,40 @@ fun CallsScreen(
         }
     }
 
+    fun performVoiceGroupCall(groupTitle: String, selectedFriends: List<FriendshipDto>) {
+        val currentU = ConnectoApiClient.currentUsername?.ifEmpty { currentUsername } ?: currentUsername
+        val roomId = "group_voice_${currentU}_${System.currentTimeMillis()}"
+        activeCallTitle = groupTitle.ifEmpty { "Voice Group Call" }
+        activeCallParticipants = selectedFriends.size + 1
+        activeCallRoomCode = roomId
+        isInActiveCall = true
+
+        VoiceCallManager.joinVoiceRoom(roomId = roomId, roomName = activeCallTitle, roomCode = roomId)
+
+        coroutineScope.launch {
+            for (friend in selectedFriends) {
+                try {
+                    VoiceCallManager.inviteToVoiceGroup(
+                        roomId = roomId,
+                        groupTitle = activeCallTitle,
+                        targetUser = friend.friendUsername
+                    )
+                    ConnectoApiClient.inviteToVoiceCall(friend.friendUsername, roomId)
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+
+            ConnectoApiClient.recordCallLog(
+                callerName = activeCallTitle,
+                callType = "Group Call (${selectedFriends.size + 1} members)",
+                isMissed = false,
+                isOutgoing = true
+            )
+            refreshCallLogs()
+        }
+    }
+
     var pendingCallTarget by remember { mutableStateOf<String?>(null) }
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -242,10 +282,29 @@ fun CallsScreen(
             pendingCallTarget?.let { target ->
                 performDirectCall(target)
             }
+            pendingVoiceGroupTitle?.let { title ->
+                performVoiceGroupCall(title, pendingVoiceGroupFriends)
+            }
         } else {
             showToast("Microphone permission is required for voice calls")
         }
         pendingCallTarget = null
+        pendingVoiceGroupTitle = null
+        pendingVoiceGroupFriends = emptyList()
+    }
+
+    fun initiateVoiceGroupCall(groupTitle: String, selectedFriends: List<FriendshipDto>) {
+        if (selectedFriends.isEmpty()) {
+            showToast("Please select at least 1 friend to call")
+            return
+        }
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            performVoiceGroupCall(groupTitle, selectedFriends)
+        } else {
+            pendingVoiceGroupTitle = groupTitle
+            pendingVoiceGroupFriends = selectedFriends
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
     }
 
     fun initiateDirectCall(target: String) {
@@ -372,6 +431,7 @@ fun CallsScreen(
                 subtitle = "Call History & Voice Hub",
                 userInitial = userInitial,
                 onAddFriendClick = { showAddFriendDialog = true },
+                onVoiceGroupClick = { showCreateVoiceGroupDialog = true },
                 onAvatarClick = onOpenProfile,
                 onNotificationClick = null,
                 unreadNotificationsCount = 0
@@ -800,6 +860,17 @@ fun CallsScreen(
                 currentUsername = currentUsername,
                 onDismissRequest = { showAddFriendDialog = false },
                 onFriendAdded = { showAddFriendDialog = false }
+            )
+        }
+
+        if (showCreateVoiceGroupDialog) {
+            CreateVoiceGroupDialog(
+                currentUsername = currentUsername,
+                onDismissRequest = { showCreateVoiceGroupDialog = false },
+                onStartVoiceGroup = { title, friends ->
+                    showCreateVoiceGroupDialog = false
+                    initiateVoiceGroupCall(title, friends)
+                }
             )
         }
     }

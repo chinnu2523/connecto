@@ -12093,6 +12093,15 @@
   cursor: pointer !important;
   white-space: nowrap !important;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+.connecto-action-pill * {
+  pointer-events: none !important;
 }
 .connecto-action-pill:hover {
   background: var(--accent-tint, #1E2338) !important;
@@ -12586,21 +12595,22 @@
   color: #94A3B8 !important;
 }
 
-/* Mobile Bottom Dock (5-Tab Architecture) */
+/* Mobile Bottom Dock (5-Tab Architecture) - strictly hidden until user logs in and enters app */
 .connecto-mobile-dock {
-  display: flex !important;
+  display: none !important;
   position: fixed !important;
   bottom: 0 !important;
   left: 0 !important;
   right: 0 !important;
   height: 64px !important;
-  background: #0A0C13 !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-card, #0A0C13) !important;
+  border-top: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
   z-index: 9999 !important;
   justify-content: space-around !important;
   align-items: center !important;
   padding: 0 8px !important;
   backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 .mobile-dock-btn {
   display: flex !important;
@@ -13079,8 +13089,10 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
   backdrop-filter: blur(8px) !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: 10000 !important;
+  z-index: 100000 !important;
   opacity: 1 !important;
+  touch-action: auto !important;
+  pointer-events: auto !important;
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 </style>
@@ -13274,17 +13286,30 @@ body.in-app-view #heroView,
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
     box-sizing: border-box !important;
-    overflow: hidden !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
   }
   .chat-mockup-card {
     width: 100% !important;
     max-width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    aspect-ratio: auto !important;
+    height: 400px !important;
+    min-height: 400px !important;
+    max-height: 460px !important;
+    contain: none !important;
+    display: flex !important;
+    flex-direction: column !important;
     box-sizing: border-box !important;
+  }
+  .mock-body-layout {
+    flex: 1 1 0% !important;
+    min-height: 0 !important;
+    height: calc(100% - 38px) !important;
+    display: flex !important;
   }
   .hero-pill-badge {
     font-size: 11px !important;
@@ -14091,6 +14116,286 @@ body.in-app-view #heroView,
   }
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Dedicated Parchment / Light Mode Styling Overrides for Mobile Phone View */
+html[data-theme="parchment"] .connecto-mobile-dock,
+html[data-theme="light"] .connecto-mobile-dock,
+html[data-theme="ivory"] .connecto-mobile-dock {
+  background: rgba(251, 248, 242, 0.94) !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+  box-shadow: 0 10px 30px rgba(68, 64, 60, 0.12), 0 0 16px rgba(212, 175, 125, 0.18) !important;
+}
+
+html[data-theme="parchment"] .mobile-dock-btn,
+html[data-theme="light"] .mobile-dock-btn,
+html[data-theme="ivory"] .mobile-dock-btn {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-dock-btn:hover,
+html[data-theme="light"] .mobile-dock-btn:hover,
+html[data-theme="ivory"] .mobile-dock-btn:hover {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-dock-btn.active,
+html[data-theme="light"] .mobile-dock-btn.active,
+html[data-theme="ivory"] .mobile-dock-btn.active {
+  background: rgba(20, 19, 18, 0.08) !important;
+  border-color: rgba(20, 19, 18, 0.22) !important;
+  color: #141312 !important;
+  box-shadow: 0 2px 8px rgba(20, 19, 18, 0.12) !important;
+}
+
+html[data-theme="parchment"] .connecto-greeting-card,
+html[data-theme="light"] .connecto-greeting-card,
+html[data-theme="ivory"] .connecto-greeting-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  box-shadow: 0 4px 18px rgba(68, 64, 60, 0.06) !important;
+}
+
+html[data-theme="parchment"] .connecto-greeting-title,
+html[data-theme="light"] .connecto-greeting-title,
+html[data-theme="ivory"] .connecto-greeting-title {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-search-bar,
+html[data-theme="light"] .connecto-search-bar,
+html[data-theme="ivory"] .connecto-search-bar {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-search-bar input,
+html[data-theme="light"] .connecto-search-bar input,
+html[data-theme="ivory"] .connecto-search-bar input {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-card,
+html[data-theme="light"] .connecto-channel-card,
+html[data-theme="ivory"] .connecto-channel-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-card:hover,
+html[data-theme="light"] .connecto-channel-card:hover,
+html[data-theme="ivory"] .connecto-channel-card:hover {
+  background: #fcfbf9 !important;
+  border-color: rgba(20, 19, 18, 0.28) !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-name,
+html[data-theme="light"] .connecto-channel-name,
+html[data-theme="ivory"] .connecto-channel-name {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-channel-hash,
+html[data-theme="light"] .connecto-channel-hash,
+html[data-theme="ivory"] .connecto-channel-hash {
+  color: #44403c !important;
+}
+
+html[data-theme="parchment"] .connecto-dm-card,
+html[data-theme="light"] .connecto-dm-card,
+html[data-theme="ivory"] .connecto-dm-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-dm-card:hover,
+html[data-theme="light"] .connecto-dm-card:hover,
+html[data-theme="ivory"] .connecto-dm-card:hover {
+  background: #fcfbf9 !important;
+  border-color: rgba(20, 19, 18, 0.28) !important;
+}
+
+html[data-theme="parchment"] .connecto-action-pill,
+html[data-theme="light"] .connecto-action-pill,
+html[data-theme="ivory"] .connecto-action-pill {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-action-pill:hover,
+html[data-theme="light"] .connecto-action-pill:hover,
+html[data-theme="ivory"] .connecto-action-pill:hover {
+  background: rgba(20, 19, 18, 0.06) !important;
+  border-color: #141312 !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-section-title,
+html[data-theme="light"] .connecto-section-title,
+html[data-theme="ivory"] .connecto-section-title {
+  color: #57534e !important;
+}
+
+html[data-theme="parchment"] .connecto-screen-header .connecto-header-title,
+html[data-theme="light"] .connecto-screen-header .connecto-header-title,
+html[data-theme="ivory"] .connecto-screen-header .connecto-header-title {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .connecto-call-search-card,
+html[data-theme="light"] .connecto-call-search-card,
+html[data-theme="ivory"] .connecto-call-search-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+}
+
+/* --- Dedicated Parchment / Light Mode Styling Overrides for Mobile Navigation Drawer & Toggle Button --- */
+html[data-theme="parchment"] .mobile-nav-toggle,
+html[data-theme="light"] .mobile-nav-toggle,
+html[data-theme="ivory"] .mobile-nav-toggle {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  color: #141312 !important;
+  box-shadow: 0 1px 4px rgba(68, 64, 60, 0.08) !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-toggle:hover,
+html[data-theme="light"] .mobile-nav-toggle:hover,
+html[data-theme="ivory"] .mobile-nav-toggle:hover {
+  background: #f5f1e8 !important;
+  border-color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-toggle .hamburger-bar,
+html[data-theme="light"] .mobile-nav-toggle .hamburger-bar,
+html[data-theme="ivory"] .mobile-nav-toggle .hamburger-bar {
+  background: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-drawer-overlay,
+html[data-theme="light"] .mobile-nav-drawer-overlay,
+html[data-theme="ivory"] .mobile-nav-drawer-overlay {
+  background: rgba(20, 19, 18, 0.45) !important;
+}
+
+html[data-theme="parchment"] .mobile-nav-drawer,
+html[data-theme="light"] .mobile-nav-drawer,
+html[data-theme="ivory"] .mobile-nav-drawer {
+  background: #fbf8f2 !important;
+  border-left: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: -16px 0 48px rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-head,
+html[data-theme="light"] .mobile-drawer-head,
+html[data-theme="ivory"] .mobile-drawer-head {
+  border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+  background: #f5f1e8 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-close,
+html[data-theme="light"] .mobile-drawer-close,
+html[data-theme="ivory"] .mobile-drawer-close {
+  background: rgba(68, 64, 60, 0.08) !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-telemetry,
+html[data-theme="light"] .mobile-drawer-telemetry,
+html[data-theme="ivory"] .mobile-drawer-telemetry {
+  background: rgba(68, 64, 60, 0.04) !important;
+  border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+}
+
+html[data-theme="parchment"] .drawer-stat-pill,
+html[data-theme="light"] .drawer-stat-pill,
+html[data-theme="ivory"] .drawer-stat-pill {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  color: #44403c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-apk-card,
+html[data-theme="light"] .mobile-drawer-apk-card,
+html[data-theme="ivory"] .mobile-drawer-apk-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 4px 16px rgba(44, 40, 37, 0.06) !important;
+}
+
+html[data-theme="parchment"] .drawer-apk-details strong,
+html[data-theme="light"] .drawer-apk-details strong,
+html[data-theme="ivory"] .drawer-apk-details strong {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .drawer-apk-details span,
+html[data-theme="light"] .drawer-apk-details span,
+html[data-theme="ivory"] .drawer-apk-details span {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-link,
+html[data-theme="light"] .mobile-drawer-link,
+html[data-theme="ivory"] .mobile-drawer-link {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-link:hover,
+html[data-theme="light"] .mobile-drawer-link:hover,
+html[data-theme="ivory"] .mobile-drawer-link:hover {
+  background: #f5f1e8 !important;
+  border-color: rgba(68, 64, 60, 0.25) !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-text strong,
+html[data-theme="light"] .mobile-drawer-text strong,
+html[data-theme="ivory"] .mobile-drawer-text strong {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-text span,
+html[data-theme="light"] .mobile-drawer-text span,
+html[data-theme="ivory"] .mobile-drawer-text span {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-label,
+html[data-theme="light"] .mobile-drawer-label,
+html[data-theme="ivory"] .mobile-drawer-label {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-foot,
+html[data-theme="light"] .mobile-drawer-foot,
+html[data-theme="ivory"] .mobile-drawer-foot {
+  border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
+  background: #f5f1e8 !important;
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-btn.btn-outline,
+html[data-theme="light"] .mobile-drawer-btn.btn-outline,
+html[data-theme="ivory"] .mobile-drawer-btn.btn-outline {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .mobile-drawer-btn.nav-cta-shimmer,
+html[data-theme="light"] .mobile-drawer-btn.nav-cta-shimmer,
+html[data-theme="ivory"] .mobile-drawer-btn.nav-cta-shimmer {
+  background: #141312 !important;
+  color: #ffffff !important;
+  border: 1px solid #141312 !important;
+}
 </style>
 
 <style id="connecto-android-showcase-styles">
@@ -16204,6 +16509,9 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
 }
 @media (max-width: 768px) {
   .connecto-mobile-dock {
+    display: none !important;
+  }
+  body.in-app-view .connecto-mobile-dock {
     display: flex !important;
     position: fixed !important;
     bottom: 12px !important;
@@ -16220,7 +16528,7 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
     z-index: 9999 !important;
     pointer-events: auto !important;
   }
-  body {
+  body.in-app-view {
     padding-bottom: 78px !important;
   }
   body.mobile-in-chat {
@@ -17704,11 +18012,11 @@ pre, .code-block, .chat-code-snippet {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
     </div>
 
-    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.2.5 Live • Pure Black OLED & Vault • 54 MB)" style="text-decoration:none; color:#10b981; position:relative;">
+    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.2.8 Live • Pure Black OLED & Vault • 54 MB)" style="text-decoration:none; color:#10b981; position:relative;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="3"/><path d="M12 18h.01"/><path d="m9 10 3 3 3-3"/><path d="M12 6v7"/></svg>
       <div class="rail-unread-badge rail-apk-badge" style="display:flex; align-items:center; gap:2px; background:linear-gradient(135deg, #10b981, #06b6d4); color:#020617; font-weight:900; font-size:7.5px; padding:1px 4px; min-width:auto; height:16px; border-radius:8px; box-shadow:0 0 8px rgba(16,185,129,0.5);">
         <span class="live-dot-pulse-mini"></span>
-        <span class="apk-version-val">v4.2.5</span>
+        <span class="apk-version-val">v4.2.8</span>
       </div>
     </a>
         <div class="guild-icon" id="tabVaultRailBtn" onclick="openConnectoVault()" title="Connecto Hardware Vault (Biometrics & OLED Keyguard)" style="position:relative; color:#10b981;">
@@ -17810,14 +18118,14 @@ pre, .code-block, .chat-code-snippet {
         <div class="sidebar-apk-meta">
           <div class="sidebar-apk-title-row">
             <span class="sidebar-apk-title">Connecto App</span>
-            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.2.5</span></span>
+            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.2.8</span></span>
           </div>
           <div class="sidebar-apk-sub">
             <span class="apk-size-val">54 MB</span> • OLED Vault • Sub-5ms
           </div>
         </div>
       </div>
-      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v4.2.5)">
+      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v4.2.8)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>GET</span>
       </a>
@@ -18367,10 +18675,10 @@ pre, .code-block, .chat-code-snippet {
             <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
             <a class="landing-link" id="navLinkVault" onclick="openConnectoVault()" style="display:inline-flex; align-items:center; gap:6px; color:#10b981; font-weight:700; cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm"></i>Vault</a>
-            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.2.5 Live • 54 MB)">
+            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.2.8 Live • 54 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
-              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.2.5</span></span>
+              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.2.8</span></span>
             </a>
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
           </div>
@@ -18401,7 +18709,7 @@ pre, .code-block, .chat-code-snippet {
         <!-- SECTION 1: HERO & INTERACTIVE STAGE -->
         <div class="hero-grid">
           <div class="hero-text">
-            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v4.2.5</div>
+            <div class="hero-eyebrow"><span class="official-live-indicator"></span>ISSUE 04 · THE CONNECTO MONOGRAPH · v4.2.8</div>
             <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
             <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
@@ -18585,14 +18893,14 @@ pre, .code-block, .chat-code-snippet {
             <!-- Left: Specs & Features Bento -->
             <div class="android-showcase-card-left interactive-tilt-card">
               <div class="android-release-tag-row">
-                <span class="android-release-badge"><span class="pulse-emerald-dot"></span> <span class="apk-version-val">v4.2.5</span> STABLE (BUILD 53)</span>
+                <span class="android-release-badge"><span class="pulse-emerald-dot"></span> <span class="apk-version-val">v4.2.8</span> STABLE (BUILD 57)</span>
                 <span class="android-release-device-chip"><i data-lucide="smartphone" class="lucide-xs"></i> Android 7.0 to 16+ (POCO / HyperOS Verified)</span>
                 <span class="android-release-device-chip" style="border-color:rgba(16,185,129,0.3); color:#10b981;"><i data-lucide="shield-check" class="lucide-xs"></i> Touch-Scroll Isolation Hardened</span>
               </div>
 
               <h3 class="android-showcase-title">Direct APK Package • Hardened for Android 16 & HyperOS</h3>
               <p class="android-showcase-desc">
-                Experience total privacy, instant voice calls, and zero-crash performance. The official Connecto Android APK (v4.2.5, Build 54) is built directly from source with ultra-low latency WebRTC calling (16k TURN ports), touch-scroll isolation gesture engine, zero Google Play Services dependencies, and true OLED deep blacks.
+                Experience total privacy, instant voice calls, and zero-crash performance. The official Connecto Android APK (v4.2.8, Build 57) is built directly from source with ultra-low latency WebRTC calling (16k TURN ports), touch-scroll isolation gesture engine, zero Google Play Services dependencies, and true OLED deep blacks.
               </p>
 
               <div class="android-specs-row">
@@ -18601,8 +18909,8 @@ pre, .code-block, .chat-code-snippet {
                   <span class="android-spec-lbl">Package Size</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-version-val">v4.2.5</span>
-                  <span class="android-spec-lbl">Live Build 54</span>
+                  <span class="android-spec-val apk-version-val">v4.2.8</span>
+                  <span class="android-spec-lbl">Live Build 57</span>
                 </div>
                 <div class="android-spec-item">
                   <span class="android-spec-val" style="color:#10b981;">Android 16+</span>
@@ -18615,6 +18923,14 @@ pre, .code-block, .chat-code-snippet {
               </div>
 
               <div class="android-features-grid">
+                <div class="android-feat-card" style="border-color: rgba(234, 179, 8, 0.4); background: rgba(234, 179, 8, 0.06);">
+                  <div class="android-feat-card-top">
+                    <span class="android-feat-card-icon" style="color:#eab308;"><i data-lucide="mail-check" class="lucide-md"></i></span>
+                    <span class="android-feat-card-title" style="color:#fef08a;">7-Day Email Verification Grace & Unlock</span>
+                  </div>
+                  <div class="android-feat-card-desc">Existing accounts enjoy a 7-day grace period with real-time countdown banner. If deadline expires, temporary gate unlocks instantly via 6-digit email OTP.</div>
+                </div>
+
                 <div class="android-feat-card">
                   <div class="android-feat-card-top">
                     <span class="android-feat-card-icon"><i data-lucide="shield-check" class="lucide-md"></i></span>
@@ -18649,31 +18965,31 @@ pre, .code-block, .chat-code-snippet {
 
                 <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.06);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="database" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#10b981;">v4.2.5 Full Friend Chat &amp; D1 Data Sync</span>
+                    <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="phone-call" class="lucide-md"></i></span>
+                    <span class="android-feat-card-title" style="color:#10b981;">v4.2.8 Voice Call De-Duplication &amp; Teardown Hardening</span>
                   </div>
-                  <div class="android-feat-card-desc">Synchronizes all user profiles, avatars, friendships, and historical DM threads across Cloudflare D1 and Origin with UUID channel resolution.</div>
+                  <div class="android-feat-card-desc">Eliminated multiple overlapping call UIs, fixed phantom second call triggers on hangup with 60s stale notification filters, and added client termination caching.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(168, 85, 247, 0.35); background: rgba(168, 85, 247, 0.06);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#a855f7;"><i data-lucide="shield-check" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#a855f7;">v4.2.5 Edge WebSocket Auth &amp; Telemetry</span>
+                    <span class="android-feat-card-icon" style="color:#a855f7;"><i data-lucide="minus" class="lucide-md"></i></span>
+                    <span class="android-feat-card-title" style="color:#a855f7;">v4.2.8 Clean Header &amp; Navigation Borders</span>
                   </div>
-                  <div class="android-feat-card-desc">Full cf_edge_ token authentication on WebSocket &amp; REST endpoints, automated server maintenance telemetry, and dedicated profile sub-pages.</div>
+                  <div class="android-feat-card-desc">Removed distracting moving line animations from top header and bottom navigation bar in favor of clean, solid, distraction-free static hairline borders.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.06);">
                   <div class="android-feat-card-top">
                     <span class="android-feat-card-icon" style="color:#60a5fa;"><i data-lucide="sliders" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#93c5fd;">v4.2.5 Redesigned Profile &amp; Chat Controls</span>
+                    <span class="android-feat-card-title" style="color:#93c5fd;">v4.2.8 Liquid Glass &amp; Water Drop Nav</span>
                   </div>
-                  <div class="android-feat-card-desc">Overhauled Profile sub-screens with status hero cards &amp; status-bar clearance, streamlined Friend Profile Chat &amp; Lock + Wallpaper tabs, and Admin 5-Wallpaper Group Selector.</div>
+                  <div class="android-feat-card-desc">Ultra-responsive tactile navigation with fluid spring physics on bottom tabs and instant direct chat persistence.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#06b6d4;"><i data-lucide="layers" class="lucide-md"></i></span>
+                    <span class="android-feat-card-icon" style="color:#06b6d4;"><i data-lucide="cpu" class="lucide-md"></i></span>
                     <span class="android-feat-card-title" style="color:#06b6d4;">Android 16 &amp; HyperOS Ready</span>
                   </div>
                   <div class="android-feat-card-desc">Full 64-bit arm64-v8a targetSdk 37 build verified live on physical POCO HyperOS and Android 16 with zero Google Play dependencies.</div>
@@ -18698,7 +19014,7 @@ pre, .code-block, .chat-code-snippet {
               <div class="android-security-note" style="margin-top:14px; padding:12px 14px; background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <span style="display:flex; align-items:center; gap:6px; color:#10b981; font-weight:700; font-size:12px;">
-                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v4.2.5 (Build 54) • Oct 13, 2026
+                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v4.2.8 (Build 57) • Oct 14, 2026
                   </span>
                   <span style="font-size:11px; color:#94a3b8;">
                     arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16) • 54.4 MB
@@ -18706,7 +19022,7 @@ pre, .code-block, .chat-code-snippet {
                 </div>
                 <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10.5px; color:#94a3b8; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); word-break:break-all;">
                   <span style="color:#38bdf8; font-weight:700;">SHA-256:</span>
-                  <span style="color:#e2e8f0; user-select:all; margin-left:4px;">831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2</span>
+                  <span style="color:#e2e8f0; user-select:all; margin-left:4px;">6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211</span>
                 </div>
               </div>
             </div>
@@ -18774,7 +19090,7 @@ pre, .code-block, .chat-code-snippet {
 
                     <div class="phone-chat-msg">
                       <span class="phone-chat-user">alex:</span>
-                      <span style="color:#cbd5e1;">v4.2.5 connects instantly! Profile accordion UI, smooth touch scrolling with zero accidental emoji or button selections on Android 7 to 16.</span>
+                      <span style="color:#cbd5e1;">v4.2.8 connects instantly! Dual call UI overlaps eliminated, phantom call teardown fixed, and clean static borders on Android 7 to 16.</span>
                     </div>
 
                     <div class="phone-chat-msg">
@@ -18783,7 +19099,7 @@ pre, .code-block, .chat-code-snippet {
                     </div>
 
                     <div class="phone-chat-poll">
-                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v4.2.5 Stability:</div>
+                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v4.2.8 Stability:</div>
                       <div style="display:flex; justify-content:space-between; margin-top:4px; color:#94a3b8;">
                         <span>Voice Teardown Mutex</span>
                         <strong style="color:#10b981;">100% Stable</strong>
@@ -18953,7 +19269,7 @@ pre, .code-block, .chat-code-snippet {
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Connecto Android Native</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v4.2.5</span>
+                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v4.2.8</span>
                   </div>
                   <p class="ecosystem-card-desc">Native Android client engineered with Jetpack Compose, low-latency voice rooms, pure black OLED power saving, and background call listener.</p>
                 </div>
@@ -18965,7 +19281,7 @@ pre, .code-block, .chat-code-snippet {
                 <span class="ecosystem-feature-chip">OLED Black Mode</span>
               </div>
               <div class="ecosystem-card-action">
-                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.2.5</span> • <span class="apk-size-val">54 MB</span></span>
+                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.2.8</span> • <span class="apk-size-val">54 MB</span></span>
                 <a href="/download/apk" download="connecto-fun.apk" class="ecosystem-card-btn" style="color:#06b6d4; text-decoration:none;">Download Android App <i data-lucide="download" class="lucide-sm"></i></a>
               </div>
             </div>
@@ -19261,7 +19577,7 @@ pre, .code-block, .chat-code-snippet {
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  Yes! Connecto is available as an official native Android app (v4.2.5, 54 MB) engineered with Pure Black OLED aesthetics, Connecto Vault biometric & device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
+                  Yes! Connecto is available as an official native Android app (v4.2.8, 54.4 MB) engineered with Pure Black OLED aesthetics, Connecto Vault biometric & device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
                 </div>
               </div>
             </div>
@@ -19321,7 +19637,7 @@ pre, .code-block, .chat-code-snippet {
             <div class="footer-col">
               <h5>Product</h5>
               <ul>
-                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v4.2.5</span> Live)</a></li>
+                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v4.2.8</span> Live)</a></li>
                 <li><a href="/architecture"><i data-lucide="cpu" class="lucide-sm" style="margin-right:6px;"></i> Architecture Deep-Dive</a></li>
                 <li><a href="/status" target="_blank"><i data-lucide="activity" class="lucide-sm" style="color:var(--green); margin-right:6px;"></i> Live Status Page</a></li>
                 <li><a onclick="switchMainView('learning')"><i data-lucide="graduation-cap" class="lucide-sm" style="margin-right:6px;"></i> Learning Academy</a></li>
@@ -19752,7 +20068,7 @@ pre, .code-block, .chat-code-snippet {
         <div class="mobile-drawer-apk-card">
           <div class="drawer-apk-badge-row">
             <span class="drawer-apk-chip"><span class="pulse-emerald-dot"></span> OFFICIAL ANDROID APP</span>
-            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.2.5</span> Live</span>
+            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.2.8</span> Live</span>
           </div>
           <div class="drawer-apk-main">
             <div class="drawer-apk-icon">
@@ -20093,51 +20409,10 @@ pre, .code-block, .chat-code-snippet {
           <!-- ==================== TAB 1: PUBLIC PROFILE ==================== -->
           <div id="profTabContentProfile" style="display:block;">
             
-            <!-- Hero Profile Banner Card -->
-            <div class="profile-hero-banner" id="settingsBannerPreview" onclick="openBannerLightbox(this)" style="cursor:pointer;" title="Click to view full size">
-              <div class="profile-hero-avatar-wrap" id="settingsAvatarPreview" onclick="event.stopPropagation(); openAvatarLightbox(this)" style="cursor:pointer;" title="Click to view full size">
+            <!-- Hero Profile Header Card -->
+            <div class="profile-hero-banner" id="settingsBannerPreview" style="height:auto; min-height:110px; padding:24px 20px; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(30,41,59,0.7) 100%); margin-bottom:20px;">
+              <div class="profile-hero-avatar-wrap" id="settingsAvatarPreview" onclick="openAvatarLightbox(this)" style="cursor:pointer; position:static; transform:none; margin:0;" title="Click to view avatar">
                 🔥
-              </div>
-            </div>
-
-            <!-- Cover Banner & Background Customization Section -->
-            <div class="profile-card-section">
-              <div class="profile-card-title"><span>🖼️</span> Profile Cover Background</div>
-              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Choose an aesthetic professional banner or enter a custom image URL to display behind your avatar.</p>
-
-              <div class="profile-banner-presets-grid" id="bannerPresetsGrid">
-                <div class="banner-preset-item active" onclick="selectBannerPreset('preset_aurora', this)" style="background:linear-gradient(135deg, #090d16 0%, #064e3b 50%, #083344 100%);">
-                  <span class="banner-preset-name">Obsidian Aurora</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_cyberpunk', this)" style="background:linear-gradient(to bottom, rgba(13,10,26,0.85), rgba(13,10,26,0.95)), repeating-linear-gradient(0deg, transparent, transparent 15px, rgba(0,206,201,0.25) 16px), repeating-linear-gradient(90deg, transparent, transparent 15px, rgba(108,92,231,0.25) 16px);">
-                  <span class="banner-preset-name">Cyberpunk Grid</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_space', this)" style="background:linear-gradient(135deg, #03001e 0%, #7303c0 50%, #ec38bc 100%);">
-                  <span class="banner-preset-name">Deep Nebula</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_matrix', this)" style="background:linear-gradient(135deg, #022c22 0%, #065f46 50%, #0f172a 100%);">
-                  <span class="banner-preset-name">Emerald Matrix</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_carbon', this)" style="background:linear-gradient(135deg, #18181b 0%, #27272a 50%, #09090b 100%);">
-                  <span class="banner-preset-name">Titanium Carbon</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_sunset', this)" style="background:linear-gradient(135deg, #31103f 0%, #831843 50%, #f59e0b 100%);">
-                  <span class="banner-preset-name">Sunset Dusk</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_frost', this)" style="background:linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);">
-                  <span class="banner-preset-name" style="color:#0f172a !important;">Minimalist Frost</span>
-                </div>
-                <div class="banner-preset-item" onclick="selectBannerPreset('preset_gold', this)" style="background:linear-gradient(135deg, #1c1917 0%, #78350f 50%, #ca8a04 100%);">
-                  <span class="banner-preset-name">Golden Sage</span>
-                </div>
-              </div>
-
-              <div style="margin-top:12px; margin-bottom:10px;">
-                <label for="setUserBannerUrl" style="font-size:11.5px; color:var(--text-muted); font-weight:700;">Or Paste Custom Banner Image URL</label>
-                <div class="auth-input-wrap" style="height:42px; margin-top:4px;">
-                  <span class="auth-input-icon">🔗</span>
-                  <input type="url" class="auth-input-field" id="setUserBannerUrl" placeholder="https://example.com/cover-banner.jpg" oninput="handleCustomBannerInput(this.value)">
-                </div>
               </div>
             </div>
 
@@ -20854,8 +21129,8 @@ pre, .code-block, .chat-code-snippet {
   </div>
 
   <!-- Add Friend Modal -->
-  <div class="modal-overlay" id="addFriendModal" style="display:none;" onclick="closeAddFriendModal(event)">
-    <div class="modal-card border-beam-card" style="width:460px; max-width:94vw; padding:24px; border-radius:20px; background:var(--bg-modal, #0F121D); box-shadow:0 12px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; position:relative;" onclick="event.stopPropagation()">
+  <div class="modal-overlay" id="addFriendModal" style="display:none; z-index:100001 !important; touch-action:auto !important;" onclick="closeAddFriendModal(event)">
+    <div class="modal-card border-beam-card" style="width:460px; max-width:94vw; padding:24px; border-radius:20px; background:var(--bg-modal, #0F121D); box-shadow:0 12px 40px rgba(0,0,0,0.5); display:flex; flex-direction:column; position:relative; touch-action:auto !important; pointer-events:auto !important;" onclick="event.stopPropagation()">
       <div class="border-beam"></div>
       
       <!-- Modal Header -->
@@ -21178,6 +21453,50 @@ pre, .code-block, .chat-code-snippet {
       </form>
     </div>
   </div>
+  <!-- ==================== EMAIL VERIFICATION GRACE BANNER & MODAL ==================== -->
+  <div id="emailGracePeriodBanner" style="display:none; position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:9998; width:calc(100% - 32px); max-width:960px; background:linear-gradient(90deg, rgba(234,179,8,0.2), rgba(249,115,22,0.25)); backdrop-filter:blur(16px); border:1px solid rgba(234,179,8,0.45); border-radius:12px; padding:10px 16px; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.5);">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:20px;">⚠️</span>
+        <div>
+          <div style="font-weight:800; font-size:13px; color:#fef08a;" id="emailGraceDaysTitle">Email Verification Notice (7 days remaining)</div>
+          <div style="font-size:11.5px; color:rgba(255,255,255,0.85);">For existing accounts, please verify your email address to prevent account suspension.</div>
+        </div>
+      </div>
+      <button type="button" class="btn" onclick="openEmailVerificationModal(false)" style="background:#f59e0b; color:#0f172a; font-weight:800; font-size:11.5px; padding:6px 14px; border-radius:8px; border:none; cursor:pointer;">Verify Email ⚡</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="emailVerificationModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px); align-items:center; justify-content:center; padding:16px;">
+    <div class="auth-card" style="max-width:440px; width:100%; background:rgba(15,23,42,0.96); border:1px solid rgba(99,102,241,0.4); border-radius:24px; padding:28px; position:relative; box-shadow:0 24px 60px rgba(0,0,0,0.8);">
+      <button type="button" id="closeEmailVerificationBtn" onclick="closeEmailVerificationModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding:6px;">✕</button>
+      
+      <div style="text-align:center; margin-bottom:20px;">
+        <div id="emailVerifyIconBox" style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #3b82f6); display:inline-flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:12px;">✉️</div>
+        <h3 id="emailVerifyTitle" style="font-size:20px; font-weight:900; color:#fff; margin-bottom:6px;">Verify Your Email</h3>
+        <p id="emailVerifyDesc" style="font-size:13px; color:rgba(255,255,255,0.7); line-height:1.5;">Confirm your registered email address with a 6-digit OTP code to maintain full access to Connecto.</p>
+      </div>
+
+      <div id="emailVerifyStepRequest">
+        <button type="button" class="btn auth-submit-shimmer" id="emailVerifySendOtpBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800;" onclick="handleRequestEmailVerificationOtp()">Send 6-Digit Code ✉️</button>
+      </div>
+
+      <div id="emailVerifyStepConfirm" style="display:none;">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:12px; font-weight:700; color:#a5b4fc;">Enter 6-Digit OTP Code</label>
+          <div class="auth-input-wrap" style="margin-top:6px;">
+            <input type="text" maxlength="6" class="auth-input-field" id="emailVerifyOtpInput" placeholder="123456" style="text-align:center; font-size:20px; letter-spacing:6px; font-weight:800;">
+          </div>
+        </div>
+        <button type="button" class="btn auth-submit-shimmer" id="emailVerifySubmitBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800; background:linear-gradient(135deg, #10b981, #06b6d4);" onclick="handleConfirmEmailVerificationOtp()">Verify & Unlock ➔</button>
+        <div style="text-align:center; margin-top:12px;">
+          <button type="button" class="btn-text" onclick="handleRequestEmailVerificationOtp()" style="color:#818cf8; background:none; border:none; font-size:12px; font-weight:700; cursor:pointer;">Resend Code</button>
+        </div>
+      </div>
+
+      <div class="auth-alert" id="emailVerifyFeedback" style="display:none; margin-top:14px;"></div>
+    </div>
+  </div>
 
   <script>
 
@@ -21442,6 +21761,233 @@ pre, .code-block, .chat-code-snippet {
       }
     }
 
+    // ==================== EMAIL VERIFICATION FOR EXISTING USERS ====================
+    let userEmailVerification = {
+      isEmailVerified: true,
+      isTemporarilyBlocked: false,
+      verificationDaysLeft: null
+    };
+
+    async function checkEmailVerificationStatus() {
+      const graceBanner = document.getElementById('emailGracePeriodBanner');
+      const authModalEl = document.getElementById('authModal');
+      const isAuthModalOpen = authModalEl && (authModalEl.style.display === 'flex' || authModalEl.style.display === 'block');
+      const isLandingView = !inAppInitialized || (typeof activeMainView !== 'undefined' && activeMainView === 'hero');
+
+      if (!currentUser || currentUser === 'guest' || isAuthModalOpen || isLandingView) {
+        if (graceBanner) graceBanner.style.display = 'none';
+        return;
+      }
+      try {
+        const res = await fetch(`/api/user/profile?username=${encodeURIComponent(currentUser)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const user = data.user || data;
+        const isVerified = (user.is_email_verified === true || user.is_email_verified === 1);
+        const isBlocked = (user.is_temporarily_blocked === true || user.is_temporarily_blocked === 1);
+        const daysLeft = (typeof user.verification_days_left === 'number') ? user.verification_days_left : 7;
+
+        userEmailVerification = {
+          isEmailVerified: isVerified,
+          isTemporarilyBlocked: isBlocked,
+          verificationDaysLeft: daysLeft
+        };
+
+        const daysTitle = document.getElementById('emailGraceDaysTitle');
+
+        if (!isVerified) {
+          if (isBlocked) {
+            if (graceBanner) graceBanner.style.display = 'none';
+            openEmailVerificationModal(true);
+          } else {
+            // Re-verify modal/landing state before showing banner
+            const modalOpenNow = authModalEl && (authModalEl.style.display === 'flex' || authModalEl.style.display === 'block');
+            if (graceBanner && !modalOpenNow && inAppInitialized) {
+              if (daysTitle) {
+                daysTitle.innerText = `Email Verification Notice (${daysLeft} day${daysLeft === 1 ? '' : 's'} remaining)`;
+              }
+              graceBanner.style.display = 'block';
+            }
+          }
+        } else {
+          if (graceBanner) graceBanner.style.display = 'none';
+          const modal = document.getElementById('emailVerificationModal');
+          if (modal) modal.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('[EMAIL_VERIFY_CHECK_ERROR]', err);
+      }
+    }
+
+    function openEmailVerificationModal(isBlocked = false) {
+      const modal = document.getElementById('emailVerificationModal');
+      if (!modal) return;
+      const closeBtn = document.getElementById('closeEmailVerificationBtn');
+      const title = document.getElementById('emailVerifyTitle');
+      const desc = document.getElementById('emailVerifyDesc');
+      const iconBox = document.getElementById('emailVerifyIconBox');
+      const fb = document.getElementById('emailVerifyFeedback');
+
+      if (fb) {
+        fb.style.display = 'none';
+        fb.className = 'auth-alert';
+        fb.innerHTML = '';
+      }
+
+      if (isBlocked) {
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (title) title.innerText = 'Account Temporarily Blocked';
+        if (desc) desc.innerText = 'Your 7-day grace period has expired. Please verify your registered email address with an OTP code to unlock your account.';
+        if (iconBox) {
+          iconBox.innerText = '🔒';
+          iconBox.style.background = 'linear-gradient(135deg, #ef4444, #b91c1c)';
+        }
+      } else {
+        if (closeBtn) closeBtn.style.display = 'block';
+        const days = userEmailVerification.verificationDaysLeft || 7;
+        if (title) title.innerText = 'Verify Your Email';
+        if (desc) desc.innerText = `You have ${days} day${days === 1 ? '' : 's'} remaining to verify your email. Verify now to prevent temporary account suspension.`;
+        if (iconBox) {
+          iconBox.innerText = '✉️';
+          iconBox.style.background = 'linear-gradient(135deg, #6366f1, #3b82f6)';
+        }
+      }
+
+      document.getElementById('emailVerifyStepRequest').style.display = 'block';
+      document.getElementById('emailVerifyStepConfirm').style.display = 'none';
+      modal.style.display = 'flex';
+    }
+
+    function closeEmailVerificationModal() {
+      if (userEmailVerification.isTemporarilyBlocked) return;
+      const modal = document.getElementById('emailVerificationModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    async function handleRequestEmailVerificationOtp() {
+      const btn = document.getElementById('emailVerifySendOtpBtn');
+      const fb = document.getElementById('emailVerifyFeedback');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Sending Code...';
+      }
+      try {
+        const token = localStorage.getItem('connecto_token') || authToken;
+        const res = await fetch('/api/v1/auth/verify-email/request-otp', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('emailVerifyStepRequest').style.display = 'none';
+          document.getElementById('emailVerifyStepConfirm').style.display = 'block';
+          if (fb) {
+            fb.className = 'auth-alert success';
+            fb.style.display = 'block';
+            fb.innerHTML = `<span>✅</span> <span>${escapeHTML(data.message || 'Verification code sent to your email!')}</span>`;
+          }
+          const inp = document.getElementById('emailVerifyOtpInput');
+          if (inp) {
+            inp.value = '';
+            inp.focus();
+          }
+        } else {
+          if (fb) {
+            fb.className = 'auth-alert error';
+            fb.style.display = 'block';
+            fb.innerHTML = `<span>⚠️</span> <span>${escapeHTML(data.detail || 'Failed to dispatch verification code.')}</span>`;
+          }
+        }
+      } catch (err) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.style.display = 'block';
+          fb.innerHTML = `<span>⚠️</span> <span>Network error: ${escapeHTML(err.message)}</span>`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Send 6-Digit Code ✉️';
+        }
+      }
+    }
+
+    async function handleConfirmEmailVerificationOtp() {
+      const inp = document.getElementById('emailVerifyOtpInput');
+      const otp = inp ? inp.value.trim() : '';
+      const btn = document.getElementById('emailVerifySubmitBtn');
+      const fb = document.getElementById('emailVerifyFeedback');
+
+      if (!otp || otp.length !== 6) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.style.display = 'block';
+          fb.innerHTML = '<span>⚠️</span> <span>Please enter the complete 6-digit OTP code.</span>';
+        }
+        if (inp) inp.focus();
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Verifying Code...';
+      }
+
+      try {
+        const token = localStorage.getItem('connecto_token') || authToken;
+        const res = await fetch('/api/v1/auth/verify-email/confirm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({ otp_code: otp })
+        });
+        const data = await res.json();
+        if (res.ok && data.verified) {
+          userEmailVerification.isEmailVerified = true;
+          userEmailVerification.isTemporarilyBlocked = false;
+          userEmailVerification.verificationDaysLeft = null;
+
+          const graceBanner = document.getElementById('emailGracePeriodBanner');
+          if (graceBanner) graceBanner.style.display = 'none';
+
+          if (fb) {
+            fb.className = 'auth-alert success';
+            fb.style.display = 'block';
+            fb.innerHTML = '<span>🎉</span> <span>Email verified! Your account is unlocked.</span>';
+          }
+
+          showNotificationToast('Email Verified', 'Your email address is verified! Full access restored.');
+          setTimeout(() => {
+            const modal = document.getElementById('emailVerificationModal');
+            if (modal) modal.style.display = 'none';
+          }, 1200);
+        } else {
+          if (fb) {
+            fb.className = 'auth-alert error';
+            fb.style.display = 'block';
+            fb.innerHTML = `<span>⚠️</span> <span>${escapeHTML(data.detail || 'Invalid verification code. Please try again.')}</span>`;
+          }
+        }
+      } catch (err) {
+        if (fb) {
+          fb.className = 'auth-alert error';
+          fb.style.display = 'block';
+          fb.innerHTML = `<span>⚠️</span> <span>Network error: ${escapeHTML(err.message)}</span>`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = 'Verify & Unlock ➔';
+        }
+      }
+    }
+
     function initInAppServices() {
       if (typeof syncDynamicDMs === 'function') syncDynamicDMs();
       if (typeof setHomepageTheme === 'function') {
@@ -21459,6 +22005,7 @@ pre, .code-block, .chat-code-snippet {
         checkUserNotifications();
         updateUserStatusText();
         loadNotifPreferences();
+        checkEmailVerificationStatus();
         document.getElementById('userStatusBadge').style.background = 'var(--green)';
       } else {
         updateUserStatusText('', '');
@@ -30129,6 +30676,10 @@ function selectSettingsAvatar(emoji, el) {
 
     function openAuthModal(mode = 'login') {
       document.querySelectorAll('.modal-overlay').forEach(m => { if (m.id !== 'authModal') m.style.display = 'none'; });
+      const graceBanner = document.getElementById('emailGracePeriodBanner');
+      if (graceBanner) graceBanner.style.display = 'none';
+      const emailModal = document.getElementById('emailVerificationModal');
+      if (emailModal) emailModal.style.display = 'none';
       const popover = document.getElementById('userPopoverCard');
       if (popover) popover.style.display = 'none';
       const nav = document.querySelector('.auth-segmented-nav');
@@ -31817,6 +32368,18 @@ function handleNavCommunityClick() {
       localStorage.setItem('connecto_last_view', 'hero');
       updateNavAuthUI();
       ensureLucideIcons();
+      if (typeof updateConnectoMobileDock === 'function') {
+        updateConnectoMobileDock('hero');
+      }
+
+      // Deep link support for direct /signup, /register, /login or ?auth= / ?mode= URLs
+      const pathLower = (window.location.pathname || '').toLowerCase();
+      const authParam = (urlParams.get('auth') || urlParams.get('mode') || urlParams.get('action') || '').toLowerCase();
+      if (pathLower.includes('signup') || pathLower.includes('register') || authParam === 'signup' || authParam === 'register') {
+        setTimeout(() => openAuthModal('register'), 100);
+      } else if (pathLower.includes('login') || pathLower.includes('signin') || authParam === 'login' || authParam === 'signin') {
+        setTimeout(() => openAuthModal('login'), 100);
+      }
     }
 
     function ensureLucideIcons() {
@@ -32104,7 +32667,7 @@ function handleNavCommunityClick() {
   
 <script id="vconnect-version-sync">
 (function() {
-  const CURRENT_BUILD_VERSION = "4.2.5-prod";
+  const CURRENT_BUILD_VERSION = "4.2.8-prod";
   try {
     localStorage.setItem('vconnect_build_version', CURRENT_BUILD_VERSION);
     // Remove any legacy banner element
@@ -32856,8 +33419,10 @@ function updateConnectoMobileDock(view) {
   const dock = document.getElementById('connectoMobileDock');
   if (!dock) return;
   const isMobile = window.innerWidth <= 768;
+  const isLoggedIn = (typeof currentUser !== 'undefined' && currentUser && currentUser !== 'guest') || (localStorage.getItem('connecto_token') && localStorage.getItem('connecto_user'));
+  const isInApp = document.body.classList.contains('in-app-view') || (view && view !== 'hero');
 
-  if (isMobile) {
+  if (isMobile && isLoggedIn && isInApp) {
     dock.style.display = 'flex';
   } else {
     dock.style.display = 'none';
@@ -32871,7 +33436,7 @@ function updateConnectoMobileDock(view) {
   }
 }
 window.addEventListener('resize', () => {
-  const lastView = localStorage.getItem('connecto_last_view') || 'chat';
+  const lastView = localStorage.getItem('connecto_last_view') || 'hero';
   updateConnectoMobileDock(lastView);
 });
 </script>
@@ -33364,6 +33929,7 @@ function openAddFriendModal() {
   const m = document.getElementById('addFriendModal');
   if (m) {
     m.style.display = 'flex';
+    m.classList.add('active');
     const inp = document.getElementById('modalAddFriendInput');
     if (inp) {
       inp.value = '';
@@ -33383,7 +33949,10 @@ function openAddFriendModal() {
 function closeAddFriendModal(e) {
   if (e && e.target && e.target !== document.getElementById('addFriendModal')) return;
   const m = document.getElementById('addFriendModal');
-  if (m) m.style.display = 'none';
+  if (m) {
+    m.style.display = 'none';
+    m.classList.remove('active');
+  }
 }
 
 async function sendFriendRequestFromModal() {
