@@ -6,6 +6,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.graphics.Color
 
 /**
  * Accessor object for Connecto Design System tokens in Composable functions.
@@ -26,6 +27,10 @@ object ConnectoTheme {
     val isLiquidGlass: Boolean
         @Composable
         get() = LocalConnectoColors.current.isLiquidGlass
+
+    val isPureBlack: Boolean
+        @Composable
+        get() = LocalConnectoColors.current.background == Color(0xFF000000)
 }
 
 /**

@@ -571,20 +571,25 @@ fun CustomizedChatScreen(
     // Active Chat Theme & Wallpaper Resolution (Auto-adapts to Liquid Glass when app is in liquid glass theme)
     val isGlassTheme = ConnectoTheme.isGlass
     val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
-    val activeChatTheme = remember(chatThemeId, isGlassTheme, isLiquidGlassTheme) {
+    val isPureBlack = ConnectoTheme.colors.background == Color(0xFF000000)
+    val activeChatTheme = remember(chatThemeId, isGlassTheme, isLiquidGlassTheme, isPureBlack) {
         if (chatThemeId != "default") {
             val resolvedId = if (chatThemeId == "glass") "liquid_glass" else chatThemeId
             AVAILABLE_CHAT_THEMES.firstOrNull { it.id == resolvedId } ?: AVAILABLE_CHAT_THEMES.first()
+        } else if (isPureBlack) {
+            AVAILABLE_CHAT_THEMES.first()
         } else if (isLiquidGlassTheme || isGlassTheme) {
             AVAILABLE_CHAT_THEMES.firstOrNull { it.id == "liquid_glass" } ?: AVAILABLE_CHAT_THEMES.first()
         } else {
             AVAILABLE_CHAT_THEMES.first()
         }
     }
-    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme, isLiquidGlassTheme) {
+    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme, isLiquidGlassTheme, isPureBlack) {
         if (chatWallpaperId != "default") {
             val resolvedWpId = if (chatWallpaperId == "glass_mesh") "liquid_water" else chatWallpaperId
             AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == resolvedWpId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+        } else if (isPureBlack) {
+            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "oled" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
         } else if (isLiquidGlassTheme || isGlassTheme) {
             AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "liquid_water" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
         } else {
@@ -2371,7 +2376,17 @@ fun CustomizedChatScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (isLiquidGlassTheme) {
+                            if (isPureBlack) {
+                                Modifier
+                                    .background(Color(0xCC000000))
+                                    .border(
+                                        width = 1.dp,
+                                        brush = Brush.verticalGradient(
+                                            listOf(Color(0x33FFFFFF), Color(0x0DFFFFFF))
+                                        ),
+                                        shape = RectangleShape
+                                    )
+                            } else if (isLiquidGlassTheme) {
                                 Modifier
                                     .background(Color(0x66061120))
                                     .border(
@@ -2407,12 +2422,15 @@ fun CustomizedChatScreen(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isLiquidGlassTheme) Color(0x3300E5FF)
+                                    if (isPureBlack) Color(0x1AFFFFFF)
+                                    else if (isLiquidGlassTheme) Color(0x3300E5FF)
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 )
                                 .border(
                                     1.dp,
-                                    if (isLiquidGlassTheme) Color(0x6600E5FF) else MaterialTheme.colorScheme.outline,
+                                    if (isPureBlack) Color(0x33FFFFFF)
+                                    else if (isLiquidGlassTheme) Color(0x6600E5FF)
+                                    else MaterialTheme.colorScheme.outline,
                                     CircleShape
                                 )
                                 .clickable {
@@ -3127,7 +3145,9 @@ fun CustomizedChatScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .then(
-                                        if (isLiquidGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "liquid_water")) {
+                                        if (isPureBlack && (chatWallpaperId == "default" || chatWallpaperId == "oled")) {
+                                            Modifier.background(Color(0xFF000000))
+                                        } else if (isLiquidGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "liquid_water")) {
                                             Modifier.liquidGlassCanvasMesh()
                                         } else if (isGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "glass_mesh")) {
                                             Modifier.glassCanvasMesh()
@@ -3536,12 +3556,14 @@ fun CustomizedChatScreen(
                                             .padding(horizontal = 16.dp, vertical = 4.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(
-                                                if (isLiquidGlassTheme) Color(0x400D1E36)
+                                                if (isPureBlack) Color(0x1AFFFFFF)
+                                                else if (isLiquidGlassTheme) Color(0x400D1E36)
                                                 else MaterialTheme.colorScheme.surfaceVariant
                                             )
                                             .border(
                                                 1.dp,
-                                                if (isLiquidGlassTheme) Color(0x6600E5FF)
+                                                if (isPureBlack) Color(0x33FFFFFF)
+                                                else if (isLiquidGlassTheme) Color(0x6600E5FF)
                                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                                 RoundedCornerShape(12.dp)
                                             )
@@ -3602,13 +3624,21 @@ fun CustomizedChatScreen(
                                     .heightIn(min = 46.dp, max = 120.dp)
                                     .clip(RoundedCornerShape(22.dp))
                                     .background(
-                                        if (isLiquidGlassTheme) Color(0x400D1E36)
+                                        if (isPureBlack) Color(0x1AFFFFFF)
+                                        else if (isLiquidGlassTheme) Color(0x400D1E36)
                                         else if (isGlassTheme) Color(0xD9111827)
                                         else MaterialTheme.colorScheme.surfaceVariant
                                     )
                                     .border(
-                                        width = if ((isLiquidGlassTheme || isGlassTheme) && isInputFocused) 1.5.dp else 1.dp,
-                                        brush = if (isLiquidGlassTheme) {
+                                        width = if ((isLiquidGlassTheme || isGlassTheme || isPureBlack) && isInputFocused) 1.5.dp else 1.dp,
+                                        brush = if (isPureBlack) {
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    if (isInputFocused) Color.White else Color(0x55FFFFFF),
+                                                    if (isInputFocused) Color(0x80FFFFFF) else Color(0x1AFFFFFF)
+                                                )
+                                            )
+                                        } else if (isLiquidGlassTheme) {
                                             Brush.linearGradient(
                                                 listOf(
                                                     if (isInputFocused) Color(0xFF00E5FF) else Color(0x8000E5FF),
@@ -3819,18 +3849,27 @@ fun CustomizedChatScreen(
                                     .clip(CircleShape)
                                     .background(
                                         if (typedMessage.isNotBlank()) {
-                                            if (isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0xFF0284C7)))
+                                            if (isPureBlack) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
+                                            else if (isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0xFF0284C7)))
                                             else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
                                             else Brush.linearGradient(gradientColors)
                                         } else {
-                                            if (isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x590D1E36), Color(0x33061120)))
+                                            if (isPureBlack) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
+                                            else if (isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x590D1E36), Color(0x33061120)))
                                             else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
                                             else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                         }
                                     )
                                     .border(
-                                        width = if (isLiquidGlassTheme || isGlassTheme) 1.2.dp else 1.dp,
-                                        brush = if (isLiquidGlassTheme) {
+                                        width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
+                                        brush = if (isPureBlack) {
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    if (typedMessage.isNotBlank()) Color.White else Color(0x66FFFFFF),
+                                                    if (typedMessage.isNotBlank()) Color(0x80FFFFFF) else Color(0x26FFFFFF)
+                                                )
+                                            )
+                                        } else if (isLiquidGlassTheme) {
                                             Brush.linearGradient(
                                                 listOf(
                                                     if (typedMessage.isNotBlank()) Color(0xFFE0F7FA) else Color(0x8000E5FF),
@@ -3866,7 +3905,7 @@ fun CustomizedChatScreen(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Send,
                                         contentDescription = "Send",
-                                        tint = contentOnGradient,
+                                        tint = if (isPureBlack) Color.Black else contentOnGradient,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 } else {
@@ -3944,6 +3983,7 @@ fun CustomChatBubble(
             }
             val isGlassTheme = ConnectoTheme.isGlass
             val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
+            val isPureBlack = ConnectoTheme.isPureBlack
             val bubbleShape = if (message.isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
                               else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
 
@@ -4092,13 +4132,15 @@ fun CustomChatBubble(
                             .offset(y = (-8).dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(
-                                if (isLiquidGlassTheme) Color(0x590D1E36)
+                                if (isPureBlack) Color(0x26FFFFFF)
+                                else if (isLiquidGlassTheme) Color(0x590D1E36)
                                 else if (isGlassTheme) Color(0xD91E293B)
                                 else MaterialTheme.colorScheme.surface
                             )
                             .border(
                                 1.dp,
-                                if (isLiquidGlassTheme) Color(0x6600E5FF)
+                                if (isPureBlack) Color(0x40FFFFFF)
+                                else if (isLiquidGlassTheme) Color(0x6600E5FF)
                                 else if (isGlassTheme) Color(0x8038BDF8)
                                 else MaterialTheme.colorScheme.outline,
                                 RoundedCornerShape(10.dp)
@@ -4124,13 +4166,15 @@ fun CustomChatBubble(
                         .padding(top = 4.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(
-                            if (isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x800D1E36), Color(0x59061120)))
+                            if (isPureBlack) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)))
+                            else if (isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x800D1E36), Color(0x59061120)))
                             else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xF0111827), Color(0xDD090D16)))
                             else SolidColor(MaterialTheme.colorScheme.surface)
                         )
                         .border(
                             width = 1.2.dp,
-                            brush = if (isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0x3300E5FF)))
+                            brush = if (isPureBlack) Brush.linearGradient(listOf(Color(0x80FFFFFF), Color(0x20FFFFFF)))
+                                    else if (isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0x3300E5FF)))
                                     else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xCC38BDF8), Color(0x3338BDF8)))
                                     else SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
                             shape = RoundedCornerShape(16.dp)

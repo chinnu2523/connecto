@@ -111,16 +111,27 @@ fun ConnectoBottomBar(
         if (rawUserAvatar == "null" || rawUserAvatar.isNullOrBlank()) null else rawUserAvatar
     }
 
+    val isPureBlack = colors.background == Color(0xFF000000)
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.08f),
-                        colors.background.copy(alpha = if (!colors.isDark) 0.55f else 0.25f)
+                if (isPureBlack) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.06f),
+                            Color(0xFF000000)
+                        )
                     )
-                )
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.08f),
+                            colors.background.copy(alpha = if (!colors.isDark) 0.55f else 0.25f)
+                        )
+                    )
+                }
             )
     ) {
         // Clean 1dp Top Border Line
@@ -128,7 +139,7 @@ fun ConnectoBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(colors.borderSubtle)
+                .background(if (isPureBlack) Color(0x26FFFFFF) else colors.borderSubtle)
         )
 
         BoxWithConstraints(
@@ -178,7 +189,7 @@ fun ConnectoBottomBar(
                     val outerRadius = (5.dp.toPx() + 34.dp.toPx() * progress)
                     val outerAlpha = ((1f - progress) * 0.55f).coerceIn(0f, 1f)
                     drawCircle(
-                        color = colors.primary.copy(alpha = outerAlpha),
+                        color = (if (isPureBlack) Color.White else colors.primary).copy(alpha = outerAlpha),
                         radius = outerRadius,
                         center = rippleCenter,
                         style = Stroke(width = 2.dp.toPx())
@@ -199,6 +210,44 @@ fun ConnectoBottomBar(
             val dropletWidth = 52.dp * stretchFactor
             val dropletHeight = 33.dp * squishY
 
+            val dropRadialColors = if (isPureBlack) {
+                listOf(
+                    Color.White.copy(alpha = 0.22f),
+                    Color.White.copy(alpha = 0.06f),
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    colors.primary.copy(alpha = 0.40f),
+                    colors.info.copy(alpha = 0.18f),
+                    Color.Transparent
+                )
+            }
+            val dropVerticalColors = if (isPureBlack) {
+                listOf(
+                    Color.White.copy(alpha = 0.16f),
+                    Color.White.copy(alpha = 0.04f)
+                )
+            } else {
+                listOf(
+                    colors.primary.copy(alpha = 0.32f),
+                    colors.primary.copy(alpha = 0.08f)
+                )
+            }
+            val dropBorderColors = if (isPureBlack) {
+                listOf(
+                    Color.White.copy(alpha = 0.85f),
+                    Color.White.copy(alpha = 0.30f),
+                    Color.Transparent
+                )
+            } else {
+                listOf(
+                    Color.White.copy(alpha = 0.80f),
+                    colors.primary.copy(alpha = 0.65f),
+                    Color.Transparent
+                )
+            }
+
             Box(
                 modifier = Modifier
                     .offset(x = animatedCenterX - dropletWidth / 2, y = 3.dp)
@@ -207,30 +256,19 @@ fun ConnectoBottomBar(
                     .clip(RoundedCornerShape(17.dp))
                     .background(
                         Brush.radialGradient(
-                            colors = listOf(
-                                colors.primary.copy(alpha = 0.40f),
-                                colors.info.copy(alpha = 0.18f),
-                                Color.Transparent
-                            ),
+                            colors = dropRadialColors,
                             radius = 65f
                         )
                     )
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                colors.primary.copy(alpha = 0.32f),
-                                colors.primary.copy(alpha = 0.08f)
-                            )
+                            colors = dropVerticalColors
                         )
                     )
                     .border(
                         width = 1.3.dp,
                         brush = Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.80f),
-                                colors.primary.copy(alpha = 0.65f),
-                                Color.Transparent
-                            )
+                            dropBorderColors
                         ),
                         shape = RoundedCornerShape(17.dp)
                     )
@@ -270,9 +308,9 @@ fun ConnectoBottomBar(
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .graphicsLayer { alpha = 0.5f }
+                        .graphicsLayer { alpha = if (isPureBlack) 0.35f else 0.5f }
                         .clip(CircleShape)
-                        .background(colors.primary)
+                        .background(if (isPureBlack) Color.White else colors.primary)
                 )
                 // Crisp fluid bead
                 Box(
@@ -282,9 +320,9 @@ fun ConnectoBottomBar(
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
-                                    colors.primary,
+                                    if (isPureBlack) Color(0xCCFFFFFF) else colors.primary,
                                     Color.White.copy(alpha = 0.95f),
-                                    colors.primary
+                                    if (isPureBlack) Color(0xCCFFFFFF) else colors.primary
                                 )
                             )
                         )

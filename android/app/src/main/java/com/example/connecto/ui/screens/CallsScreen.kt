@@ -462,7 +462,7 @@ fun CallsScreen(
                     .padding(horizontal = 16.dp, vertical = 6.dp)
                     .then(
                         if (colors.isLiquidGlass) {
-                            Modifier.liquidGlassCard(shape = filterShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                            Modifier.liquidGlassCard(shape = filterShape)
                         } else if (colors.isGlass) {
                             Modifier.glassCard(shape = filterShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
                         } else {
@@ -659,7 +659,7 @@ fun CallsScreen(
                                 .fillMaxWidth()
                                 .then(
                                     if (colors.isLiquidGlass) {
-                                        Modifier.liquidGlassCard(shape = callCardShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                                        Modifier.liquidGlassCard(shape = callCardShape)
                                     } else if (colors.isGlass) {
                                         Modifier.glassCard(shape = callCardShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
                                     } else {

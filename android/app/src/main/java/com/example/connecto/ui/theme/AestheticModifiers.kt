@@ -55,17 +55,45 @@ fun Modifier.glassmorphicCard(
     borderColor: Color = ConnectoTheme.colors.primary,
     borderWidth: Dp = 1.dp
 ): Modifier {
-    val isDark = ConnectoTheme.colors.isDark
-    val glareColor = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.90f)
-    val topTint = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.70f)
-    val bottomTint = if (isDark) backgroundColor.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.35f)
+    val colors = ConnectoTheme.colors
+    val isDark = colors.isDark
+    val isPureBlack = colors.background == Color(0xFF000000)
+
+    val glareColor = when {
+        isPureBlack -> Color.White.copy(alpha = 0.55f)
+        isDark -> Color.White.copy(alpha = 0.70f)
+        else -> Color.White.copy(alpha = 0.90f)
+    }
+    val topTint = when {
+        isPureBlack -> Color.White.copy(alpha = 0.08f)
+        isDark -> Color.White.copy(alpha = 0.12f)
+        else -> Color.White.copy(alpha = 0.70f)
+    }
+    val bottomTint = when {
+        isPureBlack -> Color.White.copy(alpha = 0.03f)
+        isDark -> backgroundColor.copy(alpha = 0.07f)
+        else -> Color.White.copy(alpha = 0.35f)
+    }
+
+    val borderColors = when {
+        isPureBlack -> listOf(
+            glareColor,
+            Color.White.copy(alpha = 0.22f),
+            Color.White.copy(alpha = 0.06f)
+        )
+        else -> listOf(
+            glareColor,
+            borderColor.copy(alpha = if (isDark) 0.45f else 0.60f),
+            borderColor.copy(alpha = 0.08f)
+        )
+    }
 
     return this
         .shadow(
-            elevation = 6.dp,
+            elevation = if (isPureBlack) 0.dp else 6.dp,
             shape = shape,
             ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.10f),
-            spotColor = borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
+            spotColor = if (isPureBlack) Color.Transparent else borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
         )
         .clip(shape)
         .background(
@@ -79,11 +107,7 @@ fun Modifier.glassmorphicCard(
         .border(
             width = borderWidth,
             brush = Brush.linearGradient(
-                colors = listOf(
-                    glareColor,
-                    borderColor.copy(alpha = if (isDark) 0.45f else 0.60f),
-                    borderColor.copy(alpha = 0.08f)
-                ),
+                colors = borderColors,
                 start = Offset.Zero,
                 end = Offset(300f, 300f)
             ),
@@ -316,6 +340,11 @@ fun Modifier.glassCanvasMesh(
     enabled: Boolean = true
 ): Modifier {
     if (!enabled) return this
+    val colors = ConnectoTheme.colors
+    if (colors.background == Color(0xFF000000)) {
+        return this.background(Color(0xFF000000))
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "glassMeshAmbient")
     val pulse by infiniteTransition.animateFloat(
         initialValue = 0.88f,
@@ -389,17 +418,45 @@ fun Modifier.glassCard(
     borderWidth: Dp = 1.dp,
     hasShimmer: Boolean = false
 ): Modifier {
-    val isDark = ConnectoTheme.colors.isDark
-    val glareColor = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.90f)
-    val topTint = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.70f)
-    val bottomTint = if (isDark) backgroundColor.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.35f)
+    val colors = ConnectoTheme.colors
+    val isDark = colors.isDark
+    val isPureBlack = colors.background == Color(0xFF000000)
+
+    val glareColor = when {
+        isPureBlack -> Color.White.copy(alpha = 0.55f)
+        isDark -> Color.White.copy(alpha = 0.70f)
+        else -> Color.White.copy(alpha = 0.90f)
+    }
+    val topTint = when {
+        isPureBlack -> Color.White.copy(alpha = 0.08f)
+        isDark -> Color.White.copy(alpha = 0.12f)
+        else -> Color.White.copy(alpha = 0.70f)
+    }
+    val bottomTint = when {
+        isPureBlack -> Color.White.copy(alpha = 0.03f)
+        isDark -> backgroundColor.copy(alpha = 0.07f)
+        else -> Color.White.copy(alpha = 0.35f)
+    }
+
+    val borderColors = when {
+        isPureBlack -> listOf(
+            glareColor,
+            Color.White.copy(alpha = 0.22f),
+            Color.White.copy(alpha = 0.06f)
+        )
+        else -> listOf(
+            glareColor,
+            borderColor.copy(alpha = if (isDark) 0.45f else 0.60f),
+            borderColor.copy(alpha = 0.08f)
+        )
+    }
 
     val base = this
         .shadow(
-            elevation = 6.dp,
+            elevation = if (isPureBlack) 0.dp else 6.dp,
             shape = shape,
             ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.10f),
-            spotColor = borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
+            spotColor = if (isPureBlack) Color.Transparent else borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
         )
         .clip(shape)
         .background(
@@ -413,11 +470,7 @@ fun Modifier.glassCard(
         .border(
             width = borderWidth,
             brush = Brush.linearGradient(
-                colors = listOf(
-                    glareColor,
-                    borderColor.copy(alpha = if (isDark) 0.45f else 0.60f),
-                    borderColor.copy(alpha = 0.08f)
-                ),
+                colors = borderColors,
                 start = Offset.Zero,
                 end = Offset(300f, 300f)
             ),
@@ -425,7 +478,7 @@ fun Modifier.glassCard(
         )
 
     return if (hasShimmer) {
-        base.glassSpecularSweep(shape = shape, sweepColor = borderColor)
+        base.glassSpecularSweep(shape = shape, sweepColor = if (isPureBlack) Color.White.copy(alpha = 0.15f) else borderColor)
     } else {
         base
     }
@@ -440,6 +493,14 @@ fun Modifier.liquidGlassCanvasMesh(
     enabled: Boolean = true
 ): Modifier {
     if (!enabled) return this
+    val colors = ConnectoTheme.colors
+    val isDark = colors.isDark
+
+    // Pure Black OLED theme: STRICTLY 100% 0-nit pitch black (#000000). Zero orbs, zero gradients.
+    if (colors.background == Color(0xFF000000)) {
+        return this.background(Color(0xFF000000))
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "liquidMeshAmbient")
     val pulse by infiniteTransition.animateFloat(
         initialValue = 0.90f,
@@ -450,9 +511,6 @@ fun Modifier.liquidGlassCanvasMesh(
         ),
         label = "liquidMeshPulse"
     )
-
-    val colors = ConnectoTheme.colors
-    val isDark = colors.isDark
 
     return this.drawBehind {
         // Base canvas color according to the active theme palette
@@ -519,17 +577,45 @@ fun Modifier.liquidGlassCard(
     borderColor: Color = ConnectoTheme.colors.primary,
     borderWidth: Dp = 1.dp
 ): Modifier {
-    val isDark = ConnectoTheme.colors.isDark
-    val glareColor = if (isDark) Color.White.copy(alpha = 0.70f) else Color.White.copy(alpha = 0.90f)
-    val topTint = if (isDark) Color.White.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.70f)
-    val bottomTint = if (isDark) backgroundColor.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.35f)
+    val colors = ConnectoTheme.colors
+    val isDark = colors.isDark
+    val isPureBlack = colors.background == Color(0xFF000000)
+
+    val glareColor = when {
+        isPureBlack -> Color.White.copy(alpha = 0.55f)
+        isDark -> Color.White.copy(alpha = 0.70f)
+        else -> Color.White.copy(alpha = 0.90f)
+    }
+    val topTint = when {
+        isPureBlack -> Color.White.copy(alpha = 0.08f)
+        isDark -> Color.White.copy(alpha = 0.12f)
+        else -> Color.White.copy(alpha = 0.70f)
+    }
+    val bottomTint = when {
+        isPureBlack -> Color.White.copy(alpha = 0.03f)
+        isDark -> backgroundColor.copy(alpha = 0.07f)
+        else -> Color.White.copy(alpha = 0.35f)
+    }
+
+    val borderColors = when {
+        isPureBlack -> listOf(
+            glareColor,                      // Specular glare reflection on top rim
+            Color.White.copy(alpha = 0.22f), // Crystal translucent rim
+            Color.White.copy(alpha = 0.06f)  // Subtle translucent bottom rim
+        )
+        else -> listOf(
+            glareColor,                      // Specular glare reflection on top rim
+            borderColor.copy(alpha = if (isDark) 0.45f else 0.60f), // Themed rim glow
+            borderColor.copy(alpha = 0.08f)  // Translucent subtle bottom edge
+        )
+    }
 
     return this
         .shadow(
-            elevation = 6.dp,
+            elevation = if (isPureBlack) 0.dp else 6.dp,
             shape = shape,
             ambientColor = Color.Black.copy(alpha = if (isDark) 0.40f else 0.10f),
-            spotColor = borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
+            spotColor = if (isPureBlack) Color.Transparent else borderColor.copy(alpha = if (isDark) 0.22f else 0.08f)
         )
         .clip(shape)
         .background(
@@ -543,11 +629,7 @@ fun Modifier.liquidGlassCard(
         .border(
             width = borderWidth,
             brush = Brush.linearGradient(
-                colors = listOf(
-                    glareColor,                      // Specular glare reflection on top rim
-                    borderColor.copy(alpha = if (isDark) 0.45f else 0.60f), // Themed rim glow
-                    borderColor.copy(alpha = 0.08f)  // Translucent subtle bottom edge
-                ),
+                colors = borderColors,
                 start = Offset.Zero,
                 end = Offset(300f, 300f)
             ),
@@ -566,6 +648,11 @@ fun Modifier.glassInteractiveButton(
     borderColor: Color = Color(0xFF38BDF8),
     targetScale: Float = 0.94f
 ): Modifier {
+    val colors = ConnectoTheme.colors
+    val isPureBlack = colors.background == Color(0xFF000000)
+    val effectiveContainer = if (isPureBlack) Color(0x1AFFFFFF) else containerColor
+    val effectiveBorder = if (isPureBlack) Color(0x55FFFFFF) else borderColor
+
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val haptic = LocalHapticFeedback.current
@@ -596,8 +683,8 @@ fun Modifier.glassInteractiveButton(
         .background(
             brush = Brush.verticalGradient(
                 listOf(
-                    containerColor.copy(alpha = if (isPressed) 0.94f else 0.78f),
-                    containerColor.copy(alpha = if (isPressed) 0.78f else 0.52f)
+                    effectiveContainer.copy(alpha = if (isPressed) 0.94f else 0.78f),
+                    effectiveContainer.copy(alpha = if (isPressed) 0.78f else 0.52f)
                 )
             )
         )
@@ -605,8 +692,8 @@ fun Modifier.glassInteractiveButton(
             width = if (isPressed) 1.5.dp else 1.dp,
             brush = Brush.linearGradient(
                 listOf(
-                    borderColor.copy(alpha = glowAlpha),
-                    borderColor.copy(alpha = glowAlpha * 0.35f)
+                    effectiveBorder.copy(alpha = glowAlpha),
+                    effectiveBorder.copy(alpha = glowAlpha * 0.35f)
                 )
             ),
             shape = shape
@@ -632,69 +719,116 @@ fun Modifier.glassBubble(
 ): Modifier {
     val colors = ConnectoTheme.colors
     val isDark = colors.isDark
+    val isPureBlack = colors.background == Color(0xFF000000)
 
-    val bgBrush = if (isLiquid) {
-        if (isMe) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    colors.primary.copy(alpha = if (isDark) 0.30f else 0.42f),
-                    colors.primary.copy(alpha = if (isDark) 0.14f else 0.22f)
+    val bgBrush = when {
+        isPureBlack -> {
+            if (isMe) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.18f),
+                        Color.White.copy(alpha = 0.09f)
+                    )
                 )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = if (isDark) 0.14f else 0.65f),
-                    colors.surface.copy(alpha = if (isDark) 0.08f else 0.32f)
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.08f),
+                        Color.White.copy(alpha = 0.04f)
+                    )
                 )
-            )
+            }
         }
-    } else {
-        if (isMe) {
-            Brush.verticalGradient(
-                colors = listOf(
-                    colors.primary.copy(alpha = 0.85f),
-                    colors.primary.copy(alpha = 0.65f)
+        isLiquid -> {
+            if (isMe) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        colors.primary.copy(alpha = if (isDark) 0.30f else 0.42f),
+                        colors.primary.copy(alpha = if (isDark) 0.14f else 0.22f)
+                    )
                 )
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(
-                    colors.surfaceVariant.copy(alpha = 0.85f),
-                    colors.surface.copy(alpha = 0.65f)
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.14f else 0.65f),
+                        colors.surface.copy(alpha = if (isDark) 0.08f else 0.32f)
+                    )
                 )
-            )
+            }
+        }
+        else -> {
+            if (isMe) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        colors.primary.copy(alpha = 0.85f),
+                        colors.primary.copy(alpha = 0.65f)
+                    )
+                )
+            } else {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        colors.surfaceVariant.copy(alpha = 0.85f),
+                        colors.surface.copy(alpha = 0.65f)
+                    )
+                )
+            }
         }
     }
 
-    val borderBrush = if (isMe) {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.85f),
-                colors.primary.copy(alpha = 0.60f),
-                colors.primary.copy(alpha = 0.15f)
-            ),
-            start = Offset.Zero,
-            end = Offset(240f, 240f)
-        )
-    } else {
-        Brush.linearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = if (isDark) 0.55f else 0.75f),
-                colors.border.copy(alpha = 0.40f),
-                colors.borderSubtle.copy(alpha = 0.10f)
-            ),
-            start = Offset.Zero,
-            end = Offset(240f, 240f)
-        )
+    val borderBrush = when {
+        isPureBlack -> {
+            if (isMe) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.70f),
+                        Color.White.copy(alpha = 0.30f),
+                        Color.White.copy(alpha = 0.08f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(240f, 240f)
+                )
+            } else {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.45f),
+                        Color.White.copy(alpha = 0.18f),
+                        Color.White.copy(alpha = 0.05f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(240f, 240f)
+                )
+            }
+        }
+        isMe -> {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.85f),
+                    colors.primary.copy(alpha = 0.60f),
+                    colors.primary.copy(alpha = 0.15f)
+                ),
+                start = Offset.Zero,
+                end = Offset(240f, 240f)
+            )
+        }
+        else -> {
+            Brush.linearGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = if (isDark) 0.55f else 0.75f),
+                    colors.border.copy(alpha = 0.40f),
+                    colors.borderSubtle.copy(alpha = 0.10f)
+                ),
+                start = Offset.Zero,
+                end = Offset(240f, 240f)
+            )
+        }
     }
 
     return this
         .shadow(
-            elevation = 3.dp,
+            elevation = if (isPureBlack) 0.dp else 3.dp,
             shape = shape,
             ambientColor = Color.Black.copy(alpha = if (isDark) 0.35f else 0.08f),
-            spotColor = if (isMe) colors.primary.copy(alpha = 0.20f) else Color.Transparent
+            spotColor = if (isPureBlack) Color.Transparent else if (isMe) colors.primary.copy(alpha = 0.20f) else Color.Transparent
         )
         .clip(shape)
         .background(bgBrush)

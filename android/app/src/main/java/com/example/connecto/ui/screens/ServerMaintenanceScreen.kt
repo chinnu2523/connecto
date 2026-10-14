@@ -68,7 +68,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.ui.designsystem.ConnectoTheme
 import com.example.connecto.voice.VoiceCallManager
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -141,24 +144,32 @@ fun ServerMaintenanceScreen(
         }
     }
 
+    BackHandler(enabled = true) {
+        onServerRestored()
+    }
+
+    val isPureBlack = ConnectoTheme.isPureBlack
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0B0D13))
+            .background(if (isPureBlack) Color(0xFF000000) else Color(0xFF0B0D13))
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Ambient background glow
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(Color(0x264F46E5), Color(0x101E1B4B), Color.Transparent),
-                        radius = 1200f
+        // Ambient background glow (hidden in pure black OLED)
+        if (!isPureBlack) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(Color(0x264F46E5), Color(0x101E1B4B), Color.Transparent),
+                            radius = 1200f
+                        )
                     )
-                )
-        )
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -181,15 +192,15 @@ fun ServerMaintenanceScreen(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF161922))
-                        .border(1.dp, Color(0x2AFFFFFF), RoundedCornerShape(20.dp))
+                        .background(if (isPureBlack) Color(0x14FFFFFF) else Color(0xFF161922))
+                        .border(1.dp, if (isPureBlack) Color(0x33FFFFFF) else Color(0x2AFFFFFF), RoundedCornerShape(20.dp))
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF6366F1))
+                            .background(if (isPureBlack) Color.White else Color(0xFF6366F1))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -208,8 +219,8 @@ fun ServerMaintenanceScreen(
                     modifier = Modifier
                         .size(88.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(Color(0xFF131722))
-                        .border(1.dp, Color(0xFF272D3D), RoundedCornerShape(24.dp)),
+                        .background(if (isPureBlack) Color(0x14FFFFFF) else Color(0xFF131722))
+                        .border(1.dp, if (isPureBlack) Color(0x33FFFFFF) else Color(0xFF272D3D), RoundedCornerShape(24.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     // Outer rotating decorative gear tick
@@ -217,13 +228,13 @@ fun ServerMaintenanceScreen(
                         modifier = Modifier
                             .size(72.dp)
                             .rotate(clockRotate)
-                            .border(1.5.dp, Color(0x336366F1), CircleShape)
+                            .border(1.5.dp, if (isPureBlack) Color(0x40FFFFFF) else Color(0x336366F1), CircleShape)
                     )
                     // Core Icon
                     Icon(
                         imageVector = Icons.Default.Build,
                         contentDescription = "Maintenance & Upgrades",
-                        tint = Color(0xFF818CF8),
+                        tint = if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFF818CF8),
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -235,15 +246,15 @@ fun ServerMaintenanceScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0x1A818CF8))
-                        .border(1.dp, Color(0x4D818CF8), RoundedCornerShape(16.dp))
+                        .background(if (isPureBlack) Color(0x1AFFFFFF) else Color(0x1A818CF8))
+                        .border(1.dp, if (isPureBlack) Color(0x33FFFFFF) else Color(0x4D818CF8), RoundedCornerShape(16.dp))
                         .padding(horizontal = 14.dp, vertical = 6.dp)
                 ) {
                     Box(
                         modifier = Modifier
                             .size(8.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF818CF8).copy(alpha = pulseAlpha))
+                            .background(if (isPureBlack) Color.White.copy(alpha = pulseAlpha) else Color(0xFF818CF8).copy(alpha = pulseAlpha))
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
@@ -251,7 +262,7 @@ fun ServerMaintenanceScreen(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.6.sp,
-                        color = Color(0xFFA5B4FC)
+                        color = if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFFA5B4FC)
                     )
                 }
 
@@ -286,8 +297,8 @@ fun ServerMaintenanceScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFF12151E))
-                        .border(1.dp, Color(0xFF1E2433), RoundedCornerShape(16.dp))
+                        .background(if (isPureBlack) Color(0x14FFFFFF) else Color(0xFF12151E))
+                        .border(1.dp, if (isPureBlack) Color(0x26FFFFFF) else Color(0xFF1E2433), RoundedCornerShape(16.dp))
                         .padding(18.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -295,7 +306,7 @@ fun ServerMaintenanceScreen(
                             modifier = Modifier
                                 .size(6.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFF818CF8))
+                                .background(if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFF818CF8))
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -303,28 +314,28 @@ fun ServerMaintenanceScreen(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.8.sp,
-                            color = Color(0xFF818CF8)
+                            color = if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFF818CF8)
                         )
                     }
                     Spacer(modifier = Modifier.height(14.dp))
 
                     UpgradeFeatureRow(
                         icon = Icons.Default.Speed,
-                        iconTint = Color(0xFF60A5FA),
+                        iconTint = if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFF60A5FA),
                         title = "Speed & Performance",
                         description = "Optimizing real-time message routing and low-latency networking"
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     UpgradeFeatureRow(
                         icon = Icons.Default.Security,
-                        iconTint = Color(0xFF34D399),
+                        iconTint = if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFF34D399),
                         title = "Security & Encryption",
                         description = "Deploying enhanced end-to-end cryptographic protocols and vault protection"
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     UpgradeFeatureRow(
                         icon = Icons.Default.CloudSync,
-                        iconTint = Color(0xFFA78BFA),
+                        iconTint = if (isPureBlack) Color(0xFFE4E4E7) else Color(0xFFA78BFA),
                         title = "Platform Resilience",
                         description = "Expanding server capacity and database infrastructure"
                     )
@@ -407,8 +418,10 @@ fun ServerMaintenanceScreen(
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = Color(0xFFE2E8F0)
                     ),
-                    border = ButtonDefaults.outlinedButtonBorder.copy(
-                        brush = Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF475569)))
+                    border = BorderStroke(
+                        1.dp,
+                        if (isPureBlack) Brush.horizontalGradient(listOf(Color(0x33FFFFFF), Color(0x33FFFFFF)))
+                        else Brush.horizontalGradient(listOf(Color(0xFF334155), Color(0xFF475569)))
                     ),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -418,7 +431,7 @@ fun ServerMaintenanceScreen(
                     Icon(
                         imageVector = Icons.Default.OpenInBrowser,
                         contentDescription = null,
-                        tint = Color(0xFF818CF8),
+                        tint = if (isPureBlack) Color.White else Color(0xFF818CF8),
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))

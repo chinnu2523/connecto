@@ -423,7 +423,7 @@ fun HomeChatScreen(
                             .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.xs)
                             .then(
                                 if (colors.isLiquidGlass) {
-                                    Modifier.liquidGlassCard(shape = searchShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                                    Modifier.liquidGlassCard(shape = searchShape)
                                 } else if (colors.isGlass) {
                                     Modifier.glassCard(shape = searchShape, backgroundColor = Color(0xFF111827), borderColor = Color(0xFF38BDF8))
                                 } else {
@@ -909,7 +909,7 @@ private fun QuickActionChip(
             .pressScaleEffect(onClick = onClick, targetScale = 0.92f)
             .then(
                 if (colors.isLiquidGlass) {
-                    Modifier.liquidGlassCard(shape = chipShape, backgroundColor = Color(0x330D1E36), borderColor = Color(0xFF00E5FF))
+                    Modifier.liquidGlassCard(shape = chipShape)
                 } else if (colors.isGlass) {
                     Modifier.glassCard(shape = chipShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
                 } else {
