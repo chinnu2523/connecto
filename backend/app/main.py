@@ -5372,12 +5372,12 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "v4.2.8 Voice Call De-Duplication & Teardown Hardening: Eliminated duplicate incoming call prompts and phantom call screen loops with atomic callId lock and active call state validation",
-            "v4.2.8 Clean Header & Navigation Borders: Replaced moving animated lines in the top header and bottom navigation bar with elegant, crisp static borders",
-            "v4.2.7 Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
-            "v4.2.7 Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
-            "v4.2.7 Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
-            "v4.2.7 Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync"
+            "Voice Call De-Duplication & Teardown Hardening: Eliminated duplicate incoming call prompts and phantom call screen loops with atomic callId lock and active call state validation",
+            "Clean Header & Navigation Borders: Replaced moving animated lines in the top header and bottom navigation bar with elegant, crisp static borders",
+            "Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
+            "Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
+            "Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
+            "Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync"
         ]
     }
 
