@@ -35,7 +35,15 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.PhoneInTalk
 import com.example.connecto.ui.components.CreateGroupChatDialog
+import com.example.connecto.ui.components.CreateVoiceGroupDialog
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -118,7 +126,8 @@ data class RecentConversationItem(
     val lastMessage: String,
     val timestamp: String,
     val unreadCount: Int = 0,
-    val isOnline: Boolean = false
+    val isOnline: Boolean = false,
+    val isGroup: Boolean = false
 )
 
 /**
@@ -158,8 +167,64 @@ fun HomeChatScreen(
     var recentNotifications by remember { mutableStateOf<List<NotificationDto>>(emptyList()) }
     var isAddFriendOpen by remember { mutableStateOf(false) }
     var isGroupChatOpen by remember { mutableStateOf(false) }
+    var isVoiceGroupOpen by remember { mutableStateOf(false) }
     var isSearchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    var pendingVoiceGroupInfo by remember { mutableStateOf<Pair<String, List<FriendshipDto>>?>(null) }
+
+    fun startHomeVoiceRoom(title: String, selectedFriends: List<FriendshipDto>) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+        val currentU = effUser.trim().removePrefix("@")
+        val roomId = "group_voice_${currentU}_${System.currentTimeMillis()}"
+        val groupTitle = title.ifBlank { "Voice Group Call" }
+        VoiceCallManager.joinVoiceRoom(roomId = roomId, roomName = groupTitle, roomCode = roomId)
+
+        coroutineScope.launch {
+            for (friend in selectedFriends) {
+                val target = friend.friendUsername.trim().removePrefix("@")
+                try {
+                    VoiceCallManager.inviteToVoiceGroup(
+                        roomId = roomId,
+                        groupTitle = groupTitle,
+                        targetUser = target
+                    )
+                    ConnectoApiClient.inviteToVoiceCall(target, roomId)
+                } catch (_: Exception) {}
+            }
+
+            ConnectoApiClient.recordCallLog(
+                callerName = groupTitle,
+                callType = "Group Call (${selectedFriends.size + 1} members)",
+                isMissed = false,
+                isOutgoing = true
+            )
+        }
+    }
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            VoiceCallManager.restartAudioHardwareIfConnected()
+            pendingVoiceGroupInfo?.let { (title, friends) ->
+                pendingVoiceGroupInfo = null
+                startHomeVoiceRoom(title, friends)
+            }
+        } else {
+            Toast.makeText(context, "Microphone permission is required for voice calls", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun performHomeVoiceGroupCall(title: String, selectedFriends: List<FriendshipDto>) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            startHomeVoiceRoom(title, selectedFriends)
+        } else {
+            pendingVoiceGroupInfo = Pair(title, selectedFriends)
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
     val filteredConversations = remember(recentConversations, searchQuery) {
         if (searchQuery.isBlank()) recentConversations
         else recentConversations.filter {
@@ -211,25 +276,43 @@ fun HomeChatScreen(
             try {
                 coroutineScope {
                     val friendsDeferred = async { ConnectoApiClient.getFriends(username = currentUsername) }
+                    val groupsDeferred = async { ConnectoApiClient.getUserGroups() }
                     val channelsDeferred = async { ConnectoApiClient.getChannels() }
                     val reqsDeferred = async { ConnectoApiClient.getReceivedFriendRequests(username = currentUsername) }
                     val notifDeferred = async { ConnectoApiClient.getNotifications() }
                     val unreadDeferred = async { ConnectoApiClient.getDmUnreadCounts() }
 
                     val friendsRes = friendsDeferred.await()
+                    val groupsRes = groupsDeferred.await()
                     val channelsRes = channelsDeferred.await()
                     val reqsRes = reqsDeferred.await()
                     val notifRes = notifDeferred.await()
                     val unreadMap = unreadDeferred.await().getOrDefault(emptyMap())
 
                     val friendsList = friendsRes.getOrDefault(emptyList())
+                    val groupsList = groupsRes.getOrDefault(emptyList())
                     val channelsList = channelsRes.getOrDefault(emptyList())
                     val reqsList = reqsRes.getOrDefault(emptyList())
                     val notifsList = notifRes.getOrDefault(emptyList())
 
                     val cachedFriends = dbHelper.getCachedFriends()
 
-                    val conversations = (friendsList.ifEmpty {
+                    val groupConvos = groupsList.map { g ->
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size.coerceAtLeast(1)
+                        RecentConversationItem(
+                            id = g.id,
+                            name = "#${g.name}",
+                            username = g.id,
+                            avatarUrl = g.iconUrl,
+                            lastMessage = "$count members • Group Chat",
+                            timestamp = "Group",
+                            unreadCount = 0,
+                            isOnline = true,
+                            isGroup = true
+                        )
+                    }
+
+                    val friendConvos = (friendsList.ifEmpty {
                         cachedFriends.map { f ->
                             FriendshipDto(
                                 id = f.id,
@@ -242,7 +325,7 @@ fun HomeChatScreen(
                                 isOnline = f.isOnline
                             )
                         }
-                    }).take(6).map { friend ->
+                    }).map { friend ->
                         val cleanHandle = (friend.friendUsername.ifEmpty { friend.friendDisplayName }).removePrefix("@")
                         val unread = unreadMap[cleanHandle.lowercase()] ?: 0
                         val myUName = currentUsername.removePrefix("@")
@@ -270,9 +353,12 @@ fun HomeChatScreen(
                             lastMessage = lastMsgText,
                             timestamp = lastMsgTime,
                             unreadCount = unread,
-                            isOnline = friend.isOnline
+                            isOnline = friend.isOnline,
+                            isGroup = false
                         )
                     }
+
+                    val conversations = (groupConvos + friendConvos).take(8)
 
                     val finalChannels = channelsList.ifEmpty {
                         listOf(
@@ -400,13 +486,15 @@ fun HomeChatScreen(
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 1. Standardized Top Header with Status and Profile Avatar
+            // 1. Standardized Top Header with Status and Profile Avatar (Clean, no group buttons on top)
             ConnectoTopHeader(
                 title = "Connecto",
                 subtitle = "Dashboard",
                 userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
                 onMenuClick = null,
-                onAvatarClick = onNavigateToProfile
+                onVoiceGroupClick = null,
+                onAvatarClick = onNavigateToProfile,
+                customAction = null
             )
 
             // Scrollable Dashboard Content
@@ -552,16 +640,16 @@ fun HomeChatScreen(
                         }
                         item {
                             QuickActionChip(
-                                icon = Icons.Default.Tag,
-                                label = "Channels",
-                                onClick = { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
+                                icon = Icons.Default.Call,
+                                label = "Calls",
+                                onClick = onNavigateToCalls
                             )
                         }
                         item {
                             QuickActionChip(
-                                icon = Icons.Default.Call,
-                                label = "Calls",
-                                onClick = onNavigateToCalls
+                                icon = Icons.Default.Tag,
+                                label = "Channels",
+                                onClick = { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
                             )
                         }
                         item {
@@ -789,7 +877,10 @@ fun HomeChatScreen(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                            .clickable { onNavigateToMessages() }
+                                            .clickable {
+                                                com.example.connecto.MainActivity.pendingOpenChatTarget = if (convo.isGroup) convo.id else convo.username
+                                                onNavigateToMessages()
+                                            }
                                             .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
@@ -868,11 +959,20 @@ fun HomeChatScreen(
                 onDismissRequest = { isGroupChatOpen = false },
                 onGroupCreated = { groupName, groupId, members ->
                     isGroupChatOpen = false
-                    if (groupId.isNotEmpty()) {
-                        onNavigateToChannel?.invoke(groupId)
-                    } else {
-                        onNavigateToMessages()
-                    }
+                    com.example.connecto.MainActivity.pendingOpenChatTarget = groupId.ifBlank { groupName }
+                    onNavigateToMessages()
+                }
+            )
+        }
+
+        // Group Voice Call Dialog
+        if (isVoiceGroupOpen) {
+            CreateVoiceGroupDialog(
+                currentUsername = currentUsername,
+                onDismissRequest = { isVoiceGroupOpen = false },
+                onStartVoiceGroup = { title, selectedFriends ->
+                    isVoiceGroupOpen = false
+                    performHomeVoiceGroupCall(title, selectedFriends)
                 }
             )
         }

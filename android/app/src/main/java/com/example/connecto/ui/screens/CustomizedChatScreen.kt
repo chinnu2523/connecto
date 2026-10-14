@@ -162,8 +162,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.runtime.collectAsState
+import com.example.connecto.network.FriendshipDto
 import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.CreateGroupChatDialog
+import com.example.connecto.ui.components.CreateVoiceGroupDialog
 import com.example.connecto.ui.components.FullScreenGroupProfileDialog
 import com.example.connecto.ui.components.ConnectoEmojiPicker
 import com.example.connecto.ui.components.ConnectoTopHeader
@@ -485,6 +487,7 @@ fun CustomizedChatScreen(
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var showCreateGroupChatDialog by remember { mutableStateOf(false) }
+    var showCreateVoiceGroupDialog by remember { mutableStateOf(false) }
     var pendingRequestsCount by remember { mutableIntStateOf(0) }
     var friendSearchQuery by remember { mutableStateOf("") }
     var typedMessage by remember { mutableStateOf("") }
@@ -572,24 +575,20 @@ fun CustomizedChatScreen(
     val isGlassTheme = ConnectoTheme.isGlass
     val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
     val isPureBlack = ConnectoTheme.colors.background == Color(0xFF000000)
-    val activeChatTheme = remember(chatThemeId, isGlassTheme, isLiquidGlassTheme, isPureBlack) {
+    val activeChatTheme = remember(chatThemeId, isGlassTheme, isLiquidGlassTheme) {
         if (chatThemeId != "default") {
             val resolvedId = if (chatThemeId == "glass") "liquid_glass" else chatThemeId
             AVAILABLE_CHAT_THEMES.firstOrNull { it.id == resolvedId } ?: AVAILABLE_CHAT_THEMES.first()
-        } else if (isPureBlack) {
-            AVAILABLE_CHAT_THEMES.first()
         } else if (isLiquidGlassTheme || isGlassTheme) {
             AVAILABLE_CHAT_THEMES.firstOrNull { it.id == "liquid_glass" } ?: AVAILABLE_CHAT_THEMES.first()
         } else {
             AVAILABLE_CHAT_THEMES.first()
         }
     }
-    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme, isLiquidGlassTheme, isPureBlack) {
+    val activeChatWallpaper = remember(chatWallpaperId, isGlassTheme, isLiquidGlassTheme) {
         if (chatWallpaperId != "default") {
             val resolvedWpId = if (chatWallpaperId == "glass_mesh") "liquid_water" else chatWallpaperId
             AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == resolvedWpId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
-        } else if (isPureBlack) {
-            AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "oled" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
         } else if (isLiquidGlassTheme || isGlassTheme) {
             AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == "liquid_water" } ?: AVAILABLE_CHAT_WALLPAPERS.first()
         } else {
@@ -622,16 +621,20 @@ fun CustomizedChatScreen(
     val userGroupsList = remember { mutableStateListOf<FriendItem>() }
     var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "CREATED_GROUPS", "ADDED_GROUPS"
 
-    // Auto-select chat when opened from push notification intent
-    LaunchedEffect(targetChatUserOrChannel, friendsList.size) {
+    // Auto-select chat or group when opened from navigation or push notification intent
+    LaunchedEffect(targetChatUserOrChannel, friendsList.size, userGroupsList.size) {
         val target = targetChatUserOrChannel?.trim()
         if (!target.isNullOrBlank()) {
-            val clean = target.lowercase().removePrefix("@").removePrefix("dm-").removePrefix("dm_")
+            val clean = target.lowercase().removePrefix("@").removePrefix("#").removePrefix("dm-").removePrefix("dm_")
             val matchingFriend = friendsList.firstOrNull {
                 it.id.equals(clean, ignoreCase = true) ||
                 it.handle.removePrefix("@").equals(clean, ignoreCase = true) ||
                 it.name.equals(clean, ignoreCase = true) ||
                 (target.startsWith("dm-") && target.contains(it.handle.removePrefix("@").lowercase()))
+            } ?: userGroupsList.firstOrNull {
+                it.id.equals(clean, ignoreCase = true) ||
+                it.handle.removePrefix("#").equals(clean, ignoreCase = true) ||
+                it.name.equals(clean, ignoreCase = true)
             }
             if (matchingFriend != null) {
                 selectedFriend = matchingFriend
@@ -664,17 +667,104 @@ fun CustomizedChatScreen(
         }
     }
 
+    var pending1on1Friend by remember { mutableStateOf<FriendItem?>(null) }
+    var pendingGroupVoiceCallTarget by remember { mutableStateOf<FriendItem?>(null) }
+    var pendingVoiceGroupCallInfo by remember { mutableStateOf<Pair<String, List<FriendshipDto>>?>(null) }
+
+    fun perform1on1Call(friend: FriendItem) {
+        val friendUser = friend.handle.removePrefix("@").ifBlank { friend.name }
+        val friendName = friend.name.ifBlank { friendUser }
+        VoiceCallManager.start1on1Call(friendUser, friendName)
+    }
+
+    fun performGroupVoiceCall(group: FriendItem) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+        val currentU = effUser.trim().removePrefix("@")
+        val roomId = "group_voice_${group.id}_${System.currentTimeMillis()}"
+        val groupTitle = group.name.ifBlank { "Group Voice Call" }
+        VoiceCallManager.joinVoiceRoom(roomId = roomId, roomName = groupTitle, roomCode = roomId)
+
+        coroutineScope.launch {
+            val targets = if (group.members.isNotEmpty()) {
+                group.members.map { it.trim().removePrefix("@") }.filter { !it.equals(currentU, ignoreCase = true) }
+            } else {
+                userGroupsList.firstOrNull { it.id == group.id }?.members?.map { it.trim().removePrefix("@") }?.filter { !it.equals(currentU, ignoreCase = true) } ?: emptyList()
+            }
+
+            for (target in targets) {
+                try {
+                    VoiceCallManager.inviteToVoiceGroup(
+                        roomId = roomId,
+                        groupTitle = groupTitle,
+                        targetUser = target
+                    )
+                    ConnectoApiClient.inviteToVoiceCall(target, roomId)
+                } catch (_: Exception) {}
+            }
+
+            ConnectoApiClient.recordCallLog(
+                callerName = groupTitle,
+                callType = "Group Call (${targets.size + 1} members)",
+                isMissed = false,
+                isOutgoing = true
+            )
+        }
+    }
+
+    fun performVoiceGroupCallWithFriends(title: String, selectedFriendsList: List<FriendshipDto>) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+        val currentU = effUser.trim().removePrefix("@")
+        val roomId = "group_voice_${currentU}_${System.currentTimeMillis()}"
+        val groupTitle = title.ifBlank { "Voice Group Call" }
+        VoiceCallManager.joinVoiceRoom(roomId = roomId, roomName = groupTitle, roomCode = roomId)
+
+        coroutineScope.launch {
+            for (friend in selectedFriendsList) {
+                val target = friend.friendUsername.trim().removePrefix("@")
+                try {
+                    VoiceCallManager.inviteToVoiceGroup(
+                        roomId = roomId,
+                        groupTitle = groupTitle,
+                        targetUser = target
+                    )
+                    ConnectoApiClient.inviteToVoiceCall(target, roomId)
+                } catch (_: Exception) {}
+            }
+
+            ConnectoApiClient.recordCallLog(
+                callerName = groupTitle,
+                callType = "Group Call (${selectedFriendsList.size + 1} members)",
+                isMissed = false,
+                isOutgoing = true
+            )
+        }
+    }
+
     // Safe Audio Permission Launcher for 1:1 and Group Voice Calls
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             VoiceCallManager.restartAudioHardwareIfConnected()
+            pendingGroupVoiceCallTarget?.let { grp ->
+                val targetGrp = grp
+                pendingGroupVoiceCallTarget = null
+                performGroupVoiceCall(targetGrp)
+                return@rememberLauncherForActivityResult
+            }
+            pendingVoiceGroupCallInfo?.let { (title, friends) ->
+                pendingVoiceGroupCallInfo = null
+                performVoiceGroupCallWithFriends(title, friends)
+                return@rememberLauncherForActivityResult
+            }
+            pending1on1Friend?.let { friend ->
+                pending1on1Friend = null
+                perform1on1Call(friend)
+                return@rememberLauncherForActivityResult
+            }
             val target = selectedFriend
             if (target != null) {
-                val friendUser = target.handle.removePrefix("@").ifBlank { target.name }
-                val friendName = target.name.ifBlank { friendUser }
-                VoiceCallManager.start1on1Call(friendUser, friendName)
+                perform1on1Call(target)
             }
         } else {
             Toast.makeText(context, "Microphone permission is required for voice calls", Toast.LENGTH_SHORT).show()
@@ -682,11 +772,28 @@ fun CustomizedChatScreen(
     }
 
     fun initiateVoiceCallWithFriend(friend: FriendItem) {
-        val friendUser = friend.handle.removePrefix("@").ifBlank { friend.name }
-        val friendName = friend.name.ifBlank { friendUser }
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            VoiceCallManager.start1on1Call(friendUser, friendName)
+            perform1on1Call(friend)
         } else {
+            pending1on1Friend = friend
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    fun initiateGroupVoiceCall(group: FriendItem) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            performGroupVoiceCall(group)
+        } else {
+            pendingGroupVoiceCallTarget = group
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    fun initiateVoiceGroupCallWithFriends(title: String, selectedFriendsList: List<FriendshipDto>) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            performVoiceGroupCallWithFriends(title, selectedFriendsList)
+        } else {
+            pendingVoiceGroupCallInfo = Pair(title, selectedFriendsList)
             micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
@@ -2315,6 +2422,18 @@ fun CustomizedChatScreen(
         )
     }
 
+    if (showCreateVoiceGroupDialog) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "")
+        CreateVoiceGroupDialog(
+            currentUsername = effUser,
+            onDismissRequest = { showCreateVoiceGroupDialog = false },
+            onStartVoiceGroup = { title, selectedFriendsList ->
+                showCreateVoiceGroupDialog = false
+                initiateVoiceGroupCallWithFriends(title, selectedFriendsList)
+            }
+        )
+    }
+
     if (showGroupProfileDialog && selectedFriend != null && selectedFriend!!.isGroup) {
         val groupItem = selectedFriend!!
         val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
@@ -2376,23 +2495,30 @@ fun CustomizedChatScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .then(
-                            if (isPureBlack) {
+                            if (isLiquidGlassTheme) {
+                                Modifier
+                                    .background(
+                                        Brush.verticalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = 0.12f),
+                                                Color(0x4D061120)
+                                            )
+                                        )
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        brush = Brush.verticalGradient(
+                                            listOf(Color(0x6600E5FF), Color(0x1A00E5FF))
+                                        ),
+                                        shape = RectangleShape
+                                    )
+                            } else if (isPureBlack) {
                                 Modifier
                                     .background(Color(0xCC000000))
                                     .border(
                                         width = 1.dp,
                                         brush = Brush.verticalGradient(
                                             listOf(Color(0x33FFFFFF), Color(0x0DFFFFFF))
-                                        ),
-                                        shape = RectangleShape
-                                    )
-                            } else if (isLiquidGlassTheme) {
-                                Modifier
-                                    .background(Color(0x66061120))
-                                    .border(
-                                        width = 1.dp,
-                                        brush = Brush.verticalGradient(
-                                            listOf(Color(0x6600E5FF), Color(0x1A00E5FF))
                                         ),
                                         shape = RectangleShape
                                     )
@@ -2422,14 +2548,12 @@ fun CustomizedChatScreen(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isPureBlack) Color(0x1AFFFFFF)
-                                    else if (isLiquidGlassTheme) Color(0x3300E5FF)
+                                    if (isPureBlack || isLiquidGlassTheme) Color(0x1AFFFFFF)
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 )
                                 .border(
                                     1.dp,
-                                    if (isPureBlack) Color(0x33FFFFFF)
-                                    else if (isLiquidGlassTheme) Color(0x6600E5FF)
+                                    if (isPureBlack || isLiquidGlassTheme) Color(0x40FFFFFF)
                                     else MaterialTheme.colorScheme.outline,
                                     CircleShape
                                 )
@@ -2595,7 +2719,7 @@ fun CustomizedChatScreen(
                                     )
                                 }
                             } else {
-                                // Group Header Tag Chip & Info Action
+                                // Group Header Actions: Info, Group Voice Call, and Admin/Member Tag
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2614,6 +2738,29 @@ fun CustomizedChatScreen(
                                             contentDescription = "Group Profile Info",
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+
+                                    // Group Voice Call Action Button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                            .clickable {
+                                                val grp = selectedFriend
+                                                if (grp != null) {
+                                                    initiateGroupVoiceCall(grp)
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Call,
+                                            contentDescription = "Group Voice Call",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
 
@@ -2642,6 +2789,7 @@ fun CustomizedChatScreen(
                     title = "DIRECT MESSAGES",
                     subtitle = "Chat with friends & members",
                     userInitial = userInitial,
+                    onVoiceGroupClick = { showCreateVoiceGroupDialog = true },
                     onAddFriendClick = { showAddFriendDialog = true },
                     pendingFriendRequestsCount = pendingRequestsCount,
                     onAvatarClick = onOpenProfile,
@@ -3145,12 +3293,12 @@ fun CustomizedChatScreen(
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .then(
-                                        if (isPureBlack && (chatWallpaperId == "default" || chatWallpaperId == "oled")) {
-                                            Modifier.background(Color(0xFF000000))
-                                        } else if (isLiquidGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "liquid_water")) {
+                                        if (isLiquidGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "liquid_water")) {
                                             Modifier.liquidGlassCanvasMesh()
                                         } else if (isGlassTheme && (chatWallpaperId == "default" || chatWallpaperId == "glass_mesh")) {
                                             Modifier.glassCanvasMesh()
+                                        } else if (chatWallpaperId == "oled" || (isPureBlack && chatWallpaperId == "default")) {
+                                            Modifier.background(Color(0xFF000000))
                                         } else {
                                             Modifier.background(
                                                 brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
@@ -3556,14 +3704,12 @@ fun CustomizedChatScreen(
                                             .padding(horizontal = 16.dp, vertical = 4.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(
-                                                if (isPureBlack) Color(0x1AFFFFFF)
-                                                else if (isLiquidGlassTheme) Color(0x400D1E36)
+                                                if (isPureBlack || isLiquidGlassTheme) Color(0x1AFFFFFF)
                                                 else MaterialTheme.colorScheme.surfaceVariant
                                             )
                                             .border(
                                                 1.dp,
-                                                if (isPureBlack) Color(0x33FFFFFF)
-                                                else if (isLiquidGlassTheme) Color(0x6600E5FF)
+                                                if (isPureBlack || isLiquidGlassTheme) Color(0x40FFFFFF)
                                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                                 RoundedCornerShape(12.dp)
                                             )
@@ -3624,25 +3770,17 @@ fun CustomizedChatScreen(
                                     .heightIn(min = 46.dp, max = 120.dp)
                                     .clip(RoundedCornerShape(22.dp))
                                     .background(
-                                        if (isPureBlack) Color(0x1AFFFFFF)
-                                        else if (isLiquidGlassTheme) Color(0x400D1E36)
+                                        if (isPureBlack || isLiquidGlassTheme) Color(0x1AFFFFFF)
                                         else if (isGlassTheme) Color(0xD9111827)
                                         else MaterialTheme.colorScheme.surfaceVariant
                                     )
                                     .border(
                                         width = if ((isLiquidGlassTheme || isGlassTheme || isPureBlack) && isInputFocused) 1.5.dp else 1.dp,
-                                        brush = if (isPureBlack) {
+                                        brush = if (isPureBlack || isLiquidGlassTheme) {
                                             Brush.linearGradient(
                                                 listOf(
-                                                    if (isInputFocused) Color.White else Color(0x55FFFFFF),
+                                                    if (isInputFocused) Color.White else Color(0x66FFFFFF),
                                                     if (isInputFocused) Color(0x80FFFFFF) else Color(0x1AFFFFFF)
-                                                )
-                                            )
-                                        } else if (isLiquidGlassTheme) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    if (isInputFocused) Color(0xFF00E5FF) else Color(0x8000E5FF),
-                                                    if (isInputFocused) Color(0x6600E5FF) else Color(0x330284C7)
                                                 )
                                             )
                                         } else if (isGlassTheme) {
@@ -3849,31 +3987,22 @@ fun CustomizedChatScreen(
                                     .clip(CircleShape)
                                     .background(
                                         if (typedMessage.isNotBlank()) {
-                                            if (isPureBlack) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
-                                            else if (isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0xFF0284C7)))
+                                            if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color.White, Color(0xFFE4E4E7)))
                                             else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xFF38BDF8), Color(0xFF0284C7)))
                                             else Brush.linearGradient(gradientColors)
                                         } else {
-                                            if (isPureBlack) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
-                                            else if (isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x590D1E36), Color(0x33061120)))
+                                            if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x26FFFFFF), Color(0x14FFFFFF)))
                                             else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xD91E293B), Color(0xB3111827)))
                                             else Brush.linearGradient(listOf(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.surfaceVariant))
                                         }
                                     )
                                     .border(
                                         width = if (isLiquidGlassTheme || isGlassTheme || isPureBlack) 1.2.dp else 1.dp,
-                                        brush = if (isPureBlack) {
+                                        brush = if (isPureBlack || isLiquidGlassTheme) {
                                             Brush.linearGradient(
                                                 listOf(
                                                     if (typedMessage.isNotBlank()) Color.White else Color(0x66FFFFFF),
                                                     if (typedMessage.isNotBlank()) Color(0x80FFFFFF) else Color(0x26FFFFFF)
-                                                )
-                                            )
-                                        } else if (isLiquidGlassTheme) {
-                                            Brush.linearGradient(
-                                                listOf(
-                                                    if (typedMessage.isNotBlank()) Color(0xFFE0F7FA) else Color(0x8000E5FF),
-                                                    if (typedMessage.isNotBlank()) Color(0x9900E5FF) else Color(0x3300E5FF)
                                                 )
                                             )
                                         } else if (isGlassTheme) {
@@ -3888,34 +4017,22 @@ fun CustomizedChatScreen(
                                         },
                                         shape = CircleShape
                                     )
-                                    .clickable {
-                                        if (typedMessage.isNotBlank()) {
-                                            onSendMessage()
-                                        } else {
-                                            Toast.makeText(
-                                                context,
-                                                "Hold to record end-to-end encrypted voice note",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
+                                    .clickable(enabled = typedMessage.isNotBlank()) {
+                                        onSendMessage()
                                     },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (typedMessage.isNotBlank()) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = "Send",
-                                        tint = if (isPureBlack) Color.Black else contentOnGradient,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Mic,
-                                        contentDescription = "Voice Note",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Send,
+                                    contentDescription = "Send",
+                                    tint = if (typedMessage.isNotBlank()) {
+                                        if (isPureBlack) Color.Black else contentOnGradient
+                                    } else {
+                                        if (isPureBlack || isLiquidGlassTheme) Color(0x66FFFFFF)
+                                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                    },
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
 
@@ -4132,15 +4249,13 @@ fun CustomChatBubble(
                             .offset(y = (-8).dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(
-                                if (isPureBlack) Color(0x26FFFFFF)
-                                else if (isLiquidGlassTheme) Color(0x590D1E36)
+                                if (isPureBlack || isLiquidGlassTheme) Color(0x26FFFFFF)
                                 else if (isGlassTheme) Color(0xD91E293B)
                                 else MaterialTheme.colorScheme.surface
                             )
                             .border(
                                 1.dp,
-                                if (isPureBlack) Color(0x40FFFFFF)
-                                else if (isLiquidGlassTheme) Color(0x6600E5FF)
+                                if (isPureBlack || isLiquidGlassTheme) Color(0x40FFFFFF)
                                 else if (isGlassTheme) Color(0x8038BDF8)
                                 else MaterialTheme.colorScheme.outline,
                                 RoundedCornerShape(10.dp)
@@ -4166,15 +4281,13 @@ fun CustomChatBubble(
                         .padding(top = 4.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(
-                            if (isPureBlack) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)))
-                            else if (isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x800D1E36), Color(0x59061120)))
+                            if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)))
                             else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xF0111827), Color(0xDD090D16)))
                             else SolidColor(MaterialTheme.colorScheme.surface)
                         )
                         .border(
                             width = 1.2.dp,
-                            brush = if (isPureBlack) Brush.linearGradient(listOf(Color(0x80FFFFFF), Color(0x20FFFFFF)))
-                                    else if (isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0xFF00E5FF), Color(0x3300E5FF)))
+                            brush = if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0x80FFFFFF), Color(0x20FFFFFF)))
                                     else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xCC38BDF8), Color(0x3338BDF8)))
                                     else SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
                             shape = RoundedCornerShape(16.dp)

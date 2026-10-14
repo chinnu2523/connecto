@@ -85,6 +85,7 @@ import com.example.connecto.ui.theme.NeonPink
 import com.example.connecto.ui.theme.TextPrimaryDark
 import com.example.connecto.ui.theme.TextSecondaryDark
 import com.example.connecto.ui.theme.glassmorphicCard
+import com.example.connecto.ui.theme.glassBubble
 import com.example.connecto.ui.theme.pressScaleEffect
 import com.example.connecto.ui.theme.PulsingOnlineDot
 import com.example.connecto.ui.theme.StaggeredReveal
@@ -218,7 +219,6 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(DeepSpaceBackground)
             .statusBarsPadding()
             .padding(14.dp)
     ) {
@@ -545,19 +545,18 @@ fun HomeScreen(
                                             Spacer(modifier = Modifier.height(2.dp))
                                         }
 
+                                        val bubbleShape = RoundedCornerShape(
+                                            topStart = 18.dp,
+                                            topEnd = 18.dp,
+                                            bottomStart = if (msg.isMe) 18.dp else 4.dp,
+                                            bottomEnd = if (msg.isMe) 4.dp else 18.dp
+                                        )
                                         Box(
                                             modifier = Modifier
-                                                .clip(
-                                                    RoundedCornerShape(
-                                                        topStart = 18.dp,
-                                                        topEnd = 18.dp,
-                                                        bottomStart = if (msg.isMe) 18.dp else 4.dp,
-                                                        bottomEnd = if (msg.isMe) 4.dp else 18.dp
-                                                    )
-                                                )
-                                                .background(
-                                                    if (msg.isMe) Brush.horizontalGradient(listOf(ElectricViolet, NeonPink))
-                                                    else Brush.horizontalGradient(listOf(DarkCardSurface, DarkCardSurface))
+                                                .glassBubble(
+                                                    isMe = msg.isMe,
+                                                    shape = bubbleShape,
+                                                    isLiquid = true
                                                 )
                                                 .padding(horizontal = 14.dp, vertical = 10.dp)
                                         ) {

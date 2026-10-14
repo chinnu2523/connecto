@@ -49,6 +49,10 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.ui.draw.blur
+import com.example.connecto.ui.designsystem.LocalConnectoColors
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -123,18 +127,27 @@ fun ChannelNavigationDrawer(
         DrawerChannelOption("voice-lounge", "voice-lounge", "Voice room & screen sharing lounge", Icons.AutoMirrored.Rounded.VolumeUp, badgeTag = "VOICE", category = "COLLABORATION")
     )
 
+    val colors = LocalConnectoColors.current
+    val isDrawerOpen = drawerState.isOpen || drawerState.isAnimationRunning || drawerState.targetValue == DrawerValue.Open
+    val blurRadius by animateDpAsState(
+        targetValue = if (isDrawerOpen) 24.dp else 0.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy),
+        label = "drawerBackgroundBlur"
+    )
+
     ModalNavigationDrawer(
         drawerState = drawerState,
+        scrimColor = Color.Black.copy(alpha = 0.65f),
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
+                drawerContainerColor = if (colors.isGlass) Color(0xF210121A) else if (colors.isDark) Color(0xF513151F) else Color(0xF8FFFFFF),
                 drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(310.dp)
                     .border(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        color = if (colors.isGlass) Color.White.copy(alpha = 0.22f) else colors.borderSubtle,
                         shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
                     )
             ) {
@@ -407,7 +420,16 @@ fun ChannelNavigationDrawer(
             }
         },
         content = {
-            content()
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(
+                        if (blurRadius > 0.dp) Modifier.blur(blurRadius)
+                        else Modifier
+                    )
+            ) {
+                content()
+            }
         }
     )
 }
@@ -420,6 +442,7 @@ private fun DrawerChannelItem(
     onSelect: () -> Unit
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    val colors = LocalConnectoColors.current
     val contentOnGradient = getContentColorOnAccentGradient()
 
     val scale by animateFloatAsState(
@@ -458,12 +481,13 @@ private fun DrawerChannelItem(
             .scale(scale)
             .clip(RoundedCornerShape(12.dp))
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+                else (if (colors.isGlass) Color(0x26FFFFFF) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             )
             .border(
                 width = 1.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                color = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                else (if (colors.isGlass) Color(0x33FFFFFF) else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
                 shape = RoundedCornerShape(12.dp)
             )
             .clickable {

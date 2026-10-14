@@ -31,6 +31,10 @@ object ConnectoTheme {
     val isPureBlack: Boolean
         @Composable
         get() = LocalConnectoColors.current.background == Color(0xFF000000)
+
+    val glassAlpha: Float
+        @Composable
+        get() = LocalConnectoColors.current.glassAlpha
 }
 
 /**
@@ -41,9 +45,10 @@ object ConnectoTheme {
 fun ConnectoDesignTheme(
     themeMode: ThemeMode = ThemeMode.NOIR,
     darkTheme: Boolean = themeMode.isDark,
+    glassTransparency: Float = 0.0f,
     content: @Composable () -> Unit
 ) {
-    val connectoColors = getColorsForTheme(themeMode)
+    val connectoColors = getColorsForTheme(themeMode, glassTransparency)
     val connectoTypography = ConnectoTypography()
 
     val m3ColorScheme = if (connectoColors.isDark) {

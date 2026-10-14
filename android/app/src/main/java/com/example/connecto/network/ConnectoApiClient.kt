@@ -3806,7 +3806,7 @@ object ConnectoApiClient {
                 val obj = JSONObject(response.getOrThrow())
                 val userObj = if (obj.has("user")) obj.optJSONObject("user") ?: obj else obj
                 val isStealth = userObj.optBoolean("is_stealth", false)
-                val isOnline = !isStealth && userObj.optBoolean("is_online", true)
+                val isOnline = !isStealth && (userObj.optBoolean("is_online", false) || userObj.optString("status").equals("online", ignoreCase = true))
 
                 var av = userObj.optString("avatar").ifEmpty {
                     userObj.optString("picture").ifEmpty {

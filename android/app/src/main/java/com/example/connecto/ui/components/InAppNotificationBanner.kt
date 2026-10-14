@@ -26,8 +26,15 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -140,6 +147,13 @@ fun InAppNotificationBanner(
             ) + fadeOut(animationSpec = tween(180))
         ) {
             if (current != null) {
+                var bannerDragOffset by remember(current.id) { mutableFloatStateOf(0f) }
+                val animatedBannerOffset by animateFloatAsState(
+                    targetValue = bannerDragOffset,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy),
+                    label = "bannerSwipeOffset"
+                )
+
                 val resolvedAvatar = current.avatarUrl?.let { raw ->
                     if (raw.startsWith("http://") || raw.startsWith("https://")) raw
                     else "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/${raw.trimStart('/')}"
@@ -156,25 +170,75 @@ fun InAppNotificationBanner(
                     listOf(Color(0xFF6C5CE7), Color(0xFF00CEC9))
                 )
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(
-                            elevation = 20.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            spotColor = Color(0xFF6C5CE7).copy(alpha = 0.5f),
-                            ambientColor = Color(0xFF00CEC9).copy(alpha = 0.2f)
-                        )
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Color(0xFF0D0E15).copy(alpha = 0.97f))
-                        .border(1.2.dp, borderGradient, RoundedCornerShape(20.dp))
-                        .clickable {
-                            val action = current.actionType
-                            val ref = current.referenceId
-                            InAppNotificationController.dismiss()
-                            onNavigate(action, ref)
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    if (animatedBannerOffset > 5f) {
+                        val swipeProgress = (animatedBannerOffset / 70f).coerceIn(0f, 1f)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(start = 10.dp)
+                                .size(40.dp)
+                                .graphicsLayer {
+                                    alpha = swipeProgress
+                                    scaleX = 0.6f + 0.4f * swipeProgress
+                                    scaleY = 0.6f + 0.4f * swipeProgress
+                                }
+                                .clip(CircleShape)
+                                .background(Color(0xFF6C5CE7).copy(alpha = 0.28f))
+                                .border(1.dp, Color(0xFF6C5CE7).copy(alpha = 0.6f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Reply,
+                                contentDescription = "Reply",
+                                tint = Color(0xFF00CEC9),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                ) {
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(animatedBannerOffset.roundToInt(), 0) }
+                            .pointerInput(current.id) {
+                                detectHorizontalDragGestures(
+                                    onDragEnd = {
+                                        if (bannerDragOffset > 70f) {
+                                            val action = current.actionType
+                                            val ref = current.referenceId
+                                            InAppNotificationController.dismiss()
+                                            onNavigate(action, ref)
+                                        }
+                                        bannerDragOffset = 0f
+                                    },
+                                    onDragCancel = {
+                                        bannerDragOffset = 0f
+                                    },
+                                    onHorizontalDrag = { change, dragAmount ->
+                                        if (dragAmount > 0 || bannerDragOffset > 0f) {
+                                            bannerDragOffset = (bannerDragOffset + dragAmount).coerceIn(0f, 130f)
+                                            change.consume()
+                                        }
+                                    }
+                                )
+                            }
+                            .shadow(
+                                elevation = 20.dp,
+                                shape = RoundedCornerShape(20.dp),
+                                spotColor = Color(0xFF6C5CE7).copy(alpha = 0.5f),
+                                ambientColor = Color(0xFF00CEC9).copy(alpha = 0.2f)
+                            )
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color(0xFF0D0E15).copy(alpha = 0.97f))
+                            .border(1.2.dp, borderGradient, RoundedCornerShape(20.dp))
+                            .clickable {
+                                val action = current.actionType
+                                val ref = current.referenceId
+                                InAppNotificationController.dismiss()
+                                onNavigate(action, ref)
+                            }
+                    ) {
                     // Main content row
                     Row(
                         modifier = Modifier
@@ -299,4 +363,5 @@ fun InAppNotificationBanner(
             }
         }
     }
+}
 }

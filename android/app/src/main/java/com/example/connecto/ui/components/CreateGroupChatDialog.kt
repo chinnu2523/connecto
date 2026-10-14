@@ -70,7 +70,11 @@ import com.example.connecto.ui.designsystem.LocalConnectoColors
 import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
+import com.example.connecto.ui.theme.liquidGlassCard
+import com.example.connecto.data.ConnectoDatabaseHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Dialog for creating a new group chat.
@@ -87,6 +91,7 @@ fun CreateGroupChatDialog(
     val coroutineScope = rememberCoroutineScope()
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
+    val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
 
     var groupName by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
@@ -97,27 +102,54 @@ fun CreateGroupChatDialog(
     val friendsList = remember { mutableStateListOf<FriendshipDto>() }
     val selectedMembers = remember { mutableStateListOf<String>() }
 
-    // Fetch ONLY the user's accepted friends on dialog launch
+    // Instant cache-first loading, followed by network sync
     LaunchedEffect(currentUsername) {
-        isLoadingFriends = true
-        errorMessage = null
+        val cached = withContext(Dispatchers.IO) {
+            dbHelper.getCachedFriends()
+        }
+        val cleanCurrent = currentUsername.trim().lowercase().removePrefix("@")
+        if (cached.isNotEmpty()) {
+            val mappedCached = cached.filter {
+                val u = it.handle.trim().lowercase().removePrefix("@")
+                u.isNotBlank() && u != cleanCurrent
+            }.map { f ->
+                FriendshipDto(
+                    id = f.id,
+                    userId = currentUsername,
+                    friendId = f.id,
+                    friendUsername = f.handle.removePrefix("@"),
+                    friendDisplayName = f.name,
+                    friendAvatarUrl = f.avatarUrl,
+                    status = "accepted",
+                    isOnline = f.isOnline,
+                    bio = f.bio
+                )
+            }
+            if (mappedCached.isNotEmpty()) {
+                friendsList.clear()
+                friendsList.addAll(mappedCached)
+                isLoadingFriends = false
+            }
+        }
+
         try {
             val res = ConnectoApiClient.getFriends(username = currentUsername)
             if (res.isSuccess) {
                 val list = res.getOrThrow()
+                val freshFiltered = list.filter { friend ->
+                    val u = friend.friendUsername.trim().lowercase().removePrefix("@")
+                    u.isNotBlank() && u != cleanCurrent
+                }
                 friendsList.clear()
-                // Filter out invalid/empty handles and self
-                friendsList.addAll(
-                    list.filter { friend ->
-                        friend.friendUsername.isNotBlank() &&
-                        !friend.friendUsername.equals(currentUsername, ignoreCase = true)
-                    }
-                )
-            } else {
+                friendsList.addAll(freshFiltered)
+                errorMessage = null
+            } else if (friendsList.isEmpty()) {
                 errorMessage = "Failed to load friends: ${res.exceptionOrNull()?.message}"
             }
         } catch (e: Exception) {
-            errorMessage = e.message ?: "Failed to load friends"
+            if (friendsList.isEmpty()) {
+                errorMessage = e.message ?: "Failed to load friends"
+            }
         } finally {
             isLoadingFriends = false
         }
@@ -142,9 +174,7 @@ fun CreateGroupChatDialog(
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.93f)
-                .clip(RoundedCornerShape(ConnectoRadius.lg))
-                .background(colors.surface)
-                .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.lg))
+                .liquidGlassCard(shape = RoundedCornerShape(ConnectoRadius.lg))
         ) {
             Column(modifier = Modifier.padding(ConnectoSpacing.lg)) {
 

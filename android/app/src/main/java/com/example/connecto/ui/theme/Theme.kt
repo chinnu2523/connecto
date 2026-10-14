@@ -9,12 +9,14 @@ import com.example.connecto.ui.designsystem.ThemeMode
 fun ConnectoTheme(
     themeMode: ThemeMode = ThemeMode.NOIR,
     darkTheme: Boolean = themeMode.isDark,
+    glassTransparency: Float = 0.0f,
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     ConnectoDesignTheme(
         themeMode = themeMode,
         darkTheme = darkTheme,
+        glassTransparency = glassTransparency,
         content = content
     )
 }

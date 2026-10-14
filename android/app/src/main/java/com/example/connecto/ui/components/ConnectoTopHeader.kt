@@ -141,8 +141,8 @@ fun ConnectoTopHeader(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.10f),
-                        colors.surface.copy(alpha = if (!colors.isDark) 0.50f else 0.20f)
+                        if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.12f),
+                        colors.surface.copy(alpha = if (!colors.isDark) 0.50f else 0.16f)
                     )
                 )
             )
@@ -293,12 +293,21 @@ fun ConnectoTopHeader(
             }
         }
 
-        // Clean 1dp Bottom Border
+        // Specular 1dp Bottom Border
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(colors.borderSubtle)
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            Color.White.copy(alpha = 0.15f),
+                            colors.border.copy(alpha = 0.45f),
+                            Color.White.copy(alpha = 0.35f),
+                            colors.borderSubtle.copy(alpha = 0.20f)
+                        )
+                    )
+                )
         )
     }
 }

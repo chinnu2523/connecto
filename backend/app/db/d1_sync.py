@@ -159,7 +159,10 @@ class D1SyncManager:
                         stmt = (
                             f"INSERT INTO users ({col_names}) VALUES ({placeholders}) "
                             f"ON CONFLICT(id) DO UPDATE SET {set_clause}, "
-                            f"password_hash = CASE WHEN users.password_hash IS NULL OR users.password_hash = '' THEN excluded.password_hash ELSE users.password_hash END;"
+                            f"password_hash = CASE "
+                            f"  WHEN users.password_hash IS NOT NULL AND users.password_hash != '' THEN users.password_hash "
+                            f"  ELSE excluded.password_hash "
+                            f"END;"
                         )
                     else:
                         stmt = f"INSERT OR REPLACE INTO {table_name} ({col_names}) VALUES ({placeholders});"

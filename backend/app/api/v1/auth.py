@@ -9,7 +9,7 @@ from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_current_user
 from app.core.config import settings
-from app.core.security import hash_password, verify_password, generate_session_token, hash_session_token
+from app.core.security import hash_password, verify_password, needs_rehash, generate_session_token, hash_session_token
 from app.core.otp import send_unified_otp, verify_unified_otp, clean_phone_number, mask_phone_number, mask_email
 from app.db.models.user import User, UserSession, OTPVerification
 from app.schemas.user import (
@@ -208,16 +208,15 @@ async def check_username(
             "username": clean_u,
             "message": "Username may only contain letters, numbers, and underscores without spaces."
         }
-        
-    # Enforce test account rule: only 'test_user', 'chinnu', and 'vivek' are permitted test accounts
-    test_patterns = [r"^test", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user"]
-    if any(re.search(pat, clean_u) for pat in test_patterns) and clean_u not in ("chinnu", "vivek", "test_user"):
+    # Enforce test account rule: test, guest, and mock usernames are completely disabled
+    test_patterns = [r"^test", r"^guest", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user"]
+    if any(re.search(pat, clean_u) for pat in test_patterns) and clean_u not in ("chinnu", "chinnu14754x"):
         return {
             "status": "error",
             "available": False,
             "valid": False,
             "username": clean_u,
-            "message": "Registration of additional test accounts is disabled. Only designated test accounts ('test_user', 'chinnu', and 'vivek') are permitted."
+            "message": "Registration of test and guest accounts is strictly disabled."
         }
 
     stmt = select(User).where(func.lower(User.username) == clean_u)
@@ -306,14 +305,14 @@ async def signup(
     clean_email = signup_data.email.strip().lower()
     clean_display_name = signup_data.display_name.strip() if (signup_data.display_name and signup_data.display_name.strip()) else clean_username
 
-    # Enforce test accounts policy: only 'vivek', 'srinu', and 'devi' are permitted test accounts
-    test_patterns = [r"^test", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user"]
+    # Enforce test accounts policy: creating test or guest accounts is strictly blocked
+    test_patterns = [r"^test", r"^guest", r"^audit", r"^shinobi_[ab]", r"^antiflood", r"^mock", r"^diag_user", r"^member_\w{6}", r"^ninja_"]
     is_test_username = any(re.search(pat, clean_username) for pat in test_patterns)
     is_test_email = clean_email.endswith("@connecto.test") or clean_email.endswith("@example.com") or any(re.search(pat, clean_email) for pat in test_patterns)
-    if (is_test_username or is_test_email) and clean_username not in ("vivek", "srinu", "devi"):
+    if is_test_username or is_test_email:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Registration of additional test accounts is disabled. Only the designated accounts ('vivek', 'srinu', 'devi') are authorized."
+            detail="Registration of test/guest suite accounts is strictly disabled."
         )
 
     # Check if username or email already exists
@@ -442,9 +441,7 @@ async def login(
     """
     user = await find_user_by_identifier(db, login_data.login)
 
-    # Strict password verification — ONLY Argon2id hash match is accepted.
-    # Whitespace trimming handles mobile keyboard trailing-space edge case only.
-    # NO fallback passwords, NO auto-rehash, NO dev password lists.
+    # Strictly read-only cryptographic password verification
     pwd_clean = (login_data.password or "").strip()
     is_valid_pwd = verify_password(user.password_hash, login_data.password) if user else False
     if not is_valid_pwd and user and pwd_clean != login_data.password:
@@ -456,8 +453,8 @@ async def login(
             detail="Invalid username/email or password."
         )
 
-    # Sole admin policy: ONLY chinnu14754x is admin, all others are members
-    is_adm = (user.username.lower() == "chinnu14754x")
+    # Sole admin policy: ONLY chinnu14754x and connecto_admin are admin, all others are members
+    is_adm = (user.username.lower() in ("chinnu14754x", "connecto_admin"))
     if bool(user.is_admin) != is_adm:
         user.is_admin = is_adm
         await db.commit()

@@ -47,6 +47,12 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.runtime.mutableFloatStateOf
+import kotlin.math.roundToInt
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -69,6 +75,8 @@ import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -197,6 +205,7 @@ fun ChannelsWorkspaceScreen(
     var showEmojiPicker by remember { mutableStateOf(false) }
     var isInputFocused by remember { mutableStateOf(false) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
+    var replyingTo by remember { mutableStateOf<MessageDto?>(null) }
 
     // Local reactions storage: messageId -> list of emoji strings
     val channelReactions = remember { mutableStateMapOf<String, List<String>>() }
@@ -293,6 +302,9 @@ fun ChannelsWorkspaceScreen(
         focusManager.clearFocus()
         showEmojiPicker = false
 
+        val activeReply = replyingTo
+        replyingTo = null
+
         val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
         val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US).format(Date())
         val displayName = ConnectoApiClient.currentUserDisplayName ?: currentUsername
@@ -305,7 +317,10 @@ fun ChannelsWorkspaceScreen(
             authorAvatar = ConnectoApiClient.currentUserAvatarState.value,
             content = text,
             createdAt = nowIso,
-            type = "text"
+            type = "text",
+            replyToId = activeReply?.id,
+            replyToContent = activeReply?.content,
+            replyToAuthor = activeReply?.authorName?.ifBlank { activeReply?.authorId }
         )
 
         // Optimistic UI append
@@ -318,7 +333,13 @@ fun ChannelsWorkspaceScreen(
 
         coroutineScope.launch(Dispatchers.IO) {
             try {
-                val sendRes = ConnectoApiClient.sendMessage(channelId = cleanCh, content = text)
+                val sendRes = ConnectoApiClient.sendMessage(
+                    channelId = cleanCh,
+                    content = text,
+                    replyToId = activeReply?.id,
+                    replyToContent = activeReply?.content,
+                    replyToAuthor = activeReply?.authorName?.ifBlank { activeReply?.authorId }
+                )
                 if (sendRes.isSuccess) {
                     val serverMsg = sendRes.getOrThrow()
                     withContext(Dispatchers.Main) {
@@ -549,31 +570,89 @@ fun ChannelsWorkspaceScreen(
                                     val isMe = msg.authorId.equals(currentUsername, ignoreCase = true) ||
                                                msg.authorName.equals(currentUsername, ignoreCase = true)
 
-                                    val msgReactions = channelReactions[msg.id] ?: run {
-                                        val hash = kotlin.math.abs(msg.id.hashCode())
-                                        when (hash % 3) {
-                                            0 -> listOf("🔥", "🚀", "⚡", "❤️")
-                                            1 -> listOf("🎮", "👾", "🏆")
-                                            else -> listOf("👍", "💯", "🎉")
-                                        }
-                                    }
+                                    val msgReactions = channelReactions[msg.id] ?: emptyList()
 
-                                    StaggeredReveal(index = idx.coerceAtMost(6)) {
-                                        ChannelMessageCard(
-                                            message = msg,
-                                            isMe = isMe,
-                                            gradientColors = gradientColors,
-                                            reactions = msgReactions,
-                                            onToggleReaction = { emoji ->
-                                                val currentList = msgReactions.toMutableList()
-                                                if (currentList.contains(emoji)) {
-                                                    currentList.remove(emoji)
-                                                } else {
-                                                    currentList.add(emoji)
-                                                }
-                                                channelReactions[msg.id] = currentList
+                                    var itemSwipeOffset by remember(msg.id) { mutableFloatStateOf(0f) }
+                                    val animatedItemSwipeOffset by animateFloatAsState(
+                                        targetValue = itemSwipeOffset,
+                                        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioLowBouncy),
+                                        label = "msgSwipe"
+                                    )
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .pointerInput(msg.id) {
+                                                detectHorizontalDragGestures(
+                                                    onDragEnd = {
+                                                        if (itemSwipeOffset >= 60f) {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                            replyingTo = msg
+                                                        }
+                                                        itemSwipeOffset = 0f
+                                                    },
+                                                    onDragCancel = {
+                                                        itemSwipeOffset = 0f
+                                                    },
+                                                    onHorizontalDrag = { change, dragAmount ->
+                                                        if (dragAmount > 0 || itemSwipeOffset > 0f) {
+                                                            itemSwipeOffset = (itemSwipeOffset + dragAmount).coerceIn(0f, 110f)
+                                                            change.consume()
+                                                        }
+                                                    }
+                                                )
                                             }
-                                        )
+                                    ) {
+                                        if (animatedItemSwipeOffset > 5f) {
+                                            val swipeProgress = (animatedItemSwipeOffset / 60f).coerceIn(0f, 1f)
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.CenterStart)
+                                                    .padding(start = 8.dp)
+                                                    .size(34.dp)
+                                                    .graphicsLayer {
+                                                        alpha = swipeProgress
+                                                        scaleX = 0.6f + 0.4f * swipeProgress
+                                                        scaleY = 0.6f + 0.4f * swipeProgress
+                                                    }
+                                                    .clip(CircleShape)
+                                                    .background(colors.primary.copy(alpha = 0.22f))
+                                                    .border(1.dp, colors.primary.copy(alpha = 0.4f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.Reply,
+                                                    contentDescription = "Reply",
+                                                    tint = colors.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .offset { IntOffset(animatedItemSwipeOffset.roundToInt(), 0) }
+                                        ) {
+                                            StaggeredReveal(index = idx.coerceAtMost(6)) {
+                                                ChannelMessageCard(
+                                                    message = msg,
+                                                    isMe = isMe,
+                                                    gradientColors = gradientColors,
+                                                    reactions = msgReactions,
+                                                    onToggleReaction = { emoji ->
+                                                        val currentList = msgReactions.toMutableList()
+                                                        if (currentList.contains(emoji)) {
+                                                            currentList.remove(emoji)
+                                                        } else {
+                                                            currentList.add(emoji)
+                                                        }
+                                                        channelReactions[msg.id] = currentList
+                                                    },
+                                                    onReply = { replyingTo = msg }
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -704,6 +783,77 @@ fun ChannelsWorkspaceScreen(
                                 },
                                 onClose = { showEmojiPicker = false }
                             )
+                        }
+                    }
+
+                    // Active Reply Preview Banner
+                    AnimatedVisibility(
+                        visible = replyingTo != null,
+                        enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
+                        exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
+                    ) {
+                        replyingTo?.let { replyTarget ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(
+                                        if (colors.isGlass) Color(0xD91E293B)
+                                        else colors.surfaceVariant.copy(alpha = 0.95f)
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = colors.primary.copy(alpha = 0.35f),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.primary.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Reply,
+                                        contentDescription = "Replying to",
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Replying to ${replyTarget.authorName.ifBlank { replyTarget.authorId }}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = replyTarget.content,
+                                        fontSize = 11.5.sp,
+                                        color = colors.textSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { replyingTo = null },
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Cancel reply",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -884,7 +1034,8 @@ private fun ChannelMessageCard(
     gradientColors: List<Color>,
     reactions: List<String>,
     onToggleReaction: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onReply: (() -> Unit)? = null
 ) {
     val colors = LocalConnectoColors.current
     val contentOnGradient = getContentColorOnAccentGradient()
@@ -1042,6 +1193,46 @@ private fun ChannelMessageCard(
 
                         Spacer(modifier = Modifier.height(4.dp))
 
+                        // Quoted Reply Preview inside bubble
+                        if (!message.replyToContent.isNullOrBlank()) {
+                            Surface(
+                                color = colors.surfaceVariant.copy(alpha = 0.55f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .border(
+                                            width = 2.5.dp,
+                                            color = colors.primary,
+                                            shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = message.replyToAuthor?.ifBlank { "Reply" } ?: "Reply",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Text(
+                                            text = message.replyToContent,
+                                            fontSize = 11.5.sp,
+                                            color = colors.textSecondary,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         // Message Text or Image Preview
                         if (isImageContent) {
                             AsyncImage(
@@ -1097,6 +1288,27 @@ private fun ChannelMessageCard(
                                     }
                                     .padding(4.dp)
                             )
+                        }
+                        if (onReply != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.primary.copy(alpha = 0.18f))
+                                    .clickable {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        showReactionPicker = false
+                                        onReply()
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Reply,
+                                    contentDescription = "Reply",
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                            }
                         }
                     }
                 }

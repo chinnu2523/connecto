@@ -4254,8 +4254,8 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
             "email": f"{target_u}@connecto.gg",
             "two_factor_enabled": False,
             "is_stealth": False,
-            "is_online": True,
-            "status": "online",
+            "is_online": False,
+            "status": "offline",
             "rank": "Genin",
             "xp": 50,
             "level": 1,
@@ -4703,8 +4703,8 @@ async def get_friends_compat(
             "friend_avatar_url": norm_friend_avatar or None,
             "banner_url": _normalize_banner_url(getattr(friend_u, "banner_url", "") or "") or None,
             "status": presence_status,
-            "is_online": is_online,
-            "is_stealth": False,
+            "is_online": False if is_stealth else is_online,
+            "is_stealth": is_stealth,
             "bio": getattr(friend_u, "bio", "") or "Connecto Member",
             "created_at": str(f.created_at) if f.created_at else ""
         })
@@ -5357,12 +5357,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.8",
-        "version_name": "v4.2.8",
-        "version_code": 57,
-        "release_tag": "v4.2.8-stable",
-        "sha256": "6980d1e0965da4f020e22d0e0b3de2f910ab6eae6384d3422c18fb8d3111e211",
-        "md5": "1afad2e381692ddeff56a7bc73005dc9",
+        "version": "4.2.9",
+        "version_name": "v4.2.9",
+        "version_code": 58,
+        "release_tag": "v4.2.9-stable",
+        "sha256": "cc5dc5946afb3e1110541e1512fae73a184bbcc8b9340d7f63b9d7f1baccde4a",
+        "md5": "1807d535798548f7b0bc57e7401fe86b",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5372,12 +5372,13 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Voice Call De-Duplication & Teardown Hardening: Eliminated duplicate incoming call prompts and phantom call screen loops with atomic callId lock and active call state validation",
-            "Clean Header & Navigation Borders: Replaced moving animated lines in the top header and bottom navigation bar with elegant, crisp static borders",
-            "Call History Synchronization: Real-time incoming, outgoing, and missed call log recording, duration tracking, and dynamic auto-refresh",
-            "Forgot Password Flow: Verified 6-digit email OTP password recovery, edge token consumption, and seamless auto-fill chips",
-            "Two-Factor Authentication (2FA): Real-time email OTP verification, instant setup code auto-fill, and toggleable account protection",
-            "Real-Time Push Notifications: Heads-up banners in system notification shade, foreground service listener, and dual D1/Durable Object sync"
+            "Transparent Liquid Glass Aesthetic: True 0-nit black #000000 theme with transparent liquid glass containers, specular borders, and zero color pollution",
+            "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates reply banner with quoted message bubble rendering",
+            "Navigation Drawer Glass Blur: Dynamic animated frosted glass background blur (up to 24dp) on chat surface when drawer opens",
+            "Clean Personal Chat Composer: Removed voice note / mic icon in direct personal chat for distraction-free text messaging",
+            "Auto-Emoji Sanitization: Eliminated automatic emoji insertions in channel composer",
+            "Voice Call De-Duplication: Atomic callId lock prevents duplicate incoming voice prompts",
+            "Real-Time Push Notifications: Heads-up banners, foreground service listener, and real-time WebSockets sync"
         ]
     }
 
@@ -5389,10 +5390,27 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.2.9",
+                "date": "Oct 15, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.2.9: Transparent Liquid Glass, Swipe-to-Reply & Dynamic Drawer Glass Blur",
+                "summary": "Introduces pure pitch-black OLED theme with transparent liquid glass aesthetics, fluid swipe-to-reply in channels with quoted preview rendering, real-time background blur when opening navigation drawer, clean personal chat composer without voice notes, and channel auto-emoji sanitization.",
+                "highlights": [
+                    "Transparent Liquid Glass Aesthetic: True 0-nit pitch black (#000000) OLED theme with crystal-clear transparent glass containers, specular borders, and zero color pollution.",
+                    "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates an active reply banner with quoted author and message bubble previews in sent messages.",
+                    "Navigation Drawer Background Blur: Dynamic animated frosted glass background blur (up to 24dp) blurring the chat backdrop behind the drawer when opened.",
+                    "Clean Personal Chat Composer: Removed the mic/voice note icon in 1-on-1 direct messages for a clean instant text messaging experience.",
+                    "Auto-Emoji Sanitization: Eliminated automatic emoji insertions in channel chat composer.",
+                    "Android Native App v4.2.9 (Build 58 • 54.5 MB): SHA-256 cc5dc5946afb3e1110541e1512fae73a184bbcc8b9340d7f63b9d7f1baccde4a."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.2.8",
                 "date": "Oct 14, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.2.8: Voice Call De-Duplication, Teardown Hardening & Clean Static Borders",
                 "summary": "Completely eliminates duplicate incoming voice call prompts and phantom call screen loops across callers and callees with atomic callId gating, enforces immediate teardown on caller cancellation, and removes top header and bottom navigation animated moving lines in favor of ultra-clean static hairline borders.",
                 "highlights": [

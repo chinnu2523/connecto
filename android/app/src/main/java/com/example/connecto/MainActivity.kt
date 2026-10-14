@@ -217,14 +217,24 @@ fun ConnectoAppWrapper() {
         val savedThemeId = profilePrefs.getString("theme_mode_$authenticatedUsername", defaultThemeId) ?: defaultThemeId
         mutableStateOf(com.example.connecto.ui.designsystem.ThemeMode.fromId(savedThemeId))
     }
+    var glassTransparency by remember(authenticatedUsername) {
+        val saved = profilePrefs.getFloat("glass_transparency_$authenticatedUsername", 0.0f)
+        mutableStateOf(saved)
+    }
 
-    ConnectoTheme(themeMode = currentThemeMode) {
+    ConnectoTheme(themeMode = currentThemeMode, glassTransparency = glassTransparency) {
         ConnectoApp(
             authenticatedUsername = authenticatedUsername,
             onUsernameChange = { newUsername -> authenticatedUsername = newUsername },
             currentThemeMode = currentThemeMode,
             onSelectThemeMode = { newMode ->
                 currentThemeMode = newMode
+                if (newMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
+                    glassTransparency = 0.0f
+                    profilePrefs.edit()
+                        .putFloat("glass_transparency_$authenticatedUsername", 0.0f)
+                        .apply()
+                }
                 profilePrefs.edit()
                     .putString("theme_mode_$authenticatedUsername", newMode.id)
                     .putBoolean("dark_theme_$authenticatedUsername", newMode.isDark)
@@ -237,6 +247,13 @@ fun ConnectoAppWrapper() {
                 profilePrefs.edit()
                     .putString("theme_mode_$authenticatedUsername", newMode.id)
                     .putBoolean("dark_theme_$authenticatedUsername", isDark)
+                    .apply()
+            },
+            glassTransparency = glassTransparency,
+            onChangeGlassTransparency = { newLevel ->
+                glassTransparency = newLevel
+                profilePrefs.edit()
+                    .putFloat("glass_transparency_$authenticatedUsername", newLevel)
                     .apply()
             }
         )
@@ -251,7 +268,9 @@ fun ConnectoApp(
     currentThemeMode: com.example.connecto.ui.designsystem.ThemeMode = com.example.connecto.ui.designsystem.ThemeMode.NOIR,
     onSelectThemeMode: (com.example.connecto.ui.designsystem.ThemeMode) -> Unit = {},
     isDarkTheme: Boolean = true,
-    onToggleTheme: (Boolean) -> Unit = {}
+    onToggleTheme: (Boolean) -> Unit = {},
+    glassTransparency: Float = 0.20f,
+    onChangeGlassTransparency: (Float) -> Unit = {}
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
@@ -739,6 +758,8 @@ fun ConnectoApp(
                                             onSelectThemeMode = onSelectThemeMode,
                                             isDarkTheme = isDarkTheme,
                                             onToggleTheme = onToggleTheme,
+                                            glassTransparency = glassTransparency,
+                                            onChangeGlassTransparency = onChangeGlassTransparency,
                                             onLockApp = { flowState = AppFlowState.BIOMETRIC_LOCK },
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,

@@ -38,11 +38,13 @@ data class ConnectoColors(
     val onInfo: Color,
     val isDark: Boolean,
     val isGlass: Boolean = true,
-    val isLiquidGlass: Boolean = true
+    val isLiquidGlass: Boolean = true,
+    val glassAlpha: Float = 0.20f
 )
 
 enum class ThemeMode(val id: String, val displayName: String, val subtitle: String, val iconEmoji: String) {
-    NOIR("noir", "Pure Black OLED", "0-nit pitch black luxury with transparent liquid obsidian refraction", "🌙"),
+    NOIR("noir", "True Dark (OLED)", "Pure neutral zero-nit obsidian black with crisp neutral typography", "🌑"),
+    LIQUID_GLASS("liquid_glass", "Transparent Liquid Glass", "Apple iOS & VisionOS optical liquid glass with dynamic tint & refraction", "🪞"),
     EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with transparent liquid matrix emerald refraction", "💎"),
     MIDNIGHT("midnight", "Midnight Navy", "Deep oceanic navy with transparent liquid azure refraction", "🌌"),
     CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-voltage neon purple & cyan transparent liquid glass glow", "⚡"),
@@ -52,15 +54,15 @@ enum class ThemeMode(val id: String, val displayName: String, val subtitle: Stri
         get() = this != PARCHMENT
 
     val isGlass: Boolean
-        get() = true
+        get() = this == LIQUID_GLASS || this == MIDNIGHT || this == EMERALD || this == CYBERPUNK
 
     val isLiquidGlass: Boolean
-        get() = true
+        get() = this == LIQUID_GLASS
 
     companion object {
         fun fromId(id: String?): ThemeMode {
-            if (id.equals("liquid_glass", ignoreCase = true)) return MIDNIGHT
-            if (id.equals("glass", ignoreCase = true)) return MIDNIGHT
+            if (id.equals("liquid_glass", ignoreCase = true)) return LIQUID_GLASS
+            if (id.equals("glass", ignoreCase = true)) return LIQUID_GLASS
             return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: NOIR
         }
     }
@@ -92,36 +94,68 @@ val LightConnectoColors = ConnectoColors(
     onInfo = Color(0xFFFFFFFF),
     isDark = false,
     isGlass = true,
-    isLiquidGlass = true
+    isLiquidGlass = false,
+    glassAlpha = 0.20f
 )
 
 val DarkConnectoColors = ConnectoColors(
-    primary = Color(0xFFFFFFFF),          // Pure White Crisp Accent
+    primary = Color(0xFFFAFAFA),          // Pure Crisp Monochrome White / Platinum Accent
+    onPrimary = Color(0xFF09090B),
+    primaryContainer = Color(0xFF27272A), // Neutral Zinc 800 Container
+    onPrimaryContainer = Color(0xFFFAFAFA),
+    background = Color(0xFF000000),       // Pure 0-nit OLED Black Canvas (Zero Blue/Cyan Tint)
+    onBackground = Color(0xFFFAFAFA),
+    surface = Color(0xFF121214),          // Sleek Neutral Dark Graphite Surface
+    onSurface = Color(0xFFFAFAFA),
+    surfaceVariant = Color(0xFF1E1E22),   // Elevated Neutral Graphite Layer
+    onSurfaceVariant = Color(0xFFA1A1AA), // Zinc 400 Neutral Silver Text
+    textPrimary = Color(0xFFFFFFFF),      // Pure Crisp White
+    textSecondary = Color(0xFFA1A1AA),    // Neutral Zinc 400 Silver (Crisp & Clean, No Blue Cast)
+    textDisabled = Color(0xFF52525B),     // Zinc 600 Muted
+    border = Color(0xFF27272A),           // Subtle Neutral Hairline Rim
+    borderSubtle = Color(0xFF18181B),     // Very Subtle Inner Rim
+    success = Color(0xFF22C55E),          // Emerald Green
+    onSuccess = Color(0xFF052E16),
+    warning = Color(0xFFF59E0B),          // Solar Flare Amber
+    onWarning = Color(0xFF451A03),
+    error = Color(0xFFEF4444),            // Crimson Red
+    onError = Color(0xFF450A0A),
+    info = Color(0xFF38BDF8),             // Sky Azure
+    onInfo = Color(0xFF082F49),
+    isDark = true,
+    isGlass = false,
+    isLiquidGlass = false,
+    glassAlpha = 1.0f
+)
+
+val LiquidGlassConnectoColors = ConnectoColors(
+    primary = Color(0xFFFFFFFF),          // Pure Crisp Specular White (Neutral glass)
     onPrimary = Color(0xFF000000),
-    primaryContainer = Color(0x26FFFFFF), // Translucent White Glass Highlight (15% alpha)
+    primaryContainer = Color(0x1FFFFFFF), // Translucent neutral glass sheen (12% alpha)
     onPrimaryContainer = Color(0xFFFFFFFF),
-    background = Color(0xFF000000),       // OLED True 0-nit Pure Black (#000000)
+    background = Color(0xFF000000),       // Pure deep obsidian canvas (0-nit, no blue cast)
     onBackground = Color(0xFFFFFFFF),
-    surface = Color(0x14FFFFFF),          // Ultra-Translucent Pure White Crystal Glass (8% alpha)
+    surface = Color.Transparent,          // Completely transparent (opacity 0)
     onSurface = Color(0xFFFFFFFF),
-    surfaceVariant = Color(0x24FFFFFF),   // Elevated Translucent Pure White Glass Layer (14% alpha)
-    onSurfaceVariant = Color(0xFFD4D4D8), // Secondary Text (#D4D4D8)
-    textPrimary = Color(0xFFFFFFFF),      // Pure Crisp White (#FFFFFF)
-    textSecondary = Color(0xFFD4D4D8),    // Normal Body Text (#D4D4D8)
-    textDisabled = Color(0xFF8E8E93),     // Muted Gray (#8E8E93)
-    border = Color(0x40FFFFFF),           // Specular White Rim Highlight (25% alpha)
-    borderSubtle = Color(0x20FFFFFF),     // Subtle Translucent Rim (12% alpha)
-    success = Color(0xFF34D399),          // Emerald 400
-    onSuccess = Color(0xFF064E3B),
-    warning = Color(0xFFFBBF24),          // Amber 400
-    onWarning = Color(0xFF78350F),
-    error = Color(0xFFF87171),            // Red 400
-    onError = Color(0xFF7F1D1D),
-    info = Color(0xFFE4E4E7),             // Neutral Ice Silver Accent (#E4E4E7)
+    surfaceVariant = Color(0x14FFFFFF),   // Translucent neutral glass layer (8% alpha)
+    onSurfaceVariant = Color(0xFFE2E8F0), // Crisp Platinum / Frosted Silver Text
+    textPrimary = Color(0xFFFFFFFF),      // Pure Pristine White
+    textSecondary = Color(0xFFCBD5E1),    // Frosted Platinum
+    textDisabled = Color(0xFF94A3B8),     // Muted Slate
+    border = Color(0x66FFFFFF),           // Specular Pure White Rim (40% alpha)
+    borderSubtle = Color(0x26FFFFFF),     // Subtle Glass Hairline (15% alpha)
+    success = Color(0xFF10B981),          // Aqua Marine Green
+    onSuccess = Color(0xFF022C22),
+    warning = Color(0xFFF59E0B),          // Solar Flare Amber
+    onWarning = Color(0xFF451A03),
+    error = Color(0xFFEF4444),            // Coral Red
+    onError = Color(0xFF4C0519),
+    info = Color(0xFFFFFFFF),             // Pure Neutral Crystal Glass
     onInfo = Color(0xFF000000),
     isDark = true,
     isGlass = true,
-    isLiquidGlass = true
+    isLiquidGlass = true,
+    glassAlpha = 0.0f
 )
 
 val CyberpunkConnectoColors = ConnectoColors(
@@ -211,9 +245,44 @@ val EmeraldConnectoColors = ConnectoColors(
     isLiquidGlass = true
 )
 
-fun getColorsForTheme(themeMode: ThemeMode): ConnectoColors {
+/**
+ * Dynamically constructs the Liquid Glass color system with continuous
+ * interpolation from Ultra-Clear Transparent Liquid Glass (0% opacity, completely transparent)
+ * to Frosted Specular Glass (neutral white refraction, zero unwanted colors).
+ */
+fun getLiquidGlassColors(glassAlpha: Float = 0.0f): ConnectoColors {
+    val clampedAlpha = glassAlpha.coerceIn(0.0f, 0.90f)
+
+    val surfaceColor = if (clampedAlpha <= 0.01f) {
+        Color.Transparent
+    } else {
+        Color.White.copy(alpha = (clampedAlpha * 0.35f).coerceIn(0.02f, 0.40f))
+    }
+
+    val surfaceVariantColor = if (clampedAlpha <= 0.01f) {
+        Color.Transparent
+    } else {
+        Color.White.copy(alpha = (clampedAlpha * 0.18f).coerceIn(0.01f, 0.22f))
+    }
+
+    // Specular border glare: crisp pure white specular rim, no color cast
+    val rimAlpha = if (clampedAlpha <= 0.01f) 0.65f else (0.75f - (clampedAlpha * 0.30f)).coerceIn(0.35f, 0.85f)
+    val borderCol = Color.White.copy(alpha = rimAlpha)
+    val borderSubtleCol = Color.White.copy(alpha = (rimAlpha * 0.40f).coerceIn(0.12f, 0.40f))
+
+    return LiquidGlassConnectoColors.copy(
+        surface = surfaceColor,
+        surfaceVariant = surfaceVariantColor,
+        border = borderCol,
+        borderSubtle = borderSubtleCol,
+        glassAlpha = clampedAlpha
+    )
+}
+
+fun getColorsForTheme(themeMode: ThemeMode, glassAlpha: Float = 0.20f): ConnectoColors {
     return when (themeMode) {
         ThemeMode.NOIR -> DarkConnectoColors
+        ThemeMode.LIQUID_GLASS -> getLiquidGlassColors(glassAlpha)
         ThemeMode.PARCHMENT -> LightConnectoColors
         ThemeMode.CYBERPUNK -> CyberpunkConnectoColors
         ThemeMode.MIDNIGHT -> MidnightConnectoColors

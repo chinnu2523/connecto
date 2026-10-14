@@ -17,6 +17,8 @@ import com.example.connecto.ui.theme.isAppInLightTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.ui.window.Dialog
 import androidx.compose.material.icons.filled.LockReset
 import com.example.connecto.ui.components.CropMode
@@ -245,6 +247,8 @@ fun ProfileScreen(
     onSelectThemeMode: (com.example.connecto.ui.designsystem.ThemeMode) -> Unit = {},
     isDarkTheme: Boolean = currentThemeMode.isDark,
     onToggleTheme: (Boolean) -> Unit = {},
+    glassTransparency: Float = 0.20f,
+    onChangeGlassTransparency: (Float) -> Unit = {},
     onSignOut: () -> Unit = {},
     onLockApp: () -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
@@ -473,6 +477,7 @@ fun ProfileScreen(
                     fullName = fullNameInput,
                     bio = bioInput,
                     avatarUrl = profilePhotoUri,
+                    bannerUrl = bannerPhotoUri,
                     isStealth = stealthModeEnabled
                 )
                 if (res.isSuccess) {
@@ -553,42 +558,107 @@ fun ProfileScreen(
 
     val themeColors = ConnectoTheme.colors
     val isThemeDark = themeColors.isDark
+    val sanitizedBannerPhoto = sanitizeAvatarUrl(bannerPhotoUri)
+    val hasCoverPhoto = !sanitizedBannerPhoto.isNullOrBlank()
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .drawBehind {
-                drawRect(themeColors.background)
-                // Static Ambient Caustic Glare (Top-Right)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            themeColors.primary.copy(alpha = if (isThemeDark) 0.22f else 0.10f),
-                            themeColors.info.copy(alpha = if (isThemeDark) 0.10f else 0.05f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.85f, size.height * 0.10f),
-                        radius = size.width * 0.75f
-                    ),
-                    radius = size.width * 0.75f,
-                    center = Offset(size.width * 0.85f, size.height * 0.10f)
+            .background(themeColors.background)
+    ) {
+        if (hasCoverPhoto) {
+            // ================= FULLSCREEN BACKGROUND COVER PHOTO =================
+            AsyncImage(
+                model = sanitizedBannerPhoto,
+                contentDescription = "Profile Cover Background",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth
+            val scrimStops = if (themeColors.isLiquidGlass) {
+                arrayOf(
+                    0.00f to Color.Black.copy(alpha = 0.15f),
+                    0.30f to Color.Black.copy(alpha = 0.22f),
+                    0.65f to Color.Black.copy(alpha = 0.32f),
+                    1.00f to Color.Black.copy(alpha = 0.45f)
                 )
-                // Static Deep Fluid Depth Orb (Bottom-Left)
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            themeColors.surfaceVariant.copy(alpha = if (isThemeDark) 0.16f else 0.08f),
-                            themeColors.info.copy(alpha = if (isThemeDark) 0.08f else 0.04f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.15f, size.height * 0.85f),
-                        radius = size.width * 0.80f
-                    ),
-                    radius = size.width * 0.80f,
-                    center = Offset(size.width * 0.15f, size.height * 0.85f)
+            } else {
+                arrayOf(
+                    0.00f to (if (isThemeDark) Color.Black.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.45f)),
+                    0.18f to (if (isThemeDark) Color(0xFF090D14).copy(alpha = 0.58f) else Color.White.copy(alpha = 0.65f)),
+                    0.38f to (if (isThemeDark) Color(0xFF070A10).copy(alpha = 0.78f) else themeColors.background.copy(alpha = 0.82f)),
+                    0.62f to (if (isThemeDark) Color(0xFF05070C).copy(alpha = 0.90f) else themeColors.background.copy(alpha = 0.94f)),
+                    1.00f to themeColors.background
                 )
             }
-    ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Brush.verticalGradient(colorStops = scrimStops))
+            )
+
+            // Atmospheric Tint matching Accent Colors (disabled for transparent liquid glass to avoid added colors)
+            if (!themeColors.isLiquidGlass) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .drawBehind {
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        themeColors.primary.copy(alpha = if (isThemeDark) 0.15f else 0.08f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.85f, size.height * 0.12f),
+                                    radius = size.width * 0.80f
+                                ),
+                                radius = size.width * 0.80f,
+                                center = Offset(size.width * 0.85f, size.height * 0.12f)
+                            )
+                        }
+                )
+            }
+        } else {
+            // Ambient default background when no cover photo is set
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawBehind {
+                        drawRect(themeColors.background)
+                        if (!themeColors.isLiquidGlass) {
+                            // Static Ambient Caustic Glare (Top-Right)
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        themeColors.primary.copy(alpha = if (isThemeDark) 0.22f else 0.10f),
+                                        themeColors.info.copy(alpha = if (isThemeDark) 0.10f else 0.05f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.85f, size.height * 0.10f),
+                                    radius = size.width * 0.75f
+                                ),
+                                radius = size.width * 0.75f,
+                                center = Offset(size.width * 0.85f, size.height * 0.10f)
+                            )
+                            // Static Deep Fluid Depth Orb (Bottom-Left)
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        themeColors.surfaceVariant.copy(alpha = if (isThemeDark) 0.16f else 0.08f),
+                                        themeColors.info.copy(alpha = if (isThemeDark) 0.08f else 0.04f),
+                                        Color.Transparent
+                                    ),
+                                    center = Offset(size.width * 0.15f, size.height * 0.85f),
+                                    radius = size.width * 0.80f
+                                ),
+                                radius = size.width * 0.80f,
+                                center = Offset(size.width * 0.15f, size.height * 0.85f)
+                            )
+                        }
+                    }
+            )
+        }
         AnimatedContent(
             targetState = activeSubPage,
             transitionSpec = {
@@ -658,7 +728,7 @@ fun ProfileScreen(
                             }
                         }
 
-                        // ================= 1. AVATAR & USER SUMMARY CARD WITH COVER =================
+                        // ================= 1. AVATAR & USER SUMMARY CARD =================
                         item(key = "avatar_summary_card") {
                             val avatarCardShape = RoundedCornerShape(24.dp)
                             Box(
@@ -667,99 +737,143 @@ fun ProfileScreen(
                                     .then(
                                         Modifier.liquidGlassCard(
                                             shape = avatarCardShape,
-                                            backgroundColor = MaterialTheme.colorScheme.surface,
-                                            borderColor = MaterialTheme.colorScheme.primary
+                                            backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surface.copy(
+                                                alpha = if (isThemeDark) 0.72f else 0.85f
+                                            ),
+                                            borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.40f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                                         )
                                     )
                                     .clip(avatarCardShape)
                             ) {
                                 Column(
-                                    modifier = Modifier.fillMaxWidth(),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(18.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    // 1. Cover Banner (Background Picture)
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(135.dp)
-                                            .background(
-                                                Brush.linearGradient(
-                                                    listOf(
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
-                                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.55f),
-                                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.40f)
-                                                    )
-                                                )
-                                            )
-                                            .clickable {
-                                                lightboxTitle = "Background Cover"
-                                                lightboxImageUrl = bannerPhotoUri
-                                                isLightboxBanner = true
-                                                showLightbox = true
-                                            }
+                                    // Top Action Bar: Category Tag & Cover Photo Controls
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        val sanitizedBannerPhoto = sanitizeAvatarUrl(bannerPhotoUri)
-                                        if (!sanitizedBannerPhoto.isNullOrBlank()) {
-                                            AsyncImage(
-                                                model = sanitizedBannerPhoto,
-                                                contentDescription = "Background Cover Photo",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
+                                        // Category Tag
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                                        ) {
+                                            Text(
+                                                text = "PROFILE",
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = MaterialTheme.colorScheme.primary,
+                                                letterSpacing = 0.8.sp
                                             )
                                         }
 
+                                        // Cover Photo Action Buttons
                                         if (isUploadingBanner) {
-                                            Box(
+                                            Row(
                                                 modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(Color.Black.copy(alpha = 0.55f)),
-                                                contentAlignment = Alignment.Center
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 10.dp, vertical = 5.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
                                                 CircularProgressIndicator(
-                                                    modifier = Modifier.size(32.dp),
-                                                    color = Color.White,
-                                                    strokeWidth = 3.dp
+                                                    modifier = Modifier.size(13.dp),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    strokeWidth = 2.dp
+                                                )
+                                                Text(
+                                                    text = "Updating Cover...",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.primary
                                                 )
                                             }
-                                        }
-
-                                        // Background Picture Edit Badge
-                                        Row(
-                                            modifier = Modifier
-                                                .align(Alignment.BottomEnd)
-                                                .padding(10.dp)
-                                                .clip(RoundedCornerShape(16.dp))
-                                                .background(Color.Black.copy(alpha = 0.65f))
-                                                .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-                                                .clickable {
-                                                    bannerPickerLauncher.launch(
-                                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                                    )
+                                        } else {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                if (hasCoverPhoto) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(12.dp))
+                                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.80f))
+                                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                                                            .clickable {
+                                                                lightboxTitle = "Background Cover"
+                                                                lightboxImageUrl = bannerPhotoUri
+                                                                isLightboxBanner = true
+                                                                showLightbox = true
+                                                            }
+                                                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Visibility,
+                                                                contentDescription = "View Cover",
+                                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                            Text(
+                                                                text = "View Cover",
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                        }
+                                                    }
                                                 }
-                                                .padding(horizontal = 9.dp, vertical = 5.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.CameraAlt,
-                                                contentDescription = "Change Background Picture",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(13.dp)
-                                            )
-                                            Text(
-                                                text = "Cover",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                                        .clickable {
+                                                            bannerPickerLauncher.launch(
+                                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                                            )
+                                                        }
+                                                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.CameraAlt,
+                                                            contentDescription = "Change Cover",
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                        Text(
+                                                            text = if (hasCoverPhoto) "Change Cover" else "Add Cover",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
 
-                                    // 2. Avatar Overlapping the Bottom Edge of Cover Banner
+                                    Spacer(modifier = Modifier.height(14.dp))
+
+                                    // Avatar with Camera Badge
                                     Box(
-                                        modifier = Modifier
-                                            .offset(y = (-45).dp)
-                                            .padding(bottom = 0.dp),
                                         contentAlignment = Alignment.BottomEnd
                                     ) {
                                         Box(
@@ -846,128 +960,121 @@ fun ProfileScreen(
                                         }
                                     }
 
-                                    // 3. User info below avatar
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .offset(y = (-32).dp)
-                                            .padding(horizontal = 20.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    // Display Name & Verified Badge
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
                                     ) {
-                                        // Name & Verified Badge
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Text(
-                                                text = if (displayNameInput.isNotBlank()) displayNameInput else username,
-                                                fontSize = 22.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                lineHeight = 28.sp
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(
-                                                imageVector = Icons.Default.CheckCircle,
-                                                contentDescription = "Verified Account",
-                                                tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(18.dp)
-                                            )
-                                        }
-
-                                        Spacer(modifier = Modifier.height(4.dp))
-
-                                        // Username handle
                                         Text(
-                                            text = "@$username",
-                                            fontSize = 14.sp,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            fontWeight = FontWeight.SemiBold
+                                            text = if (displayNameInput.isNotBlank()) displayNameInput else username,
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                            lineHeight = 28.sp
                                         )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Verified Account",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
 
-                                        Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
-                                        // Quick Status Badges Row
-                                        val isWsConnected by com.example.connecto.voice.VoiceCallManager.isWsConnectedFlow.collectAsState()
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            modifier = Modifier.padding(horizontal = 4.dp)
+                                    // Username handle
+                                    Text(
+                                        text = "@$username",
+                                        fontSize = 14.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    Spacer(modifier = Modifier.height(10.dp))
+
+                                    // Quick Status Badges Row
+                                    val isWsConnected by com.example.connecto.voice.VoiceCallManager.isWsConnectedFlow.collectAsState()
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        // Status Pill (Online / Stealth / Offline)
+                                        val statusColor = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor
+                                        val statusText = if (stealthModeEnabled) "Stealth Mode" else if (isWsConnected) "Online" else "Offline"
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(statusColor.copy(alpha = 0.12f))
+                                                .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
-                                            // Status Pill (Online / Stealth / Offline)
-                                            val statusColor = if (stealthModeEnabled) ConnectoTheme.colors.info else if (isWsConnected) OnlineGreen else TextDisabledColor
-                                            val statusText = if (stealthModeEnabled) "Stealth Mode" else if (isWsConnected) "Online" else "Offline"
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(statusColor.copy(alpha = 0.12f))
-                                                    .border(1.dp, statusColor.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(7.dp)
-                                                            .clip(CircleShape)
-                                                            .background(statusColor)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(6.dp))
-                                                    Text(
-                                                        text = statusText,
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = statusColor
-                                                    )
-                                                }
-                                            }
-
-                                            // Encrypted E2E Pill
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Shield,
-                                                        contentDescription = null,
-                                                        tint = MaterialTheme.colorScheme.primary,
-                                                        modifier = Modifier.size(12.dp)
-                                                    )
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Text(
-                                                        text = "E2E Secured",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        if (bioInput.isNotBlank()) {
-                                            Spacer(modifier = Modifier.height(14.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(14.dp))
-                                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
-                                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(7.dp)
+                                                        .clip(CircleShape)
+                                                        .background(statusColor)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
-                                                    text = "“${bioInput.trim()}”",
-                                                    fontSize = 13.sp,
-                                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                                    lineHeight = 19.sp
+                                                    text = statusText,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = statusColor
                                                 )
                                             }
+                                        }
+
+                                        // Encrypted E2E Pill
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Shield,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = "E2E Secured",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    if (bioInput.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(14.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "“${bioInput.trim()}”",
+                                                fontSize = 13.sp,
+                                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                                lineHeight = 19.sp
+                                            )
                                         }
                                     }
                                 }
@@ -1028,7 +1135,7 @@ fun ProfileScreen(
                         title = "Appearance & Display Theme",
                         subtitle = "Personalize your visual experience across the entire app",
                         icon = Icons.Default.Tune,
-                        badgeText = currentThemeMode.displayName.uppercase(),
+                        badgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "LIQUID GLASS (${(glassTransparency * 100).toInt()}%)" else currentThemeMode.displayName.uppercase(),
                         badgeColor = MaterialTheme.colorScheme.primary,
                         onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
                     )
@@ -1176,7 +1283,7 @@ fun ProfileScreen(
                                     title = "${currentThemeMode.iconEmoji} ${currentThemeMode.displayName}",
                                     description = "Customize your global color palette, contrast, and atmosphere across all screens in real time.",
                                     icon = Icons.Default.Tune,
-                                    statusBadgeText = if (currentThemeMode.isDark) "DARK" else "LIGHT",
+                                    statusBadgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "${(glassTransparency * 100).toInt()}% TINT" else if (currentThemeMode.isDark) "DARK" else "LIGHT",
                                     statusBadgeActive = true
                                 )
                                 ProfileSubPage.GROUPS_COMMUNITIES -> ProfileSubPageHeroCard(
@@ -2185,12 +2292,21 @@ fun ProfileScreen(
                                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                                                         verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        val swatches = listOf(
-                                                            modeColors.primary,
-                                                            modeColors.info,
-                                                            modeColors.surface,
-                                                            modeColors.background
-                                                        )
+                                                        val swatches = if (mode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
+                                                            listOf(
+                                                                Color.White,
+                                                                Color(0xFFCBD5E1),
+                                                                Color(0x40FFFFFF),
+                                                                Color.Transparent
+                                                            )
+                                                        } else {
+                                                            listOf(
+                                                                modeColors.primary,
+                                                                modeColors.info,
+                                                                modeColors.surface,
+                                                                modeColors.background
+                                                            )
+                                                        }
                                                         swatches.forEach { swatchColor ->
                                                             Box(
                                                                 modifier = Modifier
@@ -2214,6 +2330,146 @@ fun ProfileScreen(
                                                     }
                                                 }
                                             }
+                                        }
+                                    }
+
+                                    if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), thickness = 1.dp)
+
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "GLASS DENSITY & TINT LEVEL",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        letterSpacing = 0.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Text(
+                                                        text = when {
+                                                            glassTransparency <= 0.01f -> "Ultra-Clear Pure Transparent Glass (0% Opacity)"
+                                                            glassTransparency < 0.22f -> "Subtle Transparent Liquid Glass"
+                                                            glassTransparency < 0.45f -> "Frosted Specular Glass (Medium Sheen)"
+                                                            else -> "Tinted Obsidian Glass (High Contrast)"
+                                                        },
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${(glassTransparency * 100).toInt()}% TINT",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+
+                                            // Live optical glass refraction preview box (neutral specular background, no foreign colors)
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(54.dp)
+                                                    .clip(RoundedCornerShape(14.dp))
+                                                    .background(
+                                                        Brush.horizontalGradient(
+                                                            listOf(
+                                                                Color(0x33FFFFFF),
+                                                                Color(0x1AFFFFFF),
+                                                                Color(0x0DFFFFFF)
+                                                            )
+                                                        )
+                                                    )
+                                                    .padding(4.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .liquidGlassCard(
+                                                            shape = RoundedCornerShape(10.dp),
+                                                            backgroundColor = Color.Transparent,
+                                                            borderColor = Color.White
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "🪞 Optical Glass Refraction Preview",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                            }
+
+                                            // 4 Quick Presets
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                val presets = listOf(
+                                                    Pair("Clear (0%)", 0.0f),
+                                                    Pair("Liquid (15%)", 0.15f),
+                                                    Pair("Frosted (35%)", 0.35f),
+                                                    Pair("Tinted (70%)", 0.70f)
+                                                )
+                                                presets.forEach { (label, value) ->
+                                                    val isPresetActive = kotlin.math.abs(glassTransparency - value) < 0.07f
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(
+                                                                if (isPresetActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                            )
+                                                            .border(
+                                                                1.dp,
+                                                                if (isPresetActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
+                                                                RoundedCornerShape(8.dp)
+                                                            )
+                                                            .clickable { onChangeGlassTransparency(value) }
+                                                            .padding(vertical = 8.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = label,
+                                                            fontSize = 10.sp,
+                                                            fontWeight = if (isPresetActive) FontWeight.Bold else FontWeight.Normal,
+                                                            color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // Continuous Dynamic Slider
+                                            Slider(
+                                                value = glassTransparency,
+                                                onValueChange = { onChangeGlassTransparency(it) },
+                                                valueRange = 0.0f..0.85f,
+                                                steps = 0,
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = MaterialTheme.colorScheme.primary,
+                                                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                                                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                                )
+                                            )
                                         }
                                     }
                                 }
@@ -4091,8 +4347,10 @@ private fun ProfileNavigationMenuButton(
             .then(
                 Modifier.liquidGlassCard(
                     shape = cardShape,
-                    backgroundColor = MaterialTheme.colorScheme.surface,
-                    borderColor = MaterialTheme.colorScheme.primary
+                    backgroundColor = if (isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surface.copy(
+                        alpha = if (ConnectoTheme.colors.isDark) 0.72f else 0.88f
+                    ),
+                    borderColor = if (isLiquidGlass) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 )
             )
             .padding(horizontal = 16.dp, vertical = 15.dp)
@@ -4105,13 +4363,22 @@ private fun ProfileNavigationMenuButton(
                 modifier = Modifier
                     .size(42.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                    .background(
+                        if (isLiquidGlass) Color.White.copy(alpha = 0.10f)
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    )
+                    .border(
+                        1.dp,
+                        if (isLiquidGlass) Color.White.copy(alpha = 0.25f)
+                        else Color.Transparent,
+                        RoundedCornerShape(12.dp)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isLiquidGlass) Color.White else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
             }
@@ -4136,7 +4403,7 @@ private fun ProfileNavigationMenuButton(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     if (badgeText != null) {
-                        val bColor = badgeColor ?: MaterialTheme.colorScheme.primary
+                        val bColor = if (isLiquidGlass) Color.White else (badgeColor ?: MaterialTheme.colorScheme.primary)
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
@@ -4168,13 +4435,16 @@ private fun ProfileNavigationMenuButton(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
+                    .background(
+                        if (isLiquidGlass) Color.White.copy(alpha = 0.10f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                     contentDescription = "Open $title",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = if (isLiquidGlass) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
             }

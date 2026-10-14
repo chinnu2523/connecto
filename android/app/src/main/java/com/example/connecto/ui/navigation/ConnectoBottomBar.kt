@@ -3,14 +3,9 @@ package com.example.connecto.ui.navigation
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -45,7 +40,6 @@ import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Tag
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -57,22 +51,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
 import com.example.connecto.network.ConnectoApiClient
-import com.example.connecto.ui.designsystem.ConnectoRadius
-import com.example.connecto.ui.designsystem.ConnectoSpacing
 import com.example.connecto.ui.designsystem.LocalConnectoColors
 import kotlin.math.absoluteValue
 
@@ -89,9 +80,13 @@ enum class ConnectoTab(
 }
 
 /**
- * Connecto Premium Navigation Bottom Bar.
- * Enhanced with fluid water drop animation, liquid elongation physics across tab changes,
- * concentric aquatic ripple splash, specular refraction glint, and bounce transitions.
+ * Connecto Professional & Aesthetic Navigation Bottom Bar.
+ * Built for clarity, ergonomics, and understated luxury:
+ * - Fluid Liquid Pill / Bubble Indicator with buttery spring physics.
+ * - Multi-tier diffuse ambient shadow & soft specular top hairline.
+ * - Custom tactile buttons with generous 48dp+ touch targets and spring micro-press.
+ * - Bespoke, classic vector icons for Home, Messages, Channels, Calls, Profile.
+ * - High-contrast, clean typography with zero clutter.
  */
 @Composable
 fun ConnectoBottomBar(
@@ -117,177 +112,145 @@ fun ConnectoBottomBar(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                if (isPureBlack) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.06f),
-                            Color(0xFF000000)
-                        )
+                Brush.verticalGradient(
+                    colors = listOf(
+                        if (!colors.isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF11141C).copy(alpha = 0.88f),
+                        if (!colors.isDark) Color.White.copy(alpha = 0.92f) else Color(0xFF0B0D13).copy(alpha = 0.95f)
                     )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.08f),
-                            colors.background.copy(alpha = if (!colors.isDark) 0.55f else 0.25f)
-                        )
-                    )
-                }
+                )
             )
     ) {
-        // Clean 1dp Top Border Line
+        // Specular 1px Hairline Top Border
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(if (isPureBlack) Color(0x26FFFFFF) else colors.borderSubtle)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.08f),
+                            (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.35f),
+                            Color.White.copy(alpha = 0.18f),
+                            (if (isPureBlack) Color.White else colors.info).copy(alpha = 0.30f),
+                            Color.White.copy(alpha = 0.08f)
+                        )
+                    )
+                )
         )
 
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(64.dp)
-                .padding(horizontal = ConnectoSpacing.xs, vertical = 2.dp)
+                .padding(horizontal = 4.dp, vertical = 2.dp)
         ) {
             val totalWidth = maxWidth
             val tabCount = ConnectoTab.entries.size
             val tabWidth = totalWidth / tabCount
             val selectedIndex = ConnectoTab.entries.indexOf(currentTab).coerceAtLeast(0)
 
-            // Droplet center tracking across tabs with fluid spring physics
+            // Dynamic tracking center of the active tab with fluid spring physics
             val targetCenterX = tabWidth * selectedIndex + tabWidth / 2
             val animatedCenterX by animateDpAsState(
                 targetValue = targetCenterX,
                 animationSpec = spring(
-                    stiffness = 340f,
-                    dampingRatio = 0.72f // Fluid liquid rebound with subtle overshoot
+                    stiffness = 380f,
+                    dampingRatio = 0.78f // Clean, professional settle with subtle fluidity
                 ),
-                label = "waterDropCenterX"
+                label = "navPillCenterX"
             )
 
-            // Dynamic fluid elongation & squish based on movement speed/distance
+            // Fluid squish & stretch during movement
             val distance = (targetCenterX - animatedCenterX).value.dp
-            val stretchFactor = 1f + (distance.value.absoluteValue / 65f).coerceAtMost(0.48f)
-            val squishY = 1f - (distance.value.absoluteValue / 130f).coerceAtMost(0.24f)
+            val stretchFactor = 1f + (distance.value.absoluteValue / 75f).coerceAtMost(0.32f)
+            val squishY = 1f - (distance.value.absoluteValue / 160f).coerceAtMost(0.15f)
 
-            // Water droplet splash / ripple animation triggered on tab change
+            // Ripple glow burst on tab selection
             val rippleProgress = remember { Animatable(0f) }
             LaunchedEffect(currentTab) {
                 rippleProgress.snapTo(0f)
                 rippleProgress.animateTo(
                     targetValue = 1f,
-                    animationSpec = tween(durationMillis = 520, easing = FastOutSlowInEasing)
+                    animationSpec = tween(durationMillis = 420, easing = FastOutSlowInEasing)
                 )
             }
 
-            // Layer 1: Water drop expanding aquatic ripples behind the tabs
-            Canvas(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                val rippleCenter = Offset(x = animatedCenterX.toPx(), y = 20.dp.toPx())
+            // LAYER 1: Multi-Tier Diffuse Ambient Shadow & Ripple
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val pillCenter = Offset(x = animatedCenterX.toPx(), y = 20.dp.toPx())
+                val primaryColor = if (isPureBlack) Color.White else colors.primary
+
+                // Soft ambient colored glow under active pill
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            primaryColor.copy(alpha = 0.24f),
+                            primaryColor.copy(alpha = 0.06f),
+                            Color.Transparent
+                        ),
+                        radius = 28.dp.toPx(),
+                        center = pillCenter
+                    ),
+                    radius = 28.dp.toPx(),
+                    center = pillCenter
+                )
+
+                // Soft subtle ripple
                 val progress = rippleProgress.value
                 if (progress > 0f && progress < 1f) {
-                    val outerRadius = (5.dp.toPx() + 34.dp.toPx() * progress)
-                    val outerAlpha = ((1f - progress) * 0.55f).coerceIn(0f, 1f)
+                    val rippleRadius = (8.dp.toPx() + 24.dp.toPx() * progress)
+                    val rippleAlpha = ((1f - progress) * 0.35f).coerceIn(0f, 1f)
                     drawCircle(
-                        color = (if (isPureBlack) Color.White else colors.primary).copy(alpha = outerAlpha),
-                        radius = outerRadius,
-                        center = rippleCenter,
-                        style = Stroke(width = 2.dp.toPx())
-                    )
-
-                    val innerRadius = (2.dp.toPx() + 20.dp.toPx() * progress)
-                    val innerAlpha = ((1f - progress) * 0.40f).coerceIn(0f, 1f)
-                    drawCircle(
-                        color = Color.White.copy(alpha = innerAlpha),
-                        radius = innerRadius,
-                        center = rippleCenter,
-                        style = Stroke(width = 1.4.dp.toPx())
+                        color = primaryColor.copy(alpha = rippleAlpha),
+                        radius = rippleRadius,
+                        center = pillCenter
                     )
                 }
             }
 
-            // Layer 2: Moving Liquid Water Droplet Capsule
-            val dropletWidth = 52.dp * stretchFactor
-            val dropletHeight = 33.dp * squishY
-
-            val dropRadialColors = if (isPureBlack) {
-                listOf(
-                    Color.White.copy(alpha = 0.22f),
-                    Color.White.copy(alpha = 0.06f),
-                    Color.Transparent
-                )
-            } else {
-                listOf(
-                    colors.primary.copy(alpha = 0.40f),
-                    colors.info.copy(alpha = 0.18f),
-                    Color.Transparent
-                )
-            }
-            val dropVerticalColors = if (isPureBlack) {
-                listOf(
-                    Color.White.copy(alpha = 0.16f),
-                    Color.White.copy(alpha = 0.04f)
-                )
-            } else {
-                listOf(
-                    colors.primary.copy(alpha = 0.32f),
-                    colors.primary.copy(alpha = 0.08f)
-                )
-            }
-            val dropBorderColors = if (isPureBlack) {
-                listOf(
-                    Color.White.copy(alpha = 0.85f),
-                    Color.White.copy(alpha = 0.30f),
-                    Color.Transparent
-                )
-            } else {
-                listOf(
-                    Color.White.copy(alpha = 0.80f),
-                    colors.primary.copy(alpha = 0.65f),
-                    Color.Transparent
-                )
-            }
+            // LAYER 2: Professional Liquid Glass Pill (Bubble) Capsule
+            val pillWidth = 54.dp * stretchFactor
+            val pillHeight = 34.dp * squishY
 
             Box(
                 modifier = Modifier
-                    .offset(x = animatedCenterX - dropletWidth / 2, y = 3.dp)
-                    .width(dropletWidth)
-                    .height(dropletHeight)
+                    .offset(x = animatedCenterX - pillWidth / 2, y = 3.dp)
+                    .width(pillWidth)
+                    .height(pillHeight)
                     .clip(RoundedCornerShape(17.dp))
                     .background(
-                        Brush.radialGradient(
-                            colors = dropRadialColors,
-                            radius = 65f
-                        )
-                    )
-                    .background(
                         Brush.verticalGradient(
-                            colors = dropVerticalColors
+                            colors = listOf(
+                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.18f),
+                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.08f)
+                            )
                         )
                     )
                     .border(
-                        width = 1.3.dp,
+                        width = 1.dp,
                         brush = Brush.verticalGradient(
-                            dropBorderColors
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.45f),
+                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.35f),
+                                Color.Transparent
+                            )
                         ),
                         shape = RoundedCornerShape(17.dp)
                     )
             ) {
-                // Water droplet specular light reflection (glint on top rim)
+                // Subtle top specular highlight glint
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 2.dp)
-                        .width((dropletWidth * 0.62f).coerceAtMost(38.dp))
-                        .height(2.5.dp)
+                        .padding(top = 1.5.dp)
+                        .width((pillWidth * 0.55f).coerceAtMost(32.dp))
+                        .height(2.dp)
                         .clip(CircleShape)
                         .background(
                             Brush.horizontalGradient(
                                 listOf(
                                     Color.Transparent,
-                                    Color.White.copy(alpha = 0.75f),
-                                    Color.White.copy(alpha = 0.95f),
-                                    Color.White.copy(alpha = 0.75f),
+                                    Color.White.copy(alpha = 0.65f),
                                     Color.Transparent
                                 )
                             )
@@ -295,41 +258,7 @@ fun ConnectoBottomBar(
                 )
             }
 
-            // Layer 3: Moving Bottom Liquid Water Bead Indicator
-            val beadWidth = (20.dp * stretchFactor).coerceAtMost(32.dp)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(x = animatedCenterX - beadWidth / 2, y = (-2).dp)
-                    .width(beadWidth)
-                    .height(3.5.dp)
-            ) {
-                // Ambient aquatic glow beneath bead
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .graphicsLayer { alpha = if (isPureBlack) 0.35f else 0.5f }
-                        .clip(CircleShape)
-                        .background(if (isPureBlack) Color.White else colors.primary)
-                )
-                // Crisp fluid bead
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(
-                                    if (isPureBlack) Color(0xCCFFFFFF) else colors.primary,
-                                    Color.White.copy(alpha = 0.95f),
-                                    if (isPureBlack) Color(0xCCFFFFFF) else colors.primary
-                                )
-                            )
-                        )
-                )
-            }
-
-            // Layer 4: Foreground Interactive Navigation Tabs Row
+            // LAYER 3: Ergonomic Interactive Custom Nav Buttons Row
             Row(
                 modifier = Modifier.fillMaxSize(),
                 horizontalArrangement = Arrangement.SpaceAround,
@@ -340,54 +269,51 @@ fun ConnectoBottomBar(
                     val interactionSource = remember { MutableInteractionSource() }
                     val isPressed by interactionSource.collectIsPressedAsState()
 
-                    // Tactile compression on touch
+                    // Tactile micro-compression on tap (0.92x spring)
                     val buttonPressScale by animateFloatAsState(
-                        targetValue = if (isPressed) 0.88f else 1.0f,
+                        targetValue = if (isPressed) 0.92f else 1.0f,
                         animationSpec = spring(stiffness = 550f, dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "buttonPressScale"
                     )
 
-                    // Playful icon bounce with overshoot when water droplet arrives
+                    // Smooth icon elevation & bounce on selection
                     val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.22f else 1.0f,
+                        targetValue = if (isSelected) 1.12f else 1.0f,
                         animationSpec = spring(
-                            stiffness = 320f,
+                            stiffness = 360f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
                         ),
-                        label = "tabIconBounceScale"
+                        label = "tabIconScale"
                     )
 
-                    // Smooth vertical floating translation
                     val iconOffsetY by animateDpAsState(
-                        targetValue = if (isSelected) (-3.dp) else 0.dp,
+                        targetValue = if (isSelected) (-2.dp) else 0.dp,
                         animationSpec = spring(
-                            stiffness = 340f,
+                            stiffness = 380f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
                         ),
                         label = "tabIconOffsetY"
                     )
 
-                    val iconColor by animateColorAsState(
-                        targetValue = if (isSelected) colors.primary else colors.textSecondary,
-                        animationSpec = spring(stiffness = 500f, dampingRatio = 0.85f),
-                        label = "tabIconColor"
-                    )
+                    val iconPrimary = if (isPureBlack) Color.White else colors.primary
+                    val iconInactive = colors.textSecondary.copy(alpha = 0.70f)
 
                     val textColor by animateColorAsState(
-                        targetValue = if (isSelected) colors.primary else colors.textSecondary,
+                        targetValue = if (isSelected) iconPrimary else colors.textSecondary,
                         animationSpec = spring(stiffness = 500f, dampingRatio = 0.85f),
                         label = "tabTextColor"
                     )
 
+                    // Custom Ergonomic Button Container
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(60.dp)
+                            .height(58.dp)
                             .graphicsLayer {
                                 scaleX = buttonPressScale
                                 scaleY = buttonPressScale
                             }
-                            .clip(RoundedCornerShape(ConnectoRadius.md))
+                            .clip(RoundedCornerShape(16.dp))
                             .clickable(
                                 interactionSource = interactionSource,
                                 indication = null
@@ -406,7 +332,7 @@ fun ConnectoBottomBar(
                             Box(
                                 modifier = Modifier
                                     .width(52.dp)
-                                    .height(33.dp),
+                                    .height(34.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(
@@ -418,92 +344,22 @@ fun ConnectoBottomBar(
                                         },
                                     contentAlignment = Alignment.TopEnd
                                 ) {
-                                    var avatarLoadFailed by remember(userAvatar) { mutableStateOf(false) }
+                                    // Bespoke Classic & Aesthetic Vector Icon
+                                    ClassicAestheticTabIcon(
+                                        tab = tab,
+                                        isSelected = isSelected,
+                                        primaryColor = iconPrimary,
+                                        inactiveColor = iconInactive,
+                                        avatarUrl = userAvatar,
+                                        userInitial = userInitial,
+                                        modifier = Modifier.size(23.dp)
+                                    )
 
-                                    if (tab == ConnectoTab.PROFILE) {
-                                        // Profile Button: Avatar or Initial Circle
-                                        if (!userAvatar.isNullOrBlank() && !avatarLoadFailed) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(24.dp)
-                                                    .clip(CircleShape)
-                                                    .border(
-                                                        width = if (isSelected) 1.8.dp else 1.dp,
-                                                        color = if (isSelected) colors.primary else colors.borderSubtle,
-                                                        shape = CircleShape
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                AsyncImage(
-                                                    model = userAvatar,
-                                                    contentDescription = tab.title,
-                                                    contentScale = ContentScale.Crop,
-                                                    onError = { avatarLoadFailed = true },
-                                                    modifier = Modifier.fillMaxSize().clip(CircleShape)
-                                                )
-                                            }
-                                        } else {
-                                            // Stylized letter initial avatar fallback
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(24.dp)
-                                                    .clip(CircleShape)
-                                                    .background(
-                                                        Brush.linearGradient(
-                                                            listOf(
-                                                                colors.primary,
-                                                                colors.info
-                                                            )
-                                                        )
-                                                    )
-                                                    .border(
-                                                        width = if (isSelected) 1.8.dp else 1.dp,
-                                                        color = if (isSelected) Color.White.copy(alpha = 0.85f) else Color.Transparent,
-                                                        shape = CircleShape
-                                                    ),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = if (userInitial.isNotBlank()) userInitial.take(1).uppercase() else "U",
-                                                    color = Color.White,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        // Standard Navigation Icons (Home, Messages, Channels, Calls)
-                                        Icon(
-                                            imageVector = if (isSelected) tab.activeIcon else tab.outlinedIcon,
-                                            contentDescription = tab.title,
-                                            tint = iconColor,
-                                            modifier = Modifier.size(22.dp)
-                                        )
-                                    }
-
-                                    // Badges with subtle bounce & Active Call Pulse
+                                    // Subtle Unread / Active Badges
                                     if (tab == ConnectoTab.CALLS && isCallActive) {
-                                        val pulseTransition = rememberInfiniteTransition(label = "bottomBarCallPulse")
-                                        val pulseAlpha by pulseTransition.animateFloat(
-                                            initialValue = 0.35f,
-                                            targetValue = 1.0f,
-                                            animationSpec = infiniteRepeatable(tween(750), RepeatMode.Reverse),
-                                            label = "callDotAlpha"
-                                        )
-                                        val pulseScale by pulseTransition.animateFloat(
-                                            initialValue = 0.9f,
-                                            targetValue = 1.25f,
-                                            animationSpec = infiniteRepeatable(tween(750), RepeatMode.Reverse),
-                                            label = "callDotScale"
-                                        )
                                         Box(
                                             modifier = Modifier
-                                                .size(9.dp)
-                                                .graphicsLayer {
-                                                    alpha = pulseAlpha
-                                                    scaleX = pulseScale
-                                                    scaleY = pulseScale
-                                                }
+                                                .size(8.dp)
                                                 .clip(CircleShape)
                                                 .background(colors.success)
                                                 .border(1.5.dp, colors.surface, CircleShape)
@@ -511,7 +367,7 @@ fun ConnectoBottomBar(
                                     } else if (tab == ConnectoTab.MESSAGES && hasUnreadChats) {
                                         Box(
                                             modifier = Modifier
-                                                .size(8.dp)
+                                                .size(7.dp)
                                                 .clip(CircleShape)
                                                 .background(colors.primary)
                                                 .border(1.5.dp, colors.surface, CircleShape)
@@ -519,7 +375,7 @@ fun ConnectoBottomBar(
                                     } else if (tab == ConnectoTab.CALLS && hasUnreadCalls) {
                                         Box(
                                             modifier = Modifier
-                                                .size(8.dp)
+                                                .size(7.dp)
                                                 .clip(CircleShape)
                                                 .background(colors.warning)
                                                 .border(1.5.dp, colors.surface, CircleShape)
@@ -534,11 +390,12 @@ fun ConnectoBottomBar(
                                 text = tab.title,
                                 color = textColor,
                                 fontSize = 10.5.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                                letterSpacing = 0.2.sp,
                                 maxLines = 1
                             )
 
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(3.dp))
                         }
                     }
                 }

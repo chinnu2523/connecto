@@ -22,8 +22,23 @@ def hash_password(password: str) -> str:
     """Hashes a raw password using PBKDF2-SHA256 for edge and backend cross-compatibility."""
     return hash_password_pbkdf2(password)
 
-def verify_password(password_hash: str, password: str) -> bool:
-    """Verifies a raw password against PBKDF2-SHA256, Argon2id, or plain hashes."""
+def needs_rehash(password_hash: str) -> bool:
+    """Checks if a stored password hash needs migration to PBKDF2-SHA256 100k iterations."""
+    if not password_hash or not isinstance(password_hash, str):
+        return True
+    if not password_hash.startswith("pbkdf2_sha256$"):
+        return True
+    parts = password_hash.split("$")
+    if len(parts) != 4:
+        return True
+    try:
+        if int(parts[1]) < 100000:
+            return True
+    except (ValueError, IndexError):
+        return True
+    return False
+
+def _verify_raw(password_hash: str, password: str) -> bool:
     if not password_hash or not password:
         return False
     try:
@@ -38,9 +53,25 @@ def verify_password(password_hash: str, password: str) -> bool:
                 return hmac.compare_digest(derived, expected_hash)
         if password_hash.startswith("$argon2"):
             return ph.verify(password_hash, password)
+        if password_hash.startswith("=19="):
+            try:
+                return ph.verify(f"$argon2id$v{password_hash}", password)
+            except Exception:
+                pass
         return hmac.compare_digest(password_hash, password)
     except Exception:
         return False
+
+def verify_password(password_hash: str, password: str) -> bool:
+    """Verifies a raw password against PBKDF2-SHA256, Argon2id, or plain hashes with auto-trimming."""
+    if not password_hash or not password:
+        return False
+    if _verify_raw(password_hash, password):
+        return True
+    trimmed = password.strip()
+    if trimmed != password and _verify_raw(password_hash, trimmed):
+        return True
+    return False
 
 def generate_session_token() -> str:
     """Generates a cryptographically secure random session token."""

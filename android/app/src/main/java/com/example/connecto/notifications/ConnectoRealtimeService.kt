@@ -93,8 +93,10 @@ class ConnectoRealtimeService : Service() {
         super.onCreate()
         createNotificationChannel()
         promoteToForeground()
-        initializeRealtimeStack()
-        startBackgroundMonitorLoop()
+        serviceScope.launch {
+            initializeRealtimeStack()
+            startBackgroundMonitorLoop()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -113,9 +115,11 @@ class ConnectoRealtimeService : Service() {
         }
 
         promoteToForeground()
-        initializeRealtimeStack()
-        if (monitorJob?.isActive != true) {
-            startBackgroundMonitorLoop()
+        serviceScope.launch {
+            initializeRealtimeStack()
+            if (monitorJob?.isActive != true) {
+                startBackgroundMonitorLoop()
+            }
         }
         return START_STICKY
     }
