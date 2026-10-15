@@ -99,14 +99,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.2.9",
-        version_name: "v4.2.9",
-        version_code: 58,
-        build: 58,
-        sha256: "cc5dc5946afb3e1110541e1512fae73a184bbcc8b9340d7f63b9d7f1baccde4a",
-        md5: "1807d535798548f7b0bc57e7401fe86b",
+        version: "4.3.0",
+        version_name: "v4.3.0",
+        version_code: 59,
+        build: 59,
+        sha256: "3997b036cdd90ef32e66a0437a14a3c3101939a3b5c3b1d1cf87b8cf1b92600a",
+        md5: "151c0db3400b82e32f2b71f061d19f40",
         filename: "connecto-fun.apk",
-        size_bytes: 57121989,
+        size_bytes: 57138373,
         size_display: "54.5 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -114,13 +114,13 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Direct Chat 0ms Offline Cache Resolution: Resolved personal message loading by auto-discovering conversation channel UUIDs in SQLite, eliminating dm-slug mismatch",
+          "Local Cache E2E Decryption: Transparent AES-256-GCM decryption for direct messages and quoted reply snippets on local cache load",
+          "High-Availability Failover & Offline Mode: Eliminated false maintenance wall during edge failover and added offline cache browsing",
           "Transparent Liquid Glass Aesthetic: True 0-nit black #000000 theme with transparent liquid glass containers, specular borders, and zero color pollution",
           "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates reply banner with quoted message bubble rendering",
           "Navigation Drawer Glass Blur: Dynamic animated frosted glass background blur (up to 24dp) on chat surface when drawer opens",
-          "Clean Personal Chat Composer: Removed voice note / mic icon in direct personal chat for distraction-free text messaging",
-          "Auto-Emoji Sanitization: Eliminated automatic emoji insertions in channel composer",
-          "Voice Call De-Duplication: Atomic callId lock prevents duplicate incoming voice prompts",
-          "Real-Time Push Notifications: Heads-up banners, foreground service listener, and real-time WebSockets sync"
+          "Clean Personal Chat Composer: Removed voice note / mic icon in direct personal chat for distraction-free text messaging"
         ]
       });
     }
@@ -162,7 +162,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.2.9/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.0/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -3447,14 +3447,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.2.9",
-      version_name: "v4.2.9",
-      version_code: 58,
-      build: 58,
-      sha256: "cc5dc5946afb3e1110541e1512fae73a184bbcc8b9340d7f63b9d7f1baccde4a",
-      md5: "1807d535798548f7b0bc57e7401fe86b",
+      version: "4.3.0",
+      version_name: "v4.3.0",
+      version_code: 59,
+      build: 59,
+      sha256: "3997b036cdd90ef32e66a0437a14a3c3101939a3b5c3b1d1cf87b8cf1b92600a",
+      md5: "151c0db3400b82e32f2b71f061d19f40",
       filename: "connecto-fun.apk",
-      size_bytes: 57121989,
+      size_bytes: 57138373,
       size_display: "54.5 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -3468,10 +3468,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.2.9",
+          version: "v4.3.0",
           date: "Oct 15, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.3.0: Direct Chat 0ms Offline Cache Resolution, E2E Decryption & High-Availability Failover",
+          summary: "Resolves direct chat history visibility by auto-discovering conversation channel UUIDs in SQLite, ensures transparent E2E AES-256-GCM message decryption on local cache load, eliminates false maintenance mode locks during edge failover, and provides an offline cache browser.",
+          highlights: [
+            "Direct Chat Channel Auto-Discovery & Zero-Loss Offline Cache: Completely resolves personal chat history disappearance by discovering backend-assigned channel UUIDs in local SQLite storage, eliminating the legacy dm-u1-u2 slug mismatch and delivering 0ms instant loading across all friends.",
+            "Local Cache E2E AES-256-GCM Decryption: Transparently decrypts direct messages and quoted reply snippets directly from SQLite cache upon screen mount, ensuring offline chats render readable plain text instead of ciphertext.",
+            "High-Availability Failover & Offline Mode: Removes false maintenance blocks during Cloudflare Edge failover (origin_status == 'DOWN') and adds an offline cached message browser in the maintenance screen.",
+            "Android Native App v4.3.0 (Build 59 • 54.5 MB): SHA-256 3997b036cdd90ef32e66a0437a14a3c3101939a3b5c3b1d1cf87b8cf1b92600a."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.2.9",
+          date: "Oct 15, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.2.9: Transparent Liquid Glass, Swipe-to-Reply & Dynamic Drawer Glass Blur",
           summary: "Introduces pure pitch-black OLED theme with transparent liquid glass aesthetics, fluid swipe-to-reply in channels with quoted preview rendering, real-time background blur when opening navigation drawer, clean personal chat composer without voice notes, and channel auto-emoji sanitization.",
           highlights: [

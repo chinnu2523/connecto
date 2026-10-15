@@ -321,10 +321,10 @@ fun ConnectoApp(
     }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
-        val isHealthy = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            com.example.connecto.network.ConnectoApiClient.checkHealth()
+        val isMaint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            com.example.connecto.network.ConnectoApiClient.isServerInMaintenance()
         }
-        if (!isHealthy) {
+        if (isMaint) {
             MainActivity.openMaintenanceScreen()
         }
         VoiceCallManager.init(context)
@@ -414,12 +414,12 @@ fun ConnectoApp(
 
     androidx.compose.runtime.LaunchedEffect(isWsConnectedGlobal, flowState) {
         if (!isWsConnectedGlobal) {
-            delay(2500L)
+            delay(3500L)
             if (!isWsConnectedGlobal) {
-                val healthy = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    com.example.connecto.network.ConnectoApiClient.checkHealth()
+                val isMaint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.example.connecto.network.ConnectoApiClient.isServerInMaintenance()
                 }
-                if (!healthy) {
+                if (isMaint) {
                     MainActivity.openMaintenanceScreen()
                 }
             }

@@ -436,9 +436,7 @@ object ConnectoApiClient {
                             json.optBoolean("maintenance", false) ||
                             json.optString("status").equals("maintenance", ignoreCase = true) ||
                             json.optString("mode").equals("maintenance", ignoreCase = true) ||
-                            json.optString("active_server").equals("maintenance", ignoreCase = true) ||
-                            json.optString("origin_status").equals("DOWN", ignoreCase = true) ||
-                            json.optString("origin_state").equals("DOWN", ignoreCase = true)
+                            json.optString("active_server").equals("maintenance", ignoreCase = true)
                         } catch (_: Exception) {
                             body.contains("\"maintenance\":true") || body.contains("\"status\":\"maintenance\"")
                         }
@@ -455,6 +453,47 @@ object ConnectoApiClient {
                     android.util.Log.e("ConnectoSync", "checkHealth failed for $base$path: ${e.javaClass.name}: ${e.message}", e)
                     // try next path
                 }
+            }
+        }
+        false
+    }
+
+    suspend fun isServerInMaintenance(): Boolean = withContext(Dispatchers.IO) {
+        val candidateUrls = ConnectoNetworkConfig.getCandidateBases()
+        val healthEndpoints = listOf("/api/health", "/api/status", "/api/v1/health")
+        for (base in candidateUrls) {
+            for (path in healthEndpoints) {
+                try {
+                    val url = URL("$base$path")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 5000
+                        readTimeout = 5000
+                        setRequestProperty("User-Agent", USER_AGENT)
+                        setRequestProperty("Accept", "application/json")
+                    }
+                    val code = conn.responseCode
+                    if (code == 503) {
+                        return@withContext true
+                    }
+                    if (code in 200..299) {
+                        val body = try {
+                            conn.inputStream.bufferedReader().use { it.readText() }
+                        } catch (_: Exception) { "" }
+
+                        val isMaintenance = try {
+                            val json = JSONObject(body)
+                            json.optBoolean("maintenance", false) ||
+                            json.optString("status").equals("maintenance", ignoreCase = true) ||
+                            json.optString("mode").equals("maintenance", ignoreCase = true) ||
+                            json.optString("active_server").equals("maintenance", ignoreCase = true)
+                        } catch (_: Exception) {
+                            body.contains("\"maintenance\":true") || body.contains("\"status\":\"maintenance\"")
+                        }
+                        if (isMaintenance) return@withContext true
+                        return@withContext false
+                    }
+                } catch (_: Exception) {}
             }
         }
         false

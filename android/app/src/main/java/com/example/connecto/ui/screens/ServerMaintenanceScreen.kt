@@ -441,6 +441,23 @@ fun ServerMaintenanceScreen(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Button 3: Continue Offline / Browse Cached Chats
+                TextButton(
+                    onClick = { onServerRestored() },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFF94A3B8)
+                    ),
+                    modifier = Modifier.fillMaxWidth().height(42.dp)
+                ) {
+                    Text(
+                        text = "Browse Cached Messages (Offline Mode)",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }

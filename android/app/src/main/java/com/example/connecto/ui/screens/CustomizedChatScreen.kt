@@ -948,8 +948,13 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Dynamic friend requests & accepted friends sync loop from backend
+    // Dynamic friend requests & accepted friends sync loop from backend + pre-load DM channel cache
     LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            try {
+                ConnectoApiClient.channelCache.putAll(dbHelper.getAllDmChannels())
+            } catch (_: Exception) {}
+        }
         while (true) {
             syncAcceptedFriends()
             delay(3500)
@@ -1047,16 +1052,32 @@ fun CustomizedChatScreen(
                 val me = myUsername
                 "dm-${minOf(me, clean)}-${maxOf(me, clean)}"
             } else null
+            val cachedDmId = if (currentCanonical != null) ConnectoApiClient.channelCache[currentCanonical.lowercase()] else null
 
             val isForCurrentChat = currentFriend != null && (
                 (currentDmId != null && dto.channelId.equals(currentDmId, ignoreCase = true)) ||
+                (cachedDmId != null && dto.channelId.equals(cachedDmId, ignoreCase = true)) ||
                 (currentCanonical != null && dto.channelId.equals(currentCanonical, ignoreCase = true)) ||
                 authorClean == currentFriend.handle.removePrefix("@").trim().lowercase() ||
                 (dto.channelId != null && dto.channelId.contains(currentFriend.handle.removePrefix("@"), ignoreCase = true)) ||
-                (isMe && (dto.channelId.equals(currentDmId, ignoreCase = true) || dto.channelId.equals(currentCanonical, ignoreCase = true) || (dto.channelId != null && dto.channelId.contains(currentFriend.handle.removePrefix("@"), ignoreCase = true))))
+                (isMe && (
+                    dto.channelId.equals(currentDmId, ignoreCase = true) ||
+                    dto.channelId.equals(cachedDmId, ignoreCase = true) ||
+                    dto.channelId.equals(currentCanonical, ignoreCase = true) ||
+                    (dto.channelId != null && dto.channelId.contains(currentFriend.handle.removePrefix("@"), ignoreCase = true))
+                ))
             )
 
             if (isForCurrentChat) {
+                if (activeDmChannelId == null && !dto.channelId.isNullOrBlank() && !dto.channelId.startsWith("dm-") && !dto.channelId.startsWith("dm_")) {
+                    activeDmChannelId = dto.channelId
+                    if (currentCanonical != null) {
+                        ConnectoApiClient.channelCache[currentCanonical.lowercase()] = dto.channelId
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try { dbHelper.saveDmChannel(currentCanonical, dto.channelId) } catch (_: Exception) {}
+                        }
+                    }
+                }
                 val init = if (dto.authorName.isNotBlank()) dto.authorName.first().toString().uppercase() else "U"
                 val msgAvatar = if (isMe) {
                     ConnectoApiClient.currentUserAvatarUrl
@@ -1191,10 +1212,13 @@ fun CustomizedChatScreen(
                 if (friend.isGroup) {
                     dbHelper.getMessagesForChannel(friend.id, limit = 50)
                 } else {
+                    val resolvedChId = activeDmChannelId
+                        ?: ConnectoApiClient.channelCache[canonicalName.lowercase()]
+                        ?: dbHelper.getDmChannelId(canonicalName)
                     dbHelper.getDirectMessages(
                         myUsername = myUser,
                         friendUsername = cleanTarget,
-                        channelId = activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()],
+                        channelId = resolvedChId,
                         limit = 50
                     )
                 }
@@ -1204,6 +1228,24 @@ fun CustomizedChatScreen(
                 val myUsername = ConnectoApiClient.currentUsername ?: currentUsername
                 val myDisplayName = ConnectoApiClient.currentUserDisplayName ?: ""
                 val myUserId = ConnectoApiClient.currentUserId
+
+                // Auto-learn and persist discovered channel UUID from cached messages
+                val discoveredChId = cachedMessages.firstOrNull {
+                    !it.channelId.isNullOrBlank() && !it.channelId.startsWith("dm-") && !it.channelId.startsWith("dm_")
+                }?.channelId
+                if (discoveredChId != null && !friend.isGroup) {
+                    if (activeDmChannelId == null) activeDmChannelId = discoveredChId
+                    ConnectoApiClient.channelCache[canonicalName.lowercase()] = discoveredChId
+                    ConnectoApiClient.channelCache[discoveredChId.lowercase()] = canonicalName.lowercase()
+                    VoiceCallManager.subscribeChannel(discoveredChId)
+                    withContext(Dispatchers.IO) {
+                        dbHelper.saveDmChannel(canonicalName, discoveredChId)
+                    }
+                }
+
+                val otherUser = friend.handle.removePrefix("@")
+                val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+
                 friendMessages = cachedMessages.map { dto ->
                     val isMe = (
                         dto.authorId.equals(myUsername, ignoreCase = true) ||
@@ -1228,16 +1270,32 @@ fun CustomizedChatScreen(
                     } else {
                         dto.authorAvatar ?: (if (friend.isGroup) null else (selectedFriend?.avatarUrl ?: friend.avatarUrl))
                     }
+
+                    val (decryptedContent, decryptedReplyContent, isEnc) = if (friend.isGroup) {
+                        Triple(dto.content, dto.replyToContent, false)
+                    } else {
+                        val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
+                        val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                        val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
+                            ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                        } else dto.replyToContent
+                        Triple(decMsg, decReply, enc)
+                    }
+
                     CustomMessageItem(
                         id = dto.id,
                         senderName = effectiveSenderName,
                         initial = init,
-                        content = dto.content,
+                        content = decryptedContent,
                         time = formatIsoTime(dto.createdAt),
                         isMe = isMe,
                         isDelivered = true,
                         isRead = true,
-                        avatarUrl = msgAvatar
+                        avatarUrl = msgAvatar,
+                        replyToId = dto.replyToId,
+                        replyToContent = decryptedReplyContent,
+                        replyToAuthor = dto.replyToAuthor,
+                        isEncrypted = isEnc
                     )
                 }
                 isLoadingMessages = false
@@ -1261,6 +1319,9 @@ fun CustomizedChatScreen(
                             ConnectoApiClient.channelCache[ch.id.lowercase()] = canonicalName.lowercase()
                             VoiceCallManager.subscribeChannel(ch.id)
                             VoiceCallManager.subscribeChannel(ch.name)
+                            withContext(Dispatchers.IO) {
+                                dbHelper.saveDmChannel(canonicalName, ch.id)
+                            }
                         }
                     } catch (_: Exception) {}
                 }
@@ -1328,6 +1389,9 @@ fun CustomizedChatScreen(
                                     if (activeDmChannelId == null) activeDmChannelId = serverChId
                                     ConnectoApiClient.channelCache[canonicalName.lowercase()] = serverChId
                                     ConnectoApiClient.channelCache[serverChId.lowercase()] = canonicalName.lowercase()
+                                    withContext(Dispatchers.IO) {
+                                        dbHelper.saveDmChannel(canonicalName, serverChId)
+                                    }
                                 }
 
                                 withContext(Dispatchers.IO) {

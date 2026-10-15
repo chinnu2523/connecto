@@ -401,7 +401,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
     /**
      * Retrieves direct messages matching any known alias for the conversation:
-     * canonical name (dm-min-max), alt canonical name (dm_min_max), reverse name, or channel UUID.
+     * canonical name (dm-min-max), alt canonical name (dm_min_max), reverse name, channel UUID,
+     * or any messages between the two users discovered in local SQLite cache.
      * Guarantees 0ms local SQLite load regardless of which identifier was used to store messages.
      */
     fun getDirectMessages(
@@ -413,18 +414,98 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
     ): List<MessageDto> {
         val u1 = myUsername.trim().lowercase().removePrefix("@")
         val u2 = friendUsername.trim().lowercase().removePrefix("@")
+        val u1Base = u1.replace(Regex("\\d+$"), "")
+        val u2Base = u2.replace(Regex("\\d+$"), "")
+
         val canon1 = "dm-${minOf(u1, u2)}-${maxOf(u1, u2)}"
         val canon2 = "dm_${minOf(u1, u2)}_${maxOf(u1, u2)}"
         val rev1 = "dm-${maxOf(u1, u2)}-${minOf(u1, u2)}"
         val rev2 = "dm_${maxOf(u1, u2)}_${minOf(u1, u2)}"
 
         val candidates = mutableListOf(canon1, canon2, rev1, rev2)
+
+        if (u1Base.isNotEmpty() && u1Base != u1) {
+            candidates.add("dm-${minOf(u1Base, u2)}-${maxOf(u1Base, u2)}")
+            candidates.add("dm_${minOf(u1Base, u2)}_${maxOf(u1Base, u2)}")
+            candidates.add("dm-${maxOf(u1Base, u2)}-${minOf(u1Base, u2)}")
+            candidates.add("dm_${maxOf(u1Base, u2)}_${minOf(u1Base, u2)}")
+        }
+        if (u2Base.isNotEmpty() && u2Base != u2) {
+            candidates.add("dm-${minOf(u1, u2Base)}-${maxOf(u1, u2Base)}")
+            candidates.add("dm_${minOf(u1, u2Base)}_${maxOf(u1, u2Base)}")
+            candidates.add("dm-${maxOf(u1, u2Base)}-${minOf(u1, u2Base)}")
+            candidates.add("dm_${maxOf(u1, u2Base)}_${minOf(u1, u2Base)}")
+        }
+
         if (!channelId.isNullOrBlank()) {
             candidates.add(channelId.trim().lowercase().removePrefix("#"))
         }
-        val distinctCandidates = candidates.distinct()
 
         val db = readableDatabase
+
+        // 1. Look up any channel mappings stored in TABLE_CHANNELS (e.g. type = 'dm')
+        try {
+            val chCursor = db.rawQuery(
+                "SELECT $COL_CH_ID, $COL_CH_NAME FROM $TABLE_CHANNELS WHERE $COL_CH_TYPE = 'dm'",
+                null
+            )
+            chCursor.use { cur ->
+                while (cur.moveToNext()) {
+                    val chId = cur.getString(0)?.trim()?.lowercase()?.removePrefix("#") ?: continue
+                    val chName = cur.getString(1)?.trim()?.lowercase()?.removePrefix("#") ?: ""
+                    if (candidates.contains(chName) || chName.contains(u2) || (u2Base.isNotEmpty() && chName.contains(u2Base))) {
+                        candidates.add(chId)
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 2. Discover all friend identifiers (id, name, handle) from TABLE_FRIENDS
+        val friendIdentifiers = mutableSetOf(u2)
+        if (u2Base.isNotEmpty()) friendIdentifiers.add(u2Base)
+        try {
+            val friendCursor = db.rawQuery(
+                "SELECT $COL_FRIEND_ID, $COL_FRIEND_NAME, $COL_FRIEND_HANDLE FROM $TABLE_FRIENDS WHERE lower($COL_FRIEND_HANDLE) = ? OR lower($COL_FRIEND_HANDLE) = ? OR lower($COL_FRIEND_NAME) = ? OR $COL_FRIEND_ID = ?",
+                arrayOf(u2, "@$u2", u2, u2)
+            )
+            friendCursor.use { cur ->
+                while (cur.moveToNext()) {
+                    val fId = cur.getString(0)?.trim()?.lowercase()
+                    val fName = cur.getString(1)?.trim()?.lowercase()
+                    val fHandle = cur.getString(2)?.trim()?.lowercase()?.removePrefix("@")
+                    if (!fId.isNullOrBlank()) friendIdentifiers.add(fId)
+                    if (!fName.isNullOrBlank()) friendIdentifiers.add(fName)
+                    if (!fHandle.isNullOrBlank()) friendIdentifiers.add(fHandle)
+                }
+            }
+        } catch (_: Exception) {}
+
+        // 3. Guild / public channels to exclude from direct message channel discovery
+        val guildChannels = setOf(
+            "general", "announcements", "dev-chat", "gaming", "war-room", "tournaments", "clips", "voice-lounge", "dev-talk", "resources"
+        )
+
+        // 4. Discover any channel_id in TABLE_MESSAGES that contains messages from this friend
+        try {
+            val idPlaceholders = friendIdentifiers.joinToString(",") { "?" }
+            val authorQuery = """
+                SELECT DISTINCT $COL_MSG_CHANNEL FROM $TABLE_MESSAGES 
+                WHERE (lower($COL_MSG_AUTHOR_ID) IN ($idPlaceholders) OR lower($COL_MSG_AUTHOR_NAME) IN ($idPlaceholders))
+            """.trimIndent()
+            val args = (friendIdentifiers + friendIdentifiers).map { it.lowercase() }.toTypedArray()
+            val discCursor = db.rawQuery(authorQuery, args)
+            discCursor.use { cur ->
+                while (cur.moveToNext()) {
+                    val discCh = cur.getString(0)?.trim()?.lowercase()?.removePrefix("#") ?: continue
+                    if (discCh.isNotEmpty() && !guildChannels.contains(discCh)) {
+                        candidates.add(discCh)
+                    }
+                }
+            }
+        } catch (_: Exception) {}
+
+        val distinctCandidates = candidates.distinct()
+
         val list = mutableListOf<MessageDto>()
         val placeholders = distinctCandidates.joinToString(",") { "?" }
         val selection = if (beforeCreatedAt.isNullOrBlank()) {
@@ -497,6 +578,76 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 )
             }
         }
+
+        // Fallback: if list is still empty, search TABLE_MESSAGES directly by author match (excluding guild channels)
+        if (list.isEmpty() && friendIdentifiers.isNotEmpty()) {
+            try {
+                val idPlaceholders = friendIdentifiers.joinToString(",") { "?" }
+                val guildPlaceholders = guildChannels.joinToString(",") { "?" }
+                val fallbackSelection = if (beforeCreatedAt.isNullOrBlank()) {
+                    "$COL_MSG_CHANNEL NOT IN ($guildPlaceholders) AND (lower($COL_MSG_AUTHOR_ID) IN ($idPlaceholders) OR lower($COL_MSG_AUTHOR_NAME) IN ($idPlaceholders))"
+                } else {
+                    "$COL_MSG_CHANNEL NOT IN ($guildPlaceholders) AND (lower($COL_MSG_AUTHOR_ID) IN ($idPlaceholders) OR lower($COL_MSG_AUTHOR_NAME) IN ($idPlaceholders)) AND $COL_MSG_CREATED_AT < ?"
+                }
+                val fallbackArgs = if (beforeCreatedAt.isNullOrBlank()) {
+                    (guildChannels + friendIdentifiers + friendIdentifiers).map { it.lowercase() }.toTypedArray()
+                } else {
+                    (guildChannels + friendIdentifiers + friendIdentifiers).map { it.lowercase() }.toTypedArray() + beforeCreatedAt
+                }
+                val fbCursor = db.query(
+                    TABLE_MESSAGES,
+                    null,
+                    fallbackSelection,
+                    fallbackArgs,
+                    null,
+                    null,
+                    "$COL_MSG_CREATED_AT DESC",
+                    limit.toString()
+                )
+                fbCursor.use {
+                    while (it.moveToNext()) {
+                        val avatarCol = it.getColumnIndex(COL_MSG_AUTHOR_AVATAR)
+                        val authorAvatar = if (avatarCol >= 0) it.getString(avatarCol) else null
+                        val typeCol = it.getColumnIndex(COL_MSG_TYPE)
+                        val msgType = if (typeCol >= 0) it.getString(typeCol) ?: "text" else "text"
+                        val pollCol = it.getColumnIndex(COL_MSG_POLL_JSON)
+                        val pollJson = if (pollCol >= 0) it.getString(pollCol) else null
+                        val poll = if (!pollJson.isNullOrBlank()) {
+                            try { ConnectoApiClient.parsePollDto(JSONObject(pollJson)) } catch (_: Exception) { null }
+                        } else null
+                        val timerCol = it.getColumnIndex(COL_MSG_TIMER_SEC)
+                        val timerSec = if (timerCol >= 0) it.getInt(timerCol) else 0
+                        val expCol = it.getColumnIndex(COL_MSG_EXPIRES_AT)
+                        val expiresAt = if (expCol >= 0) it.getString(expCol) else null
+                        val msgId = it.getString(it.getColumnIndexOrThrow(COL_MSG_ID))
+                        val createdAt = it.getString(it.getColumnIndexOrThrow(COL_MSG_CREATED_AT)) ?: "Just now"
+
+                        if (isExpired(expiresAt)) {
+                            expiredIds.add(msgId)
+                            continue
+                        }
+
+                        list.add(
+                            MessageDto(
+                                id = msgId,
+                                channelId = it.getString(it.getColumnIndexOrThrow(COL_MSG_CHANNEL)),
+                                authorId = it.getString(it.getColumnIndexOrThrow(COL_MSG_AUTHOR_ID)) ?: "gamer",
+                                authorName = it.getString(it.getColumnIndexOrThrow(COL_MSG_AUTHOR_NAME)) ?: "Gamer",
+                                content = it.getString(it.getColumnIndexOrThrow(COL_MSG_CONTENT)) ?: "",
+                                createdAt = createdAt,
+                                authorAvatar = authorAvatar,
+                                type = msgType,
+                                pollId = poll?.id,
+                                poll = poll,
+                                timerSeconds = if (timerSec > 0) timerSec else null,
+                                expiresAt = expiresAt
+                            )
+                        )
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+
         if (expiredIds.isNotEmpty()) {
             try {
                 val writeDb = writableDatabase
@@ -506,6 +657,53 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             } catch (_: Exception) {}
         }
         return list.reversed().distinctBy { it.id }
+    }
+
+    fun saveDmChannel(canonicalName: String, channelId: String) {
+        try {
+            val db = writableDatabase
+            val cv = ContentValues().apply {
+                put(COL_CH_ID, channelId.trim().lowercase().removePrefix("#"))
+                put(COL_CH_NAME, canonicalName.trim().lowercase().removePrefix("#"))
+                put(COL_CH_TYPE, "dm")
+            }
+            db.insertWithOnConflict(TABLE_CHANNELS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+        } catch (_: Exception) {}
+    }
+
+    fun getDmChannelId(canonicalName: String): String? {
+        try {
+            val db = readableDatabase
+            val c = canonicalName.trim().lowercase().removePrefix("#")
+            val cursor = db.rawQuery(
+                "SELECT $COL_CH_ID FROM $TABLE_CHANNELS WHERE lower($COL_CH_NAME) = ? AND $COL_CH_TYPE = 'dm' LIMIT 1",
+                arrayOf(c)
+            )
+            cursor.use {
+                if (it.moveToFirst()) return it.getString(0)
+            }
+        } catch (_: Exception) {}
+        return null
+    }
+
+    fun getAllDmChannels(): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        try {
+            val db = readableDatabase
+            val cursor = db.rawQuery(
+                "SELECT $COL_CH_NAME, $COL_CH_ID FROM $TABLE_CHANNELS WHERE $COL_CH_TYPE = 'dm'",
+                null
+            )
+            cursor.use {
+                while (it.moveToNext()) {
+                    val name = it.getString(0) ?: continue
+                    val id = it.getString(1) ?: continue
+                    map[name.lowercase()] = id
+                    map[id.lowercase()] = name.lowercase()
+                }
+            }
+        } catch (_: Exception) {}
+        return map
     }
 
     fun saveChannels(channels: List<ChannelDto>) {
