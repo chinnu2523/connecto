@@ -283,8 +283,9 @@ fun PhotoLightboxDialog(
                 contentAlignment = Alignment.Center
             ) {
                 if (!imageUrl.isNullOrBlank()) {
+                    val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(imageUrl) ?: imageUrl
                     AsyncImage(
-                        model = imageUrl,
+                        model = resolvedModel,
                         contentDescription = title,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
@@ -488,15 +489,33 @@ fun InteractiveCropFitDialog(
     LaunchedEffect(imageUri) {
         withContext(Dispatchers.IO) {
             try {
-                val bmp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val source = ImageDecoder.createSource(context.contentResolver, imageUri)
-                    ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                        decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-                        decoder.isMutableRequired = true
+                val bmp = try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        val source = if (imageUri.scheme == "file") {
+                            ImageDecoder.createSource(java.io.File(imageUri.path ?: ""))
+                        } else {
+                            ImageDecoder.createSource(context.contentResolver, imageUri)
+                        }
+                        ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+                            decoder.isMutableRequired = true
+                        }
+                    } else {
+                        context.contentResolver.openInputStream(imageUri)?.use { stream ->
+                            BitmapFactory.decodeStream(stream)
+                        }
                     }
-                } else {
-                    context.contentResolver.openInputStream(imageUri)?.use { stream ->
-                        BitmapFactory.decodeStream(stream)
+                } catch (e: Exception) {
+                    try {
+                        context.contentResolver.openInputStream(imageUri)?.use { stream ->
+                            BitmapFactory.decodeStream(stream)
+                        }
+                    } catch (e2: Exception) {
+                        if (imageUri.path != null) {
+                            BitmapFactory.decodeFile(imageUri.path)
+                        } else {
+                            null
+                        }
                     }
                 }
                 originalBitmap = bmp

@@ -155,7 +155,7 @@ fun FullScreenGroupProfileDialog(
 
     // Group Avatar Picker Launcher
     val avatarPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
+        contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             coroutineScope.launch {
@@ -315,11 +315,7 @@ fun FullScreenGroupProfileDialog(
                                                 .background(MaterialTheme.colorScheme.primary)
                                                 .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
                                                 .clickable(enabled = !isUploadingAvatar) {
-                                                    avatarPickerLauncher.launch(
-                                                        androidx.activity.result.PickVisualMediaRequest(
-                                                            ActivityResultContracts.PickVisualMedia.ImageOnly
-                                                        )
-                                                    )
+                                                    avatarPickerLauncher.launch("image/*")
                                                 },
                                             contentAlignment = Alignment.Center
                                         ) {

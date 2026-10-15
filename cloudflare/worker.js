@@ -99,11 +99,11 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.3.0",
-        version_name: "v4.3.0",
-        version_code: 59,
-        build: 59,
-        sha256: "3997b036cdd90ef32e66a0437a14a3c3101939a3b5c3b1d1cf87b8cf1b92600a",
+        version: "4.3.1",
+        version_name: "v4.3.1",
+        version_code: 60,
+        build: 60,
+        sha256: "c541aa1061458ce00d4fb9c7132a89863ef5375cd08345940a707b35f71c5826",
         md5: "151c0db3400b82e32f2b71f061d19f40",
         filename: "connecto-fun.apk",
         size_bytes: 57138373,
@@ -114,13 +114,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Direct Chat 0ms Offline Cache Resolution: Resolved personal message loading by auto-discovering conversation channel UUIDs in SQLite, eliminating dm-slug mismatch",
-          "Local Cache E2E Decryption: Transparent AES-256-GCM decryption for direct messages and quoted reply snippets on local cache load",
-          "High-Availability Failover & Offline Mode: Eliminated false maintenance wall during edge failover and added offline cache browsing",
-          "Transparent Liquid Glass Aesthetic: True 0-nit black #000000 theme with transparent liquid glass containers, specular borders, and zero color pollution",
-          "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates reply banner with quoted message bubble rendering",
-          "Navigation Drawer Glass Blur: Dynamic animated frosted glass background blur (up to 24dp) on chat surface when drawer opens",
-          "Clean Personal Chat Composer: Removed voice note / mic icon in direct personal chat for distraction-free text messaging"
+          "Instant Profile Cover Photo Rendering: 0ms optimistic local caching and Coil Base64 ByteArray model decoding for instant banner display",
+          "Dedicated Edge-to-Edge Cover Banner Header: Elegant 148dp cover box with frosted glass controls (PROFILE, View, Change) and overlapping avatar",
+          "Resilient Content Provider Picker: Replaced Google Play Cloud PhotoPicker with ActivityResultContracts.GetContent() to completely eliminate cloud timeouts and ANR freezes",
+          "In-Memory Bitmap Compression & Edge Attribution: Safe memory buffer compression and X-User-Username attribution for multipart banner/avatar uploads",
+          "Interactive Crop & Fit Dialog: Full-screen gesture cropping with 16:9, 2.4:1, 3:1 aspect ratio presets, zoom slider, and 90° orientation rotation"
         ]
       });
     }
@@ -162,7 +160,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.0/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.1/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -3447,11 +3445,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.3.0",
-      version_name: "v4.3.0",
-      version_code: 59,
-      build: 59,
-      sha256: "3997b036cdd90ef32e66a0437a14a3c3101939a3b5c3b1d1cf87b8cf1b92600a",
+      version: "4.3.1",
+      version_name: "v4.3.1",
+      version_code: 60,
+      build: 60,
+      sha256: "c541aa1061458ce00d4fb9c7132a89863ef5375cd08345940a707b35f71c5826",
       md5: "151c0db3400b82e32f2b71f061d19f40",
       filename: "connecto-fun.apk",
       size_bytes: 57138373,
@@ -3468,10 +3466,26 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.3.0",
+          version: "v4.3.1",
           date: "Oct 15, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.3.1: Instant Profile Cover Photo, Dedicated Banner Header & Resilient Gallery Picker",
+          summary: "Resolves cover photo rendering root cause with 0ms optimistic local caching, Coil Base64 ByteArray model decoding, dedicated edge-to-edge cover banner header with frosted controls, and reliable system content provider picker.",
+          highlights: [
+            "Instant Profile Cover Photo Rendering: 0ms optimistic local caching and Coil Base64 ByteArray model decoding for instant banner display without network lag or decode failures.",
+            "Dedicated Edge-to-Edge Cover Banner Header: Elegant 148dp cover box with frosted glass controls (PROFILE, View, Change) and overlapping avatar.",
+            "Resilient Content Provider Picker: Replaced Google Play Cloud PhotoPicker with ActivityResultContracts.GetContent() to completely eliminate cloud timeouts and ANR freezes.",
+            "In-Memory Bitmap Compression & Edge Attribution: Safe memory buffer compression and X-User-Username attribution for multipart banner/avatar uploads.",
+            "Android Native App v4.3.1 (Build 60 • 54.5 MB): SHA-256 c541aa1061458ce00d4fb9c7132a89863ef5375cd08345940a707b35f71c5826."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.3.0",
+          date: "Oct 15, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.3.0: Direct Chat 0ms Offline Cache Resolution, E2E Decryption & High-Availability Failover",
           summary: "Resolves direct chat history visibility by auto-discovering conversation channel UUIDs in SQLite, ensures transparent E2E AES-256-GCM message decryption on local cache load, eliminates false maintenance mode locks during edge failover, and provides an offline cache browser.",
           highlights: [

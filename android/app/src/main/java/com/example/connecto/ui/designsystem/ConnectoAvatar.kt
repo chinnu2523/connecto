@@ -46,12 +46,41 @@ fun sanitizeAvatarUrl(url: String?): String? {
     val trimmed = url.trim()
     val lower = trimmed.lowercase()
     if (lower in listOf("null", "none", "undefined", "false", "true", "")) return null
-    // Reject plain emoji strings or non-path strings
-    if (!trimmed.contains("/") && !trimmed.contains(".")) return null
+    // Reject plain emoji strings or non-path strings (unless data: URL)
+    if (!trimmed.contains("/") && !trimmed.contains(".") && !trimmed.startsWith("data:")) return null
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed
+    if (trimmed.startsWith("file://") || trimmed.startsWith("content://") || trimmed.startsWith("data:")) return trimmed
+    // Local device file path
+    if (trimmed.startsWith("/data/") || trimmed.startsWith("/storage/") || java.io.File(trimmed).exists()) return trimmed
     if (trimmed.startsWith("/")) return "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}$trimmed"
     if (trimmed.startsWith("uploads/")) return "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/$trimmed"
     return trimmed
+}
+
+/**
+ * Resolves a model suitable for Coil's AsyncImage from a remote URL, local file path, file URI, or data:base64 URL.
+ */
+fun resolveImageModel(url: String?): Any? {
+    if (url.isNullOrBlank()) return null
+    val sanitized = sanitizeAvatarUrl(url) ?: return null
+    if (sanitized.startsWith("data:")) {
+        try {
+            val commaIdx = sanitized.indexOf(",")
+            if (commaIdx != -1) {
+                val base64Data = sanitized.substring(commaIdx + 1)
+                return android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+            }
+        } catch (e: Exception) {
+            // fallback to sanitized string
+        }
+    }
+    if (sanitized.startsWith("file://")) {
+        return java.io.File(sanitized.removePrefix("file://"))
+    }
+    if (sanitized.startsWith("/data/") || sanitized.startsWith("/storage/") || (sanitized.startsWith("/") && java.io.File(sanitized).exists())) {
+        return java.io.File(sanitized)
+    }
+    return sanitized
 }
 
 /**
@@ -151,9 +180,10 @@ fun ConnectoAvatar(
                 fontSize = effectiveFontSize,
                 fontWeight = FontWeight.Bold
             )
-            if (sanitizedUrl != null) {
+            val imageModel = resolveImageModel(avatarUrl) ?: sanitizedUrl
+            if (imageModel != null) {
                 AsyncImage(
-                    model = sanitizedUrl,
+                    model = imageModel,
                     contentDescription = "$name's avatar",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier

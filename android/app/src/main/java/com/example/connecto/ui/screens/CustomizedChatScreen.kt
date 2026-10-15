@@ -529,7 +529,7 @@ fun CustomizedChatScreen(
 
     // Custom Wallpaper Photo Picker Launcher
     val wallpaperPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
+        contract = ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) {
             try {
@@ -2170,9 +2170,7 @@ fun CustomizedChatScreen(
                                                     .clip(RoundedCornerShape(8.dp))
                                                     .background(MaterialTheme.colorScheme.primary)
                                                     .clickable {
-                                                        wallpaperPickerLauncher.launch(
-                                                            androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                                        )
+                                                        wallpaperPickerLauncher.launch("image/*")
                                                     }
                                                     .padding(horizontal = 10.dp, vertical = 6.dp)
                                             ) {

@@ -3222,22 +3222,40 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
+            val imageBytes = if (imageUri.scheme == "file") {
+                val f = java.io.File(imageUri.path ?: "")
+                if (f.exists()) f.readBytes() else null
+            } else {
+                context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
+            } ?: return@withContext Result.failure(Exception("Cannot read image from device"))
+
+            val mimeType = if (imageUri.scheme == "file") {
+                "image/webp"
+            } else {
+                context.contentResolver.getType(imageUri) ?: "image/jpeg"
+            }
+            uploadAvatarBytes(context, imageBytes, mimeType, token)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun uploadAvatarBytes(
+        context: android.content.Context,
+        imageBytes: ByteArray,
+        mimeType: String = "image/webp",
+        token: String? = null
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
             val activeToken = token ?: sessionToken
             val boundary = "ConnectoAvatarBoundary_${System.currentTimeMillis()}"
-
-            // Read image bytes from content:// URI
-            val inputStream = context.contentResolver.openInputStream(imageUri)
-                ?: return@withContext Result.failure(Exception("Cannot read image from device"))
-            val imageBytes = inputStream.use { it.readBytes() }
-
-            // Determine MIME type
-            val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
             val extension = when {
                 mimeType.contains("png") -> "png"
                 mimeType.contains("webp") -> "webp"
                 else -> "jpg"
             }
             val fileName = "avatar.$extension"
+            val u = currentUsername
 
             val candidateBases = ConnectoNetworkConfig.getCandidateBases()
             var lastException: Exception? = null
@@ -3261,11 +3279,22 @@ object ConnectoApiClient {
                         if (!sessionCookie.isNullOrEmpty()) {
                             setRequestProperty("Cookie", sessionCookie)
                         }
+                        if (!u.isNullOrEmpty()) {
+                            setRequestProperty("X-User-Username", u)
+                            setRequestProperty("X-Username", u)
+                        }
                     }
 
                     // Write multipart body (field name must be "file")
                     conn.outputStream.use { output ->
                         val writer = java.io.PrintWriter(java.io.OutputStreamWriter(output, "UTF-8"), true)
+                        if (!u.isNullOrEmpty()) {
+                            writer.append("--$boundary\r\n")
+                            writer.append("Content-Disposition: form-data; name=\"username\"\r\n")
+                            writer.append("\r\n")
+                            writer.append(u)
+                            writer.append("\r\n")
+                        }
                         writer.append("--$boundary\r\n")
                         writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
                         writer.append("Content-Type: $mimeType\r\n")
@@ -3304,7 +3333,6 @@ object ConnectoApiClient {
                         }
 
                         // Persist to user's account settings on the server
-                        val u = currentUsername
                         if (!u.isNullOrBlank()) {
                             try {
                                 updateProfile(
@@ -3460,61 +3488,93 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val activeToken = token ?: sessionToken
-            val boundary = "ConnectoBannerBoundary_${System.currentTimeMillis()}"
-
-            // 1. Client-side Resize & Compression to 1200x400 WebP
-            val inputStream = context.contentResolver.openInputStream(imageUri)
-                ?: return@withContext Result.failure(Exception("Cannot read image from device"))
-
             val originalBitmap = try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                    val source = android.graphics.ImageDecoder.createSource(context.contentResolver, imageUri)
-                    android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                        decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
-                        decoder.isMutableRequired = true
+                if (imageUri.scheme == "file") {
+                    val file = java.io.File(imageUri.path ?: "")
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        val source = android.graphics.ImageDecoder.createSource(file)
+                        android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                            decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+                            decoder.isMutableRequired = true
+                        }
+                    } else {
+                        android.graphics.BitmapFactory.decodeFile(file.absolutePath)
                     }
                 } else {
-                    android.graphics.BitmapFactory.decodeStream(inputStream)
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        val source = android.graphics.ImageDecoder.createSource(context.contentResolver, imageUri)
+                        android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                            decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+                            decoder.isMutableRequired = true
+                        }
+                    } else {
+                        context.contentResolver.openInputStream(imageUri)?.use {
+                            android.graphics.BitmapFactory.decodeStream(it)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 null
-            } ?: return@withContext Result.failure(Exception("Failed to decode image file"))
-
-            // Target aspect ratio is 3:1 (1200 x 400)
-            val targetW = 1200
-            val targetH = 400
-            val srcW = originalBitmap.width
-            val srcH = originalBitmap.height
-            val targetRatio = targetW.toFloat() / targetH.toFloat()
-            val srcRatio = srcW.toFloat() / srcH.toFloat()
-
-            val croppedBitmap = if (srcRatio > targetRatio) {
-                val newW = (srcH * targetRatio).toInt().coerceAtMost(srcW)
-                val left = (srcW - newW) / 2
-                android.graphics.Bitmap.createBitmap(originalBitmap, left, 0, newW, srcH)
-            } else {
-                val newH = (srcW / targetRatio).toInt().coerceAtMost(srcH)
-                val top = (srcH - newH) / 2
-                android.graphics.Bitmap.createBitmap(originalBitmap, 0, top, srcW, newH)
             }
 
-            val finalBitmap = if (croppedBitmap.width > targetW || croppedBitmap.height > targetH) {
-                android.graphics.Bitmap.createScaledBitmap(croppedBitmap, targetW, targetH, true)
-            } else {
-                croppedBitmap
-            }
+            if (originalBitmap != null) {
+                // Target aspect ratio is 3:1 (1200 x 400)
+                val targetW = 1200
+                val targetH = 400
+                val srcW = originalBitmap.width
+                val srcH = originalBitmap.height
+                val targetRatio = targetW.toFloat() / targetH.toFloat()
+                val srcRatio = srcW.toFloat() / srcH.toFloat()
 
-            val byteStream = java.io.ByteArrayOutputStream()
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                finalBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 85, byteStream)
+                val croppedBitmap = if (srcRatio > targetRatio) {
+                    val newW = (srcH * targetRatio).toInt().coerceAtMost(srcW)
+                    val left = (srcW - newW) / 2
+                    android.graphics.Bitmap.createBitmap(originalBitmap, left, 0, newW, srcH)
+                } else {
+                    val newH = (srcW / targetRatio).toInt().coerceAtMost(srcH)
+                    val top = (srcH - newH) / 2
+                    android.graphics.Bitmap.createBitmap(originalBitmap, 0, top, srcW, newH)
+                }
+
+                val finalBitmap = if (croppedBitmap.width > targetW || croppedBitmap.height > targetH) {
+                    android.graphics.Bitmap.createScaledBitmap(croppedBitmap, targetW, targetH, true)
+                } else {
+                    croppedBitmap
+                }
+
+                val byteStream = java.io.ByteArrayOutputStream()
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                    finalBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 85, byteStream)
+                } else {
+                    @Suppress("DEPRECATION")
+                    finalBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 85, byteStream)
+                }
+                uploadBannerBytes(context, byteStream.toByteArray(), token)
             } else {
-                @Suppress("DEPRECATION")
-                finalBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 85, byteStream)
+                // If decoding as bitmap failed, attempt raw stream byte read
+                val rawBytes = context.contentResolver.openInputStream(imageUri)?.use { it.readBytes() }
+                    ?: return@withContext Result.failure(Exception("Failed to read image file"))
+                uploadBannerBytes(context, rawBytes, token)
             }
-            val imageBytes = byteStream.toByteArray()
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Uploads raw banner image bytes directly via multipart/form-data.
+     */
+    suspend fun uploadBannerBytes(
+        context: android.content.Context,
+        imageBytes: ByteArray,
+        token: String? = null
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val activeToken = token ?: sessionToken
+            val boundary = "ConnectoBannerBoundary_${System.currentTimeMillis()}"
             val fileName = "banner.webp"
             val mimeType = "image/webp"
+            val u = currentUsername
 
             val candidateBases = ConnectoNetworkConfig.getCandidateBases()
             var lastException: Exception? = null
@@ -3537,11 +3597,22 @@ object ConnectoApiClient {
                         if (!sessionCookie.isNullOrEmpty()) {
                             setRequestProperty("Cookie", sessionCookie)
                         }
+                        if (!u.isNullOrEmpty()) {
+                            setRequestProperty("X-User-Username", u)
+                            setRequestProperty("X-Username", u)
+                        }
                     }
 
-                    // Write multipart body (field name "file")
+                    // Write multipart body
                     conn.outputStream.use { output ->
                         val writer = java.io.PrintWriter(java.io.OutputStreamWriter(output, "UTF-8"), true)
+                        if (!u.isNullOrEmpty()) {
+                            writer.append("--$boundary\r\n")
+                            writer.append("Content-Disposition: form-data; name=\"username\"\r\n")
+                            writer.append("\r\n")
+                            writer.append(u)
+                            writer.append("\r\n")
+                        }
                         writer.append("--$boundary\r\n")
                         writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
                         writer.append("Content-Type: $mimeType\r\n")
@@ -3579,7 +3650,6 @@ object ConnectoApiClient {
                         }
 
                         // Persist to user's account settings on the server
-                        val u = currentUsername
                         if (!u.isNullOrBlank()) {
                             try {
                                 updateProfile(
@@ -3620,7 +3690,7 @@ object ConnectoApiClient {
     }
 
     /**
-     * Uploads an already cropped/adjusted avatar bitmap directly.
+     * Uploads an already cropped/adjusted avatar bitmap directly in memory.
      */
     suspend fun uploadAvatarBitmap(
         context: android.content.Context,
@@ -3628,23 +3698,21 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val cacheFile = java.io.File(context.cacheDir, "avatar_${System.currentTimeMillis()}.webp")
-            cacheFile.outputStream().use { out ->
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 90, out)
-                } else {
-                    @Suppress("DEPRECATION")
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 90, out)
-                }
+            val byteStream = java.io.ByteArrayOutputStream()
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 90, byteStream)
+            } else {
+                @Suppress("DEPRECATION")
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 90, byteStream)
             }
-            uploadAvatar(context, android.net.Uri.fromFile(cacheFile), token)
+            uploadAvatarBytes(context, byteStream.toByteArray(), "image/webp", token)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
     /**
-     * Uploads an already cropped/adjusted cover banner bitmap directly.
+     * Uploads an already cropped/adjusted cover banner bitmap directly in memory.
      */
     suspend fun uploadBannerBitmap(
         context: android.content.Context,
@@ -3652,16 +3720,14 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            val cacheFile = java.io.File(context.cacheDir, "banner_${System.currentTimeMillis()}.webp")
-            cacheFile.outputStream().use { out ->
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 88, out)
-                } else {
-                    @Suppress("DEPRECATION")
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 88, out)
-                }
+            val byteStream = java.io.ByteArrayOutputStream()
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 88, byteStream)
+            } else {
+                @Suppress("DEPRECATION")
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 88, byteStream)
             }
-            uploadBanner(context, android.net.Uri.fromFile(cacheFile), token)
+            uploadBannerBytes(context, byteStream.toByteArray(), token)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -3853,12 +3919,12 @@ object ConnectoApiClient {
                     }
                 }.takeIf { it.isNotEmpty() }
 
-                if (av != null && av.startsWith("/")) {
+                if (av != null && av.startsWith("/") && !av.startsWith("/data/") && !av.startsWith("/storage/")) {
                     av = "${ConnectoNetworkConfig.activeBaseUrl}$av"
                 }
 
                 var bUrl = userObj.optString("banner_url").takeIf { it.isNotEmpty() }
-                if (bUrl != null && bUrl.startsWith("/")) {
+                if (bUrl != null && bUrl.startsWith("/") && !bUrl.startsWith("/data/") && !bUrl.startsWith("/storage/")) {
                     bUrl = "${ConnectoNetworkConfig.activeBaseUrl}$bUrl"
                 }
 

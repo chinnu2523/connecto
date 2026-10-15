@@ -181,6 +181,7 @@ import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.glassCard
 import com.example.connecto.ui.theme.liquidGlassCard
 import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
+import com.example.connecto.ui.designsystem.resolveImageModel
 import com.example.connecto.ui.designsystem.getAvatarGradient
 import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
@@ -285,7 +286,14 @@ fun ProfileScreen(
         }
     }
     var bannerPhotoUri by remember(username) {
-        mutableStateOf(prefs.getString("banner_uri_$username", null))
+        val saved = prefs.getString("banner_uri_$username", null)
+        val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
+        val initial = when {
+            !saved.isNullOrBlank() && saved != "null" -> saved
+            localCover.exists() -> localCover.absolutePath
+            else -> null
+        }
+        mutableStateOf(initial)
     }
     var isUploadingBanner by remember { mutableStateOf(false) }
     var bannerUrlFieldInput by remember { mutableStateOf("") }
@@ -471,13 +479,23 @@ fun ProfileScreen(
         ConnectoApiClient.currentUserDisplayName = displayNameInput
         coroutineScope.launch {
             try {
+                val remoteAvatar = if (profilePhotoUri?.startsWith("http://") == true ||
+                    profilePhotoUri?.startsWith("https://") == true ||
+                    profilePhotoUri?.startsWith("data:") == true
+                ) profilePhotoUri else null
+
+                val remoteBanner = if (bannerPhotoUri?.startsWith("http://") == true ||
+                    bannerPhotoUri?.startsWith("https://") == true ||
+                    bannerPhotoUri?.startsWith("data:") == true
+                ) bannerPhotoUri else null
+
                 val res = ConnectoApiClient.updateProfile(
                     username = currentUsernameState,
                     displayName = displayNameInput,
                     fullName = fullNameInput,
                     bio = bioInput,
-                    avatarUrl = profilePhotoUri,
-                    bannerUrl = bannerPhotoUri,
+                    avatarUrl = remoteAvatar,
+                    bannerUrl = remoteBanner,
                     isStealth = stealthModeEnabled
                 )
                 if (res.isSuccess) {
@@ -514,7 +532,7 @@ fun ProfileScreen(
 
     // Photo Picker Launcher -> opens interactive crop dialog
     val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
+        contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             try {
@@ -533,7 +551,7 @@ fun ProfileScreen(
 
     // Banner Photo Picker Launcher -> opens interactive crop dialog
     val bannerPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia()
+        contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             try {
@@ -567,9 +585,9 @@ fun ProfileScreen(
             .background(themeColors.background)
     ) {
         if (hasCoverPhoto) {
-            // ================= FULLSCREEN BACKGROUND COVER PHOTO =================
+            val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
             AsyncImage(
-                model = sanitizedBannerPhoto,
+                model = bannerModel,
                 contentDescription = "Profile Cover Background",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
@@ -746,221 +764,303 @@ fun ProfileScreen(
                                     .clip(avatarCardShape)
                             ) {
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(18.dp),
+                                    modifier = Modifier.fillMaxWidth(),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    // Top Action Bar: Category Tag & Cover Photo Controls
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                    // 1. DEDICATED COVER PHOTO BANNER HEADER
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(148.dp)
+                                            .clickable {
+                                                if (hasCoverPhoto) {
+                                                    lightboxTitle = "Background Cover"
+                                                    lightboxImageUrl = bannerPhotoUri
+                                                    isLightboxBanner = true
+                                                    showLightbox = true
+                                                } else {
+                                                    bannerPickerLauncher.launch("image/*")
+                                                }
+                                            }
                                     ) {
-                                        // Category Tag
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
-                                                .padding(horizontal = 9.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = "PROFILE",
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.ExtraBold,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                letterSpacing = 0.8.sp
+                                        val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
+                                        if (hasCoverPhoto && bannerModel != null) {
+                                            AsyncImage(
+                                                model = bannerModel,
+                                                contentDescription = "Profile Cover Banner",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
                                             )
+                                            // Multi-stop contrast scrim to ensure controls and badges pop
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            listOf(
+                                                                Color.Black.copy(alpha = 0.55f),
+                                                                Color.Black.copy(alpha = 0.08f),
+                                                                Color.Black.copy(alpha = 0.45f)
+                                                            )
+                                                        )
+                                                    )
+                                            )
+                                        } else {
+                                            // Sleek gradient placeholder when no cover photo is set
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        Brush.linearGradient(
+                                                            listOf(
+                                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.32f),
+                                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f),
+                                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f)
+                                                            )
+                                                        )
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .background(Color.Black.copy(alpha = 0.35f))
+                                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CameraAlt,
+                                                        contentDescription = null,
+                                                        tint = Color.White.copy(alpha = 0.85f),
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Text(
+                                                        text = "Tap to add cover photo",
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = Color.White.copy(alpha = 0.90f)
+                                                    )
+                                                }
+                                            }
                                         }
 
-                                        // Cover Photo Action Buttons
-                                        if (isUploadingBanner) {
-                                            Row(
+                                        // Top Actions Overlay on Banner
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp)
+                                                .align(Alignment.TopCenter),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            // Category Tag
+                                            Box(
                                                 modifier = Modifier
-                                                    .clip(RoundedCornerShape(12.dp))
-                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                                                    .padding(horizontal = 10.dp, vertical = 5.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(Color.Black.copy(alpha = 0.50f))
+                                                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 9.dp, vertical = 4.dp)
                                             ) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(13.dp),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    strokeWidth = 2.dp
-                                                )
                                                 Text(
-                                                    text = "Updating Cover...",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    text = "PROFILE",
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = Color.White,
+                                                    letterSpacing = 0.8.sp
                                                 )
                                             }
-                                        } else {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                if (hasCoverPhoto) {
+
+                                            // Cover Action Buttons
+                                            if (isUploadingBanner) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(Color.Black.copy(alpha = 0.60f))
+                                                        .border(1.dp, Color.White.copy(alpha = 0.30f), RoundedCornerShape(12.dp))
+                                                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    CircularProgressIndicator(
+                                                        modifier = Modifier.size(13.dp),
+                                                        color = Color.White,
+                                                        strokeWidth = 2.dp
+                                                    )
+                                                    Text(
+                                                        text = "Updating Cover...",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = Color.White
+                                                    )
+                                                }
+                                            } else {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    if (hasCoverPhoto) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(12.dp))
+                                                                .background(Color.Black.copy(alpha = 0.55f))
+                                                                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                                                                .clickable {
+                                                                    lightboxTitle = "Background Cover"
+                                                                    lightboxImageUrl = bannerPhotoUri
+                                                                    isLightboxBanner = true
+                                                                    showLightbox = true
+                                                                }
+                                                                .padding(horizontal = 9.dp, vertical = 5.dp)
+                                                        ) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Visibility,
+                                                                    contentDescription = "View Cover",
+                                                                    tint = Color.White,
+                                                                    modifier = Modifier.size(13.dp)
+                                                                )
+                                                                Text(
+                                                                    text = "View",
+                                                                    fontSize = 11.sp,
+                                                                    fontWeight = FontWeight.SemiBold,
+                                                                    color = Color.White
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+
                                                     Box(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(12.dp))
-                                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.80f))
-                                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                                                            .background(Color.Black.copy(alpha = 0.55f))
+                                                            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                                                             .clickable {
-                                                                lightboxTitle = "Background Cover"
-                                                                lightboxImageUrl = bannerPhotoUri
-                                                                isLightboxBanner = true
-                                                                showLightbox = true
+                                                                bannerPickerLauncher.launch("image/*")
                                                             }
                                                             .padding(horizontal = 10.dp, vertical = 5.dp)
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                                                         ) {
                                                             Icon(
-                                                                imageVector = Icons.Default.Visibility,
-                                                                contentDescription = "View Cover",
-                                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                                imageVector = Icons.Default.CameraAlt,
+                                                                contentDescription = "Change Cover",
+                                                                tint = Color.White,
                                                                 modifier = Modifier.size(13.dp)
                                                             )
                                                             Text(
-                                                                text = "View Cover",
+                                                                text = if (hasCoverPhoto) "Change" else "Add Cover",
                                                                 fontSize = 11.sp,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                color = MaterialTheme.colorScheme.onSurface
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color.White
                                                             )
                                                         }
-                                                    }
-                                                }
-
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
-                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                                                        .clickable {
-                                                            bannerPickerLauncher.launch(
-                                                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                                            )
-                                                        }
-                                                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                                                ) {
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.CameraAlt,
-                                                            contentDescription = "Change Cover",
-                                                            tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(13.dp)
-                                                        )
-                                                        Text(
-                                                            text = if (hasCoverPhoto) "Change Cover" else "Add Cover",
-                                                            fontSize = 11.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.primary
-                                                        )
                                                     }
                                                 }
                                             }
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(14.dp))
-
-                                    // Avatar with Camera Badge
-                                    Box(
-                                        contentAlignment = Alignment.BottomEnd
+                                    // 2. AVATAR & USER PROFILE DETAILS
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 18.dp, end = 18.dp, bottom = 18.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
+                                        // Avatar with Camera Badge (Overlaps Cover Banner)
                                         Box(
-                                            modifier = Modifier
-                                                .size(96.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surface)
-                                                .padding(3.dp)
-                                                .border(2.5.dp, Brush.linearGradient(gradientColors), CircleShape)
-                                                .clickable {
-                                                    lightboxTitle = "Profile Photo"
-                                                    lightboxImageUrl = profilePhotoUri
-                                                    isLightboxBanner = false
-                                                    showLightbox = true
-                                                }
-                                                .padding(3.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.surfaceVariant),
-                                            contentAlignment = Alignment.Center
+                                            modifier = Modifier.offset(y = (-48).dp),
+                                            contentAlignment = Alignment.BottomEnd
                                         ) {
-                                            val sanitizedProfilePhoto = sanitizeAvatarUrl(profilePhotoUri)
                                             Box(
                                                 modifier = Modifier
-                                                    .fillMaxSize()
+                                                    .size(96.dp)
                                                     .clip(CircleShape)
-                                                    .background(getAvatarGradient(username)),
+                                                    .background(MaterialTheme.colorScheme.surface)
+                                                    .padding(3.dp)
+                                                    .border(2.5.dp, Brush.linearGradient(gradientColors), CircleShape)
+                                                    .clickable {
+                                                        lightboxTitle = "Profile Photo"
+                                                        lightboxImageUrl = profilePhotoUri
+                                                        isLightboxBanner = false
+                                                        showLightbox = true
+                                                    }
+                                                    .padding(3.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                                                 contentAlignment = Alignment.Center
                                             ) {
-                                                Text(
-                                                    text = userInitial,
-                                                    color = Color.White,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 36.sp
-                                                )
-                                                if (sanitizedProfilePhoto != null) {
-                                                    AsyncImage(
-                                                        model = sanitizedProfilePhoto,
-                                                        contentDescription = "Profile Photo",
-                                                        contentScale = ContentScale.Crop,
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .clip(CircleShape)
-                                                    )
-                                                }
-                                            }
-
-                                            if (isUploadingAvatar) {
+                                                val profileModel = resolveImageModel(profilePhotoUri) ?: sanitizeAvatarUrl(profilePhotoUri)
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxSize()
                                                         .clip(CircleShape)
-                                                        .background(Color.Black.copy(alpha = 0.6f)),
+                                                        .background(getAvatarGradient(username)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    CircularProgressIndicator(
-                                                        modifier = Modifier.size(26.dp),
+                                                    Text(
+                                                        text = userInitial,
                                                         color = Color.White,
-                                                        strokeWidth = 2.5.dp
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 36.sp
                                                     )
+                                                    if (profileModel != null) {
+                                                        AsyncImage(
+                                                            model = profileModel,
+                                                            contentDescription = "Profile Photo",
+                                                            contentScale = ContentScale.Crop,
+                                                            modifier = Modifier
+                                                                .fillMaxSize()
+                                                                .clip(CircleShape)
+                                                        )
+                                                    }
                                                 }
+
+                                                if (isUploadingAvatar) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxSize()
+                                                            .clip(CircleShape)
+                                                            .background(Color.Black.copy(alpha = 0.6f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            modifier = Modifier.size(26.dp),
+                                                            color = Color.White,
+                                                            strokeWidth = 2.5.dp
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            // Camera Badge for Profile Photo
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                                    .clickable {
+                                                        photoPickerLauncher.launch("image/*")
+                                                    }
+                                                    .background(Brush.linearGradient(gradientColors)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.CameraAlt,
+                                                    contentDescription = "Upload Profile Photo",
+                                                    tint = contentOnGradient,
+                                                    modifier = Modifier.size(15.dp)
+                                                )
                                             }
                                         }
 
-                                        // Camera Badge for Profile Photo
-                                        Box(
-                                            modifier = Modifier
-                                                .size(32.dp)
-                                                .clip(CircleShape)
-                                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                                                .clickable {
-                                                    photoPickerLauncher.launch(
-                                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                                    )
-                                                }
-                                                .background(Brush.linearGradient(gradientColors)),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.CameraAlt,
-                                                contentDescription = "Upload Profile Photo",
-                                                tint = contentOnGradient,
-                                                modifier = Modifier.size(15.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(12.dp))
+                                        Spacer(modifier = Modifier.height((-36).dp))
 
                                     // Display Name & Verified Badge
                                     Row(
@@ -1080,6 +1180,7 @@ fun ProfileScreen(
                                 }
                             }
                         }
+                    }
 
                                 // ================= 2. PRESENCE & STEALTH MODE BUTTON =================
                 item(key = "menu_presence_stealth") {
@@ -2847,13 +2948,9 @@ fun ProfileScreen(
             isBanner = isLightboxBanner,
             onChangePhoto = {
                 if (isLightboxBanner) {
-                    bannerPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
+                    bannerPickerLauncher.launch("image/*")
                 } else {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
+                    photoPickerLauncher.launch("image/*")
                 }
             },
             onDismiss = { showLightbox = false }
@@ -2868,6 +2965,23 @@ fun ProfileScreen(
                 showCropDialog = false
                 val chosenMode = activeCropMode
                 if (chosenMode == CropMode.AVATAR) {
+                    // Optimistic immediate local save
+                    try {
+                        val localAvatar = java.io.File(context.filesDir, "avatar_${username.lowercase()}.webp")
+                        localAvatar.outputStream().use { out ->
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                croppedBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 90, out)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                croppedBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 90, out)
+                            }
+                        }
+                        profilePhotoUri = localAvatar.absolutePath
+                        prefs.edit().putString("photo_uri_$username", localAvatar.absolutePath).apply()
+                    } catch (e: Exception) {
+                        android.util.Log.e("ProfileScreen", "Failed to cache avatar locally", e)
+                    }
+
                     isUploadingAvatar = true
                     coroutineScope.launch {
                         try {
@@ -2881,10 +2995,28 @@ fun ProfileScreen(
                             }
                         } finally {
                             isUploadingAvatar = false
+                            triggerAutoSave()
                         }
-                        triggerAutoSave()
                     }
                 } else {
+                    // Optimistic immediate local save for cover banner
+                    try {
+                        val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
+                        localCover.outputStream().use { out ->
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                                croppedBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP_LOSSY, 90, out)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                croppedBitmap.compress(android.graphics.Bitmap.CompressFormat.WEBP, 90, out)
+                            }
+                        }
+                        bannerPhotoUri = localCover.absolutePath
+                        bannerUrlFieldInput = localCover.absolutePath
+                        prefs.edit().putString("banner_uri_$username", localCover.absolutePath).apply()
+                    } catch (e: Exception) {
+                        android.util.Log.e("ProfileScreen", "Failed to cache cover locally", e)
+                    }
+
                     isUploadingBanner = true
                     coroutineScope.launch {
                         try {
@@ -2899,8 +3031,8 @@ fun ProfileScreen(
                             }
                         } finally {
                             isUploadingBanner = false
+                            triggerAutoSave()
                         }
-                        triggerAutoSave()
                     }
                 }
             },
