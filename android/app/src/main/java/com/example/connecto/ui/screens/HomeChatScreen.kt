@@ -297,8 +297,8 @@ fun HomeChatScreen(
 
                     val cachedFriends = dbHelper.getCachedFriends()
 
-                    val groupConvos = groupsList.map { g ->
-                        val count = if (g.memberCount > 0) g.memberCount else g.members.size.coerceAtLeast(1)
+                    val groupConvos = groupsList.filter { (it.memberCount > 0 || it.members.isNotEmpty()) }.map { g ->
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size
                         RecentConversationItem(
                             id = g.id,
                             name = "#${g.name}",
@@ -307,7 +307,7 @@ fun HomeChatScreen(
                             lastMessage = "$count members • Group Chat",
                             timestamp = "Group",
                             unreadCount = 0,
-                            isOnline = true,
+                            isOnline = false,
                             isGroup = true
                         )
                     }
@@ -888,7 +888,7 @@ fun HomeChatScreen(
                                             name = convo.name,
                                             avatarUrl = convo.avatarUrl,
                                             size = ConnectoAvatarSize.MD,
-                                            status = if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE
+                                            status = if (convo.isGroup) null else (if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE)
                                         )
                                         Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
                                         Column(modifier = Modifier.weight(1f)) {

@@ -372,9 +372,20 @@ fun ProfileScreen(
                 if (groupsRes.isSuccess) {
                     val serverGroups = groupsRes.getOrThrow()
                     val myUsernameLower = username.trim().lowercase().removePrefix("@")
-                    val mappedGroups = serverGroups.map { g ->
+                    val validGroups = serverGroups.filter { g ->
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size
+                        if (count <= 0) {
+                            coroutineScope.launch {
+                                try { ConnectoApiClient.deleteGroup(g.id) } catch (_: Exception) {}
+                            }
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    val mappedGroups = validGroups.map { g ->
                         val init = if (g.name.isNotBlank()) g.name.first().toString().uppercase() else "G"
-                        val count = if (g.memberCount > 0) g.memberCount else (g.members.size.coerceAtLeast(1))
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size
                         val isCreated = g.isCreatedByMe || g.description.contains(username, ignoreCase = true) || g.admin.lowercase().removePrefix("@") == myUsernameLower
                         FriendItem(
                             id = g.id,
@@ -386,7 +397,7 @@ fun ProfileScreen(
                             lastMessage = "Group Chat • Tap to manage",
                             timeAgo = "Active",
                             unreadCount = 0,
-                            isOnline = true,
+                            isOnline = false,
                             avatarUrl = g.iconUrl,
                             isGroup = true,
                             isCreatedByMe = isCreated,
@@ -531,6 +542,7 @@ fun ProfileScreen(
         bannerPhotoUri = null
         bannerUrlFieldInput = ""
         prefs.edit().remove("banner_uri_$username").apply()
+        ConnectoApiClient.updateBannerState(null, context)
         val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
         if (localCover.exists()) {
             try { localCover.delete() } catch (_: Exception) {}
@@ -622,39 +634,46 @@ fun ProfileScreen(
         if (hasCoverPhoto) {
             val isPreset = isCoverPreset(bannerPhotoUri)
             val presetObj = if (isPreset) getCoverPreset(bannerPhotoUri) else null
-            if (isPreset && presetObj != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(presetObj.brush)
-                )
-            } else {
-                val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
-                if (bannerModel != null) {
-                    AsyncImage(
-                        model = bannerModel,
-                        contentDescription = "Profile Cover Background",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
+            
+            // Full-Screen Transparent Cover Photo Layer
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = 0.35f }
+            ) {
+                if (isPreset && presetObj != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(presetObj.brush)
                     )
+                } else {
+                    val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
+                    if (bannerModel != null) {
+                        AsyncImage(
+                            model = bannerModel,
+                            contentDescription = "Profile Cover Background",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
                 }
             }
 
-            // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth
+            // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth across the entire FULL SCREEN
             val scrimStops = if (themeColors.isLiquidGlass) {
                 arrayOf(
-                    0.00f to Color.Black.copy(alpha = 0.15f),
-                    0.30f to Color.Black.copy(alpha = 0.22f),
-                    0.65f to Color.Black.copy(alpha = 0.32f),
-                    1.00f to Color.Black.copy(alpha = 0.45f)
+                    0.00f to Color.Black.copy(alpha = 0.12f),
+                    0.30f to Color.Black.copy(alpha = 0.18f),
+                    0.65f to Color.Black.copy(alpha = 0.26f),
+                    1.00f to Color.Black.copy(alpha = 0.35f)
                 )
             } else {
                 arrayOf(
-                    0.00f to (if (isThemeDark) Color.Black.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.45f)),
-                    0.18f to (if (isThemeDark) Color(0xFF090D14).copy(alpha = 0.58f) else Color.White.copy(alpha = 0.65f)),
-                    0.38f to (if (isThemeDark) Color(0xFF070A10).copy(alpha = 0.78f) else themeColors.background.copy(alpha = 0.82f)),
-                    0.62f to (if (isThemeDark) Color(0xFF05070C).copy(alpha = 0.90f) else themeColors.background.copy(alpha = 0.94f)),
-                    1.00f to themeColors.background
+                    0.00f to Color.Black.copy(alpha = 0.18f),
+                    0.25f to Color.Black.copy(alpha = 0.28f),
+                    0.60f to Color.Black.copy(alpha = 0.38f),
+                    1.00f to Color.Black.copy(alpha = 0.48f)
                 )
             }
             Box(
@@ -802,10 +821,14 @@ fun ProfileScreen(
                                     .then(
                                         Modifier.liquidGlassCard(
                                             shape = avatarCardShape,
-                                            backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surface.copy(
-                                                alpha = if (isThemeDark) 0.72f else 0.85f
-                                            ),
-                                            borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.40f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                            backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                else MaterialTheme.colorScheme.surface.copy(
+                                                    alpha = if (isThemeDark) 0.72f else 0.85f
+                                                ),
+                                            borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.40f)
+                                                else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                                         )
                                     )
                                     .clip(avatarCardShape)
@@ -1260,8 +1283,16 @@ fun ProfileScreen(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clip(RoundedCornerShape(14.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.30f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.18f)
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                    RoundedCornerShape(14.dp)
+                                                )
                                                 .padding(horizontal = 16.dp, vertical = 10.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
@@ -1288,6 +1319,7 @@ fun ProfileScreen(
                         icon = Icons.Default.VisibilityOff,
                         badgeText = if (stealthModeEnabled) "STEALTH" else "ONLINE",
                         badgeColor = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen,
+                        hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.PRESENCE_STEALTH }
                     )
                 }
@@ -1300,6 +1332,7 @@ fun ProfileScreen(
                         icon = Icons.Default.Person,
                         badgeText = "DETAILS",
                         badgeColor = MaterialTheme.colorScheme.primary,
+                        hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.PERSONAL_INFO }
                     )
                 }
@@ -1312,6 +1345,7 @@ fun ProfileScreen(
                         icon = Icons.Default.Shield,
                         badgeText = if (twoFactorEnabled) "ENABLED" else "DISABLED",
                         badgeColor = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error,
+                        hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.TWO_FACTOR_SECURITY }
                     )
                 }
@@ -1324,6 +1358,7 @@ fun ProfileScreen(
                         icon = Icons.Default.Fingerprint,
                         badgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
                         badgeColor = if (isAppLockEnabled) OnlineGreen else TextDisabledColor,
+                        hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.BIOMETRIC_LOCK }
                     )
                 }
@@ -1336,6 +1371,7 @@ fun ProfileScreen(
                         icon = Icons.Default.Tune,
                         badgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "LIQUID GLASS (${(glassTransparency * 100).toInt()}%)" else currentThemeMode.displayName.uppercase(),
                         badgeColor = MaterialTheme.colorScheme.primary,
+                        hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
                     )
                 }
@@ -1348,6 +1384,7 @@ fun ProfileScreen(
                         icon = Icons.Default.Groups,
                         badgeText = if (isLoadingProfileGroups) "LOADING" else "${profileGroupsList.size} GROUPS",
                         badgeColor = MaterialTheme.colorScheme.primary,
+                        hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.GROUPS_COMMUNITIES }
                     )
                 }
@@ -1359,7 +1396,10 @@ fun ProfileScreen(
                             .height(52.dp)
                             .clickable(onClick = onSignOut)
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color(0xFFEF4444).copy(alpha = 0.12f))
+                            .background(
+                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.30f)
+                                else Color(0xFFEF4444).copy(alpha = 0.12f)
+                            )
                             .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1391,12 +1431,13 @@ fun ProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.background)
+                        .background(if (hasCoverPhoto) Color.Transparent else MaterialTheme.colorScheme.background)
                 ) {
                     ProfileSubPageHeader(
                         title = currentSubPage.title,
                         subtitle = currentSubPage.subtitle,
                         icon = currentSubPage.icon,
+                        hasCoverPhoto = hasCoverPhoto,
                         onBack = { activeSubPage = null }
                     )
 
@@ -1451,7 +1492,8 @@ fun ProfileScreen(
                                     description = "Manage whether your active status dot is visible across channels, direct chats, and friend lists while staying connected.",
                                     icon = if (stealthModeEnabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                                     statusBadgeText = if (stealthModeEnabled) "STEALTH ON" else "ONLINE",
-                                    statusBadgeActive = !stealthModeEnabled
+                                    statusBadgeActive = !stealthModeEnabled,
+                                    hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.PERSONAL_INFO -> ProfileSubPageHeroCard(
                                     categoryLabel = "Account Identity",
@@ -1459,7 +1501,8 @@ fun ProfileScreen(
                                     description = "Update your display identity, nickname, verified email address, and public bio across Connecto.",
                                     icon = Icons.Default.Person,
                                     statusBadgeText = "@$currentUsernameState",
-                                    statusBadgeActive = true
+                                    statusBadgeActive = true,
+                                    hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.TWO_FACTOR_SECURITY -> ProfileSubPageHeroCard(
                                     categoryLabel = "Account Protection",
@@ -1467,7 +1510,8 @@ fun ProfileScreen(
                                     description = "Protect your account with real-time email OTP verification on sign-in and instant password recovery.",
                                     icon = Icons.Default.Shield,
                                     statusBadgeText = if (twoFactorEnabled) "2FA ACTIVE" else "2FA OFF",
-                                    statusBadgeActive = twoFactorEnabled
+                                    statusBadgeActive = twoFactorEnabled,
+                                    hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.BIOMETRIC_LOCK -> ProfileSubPageHeroCard(
                                     categoryLabel = "Device Hardware Lock",
@@ -1475,7 +1519,8 @@ fun ProfileScreen(
                                     description = "Require fingerprint, face unlock, or device PIN authentication before opening Connecto on this device.",
                                     icon = Icons.Default.Fingerprint,
                                     statusBadgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
-                                    statusBadgeActive = isAppLockEnabled
+                                    statusBadgeActive = isAppLockEnabled,
+                                    hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.APPEARANCE_THEME -> ProfileSubPageHeroCard(
                                     categoryLabel = "Design System",
@@ -1483,7 +1528,8 @@ fun ProfileScreen(
                                     description = "Customize your global color palette, contrast, and atmosphere across all screens in real time.",
                                     icon = Icons.Default.Tune,
                                     statusBadgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "${(glassTransparency * 100).toInt()}% TINT" else if (currentThemeMode.isDark) "DARK" else "LIGHT",
-                                    statusBadgeActive = true
+                                    statusBadgeActive = true,
+                                    hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.GROUPS_COMMUNITIES -> ProfileSubPageHeroCard(
                                     categoryLabel = "Community Hub",
@@ -1491,7 +1537,8 @@ fun ProfileScreen(
                                     description = "View and manage all private groups you have created as Admin or joined as a Member.",
                                     icon = Icons.Default.Groups,
                                     statusBadgeText = "${profileGroupsList.size} ACTIVE",
-                                    statusBadgeActive = profileGroupsList.isNotEmpty()
+                                    statusBadgeActive = profileGroupsList.isNotEmpty(),
+                                    hasCoverPhoto = hasCoverPhoto
                                 )
                             }
                         }
@@ -1504,8 +1551,14 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surface,
-                                                borderColor = if (stealthModeEnabled) ConnectoTheme.colors.info else MaterialTheme.colorScheme.primary
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else if (stealthModeEnabled) ConnectoTheme.colors.info
+                                                    else MaterialTheme.colorScheme.primary
                                             )
                                             .padding(16.dp)
                                     ) {
@@ -1621,8 +1674,12 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = MaterialTheme.colorScheme.surface,
-                                                borderColor = MaterialTheme.colorScheme.primary
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
                                             )
                                             .padding(16.dp)
                                     ) {
@@ -1799,8 +1856,12 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = MaterialTheme.colorScheme.surface,
-                                                borderColor = MaterialTheme.colorScheme.primary
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
                                             )
                                             .padding(16.dp)
                                     ) {
@@ -2073,8 +2134,12 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = MaterialTheme.colorScheme.surface,
-                                                borderColor = MaterialTheme.colorScheme.primary
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
                                             )
                                             .padding(16.dp)
                                     ) {
@@ -2278,8 +2343,12 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(22.dp),
-                                                backgroundColor = MaterialTheme.colorScheme.surface,
-                                                borderColor = MaterialTheme.colorScheme.primary
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
                                             )
                                             .padding(18.dp)
                                     ) {
@@ -2682,8 +2751,12 @@ fun ProfileScreen(
                                             .fillMaxWidth()
                                             .liquidGlassCard(
                                                 shape = RoundedCornerShape(20.dp),
-                                                backgroundColor = MaterialTheme.colorScheme.surface,
-                                                borderColor = MaterialTheme.colorScheme.primary
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
                                             )
                                     ) {
                                 Column(
@@ -3089,6 +3162,7 @@ fun ProfileScreen(
                 bannerPhotoUri = preset.id
                 bannerUrlFieldInput = preset.id
                 prefs.edit().putString("banner_uri_$username", preset.id).apply()
+                ConnectoApiClient.updateBannerState(preset.id, context)
                 triggerAutoSave()
             },
             onDismiss = { showCoverPresetsDialog = false }
@@ -3151,6 +3225,7 @@ fun ProfileScreen(
                         bannerPhotoUri = localCover.absolutePath
                         bannerUrlFieldInput = localCover.absolutePath
                         prefs.edit().putString("banner_uri_$username", localCover.absolutePath).apply()
+                        ConnectoApiClient.updateBannerState(localCover.absolutePath, context)
                     } catch (e: Exception) {
                         android.util.Log.e("ProfileScreen", "Failed to cache cover locally", e)
                     }
@@ -3165,6 +3240,7 @@ fun ProfileScreen(
                                     bannerPhotoUri = serverUrl
                                     bannerUrlFieldInput = serverUrl
                                     prefs.edit().putString("banner_uri_$username", serverUrl).apply()
+                                    ConnectoApiClient.updateBannerState(serverUrl, context)
                                 }
                             }
                         } finally {
@@ -4605,6 +4681,7 @@ private fun ProfileNavigationMenuButton(
     icon: ImageVector,
     badgeText: String? = null,
     badgeColor: Color? = null,
+    hasCoverPhoto: Boolean = false,
     onClick: () -> Unit
 ) {
     val isGlass = ConnectoTheme.isGlass
@@ -4617,10 +4694,14 @@ private fun ProfileNavigationMenuButton(
             .then(
                 Modifier.liquidGlassCard(
                     shape = cardShape,
-                    backgroundColor = if (isLiquidGlass) Color.Transparent else MaterialTheme.colorScheme.surface.copy(
-                        alpha = if (ConnectoTheme.colors.isDark) 0.72f else 0.88f
-                    ),
-                    borderColor = if (isLiquidGlass) Color.White.copy(alpha = 0.35f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    backgroundColor = if (isLiquidGlass) Color.Transparent
+                        else if (hasCoverPhoto) Color.Black.copy(alpha = 0.30f)
+                        else MaterialTheme.colorScheme.surface.copy(
+                            alpha = if (ConnectoTheme.colors.isDark) 0.72f else 0.88f
+                        ),
+                    borderColor = if (isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                        else if (hasCoverPhoto) Color.White.copy(alpha = 0.20f)
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 )
             )
             .padding(horizontal = 16.dp, vertical = 15.dp)
@@ -4727,6 +4808,7 @@ private fun ProfileSubPageHeader(
     title: String,
     subtitle: String,
     icon: ImageVector,
+    hasCoverPhoto: Boolean = false,
     onBack: () -> Unit
 ) {
     val isDark = ConnectoTheme.colors.isDark
@@ -4741,7 +4823,13 @@ private fun ProfileSubPageHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    brush = Brush.verticalGradient(
+                    if (hasCoverPhoto) Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.35f),
+                            Color.Black.copy(alpha = 0.18f)
+                        )
+                    )
+                    else Brush.verticalGradient(
                         colors = listOf(
                             if (!isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.10f),
                             ConnectoTheme.colors.surface.copy(alpha = if (!isDark) 0.50f else 0.20f)
@@ -4833,16 +4921,22 @@ private fun ProfileSubPageHeroCard(
     description: String,
     icon: ImageVector,
     statusBadgeText: String,
-    statusBadgeActive: Boolean = true
+    statusBadgeActive: Boolean = true,
+    hasCoverPhoto: Boolean = false
 ) {
     val gradientColors = getDynamicAccentGradientColors()
+    val isLiquidGlass = ConnectoTheme.isLiquidGlass
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .liquidGlassCard(
                 shape = RoundedCornerShape(22.dp),
-                backgroundColor = MaterialTheme.colorScheme.surface,
-                borderColor = MaterialTheme.colorScheme.primary
+                backgroundColor = if (isLiquidGlass) Color.Transparent
+                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                    else MaterialTheme.colorScheme.surface,
+                borderColor = if (isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                    else MaterialTheme.colorScheme.primary
             )
             .padding(18.dp)
     ) {

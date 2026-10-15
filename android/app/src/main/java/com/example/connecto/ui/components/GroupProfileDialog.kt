@@ -474,15 +474,15 @@ fun FullScreenGroupProfileDialog(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(OnlineGreen.copy(alpha = 0.15f))
-                                            .border(1.dp, OnlineGreen.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Text(
                                             text = "${membersList.size} PARTICIPANTS",
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = OnlineGreen
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }

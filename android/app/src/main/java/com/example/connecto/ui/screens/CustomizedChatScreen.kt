@@ -889,9 +889,20 @@ fun CustomizedChatScreen(
                 if (groupsRes.isSuccess) {
                     val serverGroups = groupsRes.getOrThrow()
                     val myUsernameLower = effUsername.trim().lowercase().removePrefix("@")
-                    val mappedGroups = serverGroups.map { g ->
+                    val validGroups = serverGroups.filter { g ->
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size
+                        if (count <= 0) {
+                            coroutineScope.launch {
+                                try { ConnectoApiClient.deleteGroup(g.id) } catch (_: Exception) {}
+                            }
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                    val mappedGroups = validGroups.map { g ->
                         val init = if (g.name.isNotBlank()) g.name.first().toString().uppercase() else "G"
-                        val count = if (g.memberCount > 0) g.memberCount else (g.members.size.coerceAtLeast(1))
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size
                         val isCreated = g.isCreatedByMe || g.description.contains(effUsername, ignoreCase = true) || g.admin.lowercase().removePrefix("@") == myUsernameLower
                         FriendItem(
                             id = g.id,
@@ -903,7 +914,7 @@ fun CustomizedChatScreen(
                             lastMessage = "Group Chat • Tap to open and talk",
                             timeAgo = "Active",
                             unreadCount = 0,
-                            isOnline = true,
+                            isOnline = false,
                             avatarUrl = g.iconUrl,
                             isGroup = true,
                             isCreatedByMe = isCreated,
@@ -918,6 +929,9 @@ fun CustomizedChatScreen(
                     for (item in mappedGroups) {
                         val idx = userGroupsList.indexOfFirst { it.id == item.id }
                         if (idx == -1) userGroupsList.add(item) else userGroupsList[idx] = item
+                    }
+                    if (selectedFriend != null && selectedFriend!!.isGroup && userGroupsList.none { it.id == selectedFriend!!.id }) {
+                        selectedFriend = null
                     }
                 }
             } catch (_: Exception) {}
@@ -2578,7 +2592,7 @@ fun CustomizedChatScreen(
                     lastMessage = "Group Chat • Tap to open and talk",
                     timeAgo = "Just now",
                     unreadCount = 0,
-                    isOnline = true,
+                    isOnline = false,
                     avatarUrl = null,
                     isGroup = true,
                     isCreatedByMe = true,
@@ -2826,21 +2840,24 @@ fun CustomizedChatScreen(
                                 )
                                 val isSelectedOnline = selectedFriend?.isOnline == true
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(7.dp)
-                                            .clip(CircleShape)
-                                            .background(if (isGroupChat || isSelectedOnline) OnlineGreen else Color.Gray)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    if (!isGroupChat) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .clip(CircleShape)
+                                                .background(if (isSelectedOnline) OnlineGreen else Color.Gray)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
                                     val subText = if (isGroupChat) {
-                                        "${selectedFriend?.memberCount ?: 0} members • Group Chat"
+                                        val count = selectedFriend?.memberCount ?: selectedFriend?.members?.size ?: 0
+                                        "$count members • Group Chat"
                                     } else {
                                         if (isFriendTyping) "typing..." else if (isSelectedOnline) "Online • Direct Chat" else "Offline • Direct Chat"
                                     }
                                     Text(
                                         text = subText,
-                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (isGroupChat || isSelectedOnline) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = if (!isGroupChat && isFriendTyping) MaterialTheme.colorScheme.primary else if (!isGroupChat && isSelectedOnline) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontSize = 11.sp,
                                         fontWeight = if (!isGroupChat && isFriendTyping) FontWeight.Bold else FontWeight.Medium,
                                         maxLines = 1,

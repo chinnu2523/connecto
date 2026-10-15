@@ -302,6 +302,15 @@ object ConnectoApiClient {
         get() = currentUserAvatar ?: _currentUserAvatarState.value
 
     @Volatile
+    var currentUserBanner: String? = null
+
+    private val _currentUserBannerState = MutableStateFlow<String?>(null)
+    val currentUserBannerState: StateFlow<String?> = _currentUserBannerState.asStateFlow()
+
+    val currentUserBannerUrl: String?
+        get() = currentUserBanner ?: _currentUserBannerState.value
+
+    @Volatile
     var cachedVoiceRooms: List<VoiceRoomDto> = emptyList()
 
     @Volatile
@@ -367,6 +376,32 @@ object ConnectoApiClient {
         }
     }
 
+    fun updateBannerState(bannerUrl: String?, context: android.content.Context? = null) {
+        val cleanBanner = bannerUrl?.trim()?.takeIf { it.isNotBlank() && it.lowercase() != "null" }
+        currentUserBanner = cleanBanner
+        _currentUserBannerState.value = cleanBanner
+        val ctx = context ?: applicationContext
+        if (ctx != null) {
+            try {
+                val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                if (cleanBanner == null) {
+                    prefs.edit().remove("banner_url").apply()
+                } else {
+                    prefs.edit().putString("banner_url", cleanBanner).apply()
+                }
+                val user = currentUsername
+                if (!user.isNullOrBlank()) {
+                    val pPrefs = ctx.getSharedPreferences("connecto_user_profile_prefs", android.content.Context.MODE_PRIVATE)
+                    if (cleanBanner == null) {
+                        pPrefs.edit().remove("banner_uri_$user").apply()
+                    } else {
+                        pPrefs.edit().putString("banner_uri_$user", cleanBanner).apply()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     fun initSessionFromPrefs(context: android.content.Context) {
         applicationContext = context.applicationContext
         try {
@@ -382,6 +417,9 @@ object ConnectoApiClient {
                 currentUserDisplayName = prefs.getString("display_name", null)
                 val savedAvatar = prefs.getString("avatar_url", null)
                 updateAvatarState(savedAvatar)
+                val pPrefs = context.getSharedPreferences("connecto_user_profile_prefs", android.content.Context.MODE_PRIVATE)
+                val savedBanner = prefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
+                updateBannerState(savedBanner)
             }
         } catch (e: Exception) {
             // ignore
@@ -3975,6 +4013,7 @@ object ConnectoApiClient {
                     if (!prof.avatarUrl.isNullOrBlank()) {
                         updateAvatarState(prof.avatarUrl)
                     }
+                    updateBannerState(prof.bannerUrl)
                     updateStealthModeState(prof.isStealth)
                     updateVerificationState(isVerified, isBlocked, daysLeft, deadlineStr)
                 }
@@ -4078,6 +4117,9 @@ object ConnectoApiClient {
                 }
                 if (!avatarUrl.isNullOrBlank()) {
                     updateAvatarState(avatarUrl)
+                }
+                if (bannerUrl != null) {
+                    updateBannerState(bannerUrl)
                 }
                 Result.success(JSONObject(response.getOrThrow()))
             } else {

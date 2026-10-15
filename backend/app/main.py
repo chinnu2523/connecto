@@ -1896,6 +1896,14 @@ async def get_user_groups_endpoint(
         member_rows = (await db.execute(part_stmt)).all()
         members = [r[0] for r in member_rows]
         
+        # If group has no members, automatically delete it from database
+        if len(members) == 0:
+            await db.execute(delete(Message).where(Message.channel_id == ch.id))
+            await db.execute(delete(DMParticipant).where(DMParticipant.channel_id == ch.id))
+            await db.execute(delete(Channel).where(Channel.id == ch.id))
+            await db.commit()
+            continue
+
         # Determine owner / admin username
         admin_username = ""
         if ch.owner_id:
@@ -2221,6 +2229,14 @@ async def leave_group_endpoint(
                 .where(DMParticipant.channel_id == channel.id)
             )
             remaining_ids = list((await db.execute(remaining_stmt)).scalars().all())
+            if len(remaining_ids) == 0:
+                # No members left in group, automatically delete the group!
+                await db.execute(delete(Message).where(Message.channel_id == channel.id))
+                await db.execute(delete(DMParticipant).where(DMParticipant.channel_id == channel.id))
+                await db.execute(delete(Channel).where(Channel.id == channel.id))
+                await db.commit()
+                return {"status": "ok", "message": f"Left group #{channel.name}. Group deleted automatically because no members remain."}
+
             leave_payload = {
                 "type": "group_member_left",
                 "group_id": channel.id,
@@ -2232,6 +2248,74 @@ async def leave_group_endpoint(
             logger.debug(f"[GROUP_LEAVE_NOTIFY] WebSocket error: {e}")
 
     return {"status": "ok", "message": f"Successfully left group #{channel.name}"}
+
+class RemoveGroupMemberRequest(BaseModel):
+    username: Optional[str] = None
+    member: Optional[str] = None
+
+@app.post("/api/groups/{group_id}/members/remove")
+async def remove_group_member_endpoint(
+    group_id: str,
+    req: RemoveGroupMemberRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows an admin to remove a member or a member to be removed. If 0 members remain, deletes group."""
+    from app.core.ws import ws_manager
+    current_u = await get_current_user_optional(request, db)
+    if not current_u:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    clean_id = group_id.strip()
+    ch_stmt = select(Channel).where(Channel.id == clean_id, Channel.type == "group")
+    channel = (await db.execute(ch_stmt)).scalar_one_or_none()
+    if not channel:
+        raise HTTPException(status_code=404, detail="Group not found.")
+
+    target_user_str = (req.username or req.member or "").strip().lower().lstrip("@")
+    if not target_user_str:
+        raise HTTPException(status_code=400, detail="Target username required.")
+
+    target_u = (await db.execute(select(User).where(func.lower(User.username) == target_user_str))).scalar_one_or_none()
+    if not target_u:
+        raise HTTPException(status_code=404, detail="Target user not found.")
+
+    part_stmt = select(DMParticipant).where(
+        DMParticipant.channel_id == channel.id,
+        DMParticipant.user_id == target_u.id
+    )
+    participant = (await db.execute(part_stmt)).scalar_one_or_none()
+    if participant:
+        await db.delete(participant)
+        await db.commit()
+
+        # Check remaining members
+        remaining_stmt = (
+            select(User.id)
+            .join(DMParticipant, DMParticipant.user_id == User.id)
+            .where(DMParticipant.channel_id == channel.id)
+        )
+        remaining_ids = list((await db.execute(remaining_stmt)).scalars().all())
+        if len(remaining_ids) == 0:
+            await db.execute(delete(Message).where(Message.channel_id == channel.id))
+            await db.execute(delete(DMParticipant).where(DMParticipant.channel_id == channel.id))
+            await db.execute(delete(Channel).where(Channel.id == channel.id))
+            await db.commit()
+            return {"status": "ok", "message": f"Removed @{target_u.username}. Group #{channel.name} automatically deleted as no members remain."}
+
+        try:
+            leave_payload = {
+                "type": "group_member_removed",
+                "group_id": channel.id,
+                "username": target_u.username
+            }
+            for uid in remaining_ids:
+                await ws_manager.send_personal_event(uid, leave_payload)
+            await ws_manager.send_personal_event(target_u.id, leave_payload)
+        except Exception as e:
+            logger.debug(f"[GROUP_REMOVE_NOTIFY] WebSocket error: {e}")
+
+    return {"status": "ok", "message": f"Removed @{target_u.username} from group #{channel.name}"}
 
 @app.post("/api/dm/start")
 @app.post("/api/chat/dm/start")
@@ -5361,12 +5445,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.2.9",
-        "version_name": "v4.2.9",
-        "version_code": 58,
-        "release_tag": "v4.2.9-stable",
-        "sha256": "cc5dc5946afb3e1110541e1512fae73a184bbcc8b9340d7f63b9d7f1baccde4a",
-        "md5": "1807d535798548f7b0bc57e7401fe86b",
+        "version": "4.3.3",
+        "version_name": "v4.3.3",
+        "version_code": 62,
+        "release_tag": "v4.3.3-stable",
+        "sha256": "eab41a1566e5bac72023c7396db77f76be6d5afffb53018f44110d9b5f029d5d",
+        "md5": "c73852f59c2899ee81ee586ce935e63f",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5376,13 +5460,13 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Transparent Liquid Glass Aesthetic: True 0-nit black #000000 theme with transparent liquid glass containers, specular borders, and zero color pollution",
+            "Auto-Delete Empty Groups: Groups are automatically deleted from database and chat lists when member count reaches 0",
+            "Clean Group Chat Presence: Removed all online/offline presence dots, lights, and status indicators for group chats",
+            "Profile Cover Photo Suite & Presets: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal",
+            "Edge-to-Edge Friend Cover Banners: 132dp banner with overlapping avatar and tap-to-view fullscreen lightbox",
+            "Transparent Liquid Glass Aesthetic: True 0-nit black #000000 theme with transparent liquid glass containers and specular borders",
             "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates reply banner with quoted message bubble rendering",
-            "Navigation Drawer Glass Blur: Dynamic animated frosted glass background blur (up to 24dp) on chat surface when drawer opens",
-            "Clean Personal Chat Composer: Removed voice note / mic icon in direct personal chat for distraction-free text messaging",
-            "Auto-Emoji Sanitization: Eliminated automatic emoji insertions in channel composer",
-            "Voice Call De-Duplication: Atomic callId lock prevents duplicate incoming voice prompts",
-            "Real-Time Push Notifications: Heads-up banners, foreground service listener, and real-time WebSockets sync"
+            "Spatial Mesh Voice: Ultra low-latency WebRTC mesh audio lounges with hardware acoustic echo cancellation"
         ]
     }
 
@@ -5394,19 +5478,31 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.2.9",
+                "version": "v4.3.3",
                 "date": "Oct 15, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
-                "title": "Connecto v4.2.9: Transparent Liquid Glass, Swipe-to-Reply & Dynamic Drawer Glass Blur",
-                "summary": "Introduces pure pitch-black OLED theme with transparent liquid glass aesthetics, fluid swipe-to-reply in channels with quoted preview rendering, real-time background blur when opening navigation drawer, clean personal chat composer without voice notes, and channel auto-emoji sanitization.",
+                "title": "Connecto v4.3.3: Empty Group Auto-Deletion & Clean Group Chat Presence",
+                "summary": "Automatically purges empty groups across Cloudflare D1, local database, and Android client when all members leave, and removes all presence lights and online/offline status indicators for group chats.",
                 "highlights": [
-                    "Transparent Liquid Glass Aesthetic: True 0-nit pitch black (#000000) OLED theme with crystal-clear transparent glass containers, specular borders, and zero color pollution.",
-                    "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates an active reply banner with quoted author and message bubble previews in sent messages.",
-                    "Navigation Drawer Background Blur: Dynamic animated frosted glass background blur (up to 24dp) blurring the chat backdrop behind the drawer when opened.",
-                    "Clean Personal Chat Composer: Removed the mic/voice note icon in 1-on-1 direct messages for a clean instant text messaging experience.",
-                    "Auto-Emoji Sanitization: Eliminated automatic emoji insertions in channel chat composer.",
-                    "Android Native App v4.2.9 (Build 58 • 54.5 MB): SHA-256 cc5dc5946afb3e1110541e1512fae73a184bbcc8b9340d7f63b9d7f1baccde4a."
+                    "Empty Group Auto-Deletion: Groups are automatically deleted when member count reaches 0 without orphaned records in database or UI.",
+                    "Clean Group Chat Presence: Removed all online/offline green presence dots, lights, and status indicators from group chat headers, chat list, group profile dialogs, and avatars.",
+                    "Profile Cover Photo Suite & Presets: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal.",
+                    "Android Native App v4.3.3 (Build 62 • 62.6 MB): SHA-256 eab41a1566e5bac72023c7396db77f76be6d5afffb53018f44110d9b5f029d5d."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.3.2",
+                "date": "Oct 15, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
+                "title": "Connecto v4.3.2: Complete Profile Cover Photo Suite, Presets & Edge-to-Edge Banners",
+                "summary": "Introduces full cover photo customisation with interactive crop & fit, 7 artistic presets, edge-to-edge banners in friend dialogs and chat, and zoomable full-screen lightbox.",
+                "highlights": [
+                    "Profile Cover Photo Suite: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated presets, and instant cover removal.",
+                    "Edge-to-Edge Friend Cover Banners: 132dp banner with overlapping avatar and tap-to-view fullscreen lightbox.",
+                    "Android Native App v4.3.2 (Build 61 • 54.5 MB): SHA-256 f5863f9562cafa776434936bcac7aedf997468041b1ae80f74428b0efe4d6842."
                 ],
                 "author": "Connecto Core Team"
             },

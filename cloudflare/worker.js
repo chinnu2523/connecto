@@ -99,26 +99,26 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.3.2",
-        version_name: "v4.3.2",
-        version_code: 61,
-        build: 61,
-        sha256: "f5863f9562cafa776434936bcac7aedf997468041b1ae80f74428b0efe4d6842",
-        md5: "8fbdb546b3dd9a828f133eb8427cc605",
+        version: "4.3.3",
+        version_name: "v4.3.3",
+        version_code: 62,
+        build: 62,
+        sha256: "eab41a1566e5bac72023c7396db77f76be6d5afffb53018f44110d9b5f029d5d",
+        md5: "c73852f59c2899ee81ee586ce935e63f",
         filename: "connecto-fun.apk",
-        size_bytes: 57171141,
-        size_display: "54.5 MB",
+        size_bytes: 65637029,
+        size_display: "62.6 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Automatic 0-Member Group Lifecycle: Groups with 0 members are instantly and automatically deleted across database, backend API, and Android client",
+          "Group Presence Lights Removed: Completely eliminated online/offline status lights, green indicator dots, and presence text from group chat headers, chat list, and group avatars",
+          "Clean Group Header Counter: High-contrast neutral participant counts (# members • Group Chat) with dedicated Admin/Member role badges",
           "Complete Profile Cover Photo Suite: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal",
-          "Edge-to-Edge Friend Profile Cover Banners: 132dp dynamic banner with overlapping avatar and one-tap cover lightbox viewer across direct chat and friend dialogs",
-          "Full-Screen Cover Lightbox Viewer: Immersive zoomable cover preview with floating action dock (Change Cover, Remove Cover, Close)",
-          "Cloudflare Backend Truncation Resolution: Upgraded banner_url and avatar_url field limits from 300 to 1MB/2KB, supporting full data URLs and network URLs",
-          "Optimistic Local Caching: Instantaneous local rendering with Coil Base64 ByteArray decoding eliminating network flicker"
+          "Edge-to-Edge Friend Profile Cover Banners: 132dp dynamic banner with overlapping avatar and one-tap cover lightbox viewer across direct chat and friend dialogs"
         ]
       });
     }
@@ -149,7 +149,7 @@ export default {
       });
     }
 
-    // 3b. Direct APK Download Gateway (Always serve canonical v4.2.9 Build 58 release asset)
+    // 3b. Direct APK Download Gateway (Always serve canonical v4.3.3 Build 62 release asset)
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
     if (!isStaticAsset && (
@@ -160,7 +160,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.2/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.3/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -2268,7 +2268,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
         for (const memberUsername of allMembers) {
           let u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(memberUsername).first();
-          if (!u) continue;
+          if (!u) {
+            const newUid = "usr_" + memberUsername + "_" + Math.random().toString(36).substring(2, 6);
+            await env.DB.prepare("INSERT OR IGNORE INTO users (id, username, display_name) VALUES (?, ?, ?)").bind(newUid, memberUsername, memberUsername).run();
+            u = { id: newUid };
+          }
           await env.DB.prepare(
             "INSERT OR IGNORE INTO dm_participants (channel_id, user_id) VALUES (?, ?)"
           ).bind(groupId, u.id).run();
@@ -2308,6 +2312,17 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             "SELECT u.username FROM dm_participants p JOIN users u ON p.user_id = u.id WHERE p.channel_id = ? ORDER BY p.rowid ASC"
           ).bind(g.id).all();
           const members = (parts.results || []).map(r => r.username);
+          
+          // Automatic deletion: If group has 0 members, delete it permanently from database!
+          if (members.length === 0) {
+            try {
+              await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(g.id).run();
+              await env.DB.prepare("DELETE FROM messages WHERE channel_id = ?").bind(g.id).run();
+              await env.DB.prepare("DELETE FROM channels WHERE id = ?").bind(g.id).run();
+            } catch (_) {}
+            continue;
+          }
+
           const adminUser = (members[0] || "").toLowerCase().replace(/^@/, "");
           const isCreatedByMe = Boolean(reqUser && adminUser && reqUser === adminUser);
           groups.push({
@@ -2358,7 +2373,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           const cleanM = String(m || "").trim().toLowerCase().replace(/^@/, "");
           if (!cleanM) continue;
           let u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(cleanM).first();
-          if (!u) continue;
+          if (!u) {
+            const newUid = "usr_" + cleanM + "_" + Math.random().toString(36).substring(2, 6);
+            await env.DB.prepare("INSERT OR IGNORE INTO users (id, username, display_name) VALUES (?, ?, ?)").bind(newUid, cleanM, cleanM).run();
+            u = { id: newUid };
+          }
           await env.DB.prepare(
             "INSERT OR IGNORE INTO dm_participants (channel_id, user_id) VALUES (?, ?)"
           ).bind(groupId, u.id).run();
@@ -2386,16 +2405,49 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({ status: "ok", message: `Group ${groupId} deleted successfully` });
   }
 
+  // Remove Member from Group (POST /api/groups/:id/members/remove)
+  const groupRemoveMemberMatch = path.match(/^\/api\/groups\/([^\/]+)\/members\/remove$/);
+  if (groupRemoveMemberMatch && method === "POST") {
+    const groupId = groupRemoveMemberMatch[1];
+    const body = await request.json().catch(() => ({}));
+    const targetUsername = String(body.username || body.member || "").trim().toLowerCase().replace(/^@/, "");
+    if (env.DB && targetUsername) {
+      try {
+        const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUsername).first();
+        if (u) {
+          await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ? AND user_id = ?").bind(groupId, u.id).run();
+        }
+        // Automatic deletion when no members remain in group
+        const remaining = await env.DB.prepare("SELECT COUNT(*) as cnt FROM dm_participants WHERE channel_id = ?").bind(groupId).first();
+        if (!remaining || remaining.cnt === 0) {
+          await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(groupId).run();
+          await env.DB.prepare("DELETE FROM messages WHERE channel_id = ?").bind(groupId).run();
+          await env.DB.prepare("DELETE FROM channels WHERE id = ?").bind(groupId).run();
+        }
+      } catch (e) {
+        console.error("D1 group remove member error:", e);
+      }
+    }
+    return jsonResponse({ status: "ok", removed: targetUsername });
+  }
+
   // Leave Group (POST /api/groups/:id/leave or /api/groups/:id/members/leave)
   const groupLeaveMatch = path.match(/^\/api\/groups\/([^\/]+)\/(?:leave|members\/leave)$/);
   if (groupLeaveMatch && method === "POST") {
     const groupId = groupLeaveMatch[1];
-    const username = (request.headers.get("X-User-Username") || "").trim().toLowerCase();
+    const username = (request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
     if (env.DB && username) {
       try {
         const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(username).first();
         if (u) {
           await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ? AND user_id = ?").bind(groupId, u.id).run();
+        }
+        // Automatic deletion when no members remain in group
+        const remaining = await env.DB.prepare("SELECT COUNT(*) as cnt FROM dm_participants WHERE channel_id = ?").bind(groupId).first();
+        if (!remaining || remaining.cnt === 0) {
+          await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(groupId).run();
+          await env.DB.prepare("DELETE FROM messages WHERE channel_id = ?").bind(groupId).run();
+          await env.DB.prepare("DELETE FROM channels WHERE id = ?").bind(groupId).run();
         }
       } catch (e) {
         console.error("D1 group leave error:", e);
@@ -3470,10 +3522,26 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.3.2",
+          version: "v4.3.3",
           date: "Oct 15, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.3.3: Automatic 0-Member Group Lifecycle & Group Presence Lights Elimination",
+          summary: "Introduces automatic group deletion whenever a group has 0 members remaining across the database, cloud worker, and mobile client, alongside complete elimination of online/offline status lights and presence indicators for group chats.",
+          highlights: [
+            "Automatic 0-Member Group Deletion: Whenever a group's last member leaves or is removed, the group is immediately purged across Cloudflare D1, Python backend, and Android client.",
+            "Group Chat Presence Lights Removed: Eliminated misleading green online indicator dots, offline lights, and online status text from group chat headers, conversation lists, and group avatars.",
+            "Neutral Group Participant Counters: High-contrast neutral member counters ($count members • Group Chat) with dedicated Admin/Member role badges.",
+            "Group Profile Dialog Theme Alignment: Replaced green participants badge with theme-aware neutral badges.",
+            "Android Native App v4.3.3 (Build 62 • 62.6 MB): SHA-256 eab41a1566e5bac72023c7396db77f76be6d5afffb53018f44110d9b5f029d5d."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.3.2",
+          date: "Oct 15, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.3.2: Complete Profile Cover Photo Suite, Curated Presets & Edge-to-Edge Banners",
           summary: "Delivers a complete, full-featured cover photo lifecycle: Interactive Crop & Fit gallery upload with 16:9, 2.4:1, and 3:1 aspect ratio presets, 7 curated artistic gradient presets (Aurora, Cosmic Nebula, Cyber Neon, etc.), one-tap cover removal, full-screen zoomable lightbox viewer with floating dock, edge-to-edge 132dp friend profile banners with avatar overlap, and Cloudflare backend truncation resolution.",
           highlights: [

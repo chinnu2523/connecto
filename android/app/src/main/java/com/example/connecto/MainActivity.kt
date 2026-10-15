@@ -69,6 +69,12 @@ import com.example.connecto.ui.components.FullScreenCallUI
 import com.example.connecto.ui.components.MinimizedCallPill
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.connecto.ui.designsystem.isCoverPreset
+import com.example.connecto.ui.designsystem.getCoverPreset
+import com.example.connecto.ui.designsystem.sanitizeAvatarUrl
 
 import androidx.activity.SystemBarStyle
 
@@ -484,6 +490,10 @@ fun ConnectoApp(
         }
     }
 
+    val currentBannerPhoto by com.example.connecto.network.ConnectoApiClient.currentUserBannerState.collectAsState()
+    val sanitizedAppBanner = remember(currentBannerPhoto) { sanitizeAvatarUrl(currentBannerPhoto) }
+    val hasAppBanner = !sanitizedAppBanner.isNullOrBlank() || isCoverPreset(currentBannerPhoto)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -493,6 +503,51 @@ fun ConnectoApp(
                 else Modifier.background(MaterialTheme.colorScheme.background)
             )
     ) {
+        if (hasAppBanner && flowState == AppFlowState.CHAT_APP && currentTab != ConnectoTab.PROFILE) {
+            val isPreset = isCoverPreset(currentBannerPhoto)
+            val presetObj = if (isPreset) getCoverPreset(currentBannerPhoto) else null
+
+            // Full-Screen Transparent Cover Photo Layer
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = 0.28f }
+            ) {
+                if (isPreset && presetObj != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(presetObj.brush)
+                    )
+                } else {
+                    val bannerModel = sanitizedAppBanner ?: currentBannerPhoto
+                    if (bannerModel != null) {
+                        AsyncImage(
+                            model = bannerModel,
+                            contentDescription = "App Background Cover",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+            }
+
+            // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth across the entire FULL SCREEN
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Black.copy(alpha = 0.16f),
+                                Color.Black.copy(alpha = 0.28f),
+                                Color.Black.copy(alpha = 0.40f)
+                            )
+                        )
+                    )
+            )
+        }
+
         Crossfade(
             targetState = flowState,
             animationSpec = tween(durationMillis = 260, easing = FastOutSlowInEasing),
