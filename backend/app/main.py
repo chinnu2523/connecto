@@ -4520,7 +4520,11 @@ async def update_user_profile_compat(
     if bio is not None:
         user.bio = str(bio).strip()[:500]
     if banner_url is not None:
-        user.banner_url = str(banner_url).strip()[:512]
+        clean_ban = str(banner_url).strip()
+        if clean_ban.lower() in ("null", "none", "undefined", "nil", "false", ""):
+            user.banner_url = None
+        else:
+            user.banner_url = clean_ban[:1000000] if clean_ban.startswith("data:image/") else clean_ban[:2048]
     two_factor_enabled = body.get("two_factor_enabled")
     if two_factor_enabled is not None:
         user.two_factor_enabled = bool(two_factor_enabled)
@@ -4530,7 +4534,7 @@ async def update_user_profile_compat(
         if clean_av.lower() in ("null", "none", "undefined", "nil", "false", ""):
             user.avatar_url = None
         elif not clean_av.lower().startswith("javascript:") and not clean_av.lower().startswith("data:text/html"):
-            user.avatar_url = clean_av[:512]
+            user.avatar_url = clean_av[:1000000] if clean_av.startswith("data:image/") else clean_av[:2048]
     if is_stealth is not None:
         user.is_stealth = bool(is_stealth)
     if is_online is not None:

@@ -99,14 +99,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.3.1",
-        version_name: "v4.3.1",
-        version_code: 60,
-        build: 60,
-        sha256: "c541aa1061458ce00d4fb9c7132a89863ef5375cd08345940a707b35f71c5826",
-        md5: "151c0db3400b82e32f2b71f061d19f40",
+        version: "4.3.2",
+        version_name: "v4.3.2",
+        version_code: 61,
+        build: 61,
+        sha256: "f5863f9562cafa776434936bcac7aedf997468041b1ae80f74428b0efe4d6842",
+        md5: "8fbdb546b3dd9a828f133eb8427cc605",
         filename: "connecto-fun.apk",
-        size_bytes: 57138373,
+        size_bytes: 57171141,
         size_display: "54.5 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -114,11 +114,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Instant Profile Cover Photo Rendering: 0ms optimistic local caching and Coil Base64 ByteArray model decoding for instant banner display",
-          "Dedicated Edge-to-Edge Cover Banner Header: Elegant 148dp cover box with frosted glass controls (PROFILE, View, Change) and overlapping avatar",
-          "Resilient Content Provider Picker: Replaced Google Play Cloud PhotoPicker with ActivityResultContracts.GetContent() to completely eliminate cloud timeouts and ANR freezes",
-          "In-Memory Bitmap Compression & Edge Attribution: Safe memory buffer compression and X-User-Username attribution for multipart banner/avatar uploads",
-          "Interactive Crop & Fit Dialog: Full-screen gesture cropping with 16:9, 2.4:1, 3:1 aspect ratio presets, zoom slider, and 90° orientation rotation"
+          "Complete Profile Cover Photo Suite: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal",
+          "Edge-to-Edge Friend Profile Cover Banners: 132dp dynamic banner with overlapping avatar and one-tap cover lightbox viewer across direct chat and friend dialogs",
+          "Full-Screen Cover Lightbox Viewer: Immersive zoomable cover preview with floating action dock (Change Cover, Remove Cover, Close)",
+          "Cloudflare Backend Truncation Resolution: Upgraded banner_url and avatar_url field limits from 300 to 1MB/2KB, supporting full data URLs and network URLs",
+          "Optimistic Local Caching: Instantaneous local rendering with Coil Base64 ByteArray decoding eliminating network flicker"
         ]
       });
     }
@@ -160,7 +160,7 @@ export default {
       cleanPath.startsWith("/download/") ||
       cleanPath === "/connecto-fun.apk"
     )) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.1/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.2/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -1547,9 +1547,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
 
         const displayName = sanitizeText(body.nickname || body.display_name || body.full_name || caller.display_name, 50);
-        const bio = sanitizeText(body.bio !== undefined ? body.bio : (caller.bio || ""), 500);
-        const avatar = sanitizeText(body.avatar_url || body.avatar || body.picture || (caller.avatar_url || "👾"), 300);
-        const banner = sanitizeText(body.banner_url || (caller.banner_url || ""), 300);
+        const rawAvatar = body.avatar_url || body.avatar || body.picture || (caller.avatar_url || "👾");
+        const avatar = typeof rawAvatar === "string" && rawAvatar.startsWith("data:image/") ? rawAvatar.slice(0, 1000000) : sanitizeText(rawAvatar, 2048);
+        const rawBanner = body.banner_url !== undefined ? body.banner_url : (caller.banner_url || "");
+        const banner = typeof rawBanner === "string" && rawBanner.startsWith("data:image/") ? rawBanner.slice(0, 1000000) : (rawBanner === "" || rawBanner === null ? "" : sanitizeText(rawBanner, 2048));
         const email = sanitizeText(body.email || (caller.email || ""), 100);
         const phone = sanitizeText(body.phone_number || body.phone || (caller.phone_number || ""), 30);
         const dob = sanitizeText(body.date_of_birth || (caller.date_of_birth || ""), 20);
@@ -1746,7 +1747,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         if (caller) {
           const onlineSet = await getOnlineUsersFromRealtime(env);
           const res = await env.DB.prepare(`
-            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.is_online, u.is_stealth
+            SELECT DISTINCT u.id, u.username, u.display_name, u.avatar_url, u.banner_url, u.bio, u.is_online, u.is_stealth
             FROM friendships f
             JOIN users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
             WHERE f.status = 'accepted' AND u.id != ?
@@ -1762,6 +1763,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
               const isOnline = isStealth ? false : isSocketActive;
               const dName = r.display_name || r.username;
               const av = r.avatar_url || "👾";
+              const ban = r.banner_url || "";
               friendsList.push({
                 id: r.id,
                 user_id: caller.id,
@@ -1774,6 +1776,8 @@ async function handleCloudApiRequest(request, url, env, ctx) {
                 avatar: av,
                 avatar_url: av,
                 friend_avatar_url: av,
+                banner_url: ban,
+                friend_banner_url: ban,
                 status: isOnline ? "online" : "offline",
                 is_online: isOnline,
                 is_stealth: isStealth,
@@ -3445,14 +3449,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.3.1",
-      version_name: "v4.3.1",
-      version_code: 60,
-      build: 60,
-      sha256: "c541aa1061458ce00d4fb9c7132a89863ef5375cd08345940a707b35f71c5826",
-      md5: "151c0db3400b82e32f2b71f061d19f40",
+      version: "4.3.2",
+      version_name: "v4.3.2",
+      version_code: 61,
+      build: 61,
+      sha256: "f5863f9562cafa776434936bcac7aedf997468041b1ae80f74428b0efe4d6842",
+      md5: "8fbdb546b3dd9a828f133eb8427cc605",
       filename: "connecto-fun.apk",
-      size_bytes: 57138373,
+      size_bytes: 57171141,
       size_display: "54.5 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -3466,10 +3470,26 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.3.1",
+          version: "v4.3.2",
           date: "Oct 15, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.3.2: Complete Profile Cover Photo Suite, Curated Presets & Edge-to-Edge Banners",
+          summary: "Delivers a complete, full-featured cover photo lifecycle: Interactive Crop & Fit gallery upload with 16:9, 2.4:1, and 3:1 aspect ratio presets, 7 curated artistic gradient presets (Aurora, Cosmic Nebula, Cyber Neon, etc.), one-tap cover removal, full-screen zoomable lightbox viewer with floating dock, edge-to-edge 132dp friend profile banners with avatar overlap, and Cloudflare backend truncation resolution.",
+          highlights: [
+            "Complete Cover Photo Lifecycle: Gallery upload with interactive Crop & Fit, 7 curated artistic gradient presets, and instant cover removal.",
+            "Edge-to-Edge Friend Profile Cover Banners: 132dp dynamic banner with overlapping avatar and one-tap cover lightbox viewer across direct chat and friend dialogs.",
+            "Full-Screen Cover Lightbox Viewer: Immersive zoomable cover preview with floating action dock (Change Cover, Remove Cover, Close).",
+            "Cloudflare Backend Truncation Resolution: Upgraded banner_url and avatar_url field limits from 300 to 1MB/2KB, supporting full data URLs and network URLs.",
+            "Android Native App v4.3.2 (Build 61 • 54.5 MB): SHA-256 f5863f9562cafa776434936bcac7aedf997468041b1ae80f74428b0efe4d6842."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.3.1",
+          date: "Oct 15, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.3.1: Instant Profile Cover Photo, Dedicated Banner Header & Resilient Gallery Picker",
           summary: "Resolves cover photo rendering root cause with 0ms optimistic local caching, Coil Base64 ByteArray model decoding, dedicated edge-to-edge cover banner header with frosted controls, and reliable system content provider picker.",
           highlights: [

@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -41,8 +42,14 @@ import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Crop
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.FitScreen
 import androidx.compose.material.icons.filled.Landscape
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.RotateRight
@@ -121,6 +128,7 @@ fun PhotoLightboxDialog(
     placeholderInitial: String = "C",
     isBanner: Boolean = false,
     onChangePhoto: (() -> Unit)? = null,
+    onRemovePhoto: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     Dialog(
@@ -282,7 +290,61 @@ fun PhotoLightboxDialog(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                if (!imageUrl.isNullOrBlank()) {
+                val isPreset = com.example.connecto.ui.designsystem.isCoverPreset(imageUrl)
+                val presetObj = com.example.connecto.ui.designsystem.getCoverPreset(imageUrl)
+                if (isPreset && presetObj != null) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(if (isBanner) 0.96f else 0.85f)
+                            .height(if (isBanner) 240.dp else 320.dp)
+                            .graphicsLayer {
+                                scaleX = zoomScale
+                                scaleY = zoomScale
+                                translationX = panOffset.x
+                                translationY = panOffset.y
+                            }
+                            .shadow(
+                                elevation = 20.dp,
+                                shape = if (!isBanner) CircleShape else RoundedCornerShape(20.dp),
+                                spotColor = Color(0xFF6C5CE7).copy(alpha = 0.5f)
+                            )
+                            .clip(if (!isBanner) CircleShape else RoundedCornerShape(20.dp))
+                            .background(presetObj.brush)
+                            .border(
+                                width = 2.dp,
+                                brush = Brush.linearGradient(
+                                    listOf(
+                                        Color(0xFF6C5CE7),
+                                        Color(0xFFA29BFE),
+                                        Color(0xFF4834DF)
+                                    )
+                                ),
+                                shape = if (!isBanner) CircleShape else RoundedCornerShape(20.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color.Black.copy(alpha = 0.50f))
+                                .padding(horizontal = 18.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = presetObj.name,
+                                color = Color.White,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = presetObj.subtitle,
+                                color = Color.White.copy(alpha = 0.80f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                } else if (!imageUrl.isNullOrBlank()) {
                     val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(imageUrl) ?: imageUrl
                     AsyncImage(
                         model = resolvedModel,
@@ -444,10 +506,444 @@ fun PhotoLightboxDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (isBanner) "Change Cover" else "Change Photo",
+                                text = if (isBanner) "Change" else "Change",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
                             )
+                        }
+                    }
+
+                    if (onRemovePhoto != null) {
+                        Button(
+                            onClick = {
+                                onDismiss()
+                                onRemovePhoto()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFFDC2626).copy(alpha = 0.85f),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(18.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Remove",
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Remove",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Ultra-aesthetic Cover Presets Dialog: Choose from curated presets matching the web app.
+ */
+@Composable
+fun CoverPresetsDialog(
+    currentPresetId: String?,
+    onPresetSelected: (com.example.connecto.ui.designsystem.CoverPreset) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color(0xFF0F111A),
+            tonalElevation = 8.dp,
+            shadowElevation = 24.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .padding(vertical = 24.dp)
+                .border(1.dp, Color(0xFF6C5CE7).copy(alpha = 0.35f), RoundedCornerShape(28.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF6C5CE7).copy(alpha = 0.20f))
+                                .border(1.dp, Color(0xFF6C5CE7).copy(alpha = 0.40f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = null,
+                                tint = Color(0xFFA29BFE),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "Cover Presets",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Select an aesthetic gradient banner",
+                                fontSize = 11.5.sp,
+                                color = Color.White.copy(alpha = 0.60f)
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.08f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Scrollable presets list
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 440.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(com.example.connecto.ui.designsystem.COVER_PRESETS.size) { idx ->
+                        val preset = com.example.connecto.ui.designsystem.COVER_PRESETS[idx]
+                        val isSelected = currentPresetId == preset.id
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(68.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(preset.brush)
+                                .border(
+                                    width = if (isSelected) 2.5.dp else 1.dp,
+                                    color = if (isSelected) Color(0xFFA29BFE) else Color.White.copy(alpha = 0.20f),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                                .clickable {
+                                    onPresetSelected(preset)
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 16.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color.Black.copy(alpha = 0.45f))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = preset.name,
+                                        fontSize = 13.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                    Text(
+                                        text = preset.subtitle,
+                                        fontSize = 10.5.sp,
+                                        color = Color.White.copy(alpha = 0.80f)
+                                    )
+                                }
+
+                                if (isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(26.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF6C5CE7)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Bottom / Center Modal Dialog for Cover Photo Options:
+ * - Choose from Gallery (launches photo picker)
+ * - Cover Presets (opens presets browser)
+ * - Remove Cover Photo (resets to default gradient)
+ */
+@Composable
+fun CoverOptionsMenuDialog(
+    hasExistingCover: Boolean,
+    onChooseGallery: () -> Unit,
+    onOpenPresets: () -> Unit,
+    onRemoveCover: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = Color(0xFF0F111A),
+            tonalElevation = 8.dp,
+            shadowElevation = 24.dp,
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(vertical = 24.dp)
+                .border(1.dp, Color(0xFF6C5CE7).copy(alpha = 0.35f), RoundedCornerShape(28.dp))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF6C5CE7).copy(alpha = 0.20f))
+                                .border(1.dp, Color(0xFF6C5CE7).copy(alpha = 0.40f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = Color(0xFFA29BFE),
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "Cover Photo",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Personalize your profile header banner",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.65f)
+                            )
+                        }
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.White.copy(alpha = 0.70f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.10f))
+
+                // Option 1: Gallery Upload
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.05f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onDismiss()
+                            onChooseGallery()
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFF3B82F6).copy(alpha = 0.20f))
+                                .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.40f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoLibrary,
+                                contentDescription = null,
+                                tint = Color(0xFF60A5FA),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Choose from Gallery",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Interactive zoom, pan, and custom aspect crop",
+                                fontSize = 11.5.sp,
+                                color = Color.White.copy(alpha = 0.60f)
+                            )
+                        }
+                    }
+                }
+
+                // Option 2: Presets
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.05f),
+                    border = BorderStroke(1.dp, Color.White.copy(alpha = 0.12f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            onDismiss()
+                            onOpenPresets()
+                        }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color(0xFFA855F7).copy(alpha = 0.20f))
+                                .border(1.dp, Color(0xFFA855F7).copy(alpha = 0.40f), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Palette,
+                                contentDescription = null,
+                                tint = Color(0xFFC084FC),
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Cover Presets",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Aesthetic themes: Aurora, Space, Cyberpunk...",
+                                fontSize = 11.5.sp,
+                                color = Color.White.copy(alpha = 0.60f)
+                            )
+                        }
+                    }
+                }
+
+                // Option 3: Remove Cover Photo (if has existing cover)
+                if (hasExistingCover) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color(0xFFEF4444).copy(alpha = 0.10f),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.30f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                onDismiss()
+                                onRemoveCover()
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFEF4444).copy(alpha = 0.20f))
+                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.40f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteOutline,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF87171),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Remove Cover Photo",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFFFCA5A5)
+                                )
+                                Text(
+                                    text = "Reset to default gradient profile header",
+                                    fontSize = 11.5.sp,
+                                    color = Color.White.copy(alpha = 0.50f)
+                                )
+                            }
                         }
                     }
                 }

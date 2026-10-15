@@ -155,6 +155,7 @@ data class FriendshipDto(
     val friendUsername: String,
     val friendDisplayName: String,
     val friendAvatarUrl: String?,
+    val friendBannerUrl: String? = null,
     val status: String,
     val isOnline: Boolean = false,
     val isStealth: Boolean = false,
@@ -2517,6 +2518,10 @@ object ConnectoApiClient {
                         val resolvedAvatar = if (rawAvatar.isNullOrBlank()) null
                             else if (rawAvatar.startsWith("http://") || rawAvatar.startsWith("https://") || rawAvatar.startsWith("data:") || rawAvatar.codePointCount(0, rawAvatar.length) <= 3) rawAvatar
                             else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawAvatar.trimStart('/')}"
+                        val rawBanner = item.optString("banner_url").ifEmpty { item.optString("friend_banner_url") }.takeIf { it.isNotBlank() }
+                        val resolvedBanner = if (rawBanner.isNullOrBlank()) null
+                            else if (rawBanner.startsWith("http://") || rawBanner.startsWith("https://") || rawBanner.startsWith("data:") || com.example.connecto.ui.designsystem.isCoverPreset(rawBanner)) rawBanner
+                            else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawBanner.trimStart('/')}"
                         val itemBio = item.optString("bio").takeIf { it.isNotBlank() }
                         list.add(
                             FriendshipDto(
@@ -2526,6 +2531,7 @@ object ConnectoApiClient {
                                 friendUsername = uName,
                                 friendDisplayName = dName,
                                 friendAvatarUrl = resolvedAvatar,
+                                friendBannerUrl = resolvedBanner,
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,
                                 isStealth = isStealth,
@@ -2546,6 +2552,10 @@ object ConnectoApiClient {
                         val resolvedAvatar = if (rawAvatar.isNullOrBlank()) null
                             else if (rawAvatar.startsWith("http://") || rawAvatar.startsWith("https://") || rawAvatar.startsWith("data:") || rawAvatar.codePointCount(0, rawAvatar.length) <= 3) rawAvatar
                             else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawAvatar.trimStart('/')}"
+                        val rawBanner = item.optString("banner_url").ifEmpty { item.optString("friend_banner_url") }.takeIf { it.isNotBlank() }
+                        val resolvedBanner = if (rawBanner.isNullOrBlank()) null
+                            else if (rawBanner.startsWith("http://") || rawBanner.startsWith("https://") || rawBanner.startsWith("data:") || com.example.connecto.ui.designsystem.isCoverPreset(rawBanner)) rawBanner
+                            else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawBanner.trimStart('/')}"
                         val itemBio = item.optString("bio").takeIf { it.isNotBlank() }
                         list.add(
                             FriendshipDto(
@@ -2555,6 +2565,7 @@ object ConnectoApiClient {
                                 friendUsername = uName,
                                 friendDisplayName = dName,
                                 friendAvatarUrl = resolvedAvatar,
+                                friendBannerUrl = resolvedBanner,
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,
                                 isStealth = isStealth,

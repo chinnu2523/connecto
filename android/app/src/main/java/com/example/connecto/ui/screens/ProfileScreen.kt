@@ -24,10 +24,16 @@ import androidx.compose.material.icons.filled.LockReset
 import com.example.connecto.ui.components.CropMode
 import com.example.connecto.ui.components.PhotoLightboxDialog
 import com.example.connecto.ui.components.InteractiveCropFitDialog
+import com.example.connecto.ui.components.CoverPresetsDialog
+import com.example.connecto.ui.components.CoverOptionsMenuDialog
+import com.example.connecto.ui.designsystem.isCoverPreset
+import com.example.connecto.ui.designsystem.getCoverPreset
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.AlertDialog
@@ -452,9 +458,13 @@ fun ProfileScreen(
                 prefs.edit().putBoolean("stealth_mode_${prof.username}", prof.isStealth).apply()
                 ConnectoApiClient.updateStealthModeState(prof.isStealth)
                 if (!prof.bannerUrl.isNullOrBlank()) {
-                    bannerPhotoUri = prof.bannerUrl
-                    prefs.edit().putString("banner_uri_${prof.username}", prof.bannerUrl).apply()
-                    bannerUrlFieldInput = prof.bannerUrl
+                    val sBan = prof.bannerUrl.trim()
+                    val isCorrupted = sBan.startsWith("data:") && sBan.length < 500
+                    if (!isCorrupted) {
+                        bannerPhotoUri = sBan
+                        prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
+                        bannerUrlFieldInput = sBan
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -486,7 +496,8 @@ fun ProfileScreen(
 
                 val remoteBanner = if (bannerPhotoUri?.startsWith("http://") == true ||
                     bannerPhotoUri?.startsWith("https://") == true ||
-                    bannerPhotoUri?.startsWith("data:") == true
+                    bannerPhotoUri?.startsWith("data:") == true ||
+                    isCoverPreset(bannerPhotoUri)
                 ) bannerPhotoUri else null
 
                 val res = ConnectoApiClient.updateProfile(
@@ -516,6 +527,28 @@ fun ProfileScreen(
         }
     }
 
+    fun removeCoverPhoto() {
+        bannerPhotoUri = null
+        bannerUrlFieldInput = ""
+        prefs.edit().remove("banner_uri_$username").apply()
+        val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
+        if (localCover.exists()) {
+            try { localCover.delete() } catch (_: Exception) {}
+        }
+        coroutineScope.launch {
+            try {
+                ConnectoApiClient.updateProfile(
+                    username = currentUsernameState,
+                    bannerUrl = "",
+                    displayName = displayNameInput,
+                    fullName = fullNameInput,
+                    bio = bioInput,
+                    isStealth = stealthModeEnabled
+                )
+            } catch (_: Exception) {}
+        }
+    }
+
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
 
@@ -529,6 +562,8 @@ fun ProfileScreen(
     var lightboxImageUrl by remember { mutableStateOf<String?>(null) }
     var isLightboxBanner by remember { mutableStateOf(false) }
     var showLightbox by remember { mutableStateOf(false) }
+    var showCoverPresetsDialog by remember { mutableStateOf(false) }
+    var showCoverOptionsMenu by remember { mutableStateOf(false) }
 
     // Photo Picker Launcher -> opens interactive crop dialog
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -577,7 +612,7 @@ fun ProfileScreen(
     val themeColors = ConnectoTheme.colors
     val isThemeDark = themeColors.isDark
     val sanitizedBannerPhoto = sanitizeAvatarUrl(bannerPhotoUri)
-    val hasCoverPhoto = !sanitizedBannerPhoto.isNullOrBlank()
+    val hasCoverPhoto = !sanitizedBannerPhoto.isNullOrBlank() || isCoverPreset(bannerPhotoUri)
 
     Box(
         modifier = modifier
@@ -585,13 +620,25 @@ fun ProfileScreen(
             .background(themeColors.background)
     ) {
         if (hasCoverPhoto) {
-            val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
-            AsyncImage(
-                model = bannerModel,
-                contentDescription = "Profile Cover Background",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            val isPreset = isCoverPreset(bannerPhotoUri)
+            val presetObj = if (isPreset) getCoverPreset(bannerPhotoUri) else null
+            if (isPreset && presetObj != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(presetObj.brush)
+                )
+            } else {
+                val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
+                if (bannerModel != null) {
+                    AsyncImage(
+                        model = bannerModel,
+                        contentDescription = "Profile Cover Background",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
 
             // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth
             val scrimStops = if (themeColors.isLiquidGlass) {
@@ -779,12 +826,33 @@ fun ProfileScreen(
                                                     isLightboxBanner = true
                                                     showLightbox = true
                                                 } else {
-                                                    bannerPickerLauncher.launch("image/*")
+                                                    showCoverOptionsMenu = true
                                                 }
                                             }
                                     ) {
-                                        val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
-                                        if (hasCoverPhoto && bannerModel != null) {
+                                        val isPreset = isCoverPreset(bannerPhotoUri)
+                                        val presetObj = if (isPreset) getCoverPreset(bannerPhotoUri) else null
+                                        if (isPreset && presetObj != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(presetObj.brush)
+                                            )
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(
+                                                        Brush.verticalGradient(
+                                                            listOf(
+                                                                Color.Black.copy(alpha = 0.45f),
+                                                                Color.Transparent,
+                                                                Color.Black.copy(alpha = 0.50f)
+                                                            )
+                                                        )
+                                                    )
+                                            )
+                                        } else if (hasCoverPhoto && (resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto) != null) {
+                                            val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
                                             AsyncImage(
                                                 model = bannerModel,
                                                 contentDescription = "Profile Cover Banner",
@@ -933,13 +1001,43 @@ fun ProfileScreen(
                                                         }
                                                     }
 
+                                                    // Presets Button
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(12.dp))
+                                                            .background(Color.Black.copy(alpha = 0.55f))
+                                                            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                                                            .clickable {
+                                                                showCoverPresetsDialog = true
+                                                            }
+                                                            .padding(horizontal = 9.dp, vertical = 5.dp)
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Palette,
+                                                                contentDescription = "Presets",
+                                                                tint = Color(0xFFA29BFE),
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                            Text(
+                                                                text = "Presets",
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = Color.White
+                                                            )
+                                                        }
+                                                    }
+
                                                     Box(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(12.dp))
                                                             .background(Color.Black.copy(alpha = 0.55f))
                                                             .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                                                             .clickable {
-                                                                bannerPickerLauncher.launch("image/*")
+                                                                showCoverOptionsMenu = true
                                                             }
                                                             .padding(horizontal = 10.dp, vertical = 5.dp)
                                                     ) {
@@ -2948,12 +3046,52 @@ fun ProfileScreen(
             isBanner = isLightboxBanner,
             onChangePhoto = {
                 if (isLightboxBanner) {
-                    bannerPickerLauncher.launch("image/*")
+                    showLightbox = false
+                    showCoverOptionsMenu = true
                 } else {
                     photoPickerLauncher.launch("image/*")
                 }
             },
+            onRemovePhoto = if (isLightboxBanner && hasCoverPhoto) {
+                {
+                    showLightbox = false
+                    removeCoverPhoto()
+                }
+            } else null,
             onDismiss = { showLightbox = false }
+        )
+    }
+
+    if (showCoverOptionsMenu) {
+        CoverOptionsMenuDialog(
+            hasExistingCover = hasCoverPhoto,
+            onChooseGallery = {
+                showCoverOptionsMenu = false
+                bannerPickerLauncher.launch("image/*")
+            },
+            onOpenPresets = {
+                showCoverOptionsMenu = false
+                showCoverPresetsDialog = true
+            },
+            onRemoveCover = {
+                showCoverOptionsMenu = false
+                removeCoverPhoto()
+            },
+            onDismiss = { showCoverOptionsMenu = false }
+        )
+    }
+
+    if (showCoverPresetsDialog) {
+        CoverPresetsDialog(
+            currentPresetId = bannerPhotoUri,
+            onPresetSelected = { preset ->
+                showCoverPresetsDialog = false
+                bannerPhotoUri = preset.id
+                bannerUrlFieldInput = preset.id
+                prefs.edit().putString("banner_uri_$username", preset.id).apply()
+                triggerAutoSave()
+            },
+            onDismiss = { showCoverPresetsDialog = false }
         )
     }
 

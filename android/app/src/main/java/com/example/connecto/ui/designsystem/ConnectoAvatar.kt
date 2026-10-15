@@ -38,6 +38,78 @@ enum class ConnectoPresenceStatus {
     OFFLINE
 }
 
+data class CoverPreset(
+    val id: String,
+    val name: String,
+    val subtitle: String,
+    val brush: Brush,
+    val previewColors: List<Color>
+)
+
+val COVER_PRESETS = listOf(
+    CoverPreset(
+        id = "preset_aurora",
+        name = "Aurora Borealis",
+        subtitle = "Emerald Deep Glow",
+        brush = Brush.linearGradient(listOf(Color(0xFF090D16), Color(0xFF064E3B), Color(0xFF083344))),
+        previewColors = listOf(Color(0xFF090D16), Color(0xFF064E3B), Color(0xFF083344))
+    ),
+    CoverPreset(
+        id = "preset_space",
+        name = "Cosmic Nebula",
+        subtitle = "Starlight & Violet",
+        brush = Brush.linearGradient(listOf(Color(0xFF03001E), Color(0xFF7303C0), Color(0xFFEC38BC))),
+        previewColors = listOf(Color(0xFF03001E), Color(0xFF7303C0), Color(0xFFEC38BC))
+    ),
+    CoverPreset(
+        id = "preset_sunset",
+        name = "Golden Sunset",
+        subtitle = "Amber Warm Twilight",
+        brush = Brush.linearGradient(listOf(Color(0xFF31103F), Color(0xFF831843), Color(0xFFF59E0B))),
+        previewColors = listOf(Color(0xFF31103F), Color(0xFF831843), Color(0xFFF59E0B))
+    ),
+    CoverPreset(
+        id = "preset_cyberpunk",
+        name = "Cyber Neon",
+        subtitle = "Matrix Teal & Synthwave",
+        brush = Brush.linearGradient(listOf(Color(0xFF0D0A1A), Color(0xFF00CEC9), Color(0xFF6C5CE7))),
+        previewColors = listOf(Color(0xFF0D0A1A), Color(0xFF00CEC9), Color(0xFF6C5CE7))
+    ),
+    CoverPreset(
+        id = "preset_matrix",
+        name = "Matrix Emerald",
+        subtitle = "Digital Cyber Rain",
+        brush = Brush.linearGradient(listOf(Color(0xFF022C22), Color(0xFF065F46), Color(0xFF0F172A))),
+        previewColors = listOf(Color(0xFF022C22), Color(0xFF065F46), Color(0xFF0F172A))
+    ),
+    CoverPreset(
+        id = "preset_carbon",
+        name = "Obsidian Carbon",
+        subtitle = "Minimalist Stealth",
+        brush = Brush.linearGradient(listOf(Color(0xFF18181B), Color(0xFF27272A), Color(0xFF09090B))),
+        previewColors = listOf(Color(0xFF18181B), Color(0xFF27272A), Color(0xFF09090B))
+    ),
+    CoverPreset(
+        id = "preset_gold",
+        name = "Royal Gold",
+        subtitle = "Hokage Luxury",
+        brush = Brush.linearGradient(listOf(Color(0xFF1C1917), Color(0xFF78350F), Color(0xFFCA8A04))),
+        previewColors = listOf(Color(0xFF1C1917), Color(0xFF78350F), Color(0xFFCA8A04))
+    )
+)
+
+fun isCoverPreset(url: String?): Boolean {
+    if (url.isNullOrBlank()) return false
+    val clean = url.trim().lowercase()
+    return COVER_PRESETS.any { it.id == clean } || clean.startsWith("preset_")
+}
+
+fun getCoverPreset(id: String?): CoverPreset? {
+    if (id.isNullOrBlank()) return null
+    val clean = id.trim().lowercase()
+    return COVER_PRESETS.firstOrNull { it.id == clean }
+}
+
 /**
  * Sanitizes avatar URL by rejecting null strings, emoji fallbacks, and prepending base URL for relative paths.
  */
@@ -46,6 +118,7 @@ fun sanitizeAvatarUrl(url: String?): String? {
     val trimmed = url.trim()
     val lower = trimmed.lowercase()
     if (lower in listOf("null", "none", "undefined", "false", "true", "")) return null
+    if (isCoverPreset(trimmed)) return trimmed
     // Reject plain emoji strings or non-path strings (unless data: URL)
     if (!trimmed.contains("/") && !trimmed.contains(".") && !trimmed.startsWith("data:")) return null
     if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed

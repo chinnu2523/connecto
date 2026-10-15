@@ -168,6 +168,9 @@ import com.example.connecto.ui.components.CreateGroupChatDialog
 import com.example.connecto.ui.components.CreateVoiceGroupDialog
 import com.example.connecto.ui.components.FullScreenGroupProfileDialog
 import com.example.connecto.ui.components.ConnectoEmojiPicker
+import com.example.connecto.ui.designsystem.isCoverPreset
+import com.example.connecto.ui.designsystem.getCoverPreset
+import com.example.connecto.ui.designsystem.resolveImageModel
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.components.WebRtcCallOverlay
 import com.example.connecto.voice.CallState
@@ -438,6 +441,7 @@ data class FriendItem(
     var unreadCount: Int = 0,
     val isOnline: Boolean = false,
     val avatarUrl: String? = null,
+    val bannerUrl: String? = null,
     val isGroup: Boolean = false,
     val isCreatedByMe: Boolean = false,
     val memberCount: Int = 0,
@@ -521,6 +525,7 @@ fun CustomizedChatScreen(
 
     // Friend Profile Preview Lightbox & Per-Chat Preferences
     var showPhotoLightbox by remember { mutableStateOf(false) }
+    var isLightboxForBanner by remember { mutableStateOf(false) }
     var isChatMuted by remember { mutableStateOf(false) }
     var isChatLocked by remember { mutableStateOf(false) }
     var chatThemeId by remember { mutableStateOf("default") }
@@ -836,7 +841,8 @@ fun CustomizedChatScreen(
                         timeAgo = time,
                         unreadCount = unread,
                         isOnline = isFriendOnline,
-                        avatarUrl = f.friendAvatarUrl
+                        avatarUrl = f.friendAvatarUrl,
+                        bannerUrl = f.friendBannerUrl
                     )
                 }
 
@@ -1547,6 +1553,7 @@ fun CustomizedChatScreen(
                     selectedFriendProfileData = prof
                     selectedFriend = selectedFriend?.copy(
                         avatarUrl = prof.avatarUrl ?: selectedFriend?.avatarUrl,
+                        bannerUrl = prof.bannerUrl ?: selectedFriend?.bannerUrl,
                         name = prof.displayName.ifBlank { prof.fullName.ifBlank { prof.username } },
                         bio = prof.bio.ifBlank { selectedFriend?.bio ?: "" },
                         isOnline = prof.isOnline
@@ -1591,64 +1598,160 @@ fun CustomizedChatScreen(
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // STABLE / FIXED HEADER (Profile pic, name, badges, tab buttons)
-                    Column(
+                    // DEDICATED FRIEND COVER BANNER HEADER
+                    val friendBanner = profData?.bannerUrl ?: friendObj.bannerUrl
+                    val hasBanner = !friendBanner.isNullOrBlank()
+                    val isBannerPreset = isCoverPreset(friendBanner)
+                    val bannerPresetObj = getCoverPreset(friendBanner)
+                    val resolvedBannerModel = resolveImageModel(friendBanner)
+
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                            .height(132.dp)
+                            .clickable(enabled = hasBanner) {
+                                isLightboxForBanner = true
+                                showPhotoLightbox = true
+                            }
                     ) {
-                    // Header close button bar
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "FRIEND PROFILE",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 1.2.sp
-                        )
+                        if (isBannerPreset && bannerPresetObj != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(bannerPresetObj.brush)
+                            )
+                        } else if (resolvedBannerModel != null) {
+                            AsyncImage(
+                                model = resolvedBannerModel,
+                                contentDescription = "Cover Banner",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.linearGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f),
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f)
+                                            )
+                                        )
+                                    )
+                            )
+                        }
 
+                        // Gradient Scrim for Header Text Contrast
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f))
-                                .clickable { showFriendProfileDialog = false },
-                            contentAlignment = Alignment.Center
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color.Black.copy(alpha = 0.55f),
+                                            Color.Black.copy(alpha = 0.05f),
+                                            Color.Black.copy(alpha = 0.40f)
+                                        )
+                                    )
+                                )
+                        )
+
+                        // Top Controls Overlay
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                                .align(Alignment.TopCenter),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Close",
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color.Black.copy(alpha = 0.50f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "FRIEND PROFILE",
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    letterSpacing = 1.sp
+                                )
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (hasBanner) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(Color.Black.copy(alpha = 0.50f))
+                                            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                                            .clickable {
+                                                isLightboxForBanner = true
+                                                showPhotoLightbox = true
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = "View Cover",
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.Black.copy(alpha = 0.50f))
+                                        .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                                        .clickable { showFriendProfileDialog = false },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    // Avatar Circle with Dynamic Accent Glow & Full-Screen Photo Preview
+                    // Floating Overlapping Avatar
                     val friendAvatarResolved = friendObj.avatarUrl ?: profData?.avatarUrl
                     Box(
-                        contentAlignment = Alignment.BottomEnd,
-                        modifier = Modifier.clickable { showPhotoLightbox = true }
+                        modifier = Modifier
+                            .offset(y = (-44).dp)
+                            .align(Alignment.CenterHorizontally),
+                        contentAlignment = Alignment.BottomEnd
                     ) {
                         ConnectoAvatar(
                             name = friendObj.name,
                             avatarUrl = friendAvatarResolved,
-                            customSizeDp = 88.dp,
+                            customSizeDp = 86.dp,
                             customFontSizeSp = 34,
                             borderWidth = 3.dp,
                             borderBrush = Brush.sweepGradient(gradientColors),
-                            onClick = { showPhotoLightbox = true }
+                            onClick = {
+                                isLightboxForBanner = false
+                                showPhotoLightbox = true
+                            }
                         )
                         // Zoom inspect pill badge
                         Box(
                             modifier = Modifier
-                                .size(28.dp)
+                                .size(26.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surface)
                                 .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
@@ -1658,10 +1761,20 @@ fun CustomizedChatScreen(
                                 imageVector = Icons.Default.ZoomIn,
                                 contentDescription = "View Profile Picture Fullscreen",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
+
+                    // Content below overlapping avatar
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = (-34).dp)
+                            .padding(horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
 
                     // Display Name & Verified Badge
                     Column(
@@ -2321,15 +2434,16 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Friend Profile Photo Fullscreen Lightbox Dialog
+    // Friend Profile Photo & Cover Banner Fullscreen Lightbox Dialog
     if (showPhotoLightbox && selectedFriend != null) {
         val friendObj = selectedFriend!!
         val resolvedAvatar = friendObj.avatarUrl ?: selectedFriendProfileData?.avatarUrl
+        val resolvedBanner = friendObj.bannerUrl ?: selectedFriendProfileData?.bannerUrl
         PhotoLightboxDialog(
-            title = friendObj.name,
-            imageUrl = resolvedAvatar,
+            title = if (isLightboxForBanner) "${friendObj.name}'s Cover" else friendObj.name,
+            imageUrl = if (isLightboxForBanner) resolvedBanner else resolvedAvatar,
             placeholderInitial = friendObj.initial,
-            isBanner = false,
+            isBanner = isLightboxForBanner,
             onDismiss = { showPhotoLightbox = false }
         )
     }
