@@ -62,6 +62,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.DoneAll
@@ -208,6 +209,77 @@ fun ChannelsWorkspaceScreen(
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var replyingTo by remember { mutableStateOf<MessageDto?>(null) }
 
+    // Friends list for detecting friend-only private DM reply in channels
+    var friendsList by remember { mutableStateOf<List<FriendItem>>(emptyList()) }
+
+    LaunchedEffect(currentUsername) {
+        withContext(Dispatchers.IO) {
+            val cached = dbHelper.getCachedFriends()
+            withContext(Dispatchers.Main) {
+                friendsList = cached
+            }
+            try {
+                val fresh = ConnectoApiClient.getFriends(username = currentUsername).getOrNull()
+                if (fresh != null) {
+                    val converted = fresh.map { f ->
+                        FriendItem(
+                            id = f.friendId,
+                            name = f.friendDisplayName.ifBlank { f.friendUsername },
+                            handle = f.friendUsername,
+                            initial = (f.friendDisplayName.ifBlank { f.friendUsername }).take(1).uppercase(),
+                            status = f.status,
+                            bio = "Connecto Friend",
+                            lastMessage = "",
+                            isOnline = f.isOnline,
+                            avatarUrl = f.friendAvatarUrl
+                        )
+                    }
+                    withContext(Dispatchers.Main) {
+                        friendsList = converted
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    // Match replyingTo message author with accepted friends
+    val matchedFriendTarget by remember(replyingTo, friendsList) {
+        derivedStateOf {
+            val target = replyingTo ?: return@derivedStateOf null
+            val authorIdClean = target.authorId.trim().lowercase().removePrefix("@")
+            val authorNameClean = target.authorName.trim().lowercase().removePrefix("@")
+
+            friendsList.firstOrNull { f ->
+                val fHandle = f.handle.trim().lowercase().removePrefix("@")
+                val fId = f.id.trim().lowercase()
+                val fName = f.name.trim().lowercase()
+
+                (fHandle.isNotEmpty() && (authorIdClean == fHandle || authorNameClean == fHandle)) ||
+                (fId.isNotEmpty() && (authorIdClean == fId || authorNameClean == fId)) ||
+                (fName.isNotEmpty() && authorNameClean == fName)
+            }
+        }
+    }
+
+    // Check if user has typed @<userId> while replying to a friend's message
+    val isPrivateDmReply by remember(typedMessage, matchedFriendTarget, replyingTo) {
+        derivedStateOf {
+            if (replyingTo == null || matchedFriendTarget == null) return@derivedStateOf false
+            val textTrim = typedMessage.trim()
+            val targetU = matchedFriendTarget?.handle?.trim()?.lowercase()?.removePrefix("@") ?: ""
+            val targetI = matchedFriendTarget?.id?.trim()?.lowercase() ?: ""
+            if (targetU.isNotEmpty()) {
+                val handleRegex = Regex("^@${Regex.escape(targetU)}(\\b|\\s|:|$)", RegexOption.IGNORE_CASE)
+                if (handleRegex.containsMatchIn(textTrim)) return@derivedStateOf true
+            }
+            if (targetI.isNotEmpty()) {
+                val idRegex = Regex("^@${Regex.escape(targetI)}(\\b|\\s|:|$)", RegexOption.IGNORE_CASE)
+                if (idRegex.containsMatchIn(textTrim)) return@derivedStateOf true
+            }
+            false
+        }
+    }
+
     // Local reactions storage: messageId -> list of emoji strings
     val channelReactions = remember { mutableStateMapOf<String, List<String>>() }
 
@@ -298,17 +370,87 @@ fun ChannelsWorkspaceScreen(
         val text = typedMessage.trim()
         if (text.isEmpty() || isSending) return
 
+        val activeReply = replyingTo
+        val targetFriend = matchedFriendTarget
+        val isPrivate = isPrivateDmReply && targetFriend != null && activeReply != null
+
         isSending = true
         typedMessage = ""
+        replyingTo = null
         focusManager.clearFocus()
         showEmojiPicker = false
-
-        val activeReply = replyingTo
-        replyingTo = null
 
         val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
         val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US).format(Date())
         val displayName = ConnectoApiClient.currentUserDisplayName ?: currentUsername
+
+        // If swiped friend's message and typed @<user_id>, deliver directly to friend's private chat
+        if (isPrivate && targetFriend != null && activeReply != null) {
+            val targetU = targetFriend.handle.trim().lowercase().removePrefix("@")
+            val targetI = targetFriend.id.trim().lowercase()
+            val cleanMe = currentUsername.trim().lowercase().removePrefix("@")
+            val canonicalDmId = "dm-${minOf(cleanMe, targetU)}-${maxOf(cleanMe, targetU)}"
+
+            val privateContent = text.replaceFirst(
+                Regex("^@(${Regex.escape(targetU)}|${Regex.escape(targetI)})[:\\s]*", RegexOption.IGNORE_CASE),
+                ""
+            ).trim().ifBlank { text }
+
+            val optDmMsg = MessageDto(
+                id = "temp_${UUID.randomUUID()}",
+                channelId = canonicalDmId,
+                authorId = currentUsername,
+                authorName = displayName,
+                authorAvatar = ConnectoApiClient.currentUserAvatarState.value,
+                content = privateContent,
+                createdAt = nowIso,
+                type = "text",
+                replyToId = activeReply.id,
+                replyToContent = "[#$cleanCh] ${activeReply.content}",
+                replyToAuthor = activeReply.authorName.ifBlank { activeReply.authorId }
+            )
+
+            // Save in local SQLite for offline access and direct DM conversations screen
+            coroutineScope.launch(Dispatchers.IO) {
+                dbHelper.saveMessage(optDmMsg)
+                dbHelper.saveMessages(canonicalDmId, listOf(optDmMsg))
+                dbHelper.saveMessages(targetU, listOf(optDmMsg))
+            }
+
+            coroutineScope.launch(Dispatchers.IO) {
+                try {
+                    val sendRes = ConnectoApiClient.sendMessage(
+                        channelId = canonicalDmId,
+                        content = privateContent,
+                        replyToId = activeReply.id,
+                        replyToContent = "[#$cleanCh] ${activeReply.content}",
+                        replyToAuthor = activeReply.authorName.ifBlank { activeReply.authorId }
+                    )
+                    withContext(Dispatchers.Main) {
+                        if (sendRes.isSuccess) {
+                            val serverMsg = sendRes.getOrThrow()
+                            withContext(Dispatchers.IO) {
+                                dbHelper.saveMessage(serverMsg)
+                                dbHelper.saveMessages(canonicalDmId, listOf(serverMsg))
+                                dbHelper.saveMessages(targetU, listOf(serverMsg))
+                            }
+                            Toast.makeText(context, "Direct message sent to @$targetU's private chat 🔒", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Message saved to @$targetU's private chat", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Error sending private message: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } finally {
+                    withContext(Dispatchers.Main) {
+                        isSending = false
+                    }
+                }
+            }
+            return
+        }
 
         val optimisticMsg = MessageDto(
             id = "temp_${UUID.randomUUID()}",
@@ -538,12 +680,12 @@ fun ChannelsWorkspaceScreen(
                                 }
                             }
 
-                            itemsIndexed(messages, key = { idx, msg -> "${msg.id}_$idx" }) { idx, msg ->
+                            itemsIndexed(messages, key = { _, msg -> msg.id }) { idx, msg ->
                                 val currentDate = formatChannelDate(msg.createdAt)
                                 val prevDate = if (idx > 0) formatChannelDate(messages[idx - 1].createdAt) else null
                                 val showDateDivider = prevDate == null || currentDate != prevDate
 
-                                Column(modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                                     if (showDateDivider) {
                                         Box(
                                             modifier = Modifier
@@ -635,24 +777,22 @@ fun ChannelsWorkspaceScreen(
                                                 .fillMaxWidth()
                                                 .offset { IntOffset(animatedItemSwipeOffset.roundToInt(), 0) }
                                         ) {
-                                            StaggeredReveal(index = idx.coerceAtMost(6)) {
-                                                ChannelMessageCard(
-                                                    message = msg,
-                                                    isMe = isMe,
-                                                    gradientColors = gradientColors,
-                                                    reactions = msgReactions,
-                                                    onToggleReaction = { emoji ->
-                                                        val currentList = msgReactions.toMutableList()
-                                                        if (currentList.contains(emoji)) {
-                                                            currentList.remove(emoji)
-                                                        } else {
-                                                            currentList.add(emoji)
-                                                        }
-                                                        channelReactions[msg.id] = currentList
-                                                    },
-                                                    onReply = { replyingTo = msg }
-                                                )
-                                            }
+                                            ChannelMessageCard(
+                                                message = msg,
+                                                isMe = isMe,
+                                                gradientColors = gradientColors,
+                                                reactions = msgReactions,
+                                                onToggleReaction = { emoji ->
+                                                    val currentList = msgReactions.toMutableList()
+                                                    if (currentList.contains(emoji)) {
+                                                        currentList.remove(emoji)
+                                                    } else {
+                                                        currentList.add(emoji)
+                                                    }
+                                                    channelReactions[msg.id] = currentList
+                                                },
+                                                onReply = { replyingTo = msg }
+                                            )
                                         }
                                     }
                                 }
@@ -801,19 +941,26 @@ fun ChannelsWorkspaceScreen(
                         exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
                     ) {
                         replyingTo?.let { replyTarget ->
+                            val targetFriend = matchedFriendTarget
+                            val isPrivate = isPrivateDmReply && targetFriend != null
+                            val targetU = targetFriend?.handle?.trim()?.lowercase()?.removePrefix("@") ?: ""
+
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(bottom = 6.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(
-                                        if (colors.isGlass) Color(0xD91E293B)
+                                        if (isPrivate) (if (colors.isDark) Color(0xFF1E1B4B) else Color(0xFFEEF2FF))
+                                        else if (colors.isGlass) Color(0xD91E293B)
                                         else if (colors.isDark) Color(0xFF18181B)
                                         else colors.surfaceVariant.copy(alpha = 0.95f)
                                     )
                                     .border(
-                                        width = 1.dp,
-                                        color = if (colors.isDark) Color(0xFF27272A) else colors.primary.copy(alpha = 0.35f),
+                                        width = if (isPrivate) 1.5.dp else 1.dp,
+                                        color = if (isPrivate) Color(0xFF6366F1)
+                                        else if (colors.isDark) Color(0xFF27272A)
+                                        else colors.primary.copy(alpha = 0.35f),
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -823,30 +970,61 @@ fun ChannelsWorkspaceScreen(
                                     modifier = Modifier
                                         .size(28.dp)
                                         .clip(CircleShape)
-                                        .background(if (colors.isDark) Color(0xFF27272A) else colors.primary.copy(alpha = 0.2f)),
+                                        .background(
+                                            if (isPrivate) Color(0xFF6366F1).copy(alpha = 0.25f)
+                                            else if (colors.isDark) Color(0xFF27272A)
+                                            else colors.primary.copy(alpha = 0.2f)
+                                        ),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.Reply,
-                                        contentDescription = "Replying to",
-                                        tint = if (colors.isDark) Color.White else colors.primary,
+                                        imageVector = if (isPrivate) Icons.Default.Lock else Icons.AutoMirrored.Filled.Reply,
+                                        contentDescription = if (isPrivate) "Private DM Reply" else "Replying to",
+                                        tint = if (isPrivate) Color(0xFF818CF8) else if (colors.isDark) Color.White else colors.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = if (isPrivate) "🔒 Private Reply to @$targetU"
+                                                   else "Replying to ${replyTarget.authorName.ifBlank { replyTarget.authorId }}",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isPrivate) Color(0xFF818CF8) else if (colors.isDark) Color.White else colors.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                        if (targetFriend != null && !isPrivate) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = Color(0xFF6366F1).copy(alpha = 0.15f),
+                                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF6366F1).copy(alpha = 0.3f)),
+                                                modifier = Modifier.clickable {
+                                                    typedMessage = "@$targetU "
+                                                }
+                                            ) {
+                                                Text(
+                                                    text = "🔒 DM @$targetU",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color(0xFF818CF8),
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
+                                            }
+                                        }
+                                    }
                                     Text(
-                                        text = "Replying to ${replyTarget.authorName.ifBlank { replyTarget.authorId }}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (colors.isDark) Color.White else colors.primary,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                    Text(
-                                        text = replyTarget.content,
+                                        text = if (isPrivate) "Will be sent directly to @$targetU's private chat"
+                                               else replyTarget.content,
                                         fontSize = 11.5.sp,
-                                        color = colors.textSecondary,
+                                        color = if (isPrivate) Color(0xFFA5B4FC) else colors.textSecondary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -882,8 +1060,15 @@ fun ChannelsWorkspaceScreen(
                                 else (if (colors.isDark) Color(0xFF141416) else Color(0xFFFFFFFF))
                             )
                             .border(
-                                width = if (isInputFocused) 1.5.dp else 1.dp,
-                                brush = if (colors.isGlass) {
+                                width = if (isPrivateDmReply) 1.5.dp else if (isInputFocused) 1.5.dp else 1.dp,
+                                brush = if (isPrivateDmReply) {
+                                    Brush.linearGradient(
+                                        listOf(
+                                            Color(0xFF6366F1),
+                                            Color(0xFF818CF8)
+                                        )
+                                    )
+                                } else if (colors.isGlass) {
                                     Brush.linearGradient(
                                         listOf(
                                             if (isInputFocused) Color(0xEE38BDF8) else Color(0x8038BDF8),
@@ -943,8 +1128,13 @@ fun ChannelsWorkspaceScreen(
                             ) {
                                 if (typedMessage.isEmpty()) {
                                     Text(
-                                        text = "Message #${activeChip.name}...",
-                                        color = if (colors.isDark) Color(0xFF71717A) else Color(0xFF94A3B8),
+                                        text = if (isPrivateDmReply && matchedFriendTarget != null) {
+                                            "Message @${matchedFriendTarget?.handle?.trim()?.removePrefix("@")} privately 🔒..."
+                                        } else {
+                                            "Message #${activeChip.name}..."
+                                        },
+                                        color = if (isPrivateDmReply) Color(0xFF818CF8)
+                                                else if (colors.isDark) Color(0xFF71717A) else Color(0xFF94A3B8),
                                         fontSize = 15.sp,
                                         fontFamily = FontFamily.Default,
                                         maxLines = 1,
@@ -1013,9 +1203,10 @@ fun ChannelsWorkspaceScreen(
                                     )
                                 } else {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.Send,
-                                        contentDescription = "Send",
-                                        tint = if (hasText) (if (colors.isDark) Color.Black else Color.White)
+                                        imageVector = if (isPrivateDmReply) Icons.Default.Lock else Icons.AutoMirrored.Rounded.Send,
+                                        contentDescription = if (isPrivateDmReply) "Send Private DM" else "Send",
+                                        tint = if (isPrivateDmReply && hasText) (if (colors.isDark) Color.Black else Color.White)
+                                               else if (hasText) (if (colors.isDark) Color.Black else Color.White)
                                                else (if (colors.isDark) Color(0xFF71717A) else Color(0xFF94A3B8)),
                                         modifier = Modifier.size(16.dp)
                                     )

@@ -1241,7 +1241,8 @@ fun CustomizedChatScreen(
                 val existingIdx = baseList.indexOfFirst {
                     it.id == newItem.id || (
                         isMe && it.isMe &&
-                        (it.id.startsWith("opt-") || it.id.length > 30 || it.time == "Just now") &&
+                        it.id.startsWith("opt-") &&
+                        kotlin.math.abs(it.timestampMillis - newItem.timestampMillis) < 60_000L &&
                         it.content.trim() == newItem.content.trim()
                     )
                 }
@@ -1721,8 +1722,8 @@ fun CustomizedChatScreen(
                                     if (mappedIds.contains(localMsg.id)) {
                                         false // Already confirmed in server list
                                     } else if (localMsg.id.startsWith("opt-")) {
-                                        // Optimistic message: keep unless mapped already has a confirmed server message from me with identical content
-                                        mappedResolved.none { m -> m.isMe && m.content.trim() == localMsg.content.trim() }
+                                        // Optimistic message: keep unless mapped already has a confirmed server message from me with identical content within 60 seconds
+                                        mappedResolved.none { m -> m.isMe && kotlin.math.abs(m.timestampMillis - localMsg.timestampMillis) < 60_000L && m.content.trim() == localMsg.content.trim() }
                                     } else {
                                         // Confirmed locally or cached from DB: NEVER drop simply because server poll didn't return it!
                                         true
@@ -4062,7 +4063,7 @@ fun CustomizedChatScreen(
                                         friendMessages.distinctBy { it.id },
                                         key = { _, msg -> msg.id }
                                     ) { _, msg ->
-                                        var dragOffsetX by remember { mutableStateOf(0f) }
+                                        var dragOffsetX by remember(msg.id) { mutableStateOf(0f) }
                                         val animatedDragOffset by animateFloatAsState(
                                             targetValue = dragOffsetX,
                                             animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -5055,9 +5056,7 @@ fun CustomChatBubble(
     )
 
     Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
+        modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
@@ -5065,7 +5064,6 @@ fun CustomChatBubble(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
                     .defaultMinSize(minHeight = 44.dp)
                     .pointerInput(message.id) {
                         detectTapGestures(

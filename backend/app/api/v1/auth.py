@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select, or_, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_db, get_current_user, get_current_user_optional
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, needs_rehash, generate_session_token, hash_session_token
 from app.core.otp import send_unified_otp, verify_unified_otp, clean_phone_number, mask_phone_number, mask_email
@@ -1123,5 +1123,162 @@ async def change_password_endpoint(
         "message": "Password changed successfully in the database! You can now log in or unlock with your new password.",
         "username": target_user.username
     }
+
+
+class TerminateSessionPayload(BaseModel):
+    session_id: Optional[str] = None
+    terminate_others: Optional[bool] = False
+    username: Optional[str] = None
+
+
+@router.get("/sessions", status_code=status.HTTP_200_OK)
+async def get_active_sessions_endpoint(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    target_user = current_user
+    if not target_user:
+        header_username = request.headers.get("X-Username") or request.headers.get("X-User-Username")
+        if header_username:
+            target_user = await find_user_by_identifier(db, header_username)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required to view active sessions.")
+
+    # Find raw token to check current session
+    auth_header = request.headers.get("Authorization", "")
+    raw_token = ""
+    if auth_header.startswith("Bearer "):
+        raw_token = auth_header[7:].strip()
+    if not raw_token:
+        raw_token = request.cookies.get(settings.COOKIE_NAME, "")
+    
+    current_token_hash = hash_session_token(raw_token) if raw_token else None
+
+    now = datetime.now(timezone.utc)
+    stmt = (
+        select(UserSession)
+        .where(
+            UserSession.user_id == target_user.id,
+            UserSession.expires_at > now
+        )
+        .order_by(UserSession.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    sessions = result.scalars().all()
+
+    session_list = []
+    has_current = False
+    for s in sessions:
+        is_curr = False
+        if current_token_hash and s.session_token_hash == current_token_hash:
+            is_curr = True
+            has_current = True
+        
+        ua = s.user_agent or ""
+        dev_name = "Web Browser"
+        lower_ua = ua.lower()
+        if "android" in lower_ua:
+            dev_name = "Connecto Android App"
+        elif "iphone" in lower_ua or "ipad" in lower_ua:
+            dev_name = "Connecto iOS (Safari)"
+        elif "macintosh" in lower_ua or "mac os" in lower_ua:
+            if "chrome" in lower_ua: dev_name = "Chrome on macOS"
+            elif "safari" in lower_ua: dev_name = "Safari on macOS"
+            elif "firefox" in lower_ua: dev_name = "Firefox on macOS"
+            else: dev_name = "macOS Browser"
+        elif "windows" in lower_ua:
+            if "edg" in lower_ua: dev_name = "Edge on Windows"
+            elif "chrome" in lower_ua: dev_name = "Chrome on Windows"
+            elif "firefox" in lower_ua: dev_name = "Firefox on Windows"
+            else: dev_name = "Windows PC"
+        elif "linux" in lower_ua:
+            dev_name = "Linux Browser"
+
+        loc = "Online"
+        if s.ip_address:
+            if s.ip_address in ("127.0.0.1", "::1", "localhost"):
+                loc = "Local Device"
+            else:
+                loc = f"IP: {s.ip_address}"
+
+        session_list.append({
+            "id": s.id,
+            "device_name": dev_name,
+            "location": loc,
+            "ip_address": s.ip_address or "",
+            "is_current": is_curr,
+            "created_at": s.created_at.isoformat() if s.created_at else "",
+            "last_active_at": s.created_at.isoformat() if s.created_at else ""
+        })
+
+    if not has_current and session_list:
+        session_list[0]["is_current"] = True
+
+    return {
+        "status": "ok",
+        "sessions": session_list
+    }
+
+
+@router.post("/sessions/terminate", status_code=status.HTTP_200_OK)
+async def terminate_session_endpoint(
+    req: TerminateSessionPayload,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    target_user = current_user
+    if not target_user and req.username:
+        target_user = await find_user_by_identifier(db, req.username)
+    if not target_user:
+        header_username = request.headers.get("X-Username") or request.headers.get("X-User-Username")
+        if header_username:
+            target_user = await find_user_by_identifier(db, header_username)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+
+    auth_header = request.headers.get("Authorization", "")
+    raw_token = ""
+    if auth_header.startswith("Bearer "):
+        raw_token = auth_header[7:].strip()
+    if not raw_token:
+        raw_token = request.cookies.get(settings.COOKIE_NAME, "")
+    current_token_hash = hash_session_token(raw_token) if raw_token else None
+
+    if req.terminate_others:
+        stmt = select(UserSession).where(UserSession.user_id == target_user.id)
+        sessions = (await db.execute(stmt)).scalars().all()
+        for s in sessions:
+            if current_token_hash and s.session_token_hash == current_token_hash:
+                continue
+            await db.delete(s)
+        await db.commit()
+        return {"status": "ok", "message": "All other sessions have been logged out."}
+
+    if req.session_id:
+        stmt = select(UserSession).where(
+            UserSession.id == req.session_id,
+            UserSession.user_id == target_user.id
+        )
+        session_to_delete = (await db.execute(stmt)).scalar_one_or_none()
+        if session_to_delete:
+            await db.delete(session_to_delete)
+            await db.commit()
+            return {"status": "ok", "message": "Session terminated successfully."}
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Specify session_id or terminate_others.")
+
+
+@router.post("/sessions/terminate-others", status_code=status.HTTP_200_OK)
+async def terminate_others_session_endpoint(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    return await terminate_session_endpoint(TerminateSessionPayload(terminate_others=True), request, db, current_user)
+
 
 

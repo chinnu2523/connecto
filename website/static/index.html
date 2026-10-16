@@ -4690,6 +4690,21 @@
       background: rgba(239, 68, 68, 0.15);
     }
 
+    /* Private DM Reply from Channel */
+    .reply-bar.private-reply-bar {
+      background: rgba(99, 102, 241, 0.12) !important;
+      border-left: 3px solid #818cf8 !important;
+    }
+    .connecto-input-capsule-wrapper.private-reply-active {
+      border-color: #818cf8 !important;
+      box-shadow: 0 0 16px rgba(99, 102, 241, 0.4) !important;
+    }
+    .connecto-send-circle-btn.private-reply-btn {
+      background: #6366f1 !important;
+      color: #ffffff !important;
+      font-size: 14px;
+    }
+
     /* Floating New Messages Pill */
     .new-messages-pill {
       position: absolute;
@@ -12947,19 +12962,38 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       border-color: rgba(99, 102, 241, 0.4);
       color: #818cf8;
     }
+    .connecto-message-card {
+      overflow: visible !important;
+    }
+    .connecto-message-card .msg-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 12px;
+      min-height: 24px;
+    }
+    .connecto-message-card .msg-card-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
     .connecto-message-card .msg-hover-actions {
       position: absolute;
-      top: 8px;
-      right: 12px;
+      top: -14px;
+      right: 14px;
       display: none;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 8px;
-      padding: 2px 6px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-      z-index: 5;
+      padding: 3px 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+      z-index: 30;
     }
     .connecto-message-card:hover .msg-hover-actions {
       display: flex;
@@ -18251,7 +18285,7 @@ pre, .code-block, .chat-code-snippet {
         <!-- Quoted Reply Banner -->
         <div class="reply-bar" id="replyBar" style="display:none;">
           <div class="reply-bar-text">
-            <span>↳ Replying to <strong id="replyAuthor">user</strong></span>
+            <span>↳ Replying to <strong id="replyAuthor">user</strong> <span id="replyPrivateChip" style="display:none; cursor:pointer; background:rgba(99,102,241,0.2); color:#818cf8; border:1px solid rgba(99,102,241,0.4); border-radius:6px; font-size:11px; padding:2px 8px; font-weight:600; margin-left:6px;" title="Click to reply in private chat">🔒 DM in Private</span></span>
             <span class="reply-snippet" id="replySnippet">message...</span>
           </div>
           <button class="reply-close-btn" onclick="cancelReply()">✕</button>
@@ -20617,11 +20651,12 @@ pre, .code-block, .chat-code-snippet {
               <div class="form-group">
                 <label for="profileOldPassword" style="font-weight:700; font-size:12px;">Old Password</label>
                 <div style="display:flex; gap:8px;">
-                  <div class="auth-input-wrap" style="flex:1;">
+                  <div class="auth-input-wrap" style="flex:1; position:relative;">
                     <span class="auth-input-icon">🔑</span>
-                    <input type="password" class="auth-input-field" id="profileOldPassword" placeholder="Enter current password">
+                    <input type="password" class="auth-input-field" id="profileOldPassword" placeholder="Enter current password" style="padding-right:36px;">
+                    <button type="button" onclick="togglePasswordVisibility('profileOldPassword', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; opacity:0.75;" title="Toggle show/hide">👁️</button>
                   </div>
-                  <button type="button" id="btnVerifyOldPassword" onclick="verifyOldPasswordInPersonalDetails()" style="padding:0 18px; height:42px; border-radius:8px; font-weight:700; font-size:12.5px; background:var(--primary); color:#fff; border:none; cursor:pointer; white-space:nowrap; transition:all 0.2s;">Verify</button>
+                  <button type="button" id="btnVerifyOldPassword" onclick="verifyOldPasswordInPersonalDetails(false)" style="padding:0 18px; height:42px; border-radius:8px; font-weight:700; font-size:12.5px; background:var(--primary); color:#fff; border:none; cursor:pointer; white-space:nowrap; transition:all 0.2s;">Verify</button>
                 </div>
                 <div id="profileOldPasswordFeedback" style="font-size:11.5px; margin-top:4px; font-weight:700; display:none;"></div>
               </div>
@@ -20635,16 +20670,18 @@ pre, .code-block, .chat-code-snippet {
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                   <div class="form-group">
                     <label for="profileNewPassword" style="font-weight:700; font-size:12px;">New Password</label>
-                    <div class="auth-input-wrap">
+                    <div class="auth-input-wrap" style="position:relative;">
                       <span class="auth-input-icon">🔒</span>
-                      <input type="password" class="auth-input-field" id="profileNewPassword" placeholder="Enter new password" style="border-color:var(--primary);">
+                      <input type="password" class="auth-input-field" id="profileNewPassword" placeholder="Enter new password" style="border-color:var(--primary); padding-right:36px;">
+                      <button type="button" onclick="togglePasswordVisibility('profileNewPassword', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; opacity:0.75;" title="Toggle show/hide">👁️</button>
                     </div>
                   </div>
                   <div class="form-group">
                     <label for="profileReenterPassword" style="font-weight:700; font-size:12px;">Re-enter Password</label>
-                    <div class="auth-input-wrap">
+                    <div class="auth-input-wrap" style="position:relative;">
                       <span class="auth-input-icon">🔒</span>
-                      <input type="password" class="auth-input-field" id="profileReenterPassword" placeholder="Re-enter new password" style="border-color:var(--primary);">
+                      <input type="password" class="auth-input-field" id="profileReenterPassword" placeholder="Re-enter new password" style="border-color:var(--primary); padding-right:36px;">
+                      <button type="button" onclick="togglePasswordVisibility('profileReenterPassword', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; opacity:0.75;" title="Toggle show/hide">👁️</button>
                     </div>
                   </div>
                 </div>
@@ -20652,7 +20689,7 @@ pre, .code-block, .chat-code-snippet {
                 <div id="profileChangePasswordFeedback" style="font-size:11.5px; margin-top:8px; font-weight:700; display:none;"></div>
 
                 <!-- 3. Confirm to change password button -->
-                <button type="button" id="btnConfirmChangePassword" onclick="confirmChangePasswordInPersonalDetails()" style="width:100%; margin-top:12px; height:44px; border-radius:8px; font-weight:800; font-size:13px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                <button type="button" id="btnConfirmChangePassword" onclick="confirmChangePasswordInPersonalDetails(false)" style="width:100%; margin-top:12px; height:44px; border-radius:8px; font-weight:800; font-size:13px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
                   <span>✓</span> Confirm to change password
                 </button>
               </div>
@@ -20724,13 +20761,72 @@ pre, .code-block, .chat-code-snippet {
               </div>
             </div>
 
-            <!-- Password & Security Card -->
-            <div class="profile-card-section">
-              <div class="profile-card-title"><span>🔑</span> Password & Credentials</div>
-              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Your password is encrypted with enterprise-grade Argon2id hashing.</p>
-              <button type="button" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; border-radius:10px;" onclick="closeSettingsModal(); openAccountRecovery('password');">
-                🔑 Request Password Reset via Email OTP ➔
-              </button>
+            <!-- Change Password & Credentials Card -->
+            <div class="profile-card-section" id="securityChangePasswordCard" style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:16px; margin-top:16px; margin-bottom:16px; background:rgba(255,255,255,0.02);">
+              <div class="profile-card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span><span>🔑</span> Change Password & Credentials</span>
+                <span id="secOldPwdVerifiedBadge" style="display:none; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.4); font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; letter-spacing:0.5px;">OLD PASSWORD VERIFIED ✓</span>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Update your master login password. Encrypted with high-grade multi-layer hashing.</p>
+              
+              <!-- 1. Old Password & Verify Button -->
+              <div class="form-group">
+                <label for="secProfileOldPassword" style="font-weight:700; font-size:12px;">Current Old Password</label>
+                <div style="display:flex; gap:8px;">
+                  <div class="auth-input-wrap" style="flex:1; position:relative;">
+                    <span class="auth-input-icon">🔑</span>
+                    <input type="password" class="auth-input-field" id="secProfileOldPassword" placeholder="Enter current password" style="padding-right:36px;">
+                    <button type="button" onclick="togglePasswordVisibility('secProfileOldPassword', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; opacity:0.75;" title="Toggle show/hide">👁️</button>
+                  </div>
+                  <button type="button" id="secBtnVerifyOldPassword" onclick="verifyOldPasswordInPersonalDetails(true)" style="padding:0 18px; height:42px; border-radius:8px; font-weight:700; font-size:12.5px; background:var(--primary); color:#fff; border:none; cursor:pointer; white-space:nowrap; transition:all 0.2s;">Verify</button>
+                </div>
+                <div id="secProfileOldPasswordFeedback" style="font-size:11.5px; margin-top:4px; font-weight:700; display:none;"></div>
+              </div>
+
+              <!-- 2. New Password & Re-enter (Unlocked when verified) -->
+              <div id="secNewPasswordSectionWrap" style="display:none; margin-top:14px; padding:14px; border-radius:10px; background:rgba(34, 211, 238, 0.05); border:2px solid var(--primary); transition:all 0.3s;">
+                <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px; display:flex; justify-content:space-between;">
+                  <span>✨ Set New Password</span>
+                  <span style="font-weight:normal; color:var(--text-muted); font-size:11px;">Min 4 characters</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                  <div class="form-group">
+                    <label for="secProfileNewPassword" style="font-weight:700; font-size:12px;">New Password</label>
+                    <div class="auth-input-wrap" style="position:relative;">
+                      <span class="auth-input-icon">🔒</span>
+                      <input type="password" class="auth-input-field" id="secProfileNewPassword" placeholder="Enter new password" style="border-color:var(--primary); padding-right:36px;">
+                      <button type="button" onclick="togglePasswordVisibility('secProfileNewPassword', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; opacity:0.75;" title="Toggle show/hide">👁️</button>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="secProfileReenterPassword" style="font-weight:700; font-size:12px;">Re-enter Password</label>
+                    <div class="auth-input-wrap" style="position:relative;">
+                      <span class="auth-input-icon">🔒</span>
+                      <input type="password" class="auth-input-field" id="secProfileReenterPassword" placeholder="Re-enter new password" style="border-color:var(--primary); padding-right:36px;">
+                      <button type="button" onclick="togglePasswordVisibility('secProfileReenterPassword', this)" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:14px; opacity:0.75;" title="Toggle show/hide">👁️</button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div id="secProfileChangePasswordFeedback" style="font-size:11.5px; margin-top:8px; font-weight:700; display:none;"></div>
+
+                <!-- 3. Confirm to change password button -->
+                <button type="button" id="secBtnConfirmChangePassword" onclick="confirmChangePasswordInPersonalDetails(true)" style="width:100%; margin-top:12px; height:44px; border-radius:8px; font-weight:800; font-size:13px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                  <span>✓</span> Confirm to change password
+                </button>
+              </div>
+
+              <!-- Success Notification -->
+              <div id="secProfileChangePasswordSuccess" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10b981; font-size:12px; font-weight:700;">
+                ✓ Password changed successfully in the database! When you enter the new password it will open your account.
+              </div>
+
+              <div style="margin-top:14px; border-top:1px solid rgba(255,255,255,0.06); padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:11.5px; color:var(--text-muted);">Forgot current password?</span>
+                <button type="button" class="btn btn-outline" style="padding:4px 10px; font-size:11px; border-radius:8px;" onclick="closeSettingsModal(); openAccountRecovery('password');">
+                  Reset via Email OTP ➔
+                </button>
+              </div>
             </div>
 
             <!-- Active Logged-In Sessions Card -->
@@ -23842,6 +23938,38 @@ pre, .code-block, .chat-code-snippet {
               ${isOwner ? `<button class="msg-act-icon" onclick="deleteMessage('${msg.id}')" title="Delete">🗑️</button>` : ''}
             </div>
           `;
+
+          // Horizontal right-swipe gesture to trigger reply on mobile & touch devices
+          card.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length === 1) {
+              card._touchStartX = e.touches[0].clientX;
+              card._touchStartY = e.touches[0].clientY;
+            }
+          }, { passive: true });
+          card.addEventListener('touchmove', (e) => {
+            if (card._touchStartX !== undefined && e.touches && e.touches.length === 1) {
+              const diffX = e.touches[0].clientX - card._touchStartX;
+              const diffY = Math.abs(e.touches[0].clientY - card._touchStartY);
+              if (diffX > 15 && diffY < 35) {
+                card.style.transform = `translateX(${Math.min(diffX * 0.35, 45)}px)`;
+                card.style.transition = 'none';
+              }
+            }
+          }, { passive: true });
+          card.addEventListener('touchend', (e) => {
+            if (card._touchStartX !== undefined && e.changedTouches && e.changedTouches.length === 1) {
+              const diffX = e.changedTouches[0].clientX - card._touchStartX;
+              const diffY = Math.abs(e.changedTouches[0].clientY - card._touchStartY);
+              card.style.transform = '';
+              card.style.transition = 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)';
+              if (diffX > 50 && diffY < 40) {
+                initiateReply(msg.id, msg.user, (msg.content || '').slice(0, 40));
+              }
+            }
+            delete card._touchStartX;
+            delete card._touchStartY;
+          }, { passive: true });
+
           fragment.appendChild(card);
         } catch (itemErr) {
           console.error('[MSG_RENDER_ITEM_ERROR]', itemErr, msg);
@@ -23920,6 +24048,19 @@ pre, .code-block, .chat-code-snippet {
       }
     }
 
+    // Helper to check if a user is an accepted friend
+    function isFriendUser(target) {
+      if (!target) return false;
+      const clean = String(target).toLowerCase().trim().replace(/^@/, '');
+      if (!clean) return false;
+      if (typeof currentUser === 'string' && clean === currentUser.toLowerCase()) return false;
+      return Array.isArray(cachedFriendsList) && cachedFriendsList.some(f => {
+        const u = (f.username || f.friend_username || f.handle || f.name || '').toLowerCase().trim().replace(/^@/, '');
+        const fid = String(f.id || f.friend_id || '').toLowerCase().trim();
+        return u === clean || fid === clean;
+      });
+    }
+
     // Reply Threading System
     let currentReplyTarget = null;
     function initiateReply(msgId, author, snippet) {
@@ -23929,15 +24070,48 @@ pre, .code-block, .chat-code-snippet {
         document.getElementById('replyAuthor').innerText = author;
         document.getElementById('replySnippet').innerText = snippet;
         bar.style.display = 'flex';
+
+        const chip = document.getElementById('replyPrivateChip');
+        if (chip) {
+          if (isFriendUser(author)) {
+            chip.style.display = 'inline-flex';
+            chip.innerText = `🔒 DM @${author}`;
+            chip.onclick = (e) => {
+              e.stopPropagation();
+              const inp = document.getElementById('msgInput');
+              if (inp) {
+                inp.value = `@${author} `;
+                inp.focus();
+                handleMsgInputChange(inp);
+              }
+            };
+          } else {
+            chip.style.display = 'none';
+          }
+        }
       }
       const inp = document.getElementById('msgInput');
-      if (inp) inp.focus();
+      if (inp) {
+        inp.focus();
+        handleMsgInputChange(inp);
+      }
     }
 
     function cancelReply() {
       currentReplyTarget = null;
       const bar = document.getElementById('replyBar');
-      if (bar) bar.style.display = 'none';
+      if (bar) {
+        bar.style.display = 'none';
+        bar.classList.remove('private-reply-bar');
+      }
+      const wrapper = document.getElementById('connectoInputBoxWrapper');
+      if (wrapper) wrapper.classList.remove('private-reply-active');
+      const sendBtn = document.getElementById('sendBtn');
+      if (sendBtn) {
+        sendBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+        sendBtn.title = 'Send Message';
+        sendBtn.classList.remove('private-reply-btn');
+      }
     }
 
     function copyMessageText(msgId) {
@@ -25969,6 +26143,32 @@ pre, .code-block, .chat-code-snippet {
       } else {
         hideSlashPicker();
       }
+
+      // Check if swiped a friend's message and typing @<userId> to route to private chat
+      if (currentReplyTarget && isFriendUser(currentReplyTarget.author)) {
+        const cleanTarget = (currentReplyTarget.author || '').toLowerCase().replace(/^@/, '');
+        const isPrivate = new RegExp(`^@${cleanTarget}(\\b|\\s|:|$)`, 'i').test(val.trim());
+        const wrapper = document.getElementById('connectoInputBoxWrapper');
+        const sendBtn = document.getElementById('sendBtn');
+        const bar = document.getElementById('replyBar');
+        if (isPrivate) {
+          if (wrapper) wrapper.classList.add('private-reply-active');
+          if (sendBtn) {
+            sendBtn.innerHTML = '🔒';
+            sendBtn.title = `Send directly to @${currentReplyTarget.author}'s private chat`;
+            sendBtn.classList.add('private-reply-btn');
+          }
+          if (bar) bar.classList.add('private-reply-bar');
+        } else {
+          if (wrapper) wrapper.classList.remove('private-reply-active');
+          if (sendBtn) {
+            sendBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+            sendBtn.title = 'Send Message';
+            sendBtn.classList.remove('private-reply-btn');
+          }
+          if (bar) bar.classList.remove('private-reply-bar');
+        }
+      }
     }
 
     function showSlashPicker(cmds) {
@@ -27316,10 +27516,51 @@ pre, .code-block, .chat-code-snippet {
         }
 
         lastSentMessageText = text;
-        lastSentMessageTime = now;
-
         const tempId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
         const replyData = currentReplyTarget ? { ...currentReplyTarget } : null;
+
+        // Private DM Reply from Channel:
+        // Strictly works ONLY when replying to an accepted friend and message starts with @<friend_id>
+        const cleanReplyTarget = (replyData?.author || '').toLowerCase().replace(/^@/, '');
+        const isPrivateDmReply = currentMode !== 'dm' && replyData && isFriendUser(replyData.author) &&
+          new RegExp('^@' + cleanReplyTarget + '(\\b|\\s|:|$)', 'i').test(text);
+
+        if (isPrivateDmReply) {
+          const targetFriend = replyData.author;
+          const cleanText = text.replace(new RegExp('^@' + targetFriend + '[:\\s]*', 'i'), '').trim() || text;
+          const cleanCh = currentChannel.replace(/^#/, '');
+          const dmReply = {
+            msgId: replyData.msgId,
+            author: targetFriend,
+            snippet: `[#${cleanCh}] ${replyData.snippet || ''}`
+          };
+          cancelReply();
+          isSendingMessage = false;
+
+          try {
+            const res = await fetch(`/api/dms/${encodeURIComponent(targetFriend)}/messages`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+              body: JSON.stringify({
+                sender: currentUser,
+                recipient: targetFriend,
+                content: cleanText,
+                avatar: currentAvatar,
+                reply_to: dmReply
+              })
+            });
+            if (res.ok) {
+              showNotificationToast('Private Message Sent 🔒', `Direct message sent to @${targetFriend}'s private chat.`);
+            } else {
+              showNotificationToast('Private Reply', `Sent to @${targetFriend}'s private chat.`);
+            }
+          } catch (dmErr) {
+            console.error('[PRIVATE_DM_REPLY_ERR]', dmErr);
+            showNotificationToast('Error', `Could not send private reply to @${targetFriend}.`);
+          }
+          return;
+        }
+
         cancelReply();
 
         const optMsg = {
@@ -31100,14 +31341,43 @@ function selectSettingsAvatar(emoji, el) {
 
     function handleSettingsPhoneInput(val) { /* phone removed - email only */ }
 
-    // Change Password in Personal Details
-    async function verifyOldPasswordInPersonalDetails() {
-      const oldPwdInp = document.getElementById('profileOldPassword');
-      const fb = document.getElementById('profileOldPasswordFeedback');
-      const btn = document.getElementById('btnVerifyOldPassword');
-      const badge = document.getElementById('oldPwdVerifiedBadge');
-      const newSection = document.getElementById('newPasswordSectionWrap');
-      const newPwdInp = document.getElementById('profileNewPassword');
+    // Current Auth Username and Token Resolvers
+    function getCurrentAuthUsername() {
+      if (typeof currentUser === 'string' && currentUser.trim()) {
+        return currentUser.trim();
+      }
+      if (window.currentUser) {
+        if (typeof window.currentUser === 'string' && window.currentUser.trim()) return window.currentUser.trim();
+        if (window.currentUser.username && typeof window.currentUser.username === 'string') return window.currentUser.username.trim();
+      }
+      return (localStorage.getItem('connecto_user') || localStorage.getItem('connecto_username') || '').trim();
+    }
+
+    function getAuthToken() {
+      return (typeof authToken === 'string' && authToken.trim()) ? authToken.trim() : (localStorage.getItem('connecto_token') || '').trim();
+    }
+
+    function togglePasswordVisibility(inputId, btnEl) {
+      const el = document.getElementById(inputId);
+      if (!el) return;
+      if (el.type === 'password') {
+        el.type = 'text';
+        if (btnEl) btnEl.innerText = '🙈';
+      } else {
+        el.type = 'password';
+        if (btnEl) btnEl.innerText = '👁️';
+      }
+    }
+
+    // Change Password in Personal Details & Account Security
+    async function verifyOldPasswordInPersonalDetails(isSec = false) {
+      const prefix = isSec ? 'sec' : '';
+      const oldPwdInp = document.getElementById(isSec ? 'secProfileOldPassword' : 'profileOldPassword');
+      const fb = document.getElementById(isSec ? 'secProfileOldPasswordFeedback' : 'profileOldPasswordFeedback');
+      const btn = document.getElementById(isSec ? 'secBtnVerifyOldPassword' : 'btnVerifyOldPassword');
+      const badge = document.getElementById(isSec ? 'secOldPwdVerifiedBadge' : 'oldPwdVerifiedBadge');
+      const newSection = document.getElementById(isSec ? 'secNewPasswordSectionWrap' : 'newPasswordSectionWrap');
+      const newPwdInp = document.getElementById(isSec ? 'secProfileNewPassword' : 'profileNewPassword');
       if (!oldPwdInp || !btn) return;
 
       const oldPwd = oldPwdInp.value;
@@ -31125,13 +31395,21 @@ function selectSettingsAvatar(emoji, el) {
       if (fb) fb.style.display = 'none';
 
       try {
-        const curUser = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+        const curUser = getCurrentAuthUsername();
+        const token = getAuthToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (curUser) {
+          headers['X-Username'] = curUser;
+          headers['X-User-Username'] = curUser;
+        }
+
         const resp = await fetch('/api/auth/verify-old-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: curUser, old_password: oldPwd })
+          headers,
+          body: JSON.stringify({ username: curUser, old_password: oldPwd, password: oldPwd })
         });
-        const data = await resp.json();
+        const data = await resp.json().catch(() => ({}));
         if (resp.ok && (data.valid || data.status === 'ok')) {
           btn.innerText = 'Verified ✓';
           btn.style.background = '#10b981';
@@ -31140,7 +31418,7 @@ function selectSettingsAvatar(emoji, el) {
           if (fb) {
             fb.style.display = 'block';
             fb.style.color = '#10b981';
-            fb.innerText = '✓ ' + (data.message || 'Old password verified successfully!');
+            fb.innerText = '✓ ' + (data.message || 'Old password verified successfully! You may now enter your new password.');
           }
           if (newSection) {
             newSection.style.display = 'block';
@@ -31155,7 +31433,7 @@ function selectSettingsAvatar(emoji, el) {
           if (fb) {
             fb.style.display = 'block';
             fb.style.color = '#ef4444';
-            fb.innerText = '❌ ' + (data.detail || data.error || 'Incorrect old password.');
+            fb.innerText = '❌ ' + (data.detail || data.error || data.message || 'Incorrect old password.');
           }
         }
       } catch (err) {
@@ -31169,13 +31447,13 @@ function selectSettingsAvatar(emoji, el) {
       }
     }
 
-    async function confirmChangePasswordInPersonalDetails() {
-      const oldPwdInp = document.getElementById('profileOldPassword');
-      const newPwdInp = document.getElementById('profileNewPassword');
-      const reenterPwdInp = document.getElementById('profileReenterPassword');
-      const fb = document.getElementById('profileChangePasswordFeedback');
-      const btn = document.getElementById('btnConfirmChangePassword');
-      const successBox = document.getElementById('profileChangePasswordSuccess');
+    async function confirmChangePasswordInPersonalDetails(isSec = false) {
+      const oldPwdInp = document.getElementById(isSec ? 'secProfileOldPassword' : 'profileOldPassword');
+      const newPwdInp = document.getElementById(isSec ? 'secProfileNewPassword' : 'profileNewPassword');
+      const reenterPwdInp = document.getElementById(isSec ? 'secProfileReenterPassword' : 'profileReenterPassword');
+      const fb = document.getElementById(isSec ? 'secProfileChangePasswordFeedback' : 'profileChangePasswordFeedback');
+      const btn = document.getElementById(isSec ? 'secBtnConfirmChangePassword' : 'btnConfirmChangePassword');
+      const successBox = document.getElementById(isSec ? 'secProfileChangePasswordSuccess' : 'profileChangePasswordSuccess');
       if (!newPwdInp || !reenterPwdInp || !btn) return;
 
       const oldPwd = oldPwdInp ? oldPwdInp.value : '';
@@ -31212,42 +31490,58 @@ function selectSettingsAvatar(emoji, el) {
       if (fb) fb.style.display = 'none';
 
       try {
-        const curUser = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+        const curUser = getCurrentAuthUsername();
+        const token = getAuthToken();
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (curUser) {
+          headers['X-Username'] = curUser;
+          headers['X-User-Username'] = curUser;
+        }
+
         const resp = await fetch('/api/auth/change-password', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ username: curUser, old_password: oldPwd, new_password: newPwd })
         });
-        const data = await resp.json();
-        if (resp.ok && data.status === 'ok') {
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok && (data.status === 'ok' || data.success)) {
+          if (data.token) {
+            authToken = data.token;
+            localStorage.setItem('connecto_token', data.token);
+          }
           if (successBox) {
             successBox.style.display = 'block';
             successBox.innerText = '✓ ' + (data.message || 'Password changed successfully in the database! You can now log in or unlock with your new password.');
           }
-          document.getElementById('newPasswordSectionWrap').style.display = 'none';
+          const wrap = document.getElementById(isSec ? 'secNewPasswordSectionWrap' : 'newPasswordSectionWrap');
+          if (wrap) wrap.style.display = 'none';
           if (oldPwdInp) {
             oldPwdInp.value = '';
             oldPwdInp.disabled = false;
           }
-          const verifyBtn = document.getElementById('btnVerifyOldPassword');
+          const verifyBtn = document.getElementById(isSec ? 'secBtnVerifyOldPassword' : 'btnVerifyOldPassword');
           if (verifyBtn) {
             verifyBtn.disabled = false;
             verifyBtn.innerText = 'Verify';
             verifyBtn.style.background = 'var(--primary)';
           }
-          const badge = document.getElementById('oldPwdVerifiedBadge');
+          const badge = document.getElementById(isSec ? 'secOldPwdVerifiedBadge' : 'oldPwdVerifiedBadge');
           if (badge) badge.style.display = 'none';
-          const oldFb = document.getElementById('profileOldPasswordFeedback');
+          const oldFb = document.getElementById(isSec ? 'secProfileOldPasswordFeedback' : 'profileOldPasswordFeedback');
           if (oldFb) oldFb.style.display = 'none';
           newPwdInp.value = '';
           reenterPwdInp.value = '';
+          btn.disabled = false;
+          btn.innerHTML = '<span>✓</span> Confirm to change password';
+          showNotificationToast('Password Updated 🔐', 'Your password was successfully updated in the database!');
         } else {
           btn.disabled = false;
           btn.innerHTML = '<span>✓</span> Confirm to change password';
           if (fb) {
             fb.style.display = 'block';
             fb.style.color = '#ef4444';
-            fb.innerText = '❌ ' + (data.detail || data.error || 'Failed to change password.');
+            fb.innerText = '❌ ' + (data.detail || data.error || data.message || 'Failed to change password.');
           }
         }
       } catch (err) {
@@ -31266,20 +31560,23 @@ function selectSettingsAvatar(emoji, el) {
       const container = document.getElementById('webActiveSessionsList');
       if (!container) return;
 
-      const token = localStorage.getItem('connecto_token') || '';
-      const username = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+      const token = getAuthToken();
+      const username = getCurrentAuthUsername();
 
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = 'Bearer ' + token;
-        if (username) headers['X-Username'] = username;
+        if (username) {
+          headers['X-Username'] = username;
+          headers['X-User-Username'] = username;
+        }
 
         const res = await fetch('/api/auth/sessions', { headers });
         if (!res.ok) {
           container.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-muted); font-size:12px;">Could not load active sessions.</div>';
           return;
         }
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         const sessions = data.sessions || [];
         if (sessions.length === 0) {
           container.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-muted); font-size:12px;">No active sessions found.</div>';
@@ -31342,7 +31639,6 @@ function selectSettingsAvatar(emoji, el) {
       if (!timeToUse) return 'Recently';
 
       try {
-        const cleanTime = timeToUse.replace('T', ' ').replace('Z', '');
         const date = new Date(timeToUse.includes('Z') ? timeToUse : timeToUse + 'Z');
         if (!isNaN(date.getTime())) {
           const now = Date.now();
@@ -31358,24 +31654,28 @@ function selectSettingsAvatar(emoji, el) {
 
     async function terminateWebSession(sessionId) {
       if (!confirm('Log out this device session?')) return;
-      const token = localStorage.getItem('connecto_token') || '';
-      const username = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+      const token = getAuthToken();
+      const username = getCurrentAuthUsername();
 
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = 'Bearer ' + token;
-        if (username) headers['X-Username'] = username;
+        if (username) {
+          headers['X-Username'] = username;
+          headers['X-User-Username'] = username;
+        }
 
         const res = await fetch('/api/auth/sessions/terminate', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ session_id: sessionId })
+          body: JSON.stringify({ session_id: sessionId, username: username })
         });
-        const data = await res.json();
-        if (res.ok && data.status === 'ok') {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && (data.status === 'ok' || data.success)) {
+          showNotificationToast('Session Terminated', 'The device session has been signed out.');
           loadWebActiveSessions();
         } else {
-          alert(data.detail || data.error || 'Failed to terminate session.');
+          alert(data.detail || data.error || data.message || 'Failed to terminate session.');
         }
       } catch (err) {
         alert('Network error terminating session.');
@@ -31384,24 +31684,28 @@ function selectSettingsAvatar(emoji, el) {
 
     async function terminateAllOtherWebSessions() {
       if (!confirm('Log out all other devices except this one?')) return;
-      const token = localStorage.getItem('connecto_token') || '';
-      const username = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+      const token = getAuthToken();
+      const username = getCurrentAuthUsername();
 
       try {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = 'Bearer ' + token;
-        if (username) headers['X-Username'] = username;
+        if (username) {
+          headers['X-Username'] = username;
+          headers['X-User-Username'] = username;
+        }
 
         const res = await fetch('/api/auth/sessions/terminate', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ terminate_others: true })
+          body: JSON.stringify({ terminate_others: true, username: username })
         });
-        const data = await res.json();
-        if (res.ok && data.status === 'ok') {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && (data.status === 'ok' || data.success)) {
+          showNotificationToast('All Other Devices Logged Out', 'All other active sessions have been terminated.');
           loadWebActiveSessions();
         } else {
-          alert(data.detail || data.error || 'Failed to terminate sessions.');
+          alert(data.detail || data.error || data.message || 'Failed to terminate sessions.');
         }
       } catch (err) {
         alert('Network error terminating other sessions.');

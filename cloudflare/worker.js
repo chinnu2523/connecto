@@ -869,7 +869,7 @@ async function resolveUserFromRequest(request, env) {
   }
 
   // 3. Fallback to client-provided X-User-Username or X-Username header
-  if (!user && !token) {
+  if (!user) {
     const uHeader = (
       request.headers.get("X-User-Username") ||
       request.headers.get("X-Username") ||
@@ -1724,6 +1724,35 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         return jsonResponse({ error: "Unauthorized" }, 401);
       }
       const body = await request.json().catch(() => ({}));
+      if (body.terminate_others) {
+        const authHeader = request.headers.get("Authorization") || "";
+        let token = "";
+        if (authHeader.startsWith("Bearer ")) token = authHeader.substring(7).trim();
+        const currentHash = token ? await sha256Hex(token) : "";
+
+        const otherSessions = await env.DB.prepare(
+          "SELECT id, session_token_hash FROM user_sessions WHERE user_id = ? AND session_token_hash != ?"
+        ).bind(user.id, currentHash).all();
+
+        let terminatedCount = 0;
+        if (otherSessions.results && otherSessions.results.length > 0) {
+          for (const s of otherSessions.results) {
+            await env.DB.prepare(
+              "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
+            ).bind(s.session_token_hash).run().catch(() => {});
+            await env.DB.prepare(
+              "DELETE FROM user_sessions WHERE id = ?"
+            ).bind(s.id).run().catch(() => {});
+            terminatedCount++;
+          }
+        }
+        return jsonResponse({
+          status: "ok",
+          message: "All other sessions have been terminated",
+          count: terminatedCount
+        });
+      }
+
       const sessionId = (body.session_id || body.sessionId || body.id || "").trim();
       if (!sessionId) {
         return jsonResponse({ error: "session_id required" }, 400);

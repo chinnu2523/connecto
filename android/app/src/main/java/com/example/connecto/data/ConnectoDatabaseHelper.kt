@@ -21,7 +21,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
     companion object {
         private const val DATABASE_NAME = "connecto_local_cache.db"
-        private const val DATABASE_VERSION = 5
+        private const val DATABASE_VERSION = 6
 
         @Volatile
         private var INSTANCE: ConnectoDatabaseHelper? = null
@@ -44,6 +44,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         private const val COL_MSG_POLL_JSON = "poll_json"
         private const val COL_MSG_TIMER_SEC = "timer_seconds"
         private const val COL_MSG_EXPIRES_AT = "expires_at"
+        private const val COL_MSG_REPLY_TO_ID = "reply_to_id"
+        private const val COL_MSG_REPLY_TO_CONTENT = "reply_to_content"
+        private const val COL_MSG_REPLY_TO_AUTHOR = "reply_to_author"
 
         private const val TABLE_CHANNELS = "cached_channels"
         private const val COL_CH_ID = "id"
@@ -78,7 +81,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 $COL_MSG_TYPE TEXT DEFAULT 'text',
                 $COL_MSG_POLL_JSON TEXT,
                 $COL_MSG_TIMER_SEC INTEGER DEFAULT 0,
-                $COL_MSG_EXPIRES_AT TEXT
+                $COL_MSG_EXPIRES_AT TEXT,
+                $COL_MSG_REPLY_TO_ID TEXT,
+                $COL_MSG_REPLY_TO_CONTENT TEXT,
+                $COL_MSG_REPLY_TO_AUTHOR TEXT
             )
             """.trimIndent()
         )
@@ -152,6 +158,11 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_POLL_JSON TEXT") } catch (_: Exception) {}
             try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_TIMER_SEC INTEGER DEFAULT 0") } catch (_: Exception) {}
             try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_EXPIRES_AT TEXT") } catch (_: Exception) {}
+        }
+        if (oldVersion < 6) {
+            try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_REPLY_TO_ID TEXT") } catch (_: Exception) {}
+            try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_REPLY_TO_CONTENT TEXT") } catch (_: Exception) {}
+            try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_REPLY_TO_AUTHOR TEXT") } catch (_: Exception) {}
         }
     }
 
@@ -277,6 +288,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             put(COL_MSG_POLL_JSON, pollDtoToJson(msg.poll))
             put(COL_MSG_TIMER_SEC, msg.timerSeconds ?: 0)
             put(COL_MSG_EXPIRES_AT, msg.expiresAt)
+            put(COL_MSG_REPLY_TO_ID, msg.replyToId)
+            put(COL_MSG_REPLY_TO_CONTENT, msg.replyToContent)
+            put(COL_MSG_REPLY_TO_AUTHOR, msg.replyToAuthor)
         }
         db.insertWithOnConflict(TABLE_MESSAGES, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
     }
@@ -299,6 +313,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     put(COL_MSG_POLL_JSON, pollDtoToJson(msg.poll))
                     put(COL_MSG_TIMER_SEC, msg.timerSeconds ?: 0)
                     put(COL_MSG_EXPIRES_AT, msg.expiresAt)
+                    put(COL_MSG_REPLY_TO_ID, msg.replyToId)
+                    put(COL_MSG_REPLY_TO_CONTENT, msg.replyToContent)
+                    put(COL_MSG_REPLY_TO_AUTHOR, msg.replyToAuthor)
                 }
                 db.insertWithOnConflict(TABLE_MESSAGES, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -356,6 +373,13 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 val expCol = it.getColumnIndex(COL_MSG_EXPIRES_AT)
                 val expiresAt = if (expCol >= 0) it.getString(expCol) else null
 
+                val replyIdCol = it.getColumnIndex(COL_MSG_REPLY_TO_ID)
+                val replyToId = if (replyIdCol >= 0) it.getString(replyIdCol) else null
+                val replyContentCol = it.getColumnIndex(COL_MSG_REPLY_TO_CONTENT)
+                val replyToContent = if (replyContentCol >= 0) it.getString(replyContentCol) else null
+                val replyAuthorCol = it.getColumnIndex(COL_MSG_REPLY_TO_AUTHOR)
+                val replyToAuthor = if (replyAuthorCol >= 0) it.getString(replyAuthorCol) else null
+
                 val msgId = it.getString(it.getColumnIndexOrThrow(COL_MSG_ID))
                 val createdAt = it.getString(it.getColumnIndexOrThrow(COL_MSG_CREATED_AT)) ?: "Just now"
 
@@ -377,7 +401,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         pollId = poll?.id,
                         poll = poll,
                         timerSeconds = if (timerSec > 0) timerSec else null,
-                        expiresAt = expiresAt
+                        expiresAt = expiresAt,
+                        replyToId = replyToId,
+                        replyToContent = replyToContent,
+                        replyToAuthor = replyToAuthor
                     )
                 )
             }
@@ -546,6 +573,13 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 val expCol = it.getColumnIndex(COL_MSG_EXPIRES_AT)
                 val expiresAt = if (expCol >= 0) it.getString(expCol) else null
 
+                val replyIdCol = it.getColumnIndex(COL_MSG_REPLY_TO_ID)
+                val replyToId = if (replyIdCol >= 0) it.getString(replyIdCol) else null
+                val replyContentCol = it.getColumnIndex(COL_MSG_REPLY_TO_CONTENT)
+                val replyToContent = if (replyContentCol >= 0) it.getString(replyContentCol) else null
+                val replyAuthorCol = it.getColumnIndex(COL_MSG_REPLY_TO_AUTHOR)
+                val replyToAuthor = if (replyAuthorCol >= 0) it.getString(replyAuthorCol) else null
+
                 val msgId = it.getString(it.getColumnIndexOrThrow(COL_MSG_ID))
                 val createdAt = it.getString(it.getColumnIndexOrThrow(COL_MSG_CREATED_AT)) ?: "Just now"
 
@@ -567,7 +601,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         pollId = poll?.id,
                         poll = poll,
                         timerSeconds = if (timerSec > 0) timerSec else null,
-                        expiresAt = expiresAt
+                        expiresAt = expiresAt,
+                        replyToId = replyToId,
+                        replyToContent = replyToContent,
+                        replyToAuthor = replyToAuthor
                     )
                 )
             }
@@ -613,6 +650,14 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         val timerSec = if (timerCol >= 0) it.getInt(timerCol) else 0
                         val expCol = it.getColumnIndex(COL_MSG_EXPIRES_AT)
                         val expiresAt = if (expCol >= 0) it.getString(expCol) else null
+
+                        val replyIdCol = it.getColumnIndex(COL_MSG_REPLY_TO_ID)
+                        val replyToId = if (replyIdCol >= 0) it.getString(replyIdCol) else null
+                        val replyContentCol = it.getColumnIndex(COL_MSG_REPLY_TO_CONTENT)
+                        val replyToContent = if (replyContentCol >= 0) it.getString(replyContentCol) else null
+                        val replyAuthorCol = it.getColumnIndex(COL_MSG_REPLY_TO_AUTHOR)
+                        val replyToAuthor = if (replyAuthorCol >= 0) it.getString(replyAuthorCol) else null
+
                         val msgId = it.getString(it.getColumnIndexOrThrow(COL_MSG_ID))
                         val createdAt = it.getString(it.getColumnIndexOrThrow(COL_MSG_CREATED_AT)) ?: "Just now"
 
@@ -634,7 +679,10 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                                 pollId = poll?.id,
                                 poll = poll,
                                 timerSeconds = if (timerSec > 0) timerSec else null,
-                                expiresAt = expiresAt
+                                expiresAt = expiresAt,
+                                replyToId = replyToId,
+                                replyToContent = replyToContent,
+                                replyToAuthor = replyToAuthor
                             )
                         )
                     }
