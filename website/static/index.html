@@ -4749,23 +4749,89 @@
     .typing-indicator {
       font-size: 11px;
       color: var(--text-muted);
-      height: 18px;
+      min-height: 24px;
       padding-left: var(--space-2);
       margin-bottom: 3px;
       font-weight: 500;
       display: flex;
       align-items: center;
       gap: 6px;
-      opacity: 0.85;
+      opacity: 0.95;
       transition: opacity 0.2s ease;
     }
-    .typing-indicator:not(:empty) {
-      animation: typingPulse 2s ease-in-out infinite;
+    .connecto-thought-typing-bubble {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 15px;
+      border-radius: 22px;
+      background: var(--card-bg, #18181b);
+      border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12));
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      margin-left: 4px;
+      margin-bottom: 4px;
     }
-    @keyframes typingPulse {
-      0%, 100% { opacity: 0.55; }
-      50% { opacity: 1; }
+    .connecto-thought-typing-bubble .typing-thought-dots {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
     }
+    .connecto-thought-typing-bubble .typing-thought-dots .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--primary, #CF603B);
+      animation: connectoTypingBounce 1.2s infinite ease-in-out both;
+    }
+    html[data-theme="noir"] .connecto-thought-typing-bubble {
+      background: #18181b !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    html[data-theme="noir"] .connecto-thought-typing-bubble .typing-thought-dots .dot {
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] .connecto-thought-typing-bubble {
+      background: #f5f5f4 !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+    }
+    html[data-theme="parchment"] .connecto-thought-typing-bubble .typing-thought-dots .dot {
+      background: #141312 !important;
+    }
+    .connecto-thought-typing-bubble .typing-thought-dots .dot:nth-child(1) { animation-delay: -0.32s; }
+    .connecto-thought-typing-bubble .typing-thought-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+    .connecto-thought-typing-bubble .typing-thought-dots .dot:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes connectoTypingBounce {
+      0%, 80%, 100% {
+        transform: translateY(0);
+        opacity: 0.35;
+      }
+      40% {
+        transform: translateY(-5px);
+        opacity: 1;
+      }
+    }
+    .connecto-thought-typing-bubble .typing-tail-dot.dot-1 {
+      position: absolute;
+      bottom: -4px;
+      left: 10px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: inherit;
+      border: inherit;
+    }
+    .connecto-thought-typing-bubble .typing-tail-dot.dot-2 {
+      position: absolute;
+      bottom: -8px;
+      left: 5px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: inherit;
+      border: inherit;
+    }
+
     .input-box-wrap {
       background: rgba(13, 17, 26, 0.9);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -12871,13 +12937,86 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       position: relative;
       background: rgba(14, 18, 30, 0.78);
       border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 14px;
-      padding: 12px 16px;
+      border-radius: 22px !important;
+      padding: 12px 18px;
       margin: 8px 12px;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
       transition: border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+      overflow: visible !important;
+    }
+    /* Trailing thought bubble tail dots: bottom-right for outgoing messages */
+    .connecto-message-card.mine::before {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      right: 22px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: inherit;
+      border: inherit;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .connecto-message-card.mine::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      right: 14px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: inherit;
+      border: inherit;
+      pointer-events: none;
+      z-index: 2;
+    }
+    /* Trailing thought bubble tail dots: bottom-left for incoming messages */
+    .connecto-message-card:not(.mine)::before {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 22px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: inherit;
+      border: inherit;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .connecto-message-card:not(.mine)::after {
+      content: '';
+      position: absolute;
+      bottom: -9px;
+      left: 14px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: inherit;
+      border: inherit;
+      pointer-events: none;
+      z-index: 2;
+    }
+    /* Incoming message bouncy spring transition */
+    @keyframes incomingBubbleSpring {
+      0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.88);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-2px) scale(1.02);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .connecto-message-card.incoming-spring {
+      animation: incomingBubbleSpring 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     }
     .connecto-message-card:hover {
       border-color: rgba(99, 102, 241, 0.25);
@@ -23900,7 +24039,7 @@ pre, .code-block, .chat-code-snippet {
           }
 
           const card = document.createElement('div');
-          card.className = `connecto-message-card ${isMine ? 'mine' : ''}`;
+          card.className = `connecto-message-card ${isMine ? 'mine' : ''} ${msg.is_new_incoming ? 'incoming-spring' : ''}`;
           card.id = `msg-${msg.id}`;
           card.innerHTML = `
             <div class="msg-card-header">
@@ -26169,6 +26308,40 @@ pre, .code-block, .chat-code-snippet {
           if (bar) bar.classList.remove('private-reply-bar');
         }
       }
+
+      // Real-time typing broadcast (suppressed if Stealth Mode is ON)
+      const isStealth = localStorage.getItem('connecto_is_stealth') === '1' || (window.currentUserProfile && window.currentUserProfile.is_stealth);
+      if (!isStealth && window.ws && window.ws.readyState === WebSocket.OPEN) {
+        const targetChannel = currentMode === 'dm' ? (currentDMTarget || currentChannel) : currentChannel;
+        if (val.trim().length > 0) {
+          clearTimeout(window.__myTypingTimer);
+          window.ws.send(JSON.stringify({
+            type: 'typing_start',
+            channel_id: targetChannel,
+            user: currentUser,
+            username: currentUser,
+            is_stealth: false
+          }));
+          window.__myTypingTimer = setTimeout(() => {
+            if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+              window.ws.send(JSON.stringify({
+                type: 'typing_stop',
+                channel_id: targetChannel,
+                user: currentUser,
+                username: currentUser
+              }));
+            }
+          }, 2500);
+        } else {
+          clearTimeout(window.__myTypingTimer);
+          window.ws.send(JSON.stringify({
+            type: 'typing_stop',
+            channel_id: targetChannel,
+            user: currentUser,
+            username: currentUser
+          }));
+        }
+      }
     }
 
     function showSlashPicker(cmds) {
@@ -27466,6 +27639,18 @@ pre, .code-block, .chat-code-snippet {
       if (!input) return;
       let text = input.value.trim();
       if (!text) return;
+
+      // Stop typing indicator broadcast immediately on send
+      if (window.ws && window.ws.readyState === WebSocket.OPEN) {
+        const targetChannel = currentMode === 'dm' ? (currentDMTarget || currentChannel) : currentChannel;
+        clearTimeout(window.__myTypingTimer);
+        window.ws.send(JSON.stringify({
+          type: 'typing_stop',
+          channel_id: targetChannel,
+          user: currentUser,
+          username: currentUser
+        }));
+      }
 
       // Announcements Channel Restriction: Admin Only
       if (currentMode !== 'dm' && (currentChannel === 'announcements' || currentChannel === 'announcement')) {
@@ -29762,9 +29947,13 @@ pre, .code-block, .chat-code-snippet {
                   rawMsg.poll = att.poll || rawMsg.poll;
                 }
               }
-              messageStore.set(rawMsg.id, rawMsg);
               const isMine = rawMsg.user && rawMsg.user.toLowerCase() === (currentUser || '').toLowerCase();
+              if (!isMine) {
+                rawMsg.is_new_incoming = true;
+              }
+              messageStore.set(rawMsg.id, rawMsg);
               renderMessages(isMine);
+              delete rawMsg.is_new_incoming;
               if (currentMode === 'dm' && currentDMTarget) {
                 updateDMConversationLive(currentDMTarget, rawMsg, true);
               }
@@ -30024,10 +30213,31 @@ pre, .code-block, .chat-code-snippet {
             handleIncomingVoiceInvitation(data);
             const notifBadge = document.getElementById('notifBadge');
             if (notifBadge) notifBadge.style.display = 'block';
-          } else if (data.type === 'typing' && isChannelMatch(data.channel_id, data.channel_name) && data.user !== currentUser) {
+          } else if ((data.type === 'typing' || data.type === 'typing_start' || data.type === 'typing:start') && (isChannelMatch(data.channel_id, data.channel_name) || (currentMode === 'dm' && currentDMTarget && (data.username === currentDMTarget || data.user === currentDMTarget))) && data.user !== currentUser && data.username !== currentUser) {
+            if (data.is_stealth) {
+              const ind = document.getElementById('typingIndicator');
+              if (ind) ind.innerHTML = '';
+            } else {
+              const ind = document.getElementById('typingIndicator');
+              if (ind) {
+                ind.innerHTML = `
+                  <div class="connecto-thought-typing-bubble" title="${escapeHTML(data.display_name || data.username || data.user || 'Friend')} is typing">
+                    <span class="typing-thought-dots">
+                      <span class="dot"></span>
+                      <span class="dot"></span>
+                      <span class="dot"></span>
+                    </span>
+                    <span class="typing-tail-dot dot-1"></span>
+                    <span class="typing-tail-dot dot-2"></span>
+                  </div>
+                `;
+                clearTimeout(window.__typingIndicatorTimeout);
+                window.__typingIndicatorTimeout = setTimeout(() => { ind.innerHTML = ''; }, 3500);
+              }
+            }
+          } else if ((data.type === 'typing_stop' || data.type === 'typing:stop') && (isChannelMatch(data.channel_id, data.channel_name) || (currentMode === 'dm' && currentDMTarget && (data.username === currentDMTarget || data.user === currentDMTarget)))) {
             const ind = document.getElementById('typingIndicator');
-            ind.innerText = `${data.user} is typing...`;
-            setTimeout(() => { ind.innerText = ''; }, 3000);
+            if (ind) ind.innerHTML = '';
           }
           
           else if (data.type === 'friend_request_received' || data.type === 'friend:request_received' || data.type === 'friend:request_sent') {

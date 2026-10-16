@@ -354,6 +354,21 @@ val AVAILABLE_CHAT_THEMES = listOf(
         friendBubbleTextDark = Color(0xFFFFEDD5)
     ),
     ChatThemeOption(
+        id = "terracotta",
+        name = "Warm Terracotta",
+        subtitle = "Earthy rust & cream editorial aesthetic",
+        primaryColor = Color(0xFFCF603B),
+        secondaryColor = Color(0xFFE07A5F),
+        ownBubbleBgLight = Color(0xFFCF603B),
+        ownBubbleBgDark = Color(0xFFC85A32),
+        ownBubbleTextLight = Color(0xFFFFFFFF),
+        ownBubbleTextDark = Color(0xFFFFFFFF),
+        friendBubbleBgLight = Color(0xFFFDFBF7),
+        friendBubbleBgDark = Color(0xFF1C1917),
+        friendBubbleTextLight = Color(0xFF292524),
+        friendBubbleTextDark = Color(0xFFF5F5F4)
+    ),
+    ChatThemeOption(
         id = "liquid_glass",
         name = "Liquid Glass",
         subtitle = "Fluid aqua refraction & water droplet shine",
@@ -1063,6 +1078,42 @@ fun CustomizedChatScreen(
     var pinnedMessageForChat by remember { mutableStateOf<PinnedMessageDto?>(null) }
     var messageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
     var showMessageActionDialog by remember { mutableStateOf(false) }
+
+    // Real-Time Typing Indicator Observer for Active Direct Chat / Group
+    LaunchedEffect(selectedFriend?.id, activeDmChannelId) {
+        val targetHandle = selectedFriend?.handle?.removePrefix("@")?.lowercase()
+        val targetId = selectedFriend?.id?.lowercase()
+        isFriendTyping = false
+        VoiceCallManager.typingEvents.collect { ev ->
+            val evUser = ev.username.lowercase().removePrefix("@")
+            val evCh = ev.channelId.lowercase().removePrefix("#")
+            val isTargetUser = (targetHandle != null && evUser == targetHandle) || (targetId != null && evUser == targetId)
+            val isTargetChannel = (activeDmChannelId != null && evCh == activeDmChannelId?.lowercase()?.removePrefix("#"))
+            if (isTargetUser || isTargetChannel) {
+                isFriendTyping = ev.isTyping
+            }
+        }
+    }
+
+    LaunchedEffect(isFriendTyping) {
+        if (isFriendTyping) {
+            kotlinx.coroutines.delay(4000)
+            isFriendTyping = false
+        }
+    }
+
+    // Broadcast current user's typing activity in DM, suppressed if Stealth Mode is ON
+    LaunchedEffect(typedMessage, selectedFriend?.id, activeDmChannelId) {
+        val target = activeDmChannelId ?: selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.id
+        if (!target.isNullOrBlank() && typedMessage.isNotBlank()) {
+            val isStealth = ConnectoApiClient.isStealthMode || context.getSharedPreferences("connecto_profile", Context.MODE_PRIVATE).getBoolean("stealth_mode_${currentUsername}", false)
+            if (!isStealth) {
+                VoiceCallManager.sendTypingStart(target)
+                kotlinx.coroutines.delay(2500)
+                VoiceCallManager.sendTypingStop(target)
+            }
+        }
+    }
 
     // Handle System Back button when in 1:1 direct chat
     BackHandler(enabled = selectedFriend != null) {
@@ -4142,7 +4193,10 @@ fun CustomizedChatScreen(
                                     if (isFriendTyping) {
                                         item(key = "typing_indicator") {
                                             AnimatedTypingIndicator(
-                                                friendName = selectedFriend?.name ?: "Friend"
+                                                friendName = selectedFriend?.name ?: "Friend",
+                                                accentColor = activeChatTheme.primaryColor,
+                                                bubbleBg = friendBubbleBg,
+                                                borderColor = friendBubbleBorder
                                             )
                                         }
                                     }
@@ -4568,6 +4622,11 @@ fun CustomizedChatScreen(
                                     typedMessage = ""
                                     selectedFriend?.let { messageDrafts.remove(it.id) }
                                     showEmojiPicker = false
+
+                                    val typingTarget = activeDmChannelId ?: selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.id
+                                    if (typingTarget != null) {
+                                        VoiceCallManager.sendTypingStop(typingTarget)
+                                    }
 
                                     val myName = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@")
                                     val tempId = "opt-${UUID.randomUUID()}"
@@ -5055,6 +5114,34 @@ fun CustomChatBubble(
         label = "bubbleScale"
     )
 
+    val isIncoming = !message.isMe
+    var hasAppeared by remember(message.id) { mutableStateOf(false) }
+    LaunchedEffect(message.id) {
+        hasAppeared = true
+    }
+
+    val incomingScale by animateFloatAsState(
+        targetValue = if (hasAppeared) 1.0f else 0.82f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "incomingScale"
+    )
+    val incomingAlpha by animateFloatAsState(
+        targetValue = if (hasAppeared) 1.0f else 0.0f,
+        animationSpec = tween(280, easing = FastOutSlowInEasing),
+        label = "incomingAlpha"
+    )
+    val incomingTranslateY by animateFloatAsState(
+        targetValue = if (hasAppeared) 0f else 14f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "incomingTranslateY"
+    )
+
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start,
@@ -5106,8 +5193,7 @@ fun CustomChatBubble(
             val isGlassTheme = ConnectoTheme.isGlass
             val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
             val isPureBlack = ConnectoTheme.isPureBlack
-            val bubbleShape = if (message.isMe) RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
-                              else RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
+            val bubbleShape = RoundedCornerShape(22.dp)
 
             val isWhiteBubble = ownBg == Color.White || ownBg == Color(0xFFFAFAFA)
             val effectiveOwnBg = ownBg
@@ -5177,8 +5263,10 @@ fun CustomChatBubble(
 
                 Modifier
                     .graphicsLayer {
-                        scaleX = bubbleScale
-                        scaleY = bubbleScale
+                        scaleX = if (isIncoming) incomingScale else bubbleScale
+                        scaleY = if (isIncoming) incomingScale else bubbleScale
+                        alpha = if (isIncoming) incomingAlpha else 1.0f
+                        translationY = if (isIncoming) incomingTranslateY else 0f
                     }
                     .shadow(
                         elevation = if (message.isMe) 2.dp else 1.dp,
@@ -5315,6 +5403,59 @@ fun CustomChatBubble(
                 }
             }
 
+            // Trailing thought bubble dots tail matching reference image
+            if (message.isMe) {
+                // Outgoing tail on bottom-right
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(end = 6.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.End) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = 3.dp, y = (-3).dp)
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(effectiveOwnBg)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .offset(x = 8.dp, y = (-1).dp)
+                                .size(4.5.dp)
+                                .clip(CircleShape)
+                                .background(effectiveOwnBg)
+                        )
+                    }
+                }
+            } else {
+                // Incoming tail on bottom-left
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(start = 6.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Box(
+                            modifier = Modifier
+                                .offset(x = (-3).dp, y = (-3).dp)
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(friendBg)
+                                .border(1.dp, friendBorder, CircleShape)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .offset(x = (-8).dp, y = (-1).dp)
+                                .size(4.5.dp)
+                                .clip(CircleShape)
+                                .background(friendBg)
+                                .border(1.dp, friendBorder, CircleShape)
+                        )
+                    }
+                }
+            }
+
             // Attached Reaction Badge with Bouncy Spring Entry
             AnimatedVisibility(
                 visible = message.reaction != null,
@@ -5443,7 +5584,6 @@ fun CustomChatBubble(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxHeight()
                     .defaultMinSize(minHeight = 44.dp)
                     .pointerInput(message.id) {
                         detectTapGestures(
@@ -5460,85 +5600,129 @@ fun CustomChatBubble(
 
 @Composable
 fun AnimatedTypingIndicator(
-    friendName: String,
+    friendName: String = "",
+    accentColor: Color = MaterialTheme.colorScheme.primary,
+    bubbleBg: Color = MaterialTheme.colorScheme.surface,
+    borderColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
     modifier: Modifier = Modifier
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "typingTransition")
 
     val dot1Offset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = -6f,
+        targetValue = -7f,
         animationSpec = infiniteRepeatable(
-            animation = tween(400, easing = LinearEasing),
+            animation = tween(420, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "dot1"
     )
+    val dot1Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot1Alpha"
+    )
 
     val dot2Offset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = -6f,
+        targetValue = -7f,
         animationSpec = infiniteRepeatable(
-            animation = tween(400, delayMillis = 130, easing = LinearEasing),
+            animation = tween(420, delayMillis = 140, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "dot2"
     )
+    val dot2Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, delayMillis = 140, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot2Alpha"
+    )
 
     val dot3Offset by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = -6f,
+        targetValue = -7f,
         animationSpec = infiniteRepeatable(
-            animation = tween(400, delayMillis = 260, easing = LinearEasing),
+            animation = tween(420, delayMillis = 280, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "dot3"
     )
+    val dot3Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, delayMillis = 280, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "dot3Alpha"
+    )
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = modifier.padding(start = 40.dp, top = 2.dp)
+    Column(
+        modifier = modifier.padding(start = 12.dp, top = 4.dp, bottom = 8.dp)
     ) {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(14.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .shadow(
+                    elevation = 1.dp,
+                    shape = RoundedCornerShape(22.dp),
+                    spotColor = Color.Black.copy(alpha = 0.15f)
+                )
+                .clip(RoundedCornerShape(22.dp))
+                .background(bubbleBg)
+                .border(1.dp, borderColor, RoundedCornerShape(22.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .offset(y = dot1Offset.dp)
-                        .size(6.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(accentColor.copy(alpha = dot1Alpha))
                 )
                 Box(
                     modifier = Modifier
                         .offset(y = dot2Offset.dp)
-                        .size(6.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(accentColor.copy(alpha = dot2Alpha))
                 )
                 Box(
                     modifier = Modifier
                         .offset(y = dot3Offset.dp)
-                        .size(6.dp)
+                        .size(8.dp)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "$friendName is typing...",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Medium
+                        .background(accentColor.copy(alpha = dot3Alpha))
                 )
             }
         }
+        // Trailing thought bubble tail dots
+        Box(
+            modifier = Modifier
+                .offset(x = 6.dp, y = (-2).dp)
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(bubbleBg)
+                .border(1.dp, borderColor, CircleShape)
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = 0.dp, y = 1.dp)
+                .size(4.5.dp)
+                .clip(CircleShape)
+                .background(bubbleBg)
+                .border(1.dp, borderColor, CircleShape)
+        )
     }
 }

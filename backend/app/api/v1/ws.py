@@ -195,6 +195,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 # --- TYPING INDICATORS ---
                 elif msg_type in ("typing_start", "typing:start"):
+                    is_stealth = bool(payload.get("is_stealth")) or bool(getattr(user, "is_stealth", False))
+                    if is_stealth:
+                        continue
                     ch_id = (payload.get("channel_id") or payload.get("channel") or "general").strip()
                     await ws_manager.broadcast_to_channel(ch_id, {
                         "type": "typing_start",
@@ -203,6 +206,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         "username": user.username,
                         "display_name": user.display_name or user.username,
                         "avatar_url": user.avatar_url,
+                        "is_stealth": False,
                     })
 
                 elif msg_type in ("typing_stop", "typing:stop"):

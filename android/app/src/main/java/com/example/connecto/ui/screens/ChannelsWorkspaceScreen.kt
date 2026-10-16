@@ -53,6 +53,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.roundToInt
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -365,6 +371,45 @@ fun ChannelsWorkspaceScreen(
         }
     }
 
+    var channelTypingUser by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(activeChip.id) {
+        channelTypingUser = null
+        val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+        val cleanName = activeChip.name.trim().lowercase()
+        VoiceCallManager.typingEvents.collect { ev ->
+            val evClean = ev.channelId.trim().lowercase().removePrefix("#")
+            if (evClean == cleanCh || evClean == cleanName) {
+                if (ev.isTyping && !ev.username.equals(currentUsername, ignoreCase = true)) {
+                    channelTypingUser = ev.displayName.ifEmpty { ev.username }
+                } else if (!ev.isTyping) {
+                    if (channelTypingUser.equals(ev.displayName, ignoreCase = true) || channelTypingUser.equals(ev.username, ignoreCase = true)) {
+                        channelTypingUser = null
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(channelTypingUser) {
+        if (channelTypingUser != null) {
+            kotlinx.coroutines.delay(4000)
+            channelTypingUser = null
+        }
+    }
+
+    // Broadcast current user's typing activity in channel, suppressed if Stealth Mode is ON
+    LaunchedEffect(typedMessage, activeChip.id) {
+        val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+        if (typedMessage.isNotBlank() && cleanCh.isNotEmpty()) {
+            val isStealth = ConnectoApiClient.isStealthMode || context.getSharedPreferences("connecto_profile", android.content.Context.MODE_PRIVATE).getBoolean("stealth_mode_${currentUsername}", false)
+            if (!isStealth) {
+                VoiceCallManager.sendTypingStart(cleanCh)
+                kotlinx.coroutines.delay(2500)
+                VoiceCallManager.sendTypingStop(cleanCh)
+            }
+        }
+    }
+
     // Send Message Handler
     fun handleSendMessage() {
         val text = typedMessage.trim()
@@ -373,6 +418,11 @@ fun ChannelsWorkspaceScreen(
         val activeReply = replyingTo
         val targetFriend = matchedFriendTarget
         val isPrivate = isPrivateDmReply && targetFriend != null && activeReply != null
+
+        val stopCh = activeChip.id.trim().lowercase().removePrefix("#")
+        if (stopCh.isNotEmpty()) {
+            VoiceCallManager.sendTypingStop(stopCh)
+        }
 
         isSending = true
         typedMessage = ""
@@ -794,6 +844,24 @@ fun ChannelsWorkspaceScreen(
                                                 onReply = { replyingTo = msg }
                                             )
                                         }
+                                    }
+                                }
+                            }
+
+                            if (channelTypingUser != null) {
+                                item(key = "channel_typing_indicator") {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.Start
+                                    ) {
+                                        ChannelTypingIndicator(
+                                            typingUser = channelTypingUser ?: "",
+                                            accentColor = colors.primary,
+                                            bubbleBg = if (colors.isDark) Color(0xFF18181B) else Color(0xFFF4F4F5),
+                                            borderColor = if (colors.isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
+                                        )
                                     }
                                 }
                             }
@@ -1268,6 +1336,34 @@ private fun ChannelMessageCard(
         trimmed.startsWith("http") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".jpeg") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))
     }
 
+    val isIncoming = !isMe
+    var hasAppeared by remember(message.id) { mutableStateOf(false) }
+    LaunchedEffect(message.id) {
+        hasAppeared = true
+    }
+
+    val incomingScale by animateFloatAsState(
+        targetValue = if (hasAppeared) 1.0f else 0.82f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "chIncomingScale"
+    )
+    val incomingAlpha by animateFloatAsState(
+        targetValue = if (hasAppeared) 1.0f else 0.0f,
+        animationSpec = tween(280, easing = FastOutSlowInEasing),
+        label = "chIncomingAlpha"
+    )
+    val incomingTranslateY by animateFloatAsState(
+        targetValue = if (hasAppeared) 0f else 14f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "chIncomingTranslateY"
+    )
+
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
@@ -1314,8 +1410,7 @@ private fun ChannelMessageCard(
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
                 modifier = Modifier.widthIn(min = 80.dp, max = 310.dp)
             ) {
-                val bubbleShape = if (isMe) RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
-                else RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
+                val bubbleShape = RoundedCornerShape(22.dp)
 
                 val isWhiteBubble = if (isMe) {
                     colors.isDark || colors.primary == Color.White || colors.primary == Color(0xFFFAFAFA)
@@ -1371,6 +1466,12 @@ private fun ChannelMessageCard(
                     }
 
                     Modifier
+                        .graphicsLayer {
+                            scaleX = if (isIncoming) incomingScale else 1.0f
+                            scaleY = if (isIncoming) incomingScale else 1.0f
+                            alpha = if (isIncoming) incomingAlpha else 1.0f
+                            translationY = if (isIncoming) incomingTranslateY else 0f
+                        }
                         .shadow(
                             elevation = if (isMe) 2.dp else 1.dp,
                             shape = bubbleShape,
@@ -1538,6 +1639,59 @@ private fun ChannelMessageCard(
                                 fontSize = 13.5.sp,
                                 color = if (isMe) ownBubbleText else friendBubbleText,
                                 lineHeight = 19.sp
+                            )
+                        }
+                    }
+                }
+
+                // Trailing thought bubble dots tail matching reference image
+                if (isMe) {
+                    // Outgoing tail on bottom-right
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(end = 6.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = 3.dp, y = (-3).dp)
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(ownBubbleBg)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = 8.dp, y = (-1).dp)
+                                    .size(4.5.dp)
+                                    .clip(CircleShape)
+                                    .background(ownBubbleBg)
+                            )
+                        }
+                    }
+                } else {
+                    // Incoming tail on bottom-left
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(start = 6.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.Start) {
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = (-3).dp, y = (-3).dp)
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(friendBubbleBg)
+                                    .border(1.dp, friendBorder, CircleShape)
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .offset(x = (-8).dp, y = (-1).dp)
+                                    .size(4.5.dp)
+                                    .clip(CircleShape)
+                                    .background(friendBubbleBg)
+                                    .border(1.dp, friendBorder, CircleShape)
                             )
                         }
                     }
@@ -1767,5 +1921,134 @@ private fun formatChannelDate(isoDate: String): String {
         }
     } catch (_: Exception) {
         "Today"
+    }
+}
+
+@Composable
+private fun ChannelTypingIndicator(
+    typingUser: String,
+    accentColor: Color,
+    bubbleBg: Color,
+    borderColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "chTyping")
+
+    val dot1Offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "chDot1"
+    )
+    val dot1Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "chDot1Alpha"
+    )
+
+    val dot2Offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, delayMillis = 140, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "chDot2"
+    )
+    val dot2Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, delayMillis = 140, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "chDot2Alpha"
+    )
+
+    val dot3Offset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -7f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, delayMillis = 280, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "chDot3"
+    )
+    val dot3Alpha by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(420, delayMillis = 280, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "chDot3Alpha"
+    )
+
+    Column(
+        modifier = modifier.padding(start = 12.dp, top = 4.dp, bottom = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .shadow(
+                    elevation = 1.dp,
+                    shape = RoundedCornerShape(22.dp),
+                    spotColor = Color.Black.copy(alpha = 0.15f)
+                )
+                .clip(RoundedCornerShape(22.dp))
+                .background(bubbleBg)
+                .border(1.dp, borderColor, RoundedCornerShape(22.dp))
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .offset(y = dot1Offset.dp)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = dot1Alpha))
+                )
+                Box(
+                    modifier = Modifier
+                        .offset(y = dot2Offset.dp)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = dot2Alpha))
+                )
+                Box(
+                    modifier = Modifier
+                        .offset(y = dot3Offset.dp)
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(accentColor.copy(alpha = dot3Alpha))
+                )
+            }
+        }
+        // Trailing thought bubble tail dots
+        Box(
+            modifier = Modifier
+                .offset(x = 6.dp, y = (-2).dp)
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(bubbleBg)
+                .border(1.dp, borderColor, CircleShape)
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = 0.dp, y = 1.dp)
+                .size(4.5.dp)
+                .clip(CircleShape)
+                .background(bubbleBg)
+                .border(1.dp, borderColor, CircleShape)
+        )
     }
 }
