@@ -1118,7 +1118,12 @@ object ConnectoApiClient {
             val body = JSONObject().apply {
                 put("method", method.lowercase())
                 if (!phoneNumber.isNullOrBlank()) {
-                    put("phone_number", phoneNumber.trim())
+                    val cleanPhone = phoneNumber.trim()
+                    put("phone_number", cleanPhone)
+                    put("destination", cleanPhone)
+                    if (cleanPhone.contains("@")) {
+                        put("email", cleanPhone)
+                    }
                 }
                 if (!purpose.isNullOrBlank()) {
                     put("purpose", purpose.trim())
@@ -1162,7 +1167,12 @@ object ConnectoApiClient {
                 put("otp_code", otpCode.trim())
                 put("method", method.lowercase())
                 if (!phoneNumber.isNullOrBlank()) {
-                    put("phone_number", phoneNumber.trim())
+                    val cleanPhone = phoneNumber.trim()
+                    put("phone_number", cleanPhone)
+                    put("destination", cleanPhone)
+                    if (cleanPhone.contains("@")) {
+                        put("email", cleanPhone)
+                    }
                 }
             }
             val activeToken = token ?: getPersistedToken()

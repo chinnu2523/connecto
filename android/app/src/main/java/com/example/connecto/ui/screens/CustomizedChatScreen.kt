@@ -146,6 +146,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -274,8 +275,8 @@ val AVAILABLE_CHAT_THEMES = listOf(
         id = "default",
         name = "Pure Monochrome",
         subtitle = "Editorial Noir / Parchment contrast",
-        primaryColor = Color(0xFF6C5CE7),
-        secondaryColor = Color(0xFFA29BFE),
+        primaryColor = Color(0xFFFAFAFA),
+        secondaryColor = Color(0xFFA1A1AA),
         ownBubbleBgLight = Color(0xFF141312),
         ownBubbleBgDark = Color(0xFFFFFFFF),
         ownBubbleTextLight = Color(0xFFFFFFFF),
@@ -465,8 +466,37 @@ data class CustomMessageItem(
     val replyToId: String? = null,
     val replyToContent: String? = null,
     val replyToAuthor: String? = null,
-    val isEncrypted: Boolean = false
+    val isEncrypted: Boolean = false,
+    val timestampMillis: Long = System.currentTimeMillis()
 )
+
+fun parseMessageTimestamp(timeStr: String?): Long {
+    if (timeStr.isNullOrBlank() || timeStr.equals("Just now", ignoreCase = true)) {
+        return System.currentTimeMillis()
+    }
+    val clean = timeStr.trim()
+    val formats = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd HH:mm:ss.SSSSSS",
+        "yyyy-MM-dd HH:mm:ss.SSS",
+        "yyyy-MM-dd HH:mm:ss"
+    )
+    for (pattern in formats) {
+        try {
+            val sdf = SimpleDateFormat(pattern, Locale.US).apply {
+                timeZone = TimeZone.getTimeZone("UTC")
+            }
+            val date = sdf.parse(clean)
+            if (date != null) return date.time
+        } catch (_: Exception) {}
+    }
+    return 0L
+}
 
 @Composable
 fun CustomizedChatScreen(
@@ -518,6 +548,7 @@ fun CustomizedChatScreen(
     )
 
     val context = LocalContext.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     val readPrefs = remember { context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE) }
     val friendPrefs = remember { context.getSharedPreferences("connecto_friend_prefs", Context.MODE_PRIVATE) }
     val notifPrefs = remember { context.getSharedPreferences("connecto_notifications_prefs", Context.MODE_PRIVATE) }
@@ -525,7 +556,6 @@ fun CustomizedChatScreen(
 
     // Friend Profile Preview Lightbox & Per-Chat Preferences
     var showPhotoLightbox by remember { mutableStateOf(false) }
-    var isLightboxForBanner by remember { mutableStateOf(false) }
     var isChatMuted by remember { mutableStateOf(false) }
     var isChatLocked by remember { mutableStateOf(false) }
     var chatThemeId by remember { mutableStateOf("default") }
@@ -842,7 +872,7 @@ fun CustomizedChatScreen(
                         unreadCount = unread,
                         isOnline = isFriendOnline,
                         avatarUrl = f.friendAvatarUrl,
-                        bannerUrl = f.friendBannerUrl
+                        bannerUrl = null
                     )
                 }
 
@@ -962,6 +992,7 @@ fun CustomizedChatScreen(
             )
         } catch (_: Exception) {}
         onDispose {
+            VoiceCallManager.activeChatRoomOrFriend = null
             try {
                 screenCtx.unregisterReceiver(receiver)
             } catch (_: Exception) {}
@@ -1015,6 +1046,7 @@ fun CustomizedChatScreen(
         selectedFriend = null
         activeDmChannelId = null
         isLoadingMessages = false
+        VoiceCallManager.activeChatRoomOrFriend = null
         onDirectChatStateChanged(false)
     }
 
@@ -1032,6 +1064,16 @@ fun CustomizedChatScreen(
                         isOnline = isOnline,
                         status = if (isOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
                     )
+                    // If recipient just came online (mobile data turned on), upgrade pending single ticks to double ticks
+                    if (isOnline) {
+                        friendMessages = friendMessages.map { msg ->
+                            if (msg.isMe && !msg.isDelivered) {
+                                msg.copy(isDelivered = true)
+                            } else {
+                                msg
+                            }
+                        }
+                    }
                 }
             }
             val idx = friendsList.indexOfFirst {
@@ -1066,29 +1108,47 @@ fun CustomizedChatScreen(
             )
 
             val currentFriend = selectedFriend
-            val currentDmId = activeDmChannelId
+            val friendHandleClean = currentFriend?.handle?.removePrefix("@")?.trim()?.lowercase() ?: ""
+            val friendIdClean = currentFriend?.id?.trim()?.lowercase() ?: ""
+            val friendNameClean = currentFriend?.name?.trim()?.lowercase() ?: ""
+
+            val currentDmId = activeDmChannelId?.trim()?.lowercase()
             val currentCanonical = if (currentFriend != null) {
-                val clean = currentFriend.handle.removePrefix("@").lowercase()
+                val clean = friendHandleClean
                 val me = myUsername
                 "dm-${minOf(me, clean)}-${maxOf(me, clean)}"
             } else null
-            val cachedDmId = if (currentCanonical != null) ConnectoApiClient.channelCache[currentCanonical.lowercase()] else null
+            val cachedDmId = if (currentCanonical != null) ConnectoApiClient.channelCache[currentCanonical.lowercase()]?.trim()?.lowercase() else null
+
+            val dtoChannelClean = (dto.channelId ?: "").trim().lowercase()
 
             val isForCurrentChat = currentFriend != null && (
-                (currentDmId != null && dto.channelId.equals(currentDmId, ignoreCase = true)) ||
-                (cachedDmId != null && dto.channelId.equals(cachedDmId, ignoreCase = true)) ||
-                (currentCanonical != null && dto.channelId.equals(currentCanonical, ignoreCase = true)) ||
-                authorClean == currentFriend.handle.removePrefix("@").trim().lowercase() ||
-                (dto.channelId != null && dto.channelId.contains(currentFriend.handle.removePrefix("@"), ignoreCase = true)) ||
+                // 1. Channel ID exact match with activeDmChannelId or cachedDmId or canonical
+                (currentDmId != null && dtoChannelClean == currentDmId) ||
+                (cachedDmId != null && dtoChannelClean == cachedDmId) ||
+                (currentCanonical != null && dtoChannelClean == currentCanonical) ||
+                // 2. Channel cache reverse lookup
+                (ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentCanonical) ||
+                (currentDmId != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentDmId) ||
+                // 3. Sender is the current friend (by handle, ID, or display name)
+                (friendHandleClean.isNotBlank() && (authorClean == friendHandleClean || authorNameClean == friendHandleClean)) ||
+                (friendIdClean.isNotBlank() && (authorClean == friendIdClean || authorNameClean == friendIdClean)) ||
+                (friendNameClean.isNotBlank() && (authorNameClean == friendNameClean || authorClean == friendNameClean)) ||
+                // 4. Channel ID contains the friend's handle or ID (e.g. dm-myuser-friendhandle or UUID)
+                (friendHandleClean.isNotBlank() && dtoChannelClean.contains(friendHandleClean)) ||
+                (friendIdClean.isNotBlank() && dtoChannelClean.contains(friendIdClean)) ||
+                // 5. If sent by me, verify it targets current chat's channel
                 (isMe && (
-                    dto.channelId.equals(currentDmId, ignoreCase = true) ||
-                    dto.channelId.equals(cachedDmId, ignoreCase = true) ||
-                    dto.channelId.equals(currentCanonical, ignoreCase = true) ||
-                    (dto.channelId != null && dto.channelId.contains(currentFriend.handle.removePrefix("@"), ignoreCase = true))
+                    (currentDmId != null && dtoChannelClean == currentDmId) ||
+                    (cachedDmId != null && dtoChannelClean == cachedDmId) ||
+                    (currentCanonical != null && dtoChannelClean == currentCanonical) ||
+                    (friendHandleClean.isNotBlank() && dtoChannelClean.contains(friendHandleClean)) ||
+                    (friendIdClean.isNotBlank() && dtoChannelClean.contains(friendIdClean))
                 ))
             )
 
             if (isForCurrentChat) {
+                isLoadingMessages = false
                 if (activeDmChannelId == null && !dto.channelId.isNullOrBlank() && !dto.channelId.startsWith("dm-") && !dto.channelId.startsWith("dm_")) {
                     activeDmChannelId = dto.channelId
                     if (currentCanonical != null) {
@@ -1116,6 +1176,7 @@ fun CustomizedChatScreen(
                     } else dto.replyToContent
                     Triple(decMsg, decReply, enc)
                 }
+                val isRecipientOnline = currentFriend.isOnline
                 val newItem = CustomMessageItem(
                     id = dto.id,
                     senderName = dto.authorName,
@@ -1123,16 +1184,27 @@ fun CustomizedChatScreen(
                     content = decryptedContent,
                     time = formatIsoTime(dto.createdAt),
                     isMe = isMe,
-                    isDelivered = true,
-                    isRead = true,
+                    isDelivered = if (isMe) isRecipientOnline else true,
+                    isRead = if (isMe) false else true,
                     avatarUrl = msgAvatar,
                     replyToId = dto.replyToId,
                     replyToContent = decryptedReplyContent,
                     replyToAuthor = dto.replyToAuthor,
-                    isEncrypted = isEnc
+                    isEncrypted = isEnc,
+                    timestampMillis = parseMessageTimestamp(dto.createdAt)
                 )
+
+                // If friend sent a message, they have received and read our prior sent messages
+                val baseList = if (!isMe) {
+                    friendMessages.map { oldMsg ->
+                        if (oldMsg.isMe && (!oldMsg.isDelivered || !oldMsg.isRead)) {
+                            oldMsg.copy(isDelivered = true, isRead = true)
+                        } else oldMsg
+                    }
+                } else friendMessages
+
                 // Reconcile and deduplicate:
-                val existingIdx = friendMessages.indexOfFirst {
+                val existingIdx = baseList.indexOfFirst {
                     it.id == newItem.id || (
                         isMe && it.isMe &&
                         (it.id.startsWith("opt-") || it.id.length > 30 || it.time == "Just now") &&
@@ -1140,13 +1212,16 @@ fun CustomizedChatScreen(
                     )
                 }
 
+                val resultList = baseList.toMutableList()
                 if (existingIdx != -1) {
-                    val updated = friendMessages.toMutableList()
-                    val existingItem = updated[existingIdx]
-                    updated[existingIdx] = newItem.copy(reaction = existingItem.reaction ?: newItem.reaction)
-                    friendMessages = updated
-                } else if (friendMessages.none { it.id == newItem.id }) {
-                    friendMessages = friendMessages + newItem
+                    val existingItem = resultList[existingIdx]
+                    resultList[existingIdx] = newItem.copy(reaction = existingItem.reaction ?: newItem.reaction)
+                } else if (resultList.none { it.id == newItem.id }) {
+                    resultList.add(newItem)
+                }
+                friendMessages = resultList.sortedBy { it.timestampMillis }
+                coroutineScope.launch {
+                    try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
                 }
 
                 // Save to local SQLite cache instantly
@@ -1198,10 +1273,14 @@ fun CustomizedChatScreen(
         }
     }
 
+    var lastScrolledFriendId by remember { mutableStateOf<String?>(null) }
+    var hasServerScrolledForFriend by remember { mutableStateOf(false) }
+
     // DM Channel Setup and Live Polling Loop
-    LaunchedEffect(selectedFriend) {
+    LaunchedEffect(selectedFriend?.id) {
         val friend = selectedFriend
         onDirectChatStateChanged(friend != null)
+        VoiceCallManager.activeChatRoomOrFriend = friend?.handle?.removePrefix("@")?.lowercase()
 
         if (friend != null) {
             typedMessage = messageDrafts[friend.id] ?: ""
@@ -1265,8 +1344,9 @@ fun CustomizedChatScreen(
 
                 val otherUser = friend.handle.removePrefix("@")
                 val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+                val isRecipientOnline = friend.isOnline || (selectedFriend?.isOnline == true)
 
-                friendMessages = cachedMessages.map { dto ->
+                val mappedCached = cachedMessages.map { dto ->
                     val isMe = (
                         dto.authorId.equals(myUsername, ignoreCase = true) ||
                         dto.authorName.equals(myUsername, ignoreCase = true) ||
@@ -1302,6 +1382,7 @@ fun CustomizedChatScreen(
                         Triple(decMsg, decReply, enc)
                     }
 
+                    val msgMillis = parseMessageTimestamp(dto.createdAt)
                     CustomMessageItem(
                         id = dto.id,
                         senderName = effectiveSenderName,
@@ -1309,16 +1390,33 @@ fun CustomizedChatScreen(
                         content = decryptedContent,
                         time = formatIsoTime(dto.createdAt),
                         isMe = isMe,
-                        isDelivered = true,
-                        isRead = true,
+                        isDelivered = if (isMe) (if (friend.isGroup) true else isRecipientOnline) else true,
+                        isRead = if (isMe) false else true,
                         avatarUrl = msgAvatar,
                         replyToId = dto.replyToId,
                         replyToContent = decryptedReplyContent,
                         replyToAuthor = dto.replyToAuthor,
-                        isEncrypted = isEnc
+                        isEncrypted = isEnc,
+                        timestampMillis = msgMillis
                     )
                 }
+
+                val lastFriendMsgTime = mappedCached.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
+                val resolvedCached = mappedCached.map { msg ->
+                    if (msg.isMe) {
+                        if (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime) {
+                            msg.copy(isDelivered = true, isRead = true)
+                        } else {
+                            msg.copy(isDelivered = if (friend.isGroup) true else isRecipientOnline)
+                        }
+                    } else msg
+                }.sortedBy { it.timestampMillis }
+
+                friendMessages = resolvedCached
                 isLoadingMessages = false
+                coroutineScope.launch {
+                    try { listState.scrollToItem(resolvedCached.size) } catch (_: Exception) {}
+                }
             } else {
                 friendMessages = emptyList()
                 isLoadingMessages = true
@@ -1427,6 +1525,7 @@ fun CustomizedChatScreen(
                                 val myDisplayName = ConnectoApiClient.currentUserDisplayName ?: ""
                                 val myUserId = ConnectoApiClient.currentUserId
                                 val existingReactions = friendMessages.associate { it.id to it.reaction }
+                                val isRecipientOnline = friend.isOnline || (selectedFriend?.isOnline == true)
                                 val mapped = unexpiredList.map { dto ->
                                     val isMe = (
                                         dto.authorId.equals(myUsername, ignoreCase = true) ||
@@ -1465,6 +1564,7 @@ fun CustomizedChatScreen(
                                         Triple(decMsg, decReply, enc)
                                     }
 
+                                    val msgMillis = parseMessageTimestamp(dto.createdAt)
                                     CustomMessageItem(
                                         id = dto.id,
                                         senderName = effectiveSenderName,
@@ -1472,33 +1572,53 @@ fun CustomizedChatScreen(
                                         content = decryptedContent,
                                         time = formatIsoTime(dto.createdAt),
                                         isMe = isMe,
-                                        isDelivered = true,
-                                        isRead = true,
+                                        isDelivered = if (isMe) (if (friend.isGroup) true else isRecipientOnline) else true,
+                                        isRead = if (isMe) false else true,
                                         reaction = existingReactions[dto.id],
                                         avatarUrl = msgAvatar,
                                         replyToId = dto.replyToId,
                                         replyToContent = decryptedReplyContent,
                                         replyToAuthor = dto.replyToAuthor,
-                                        isEncrypted = isEnc
+                                        isEncrypted = isEnc,
+                                        timestampMillis = msgMillis
                                     )
                                 }
 
+                                val lastFriendMsgTime = mapped.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
+                                val mappedResolved = mapped.map { msg ->
+                                    if (msg.isMe) {
+                                        if (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime) {
+                                            msg.copy(isDelivered = true, isRead = true)
+                                        } else {
+                                            msg.copy(isDelivered = if (friend.isGroup) true else isRecipientOnline)
+                                        }
+                                    } else msg
+                                }
+
                                 // Merge with any in-flight or pending local messages that have not yet reached the server
-                                val mappedIds = mapped.map { it.id }.toSet()
+                                val mappedIds = mappedResolved.map { it.id }.toSet()
                                 val unconfirmedLocal = friendMessages.filter { localMsg ->
                                     if (mappedIds.contains(localMsg.id)) {
                                         false // Already confirmed in server list
                                     } else if (localMsg.id.startsWith("opt-")) {
                                         // Optimistic message: keep unless mapped already has a confirmed server message from me with identical content
-                                        mapped.none { m -> m.isMe && m.content.trim() == localMsg.content.trim() }
+                                        mappedResolved.none { m -> m.isMe && m.content.trim() == localMsg.content.trim() }
                                     } else {
                                         // Confirmed locally or cached from DB: NEVER drop simply because server poll didn't return it!
                                         true
                                     }
                                 }
-                                val merged = (mapped + unconfirmedLocal).distinctBy { it.id }
+                                val merged = (mappedResolved + unconfirmedLocal).distinctBy { it.id }.sortedBy { it.timestampMillis }
                                 if (friendMessages != merged) {
                                     friendMessages = merged
+                                }
+
+                                // Ensure we scroll to the bottom on first server fetch
+                                if (!hasServerScrolledForFriend && merged.isNotEmpty()) {
+                                    hasServerScrolledForFriend = true
+                                    coroutineScope.launch {
+                                        try { listState.scrollToItem(merged.size) } catch (_: Exception) {}
+                                    }
                                 }
 
                                 // Update last message in friends list and persist
@@ -1537,19 +1657,19 @@ fun CustomizedChatScreen(
         }
     }
 
-    var hasInitiallyScrolledForFriend by remember(selectedFriend?.id) { mutableStateOf(false) }
-
-    // Auto-scroll on new messages or input focus (instantly on initial open, animated on new messages)
-    LaunchedEffect(friendMessages.size, isInputFocused) {
+    // Auto-scroll on new messages, initial open, or input focus (ensures always landing on latest messages)
+    LaunchedEffect(friendMessages.size, isInputFocused, selectedFriend?.id) {
         if (selectedFriend != null && friendMessages.isNotEmpty()) {
-            // +1 accounts for the "encryption_chip" header item at index 0
-            val targetIdx = friendMessages.size  // messages occupy indices 1..friendMessages.size
-            if (!hasInitiallyScrolledForFriend) {
+            val targetIdx = friendMessages.size
+            if (lastScrolledFriendId != selectedFriend?.id) {
+                lastScrolledFriendId = selectedFriend?.id
+                hasServerScrolledForFriend = false
                 try { listState.scrollToItem(targetIdx) } catch (_: Exception) {}
-                hasInitiallyScrolledForFriend = true
+            } else if (!hasServerScrolledForFriend) {
+                try { listState.scrollToItem(targetIdx) } catch (_: Exception) {}
             } else {
                 val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                val isNearBottom = lastVisible >= (targetIdx - 2).coerceAtLeast(0)
+                val isNearBottom = lastVisible >= (targetIdx - 3).coerceAtLeast(0)
                 if (isNearBottom || isInputFocused) {
                     try { listState.animateScrollToItem(targetIdx) } catch (_: Exception) {}
                 }
@@ -1567,7 +1687,7 @@ fun CustomizedChatScreen(
                     selectedFriendProfileData = prof
                     selectedFriend = selectedFriend?.copy(
                         avatarUrl = prof.avatarUrl ?: selectedFriend?.avatarUrl,
-                        bannerUrl = prof.bannerUrl ?: selectedFriend?.bannerUrl,
+                        bannerUrl = null,
                         name = prof.displayName.ifBlank { prof.fullName.ifBlank { prof.username } },
                         bio = prof.bio.ifBlank { selectedFriend?.bio ?: "" },
                         isOnline = prof.isOnline
@@ -1612,160 +1732,71 @@ fun CustomizedChatScreen(
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // DEDICATED FRIEND COVER BANNER HEADER
-                    val friendBanner = profData?.bannerUrl ?: friendObj.bannerUrl
-                    val hasBanner = !friendBanner.isNullOrBlank()
-                    val isBannerPreset = isCoverPreset(friendBanner)
-                    val bannerPresetObj = getCoverPreset(friendBanner)
-                    val resolvedBannerModel = resolveImageModel(friendBanner)
-
-                    Box(
+                    // Top Controls Header
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(132.dp)
-                            .clickable(enabled = hasBanner) {
-                                isLightboxForBanner = true
-                                showPhotoLightbox = true
-                            }
+                            .padding(horizontal = 20.dp, vertical = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isBannerPreset && bannerPresetObj != null) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(bannerPresetObj.brush)
-                            )
-                        } else if (resolvedBannerModel != null) {
-                            AsyncImage(
-                                model = resolvedBannerModel,
-                                contentDescription = "Cover Banner",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.linearGradient(
-                                            listOf(
-                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.22f),
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f)
-                                            )
-                                        )
-                                    )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "FRIEND PROFILE",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                letterSpacing = 1.sp
                             )
                         }
 
-                        // Gradient Scrim for Header Text Contrast
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        listOf(
-                                            Color.Black.copy(alpha = 0.55f),
-                                            Color.Black.copy(alpha = 0.05f),
-                                            Color.Black.copy(alpha = 0.40f)
-                                        )
-                                    )
-                                )
-                        )
-
-                        // Top Controls Overlay
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 14.dp, vertical = 10.dp)
-                                .align(Alignment.TopCenter),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+                                .clickable { showFriendProfileDialog = false },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color.Black.copy(alpha = 0.50f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "FRIEND PROFILE",
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White,
-                                    letterSpacing = 1.sp
-                                )
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                if (hasBanner) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(Color.Black.copy(alpha = 0.50f))
-                                            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
-                                            .clickable {
-                                                isLightboxForBanner = true
-                                                showPhotoLightbox = true
-                                            }
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = "View Cover",
-                                            fontSize = 10.5.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = Color.White
-                                        )
-                                    }
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .size(30.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.50f))
-                                        .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
-                                        .clickable { showFriendProfileDialog = false },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Close",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Close",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
 
-                    // Floating Overlapping Avatar
+                    // Avatar Circle with Dynamic Accent Glow & Full-Screen Photo Preview
                     val friendAvatarResolved = friendObj.avatarUrl ?: profData?.avatarUrl
                     Box(
                         modifier = Modifier
-                            .offset(y = (-44).dp)
+                            .padding(top = 4.dp, bottom = 12.dp)
                             .align(Alignment.CenterHorizontally),
                         contentAlignment = Alignment.BottomEnd
                     ) {
                         ConnectoAvatar(
                             name = friendObj.name,
                             avatarUrl = friendAvatarResolved,
-                            customSizeDp = 86.dp,
-                            customFontSizeSp = 34,
+                            customSizeDp = 92.dp,
+                            customFontSizeSp = 36,
                             borderWidth = 3.dp,
                             borderBrush = Brush.sweepGradient(gradientColors),
                             onClick = {
-                                isLightboxForBanner = false
                                 showPhotoLightbox = true
                             }
                         )
                         // Zoom inspect pill badge
                         Box(
                             modifier = Modifier
-                                .size(26.dp)
+                                .size(28.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surface)
                                 .border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape),
@@ -1775,16 +1806,15 @@ fun CustomizedChatScreen(
                                 imageVector = Icons.Default.ZoomIn,
                                 contentDescription = "View Profile Picture Fullscreen",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(15.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
 
-                    // Content below overlapping avatar
+                    // Content below avatar
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .offset(y = (-34).dp)
                             .padding(horizontal = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -2448,16 +2478,15 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Friend Profile Photo & Cover Banner Fullscreen Lightbox Dialog
+    // Friend Profile Photo Fullscreen Lightbox Dialog
     if (showPhotoLightbox && selectedFriend != null) {
         val friendObj = selectedFriend!!
         val resolvedAvatar = friendObj.avatarUrl ?: selectedFriendProfileData?.avatarUrl
-        val resolvedBanner = friendObj.bannerUrl ?: selectedFriendProfileData?.bannerUrl
         PhotoLightboxDialog(
-            title = if (isLightboxForBanner) "${friendObj.name}'s Cover" else friendObj.name,
-            imageUrl = if (isLightboxForBanner) resolvedBanner else resolvedAvatar,
+            title = friendObj.name,
+            imageUrl = resolvedAvatar,
             placeholderInitial = friendObj.initial,
-            isBanner = isLightboxForBanner,
+            isBanner = false,
             onDismiss = { showPhotoLightbox = false }
         )
     }
@@ -2686,19 +2715,28 @@ fun CustomizedChatScreen(
                         .fillMaxWidth()
                         .then(
                             if (isLiquidGlassTheme) {
+                                val alpha = ConnectoTheme.glassAlpha
                                 Modifier
                                     .background(
-                                        Brush.verticalGradient(
-                                            listOf(
-                                                Color.White.copy(alpha = 0.12f),
-                                                Color(0x4D061120)
+                                        if (alpha <= 0.005f) {
+                                            Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+                                        } else {
+                                            Brush.verticalGradient(
+                                                listOf(
+                                                    Color.White.copy(alpha = (alpha * 0.35f).coerceIn(0.02f, 0.45f)),
+                                                    Color.White.copy(alpha = (alpha * 0.15f).coerceIn(0.01f, 0.25f))
+                                                )
                                             )
-                                        )
+                                        }
                                     )
                                     .border(
                                         width = 1.dp,
-                                        brush = Brush.verticalGradient(
-                                            listOf(Color(0x6600E5FF), Color(0x1A00E5FF))
+                                        brush = Brush.horizontalGradient(
+                                            listOf(
+                                                Color.White.copy(alpha = 0.10f),
+                                                Color.White.copy(alpha = if (alpha <= 0.005f) 0.50f else (0.60f - alpha * 0.20f).coerceIn(0.30f, 0.65f)),
+                                                Color.White.copy(alpha = 0.10f)
+                                            )
                                         ),
                                         shape = RectangleShape
                                     )
@@ -2738,12 +2776,22 @@ fun CustomizedChatScreen(
                                 .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (isPureBlack || isLiquidGlassTheme) Color(0x1AFFFFFF)
+                                    if (isLiquidGlassTheme) {
+                                        val alpha = ConnectoTheme.glassAlpha
+                                        if (alpha <= 0.005f) Color.Transparent
+                                        else Color.White.copy(alpha = (alpha * 0.25f).coerceIn(0.01f, 0.35f))
+                                    }
+                                    else if (isPureBlack) Color(0x1AFFFFFF)
                                     else MaterialTheme.colorScheme.surfaceVariant
                                 )
                                 .border(
                                     1.dp,
-                                    if (isPureBlack || isLiquidGlassTheme) Color(0x40FFFFFF)
+                                    if (isLiquidGlassTheme) {
+                                        val alpha = ConnectoTheme.glassAlpha
+                                        val rimAlpha = if (alpha <= 0.005f) 0.55f else (0.65f - alpha * 0.20f).coerceIn(0.30f, 0.70f)
+                                        Color.White.copy(alpha = rimAlpha)
+                                    }
+                                    else if (isPureBlack) Color(0x40FFFFFF)
                                     else MaterialTheme.colorScheme.outline,
                                     CircleShape
                                 )
@@ -2789,6 +2837,27 @@ fun CustomizedChatScreen(
                                     }
                                 }
                         ) {
+                            val isSelectedOnline = selectedFriend?.isOnline == true
+                            val onlineTransition = rememberInfiniteTransition(label = "directChatOnlinePulse")
+                            val pulseScale by onlineTransition.animateFloat(
+                                initialValue = 1f,
+                                targetValue = 1.35f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1400, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "onlinePulseScale"
+                            )
+                            val pulseAlpha by onlineTransition.animateFloat(
+                                initialValue = 0.75f,
+                                targetValue = 0.25f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1400, easing = FastOutSlowInEasing),
+                                    repeatMode = RepeatMode.Reverse
+                                ),
+                                label = "onlinePulseAlpha"
+                            )
+
                             if (isGroupChat) {
                                 if (!selectedFriend?.avatarUrl.isNullOrBlank()) {
                                     ConnectoAvatar(
@@ -2817,14 +2886,43 @@ fun CustomizedChatScreen(
                                     }
                                 }
                             } else {
-                                ConnectoAvatar(
-                                    name = selectedFriend?.name ?: "Friend",
-                                    avatarUrl = selectedFriend?.avatarUrl,
-                                    customSizeDp = 42.dp,
-                                    customFontSizeSp = 16,
-                                    borderWidth = 1.5.dp,
-                                    borderColor = MaterialTheme.colorScheme.primary
-                                )
+                                Box(
+                                    modifier = Modifier.size(42.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    ConnectoAvatar(
+                                        name = selectedFriend?.name ?: "Friend",
+                                        avatarUrl = selectedFriend?.avatarUrl,
+                                        customSizeDp = 42.dp,
+                                        customFontSizeSp = 16,
+                                        borderWidth = 1.5.dp,
+                                        borderColor = if (isSelectedOnline) OnlineGreen.copy(alpha = 0.85f) else MaterialTheme.colorScheme.primary
+                                    )
+                                    if (isSelectedOnline) {
+                                        // Outer breathing aura ring
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .size(11.dp)
+                                                .graphicsLayer {
+                                                    scaleX = pulseScale
+                                                    scaleY = pulseScale
+                                                    alpha = pulseAlpha
+                                                }
+                                                .clip(CircleShape)
+                                                .background(OnlineGreen)
+                                        )
+                                        // Solid inner status beacon
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .size(11.dp)
+                                                .clip(CircleShape)
+                                                .background(OnlineGreen)
+                                                .border(2.dp, MaterialTheme.colorScheme.surface, CircleShape)
+                                        )
+                                    }
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(10.dp))
@@ -2838,12 +2936,16 @@ fun CustomizedChatScreen(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                val isSelectedOnline = selectedFriend?.isOnline == true
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (!isGroupChat) {
                                         Box(
                                             modifier = Modifier
                                                 .size(7.dp)
+                                                .graphicsLayer {
+                                                    if (isSelectedOnline) {
+                                                        alpha = 0.5f + (pulseAlpha * 0.5f)
+                                                    }
+                                                }
                                                 .clip(CircleShape)
                                                 .background(if (isSelectedOnline) OnlineGreen else Color.Gray)
                                         )
@@ -2977,6 +3079,24 @@ fun CustomizedChatScreen(
                         }
                     }
                 }
+
+                // Specular highlight divider line under TopBar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                                    Color.White.copy(alpha = 0.25f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.40f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
             } else {
                 ConnectoTopHeader(
                     title = "DIRECT MESSAGES",
@@ -3509,7 +3629,7 @@ fun CustomizedChatScreen(
                                     .weight(1f)
                                     .fillMaxWidth()
                             ) {
-                            if (isLoadingMessages) {
+                            if (isLoadingMessages && friendMessages.isEmpty()) {
                                 ShimmerMessageFeed(
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -3743,8 +3863,22 @@ fun CustomizedChatScreen(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(14.dp))
-                                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(14.dp))
+                                                .background(
+                                                    if (isLiquidGlassTheme) {
+                                                        val alpha = ConnectoTheme.glassAlpha
+                                                        if (alpha <= 0.005f) Color.Transparent
+                                                        else Color.White.copy(alpha = (alpha * 0.20f).coerceIn(0.02f, 0.30f))
+                                                    } else MaterialTheme.colorScheme.surfaceVariant
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (isLiquidGlassTheme) {
+                                                        val alpha = ConnectoTheme.glassAlpha
+                                                        val rimAlpha = if (alpha <= 0.005f) 0.50f else (0.55f - alpha * 0.15f).coerceIn(0.25f, 0.60f)
+                                                        Color.White.copy(alpha = rimAlpha)
+                                                    } else MaterialTheme.colorScheme.outline,
+                                                    RoundedCornerShape(14.dp)
+                                                )
                                                 .clickable(
                                                     interactionSource = chipInteractionSource,
                                                     indication = null
@@ -3777,7 +3911,15 @@ fun CustomizedChatScreen(
                                     onEmojiSelected = { emoji ->
                                         typedMessage += emoji
                                     },
-                                    onClose = { showEmojiPicker = false }
+                                    onClose = { showEmojiPicker = false },
+                                    userId = com.example.connecto.network.ConnectoApiClient.currentUserId ?: currentUsername,
+                                    onBackspace = {
+                                        if (typedMessage.isNotEmpty()) {
+                                            val lastCodePoint = typedMessage.codePointBefore(typedMessage.length)
+                                            val charCount = Character.charCount(lastCodePoint)
+                                            typedMessage = typedMessage.dropLast(charCount)
+                                        }
+                                    }
                                 )
                             }
                             } // end DisableSelection
@@ -3897,12 +4039,22 @@ fun CustomizedChatScreen(
                                             .padding(horizontal = 16.dp, vertical = 4.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(
-                                                if (isPureBlack || isLiquidGlassTheme) Color(0x1AFFFFFF)
+                                                if (isLiquidGlassTheme) {
+                                                    val alpha = ConnectoTheme.glassAlpha
+                                                    if (alpha <= 0.005f) Color.Transparent
+                                                    else Color.White.copy(alpha = (alpha * 0.25f).coerceIn(0.01f, 0.35f))
+                                                }
+                                                else if (isPureBlack) Color(0x1AFFFFFF)
                                                 else MaterialTheme.colorScheme.surfaceVariant
                                             )
                                             .border(
                                                 1.dp,
-                                                if (isPureBlack || isLiquidGlassTheme) Color(0x40FFFFFF)
+                                                if (isLiquidGlassTheme) {
+                                                    val alpha = ConnectoTheme.glassAlpha
+                                                    val rimAlpha = if (alpha <= 0.005f) 0.50f else (0.60f - alpha * 0.20f).coerceIn(0.25f, 0.65f)
+                                                    Color.White.copy(alpha = rimAlpha)
+                                                }
+                                                else if (isPureBlack) Color(0x40FFFFFF)
                                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                                                 RoundedCornerShape(12.dp)
                                             )
@@ -3963,13 +4115,27 @@ fun CustomizedChatScreen(
                                     .heightIn(min = 46.dp, max = 120.dp)
                                     .clip(RoundedCornerShape(22.dp))
                                     .background(
-                                        if (isPureBlack || isLiquidGlassTheme) Color(0x1AFFFFFF)
+                                        if (isLiquidGlassTheme) {
+                                            val alpha = ConnectoTheme.glassAlpha
+                                            if (alpha <= 0.005f) Color.Transparent
+                                            else Color.White.copy(alpha = (alpha * 0.28f).coerceIn(0.01f, 0.40f))
+                                        }
+                                        else if (isPureBlack) Color(0x1AFFFFFF)
                                         else if (isGlassTheme) Color(0xD9111827)
                                         else MaterialTheme.colorScheme.surfaceVariant
                                     )
                                     .border(
                                         width = if ((isLiquidGlassTheme || isGlassTheme || isPureBlack) && isInputFocused) 1.5.dp else 1.dp,
-                                        brush = if (isPureBlack || isLiquidGlassTheme) {
+                                        brush = if (isLiquidGlassTheme) {
+                                            val alpha = ConnectoTheme.glassAlpha
+                                            val rimAlpha = if (alpha <= 0.005f) (if (isInputFocused) 0.85f else 0.55f) else (if (isInputFocused) 0.95f else (0.65f - alpha * 0.20f).coerceIn(0.35f, 0.70f))
+                                            Brush.linearGradient(
+                                                listOf(
+                                                    Color.White.copy(alpha = rimAlpha),
+                                                    Color.White.copy(alpha = rimAlpha * 0.40f)
+                                                )
+                                            )
+                                        } else if (isPureBlack) {
                                             Brush.linearGradient(
                                                 listOf(
                                                     if (isInputFocused) Color.White else Color(0x66FFFFFF),
@@ -4023,7 +4189,12 @@ fun CustomizedChatScreen(
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(CircleShape)
-                                        .clickable { showEmojiPicker = !showEmojiPicker },
+                                        .clickable {
+                                            if (!showEmojiPicker) {
+                                                focusManager.clearFocus()
+                                            }
+                                            showEmojiPicker = !showEmojiPicker
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -4053,6 +4224,10 @@ fun CustomizedChatScreen(
                                     replyingTo = null // Clear reply banner immediately
 
                                     val isCurGroup = selectedFriend?.isGroup == true
+                                    val isRecipientOnline = selectedFriend?.isOnline == true
+                                    val initialDelivered = if (isCurGroup) true else isRecipientOnline
+                                    val nowMillis = System.currentTimeMillis()
+
                                     val localItem = CustomMessageItem(
                                         id = tempId,
                                         senderName = myName,
@@ -4060,16 +4235,23 @@ fun CustomizedChatScreen(
                                         content = userMsg,
                                         time = "Just now",
                                         isMe = true,
-                                        isDelivered = true,
-                                        isRead = true,
+                                        isDelivered = initialDelivered,
+                                        isRead = false,
                                         avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
                                         replyToId = currentReply?.id,
                                         replyToContent = currentReply?.content,
                                         replyToAuthor = currentReply?.senderName,
-                                        isEncrypted = false
+                                        isEncrypted = false,
+                                        timestampMillis = nowMillis
                                     )
-                                    val updatedList = friendMessages + localItem
+                                    val updatedList = (friendMessages + localItem).sortedBy { it.timestampMillis }
                                     friendMessages = updatedList
+                                    isLoadingMessages = false
+
+                                    // Instantly scroll to the bottom on sending message - zero lag, zero page load
+                                    coroutineScope.launch {
+                                        try { listState.scrollToItem(updatedList.size) } catch (_: Exception) {}
+                                    }
 
                                     coroutineScope.launch {
                                         try {
@@ -4124,6 +4306,7 @@ fun CustomizedChatScreen(
                                                         }
                                                     }
                                                 }
+                                                val sentMillis = parseMessageTimestamp(sentDto.createdAt)
                                                 val realItem = CustomMessageItem(
                                                     id = sentDto.id,
                                                     senderName = sentDto.authorName,
@@ -4131,22 +4314,29 @@ fun CustomizedChatScreen(
                                                     content = userMsg,
                                                     time = formatIsoTime(sentDto.createdAt),
                                                     isMe = true,
-                                                    isDelivered = true,
-                                                    isRead = true,
+                                                    isDelivered = if (isGrp) true else (selectedFriend?.isOnline == true || initialDelivered),
+                                                    isRead = false,
                                                     avatarUrl = ConnectoApiClient.currentUserAvatarUrl,
                                                     replyToId = sentDto.replyToId ?: currentReply?.id,
                                                     replyToContent = sentDto.replyToContent ?: currentReply?.content,
                                                     replyToAuthor = sentDto.replyToAuthor ?: currentReply?.senderName,
-                                                    isEncrypted = false
+                                                    isEncrypted = false,
+                                                    timestampMillis = if (sentMillis > 0) sentMillis else nowMillis
                                                 )
                                                 val curList = friendMessages.toMutableList()
                                                 val optIdx = curList.indexOfFirst { it.id == tempId }
                                                 if (optIdx != -1) {
-                                                    curList[optIdx] = realItem.copy(reaction = curList[optIdx].reaction ?: realItem.reaction)
-                                                    friendMessages = curList
+                                                    curList[optIdx] = realItem.copy(
+                                                        reaction = curList[optIdx].reaction ?: realItem.reaction,
+                                                        isDelivered = curList[optIdx].isDelivered || realItem.isDelivered
+                                                    )
+                                                    friendMessages = curList.sortedBy { it.timestampMillis }
                                                 } else if (curList.none { it.id == realItem.id }) {
                                                     curList.add(realItem)
-                                                    friendMessages = curList
+                                                    friendMessages = curList.sortedBy { it.timestampMillis }
+                                                }
+                                                coroutineScope.launch {
+                                                    try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
                                                 }
                                             } else {
                                                 // Server delivery failed: keep local message in friendMessages with delivery failure indicator
@@ -4154,7 +4344,7 @@ fun CustomizedChatScreen(
                                                 val optIdx = curList.indexOfFirst { it.id == tempId }
                                                 if (optIdx != -1) {
                                                     curList[optIdx] = curList[optIdx].copy(isDelivered = false)
-                                                    friendMessages = curList
+                                                    friendMessages = curList.sortedBy { it.timestampMillis }
                                                 }
                                             }
                                         } catch (e: Exception) {
@@ -4163,7 +4353,7 @@ fun CustomizedChatScreen(
                                             val optIdx = curList.indexOfFirst { it.id == tempId }
                                             if (optIdx != -1) {
                                                 curList[optIdx] = curList[optIdx].copy(isDelivered = false)
-                                                friendMessages = curList
+                                                friendMessages = curList.sortedBy { it.timestampMillis }
                                             }
                                         }
                                     }
@@ -4294,8 +4484,12 @@ fun CustomChatBubble(
             val isGlassTheme = ConnectoTheme.isGlass
             val isLiquidGlassTheme = ConnectoTheme.isLiquidGlass
             val isPureBlack = ConnectoTheme.isPureBlack
-            val bubbleShape = if (message.isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-                              else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
+            val bubbleShape = if (message.isMe) RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
+                              else RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
+
+            val isWhiteBubble = ownBg == Color.White || ownBg == Color(0xFFFAFAFA)
+            val effectiveOwnBg = ownBg
+            val effectiveOwnText = ownText
 
             val bubbleModifier = if (isGlassTheme || isLiquidGlassTheme) {
                 Modifier
@@ -4310,22 +4504,71 @@ fun CustomChatBubble(
                         isLiquid = isLiquidGlassTheme
                     )
             } else {
+                val bgBrush = if (message.isMe) {
+                    if (isWhiteBubble) {
+                        SolidColor(Color.White)
+                    } else {
+                        Brush.linearGradient(
+                            colors = listOf(
+                                effectiveOwnBg,
+                                Color(
+                                    red = (effectiveOwnBg.red * 0.85f).coerceIn(0f, 1f),
+                                    green = (effectiveOwnBg.green * 0.85f).coerceIn(0f, 1f),
+                                    blue = (effectiveOwnBg.blue * 0.95f).coerceIn(0f, 1f),
+                                    alpha = 1f
+                                )
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(300f, 300f)
+                        )
+                    }
+                } else {
+                    if (friendBg == Color(0xFF18181B) || friendBg == Color(0xFF1E1E22)) {
+                        SolidColor(friendBg)
+                    } else {
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                friendBg,
+                                friendBg.copy(alpha = 0.92f)
+                            )
+                        )
+                    }
+                }
+
+                val borderBrush = if (message.isMe) {
+                    if (isWhiteBubble) {
+                        SolidColor(Color(0x1F000000))
+                    } else {
+                        Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.40f),
+                                effectiveOwnText.copy(alpha = 0.15f),
+                                Color.Transparent
+                            ),
+                            start = Offset.Zero,
+                            end = Offset(220f, 220f)
+                        )
+                    }
+                } else {
+                    SolidColor(friendBorder)
+                }
+
                 Modifier
                     .graphicsLayer {
                         scaleX = bubbleScale
                         scaleY = bubbleScale
                     }
-                    .clip(bubbleShape)
-                    .background(
-                        if (message.isMe) {
-                            SolidColor(ownBg)
-                        } else {
-                            SolidColor(friendBg)
-                        }
+                    .shadow(
+                        elevation = if (message.isMe) 2.dp else 1.dp,
+                        shape = bubbleShape,
+                        spotColor = if (message.isMe && !isWhiteBubble) effectiveOwnBg.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.25f),
+                        ambientColor = Color.Black.copy(alpha = 0.30f)
                     )
+                    .clip(bubbleShape)
+                    .background(bgBrush)
                     .border(
                         width = 1.dp,
-                        color = if (message.isMe) ownText.copy(alpha = 0.15f) else friendBorder,
+                        brush = borderBrush,
                         shape = bubbleShape
                     )
             }
@@ -4361,8 +4604,9 @@ fun CustomChatBubble(
                                 .padding(bottom = 6.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(
-                                    if (message.isMe) ownText.copy(alpha = 0.12f)
-                                    else friendText.copy(alpha = 0.08f)
+                                    if (message.isMe) {
+                                        if (isWhiteBubble) Color(0x0F000000) else effectiveOwnText.copy(alpha = 0.12f)
+                                    } else friendText.copy(alpha = 0.08f)
                                 )
                                 .padding(horizontal = 8.dp, vertical = 5.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -4372,7 +4616,11 @@ fun CustomChatBubble(
                                     .width(2.5.dp)
                                     .height(24.dp)
                                     .clip(RoundedCornerShape(2.dp))
-                                    .background(if (message.isMe) ownText.copy(alpha = 0.8f) else MaterialTheme.colorScheme.primary)
+                                    .background(
+                                        if (message.isMe) {
+                                            if (isWhiteBubble) Color(0xCC000000) else effectiveOwnText.copy(alpha = 0.8f)
+                                        } else Color.White
+                                    )
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Column {
@@ -4381,7 +4629,9 @@ fun CustomChatBubble(
                                         text = message.replyToAuthor,
                                         fontSize = 10.5.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = if (message.isMe) ownText.copy(alpha = 0.9f) else MaterialTheme.colorScheme.primary,
+                                        color = if (message.isMe) {
+                                            if (isWhiteBubble) Color(0xEE000000) else effectiveOwnText.copy(alpha = 0.9f)
+                                        } else Color.White,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -4389,7 +4639,9 @@ fun CustomChatBubble(
                                 Text(
                                     text = message.replyToContent,
                                     fontSize = 11.sp,
-                                    color = if (message.isMe) ownText.copy(alpha = 0.75f) else friendText.copy(alpha = 0.75f),
+                                    color = if (message.isMe) {
+                                        if (isWhiteBubble) Color(0xBB000000) else effectiveOwnText.copy(alpha = 0.75f)
+                                    } else friendText.copy(alpha = 0.75f),
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )
@@ -4399,7 +4651,7 @@ fun CustomChatBubble(
 
                     Text(
                         text = message.content,
-                        color = if (message.isMe) ownText else friendText,
+                        color = if (message.isMe) effectiveOwnText else friendText,
                         fontWeight = FontWeight.Normal,
                         fontSize = 14.sp,
                         lineHeight = 20.sp
@@ -4414,15 +4666,26 @@ fun CustomChatBubble(
                         Text(
                             text = formatIsoTime(message.time),
                             fontSize = 10.sp,
-                            color = if (message.isMe) ownText.copy(alpha = 0.70f) else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (message.isMe) {
+                                if (isWhiteBubble) Color(0x99000000) else effectiveOwnText.copy(alpha = 0.70f)
+                            } else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         if (message.isMe) {
                             Spacer(modifier = Modifier.width(4.dp))
-                            val isPending = message.id.startsWith("opt-") || message.time.equals("Just now", ignoreCase = true)
+                            val isDelivered = message.isDelivered
+                            val isRead = message.isRead
+                            val tickIcon = if (isDelivered) Icons.Default.DoneAll else Icons.Default.Check
+                            val tickTint = if (isRead) {
+                                Color(0xFF0284C7) // Read receipt (distinct azure double tick)
+                            } else if (isDelivered) {
+                                if (isWhiteBubble) Color(0xCC000000) else effectiveOwnText.copy(alpha = 0.85f) // Delivered (double tick)
+                            } else {
+                                if (isWhiteBubble) Color(0x99000000) else effectiveOwnText.copy(alpha = 0.70f) // Sent to server, recipient offline/data off (single tick)
+                            }
                             Icon(
-                                imageVector = if (isPending) Icons.Default.Schedule else Icons.Default.DoneAll,
-                                contentDescription = if (isPending) "Sending" else if (message.isRead) "Read" else "Delivered",
-                                tint = if (isPending) ownText.copy(alpha = 0.45f) else ownText.copy(alpha = 0.85f),
+                                imageVector = tickIcon,
+                                contentDescription = if (isRead) "Read" else if (isDelivered) "Delivered" else "Sent",
+                                tint = tickTint,
                                 modifier = Modifier.size(13.dp)
                             )
                         }
@@ -4442,13 +4705,23 @@ fun CustomChatBubble(
                             .offset(y = (-8).dp)
                             .clip(RoundedCornerShape(10.dp))
                             .background(
-                                if (isPureBlack || isLiquidGlassTheme) Color(0x26FFFFFF)
+                                if (isLiquidGlassTheme) {
+                                    val alpha = ConnectoTheme.glassAlpha
+                                    if (alpha <= 0.005f) Color.Transparent
+                                    else Color.White.copy(alpha = (alpha * 0.30f).coerceIn(0.02f, 0.40f))
+                                }
+                                else if (isPureBlack) Color(0x26FFFFFF)
                                 else if (isGlassTheme) Color(0xD91E293B)
                                 else MaterialTheme.colorScheme.surface
                             )
                             .border(
                                 1.dp,
-                                if (isPureBlack || isLiquidGlassTheme) Color(0x40FFFFFF)
+                                if (isLiquidGlassTheme) {
+                                    val alpha = ConnectoTheme.glassAlpha
+                                    val rimAlpha = if (alpha <= 0.005f) 0.55f else (0.65f - alpha * 0.20f).coerceIn(0.30f, 0.70f)
+                                    Color.White.copy(alpha = rimAlpha)
+                                }
+                                else if (isPureBlack) Color(0x40FFFFFF)
                                 else if (isGlassTheme) Color(0x8038BDF8)
                                 else MaterialTheme.colorScheme.outline,
                                 RoundedCornerShape(10.dp)
@@ -4474,15 +4747,38 @@ fun CustomChatBubble(
                         .padding(top = 4.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(
-                            if (isPureBlack || isLiquidGlassTheme) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)))
+                            if (isLiquidGlassTheme) {
+                                val alpha = ConnectoTheme.glassAlpha
+                                if (alpha <= 0.005f) {
+                                    Brush.verticalGradient(listOf(Color(0x0DFFFFFF), Color.Transparent))
+                                } else {
+                                    Brush.verticalGradient(
+                                        listOf(
+                                            Color.White.copy(alpha = (alpha * 0.40f).coerceIn(0.04f, 0.50f)),
+                                            Color.White.copy(alpha = (alpha * 0.20f).coerceIn(0.02f, 0.30f))
+                                        )
+                                    )
+                                }
+                            }
+                            else if (isPureBlack) Brush.verticalGradient(listOf(Color(0x33FFFFFF), Color(0x1AFFFFFF)))
                             else if (isGlassTheme) Brush.verticalGradient(listOf(Color(0xF0111827), Color(0xDD090D16)))
                             else SolidColor(MaterialTheme.colorScheme.surface)
                         )
                         .border(
                             width = 1.2.dp,
-                            brush = if (isPureBlack || isLiquidGlassTheme) Brush.linearGradient(listOf(Color(0x80FFFFFF), Color(0x20FFFFFF)))
-                                    else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xCC38BDF8), Color(0x3338BDF8)))
-                                    else SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                            brush = if (isLiquidGlassTheme) {
+                                val alpha = ConnectoTheme.glassAlpha
+                                val rimAlpha = if (alpha <= 0.005f) 0.65f else (0.75f - alpha * 0.20f).coerceIn(0.35f, 0.85f)
+                                Brush.linearGradient(
+                                    listOf(
+                                        Color.White.copy(alpha = rimAlpha),
+                                        Color.White.copy(alpha = rimAlpha * 0.30f)
+                                    )
+                                )
+                            }
+                            else if (isPureBlack) Brush.linearGradient(listOf(Color(0x80FFFFFF), Color(0x20FFFFFF)))
+                            else if (isGlassTheme) Brush.linearGradient(listOf(Color(0xCC38BDF8), Color(0x3338BDF8)))
+                            else SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
                             shape = RoundedCornerShape(16.dp)
                         )
                         .shadow(6.dp, RoundedCornerShape(16.dp))

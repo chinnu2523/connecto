@@ -95,6 +95,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -717,8 +718,8 @@ fun ChannelsWorkspaceScreen(
                     val hasText = typedMessage.trim().isNotEmpty()
 
                     val focusBorderColor by animateColorAsState(
-                        targetValue = if (isInputFocused) Color(0xFF6366F1)
-                                      else if (colors.isDark) Color(0xFF26262E)
+                        targetValue = if (isInputFocused) (if (colors.isDark) Color(0xFFFAFAFA) else Color(0xFF18181B))
+                                      else if (colors.isDark) Color(0xFF27272A)
                                       else Color(0xFFE2E8F0),
                         animationSpec = tween(220),
                         label = "inputBorder"
@@ -781,7 +782,14 @@ fun ChannelsWorkspaceScreen(
                                 onEmojiSelected = { emoji ->
                                     typedMessage += emoji
                                 },
-                                onClose = { showEmojiPicker = false }
+                                onClose = { showEmojiPicker = false },
+                                onBackspace = {
+                                    if (typedMessage.isNotEmpty()) {
+                                        val lastCodePoint = typedMessage.codePointBefore(typedMessage.length)
+                                        val charCount = Character.charCount(lastCodePoint)
+                                        typedMessage = typedMessage.dropLast(charCount)
+                                    }
+                                }
                             )
                         }
                     }
@@ -800,11 +808,12 @@ fun ChannelsWorkspaceScreen(
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(
                                         if (colors.isGlass) Color(0xD91E293B)
+                                        else if (colors.isDark) Color(0xFF18181B)
                                         else colors.surfaceVariant.copy(alpha = 0.95f)
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = colors.primary.copy(alpha = 0.35f),
+                                        color = if (colors.isDark) Color(0xFF27272A) else colors.primary.copy(alpha = 0.35f),
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -814,13 +823,13 @@ fun ChannelsWorkspaceScreen(
                                     modifier = Modifier
                                         .size(28.dp)
                                         .clip(CircleShape)
-                                        .background(colors.primary.copy(alpha = 0.2f)),
+                                        .background(if (colors.isDark) Color(0xFF27272A) else colors.primary.copy(alpha = 0.2f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.Reply,
                                         contentDescription = "Replying to",
-                                        tint = colors.primary,
+                                        tint = if (colors.isDark) Color.White else colors.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -830,7 +839,7 @@ fun ChannelsWorkspaceScreen(
                                         text = "Replying to ${replyTarget.authorName.ifBlank { replyTarget.authorId }}",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = colors.primary,
+                                        color = if (colors.isDark) Color.White else colors.primary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
@@ -857,20 +866,20 @@ fun ChannelsWorkspaceScreen(
                         }
                     }
 
-                    // Main Aesthetic Unified Input Capsule (matches Screenshot 3)
+                    // Main Aesthetic Unified Input Capsule
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .shadow(
                                 elevation = glowElevation,
                                 shape = RoundedCornerShape(24.dp),
-                                spotColor = Color(0xFF6366F1).copy(alpha = 0.30f),
+                                spotColor = if (colors.isDark) Color.Black.copy(alpha = 0.5f) else Color(0x1F000000),
                                 ambientColor = Color.Black.copy(alpha = 0.35f)
                             )
                             .clip(RoundedCornerShape(24.dp))
                             .background(
                                 if (colors.isGlass) Color(0xD9111827)
-                                else (if (colors.isDark) Color(0xFF0E1017) else Color(0xFFFFFFFF))
+                                else (if (colors.isDark) Color(0xFF141416) else Color(0xFFFFFFFF))
                             )
                             .border(
                                 width = if (isInputFocused) 1.5.dp else 1.dp,
@@ -903,13 +912,16 @@ fun ChannelsWorkspaceScreen(
                                     }
                                     .clip(CircleShape)
                                     .background(
-                                        if (showEmojiPicker) Color(0xFF6366F1).copy(alpha = 0.20f)
+                                        if (showEmojiPicker) (if (colors.isDark) Color(0xFF27272A) else Color(0xFFE2E8F0))
                                         else Color.Transparent
                                     )
                                     .clickable(
                                         interactionSource = emojiInteractionSource,
                                         indication = null
                                     ) {
+                                        if (!showEmojiPicker) {
+                                            focusManager.clearFocus()
+                                        }
                                         showEmojiPicker = !showEmojiPicker
                                     },
                                 contentAlignment = Alignment.Center
@@ -951,7 +963,7 @@ fun ChannelsWorkspaceScreen(
                                         fontSize = 15.sp,
                                         fontFamily = FontFamily.Default
                                     ),
-                                    cursorBrush = SolidColor(Color(0xFF6366F1)),
+                                    cursorBrush = SolidColor(if (colors.isDark) Color.White else Color.Black),
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                                     keyboardActions = KeyboardActions(onSend = { handleSendMessage() })
                                 )
@@ -959,7 +971,7 @@ fun ChannelsWorkspaceScreen(
 
                             Spacer(modifier = Modifier.width(6.dp))
 
-                            // 3. Circular Dark Send Button on Right (Tactile Spring Scale & Rotation)
+                            // 3. Circular Monochrome Send Button on Right (Tactile Spring Scale & Rotation)
                             Box(
                                 modifier = Modifier
                                     .size(38.dp)
@@ -971,17 +983,17 @@ fun ChannelsWorkspaceScreen(
                                     .shadow(
                                         elevation = if (hasText) 3.dp else 0.dp,
                                         shape = CircleShape,
-                                        spotColor = Color(0xFF6366F1).copy(alpha = 0.4f)
+                                        spotColor = Color.Black.copy(alpha = 0.35f)
                                     )
                                     .clip(CircleShape)
                                     .background(
-                                        if (hasText) Color(0xFF1E2130)
-                                        else (if (colors.isDark) Color(0xFF141722) else Color(0xFFF1F5F9))
+                                        if (hasText) (if (colors.isDark) Color.White else Color(0xFF18181B))
+                                        else (if (colors.isDark) Color(0xFF1F1F23) else Color(0xFFF1F5F9))
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = if (hasText) Color(0xFF6366F1).copy(alpha = 0.5f)
-                                                else (if (colors.isDark) Color(0xFF1E2232) else Color(0xFFE2E8F0)),
+                                        color = if (hasText) (if (colors.isDark) Color.White else Color(0xFF18181B))
+                                                else (if (colors.isDark) Color(0xFF2E2E33) else Color(0xFFE2E8F0)),
                                         shape = CircleShape
                                     )
                                     .clickable(
@@ -995,7 +1007,7 @@ fun ChannelsWorkspaceScreen(
                             ) {
                                 if (isSending) {
                                     CircularProgressIndicator(
-                                        color = Color.White,
+                                        color = if (colors.isDark) Color.Black else Color.White,
                                         modifier = Modifier.size(16.dp),
                                         strokeWidth = 2.dp
                                     )
@@ -1003,7 +1015,8 @@ fun ChannelsWorkspaceScreen(
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Rounded.Send,
                                         contentDescription = "Send",
-                                        tint = if (hasText) Color.White else (if (colors.isDark) Color(0xFF52525B) else Color(0xFF94A3B8)),
+                                        tint = if (hasText) (if (colors.isDark) Color.Black else Color.White)
+                                               else (if (colors.isDark) Color(0xFF71717A) else Color(0xFF94A3B8)),
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -1110,34 +1123,87 @@ private fun ChannelMessageCard(
                 horizontalAlignment = if (isMe) Alignment.End else Alignment.Start,
                 modifier = Modifier.widthIn(min = 80.dp, max = 310.dp)
             ) {
-                val bubbleShape = if (isMe) RoundedCornerShape(16.dp, 16.dp, 4.dp, 16.dp)
-                else RoundedCornerShape(16.dp, 16.dp, 16.dp, 4.dp)
-                Box(
-                    modifier = Modifier
-                        .then(
-                            if (colors.isGlass) {
-                                Modifier.glassBubble(isMe = isMe, shape = bubbleShape)
-                            } else {
-                                Modifier
-                                    .clip(bubbleShape)
-                                    .background(
-                                        if (isMe) colors.primary.copy(alpha = 0.12f)
-                                        else colors.surfaceVariant
+                val bubbleShape = if (isMe) RoundedCornerShape(18.dp, 18.dp, 4.dp, 18.dp)
+                else RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
+
+                val isWhiteBubble = if (isMe) {
+                    colors.isDark || colors.primary == Color.White || colors.primary == Color(0xFFFAFAFA)
+                } else false
+
+                val ownBubbleBg = if (colors.isDark) Color(0xFFFFFFFF) else Color(0xFF141312)
+                val ownBubbleText = if (colors.isDark) Color(0xFF000000) else Color(0xFFFFFFFF)
+                val friendBubbleBg = if (colors.isDark) Color(0xFF18181B) else Color(0xFFF4F4F5)
+                val friendBubbleText = if (colors.isDark) Color(0xFFFFFFFF) else Color(0xFF141312)
+                val friendBorder = if (colors.isDark) Color(0xFF27272A) else Color(0xFFE4E4E7)
+
+                val bubbleModifier = if (colors.isLiquidGlass || colors.isGlass) {
+                    Modifier.glassBubble(isMe = isMe, shape = bubbleShape, isLiquid = colors.isLiquidGlass)
+                } else {
+                    val bgBrush = if (isMe) {
+                        if (isWhiteBubble) {
+                            SolidColor(Color.White)
+                        } else {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    ownBubbleBg,
+                                    Color(
+                                        red = (ownBubbleBg.red * 0.85f).coerceIn(0f, 1f),
+                                        green = (ownBubbleBg.green * 0.85f).coerceIn(0f, 1f),
+                                        blue = (ownBubbleBg.blue * 0.95f).coerceIn(0f, 1f),
+                                        alpha = 1f
                                     )
-                                    .border(
-                                        width = 1.dp,
-                                        color = if (isMe) colors.primary.copy(alpha = 0.35f) else colors.borderSubtle,
-                                        shape = bubbleShape
-                                    )
-                            }
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(300f, 300f)
+                            )
+                        }
+                    } else {
+                        SolidColor(friendBubbleBg)
+                    }
+
+                    val borderBrush = if (isMe) {
+                        if (isWhiteBubble) {
+                            SolidColor(Color(0x1F000000))
+                        } else {
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.45f),
+                                    ownBubbleBg.copy(alpha = 0.60f),
+                                    Color.Transparent
+                                ),
+                                start = Offset.Zero,
+                                end = Offset(220f, 220f)
+                            )
+                        }
+                    } else {
+                        SolidColor(friendBorder)
+                    }
+
+                    Modifier
+                        .shadow(
+                            elevation = if (isMe) 2.dp else 1.dp,
+                            shape = bubbleShape,
+                            spotColor = if (isMe && !isWhiteBubble) ownBubbleBg.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.25f),
+                            ambientColor = Color.Black.copy(alpha = 0.30f)
                         )
+                        .clip(bubbleShape)
+                        .background(bgBrush)
+                        .border(
+                            width = 1.dp,
+                            brush = borderBrush,
+                            shape = bubbleShape
+                        )
+                }
+
+                Box(
+                    modifier = bubbleModifier
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
                         ) {
                             showReactionPicker = !showReactionPicker
                         }
-                        .padding(horizontal = 12.dp, vertical = 9.dp)
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
                     Column {
                         // Header row (Author Name + Timestamp)
@@ -1151,21 +1217,28 @@ private fun ChannelMessageCard(
                                     text = if (isMe) "You" else message.authorName,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isMe) colors.primary else colors.textPrimary
+                                    color = if (isMe) {
+                                        if (isWhiteBubble) Color(0xFF09090B) else Color.White.copy(alpha = 0.95f)
+                                    } else {
+                                        if (colors.isDark) Color.White else colors.primary
+                                    }
                                 )
                                 if (isMe) {
                                     Spacer(modifier = Modifier.width(5.dp))
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(colors.primary.copy(alpha = 0.18f))
+                                            .background(
+                                                if (isWhiteBubble) Color(0x18000000)
+                                                else Color.White.copy(alpha = 0.22f)
+                                            )
                                             .padding(horizontal = 4.dp, vertical = 1.dp)
                                     ) {
                                         Text(
                                             text = "YOU",
                                             fontSize = 8.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = colors.primary
+                                            color = if (isWhiteBubble) Color.Black else Color.White
                                         )
                                     }
                                 }
@@ -1177,14 +1250,22 @@ private fun ChannelMessageCard(
                                 Text(
                                     text = formattedTime,
                                     fontSize = 10.sp,
-                                    color = colors.textSecondary
+                                    color = if (isMe) {
+                                        if (isWhiteBubble) Color(0x99000000) else Color.White.copy(alpha = 0.75f)
+                                    } else {
+                                        if (colors.isDark) Color(0xFFA1A1AA) else colors.textSecondary
+                                    }
                                 )
                                 if (isMe) {
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         imageVector = if (isPending) Icons.Rounded.Schedule else Icons.Rounded.DoneAll,
                                         contentDescription = null,
-                                        tint = if (isPending) colors.textDisabled else Color(0xFF67E8F9),
+                                        tint = if (isWhiteBubble) {
+                                            if (isPending) Color(0x66000000) else Color(0xCC000000)
+                                        } else {
+                                            if (isPending) Color.White.copy(alpha = 0.60f) else Color(0xFF67E8F9)
+                                        },
                                         modifier = Modifier.size(13.dp)
                                     )
                                 }
@@ -1196,7 +1277,11 @@ private fun ChannelMessageCard(
                         // Quoted Reply Preview inside bubble
                         if (!message.replyToContent.isNullOrBlank()) {
                             Surface(
-                                color = colors.surfaceVariant.copy(alpha = 0.55f),
+                                color = if (isMe) {
+                                    if (isWhiteBubble) Color(0x0F000000) else Color.Black.copy(alpha = 0.22f)
+                                } else {
+                                    if (colors.isDark) Color(0x1AFFFFFF) else colors.surfaceVariant.copy(alpha = 0.55f)
+                                },
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1206,7 +1291,11 @@ private fun ChannelMessageCard(
                                     modifier = Modifier
                                         .border(
                                             width = 2.5.dp,
-                                            color = colors.primary,
+                                            color = if (isMe) {
+                                                if (isWhiteBubble) Color(0xCC000000) else Color.White.copy(alpha = 0.70f)
+                                            } else {
+                                                if (colors.isDark) Color.White else colors.primary
+                                            },
                                             shape = RoundedCornerShape(topStart = 8.dp, bottomStart = 8.dp)
                                         )
                                         .padding(horizontal = 8.dp, vertical = 5.dp),
@@ -1217,14 +1306,22 @@ private fun ChannelMessageCard(
                                             text = message.replyToAuthor?.ifBlank { "Reply" } ?: "Reply",
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = colors.primary,
+                                            color = if (isMe) {
+                                                if (isWhiteBubble) Color(0xEE000000) else Color.White.copy(alpha = 0.95f)
+                                            } else {
+                                                if (colors.isDark) Color.White else colors.primary
+                                            },
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
                                             text = message.replyToContent,
                                             fontSize = 11.5.sp,
-                                            color = colors.textSecondary,
+                                            color = if (isMe) {
+                                                if (isWhiteBubble) Color(0xBB000000) else Color.White.copy(alpha = 0.80f)
+                                            } else {
+                                                if (colors.isDark) Color(0xCCFFFFFF) else colors.textSecondary
+                                            },
                                             maxLines = 2,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -1248,7 +1345,7 @@ private fun ChannelMessageCard(
                             Text(
                                 text = message.content,
                                 fontSize = 13.5.sp,
-                                color = colors.textPrimary,
+                                color = if (isMe) ownBubbleText else friendBubbleText,
                                 lineHeight = 19.sp
                             )
                         }

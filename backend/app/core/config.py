@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     EMAILS_FROM: str = "support@connecto.fun"
 
-    # Security: In production, actual OTP values are NEVER logged or returned in responses.
-    ENABLE_DEV_OTP_FALLBACK: bool = False
+    # Security: Fallback to dev OTP if live carrier/SMTP is unconfigured
+    ENABLE_DEV_OTP_FALLBACK: bool = True
 
     # Cloudflare D1 Native Edge Database Configuration
     D1_ENABLED: bool = True

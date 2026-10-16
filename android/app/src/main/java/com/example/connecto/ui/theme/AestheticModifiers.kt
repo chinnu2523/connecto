@@ -56,6 +56,14 @@ fun Modifier.glassmorphicCard(
     borderWidth: Dp = 1.dp
 ): Modifier {
     val colors = ConnectoTheme.colors
+    if (colors.isLiquidGlass) {
+        return this.liquidGlassCard(
+            shape = shape,
+            backgroundColor = backgroundColor,
+            borderColor = borderColor,
+            borderWidth = borderWidth
+        )
+    }
     val isDark = colors.isDark
 
     val glareColor = Color.White.copy(alpha = if (isDark) 0.85f else 0.90f)
@@ -399,6 +407,19 @@ fun Modifier.glassCard(
     hasShimmer: Boolean = false
 ): Modifier {
     val colors = ConnectoTheme.colors
+    if (colors.isLiquidGlass) {
+        val base = this.liquidGlassCard(
+            shape = shape,
+            backgroundColor = backgroundColor,
+            borderColor = borderColor,
+            borderWidth = borderWidth
+        )
+        return if (hasShimmer) {
+            base.glassSpecularSweep(shape = shape, sweepColor = borderColor)
+        } else {
+            base
+        }
+    }
     val isDark = colors.isDark
 
     val glareColor = Color.White.copy(alpha = if (isDark) 0.85f else 0.90f)
@@ -500,7 +521,7 @@ fun Modifier.liquidGlassCard(
     val alpha = colors.glassAlpha
 
     // Pure 0% opacity transparent liquid glass
-    if (isLiquid && alpha <= 0.01f) {
+    if (isLiquid && alpha <= 0.005f) {
         return this
             .clip(shape)
             .background(Color.Transparent)
@@ -508,7 +529,7 @@ fun Modifier.liquidGlassCard(
                 width = borderWidth,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.60f), // Crisp specular reflection on top edge
+                        Color.White.copy(alpha = 0.65f), // Crisp specular reflection on top edge
                         Color.White.copy(alpha = 0.22f), // Optical glass lateral rim
                         Color.White.copy(alpha = 0.08f)  // Translucent bottom edge
                     ),
@@ -520,16 +541,16 @@ fun Modifier.liquidGlassCard(
     }
 
     // Specular top glare & neutral glass body tint (zero foreign colors)
-    val glareColor = Color.White.copy(alpha = (0.85f - alpha * 0.35f).coerceIn(0.40f, 0.85f))
+    val glareColor = Color.White.copy(alpha = (0.85f - alpha * 0.25f).coerceIn(0.40f, 0.85f))
     val topTint = if (isLiquid) {
-        Color.White.copy(alpha = (alpha * 0.28f).coerceIn(0.01f, 0.28f))
+        Color.White.copy(alpha = (alpha * 0.60f).coerceIn(0.0f, 0.70f))
     } else if (alpha < 0.35f) {
         Color.White.copy(alpha = (alpha * 0.95f).coerceIn(0.10f, 0.32f))
     } else {
         backgroundColor.copy(alpha = (alpha * 0.75f).coerceIn(0.25f, 0.75f))
     }
     val bottomTint = if (isLiquid) {
-        Color.White.copy(alpha = (alpha * 0.10f).coerceIn(0.01f, 0.12f))
+        Color.White.copy(alpha = (alpha * 0.35f).coerceIn(0.0f, 0.45f))
     } else {
         backgroundColor
     }
@@ -537,15 +558,15 @@ fun Modifier.liquidGlassCard(
     val rimColor = if (isLiquid) Color.White else borderColor
     val borderColors = listOf(
         glareColor,                                              // Specular glare reflection on top rim
-        rimColor.copy(alpha = (0.60f - alpha * 0.20f).coerceIn(0.25f, 0.65f)), // Pure white rim glow
-        rimColor.copy(alpha = (0.20f - alpha * 0.10f).coerceIn(0.06f, 0.20f))  // Translucent subtle bottom edge
+        rimColor.copy(alpha = (0.65f - alpha * 0.20f).coerceIn(0.25f, 0.70f)), // Pure white rim glow
+        rimColor.copy(alpha = (0.25f - alpha * 0.10f).coerceIn(0.08f, 0.25f))  // Translucent subtle bottom edge
     )
 
     return this
         .shadow(
-            elevation = if (isLiquid) 1.dp else 6.dp,
+            elevation = if (isLiquid) (1.dp + (4 * alpha).dp) else 6.dp,
             shape = shape,
-            ambientColor = Color.Black.copy(alpha = if (isLiquid) 0.05f else if (isDark) 0.45f else 0.10f),
+            ambientColor = Color.Black.copy(alpha = if (isLiquid) (alpha * 0.35f).coerceIn(0.02f, 0.40f) else if (isDark) 0.45f else 0.10f),
             spotColor = if (isLiquid) Color.Transparent else rimColor.copy(alpha = 0.15f)
         )
         .clip(shape)
@@ -654,38 +675,36 @@ fun Modifier.glassBubble(
     val bgBrush = when {
         isLiquid -> {
             val alpha = colors.glassAlpha
-            if (alpha <= 0.01f) {
-                if (isMe) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.15f),
-                            Color.White.copy(alpha = 0.05f)
+            if (isMe) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        colors.primary.copy(alpha = (0.80f + alpha * 0.15f).coerceIn(0.75f, 0.95f)),
+                        Color(
+                            red = (colors.primary.red * 0.82f).coerceIn(0f, 1f),
+                            green = (colors.primary.green * 0.82f).coerceIn(0f, 1f),
+                            blue = (colors.primary.blue * 0.92f).coerceIn(0f, 1f),
+                            alpha = (0.70f + alpha * 0.15f).coerceIn(0.65f, 0.90f)
                         )
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(260f, 260f)
+                )
+            } else if (alpha <= 0.005f) {
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.06f),
+                        Color.Transparent
                     )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.08f),
-                            Color.Transparent
-                        )
-                    )
-                }
+                )
             } else {
-                if (isMe) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = (alpha * 0.35f).coerceIn(0.12f, 0.40f)),
-                            Color.White.copy(alpha = (alpha * 0.16f).coerceIn(0.05f, 0.22f))
-                        )
+                Brush.verticalGradient(
+                    colors = listOf(
+                        if (isDark) Color(0xFF1E2235).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
+                        else colors.surfaceVariant.copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f)),
+                        if (isDark) Color(0xFF141724).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
+                        else colors.surfaceVariant.copy(alpha = (0.60f + alpha * 0.20f).coerceIn(0.50f, 0.85f))
                     )
-                } else {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = (alpha * 0.20f).coerceIn(0.06f, 0.25f)),
-                            Color.White.copy(alpha = (alpha * 0.08f).coerceIn(0.02f, 0.12f))
-                        )
-                    )
-                }
+                )
             }
         }
         else -> {
@@ -709,15 +728,29 @@ fun Modifier.glassBubble(
 
     val borderBrush = when {
         isLiquid -> {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.65f),
-                    Color.White.copy(alpha = 0.25f),
-                    Color.White.copy(alpha = 0.08f)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
+            if (isMe) {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.55f),
+                        colors.primary.copy(alpha = 0.60f),
+                        Color.Transparent
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(240f, 240f)
+                )
+            } else {
+                val alpha = colors.glassAlpha
+                val rimAlpha = if (alpha <= 0.005f) 0.65f else (0.75f - alpha * 0.20f).coerceIn(0.35f, 0.85f)
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = rimAlpha),
+                        Color.White.copy(alpha = rimAlpha * 0.40f),
+                        Color.White.copy(alpha = rimAlpha * 0.15f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(240f, 240f)
+                )
+            }
         }
         isMe -> {
             Brush.linearGradient(

@@ -43,8 +43,12 @@ import com.example.connecto.network.ConnectoNetworkHelper
 import com.example.connecto.network.PollDto
 import org.json.JSONArray
 import java.net.URLEncoder
+import java.text.SimpleDateFormat
 import java.util.Collections
+import java.util.Date
 import java.util.IdentityHashMap
+import java.util.Locale
+import java.util.TimeZone
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 import com.example.connecto.data.ConnectoDatabaseHelper
@@ -133,6 +137,9 @@ object VoiceCallManager {
 
     private val _liveAudioAmplitude = MutableStateFlow(0f)
     val liveAudioAmplitude: StateFlow<Float> = _liveAudioAmplitude.asStateFlow()
+
+    @Volatile
+    var activeChatRoomOrFriend: String? = null
 
     private val _callDurationSeconds = MutableStateFlow(0)
     val callDurationSeconds: StateFlow<Int> = _callDurationSeconds.asStateFlow()
@@ -1129,16 +1136,20 @@ object VoiceCallManager {
                 "pong" -> {
                     // Keepalive pong received
                 }
-                "message_created", "new_message", "dm_message", "new_dm_alert" -> {
+                "message_created", "new_message", "dm_message", "new_dm_alert", "channel_message", "chat_message", "message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json
                     val rawChId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { data.optString("channel_id").ifEmpty { data.optString("channel") } } }
                     val rawChName = json.optString("channel_name").ifEmpty { data.optString("channel_name") }
-                    val chId = if (rawChName.isNotBlank() && !rawChName.startsWith("dm-") && !rawChName.startsWith("dm_")) {
+                    if (rawChName.isNotBlank() && rawChId.isNotBlank()) {
                         ConnectoApiClient.channelCache[rawChName.lowercase()] = rawChId
                         ConnectoApiClient.channelCache[rawChId.lowercase()] = rawChName.lowercase()
+                    }
+                    val chId = if (rawChName.isNotBlank() && !rawChName.startsWith("dm-") && !rawChName.startsWith("dm_")) {
                         rawChName.lowercase()
-                    } else {
+                    } else if (rawChId.isNotBlank()) {
                         rawChId
+                    } else {
+                        rawChName.lowercase()
                     }
                     val senderUsername = data.optString("sender_username").ifEmpty { data.optString("user").ifEmpty { data.optString("sender").ifEmpty { json.optString("sender") } } }
                     val senderDisplay = data.optString("sender_display_name").ifEmpty { data.optString("nickname").ifEmpty { senderUsername } }
@@ -1177,7 +1188,7 @@ object VoiceCallManager {
                             authorId = senderUsername,
                             authorName = senderDisplay,
                             content = content,
-                            createdAt = createdAt,
+                            createdAt = createdAt.ifEmpty { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date()) },
                             authorAvatar = authorAvatar,
                             type = type,
                             pollId = pollId,
@@ -1191,7 +1202,10 @@ object VoiceCallManager {
                         appContext?.let { ctx ->
                             try {
                                 ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto)
-                                if (rawChName.isNotBlank() && rawChName != chId) {
+                                if (rawChId.isNotBlank() && rawChId != chId) {
+                                    ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto.copy(channelId = rawChId))
+                                }
+                                if (rawChName.isNotBlank() && rawChName != chId && rawChName != rawChId) {
                                     ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto.copy(channelId = rawChName))
                                 }
                             } catch (e: Exception) {
@@ -1202,9 +1216,20 @@ object VoiceCallManager {
                         Log.d(TAG, "Real-time message received via WebSocket for channel $chId: $content")
                     }
 
-                    val myUsername = ConnectoApiClient.currentUsername ?: ""
-                    if (senderUsername.isNotBlank() && !senderUsername.equals(myUsername, ignoreCase = true) && content.isNotBlank()) {
-                        val dedupKey = msgId.ifEmpty { "${senderUsername}_${chId}_${content.hashCode()}" }
+                    val myUser = (ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@").lowercase()
+                    val myDisplay = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase()
+                    val myUserId = (ConnectoApiClient.currentUserId ?: "").trim().lowercase()
+
+                    val cleanSender = senderUsername.trim().removePrefix("@").lowercase()
+                    val cleanSenderId = (data.optString("sender_id").ifEmpty { data.optString("author_id").ifEmpty { json.optString("sender_id") } }).trim().lowercase()
+                    val cleanSenderDisplay = senderDisplay.trim().removePrefix("@").lowercase()
+
+                    val isFromMe = (myUser.isNotBlank() && (cleanSender == myUser || cleanSenderDisplay == myUser || cleanSenderId == myUser)) ||
+                                   (myDisplay.isNotBlank() && (cleanSender == myDisplay || cleanSenderDisplay == myDisplay)) ||
+                                   (myUserId.isNotBlank() && (cleanSender == myUserId || cleanSenderId == myUserId))
+
+                    if (!isFromMe && cleanSender.isNotBlank() && content.isNotBlank()) {
+                        val dedupKey = msgId.ifEmpty { "${cleanSender}_${chId}_${content.hashCode()}" }
                         if (notifiedMessageIds.add(dedupKey)) {
                             if (notifiedMessageIds.size > 500) {
                                 val first = notifiedMessageIds.firstOrNull()
@@ -1216,22 +1241,27 @@ object VoiceCallManager {
                             } else {
                                 chId.ifEmpty { senderUsername }
                             }
-                            ConnectoNotificationManager.showMessageNotification(
-                                senderName = displayTitle,
-                                messageText = content,
-                                channelOrDmId = navRef,
-                                senderAvatar = authorAvatar
+
+                            val activeTarget = activeChatRoomOrFriend?.lowercase()
+                            val isCurrentlyViewingThisChat = activeTarget != null && (
+                                activeTarget == cleanSender ||
+                                (cleanSenderId.isNotBlank() && activeTarget == cleanSenderId) ||
+                                (chId.isNotBlank() && activeTarget == chId.lowercase()) ||
+                                (rawChName.isNotBlank() && activeTarget == rawChName.lowercase()) ||
+                                (chId.startsWith("dm-") && chId.lowercase().contains(activeTarget)) ||
+                                (rawChName.startsWith("dm-") && rawChName.lowercase().contains(activeTarget))
                             )
-                            com.example.connecto.ui.components.InAppNotificationController.show(
-                                com.example.connecto.ui.components.InAppNotificationData(
-                                    title = displayTitle,
-                                    message = content,
-                                    avatarUrl = authorAvatar,
-                                    username = senderUsername,
-                                    actionType = "chat",
-                                    referenceId = navRef
+
+                            // Keep Android system notification ONLY when not actively viewing this chat:
+                            if (!isCurrentlyViewingThisChat) {
+                                ConnectoNotificationManager.showMessageNotification(
+                                    senderName = displayTitle,
+                                    messageText = content,
+                                    channelOrDmId = navRef,
+                                    senderAvatar = authorAvatar
                                 )
-                            )
+                            }
+                            // In-app notification banner suppressed for personal chat / messages per user requirement
                         }
                     }
                 }
@@ -1727,24 +1757,57 @@ object VoiceCallManager {
                                 }
                             }
                             "message" -> {
-                                val dedupKey = nRefId.ifEmpty { "${nSender}_${nContent.hashCode()}" }
-                                if (notifiedMessageIds.add(dedupKey)) {
-                                    ConnectoNotificationManager.showMessageNotification(
-                                        senderName = nSender.ifEmpty { nTitle },
-                                        messageText = nContent,
-                                        channelOrDmId = nRefId.ifEmpty { nSender },
-                                        senderAvatar = nAvatar
-                                    )
-                                    com.example.connecto.ui.components.InAppNotificationController.show(
-                                        com.example.connecto.ui.components.InAppNotificationData(
-                                            title = nSender.ifEmpty { nTitle },
-                                            message = nContent,
-                                            avatarUrl = nAvatar,
-                                            username = nSender,
-                                            actionType = "chat",
-                                            referenceId = nRefId.ifEmpty { nSender }
+                                val myUser = (ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@").lowercase()
+                                val myDisplay = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase()
+                                val myUserId = (ConnectoApiClient.currentUserId ?: "").trim().lowercase()
+                                val cleanSender = nSender.removePrefix("@").trim().lowercase()
+
+                                val isFromMe = (myUser.isNotBlank() && cleanSender == myUser) ||
+                                               (myDisplay.isNotBlank() && cleanSender == myDisplay) ||
+                                               (myUserId.isNotBlank() && cleanSender == myUserId)
+
+                                if (!isFromMe) {
+                                    val dedupKey = nId.ifEmpty { "${cleanSender}_${nRefId}_${nContent.hashCode()}" }
+                                    if (notifiedMessageIds.add(dedupKey)) {
+                                        val activeTarget = activeChatRoomOrFriend?.lowercase()
+                                        val isCurrentlyViewingThisChat = activeTarget != null && (
+                                            activeTarget == cleanSender ||
+                                            (nRefId.isNotBlank() && (nRefId.lowercase() == activeTarget || nRefId.lowercase().contains(activeTarget)))
                                         )
-                                    )
+
+                                        if (!isCurrentlyViewingThisChat) {
+                                            ConnectoNotificationManager.showMessageNotification(
+                                                senderName = nSender.ifEmpty { nTitle },
+                                                messageText = nContent,
+                                                channelOrDmId = nRefId.ifEmpty { nSender },
+                                                senderAvatar = nAvatar
+                                            )
+                                        }
+                                        // Ensure message is dispatched to real-time chat stream and local DB so it is visible in chat
+                                        val canonicalName = if (cleanSender.isNotBlank() && myUser.isNotBlank()) {
+                                            "dm-${minOf(myUser, cleanSender)}-${maxOf(myUser, cleanSender)}"
+                                        } else nRefId
+                                        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
+                                        val msgDto = MessageDto(
+                                            id = nId.ifEmpty { "notif_msg_${System.currentTimeMillis()}" },
+                                            channelId = canonicalName.ifEmpty { nRefId },
+                                            authorId = cleanSender,
+                                            authorName = cleanSender,
+                                            content = nContent,
+                                            createdAt = nowIso,
+                                            authorAvatar = nAvatar
+                                        )
+                                        appContext?.let { ctx ->
+                                            try {
+                                                ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto)
+                                                if (nRefId.isNotBlank() && nRefId != canonicalName) {
+                                                    ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto.copy(channelId = nRefId))
+                                                }
+                                            } catch (_: Exception) {}
+                                        }
+                                        _incomingChannelMessages.tryEmit(msgDto)
+                                        // In-app notification banner suppressed for personal chat / messages per user requirement
+                                    }
                                 }
                             }
                             "call", "call_invite" -> {
@@ -1762,16 +1825,6 @@ object VoiceCallManager {
                                     messageText = nContent,
                                     channelOrDmId = nRefId,
                                     senderAvatar = nAvatar
-                                )
-                                com.example.connecto.ui.components.InAppNotificationController.show(
-                                    com.example.connecto.ui.components.InAppNotificationData(
-                                        title = nTitle.ifEmpty { "Connecto" },
-                                        message = nContent,
-                                        avatarUrl = nAvatar,
-                                        username = nSender,
-                                        actionType = "chat",
-                                        referenceId = nRefId
-                                    )
                                 )
                             }
                         }

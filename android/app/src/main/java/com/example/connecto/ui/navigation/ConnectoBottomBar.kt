@@ -107,17 +107,37 @@ fun ConnectoBottomBar(
     }
 
     val isPureBlack = colors.background == Color(0xFF000000)
+    val isLiquidGlass = colors.isLiquidGlass
+    val glassAlpha = colors.glassAlpha
 
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        if (!colors.isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF11141C).copy(alpha = 0.88f),
-                        if (!colors.isDark) Color.White.copy(alpha = 0.92f) else Color(0xFF0B0D13).copy(alpha = 0.95f)
+                if (isLiquidGlass) {
+                    if (glassAlpha <= 0.005f) {
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Transparent
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = (glassAlpha * 0.25f).coerceIn(0.01f, 0.35f)),
+                                Color(0xFF080A10).copy(alpha = (glassAlpha * 0.85f).coerceIn(0.04f, 0.92f))
+                            )
+                        )
+                    }
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            if (!colors.isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF11141C).copy(alpha = 0.88f),
+                            if (!colors.isDark) Color.White.copy(alpha = 0.92f) else Color(0xFF0B0D13).copy(alpha = 0.95f)
+                        )
                     )
-                )
+                }
             )
     ) {
         // Specular 1px Hairline Top Border
@@ -126,15 +146,28 @@ fun ConnectoBottomBar(
                 .fillMaxWidth()
                 .height(1.dp)
                 .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.08f),
-                            (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.35f),
-                            Color.White.copy(alpha = 0.18f),
-                            (if (isPureBlack) Color.White else colors.info).copy(alpha = 0.30f),
-                            Color.White.copy(alpha = 0.08f)
+                    if (isLiquidGlass) {
+                        val rimAlpha = if (glassAlpha <= 0.005f) 0.55f else (0.65f - glassAlpha * 0.20f).coerceIn(0.30f, 0.75f)
+                        Brush.horizontalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.10f),
+                                Color.White.copy(alpha = rimAlpha),
+                                Color.White.copy(alpha = rimAlpha * 0.6f),
+                                Color.White.copy(alpha = rimAlpha),
+                                Color.White.copy(alpha = 0.10f)
+                            )
                         )
-                    )
+                    } else {
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.08f),
+                                (if (isPureBlack) Color.White else colors.primary).copy(alpha = 0.35f),
+                                Color.White.copy(alpha = 0.18f),
+                                (if (isPureBlack) Color.White else colors.info).copy(alpha = 0.30f),
+                                Color.White.copy(alpha = 0.08f)
+                            )
+                        )
+                    }
                 )
         )
 

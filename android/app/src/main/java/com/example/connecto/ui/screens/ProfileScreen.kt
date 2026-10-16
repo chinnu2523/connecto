@@ -65,6 +65,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.res.painterResource
 import com.example.connecto.R
 import androidx.compose.foundation.horizontalScroll
@@ -180,6 +181,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ConnectoTopHeader
+import com.example.connecto.ui.components.LiquidGlassTransparencyBar
 import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.TextDisabledColor
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
@@ -346,13 +348,21 @@ fun ProfileScreen(
     var revealEmail by remember { mutableStateOf(false) }
     var changeContactTarget by remember { mutableStateOf<String?>(null) } // "email" only
 
-    var showForgotPasswordDialog by remember { mutableStateOf(false) }
-    var show2FaSetupDialog by remember { mutableStateOf(false) }
-    var twoFaSetupMaskedDest by remember { mutableStateOf<String?>(null) }
-    var twoFaSetupDevOtp by remember { mutableStateOf<String?>(null) }
-    var show2FaDisableDialog by remember { mutableStateOf(false) }
-    var twoFaDisableMaskedDest by remember { mutableStateOf<String?>(null) }
-    var twoFaErrorMessage by remember { mutableStateOf<String?>(null) }
+    var showForgotPasswordDialog by rememberSaveable { mutableStateOf(false) }
+    var show2FaSetupDialog by rememberSaveable { mutableStateOf(false) }
+    var twoFaSetupMaskedDest by rememberSaveable { mutableStateOf<String?>(null) }
+    var twoFaSetupDevOtp by rememberSaveable { mutableStateOf<String?>(null) }
+    var show2FaDisableDialog by rememberSaveable { mutableStateOf(false) }
+    var twoFaDisableMaskedDest by rememberSaveable { mutableStateOf<String?>(null) }
+    var twoFaErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (com.example.connecto.security.TwoFactorStateManager.restoreIfPending(context)) {
+            show2FaSetupDialog = true
+            twoFaSetupMaskedDest = com.example.connecto.security.TwoFactorStateManager.setupMaskedDestination
+            twoFaSetupDevOtp = com.example.connecto.security.TwoFactorStateManager.setupDevOtp
+        }
+    }
 
     // User Groups Management State in Profile Tab
     val profileGroupsList = remember { mutableStateListOf<FriendItem>() }
@@ -1527,7 +1537,7 @@ fun ProfileScreen(
                                     title = "${currentThemeMode.iconEmoji} ${currentThemeMode.displayName}",
                                     description = "Customize your global color palette, contrast, and atmosphere across all screens in real time.",
                                     icon = Icons.Default.Tune,
-                                    statusBadgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "${(glassTransparency * 100).toInt()}% TINT" else if (currentThemeMode.isDark) "DARK" else "LIGHT",
+                                    statusBadgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "${(glassTransparency * 100).toInt()}% OPACITY" else if (currentThemeMode.isDark) "DARK" else "LIGHT",
                                     statusBadgeActive = true,
                                     hasCoverPhoto = hasCoverPhoto
                                 )
@@ -1962,8 +1972,16 @@ fun ProfileScreen(
                                                     )
                                                     if (res.isSuccess) {
                                                         val data = res.getOrNull()
+                                                        val targetDest = emailInput.trim()
                                                         twoFaSetupMaskedDest = data?.maskedDestination
-                                                        twoFaSetupDevOtp = null // Strictly do not auto-fill
+                                                        twoFaSetupDevOtp = data?.devOtp
+                                                        com.example.connecto.security.TwoFactorStateManager.startSetup(
+                                                            context = context,
+                                                            method = "email",
+                                                            destination = targetDest,
+                                                            maskedDest = data?.maskedDestination,
+                                                            devOtp = data?.devOtp
+                                                        )
                                                         show2FaSetupDialog = true
                                                     } else {
                                                         twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch setup OTP."
@@ -2606,7 +2624,7 @@ fun ProfileScreen(
 
                                         Column(
                                             modifier = Modifier.fillMaxWidth(),
-                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                            verticalArrangement = Arrangement.spacedBy(12.dp)
                                         ) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -2615,7 +2633,7 @@ fun ProfileScreen(
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(
-                                                        text = "GLASS DENSITY & TINT LEVEL",
+                                                        text = "LIQUID GLASS OPACITY (0% - 100%)",
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         letterSpacing = 0.5.sp,
@@ -2623,10 +2641,11 @@ fun ProfileScreen(
                                                     )
                                                     Text(
                                                         text = when {
-                                                            glassTransparency <= 0.01f -> "Ultra-Clear Pure Transparent Glass (0% Opacity)"
-                                                            glassTransparency < 0.22f -> "Subtle Transparent Liquid Glass"
-                                                            glassTransparency < 0.45f -> "Frosted Specular Glass (Medium Sheen)"
-                                                            else -> "Tinted Obsidian Glass (High Contrast)"
+                                                            glassTransparency <= 0.01f -> "0% Pure Transparent Liquid Glass (Completely Clear)"
+                                                            glassTransparency < 0.25f -> "Ultra-Light Glass (Subtle Sheen & Specular Borders)"
+                                                            glassTransparency < 0.60f -> "Balanced Liquid Glass (Frosted Translucency)"
+                                                            glassTransparency < 0.90f -> "Semi-Solid Glaze (Deep Contrast & High Visibility)"
+                                                            else -> "100% Full Solid Glass (Maximum Opacity & Bold Tint)"
                                                         },
                                                         fontSize = 12.sp,
                                                         fontWeight = FontWeight.SemiBold,
@@ -2638,12 +2657,12 @@ fun ProfileScreen(
                                                     modifier = Modifier
                                                         .clip(RoundedCornerShape(8.dp))
                                                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 10.dp, vertical = 5.dp)
                                                 ) {
                                                     Text(
-                                                        text = "${(glassTransparency * 100).toInt()}% TINT",
-                                                        fontSize = 11.sp,
+                                                        text = "${(glassTransparency * 100).toInt()}% OPACITY",
+                                                        fontSize = 12.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = MaterialTheme.colorScheme.primary
                                                     )
@@ -2654,7 +2673,7 @@ fun ProfileScreen(
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .height(54.dp)
+                                                    .height(60.dp)
                                                     .clip(RoundedCornerShape(14.dp))
                                                     .background(
                                                         Brush.horizontalGradient(
@@ -2678,7 +2697,7 @@ fun ProfileScreen(
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Text(
-                                                        text = "🪞 Optical Glass Refraction Preview",
+                                                        text = "🪞 Live Glass Transparency: ${(glassTransparency * 100).toInt()}%",
                                                         fontSize = 12.sp,
                                                         fontWeight = FontWeight.SemiBold,
                                                         color = MaterialTheme.colorScheme.onSurface
@@ -2686,19 +2705,20 @@ fun ProfileScreen(
                                                 }
                                             }
 
-                                            // 4 Quick Presets
+                                            // 5 Quick Presets (0% to 100%)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
                                                 val presets = listOf(
-                                                    Pair("Clear (0%)", 0.0f),
-                                                    Pair("Liquid (15%)", 0.15f),
-                                                    Pair("Frosted (35%)", 0.35f),
-                                                    Pair("Tinted (70%)", 0.70f)
+                                                    Triple("0%", "Clear", 0.0f),
+                                                    Triple("25%", "Light", 0.25f),
+                                                    Triple("50%", "Bal.", 0.50f),
+                                                    Triple("75%", "Deep", 0.75f),
+                                                    Triple("100%", "Solid", 1.0f)
                                                 )
-                                                presets.forEach { (label, value) ->
-                                                    val isPresetActive = kotlin.math.abs(glassTransparency - value) < 0.07f
+                                                presets.forEach { (pct, label, value) ->
+                                                    val isPresetActive = kotlin.math.abs(glassTransparency - value) < 0.06f
                                                     Box(
                                                         modifier = Modifier
                                                             .weight(1f)
@@ -2713,31 +2733,72 @@ fun ProfileScreen(
                                                                 RoundedCornerShape(8.dp)
                                                             )
                                                             .clickable { onChangeGlassTransparency(value) }
-                                                            .padding(vertical = 8.dp),
+                                                            .padding(vertical = 6.dp),
                                                         contentAlignment = Alignment.Center
                                                     ) {
-                                                        Text(
-                                                            text = label,
-                                                            fontSize = 10.sp,
-                                                            fontWeight = if (isPresetActive) FontWeight.Bold else FontWeight.Normal,
-                                                            color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                        )
+                                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                            Text(
+                                                                text = pct,
+                                                                fontSize = 11.sp,
+                                                                fontWeight = if (isPresetActive) FontWeight.Bold else FontWeight.SemiBold,
+                                                                color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Text(
+                                                                text = label,
+                                                                fontSize = 9.sp,
+                                                                color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                                            )
+                                                        }
                                                     }
                                                 }
                                             }
 
-                                            // Continuous Dynamic Slider
-                                            Slider(
-                                                value = glassTransparency,
-                                                onValueChange = { onChangeGlassTransparency(it) },
-                                                valueRange = 0.0f..0.85f,
-                                                steps = 0,
-                                                colors = SliderDefaults.colors(
-                                                    thumbColor = MaterialTheme.colorScheme.primary,
-                                                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                                                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                            // Continuous Dynamic Liquid Glass Transparency Bar (0.0f to 1.0f)
+                                            Column(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                LiquidGlassTransparencyBar(
+                                                    value = glassTransparency.coerceIn(0.0f, 1.0f),
+                                                    onValueChange = { onChangeGlassTransparency(it.coerceIn(0.0f, 1.0f)) },
+                                                    modifier = Modifier.fillMaxWidth()
                                                 )
-                                            )
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(horizontal = 6.dp),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = "0% Pure Clear",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = if (glassTransparency <= 0.05f) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (glassTransparency <= 0.05f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                                        modifier = Modifier.clickable { onChangeGlassTransparency(0.0f) }
+                                                    )
+                                                    Text(
+                                                        text = "50% Translucent",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = if (kotlin.math.abs(glassTransparency - 0.5f) <= 0.05f) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (kotlin.math.abs(glassTransparency - 0.5f) <= 0.05f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                                        modifier = Modifier.clickable { onChangeGlassTransparency(0.5f) }
+                                                    )
+                                                    Text(
+                                                        text = "100% Solid",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = if (glassTransparency >= 0.95f) FontWeight.Bold else FontWeight.Medium,
+                                                        color = if (glassTransparency >= 0.95f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                                        modifier = Modifier.clickable { onChangeGlassTransparency(1.0f) }
+                                                    )
+                                                }
+                                                Text(
+                                                    text = "✨ Affects app-wide transparency across headers, navigation bar, chat dock, and cards.",
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                    modifier = Modifier.padding(top = 2.dp, start = 4.dp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -3268,14 +3329,22 @@ fun ProfileScreen(
         )
     }
 
-    if (show2FaSetupDialog) {
+    if (show2FaSetupDialog || com.example.connecto.security.TwoFactorStateManager.isSetupDialogOpen) {
+        val activeDest = if (emailInput.isNotBlank()) emailInput.trim() else com.example.connecto.security.TwoFactorStateManager.setupDestination
+        val activeMasked = twoFaSetupMaskedDest ?: com.example.connecto.security.TwoFactorStateManager.setupMaskedDestination
+        val activeDevOtp = twoFaSetupDevOtp ?: com.example.connecto.security.TwoFactorStateManager.setupDevOtp
         TwoFactorSetupDialog(
             method = "email",
-            destination = emailInput.trim(),
-            maskedDestination = twoFaSetupMaskedDest,
-            onDismiss = { show2FaSetupDialog = false },
+            destination = activeDest,
+            maskedDestination = activeMasked,
+            devOtp = activeDevOtp,
+            onDismiss = {
+                show2FaSetupDialog = false
+                com.example.connecto.security.TwoFactorStateManager.clear(context)
+            },
             onSuccess = {
                 show2FaSetupDialog = false
+                com.example.connecto.security.TwoFactorStateManager.clear(context)
                 twoFactorEnabled = true
                 prefs.edit().putBoolean("two_factor_enabled_$username", true).apply()
                 showSavedBadge = true
@@ -3322,16 +3391,29 @@ private fun TwoFactorSetupDialog(
     method: String,
     destination: String,
     maskedDestination: String?,
+    devOtp: String? = null,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
-    var otpCode by remember { mutableStateOf("") }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var currentDevOtp by remember(devOtp) { mutableStateOf(devOtp ?: com.example.connecto.security.TwoFactorStateManager.setupDevOtp) }
+    var otpCode by rememberSaveable { mutableStateOf(com.example.connecto.security.TwoFactorStateManager.setupOtpCode) }
     var isVerifying by remember { mutableStateOf(false) }
+    var isResending by remember { mutableStateOf(false) }
+    var resendFeedback by remember { mutableStateOf<String?>(null) }
+    var resendCooldown by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
     val isLight = isAppInLightTheme()
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
+
+    androidx.compose.runtime.LaunchedEffect(resendCooldown) {
+        if (resendCooldown > 0) {
+            kotlinx.coroutines.delay(1000L)
+            resendCooldown -= 1
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         val dialogBg = if (isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
@@ -3418,7 +3500,41 @@ private fun TwoFactorSetupDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Dev OTP Auto-Fill Banner (if dev code returned by server)
+                if (!currentDevOtp.isNullOrBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFF6366F1).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                            .clickable {
+                                otpCode = currentDevOtp ?: ""
+                                com.example.connecto.security.TwoFactorStateManager.updateDraftCode(context, otpCode)
+                                errorMessage = null
+                            }
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Security,
+                            contentDescription = null,
+                            tint = Color(0xFF818CF8),
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "🔑 Verification Code: $currentDevOtp (Tap to Fill)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF818CF8)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
 
                 if (errorMessage != null) {
                     val errorBg = if (isLight) Color(0xFFFEE2E2) else Color(0xFF7F1D1D).copy(alpha = 0.35f)
@@ -3461,6 +3577,7 @@ private fun TwoFactorSetupDialog(
                             if (it.length <= 6 && it.all { ch -> ch.isDigit() }) {
                                 otpCode = it
                                 errorMessage = null
+                                com.example.connecto.security.TwoFactorStateManager.updateDraftCode(context, it)
                             }
                         },
                         singleLine = true,
@@ -3548,6 +3665,68 @@ private fun TwoFactorSetupDialog(
                             )
                         }
                     }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Resend Code Button with Cooldown
+                TextButton(
+                    onClick = {
+                        if (resendCooldown == 0 && !isResending) {
+                            isResending = true
+                            resendFeedback = null
+                            errorMessage = null
+                            coroutineScope.launch {
+                                val res = ConnectoApiClient.request2FaSetupOtp(
+                                    method = method,
+                                    phoneNumber = destination,
+                                    purpose = "two_factor_setup",
+                                    token = ConnectoApiClient.getPersistedToken()
+                                )
+                                isResending = false
+                                if (res.isSuccess) {
+                                    val data = res.getOrNull()
+                                    if (!data?.devOtp.isNullOrBlank()) {
+                                        currentDevOtp = data?.devOtp
+                                        com.example.connecto.security.TwoFactorStateManager.updateDevOtp(context, data?.devOtp)
+                                    }
+                                    resendFeedback = "New verification code sent!"
+                                    resendCooldown = 60
+                                } else {
+                                    errorMessage = res.exceptionOrNull()?.message ?: "Failed to resend verification code."
+                                }
+                            }
+                        }
+                    },
+                    enabled = resendCooldown == 0 && !isResending
+                ) {
+                    if (isResending) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 1.5.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    Text(
+                        text = if (resendCooldown > 0) "Resend code in ${resendCooldown}s" else "Resend verification code",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (resendCooldown > 0) subtitleColor else MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                if (resendFeedback != null) {
+                    Text(
+                        text = resendFeedback ?: "",
+                        fontSize = 11.sp,
+                        color = Color(0xFF10B981),
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp)
+                    )
                 }
             }
         }

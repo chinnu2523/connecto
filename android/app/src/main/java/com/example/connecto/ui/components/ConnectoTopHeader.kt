@@ -50,6 +50,8 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import coil.compose.AsyncImage
@@ -140,11 +142,42 @@ fun ConnectoTopHeader(
             .fillMaxWidth()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.12f),
-                        colors.surface.copy(alpha = if (!colors.isDark) 0.50f else 0.16f)
-                    )
+                    colors = if (colors.isLiquidGlass) {
+                        val alpha = colors.glassAlpha
+                        if (alpha <= 0.005f) {
+                            listOf(Color.Transparent, Color.Transparent)
+                        } else {
+                            listOf(
+                                Color.White.copy(alpha = (alpha * 0.35f).coerceIn(0.02f, 0.45f)),
+                                Color.White.copy(alpha = (alpha * 0.15f).coerceIn(0.01f, 0.25f))
+                            )
+                        }
+                    } else {
+                        listOf(
+                            if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.12f),
+                            colors.surface.copy(alpha = if (!colors.isDark) 0.50f else 0.16f)
+                        )
+                    }
                 )
+            )
+            .then(
+                if (colors.isLiquidGlass) {
+                    val rimAlpha = if (colors.glassAlpha <= 0.005f) 0.50f else (0.60f - colors.glassAlpha * 0.20f).coerceIn(0.25f, 0.65f)
+                    Modifier.drawBehind {
+                        drawLine(
+                            brush = Brush.horizontalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.10f),
+                                    Color.White.copy(alpha = rimAlpha),
+                                    Color.White.copy(alpha = 0.10f)
+                                )
+                            ),
+                            start = Offset(0f, size.height),
+                            end = Offset(size.width, size.height),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+                } else Modifier
             )
             .statusBarsPadding()
             .offset(y = headerOffsetY)

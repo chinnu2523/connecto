@@ -224,7 +224,7 @@ fun ConnectoAppWrapper() {
         mutableStateOf(com.example.connecto.ui.designsystem.ThemeMode.fromId(savedThemeId))
     }
     var glassTransparency by remember(authenticatedUsername) {
-        val saved = profilePrefs.getFloat("glass_transparency_$authenticatedUsername", 0.0f)
+        val saved = profilePrefs.getFloat("glass_transparency_$authenticatedUsername", 0.0f).coerceIn(0.0f, 1.0f)
         mutableStateOf(saved)
     }
 
@@ -236,10 +236,15 @@ fun ConnectoAppWrapper() {
             onSelectThemeMode = { newMode ->
                 currentThemeMode = newMode
                 if (newMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
-                    glassTransparency = 0.0f
-                    profilePrefs.edit()
-                        .putFloat("glass_transparency_$authenticatedUsername", 0.0f)
-                        .apply()
+                    val saved = profilePrefs.getFloat("glass_transparency_$authenticatedUsername", -1.0f)
+                    if (saved in 0.0f..1.0f) {
+                        glassTransparency = saved
+                    } else {
+                        glassTransparency = 0.0f
+                        profilePrefs.edit()
+                            .putFloat("glass_transparency_$authenticatedUsername", 0.0f)
+                            .apply()
+                    }
                 }
                 profilePrefs.edit()
                     .putString("theme_mode_$authenticatedUsername", newMode.id)
@@ -257,9 +262,10 @@ fun ConnectoAppWrapper() {
             },
             glassTransparency = glassTransparency,
             onChangeGlassTransparency = { newLevel ->
-                glassTransparency = newLevel
+                val clamped = newLevel.coerceIn(0.0f, 1.0f)
+                glassTransparency = clamped
                 profilePrefs.edit()
-                    .putFloat("glass_transparency_$authenticatedUsername", newLevel)
+                    .putFloat("glass_transparency_$authenticatedUsername", clamped)
                     .apply()
             }
         )
@@ -285,6 +291,7 @@ fun ConnectoApp(
     var flowState by rememberSaveable {
         mutableStateOf(if (isLoggedInCached) AppFlowState.CHAT_APP else AppFlowState.SPLASH)
     }
+    var isBiometricOverlayActive by rememberSaveable { mutableStateOf(false) }
     val savedTabStr = remember { prefs.getString("last_active_tab", ConnectoTab.HOME.name) }
     val initialTab = remember {
         try { ConnectoTab.valueOf(savedTabStr ?: ConnectoTab.HOME.name) } catch (_: Exception) { ConnectoTab.HOME }
@@ -479,7 +486,7 @@ fun ConnectoApp(
                     val isLockEnabled = profilePrefs.getBoolean("biometric_lock_$authenticatedUsername", false)
                     val autoLock = profilePrefs.getBoolean("auto_lock_background_$authenticatedUsername", true)
                     if (isLockEnabled && autoLock) {
-                        flowState = AppFlowState.BIOMETRIC_LOCK
+                        isBiometricOverlayActive = true
                     }
                 }
             }
@@ -490,10 +497,6 @@ fun ConnectoApp(
         }
     }
 
-    val currentBannerPhoto by com.example.connecto.network.ConnectoApiClient.currentUserBannerState.collectAsState()
-    val sanitizedAppBanner = remember(currentBannerPhoto) { sanitizeAvatarUrl(currentBannerPhoto) }
-    val hasAppBanner = !sanitizedAppBanner.isNullOrBlank() || isCoverPreset(currentBannerPhoto)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -503,50 +506,6 @@ fun ConnectoApp(
                 else Modifier.background(MaterialTheme.colorScheme.background)
             )
     ) {
-        if (hasAppBanner && flowState == AppFlowState.CHAT_APP && currentTab != ConnectoTab.PROFILE) {
-            val isPreset = isCoverPreset(currentBannerPhoto)
-            val presetObj = if (isPreset) getCoverPreset(currentBannerPhoto) else null
-
-            // Full-Screen Transparent Cover Photo Layer
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = 0.28f }
-            ) {
-                if (isPreset && presetObj != null) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(presetObj.brush)
-                    )
-                } else {
-                    val bannerModel = sanitizedAppBanner ?: currentBannerPhoto
-                    if (bannerModel != null) {
-                        AsyncImage(
-                            model = bannerModel,
-                            contentDescription = "App Background Cover",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
-                }
-            }
-
-            // High-End Multi-Stop Gradient Scrim for Contrast, Readability & Modern Depth across the entire FULL SCREEN
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.Black.copy(alpha = 0.16f),
-                                Color.Black.copy(alpha = 0.28f),
-                                Color.Black.copy(alpha = 0.40f)
-                            )
-                        )
-                    )
-            )
-        }
 
         Crossfade(
             targetState = flowState,
@@ -577,10 +536,9 @@ fun ConnectoApp(
                                 val autoLock = profilePrefs.getBoolean("auto_lock_background_$savedUsername", true)
 
                                 // Enforce lock screen on launch only when biometric lock is enabled AND auto-lock in background is enabled
+                                flowState = AppFlowState.CHAT_APP
                                 if (isBiometricEnabled && autoLock) {
-                                    flowState = AppFlowState.BIOMETRIC_LOCK
-                                } else {
-                                    flowState = AppFlowState.CHAT_APP
+                                    isBiometricOverlayActive = true
                                 }
                             } else {
                                 flowState = AppFlowState.AUTH_HOME
@@ -594,13 +552,15 @@ fun ConnectoApp(
                     BiometricLockScreen(
                         username = authenticatedUsername,
                         onUnlockSuccess = {
+                            isBiometricOverlayActive = false
                             flowState = AppFlowState.CHAT_APP
                         },
                         onPasswordUnlock = {
+                            isBiometricOverlayActive = false
                             flowState = AppFlowState.CHAT_APP
                         },
                         onSwitchAccount = {
-                            // Explicitly clear session when user chooses to switch account or sign out
+                            isBiometricOverlayActive = false
                             prefs.edit().clear().apply()
                             com.example.connecto.network.ConnectoApiClient.sessionToken = null
                             com.example.connecto.network.ConnectoApiClient.currentUsername = null
@@ -815,7 +775,7 @@ fun ConnectoApp(
                                             onToggleTheme = onToggleTheme,
                                             glassTransparency = glassTransparency,
                                             onChangeGlassTransparency = onChangeGlassTransparency,
-                                            onLockApp = { flowState = AppFlowState.BIOMETRIC_LOCK },
+                                            onLockApp = { isBiometricOverlayActive = true },
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,
                                             onSignOut = {
@@ -951,6 +911,27 @@ fun ConnectoApp(
             com.example.connecto.ui.screens.ServerMaintenanceScreen(
                 onServerRestored = {
                     MainActivity.closeMaintenanceScreen()
+                }
+            )
+        }
+
+        // Global Biometric & App Lock Overlay: Keeps all chat screens, active calls, and 2FA dialogs intact underneath
+        if (isBiometricOverlayActive && flowState == AppFlowState.CHAT_APP) {
+            BiometricLockScreen(
+                username = authenticatedUsername,
+                onUnlockSuccess = {
+                    isBiometricOverlayActive = false
+                },
+                onPasswordUnlock = {
+                    isBiometricOverlayActive = false
+                },
+                onSwitchAccount = {
+                    isBiometricOverlayActive = false
+                    prefs.edit().clear().apply()
+                    com.example.connecto.network.ConnectoApiClient.sessionToken = null
+                    com.example.connecto.network.ConnectoApiClient.currentUsername = null
+                    com.example.connecto.network.ConnectoApiClient.currentUserId = null
+                    flowState = AppFlowState.AUTH_HOME
                 }
             )
         }

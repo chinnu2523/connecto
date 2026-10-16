@@ -251,28 +251,35 @@ val EmeraldConnectoColors = ConnectoColors(
  * to Frosted Specular Glass (neutral white refraction, zero unwanted colors).
  */
 fun getLiquidGlassColors(glassAlpha: Float = 0.0f): ConnectoColors {
-    val clampedAlpha = glassAlpha.coerceIn(0.0f, 0.90f)
+    val clampedAlpha = glassAlpha.coerceIn(0.0f, 1.0f)
 
-    val surfaceColor = if (clampedAlpha <= 0.01f) {
+    val surfaceColor = if (clampedAlpha <= 0.005f) {
         Color.Transparent
     } else {
-        Color.White.copy(alpha = (clampedAlpha * 0.35f).coerceIn(0.02f, 0.40f))
+        Color.White.copy(alpha = (clampedAlpha * 0.55f).coerceIn(0.01f, 0.70f))
     }
 
-    val surfaceVariantColor = if (clampedAlpha <= 0.01f) {
+    val surfaceVariantColor = if (clampedAlpha <= 0.005f) {
         Color.Transparent
     } else {
-        Color.White.copy(alpha = (clampedAlpha * 0.18f).coerceIn(0.01f, 0.22f))
+        Color.White.copy(alpha = (clampedAlpha * 0.35f).coerceIn(0.01f, 0.45f))
+    }
+
+    val primaryContainerColor = if (clampedAlpha <= 0.005f) {
+        Color(0x08FFFFFF)
+    } else {
+        Color.White.copy(alpha = (clampedAlpha * 0.28f).coerceIn(0.02f, 0.35f))
     }
 
     // Specular border glare: crisp pure white specular rim, no color cast
-    val rimAlpha = if (clampedAlpha <= 0.01f) 0.65f else (0.75f - (clampedAlpha * 0.30f)).coerceIn(0.35f, 0.85f)
+    val rimAlpha = if (clampedAlpha <= 0.005f) 0.65f else (0.75f - (clampedAlpha * 0.20f)).coerceIn(0.35f, 0.85f)
     val borderCol = Color.White.copy(alpha = rimAlpha)
     val borderSubtleCol = Color.White.copy(alpha = (rimAlpha * 0.40f).coerceIn(0.12f, 0.40f))
 
     return LiquidGlassConnectoColors.copy(
         surface = surfaceColor,
         surfaceVariant = surfaceVariantColor,
+        primaryContainer = primaryContainerColor,
         border = borderCol,
         borderSubtle = borderSubtleCol,
         glassAlpha = clampedAlpha

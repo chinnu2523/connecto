@@ -140,14 +140,18 @@ fun ChannelNavigationDrawer(
         scrimColor = Color.Black.copy(alpha = 0.65f),
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = if (colors.isGlass) Color(0xF210121A) else if (colors.isDark) Color(0xF513151F) else Color(0xF8FFFFFF),
+                drawerContainerColor = if (colors.isLiquidGlass) {
+                    if (colors.glassAlpha <= 0.005f) Color(0x0A000000)
+                    else Color(0xFF0F1117).copy(alpha = (0.15f + colors.glassAlpha * 0.80f).coerceIn(0.15f, 0.95f))
+                } else if (colors.isGlass) Color(0xF210121A) else if (colors.isDark) Color(0xF513151F) else Color(0xF8FFFFFF),
                 drawerShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp),
                 modifier = Modifier
                     .fillMaxHeight()
                     .width(310.dp)
                     .border(
                         width = 1.dp,
-                        color = if (colors.isGlass) Color.White.copy(alpha = 0.22f) else colors.borderSubtle,
+                        color = if (colors.isLiquidGlass) Color.White.copy(alpha = if (colors.glassAlpha <= 0.005f) 0.45f else 0.25f)
+                                else if (colors.isGlass) Color.White.copy(alpha = 0.22f) else colors.borderSubtle,
                         shape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
                     )
             ) {
