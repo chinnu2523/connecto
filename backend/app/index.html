@@ -19767,8 +19767,11 @@ pre, .code-block, .chat-code-snippet {
 
         <!-- Direct Messages Section -->
         <div class="connecto-section-header" style="margin-top:24px;">
-          <div class="connecto-section-title">Direct Messages</div>
-          <a class="connecto-section-link" onclick="switchMainView('messages')">Open Chat</a>
+          <div class="connecto-section-title">Direct Messages (Favourites)</div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <a class="connecto-section-link" id="homeFavEditBtn" style="display:none; color:var(--primary, #3b82f6); cursor:pointer;" onclick="openFavouritesModal()">Edit (0/5)</a>
+            <a class="connecto-section-link" onclick="switchMainView('messages')" style="cursor:pointer;">Open Chat</a>
+          </div>
         </div>
         <div class="connecto-dm-list" id="homeDmList">
           <div style="text-align:center; padding:24px 16px; color:#64748b; font-size:12.5px;">No direct messages yet.</div>
@@ -20364,6 +20367,46 @@ pre, .code-block, .chat-code-snippet {
         <button type="button" class="btn btn-outline" style="font-size:12.5px; padding:8px 18px; border-radius:8px; font-weight:700;" onclick="closeUnfriendModal()">Cancel</button>
         <button type="button" class="btn btn-danger" id="unfriendModalConfirmBtn" style="font-size:12.5px; padding:8px 20px; border-radius:8px; background:#ef4444; border-color:#ef4444; color:#fff; font-weight:800; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" onclick="executeUnfriendAction()">
           <span>🗑️ Confirm & Delete Everything</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Favourites Selection Modal (Max 5 people) -->
+  <div class="modal-overlay" id="selectFavouritesModal" style="display:none;" onclick="closeFavouritesModal(event)">
+    <div class="modal-card border-beam-card" style="width:480px; max-width:94vw; padding:24px; border-radius:18px;" onclick="event.stopPropagation()">
+      <div class="border-beam"></div>
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:38px; height:38px; border-radius:10px; background:rgba(99, 102, 241, 0.18); border:1px solid rgba(99, 102, 241, 0.35); display:flex; align-items:center; justify-content:center; font-size:18px;">⭐</div>
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text, #fff);">Select Favourites</h3>
+              <span id="favSelectedCountBadge" style="background:rgba(99,102,241,0.2); color:#818cf8; border:1px solid rgba(99,102,241,0.35); border-radius:10px; font-size:11px; font-weight:700; padding:1px 8px;">0/5</span>
+            </div>
+            <div style="font-size:11.5px; color:var(--text-muted, #94a3b8); margin-top:1px;">Choose up to 5 people to pin to Home tab</div>
+          </div>
+        </div>
+        <button class="pins-close-btn" onclick="closeFavouritesModal()" aria-label="Close">✕</button>
+      </div>
+
+      <!-- Search Input -->
+      <div style="position:relative; margin-bottom:14px;">
+        <input type="text" id="favSearchInput" placeholder="Search friends..." oninput="handleFavSearch(this.value)" style="width:100%; box-sizing:border-box; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:9px 12px 9px 36px; color:#fff; font-size:13px; outline:none;" />
+        <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); font-size:14px; opacity:0.6;">🔍</span>
+      </div>
+
+      <!-- Friends List -->
+      <div id="favFriendsModalList" style="max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; margin-bottom:18px; padding-right:4px;">
+        <div style="text-align:center; padding:24px; color:#64748b; font-size:12.5px;">Loading friends...</div>
+      </div>
+
+      <!-- Modal Footer Actions -->
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button type="button" class="btn btn-outline" style="font-size:12.5px; padding:8px 18px; border-radius:8px; font-weight:700;" onclick="closeFavouritesModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveFavouritesBtn" style="font-size:12.5px; padding:8px 20px; border-radius:8px; background:linear-gradient(135deg, #6366f1, #3b82f6); border:none; color:#fff; font-weight:800; cursor:pointer;" onclick="saveSelectedFavourites()">
+          Save Favourites (0/5)
         </button>
       </div>
     </div>
@@ -34118,6 +34161,170 @@ function simulateVaultUnlock() {
 // Global View Switcher Extension
 const origSwitchMainView = window.switchMainView;
 
+let tempSelectedFavourites = [];
+let allModalFriendsList = [];
+
+function getSavedFavourites() {
+  const cleanUser = (currentUser || '').toLowerCase().trim().replace(/^@/, '');
+  try {
+    const stored = localStorage.getItem('connecto_home_favourites_' + cleanUser);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed.map(u => String(u).toLowerCase().trim().replace(/^@/, ''));
+    }
+  } catch (_) {}
+  return [];
+}
+
+async function openFavouritesModal() {
+  const modal = document.getElementById('selectFavouritesModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  tempSelectedFavourites = [...getSavedFavourites()];
+  updateFavCountBadge();
+
+  const searchInput = document.getElementById('favSearchInput');
+  if (searchInput) searchInput.value = '';
+
+  const listEl = document.getElementById('favFriendsModalList');
+  if (listEl) listEl.innerHTML = '<div style="text-align:center; padding:24px; color:#64748b; font-size:12.5px;">Loading friends...</div>';
+
+  try {
+    const res = await fetch('/api/friends?user=' + encodeURIComponent(currentUser), {
+      cache: 'no-store',
+      headers: authToken ? { 'Authorization': 'Bearer ' + authToken } : {}
+    });
+    if (res.ok) {
+      const data = await res.json();
+      allModalFriendsList = Array.isArray(data) ? data : (data.friends || []);
+    } else if (Array.isArray(cachedFriendsList) && cachedFriendsList.length > 0) {
+      allModalFriendsList = cachedFriendsList;
+    } else {
+      allModalFriendsList = [];
+    }
+  } catch (_) {
+    allModalFriendsList = Array.isArray(cachedFriendsList) ? cachedFriendsList : [];
+  }
+
+  renderFavModalFriendsList();
+}
+
+function closeFavouritesModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const modal = document.getElementById('selectFavouritesModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateFavCountBadge() {
+  const badge = document.getElementById('favSelectedCountBadge');
+  const btn = document.getElementById('saveFavouritesBtn');
+  const count = tempSelectedFavourites.length;
+  if (badge) badge.textContent = `${count}/5`;
+  if (btn) btn.textContent = `Save Favourites (${count}/5)`;
+}
+
+function toggleFavFriend(uname) {
+  const clean = uname.toLowerCase().trim().replace(/^@/, '');
+  const idx = tempSelectedFavourites.indexOf(clean);
+  if (idx >= 0) {
+    tempSelectedFavourites.splice(idx, 1);
+  } else {
+    if (tempSelectedFavourites.length >= 5) {
+      alert('You can select a maximum of 5 favourites.');
+      return;
+    }
+    tempSelectedFavourites.push(clean);
+  }
+  updateFavCountBadge();
+  renderFavModalFriendsList(document.getElementById('favSearchInput')?.value || '');
+}
+
+function handleFavSearch(val) {
+  renderFavModalFriendsList(val);
+}
+
+function renderFavModalFriendsList(filterText = '') {
+  const listEl = document.getElementById('favFriendsModalList');
+  if (!listEl) return;
+
+  const query = filterText.toLowerCase().trim();
+  const filtered = allModalFriendsList.filter(f => {
+    const uname = (f.username || f.handle || '').toLowerCase();
+    const dname = (f.displayName || f.nickname || f.name || f.username || '').toLowerCase();
+    return !query || uname.includes(query) || dname.includes(query);
+  });
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center; padding:24px; color:#64748b; font-size:12.5px;">No friends found to select. Add friends from the Members roster first!</div>';
+    return;
+  }
+
+  listEl.innerHTML = filtered.map(f => {
+    const uname = (f.username || f.handle || '').toLowerCase().replace(/^@/, '');
+    const dname = f.displayName || f.nickname || f.name || f.username || uname;
+    const initial = (dname[0] || 'U').toUpperCase();
+    const isOnline = Boolean(f.isOnline || f.is_online || f.status === 'online');
+    const isSelected = tempSelectedFavourites.includes(uname);
+    const avatarHTML = (f.avatarUrl || f.avatar_url) ?
+      `<img src="${escapeHTML(f.avatarUrl || f.avatar_url)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;" />` :
+      initial;
+
+    return `
+      <div onclick="toggleFavFriend('${uname}')" style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; cursor:pointer; background:${isSelected ? 'rgba(99,102,241,0.12)' : 'rgba(255,255,255,0.02)'}; border:1px solid ${isSelected ? 'rgba(99,102,241,0.35)' : 'rgba(255,255,255,0.05)'}; transition:all 0.15s ease;">
+        <div style="position:relative; width:34px; height:34px; border-radius:50%; background:#1e293b; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; color:#fff; flex-shrink:0;">
+          ${avatarHTML}
+          ${isOnline ? '<span style="position:absolute; bottom:0; right:0; width:9px; height:9px; border-radius:50%; background:#10b981; border:2px solid #0f172a;"></span>' : ''}
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-size:13px; font-weight:600; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHTML(dname)}</div>
+          <div style="font-size:11px; color:#94a3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@${escapeHTML(uname)}</div>
+        </div>
+        <div style="width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:${isSelected ? 'none' : '1.5px solid rgba(255,255,255,0.25)'}; background:${isSelected ? 'linear-gradient(135deg, #6366f1, #3b82f6)' : 'transparent'}; flex-shrink:0;">
+          ${isSelected ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function saveSelectedFavourites() {
+  const cleanUser = (currentUser || '').toLowerCase().trim().replace(/^@/, '');
+  localStorage.setItem('connecto_home_favourites_' + cleanUser, JSON.stringify(tempSelectedFavourites));
+  closeFavouritesModal();
+  syncDynamicDMs();
+}
+
+function renderDmCardsHTML(list) {
+  return list.map(c => {
+    const uname = (c.username || '').toLowerCase();
+    const dname = c.nickname || c.display_name || c.username;
+    const initial = (dname[0] || 'U').toUpperCase();
+    const isOnline = (c.status === 'online' || c.is_online === true);
+    const statusText = isOnline ? 'Active' : 'Offline';
+    const statusColor = isOnline ? '#10b981' : '#64748b';
+    const dotHTML = isOnline ? '<span class="connecto-online-dot" style="display:block;"></span>' : '';
+    const avatarHTML = (c.avatar_url && c.avatar_url !== 'null') ? 
+      '<img src="' + escapeHTML(c.avatar_url) + '" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">' :
+      initial;
+
+    return '<div class="connecto-dm-card" data-username="' + uname + '" onclick="openDirectMessageWith(\'' + uname + '\')">' +
+      '<div class="connecto-dm-avatar-wrap">' +
+        '<div class="connecto-dm-avatar">' + avatarHTML + '</div>' +
+        dotHTML +
+      '</div>' +
+      '<div class="connecto-dm-info">' +
+        '<div class="connecto-dm-header">' +
+          '<span class="connecto-dm-name">' + escapeHTML(dname) + '</span>' +
+          '<span class="connecto-dm-handle">@' + escapeHTML(c.username) + '</span>' +
+        '</div>' +
+        '<div class="connecto-dm-snippet">@' + escapeHTML(c.username) + ' &bull; Tap to open chat</div>' +
+      '</div>' +
+      '<div class="connecto-dm-meta" style="color:' + statusColor + ';">' + statusText + '</div>' +
+    '</div>';
+  }).join('');
+}
+
 // ==================== DYNAMIC FRIENDS-ONLY DMS & CALLS SYNC ====================
 async function syncDynamicDMs() {
   if (!currentUser || currentUser === 'guest') return;
@@ -34132,44 +34339,65 @@ async function syncDynamicDMs() {
 
     const homeList = document.getElementById('homeDmList');
     const msgList = document.getElementById('dmConversationCards');
+    const homeEditBtn = document.getElementById('homeFavEditBtn');
 
-    if (contacts.length === 0) {
-      const emptyHTML = '<div style="text-align:center; padding:28px 16px; color:#64748b; font-size:12.5px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed rgba(255,255,255,0.08);"><span style="font-size:22px; display:block; margin-bottom:6px;">👥</span>No direct messages yet.<br><span style="font-size:11px; opacity:0.8;">Only accepted friends appear here. Add friends from the Members roster to message!</span></div>';
-      if (homeList) homeList.innerHTML = emptyHTML;
-      if (msgList) msgList.innerHTML = emptyHTML;
-      return;
+    // 1. Messages Tab: always displays full conversation list
+    if (msgList) {
+      if (contacts.length === 0) {
+        msgList.innerHTML = '<div style="text-align:center; padding:28px 16px; color:#64748b; font-size:12.5px; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed rgba(255,255,255,0.08);"><span style="font-size:22px; display:block; margin-bottom:6px;">👥</span>No direct messages yet.<br><span style="font-size:11px; opacity:0.8;">Only accepted friends appear here. Add friends from the Members roster to message!</span></div>';
+      } else {
+        msgList.innerHTML = renderDmCardsHTML(contacts);
+      }
     }
 
-    const cardsHTML = contacts.map(c => {
-      const uname = (c.username || '').toLowerCase();
-      const dname = c.nickname || c.display_name || c.username;
-      const initial = (dname[0] || 'U').toUpperCase();
-      const isOnline = (c.status === 'online' || c.is_online === true);
-      const statusText = isOnline ? 'Active' : 'Offline';
-      const statusColor = isOnline ? '#10b981' : '#64748b';
-      const dotHTML = isOnline ? '<span class="connecto-online-dot" style="display:block;"></span>' : '';
-      const avatarHTML = (c.avatar_url && c.avatar_url !== 'null') ? 
-        '<img src="' + escapeHTML(c.avatar_url) + '" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">' :
-        initial;
+    // 2. Home Tab: Direct Messages (Favourites) - Max 5
+    if (homeList) {
+      const favs = getSavedFavourites();
+      if (favs.length === 0) {
+        if (homeEditBtn) homeEditBtn.style.display = 'none';
+        homeList.innerHTML = `
+          <div class="home-fav-add-card" onclick="openFavouritesModal()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 16px; background:rgba(255,255,255,0.02); border-radius:16px; border:1px dashed rgba(99,102,241,0.35); cursor:pointer; text-align:center; transition:all 0.2s ease;">
+            <div style="width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #3b82f6); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(99,102,241,0.35); margin-bottom:12px;">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+            <div style="font-size:15px; font-weight:600; color:#f8fafc; margin-bottom:4px;">Add to Favourites</div>
+            <div style="font-size:12px; color:#94a3b8; max-width:280px;">Tap to select up to 5 favourite people for quick direct messaging</div>
+          </div>
+        `;
+      } else {
+        if (homeEditBtn) {
+          homeEditBtn.style.display = 'inline-block';
+          homeEditBtn.textContent = `Edit (${favs.length}/5)`;
+        }
 
-      return '<div class="connecto-dm-card" data-username="' + uname + '" onclick="openDirectMessageWith(\'' + uname + '\')">' +
-        '<div class="connecto-dm-avatar-wrap">' +
-          '<div class="connecto-dm-avatar">' + avatarHTML + '</div>' +
-          dotHTML +
-        '</div>' +
-        '<div class="connecto-dm-info">' +
-          '<div class="connecto-dm-header">' +
-            '<span class="connecto-dm-name">' + escapeHTML(dname) + '</span>' +
-            '<span class="connecto-dm-handle">@' + escapeHTML(c.username) + '</span>' +
-          '</div>' +
-          '<div class="connecto-dm-snippet">@' + escapeHTML(c.username) + ' &bull; Tap to open chat</div>' +
-        '</div>' +
-        '<div class="connecto-dm-meta" style="color:' + statusColor + ';">' + statusText + '</div>' +
-      '</div>';
-    }).join('');
+        const favContacts = favs.map(uname => {
+          const clean = uname.toLowerCase().replace(/^@/, '');
+          const found = contacts.find(c => (c.username || '').toLowerCase().replace(/^@/, '') === clean);
+          if (found) return found;
+          const friendFound = (Array.isArray(cachedFriendsList) ? cachedFriendsList : []).find(f => (f.username || f.handle || '').toLowerCase().replace(/^@/, '') === clean);
+          if (friendFound) {
+            return {
+              username: friendFound.username || friendFound.handle,
+              nickname: friendFound.displayName || friendFound.name || friendFound.username,
+              avatar_url: friendFound.avatarUrl || friendFound.avatar_url,
+              status: friendFound.status || (friendFound.isOnline ? 'online' : 'offline'),
+              is_online: Boolean(friendFound.isOnline || friendFound.is_online)
+            };
+          }
+          return { username: clean, nickname: clean, is_online: false };
+        }).filter(Boolean);
 
-    if (homeList) homeList.innerHTML = cardsHTML;
-    if (msgList) msgList.innerHTML = cardsHTML;
+        let cardsHtml = renderDmCardsHTML(favContacts);
+        if (favs.length < 5) {
+          cardsHtml += `
+            <div onclick="openFavouritesModal()" style="margin-top:10px; padding:10px 14px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px dashed rgba(99,102,241,0.3); text-align:center; cursor:pointer; font-size:12px; color:#818cf8; font-weight:500; display:flex; align-items:center; justify-content:center; gap:6px;">
+              <span>➕</span> <span>Add More Favourites (${favs.length}/5)</span>
+            </div>
+          `;
+        }
+        homeList.innerHTML = cardsHtml;
+      }
+    }
   } catch (err) {
     console.warn('[DM_SYNC_WARN]', err);
   }

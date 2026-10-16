@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,8 +25,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
+import com.example.connecto.ui.theme.getContentColorOnAccentGradient
+import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Add
@@ -161,6 +166,23 @@ fun HomeChatScreen(
     val coroutineScope = rememberCoroutineScope()
 
     // State holdings
+    val gradientColors = getDynamicAccentGradientColors()
+    val contentOnGradient = getContentColorOnAccentGradient()
+
+    val homePrefs = remember { context.getSharedPreferences("connecto_home_prefs", android.content.Context.MODE_PRIVATE) }
+    val cleanCurrentU = remember(currentUsername) {
+        (currentUsername.ifBlank { ConnectoApiClient.currentUsername ?: "" }).trim().lowercase().removePrefix("@")
+    }
+    val savedFavsString = remember(cleanCurrentU) {
+        homePrefs.getString("favourites_$cleanCurrentU", "") ?: ""
+    }
+    var favouriteUsernames by remember(cleanCurrentU, savedFavsString) {
+        mutableStateOf(if (savedFavsString.isNotBlank()) savedFavsString.split(",").map { it.trim().lowercase().removePrefix("@") }.filter { it.isNotBlank() } else emptyList())
+    }
+    var allFriends by remember { mutableStateOf<List<FriendshipDto>>(emptyList()) }
+    var allFriendConversations by remember { mutableStateOf<List<RecentConversationItem>>(emptyList()) }
+    var isFavouritesDialogOpen by remember { mutableStateOf(false) }
+
     var recentConversations by remember { mutableStateOf<List<RecentConversationItem>>(emptyList()) }
     var channels by remember { mutableStateOf<List<ChannelDto>>(emptyList()) }
     var friendRequests by remember { mutableStateOf<List<FriendRequestItemDto>>(emptyList()) }
@@ -228,6 +250,42 @@ fun HomeChatScreen(
     val filteredConversations = remember(recentConversations, searchQuery) {
         if (searchQuery.isBlank()) recentConversations
         else recentConversations.filter {
+            it.name.contains(searchQuery.trim(), ignoreCase = true) ||
+            it.username.contains(searchQuery.trim(), ignoreCase = true) ||
+            it.lastMessage.contains(searchQuery.trim(), ignoreCase = true)
+        }
+    }
+
+    val favouriteConversations = remember(favouriteUsernames, allFriendConversations, allFriends) {
+        if (favouriteUsernames.isEmpty()) {
+            emptyList<RecentConversationItem>()
+        } else {
+            val convosByUsername = allFriendConversations.associateBy { it.username.lowercase().removePrefix("@") }
+            favouriteUsernames.take(5).mapNotNull { favUname ->
+                val cleanFav = favUname.trim().lowercase().removePrefix("@")
+                convosByUsername[cleanFav] ?: run {
+                    val matchingFriend = allFriends.find { it.friendUsername.trim().lowercase().removePrefix("@") == cleanFav }
+                    if (matchingFriend != null) {
+                        RecentConversationItem(
+                            id = matchingFriend.id,
+                            name = matchingFriend.friendDisplayName,
+                            username = matchingFriend.friendUsername.removePrefix("@"),
+                            avatarUrl = matchingFriend.friendAvatarUrl,
+                            lastMessage = "Tap to open chat",
+                            timestamp = if (matchingFriend.isOnline) "Online" else "Active",
+                            unreadCount = 0,
+                            isOnline = matchingFriend.isOnline,
+                            isGroup = false
+                        )
+                    } else null
+                }
+            }
+        }
+    }
+
+    val displayedFavourites = remember(favouriteConversations, searchQuery) {
+        if (searchQuery.isBlank()) favouriteConversations
+        else favouriteConversations.filter {
             it.name.contains(searchQuery.trim(), ignoreCase = true) ||
             it.username.contains(searchQuery.trim(), ignoreCase = true) ||
             it.lastMessage.contains(searchQuery.trim(), ignoreCase = true)
@@ -416,8 +474,25 @@ fun HomeChatScreen(
                         dbHelper.saveFriends(mappedFriends)
                     }
 
+                    val resolvedFriends = friendsList.ifEmpty {
+                        cachedFriends.map { f ->
+                            FriendshipDto(
+                                id = f.id,
+                                userId = currentUsername,
+                                friendId = f.handle,
+                                friendUsername = f.handle,
+                                friendDisplayName = f.name,
+                                friendAvatarUrl = f.avatarUrl,
+                                status = "accepted",
+                                isOnline = f.isOnline
+                            )
+                        }
+                    }
+
                     withContext(Dispatchers.Main) {
                         recentConversations = conversations
+                        allFriends = resolvedFriends
+                        allFriendConversations = friendConvos
                         channels = finalChannels
                         friendRequests = reqsList
                         recentNotifications = notifsList.take(5)
@@ -440,7 +515,7 @@ fun HomeChatScreen(
             if (cachedFriends.isNotEmpty() || cachedChannels.isNotEmpty()) {
                 withContext(Dispatchers.Main) {
                     if (cachedFriends.isNotEmpty()) {
-                        recentConversations = cachedFriends.take(6).map { f ->
+                        val mapped = cachedFriends.take(6).map { f ->
                             RecentConversationItem(
                                 id = f.id,
                                 name = f.name,
@@ -449,6 +524,20 @@ fun HomeChatScreen(
                                 lastMessage = f.lastMessage.ifBlank { "Tap to open chat" },
                                 timestamp = f.timeAgo.ifBlank { "Active" },
                                 unreadCount = f.unreadCount,
+                                isOnline = f.isOnline
+                            )
+                        }
+                        recentConversations = mapped
+                        allFriendConversations = mapped
+                        allFriends = cachedFriends.map { f ->
+                            FriendshipDto(
+                                id = f.id,
+                                userId = currentUsername,
+                                friendId = f.handle,
+                                friendUsername = f.handle,
+                                friendDisplayName = f.name,
+                                friendAvatarUrl = f.avatarUrl,
+                                status = "accepted",
                                 isOnline = f.isOnline
                             )
                         }
@@ -473,6 +562,24 @@ fun HomeChatScreen(
                     val itemId = item.id.lowercase()
                     val itemName = item.name.lowercase()
                     if (itemUser == cleanUser || itemId == cleanUser || itemName == cleanUser) {
+                        item.copy(isOnline = isOnline)
+                    } else {
+                        item
+                    }
+                }
+                allFriendConversations = allFriendConversations.map { item ->
+                    val itemUser = item.username.lowercase().removePrefix("@")
+                    val itemId = item.id.lowercase()
+                    val itemName = item.name.lowercase()
+                    if (itemUser == cleanUser || itemId == cleanUser || itemName == cleanUser) {
+                        item.copy(isOnline = isOnline)
+                    } else {
+                        item
+                    }
+                }
+                allFriends = allFriends.map { item ->
+                    val itemUser = item.friendUsername.lowercase().removePrefix("@")
+                    if (itemUser == cleanUser) {
                         item.copy(isOnline = isOnline)
                     } else {
                         item
@@ -827,7 +934,7 @@ fun HomeChatScreen(
                     }
                 }
 
-                // 7. Recent Conversations / Direct Messages
+                // 7. Recent Conversations / Direct Messages (Favourites)
                 item {
                     Column(
                         modifier = Modifier
@@ -840,54 +947,112 @@ fun HomeChatScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Direct Messages",
+                                text = "Direct Messages (Favourites)",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = colors.textPrimary
                             )
-                            Text(
-                                text = "Open Chat",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.primary,
-                                modifier = Modifier.clickable { onNavigateToMessages() }
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (favouriteUsernames.isNotEmpty()) {
+                                    Text(
+                                        text = "Edit (${favouriteUsernames.size}/5)",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.primary,
+                                        modifier = Modifier
+                                            .clickable { isFavouritesDialogOpen = true }
+                                            .padding(end = 12.dp)
+                                    )
+                                }
+                                Text(
+                                    text = "Open Chat",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.primary,
+                                    modifier = Modifier.clickable { onNavigateToMessages() }
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
 
-                        if (recentConversations.isEmpty() && isLoadingDashboard) {
-                            androidx.compose.foundation.layout.Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                        if (favouriteUsernames.isEmpty()) {
+                            // Centered aesthetic + button card
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = ConnectoSpacing.sm)
+                                    .clip(RoundedCornerShape(ConnectoRadius.lg))
+                                    .background(colors.surfaceVariant.copy(alpha = 0.6f))
+                                    .border(
+                                        width = 1.dp,
+                                        brush = Brush.linearGradient(
+                                            listOf(
+                                                colors.primary.copy(alpha = 0.45f),
+                                                colors.primary.copy(alpha = 0.15f)
+                                            )
+                                        ),
+                                        shape = RoundedCornerShape(ConnectoRadius.lg)
+                                    )
+                                    .clickable { isFavouritesDialogOpen = true }
+                                    .padding(vertical = 24.dp, horizontal = 16.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                repeat(3) {
-                                    ShimmerConversationItem()
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    // Aesthetic glowing circular + button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(56.dp)
+                                            .clip(CircleShape)
+                                            .background(Brush.linearGradient(gradientColors)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add Favourites",
+                                            tint = contentOnGradient,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+
+                                    Text(
+                                        text = "Add to Favourites",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.textPrimary
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = "Tap to choose up to 5 favourite people for quick messaging",
+                                        fontSize = 12.sp,
+                                        color = colors.textSecondary,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
                             }
-                        } else if (filteredConversations.isEmpty() && searchQuery.isNotEmpty()) {
+                        } else if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
                             Text(
-                                text = "No conversations matching \"$searchQuery\"",
+                                text = "No favourites matching \"$searchQuery\"",
                                 fontSize = 13.sp,
                                 color = colors.textSecondary,
                                 modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
                             )
-                        } else if (filteredConversations.isEmpty()) {
-                            ConnectoEmptyState(
-                                title = "No conversations yet",
-                                description = "Connect with colleagues or friends to start messaging.",
-                                icon = Icons.Outlined.Chat,
-                                actionText = "Add a Friend",
-                                onActionClick = { isAddFriendOpen = true }
-                            )
                         } else {
-                            filteredConversations.forEachIndexed { index, convo ->
+                            displayedFavourites.forEachIndexed { index, convo ->
                                 StaggeredReveal(index = index) {
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .clip(RoundedCornerShape(ConnectoRadius.sm))
                                             .clickable {
-                                                com.example.connecto.MainActivity.pendingOpenChatTarget = if (convo.isGroup) convo.id else convo.username
+                                                com.example.connecto.MainActivity.pendingOpenChatTarget = convo.username
                                                 onNavigateToMessages()
                                             }
                                             .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
@@ -897,7 +1062,7 @@ fun HomeChatScreen(
                                             name = convo.name,
                                             avatarUrl = convo.avatarUrl,
                                             size = ConnectoAvatarSize.MD,
-                                            status = if (convo.isGroup) null else (if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE)
+                                            status = if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE
                                         )
                                         Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
                                         Column(modifier = Modifier.weight(1f)) {
@@ -941,6 +1106,39 @@ fun HomeChatScreen(
                                         }
                                     }
                                     ConnectoDivider(thickness = 0.5.dp)
+                                }
+                            }
+
+                            if (favouriteUsernames.size < 5) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = ConnectoSpacing.xs)
+                                        .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                        .background(colors.surfaceVariant.copy(alpha = 0.5f))
+                                        .border(
+                                            1.dp,
+                                            colors.primary.copy(alpha = 0.25f),
+                                            RoundedCornerShape(ConnectoRadius.sm)
+                                        )
+                                        .clickable { isFavouritesDialogOpen = true }
+                                        .padding(vertical = 10.dp, horizontal = ConnectoSpacing.md),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Add More Favourites (${favouriteUsernames.size}/5)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.primary
+                                    )
                                 }
                             }
                         }
@@ -999,6 +1197,21 @@ fun HomeChatScreen(
                 onSelectChannel = { channelName ->
                     isSearchOpen = false
                     onNavigateToMessages()
+                }
+            )
+        }
+
+        // Select Favourites Dialog
+        if (isFavouritesDialogOpen) {
+            SelectFavouritesDialog(
+                allFriends = allFriends,
+                initialSelected = favouriteUsernames,
+                onDismiss = { isFavouritesDialogOpen = false },
+                onSave = { newFavs ->
+                    val clean = newFavs.map { it.trim().lowercase().removePrefix("@") }
+                    homePrefs.edit().putString("favourites_$cleanCurrentU", clean.joinToString(",")).apply()
+                    favouriteUsernames = clean
+                    Toast.makeText(context, "Favourites updated (${clean.size}/5)", Toast.LENGTH_SHORT).show()
                 }
             )
         }
@@ -1242,5 +1455,234 @@ private fun formatTimeAgoShort(isoString: String): String {
         }
     } catch (_: Exception) {
         "Active"
+    }
+}
+
+@Composable
+private fun SelectFavouritesDialog(
+    allFriends: List<FriendshipDto>,
+    initialSelected: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (List<String>) -> Unit
+) {
+    val context = LocalContext.current
+    val colors = LocalConnectoColors.current
+    val gradientColors = getDynamicAccentGradientColors()
+    val contentOnGradient = getContentColorOnAccentGradient()
+
+    var searchQuery by remember { mutableStateOf("") }
+    val selectedUsernames = remember {
+        mutableStateListOf<String>().apply {
+            addAll(initialSelected.map { it.trim().lowercase().removePrefix("@") })
+        }
+    }
+
+    val filteredFriends = remember(allFriends, searchQuery) {
+        if (searchQuery.isBlank()) allFriends
+        else allFriends.filter {
+            it.friendDisplayName.contains(searchQuery.trim(), ignoreCase = true) ||
+            it.friendUsername.contains(searchQuery.trim(), ignoreCase = true)
+        }
+    }
+
+    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .clip(RoundedCornerShape(ConnectoRadius.xl))
+                .background(colors.surface)
+                .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.xl))
+                .padding(ConnectoSpacing.lg)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "Select Favourites",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary
+                            )
+                            Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(colors.primary.copy(alpha = 0.15f))
+                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "${selectedUsernames.size}/5",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.primary
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Choose up to 5 people to pin to Home tab",
+                            fontSize = 12.sp,
+                            color = colors.textSecondary
+                        )
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = colors.textSecondary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(ConnectoSpacing.md))
+
+                // Search Bar
+                ConnectoTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = "Search friends...",
+                    leadingIcon = Icons.Default.Search,
+                    showClearButton = true
+                )
+
+                Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+
+                // Friends List
+                if (filteredFriends.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (searchQuery.isNotBlank()) "No friends matching \"$searchQuery\"" else "No friends available to select.\nAdd friends first!",
+                            fontSize = 13.sp,
+                            color = colors.textSecondary,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 280.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(filteredFriends, key = { it.id.ifEmpty { it.friendUsername } }) { friend ->
+                            val cleanUser = friend.friendUsername.trim().lowercase().removePrefix("@")
+                            val isSelected = selectedUsernames.contains(cleanUser)
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                    .background(
+                                        if (isSelected) colors.primary.copy(alpha = 0.08f)
+                                        else Color.Transparent
+                                    )
+                                    .clickable {
+                                        if (isSelected) {
+                                            selectedUsernames.remove(cleanUser)
+                                        } else {
+                                            if (selectedUsernames.size >= 5) {
+                                                Toast.makeText(context, "You can select up to 5 favourites only", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                selectedUsernames.add(cleanUser)
+                                            }
+                                        }
+                                    }
+                                    .padding(vertical = 8.dp, horizontal = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                ConnectoAvatar(
+                                    name = friend.friendDisplayName,
+                                    avatarUrl = friend.friendAvatarUrl,
+                                    size = ConnectoAvatarSize.SM,
+                                    status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE
+                                )
+
+                                Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = friend.friendDisplayName,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = colors.textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                    Text(
+                                        text = "@${friend.friendUsername.removePrefix("@")}",
+                                        fontSize = 11.sp,
+                                        color = colors.textSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+
+                                // Selection check circle
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .then(
+                                            if (isSelected) Modifier.background(Brush.linearGradient(gradientColors))
+                                            else Modifier.border(1.5.dp, colors.textDisabled, CircleShape)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Selected",
+                                            tint = contentOnGradient,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(ConnectoSpacing.md))
+
+                // Action buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(ConnectoSpacing.sm)
+                ) {
+                    ConnectoButton(
+                        text = "Cancel",
+                        variant = ConnectoButtonVariant.SECONDARY,
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    ConnectoButton(
+                        text = "Save (${selectedUsernames.size}/5)",
+                        variant = ConnectoButtonVariant.PRIMARY,
+                        onClick = {
+                            onSave(selectedUsernames.toList())
+                            onDismiss()
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        }
     }
 }
