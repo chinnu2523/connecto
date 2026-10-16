@@ -578,6 +578,14 @@ fun CustomizedChatScreen(
     val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
     val myUsername = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
 
+    fun getCanonicalChatId(f: FriendItem?): String {
+        if (f == null) return ""
+        if (f.isGroup) return f.id
+        val clean = f.handle.trim().removePrefix("@").lowercase()
+        val u = myUsername.lowercase()
+        return "dm-${minOf(u, clean)}-${maxOf(u, clean)}"
+    }
+
     // Friend Profile Preview Lightbox & Per-Chat Preferences
     var showPhotoLightbox by remember { mutableStateOf(false) }
     var isChatMuted by remember { mutableStateOf(false) }
@@ -601,10 +609,11 @@ fun CustomizedChatScreen(
             customWallpaperUri = uriStr
             chatWallpaperId = "custom"
             val fId = selectedFriend?.id
+            val userPrefix = myUsername.lowercase()
             if (fId != null) {
                 friendPrefs.edit()
-                    .putString("chat_wallpaper_custom_$fId", uriStr)
-                    .putString("chat_wallpaper_$fId", "custom")
+                    .putString("${userPrefix}_chat_wallpaper_custom_$fId", uriStr)
+                    .putString("${userPrefix}_chat_wallpaper_$fId", "custom")
                     .apply()
             }
         }
@@ -616,17 +625,18 @@ fun CustomizedChatScreen(
     var isBiometricAuthPromptActive by remember { mutableStateOf(false) }
 
     // Synchronize mute, lock, theme, wallpaper when selectedFriend changes
-    LaunchedEffect(selectedFriend?.id) {
+    LaunchedEffect(selectedFriend?.id, myUsername) {
         val friend = selectedFriend
         if (friend != null) {
             val friendId = friend.id
             val cleanHandle = friend.handle.trim().lowercase().removePrefix("@")
+            val userPrefix = myUsername.lowercase()
             val mutedSet = notifPrefs.getStringSet("muted_channels", emptySet()) ?: emptySet()
             isChatMuted = mutedSet.any { it.trim().lowercase().removePrefix("#").removePrefix("@") == cleanHandle || it.trim().lowercase() == friendId.lowercase() }
-            isChatLocked = friendPrefs.getBoolean("chat_locked_$friendId", false) || friendPrefs.getBoolean("chat_locked_$cleanHandle", false)
-            chatThemeId = friendPrefs.getString("chat_theme_$friendId", "default") ?: "default"
-            chatWallpaperId = friendPrefs.getString("chat_wallpaper_$friendId", "default") ?: "default"
-            customWallpaperUri = friendPrefs.getString("chat_wallpaper_custom_$friendId", null)
+            isChatLocked = friendPrefs.getBoolean("${userPrefix}_chat_locked_$friendId", false) || friendPrefs.getBoolean("${userPrefix}_chat_locked_$cleanHandle", false)
+            chatThemeId = friendPrefs.getString("${userPrefix}_chat_theme_$friendId", null) ?: "default"
+            chatWallpaperId = friendPrefs.getString("${userPrefix}_chat_wallpaper_$friendId", null) ?: "default"
+            customWallpaperUri = friendPrefs.getString("${userPrefix}_chat_wallpaper_custom_$friendId", null)
         }
     }
 
@@ -1192,45 +1202,42 @@ fun CustomizedChatScreen(
                 (myUserId != null && (dto.authorId == myUserId || dto.authorName == myUserId))
             )
 
-            val currentFriend = selectedFriend
-            val friendHandleClean = currentFriend?.handle?.removePrefix("@")?.trim()?.lowercase() ?: ""
-            val friendIdClean = currentFriend?.id?.trim()?.lowercase() ?: ""
-            val friendNameClean = currentFriend?.name?.trim()?.lowercase() ?: ""
+            val currentFriend = selectedFriend ?: return@collect
+            val friendHandleClean = currentFriend.handle.removePrefix("@").trim().lowercase()
+            val friendIdClean = currentFriend.id.trim().lowercase()
+            val friendNameClean = currentFriend.name.trim().lowercase()
 
             val currentDmId = activeDmChannelId?.trim()?.lowercase()
-            val currentCanonical = if (currentFriend != null) {
-                val clean = friendHandleClean
-                val me = myUsername
-                "dm-${minOf(me, clean)}-${maxOf(me, clean)}"
-            } else null
+            val clean = friendHandleClean
+            val me = myUsername
+            val currentCanonical = if (!currentFriend.isGroup) "dm-${minOf(me, clean)}-${maxOf(me, clean)}" else null
             val cachedDmId = if (currentCanonical != null) ConnectoApiClient.channelCache[currentCanonical.lowercase()]?.trim()?.lowercase() else null
 
             val dtoChannelClean = (dto.channelId ?: "").trim().lowercase()
 
-            val isForCurrentChat = currentFriend != null && (
-                // 1. Channel ID exact match with activeDmChannelId or cachedDmId or canonical
-                (currentDmId != null && dtoChannelClean == currentDmId) ||
-                (cachedDmId != null && dtoChannelClean == cachedDmId) ||
-                (currentCanonical != null && dtoChannelClean == currentCanonical) ||
-                // 2. Channel cache reverse lookup
-                (ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentCanonical) ||
-                (currentDmId != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentDmId) ||
-                // 3. Sender is the current friend (by handle, ID, or display name)
-                (friendHandleClean.isNotBlank() && (authorClean == friendHandleClean || authorNameClean == friendHandleClean)) ||
-                (friendIdClean.isNotBlank() && (authorClean == friendIdClean || authorNameClean == friendIdClean)) ||
-                (friendNameClean.isNotBlank() && (authorNameClean == friendNameClean || authorClean == friendNameClean)) ||
-                // 4. Channel ID contains the friend's handle or ID (e.g. dm-myuser-friendhandle or UUID)
-                (friendHandleClean.isNotBlank() && dtoChannelClean.contains(friendHandleClean)) ||
-                (friendIdClean.isNotBlank() && dtoChannelClean.contains(friendIdClean)) ||
-                // 5. If sent by me, verify it targets current chat's channel
-                (isMe && (
+            val isForCurrentChat = if (currentFriend.isGroup) {
+                dtoChannelClean == currentFriend.id.trim().lowercase()
+            } else {
+                val myBase = myUsername.replace(Regex("\\d+$"), "")
+                val friendBase = friendHandleClean.replace(Regex("\\d+$"), "")
+                val channelMatches = (
                     (currentDmId != null && dtoChannelClean == currentDmId) ||
                     (cachedDmId != null && dtoChannelClean == cachedDmId) ||
                     (currentCanonical != null && dtoChannelClean == currentCanonical) ||
-                    (friendHandleClean.isNotBlank() && dtoChannelClean.contains(friendHandleClean)) ||
-                    (friendIdClean.isNotBlank() && dtoChannelClean.contains(friendIdClean))
-                ))
-            )
+                    (currentCanonical != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentCanonical) ||
+                    (currentDmId != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentDmId) ||
+                    ((dtoChannelClean.startsWith("dm-") || dtoChannelClean.startsWith("dm_")) &&
+                        (dtoChannelClean.contains(myUsername) || (myBase.isNotEmpty() && dtoChannelClean.contains(myBase))) &&
+                        (dtoChannelClean.contains(friendHandleClean) || (friendBase.isNotEmpty() && dtoChannelClean.contains(friendBase)))
+                    )
+                )
+                val isFriend = (
+                    (friendHandleClean.isNotBlank() && (authorClean == friendHandleClean || authorNameClean == friendHandleClean)) ||
+                    (friendIdClean.isNotBlank() && (authorClean == friendIdClean || authorNameClean == friendIdClean)) ||
+                    (friendNameClean.isNotBlank() && (authorNameClean == friendNameClean || authorClean == friendNameClean))
+                )
+                channelMatches && (isMe || isFriend)
+            }
 
             if (isForCurrentChat) {
                 isLoadingMessages = false
@@ -1464,18 +1471,13 @@ fun CustomizedChatScreen(
                 val myDisplayName = ConnectoApiClient.currentUserDisplayName ?: ""
                 val myUserId = ConnectoApiClient.currentUserId
 
-                // Auto-learn and persist discovered channel UUID from cached messages
-                val discoveredChId = cachedMessages.firstOrNull {
-                    !it.channelId.isNullOrBlank() && !it.channelId.startsWith("dm-") && !it.channelId.startsWith("dm_")
-                }?.channelId
-                if (discoveredChId != null && !friend.isGroup) {
-                    if (activeDmChannelId == null) activeDmChannelId = discoveredChId
-                    ConnectoApiClient.channelCache[canonicalName.lowercase()] = discoveredChId
-                    ConnectoApiClient.channelCache[discoveredChId.lowercase()] = canonicalName.lowercase()
-                    VoiceCallManager.subscribeChannel(discoveredChId)
-                    withContext(Dispatchers.IO) {
-                        dbHelper.saveDmChannel(canonicalName, discoveredChId)
-                    }
+                // Use verified channel UUID if already mapped to this canonical conversation
+                val existingDmId = dbHelper.getDmChannelId(canonicalName)
+                if (existingDmId != null && !friend.isGroup) {
+                    if (activeDmChannelId == null) activeDmChannelId = existingDmId
+                    ConnectoApiClient.channelCache[canonicalName.lowercase()] = existingDmId
+                    ConnectoApiClient.channelCache[existingDmId.lowercase()] = canonicalName.lowercase()
+                    VoiceCallManager.subscribeChannel(existingDmId)
                 }
 
                 val otherUser = friend.handle.removePrefix("@")
@@ -1562,11 +1564,12 @@ fun CustomizedChatScreen(
                 isLoadingMessages = true
             }
 
-            // Fetch pinned message for this conversation
+            // Fetch pinned message for this conversation (isolated by canonical channel or group ID)
             val pinChannelId = if (friend.isGroup) friend.id else canonicalName
-            val cachedPinId = friendPrefs.getString("pinned_msg_${friend.id}", null)
-            val cachedPinContent = friendPrefs.getString("pinned_content_${friend.id}", null)
-            val cachedPinAuthor = friendPrefs.getString("pinned_author_${friend.id}", null)
+            val pinKey = if (friend.isGroup) friend.id else canonicalName.lowercase()
+            val cachedPinId = friendPrefs.getString("pinned_msg_${pinKey}", null)
+            val cachedPinContent = friendPrefs.getString("pinned_content_${pinKey}", null)
+            val cachedPinAuthor = friendPrefs.getString("pinned_author_${pinKey}", null)
             if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
                 pinnedMessageForChat = PinnedMessageDto(
                     messageId = cachedPinId,
@@ -1576,6 +1579,8 @@ fun CustomizedChatScreen(
                     pinnedBy = "",
                     pinnedAt = ""
                 )
+            } else {
+                pinnedMessageForChat = null
             }
             coroutineScope.launch {
                 val serverPinRes = ConnectoApiClient.getPinnedMessage(pinChannelId)
@@ -1584,12 +1589,18 @@ fun CustomizedChatScreen(
                     if (serverPin != null) {
                         pinnedMessageForChat = serverPin
                         friendPrefs.edit()
-                            .putString("pinned_msg_${friend.id}", serverPin.messageId)
-                            .putString("pinned_content_${friend.id}", serverPin.content)
-                            .putString("pinned_author_${friend.id}", serverPin.authorName)
+                            .putString("pinned_msg_${pinKey}", serverPin.messageId)
+                            .putString("pinned_content_${pinKey}", serverPin.content)
+                            .putString("pinned_author_${pinKey}", serverPin.authorName)
                             .apply()
-                    } else if (cachedPinId == null) {
+                    } else {
+                        // Authoritative: server confirmed no pinned message exists for this channel
                         pinnedMessageForChat = null
+                        friendPrefs.edit()
+                            .remove("pinned_msg_${pinKey}")
+                            .remove("pinned_content_${pinKey}")
+                            .remove("pinned_author_${pinKey}")
+                            .apply()
                     }
                 }
             }
@@ -2297,6 +2308,7 @@ fun CustomizedChatScreen(
                                                 val activity = context.findFragmentActivity()
                                                 val fId = friendObj.id
                                                 val clean = friendObj.handle.trim().lowercase().removePrefix("@")
+                                                val userPrefix = myUsername.lowercase()
                                                 if (checked) {
                                                     // Verify biometric/credentials before enabling lock
                                                     if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
@@ -2307,8 +2319,8 @@ fun CustomizedChatScreen(
                                                             onSuccess = {
                                                                 isChatLocked = true
                                                                 friendPrefs.edit()
-                                                                    .putBoolean("chat_locked_$fId", true)
-                                                                    .putBoolean("chat_locked_$clean", true)
+                                                                    .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                                    .putBoolean("${userPrefix}_chat_locked_$clean", true)
                                                                     .apply()
                                                                 if (!unlockedLockedFriends.contains(fId)) {
                                                                     unlockedLockedFriends.add(fId)
@@ -2323,8 +2335,8 @@ fun CustomizedChatScreen(
                                                         // Fallback direct set
                                                         isChatLocked = true
                                                         friendPrefs.edit()
-                                                            .putBoolean("chat_locked_$fId", true)
-                                                            .putBoolean("chat_locked_$clean", true)
+                                                            .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                            .putBoolean("${userPrefix}_chat_locked_$clean", true)
                                                             .apply()
                                                         Toast.makeText(context, "Chat locked for @$clean", Toast.LENGTH_SHORT).show()
                                                     }
@@ -2338,6 +2350,8 @@ fun CustomizedChatScreen(
                                                             onSuccess = {
                                                                 isChatLocked = false
                                                                 friendPrefs.edit()
+                                                                    .remove("${userPrefix}_chat_locked_$fId")
+                                                                    .remove("${userPrefix}_chat_locked_$clean")
                                                                     .remove("chat_locked_$fId")
                                                                     .remove("chat_locked_$clean")
                                                                     .apply()
@@ -2351,6 +2365,8 @@ fun CustomizedChatScreen(
                                                     } else {
                                                         isChatLocked = false
                                                         friendPrefs.edit()
+                                                            .remove("${userPrefix}_chat_locked_$fId")
+                                                            .remove("${userPrefix}_chat_locked_$clean")
                                                             .remove("chat_locked_$fId")
                                                             .remove("chat_locked_$clean")
                                                             .apply()
@@ -2529,9 +2545,11 @@ fun CustomizedChatScreen(
                                                             customWallpaperUri = null
                                                             chatWallpaperId = "default"
                                                             val fId = friendObj.id
+                                                            val userPrefix = myUsername.lowercase()
                                                             friendPrefs.edit()
+                                                                .remove("${userPrefix}_chat_wallpaper_custom_" + fId)
+                                                                .putString("${userPrefix}_chat_wallpaper_" + fId, "default")
                                                                 .remove("chat_wallpaper_custom_" + fId)
-                                                                .putString("chat_wallpaper_" + fId, "default")
                                                                 .apply()
                                                         },
                                                     contentAlignment = Alignment.Center
@@ -2568,7 +2586,8 @@ fun CustomizedChatScreen(
                                                 .clickable {
                                                     chatWallpaperId = wallpaper.id
                                                     val fId = friendObj.id
-                                                    friendPrefs.edit().putString("chat_wallpaper_$fId", wallpaper.id).apply()
+                                                    val userPrefix = myUsername.lowercase()
+                                                    friendPrefs.edit().putString("${userPrefix}_chat_wallpaper_$fId", wallpaper.id).apply()
                                                 }
                                                 .padding(10.dp)
                                         ) {
@@ -2943,14 +2962,15 @@ fun CustomizedChatScreen(
                 chatWallpaperId = wId
                 customWallpaperUri = customUri
                 val fId = groupItem.id
+                val userPrefix = effUser.lowercase()
                 if (wId == "custom" && !customUri.isNullOrBlank()) {
                     friendPrefs.edit()
-                        .putString("chat_wallpaper_custom_$fId", customUri)
-                        .putString("chat_wallpaper_$fId", "custom")
+                        .putString("${userPrefix}_chat_wallpaper_custom_$fId", customUri)
+                        .putString("${userPrefix}_chat_wallpaper_$fId", "custom")
                         .apply()
                 } else {
                     friendPrefs.edit()
-                        .putString("chat_wallpaper_$fId", wId)
+                        .putString("${userPrefix}_chat_wallpaper_$fId", wId)
                         .apply()
                 }
             },
@@ -3646,7 +3666,8 @@ fun CustomizedChatScreen(
                         }
 
                         itemsIndexed(filteredFriends, key = { _, friend -> friend.id }) { index, friend ->
-                            val isFriendLocked = friendPrefs.getBoolean("chat_locked_${friend.id}", false)
+                            val userPrefix = myUsername.lowercase()
+                            val isFriendLocked = friendPrefs.getBoolean("${userPrefix}_chat_locked_${friend.id}", false) || friendPrefs.getBoolean("${userPrefix}_chat_locked_${friend.handle.trim().lowercase().removePrefix("@")}", false)
                             val isUnlocked = unlockedLockedFriends.contains(friend.id)
 
                             val openFriendChat = {
@@ -3992,17 +4013,22 @@ fun CustomizedChatScreen(
                                                     .size(28.dp)
                                                     .clip(CircleShape)
                                                     .clickable {
-                                                        val activeChan = activeDmChannelId
                                                         val currentFriend = selectedFriend
+                                                        val canonicalChatId = getCanonicalChatId(currentFriend)
+                                                        val activeChan = activeDmChannelId ?: (if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId)
                                                         pinnedMessageForChat = null
                                                         if (currentFriend != null) {
+                                                            val unpinKey = if (currentFriend.isGroup) currentFriend.id else canonicalChatId.lowercase()
                                                             friendPrefs.edit()
+                                                                .remove("pinned_msg_${unpinKey}")
+                                                                .remove("pinned_content_${unpinKey}")
+                                                                .remove("pinned_author_${unpinKey}")
                                                                 .remove("pinned_msg_${currentFriend.id}")
                                                                 .remove("pinned_content_${currentFriend.id}")
                                                                 .remove("pinned_author_${currentFriend.id}")
                                                                 .apply()
                                                         }
-                                                        if (activeChan != null) {
+                                                        if (activeChan.isNotBlank()) {
                                                             coroutineScope.launch {
                                                                 ConnectoApiClient.unpinMessage(activeChan)
                                                             }
@@ -4923,9 +4949,12 @@ fun CustomizedChatScreen(
                                 val authorName = targetMsg.senderName.ifBlank { "Message" }
                                 val content = targetMsg.content
 
+                                val canonicalChatId = getCanonicalChatId(currentFriend)
+                                val pinKey = if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId.lowercase()
+                                val targetChan = chanId ?: (if (currentFriend?.isGroup == true) currentFriend.id else canonicalChatId)
                                 pinnedMessageForChat = PinnedMessageDto(
                                     messageId = msgId,
-                                    channelId = chanId ?: "",
+                                    channelId = targetChan,
                                     authorName = authorName,
                                     content = content,
                                     pinnedBy = myUsername,
@@ -4933,14 +4962,14 @@ fun CustomizedChatScreen(
                                 )
                                 if (currentFriend != null) {
                                     friendPrefs.edit()
-                                        .putString("pinned_msg_${currentFriend.id}", msgId)
-                                        .putString("pinned_content_${currentFriend.id}", content)
-                                        .putString("pinned_author_${currentFriend.id}", authorName)
+                                        .putString("pinned_msg_${pinKey}", msgId)
+                                        .putString("pinned_content_${pinKey}", content)
+                                        .putString("pinned_author_${pinKey}", authorName)
                                         .apply()
                                 }
-                                if (chanId != null) {
+                                if (targetChan.isNotBlank()) {
                                     coroutineScope.launch {
-                                        ConnectoApiClient.pinMessage(chanId, msgId, myUsername)
+                                        ConnectoApiClient.pinMessage(targetChan, msgId, myUsername)
                                     }
                                 }
                                 showMessageActionDialog = false
@@ -5001,15 +5030,21 @@ fun CustomizedChatScreen(
                                 if (pinnedMessageForChat?.messageId == msgId) {
                                     pinnedMessageForChat = null
                                     selectedFriend?.let { f ->
+                                        val canonicalChatId = getCanonicalChatId(f)
+                                        val delPinKey = if (f.isGroup) f.id else canonicalChatId.lowercase()
                                         friendPrefs.edit()
+                                            .remove("pinned_msg_${delPinKey}")
+                                            .remove("pinned_content_${delPinKey}")
+                                            .remove("pinned_author_${delPinKey}")
                                             .remove("pinned_msg_${f.id}")
                                             .remove("pinned_content_${f.id}")
                                             .remove("pinned_author_${f.id}")
                                             .apply()
-                                    }
-                                    if (chanId != null) {
-                                        coroutineScope.launch {
-                                            ConnectoApiClient.unpinMessage(chanId)
+                                        val targetChan = chanId ?: (if (f.isGroup) f.id else canonicalChatId)
+                                        if (targetChan.isNotBlank()) {
+                                            coroutineScope.launch {
+                                                ConnectoApiClient.unpinMessage(targetChan)
+                                            }
                                         }
                                     }
                                 }

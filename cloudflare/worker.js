@@ -2319,7 +2319,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           myUsername = authUser.username.trim().toLowerCase().replace(/^@/, "");
         }
       }
-      if (!myUsername || myUsername === "chinnu") myUsername = "chinnu14754x";
+      if (!myUsername) {
+        return jsonResponse({ friends: [], incoming_requests: [], outgoing_requests: [] }, 200);
+      }
+      if (myUsername === "chinnu") myUsername = "chinnu14754x";
 
       let friendsList = [];
       let incomingList = [];
@@ -2642,7 +2645,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         callerUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
       }
     }
-    if (!callerUser || callerUser === "chinnu") callerUser = "chinnu14754x";
+    if (!callerUser) {
+      return jsonResponse([], 200);
+    }
+    if (callerUser === "chinnu") callerUser = "chinnu14754x";
 
     let contacts = [];
     if (env.DB) {
@@ -2726,7 +2732,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
       }
     }
-    if (!myUser || myUser === "chinnu") myUser = "chinnu14754x";
+    if (!myUser) {
+      return jsonResponse({ detail: "Authentication required to start a direct message." }, 401);
+    }
+    if (myUser === "chinnu") myUser = "chinnu14754x";
     if (targetUser === "chinnu") targetUser = "chinnu14754x";
 
     const sortedPair = [myUser, targetUser].sort();
@@ -2779,7 +2788,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         currentUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
       }
     }
-    if (!currentUser || currentUser === "chinnu") currentUser = "chinnu14754x";
+    if (!currentUser) {
+      return jsonResponse({ detail: "Authentication required to view direct messages." }, 401);
+    }
+    if (currentUser === "chinnu") currentUser = "chinnu14754x";
     const normalizedTarget = targetUser === "chinnu" ? "chinnu14754x" : targetUser;
 
     const sortedPair = [currentUser, normalizedTarget].sort();
@@ -3746,7 +3758,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const authUser = await resolveUserFromRequest(request, env);
       if (authUser && authUser.username) myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     }
-    if (!myUser || myUser === "chinnu") myUser = "chinnu14754x";
+    if (!myUser) {
+      return jsonResponse({ total_unread: 0, notifications: [] }, 200);
+    }
+    if (myUser === "chinnu") myUser = "chinnu14754x";
 
     const room = getRealtimeRoom(env);
 
@@ -3944,7 +3959,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (joinMatch) {
     const roomId = decodeURIComponent(joinMatch[1]);
     const body = await request.json().catch(() => ({}));
-    const username = body.username || "chinnu";
+    const username = (body.username || request.headers.get("X-User-Username") || "guest").trim().toLowerCase().replace(/^@/, "");
     const nickname = body.nickname || username;
     const avatar = body.avatar || "👾";
     const rank = body.rank || "Genin";
@@ -3995,7 +4010,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (leaveMatch) {
     const roomId = decodeURIComponent(leaveMatch[1]);
     const body = await request.json().catch(() => ({}));
-    const username = body.username || "chinnu";
+    const username = (body.username || request.headers.get("X-User-Username") || "guest").trim().toLowerCase().replace(/^@/, "");
 
     if (ctx) {
       ctx.waitUntil(broadcastRealtime(env, {
@@ -4069,7 +4084,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   // Voice Call Invite (REST Fallback for Push Notifications & Cross-Device Alerting)
   if (path === "/api/voice/call/invite") {
     const body = await request.json().catch(() => ({}));
-    const caller = (body.caller_username || body.caller || request.headers.get("X-User-Username") || "chinnu").trim().replace(/^@/, "");
+    const caller = (body.caller_username || body.caller || request.headers.get("X-User-Username") || "").trim().replace(/^@/, "");
     const callerName = body.caller_name || caller;
     const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
     const roomId = body.room_id || body.call_id || "call_" + Date.now();

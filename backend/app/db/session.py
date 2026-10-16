@@ -43,6 +43,7 @@ async def init_db():
     import app.db.models.careers  # noqa
     import app.db.models.voice  # noqa
     import app.db.models.notification  # noqa
+    import app.db.models.dm_read_state  # noqa
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         
@@ -59,6 +60,10 @@ async def init_db():
                     connection.exec_driver_sql("ALTER TABLE users ADD COLUMN two_factor_method VARCHAR(16) DEFAULT 'sms' NOT NULL")
                 if "banner_url" not in existing_cols:
                     connection.exec_driver_sql("ALTER TABLE users ADD COLUMN banner_url VARCHAR(512)")
+                if "is_email_verified" not in existing_cols:
+                    connection.exec_driver_sql("ALTER TABLE users ADD COLUMN is_email_verified BOOLEAN DEFAULT 1 NOT NULL")
+                if "verification_deadline" not in existing_cols:
+                    connection.exec_driver_sql("ALTER TABLE users ADD COLUMN verification_deadline DATETIME")
 
                 ch_res = connection.exec_driver_sql("PRAGMA table_info(channels)").fetchall()
                 ch_cols = {row[1] for row in ch_res}

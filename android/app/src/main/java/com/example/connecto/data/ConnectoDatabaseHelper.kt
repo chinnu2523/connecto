@@ -459,7 +459,38 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         }
 
         if (!channelId.isNullOrBlank()) {
-            candidates.add(channelId.trim().lowercase().removePrefix("#"))
+            val cleanCh = channelId.trim().lowercase().removePrefix("#")
+            if (cleanCh.startsWith("dm-") || cleanCh.startsWith("dm_")) {
+                val hasU1 = cleanCh.contains(u1) || (u1Base.isNotEmpty() && cleanCh.contains(u1Base))
+                val hasU2 = cleanCh.contains(u2) || (u2Base.isNotEmpty() && cleanCh.contains(u2Base))
+                if (hasU1 && hasU2) {
+                    candidates.add(cleanCh)
+                }
+            } else {
+                // If it's a UUID, verify it does not belong to another conversation in TABLE_CHANNELS
+                var isAlien = false
+                try {
+                    val chCursor = readableDatabase.rawQuery(
+                        "SELECT $COL_CH_NAME FROM $TABLE_CHANNELS WHERE $COL_CH_ID = ? LIMIT 1",
+                        arrayOf(cleanCh)
+                    )
+                    chCursor.use { cur ->
+                        if (cur.moveToFirst()) {
+                            val chName = cur.getString(0)?.lowercase() ?: ""
+                            if (chName.startsWith("dm-") || chName.startsWith("dm_")) {
+                                val hasU1 = chName.contains(u1) || (u1Base.isNotEmpty() && chName.contains(u1Base))
+                                val hasU2 = chName.contains(u2) || (u2Base.isNotEmpty() && chName.contains(u2Base))
+                                if (!hasU1 || !hasU2) {
+                                    isAlien = true
+                                }
+                            }
+                        }
+                    }
+                } catch (_: Exception) {}
+                if (!isAlien) {
+                    candidates.add(cleanCh)
+                }
+            }
         }
 
         val db = readableDatabase
@@ -474,7 +505,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 while (cur.moveToNext()) {
                     val chId = cur.getString(0)?.trim()?.lowercase()?.removePrefix("#") ?: continue
                     val chName = cur.getString(1)?.trim()?.lowercase()?.removePrefix("#") ?: ""
-                    if (candidates.contains(chName) || chName.contains(u2) || (u2Base.isNotEmpty() && chName.contains(u2Base))) {
+                    val hasU1 = chName.contains(u1) || (u1Base.isNotEmpty() && chName.contains(u1Base))
+                    val hasU2 = chName.contains(u2) || (u2Base.isNotEmpty() && chName.contains(u2Base))
+                    if (candidates.contains(chName) || (hasU1 && hasU2)) {
                         candidates.add(chId)
                     }
                 }
@@ -501,29 +534,13 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             }
         } catch (_: Exception) {}
 
-        // 3. Guild / public channels to exclude from direct message channel discovery
-        val guildChannels = setOf(
-            "general", "announcements", "dev-chat", "gaming", "war-room", "tournaments", "clips", "voice-lounge", "dev-talk", "resources"
-        )
+        // 3. User identifiers for logged-in user
+        val myIdentifiers = mutableSetOf(u1)
+        if (u1Base.isNotEmpty()) myIdentifiers.add(u1Base)
+        ConnectoApiClient.currentUserId?.trim()?.lowercase()?.let { if (it.isNotEmpty()) myIdentifiers.add(it) }
+        ConnectoApiClient.currentUserDisplayName?.trim()?.lowercase()?.let { if (it.isNotEmpty()) myIdentifiers.add(it) }
 
-        // 4. Discover any channel_id in TABLE_MESSAGES that contains messages from this friend
-        try {
-            val idPlaceholders = friendIdentifiers.joinToString(",") { "?" }
-            val authorQuery = """
-                SELECT DISTINCT $COL_MSG_CHANNEL FROM $TABLE_MESSAGES 
-                WHERE (lower($COL_MSG_AUTHOR_ID) IN ($idPlaceholders) OR lower($COL_MSG_AUTHOR_NAME) IN ($idPlaceholders))
-            """.trimIndent()
-            val args = (friendIdentifiers + friendIdentifiers).map { it.lowercase() }.toTypedArray()
-            val discCursor = db.rawQuery(authorQuery, args)
-            discCursor.use { cur ->
-                while (cur.moveToNext()) {
-                    val discCh = cur.getString(0)?.trim()?.lowercase()?.removePrefix("#") ?: continue
-                    if (discCh.isNotEmpty() && !guildChannels.contains(discCh)) {
-                        candidates.add(discCh)
-                    }
-                }
-            }
-        } catch (_: Exception) {}
+        val allowedAuthors = (myIdentifiers + friendIdentifiers).map { it.lowercase() }.toSet()
 
         val distinctCandidates = candidates.distinct()
 
@@ -553,6 +570,18 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         val expiredIds = mutableListOf<String>()
         cursor.use {
             while (it.moveToNext()) {
+                val authorId = it.getString(it.getColumnIndexOrThrow(COL_MSG_AUTHOR_ID))?.trim()?.lowercase() ?: ""
+                val authorName = it.getString(it.getColumnIndexOrThrow(COL_MSG_AUTHOR_NAME))?.trim()?.lowercase() ?: ""
+
+                val isAuthorValid = allowedAuthors.isEmpty() ||
+                    allowedAuthors.contains(authorId) ||
+                    allowedAuthors.contains(authorName) ||
+                    allowedAuthors.any { allowed -> (authorId.isNotEmpty() && authorId.contains(allowed)) || (authorName.isNotEmpty() && authorName.contains(allowed)) }
+
+                if (!isAuthorValid) {
+                    continue // Strictly skip messages from third parties/colliding accounts
+                }
+
                 val avatarCol = it.getColumnIndex(COL_MSG_AUTHOR_AVATAR)
                 val authorAvatar = if (avatarCol >= 0) it.getString(avatarCol) else null
 
@@ -608,86 +637,6 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     )
                 )
             }
-        }
-
-        // Fallback: if list is still empty, search TABLE_MESSAGES directly by author match (excluding guild channels)
-        if (list.isEmpty() && friendIdentifiers.isNotEmpty()) {
-            try {
-                val idPlaceholders = friendIdentifiers.joinToString(",") { "?" }
-                val guildPlaceholders = guildChannels.joinToString(",") { "?" }
-                val fallbackSelection = if (beforeCreatedAt.isNullOrBlank()) {
-                    "$COL_MSG_CHANNEL NOT IN ($guildPlaceholders) AND (lower($COL_MSG_AUTHOR_ID) IN ($idPlaceholders) OR lower($COL_MSG_AUTHOR_NAME) IN ($idPlaceholders))"
-                } else {
-                    "$COL_MSG_CHANNEL NOT IN ($guildPlaceholders) AND (lower($COL_MSG_AUTHOR_ID) IN ($idPlaceholders) OR lower($COL_MSG_AUTHOR_NAME) IN ($idPlaceholders)) AND $COL_MSG_CREATED_AT < ?"
-                }
-                val fallbackArgs = if (beforeCreatedAt.isNullOrBlank()) {
-                    (guildChannels + friendIdentifiers + friendIdentifiers).map { it.lowercase() }.toTypedArray()
-                } else {
-                    (guildChannels + friendIdentifiers + friendIdentifiers).map { it.lowercase() }.toTypedArray() + beforeCreatedAt
-                }
-                val fbCursor = db.query(
-                    TABLE_MESSAGES,
-                    null,
-                    fallbackSelection,
-                    fallbackArgs,
-                    null,
-                    null,
-                    "$COL_MSG_CREATED_AT DESC",
-                    limit.toString()
-                )
-                fbCursor.use {
-                    while (it.moveToNext()) {
-                        val avatarCol = it.getColumnIndex(COL_MSG_AUTHOR_AVATAR)
-                        val authorAvatar = if (avatarCol >= 0) it.getString(avatarCol) else null
-                        val typeCol = it.getColumnIndex(COL_MSG_TYPE)
-                        val msgType = if (typeCol >= 0) it.getString(typeCol) ?: "text" else "text"
-                        val pollCol = it.getColumnIndex(COL_MSG_POLL_JSON)
-                        val pollJson = if (pollCol >= 0) it.getString(pollCol) else null
-                        val poll = if (!pollJson.isNullOrBlank()) {
-                            try { ConnectoApiClient.parsePollDto(JSONObject(pollJson)) } catch (_: Exception) { null }
-                        } else null
-                        val timerCol = it.getColumnIndex(COL_MSG_TIMER_SEC)
-                        val timerSec = if (timerCol >= 0) it.getInt(timerCol) else 0
-                        val expCol = it.getColumnIndex(COL_MSG_EXPIRES_AT)
-                        val expiresAt = if (expCol >= 0) it.getString(expCol) else null
-
-                        val replyIdCol = it.getColumnIndex(COL_MSG_REPLY_TO_ID)
-                        val replyToId = if (replyIdCol >= 0) it.getString(replyIdCol) else null
-                        val replyContentCol = it.getColumnIndex(COL_MSG_REPLY_TO_CONTENT)
-                        val replyToContent = if (replyContentCol >= 0) it.getString(replyContentCol) else null
-                        val replyAuthorCol = it.getColumnIndex(COL_MSG_REPLY_TO_AUTHOR)
-                        val replyToAuthor = if (replyAuthorCol >= 0) it.getString(replyAuthorCol) else null
-
-                        val msgId = it.getString(it.getColumnIndexOrThrow(COL_MSG_ID))
-                        val createdAt = it.getString(it.getColumnIndexOrThrow(COL_MSG_CREATED_AT)) ?: "Just now"
-
-                        if (isExpired(expiresAt)) {
-                            expiredIds.add(msgId)
-                            continue
-                        }
-
-                        list.add(
-                            MessageDto(
-                                id = msgId,
-                                channelId = it.getString(it.getColumnIndexOrThrow(COL_MSG_CHANNEL)),
-                                authorId = it.getString(it.getColumnIndexOrThrow(COL_MSG_AUTHOR_ID)) ?: "gamer",
-                                authorName = it.getString(it.getColumnIndexOrThrow(COL_MSG_AUTHOR_NAME)) ?: "Gamer",
-                                content = it.getString(it.getColumnIndexOrThrow(COL_MSG_CONTENT)) ?: "",
-                                createdAt = createdAt,
-                                authorAvatar = authorAvatar,
-                                type = msgType,
-                                pollId = poll?.id,
-                                poll = poll,
-                                timerSeconds = if (timerSec > 0) timerSec else null,
-                                expiresAt = expiresAt,
-                                replyToId = replyToId,
-                                replyToContent = replyToContent,
-                                replyToAuthor = replyToAuthor
-                            )
-                        )
-                    }
-                }
-            } catch (_: Exception) {}
         }
 
         if (expiredIds.isNotEmpty()) {
@@ -763,7 +712,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 val cv = ContentValues().apply {
                     put(COL_CH_ID, ch.id)
                     put(COL_CH_NAME, ch.name)
-                    put(COL_CH_TYPE, ch.type)
+                    val effectiveType = if (ch.name.startsWith("dm-") || ch.name.startsWith("dm_")) "dm" else ch.type
+                    put(COL_CH_TYPE, effectiveType)
                 }
                 db.insertWithOnConflict(TABLE_CHANNELS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
             }

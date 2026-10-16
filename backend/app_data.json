@@ -1,168 +1,556 @@
 {
-  "users": {
-    "demo": {
-      "id": "usr_demo",
-      "username": "demo",
-      "password": "password",
-      "avatar": "\ud83d\udc7e",
-      "status": "online"
+  "total_users": 15,
+  "total_channels": 51,
+  "users": [
+    {
+      "id": "usr_3b394606",
+      "username": "chinnu14754x",
+      "display_name": "chinnu",
+      "email": "chinnu.visakas@gmail.com",
+      "avatar_url": "https://connecto.fun/uploads/1789026913_e84cd5_avatar.png",
+      "bio": "Wake up to reality"
     },
-    "vivek": {
+    {
+      "id": "4fecc8e6-2d27-4560-886b-ec88edeaa48a",
+      "username": "connecto_admin",
+      "display_name": "Connecto System",
+      "email": "connecto_admin@connecto.fun",
+      "avatar_url": "\ud83d\udc7e",
+      "bio": ""
+    },
+    {
+      "id": "f2dffd03-e361-44ec-9c69-2cb1acfdcab2",
+      "username": "devi",
+      "display_name": "divyasree",
+      "email": "devidivyasree10925@gmail.com",
+      "avatar_url": "/uploads/avatars/df190cf7a46742d193b81e7da078d563.webp",
+      "bio": "Competitive gamer, tournament player, and Free Fire streamer \ud83c\udfae"
+    },
+    {
+      "id": "usr_20273722",
+      "username": "divya1736",
+      "display_name": "Ammu",
+      "email": "divya1736@connecto.fun",
+      "avatar_url": "/uploads/avatars/4c59495a9a5c46fdb1b01d3873f7d365.webp",
+      "bio": "Minecrafter"
+    },
+    {
+      "id": "usr_0983a399",
+      "username": "meghana",
+      "display_name": "Meghana",
+      "email": "meghana@connecto.fun",
+      "avatar_url": "https://connecto.fun/uploads/avatars/56e2e2edb2cb408bacb09a3abe659ed6.webp",
+      "bio": "Connecto Shinobi"
+    },
+    {
+      "id": "e905a477-d774-4989-8a73-06d632603c57",
+      "username": "siddhartha",
+      "display_name": "Siddu\u2764\ufe0f\u200d\ud83e\ude79",
+      "email": "kallepallisiddhartha18@gmail.com",
+      "avatar_url": null,
+      "bio": "Connecto Shinobi"
+    },
+    {
+      "id": "dfdb326a-a597-450d-b2d7-8b23ea1f15aa",
+      "username": "srinu",
+      "display_name": "srinu",
+      "email": "srinu@connecto.fun",
+      "avatar_url": "/uploads/avatars/b43b49a15ddf4d80a139a9f22c7ee17b.webp",
+      "bio": "Competitive gamer, tournament player, and Free Fire streamer \ud83c\udfae"
+    },
+    {
       "id": "usr_vivek",
       "username": "vivek",
-      "password": "password",
-      "avatar": "\u26a1",
-      "status": "online"
+      "display_name": "Vivek",
+      "email": "vivek@connecto.fun",
+      "avatar_url": "https://connecto.fun/uploads/avatars/vivek_cyber_avatar.webp",
+      "bio": null
     },
-    "vance": {
-      "id": "usr_madara",
-      "username": "vance",
-      "password": "password",
-      "avatar": "\ud83d\udd25",
-      "status": "online"
+    {
+      "id": "f56a5269-71fe-4344-84e4-a1e231ece962",
+      "username": "test1",
+      "display_name": "Test One",
+      "email": "test1@connecto.fun",
+      "avatar_url": "/uploads/avatars/e0f32b345cd345349f86a73eead1257e.webp",
+      "bio": "Official Connecto Android & Web Test Account"
     },
-    "chinnu": {
-      "id": "usr_d83391d8",
-      "username": "chinnu",
-      "password": "chinnu",
-      "avatar": "\ud83d\udc7e",
-      "status": "online"
+    {
+      "id": "usr_madara_legend",
+      "username": "madara_legend",
+      "display_name": "Madara Uchiha",
+      "email": "madara_legend@connecto.fun",
+      "avatar_url": "\ud83d\udc7e",
+      "bio": null
+    },
+    {
+      "id": "usr_elena_vance",
+      "username": "elena_vance",
+      "display_name": "Elena Vance",
+      "email": "elena_vance@connecto.fun",
+      "avatar_url": "\ud83d\udc7e",
+      "bio": null
+    },
+    {
+      "id": "usr_system_dev",
+      "username": "system_dev",
+      "display_name": "Tech Lead",
+      "email": "system_dev@connecto.fun",
+      "avatar_url": "\ud83d\udc7e",
+      "bio": null
+    },
+    {
+      "id": "usr_shinobi_99",
+      "username": "shinobi_99",
+      "display_name": "Shinobi Shadow",
+      "email": "shinobi_99@connecto.fun",
+      "avatar_url": "\ud83d\udc7e",
+      "bio": null
+    },
+    {
+      "id": "usr_aria_stark",
+      "username": "aria_stark",
+      "display_name": "Aria Stark",
+      "email": "aria@connecto.fun",
+      "avatar_url": "\ud83d\udc7e",
+      "bio": ""
+    },
+    {
+      "id": "usr_zack_miller",
+      "username": "zack_miller",
+      "display_name": "Zack Miller",
+      "email": "zack@connecto.fun",
+      "avatar_url": "\ud83c\udfae",
+      "bio": ""
     }
-  },
+  ],
   "channels": [
+    {
+      "id": "dm-chinnu-vivek",
+      "name": "dm-chinnu-vivek",
+      "type": "dm",
+      "created_at": "2026-10-01 13:18:12"
+    },
+    {
+      "id": "d2ab6854-b7da-4013-ae18-2ca1f5e4ebe5",
+      "name": "dm-mobile_user_1789109736412-web_user_1789109736412",
+      "type": "dm",
+      "created_at": "2026-09-11 06:55:36.597998"
+    },
+    {
+      "id": "63be046f-e44d-49b1-b08c-2162149e1ba4",
+      "name": "dm-iron_kuro-vivek",
+      "type": "dm",
+      "created_at": "2026-09-11T04:54:36.632977+00:00"
+    },
+    {
+      "id": "0205fef9-afed-4271-9dbe-2631b7155f26",
+      "name": "dm-chinnu14754x-vivekx",
+      "type": "dm",
+      "created_at": "2026-09-11T04:54:36.632977+00:00"
+    },
+    {
+      "id": "1082e6e2-2fd5-49de-bd31-513eb8827285",
+      "name": "dm-meghana-vivek",
+      "type": "dm",
+      "created_at": "2026-09-12 19:39:46.943836"
+    },
+    {
+      "id": "1f9badf6-8119-407b-bd86-2805596df79c",
+      "name": "dm-chinnu-vivek",
+      "type": "dm",
+      "created_at": "2026-09-15 22:01:09.886972"
+    },
+    {
+      "id": "4183f65a-03a0-490e-8086-2a8a7339a5d7",
+      "name": "general",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.235842"
+    },
+    {
+      "id": "be4e2f58-0012-40f6-8180-ac92c4093ac2",
+      "name": "announcements",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.238604"
+    },
+    {
+      "id": "9e4045ce-8e39-4dcf-b296-702ec97e138e",
+      "name": "dev-chat",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.240075"
+    },
+    {
+      "id": "567de50b-a093-4b61-94b1-a5963ad0e8dd",
+      "name": "gaming",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.242177"
+    },
+    {
+      "id": "386c64df-1b76-46da-b5eb-71f7b3d8b356",
+      "name": "war-room",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.243389"
+    },
+    {
+      "id": "31e7ac9e-0e83-4af5-93fa-68c1195e63a6",
+      "name": "tournaments",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.244719"
+    },
+    {
+      "id": "41a6a3cf-abc8-406f-96e9-0da6902ec2b2",
+      "name": "clips",
+      "type": "text",
+      "created_at": "2026-09-11 04:35:44.245928"
+    },
+    {
+      "id": "c22a670e-07b1-4044-9292-d21a9d2bc4c4",
+      "name": "voice-lounge",
+      "type": "voice",
+      "created_at": "2026-09-11 04:35:44.247120"
+    },
+    {
+      "id": "61f40e31-19cb-43f6-af3f-cb4033e05831",
+      "name": "dm-chinnu14754x-meghana",
+      "type": "dm",
+      "created_at": "2026-09-11T04:54:36.632977+00:00"
+    },
+    {
+      "id": "8a902e2d-20de-4634-9302-dafddf5ccab5",
+      "name": "dm-iron_kuro-shadow_hayate",
+      "type": "dm",
+      "created_at": "2026-09-11T04:54:36.632977+00:00"
+    },
+    {
+      "id": "e0b12ac8-898e-475e-b36e-12f1e76d0a9b",
+      "name": "dm-chinnu14754x-divya1736",
+      "type": "dm",
+      "created_at": "2026-09-11 06:36:18.900256"
+    },
+    {
+      "id": "b5b2fda5-5c9a-4372-8d0b-c4e805cbec36",
+      "name": "dm-shadow_hayate-meghana",
+      "type": "dm",
+      "created_at": "2026-09-11 15:40:18.197938"
+    },
+    {
+      "id": "216655ea-095f-49d3-ab9f-cb8e3f99c6e8",
+      "name": "none",
+      "type": "text",
+      "created_at": "2026-09-13 15:25:41.951762"
+    },
+    {
+      "id": "dc48fa42-4102-4f6b-8cbe-296d7b116ee8",
+      "name": "dm-chinnu-chinnu14754x",
+      "type": "dm",
+      "created_at": "2026-09-15 23:25:15.533778"
+    },
+    {
+      "id": "e50b027e-cecd-48ca-8d98-1b88ece8222a",
+      "name": "dm-chinnu14754x-srinu",
+      "type": "dm",
+      "created_at": "2026-09-24 16:02:45.669802"
+    },
+    {
+      "id": "dbd2cdf7-5eb3-4d71-9d37-abada6fbb82f",
+      "name": "dm-chinnu14754x-devi",
+      "type": "dm",
+      "created_at": "2026-09-30 08:18:30.282877"
+    },
+    {
+      "id": "40b21a08-72a7-4be0-8679-27fbeae9b128",
+      "name": "dm-chinnu14754x-siddhartha",
+      "type": "dm",
+      "created_at": "2026-10-04 14:05:28.527146"
+    },
+    {
+      "id": "d40732f7-425e-4a9e-bf06-bc41c86bc62d",
+      "name": "dm-meghana-siddhartha",
+      "type": "dm",
+      "created_at": "2026-10-07 11:26:14.882017"
+    },
+    {
+      "id": "5521ac8f-e574-4d51-b92a-b41025e51470",
+      "name": "dm-devi-srinu",
+      "type": "dm",
+      "created_at": "2026-10-07 13:02:38.653258"
+    },
+    {
+      "id": "dm-chinnu14754x-srinu",
+      "name": "dm-chinnu14754x-srinu",
+      "type": "dm",
+      "created_at": "2026-10-13 07:23:45"
+    },
+    {
+      "id": "dm-chinnu14754x-devi",
+      "name": "dm-chinnu14754x-devi",
+      "type": "dm",
+      "created_at": "2026-10-13 20:46:19"
+    },
+    {
+      "id": "dm-chinnu14754x-meghana",
+      "name": "dm-chinnu14754x-meghana",
+      "type": "dm",
+      "created_at": "2026-10-14 02:43:18"
+    },
+    {
+      "id": "dm-chinnu14754x-vivek",
+      "name": "dm-chinnu14754x-vivek",
+      "type": "dm",
+      "created_at": "2026-10-14 09:33:37"
+    },
+    {
+      "id": "dm-chinnu14754x-shinobi_99",
+      "name": "dm-chinnu14754x-shinobi_99",
+      "type": "dm",
+      "created_at": "2026-10-14 12:10:24"
+    },
+    {
+      "id": "dm-chinnu14754x-system_dev",
+      "name": "dm-chinnu14754x-system_dev",
+      "type": "dm",
+      "created_at": "2026-10-14 12:13:19"
+    },
     {
       "id": "general",
       "name": "general",
-      "topic": "General community chat & discussion",
-      "type": "text"
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
     },
     {
       "id": "announcements",
       "name": "announcements",
-      "topic": "Official announcements & updates",
-      "type": "text"
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
     },
     {
       "id": "dev-chat",
       "name": "dev-chat",
-      "topic": "Code, APIs, Burp Suite & debugging",
-      "type": "text"
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
     },
     {
       "id": "gaming",
       "name": "gaming",
-      "topic": "Gaming, memes & fun",
-      "type": "text"
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
+    },
+    {
+      "id": "war-room",
+      "name": "war-room",
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
+    },
+    {
+      "id": "tournaments",
+      "name": "tournaments",
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
+    },
+    {
+      "id": "clips",
+      "name": "clips",
+      "type": "text",
+      "created_at": "2026-10-14 16:04:53"
     },
     {
       "id": "voice-lounge",
       "name": "voice-lounge",
-      "topic": "Voice & WebRTC testing room",
-      "type": "voice"
+      "type": "voice",
+      "created_at": "2026-10-14 16:04:53"
+    },
+    {
+      "id": "5db4f88a-18e8-4e8d-b487-0ae212b5614a",
+      "name": "dm-test1-test2",
+      "type": "dm",
+      "created_at": "2026-09-30 12:30:49.359393"
+    },
+    {
+      "id": "f3da2c2f-9c99-4a30-8260-1fc72098ae17",
+      "name": "dm-chinnu-test1",
+      "type": "dm",
+      "created_at": "2026-09-30 16:21:51.837519"
+    },
+    {
+      "id": "dm-chinnu14754x-divya1736",
+      "name": "dm-chinnu14754x-divya1736",
+      "type": "dm",
+      "created_at": "2026-10-15 14:54:48"
+    },
+    {
+      "id": "dm-chinnu14754x-siddhartha",
+      "name": "dm-chinnu14754x-siddhartha",
+      "type": "dm",
+      "created_at": "2026-10-15 14:55:36"
+    },
+    {
+      "id": "dm-chinnu14754x-\ud83d\udd10 2fa setup code",
+      "name": "dm-chinnu14754x-\ud83d\udd10 2fa setup code",
+      "type": "dm",
+      "created_at": "2026-10-15 16:40:23"
+    },
+    {
+      "id": "dm-chinnu14754x-\ud83d\udd10 2fa sign-in code",
+      "name": "dm-chinnu14754x-\ud83d\udd10 2fa sign-in code",
+      "type": "dm",
+      "created_at": "2026-10-16 04:41:58"
+    },
+    {
+      "id": "dm-chinnu14754x-\ud83d\udd10 password updated",
+      "name": "dm-chinnu14754x-\ud83d\udd10 password updated",
+      "type": "dm",
+      "created_at": "2026-10-16 04:59:14"
+    },
+    {
+      "id": "dm_test_shinobi_a_test_shinobi_b",
+      "name": "dm_test_shinobi_a_test_shinobi_b",
+      "type": "dm",
+      "created_at": "2026-10-16 06:09:24"
+    },
+    {
+      "id": "dm-tmp_a_393153-tmp_b_fa682c",
+      "name": "dm-tmp_a_393153-tmp_b_fa682c",
+      "type": "dm",
+      "created_at": "2026-10-16 08:38:29"
+    },
+    {
+      "id": "dm-tmp_a_907b9e-tmp_b_ee9672",
+      "name": "dm-tmp_a_907b9e-tmp_b_ee9672",
+      "type": "dm",
+      "created_at": "2026-10-16 08:39:43"
+    },
+    {
+      "id": "dm-meghana-siddhartha",
+      "name": "dm-meghana-siddhartha",
+      "type": "dm",
+      "created_at": "2026-10-16 16:01:06"
+    },
+    {
+      "id": "grp_f52692f6ee2c",
+      "name": "Swuad",
+      "type": "group",
+      "created_at": "2026-10-07 11:04:04.180827"
     }
   ],
-  "messages": {
-    "general": [
-      {
-        "id": "m1",
-        "user": "vivek",
-        "avatar": "\u26a1",
-        "content": "Welcome to connecto.fun! \ud83d\ude80",
-        "timestamp": "12:00 PM"
-      },
-      {
-        "id": "m2",
-        "user": "vance",
-        "avatar": "\ud83d\udd25",
-        "content": "FastAPI backend & WebSocket are fully wired up and running.",
-        "timestamp": "12:05 PM"
-      },
-      {
-        "id": "msg_afcd8e61",
-        "user": "vance",
-        "avatar": "\ud83d\udc64",
-        "content": "Test message from Antigravity live deployment!",
-        "timestamp": "03:11 PM"
-      },
-      {
-        "id": "msg_66cd8ca8",
-        "user": "vance",
-        "avatar": "\ud83d\udd25",
-        "content": "hi",
-        "timestamp": "03:20 PM"
-      },
-      {
-        "id": "msg_90bde822",
-        "user": "chinnu",
-        "avatar": "\ud83d\udc7e",
-        "content": "hi",
-        "timestamp": "03:31 PM"
-      }
-    ],
-    "announcements": [
-      {
-        "id": "m3",
-        "user": "vivek",
-        "avatar": "\u26a1",
-        "content": "Connecto Server is now live on Cloudflare Tunnel.",
-        "timestamp": "12:01 PM"
-      },
-      {
-        "id": "announcement_server_maintenance_telemetry",
-        "user": "connecto_admin",
-        "avatar": "🛡️",
-        "content": "🛠️ **OFFICIAL INFRASTRUCTURE & SERVER MAINTENANCE TELEMETRY**\nCloudflare Global Edge • D1 Distributed SQLite Replication • Tailscale Mesh Resilience active on box-1 (100.87.184.30). Zero-downtime maintenance verified.",
-        "timestamp": "04:30 PM"
-      },
-      {
-        "id": "announcement_v398_release_updates",
-        "user": "connecto_admin",
-        "avatar": "🚀",
-        "content": "🚀 **CONNECTO PLATFORM RELEASE v3.9.8 IS LIVE!**\nPhone View Layout Overhaul • Profile Pictures in Notifications • WebRTC Call Hangup & Mute Fixes • Desktop 1200px Bounded View • Real-Time Online Comrades Highlighting • Dark & Light Theme Color Parity across Web & Android.",
-        "timestamp": "04:35 PM"
-      }
-    ],
-    "dev-chat": [
-      {
-        "id": "m4",
-        "user": "vance",
-        "avatar": "\ud83d\udd25",
-        "content": "Burp Suite captures /api/login, /api/messages, and wss:// WebSocket stream cleanly.",
-        "timestamp": "12:06 PM"
-      }
-    ],
-    "gaming": [
-      {
-        "id": "m5",
-        "user": "demo",
-        "avatar": "\ud83d\udc7e",
-        "content": "Ready for some matches later today!",
-        "timestamp": "12:10 PM"
-      }
-    ],
-    "voice-lounge": [
-      {
-        "id": "msg_28a3d49f",
-        "user": "vance",
-        "avatar": "\ud83d\udd25",
-        "content": "hi",
-        "timestamp": "03:20 PM"
-      },
-      {
-        "id": "msg_afc65104",
-        "user": "vance",
-        "avatar": "\ud83d\udd25",
-        "content": "hi",
-        "timestamp": "03:22 PM"
-      },
-      {
-        "id": "msg_4b160119",
-        "user": "chinnu",
-        "avatar": "\ud83d\udc7e",
-        "content": "hi",
-        "timestamp": "03:22 PM"
-      }
-    ]
-  },
-  "dms": {}
+  "voice_rooms": [
+    {
+      "id": "vr_lounge",
+      "code": "LOU-001",
+      "name": "Main Shinobi Lounge",
+      "topic": "Casual voice chat and hangout",
+      "icon": "\ud83c\udf99\ufe0f",
+      "creator_id": "usr_3b394606",
+      "creator_username": "chinnu14754x",
+      "max_participants": 25,
+      "is_active": 1,
+      "created_at": "2026-10-01 13:30:27"
+    },
+    {
+      "id": "vr_dev",
+      "code": "DEV-101",
+      "name": "Devs Audio Stage",
+      "topic": "Architecture sync and low-latency audio debugging",
+      "icon": "\ud83d\udee0\ufe0f",
+      "creator_id": "5fdc8421-cb30-4ff9-b11a-52e2f12f6927",
+      "creator_username": "system_dev",
+      "max_participants": 20,
+      "is_active": 1,
+      "created_at": "2026-10-01 13:30:27"
+    },
+    {
+      "id": "vr_tournament",
+      "code": "TOURN-FF",
+      "name": "Tournament Battle Arena",
+      "topic": "Free Fire and CS competitive stage",
+      "icon": "\ud83c\udfc6",
+      "creator_id": "f7b340a5-316f-44e6-8b16-3c1ce9d2de30",
+      "creator_username": "connecto_admin",
+      "max_participants": 50,
+      "is_active": 1,
+      "created_at": "2026-10-01 13:30:27"
+    },
+    {
+      "id": "room_da39be9d",
+      "code": "39be9d",
+      "name": "War Room Alpha",
+      "topic": "Jutsu Strategy Session",
+      "icon": "\ud83d\udee1\ufe0f",
+      "creator_id": null,
+      "creator_username": "2026-09-10T12:00:00",
+      "max_participants": 25,
+      "is_active": 1,
+      "created_at": "2026-09-11T04:54:36.632977+00:00"
+    },
+    {
+      "id": "room_war_1673_1789450177",
+      "code": "WAR-1673",
+      "name": "\u2694\ufe0f n",
+      "topic": "n",
+      "icon": "\u2694\ufe0f",
+      "creator_id": null,
+      "creator_username": "vivekx",
+      "max_participants": 2,
+      "is_active": 1,
+      "created_at": "2026-09-15 05:29:37.062491"
+    },
+    {
+      "id": "room_hub_5486_1789171257",
+      "code": "HUB-5486",
+      "name": "\u2694\ufe0f hi",
+      "topic": "game",
+      "icon": "\u2694\ufe0f",
+      "creator_id": null,
+      "creator_username": "chinnu14754x",
+      "max_participants": 8,
+      "is_active": 1,
+      "created_at": "2026-09-12 00:00:57.396658"
+    },
+    {
+      "id": "room_general",
+      "code": "WAR-774",
+      "name": "\u26e9\ufe0f Tactical War Room",
+      "topic": "All-Clan Strategic Briefing & General Voice",
+      "icon": "\u26e9\ufe0f",
+      "creator_id": null,
+      "creator_username": "system",
+      "max_participants": 12,
+      "is_active": 1,
+      "created_at": "2026-10-07 04:19:02.747694"
+    },
+    {
+      "id": "room_cyber",
+      "code": "CYB-101",
+      "name": "\ud83d\udee1\ufe0f Cyber Defense Lab",
+      "topic": "Packet Inspection, Live CTF & Code Reviews",
+      "icon": "\ud83d\udee1\ufe0f",
+      "creator_id": null,
+      "creator_username": "system",
+      "max_participants": 8,
+      "is_active": 1,
+      "created_at": "2026-10-07 04:19:02.747700"
+    },
+    {
+      "id": "room_gaming",
+      "code": "GAME-404",
+      "name": "\ud83c\udfae Gaming & Casual Lounge",
+      "topic": "Casual voice chat, music & screenshare",
+      "icon": "\ud83c\udfae",
+      "creator_id": null,
+      "creator_username": "system",
+      "max_participants": 16,
+      "is_active": 1,
+      "created_at": "2026-10-07 04:19:02.747701"
+    },
+    {
+      "id": "room_bb5a171b",
+      "code": "SHIN-909",
+      "name": "\u2694\ufe0f Akatsuki Tactical Hub",
+      "topic": "High-level shinobi stealth & tactical audio",
+      "icon": "\u2694\ufe0f",
+      "creator_id": null,
+      "creator_username": "system",
+      "max_participants": 8,
+      "is_active": 1,
+      "created_at": "2026-10-07 04:19:02.747702"
+    }
+  ]
 }

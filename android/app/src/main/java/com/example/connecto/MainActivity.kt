@@ -211,6 +211,47 @@ class MainActivity : FragmentActivity() {
     }
 }
 
+fun performCompleteSignOut(context: Context, userToSignOut: String?) {
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+        try {
+            com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
+            if (!userToSignOut.isNullOrBlank()) {
+                com.example.connecto.network.ConnectoApiClient.setPresenceOffline(userToSignOut)
+            }
+        } catch (_: Exception) {}
+    }
+    // Clear ALL persistent data — no leftover state from previous account
+    com.example.connecto.notifications.ConnectoRealtimeService.stopService(context)
+    com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
+    val prefsList = listOf(
+        "connecto_session_prefs",
+        "connecto_user_profile_prefs",
+        "connecto_chat_read_prefs",
+        "connecto_friend_prefs",
+        "connecto_notifications_prefs",
+        "connecto_notification_prefs",
+        "connecto_profile"
+    )
+    for (name in prefsList) {
+        context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().apply()
+    }
+    // Reset all in-memory ApiClient state
+    com.example.connecto.network.ConnectoApiClient.sessionToken = null
+    com.example.connecto.network.ConnectoApiClient.sessionCookie = null
+    com.example.connecto.network.ConnectoApiClient.currentUsername = null
+    com.example.connecto.network.ConnectoApiClient.currentUserId = null
+    com.example.connecto.network.ConnectoApiClient.currentUserEmail = null
+    com.example.connecto.network.ConnectoApiClient.currentUserDisplayName = null
+    com.example.connecto.network.ConnectoApiClient.activeTypingUser = null
+    com.example.connecto.network.ConnectoApiClient.channelCache.clear()
+    // Clear local SQLite cache on sign out to guarantee zero cross-account message/channel collision
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+        try {
+            com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).clearAllCache()
+        } catch (_: Exception) {}
+    }
+}
+
 @Composable
 fun ConnectoAppWrapper() {
     val context = LocalContext.current
@@ -561,10 +602,7 @@ fun ConnectoApp(
                         },
                         onSwitchAccount = {
                             isBiometricOverlayActive = false
-                            prefs.edit().clear().apply()
-                            com.example.connecto.network.ConnectoApiClient.sessionToken = null
-                            com.example.connecto.network.ConnectoApiClient.currentUsername = null
-                            com.example.connecto.network.ConnectoApiClient.currentUserId = null
+                            performCompleteSignOut(context, authenticatedUsername)
                             flowState = AppFlowState.AUTH_HOME
                         }
                     )
@@ -584,6 +622,7 @@ fun ConnectoApp(
                                 .putString("display_name", com.example.connecto.network.ConnectoApiClient.currentUserDisplayName)
                                 .apply()
 
+                            com.example.connecto.network.ConnectoApiClient.channelCache.clear()
                             onUsernameChange(username)
                             VoiceCallManager.updateCredentialsAndConnect(
                                 username,
@@ -779,32 +818,7 @@ fun ConnectoApp(
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,
                                             onSignOut = {
-                                                val userToSignOut = authenticatedUsername
-                                                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                                                    try {
-                                                        com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
-                                                        if (userToSignOut.isNotBlank()) {
-                                                            com.example.connecto.network.ConnectoApiClient.setPresenceOffline(userToSignOut)
-                                                        }
-                                                    } catch (_: Exception) {}
-                                                }
-                                                // Clear ALL persistent data — no leftover state from previous account
-                                                com.example.connecto.notifications.ConnectoRealtimeService.stopService(context)
-                                                com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
-                                                context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE)
-                                                    .edit().clear().apply()
-                                                context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)
-                                                    .edit().clear().apply()
-                                                context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE)
-                                                    .edit().clear().apply()
-                                                // Reset all in-memory ApiClient state
-                                                com.example.connecto.network.ConnectoApiClient.sessionToken = null
-                                                com.example.connecto.network.ConnectoApiClient.sessionCookie = null
-                                                com.example.connecto.network.ConnectoApiClient.currentUsername = null
-                                                com.example.connecto.network.ConnectoApiClient.currentUserId = null
-                                                com.example.connecto.network.ConnectoApiClient.currentUserEmail = null
-                                                com.example.connecto.network.ConnectoApiClient.currentUserDisplayName = null
-                                                com.example.connecto.network.ConnectoApiClient.activeTypingUser = null
+                                                performCompleteSignOut(context, authenticatedUsername)
                                                 flowState = AppFlowState.AUTH_HOME
                                             }
                                         )
@@ -927,10 +941,7 @@ fun ConnectoApp(
                 },
                 onSwitchAccount = {
                     isBiometricOverlayActive = false
-                    prefs.edit().clear().apply()
-                    com.example.connecto.network.ConnectoApiClient.sessionToken = null
-                    com.example.connecto.network.ConnectoApiClient.currentUsername = null
-                    com.example.connecto.network.ConnectoApiClient.currentUserId = null
+                    performCompleteSignOut(context, authenticatedUsername)
                     flowState = AppFlowState.AUTH_HOME
                 }
             )
