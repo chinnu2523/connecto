@@ -182,30 +182,39 @@ https://connecto.fun
     # 1. Primary: Resend API (Direct Delivery to Target Recipient)
     if settings.RESEND_API_KEY:
         try:
-            from_sender = settings.RESEND_FROM_EMAIL or "Connecto Security <security@connecto.fun>"
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                res = await client.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {settings.RESEND_API_KEY.strip()}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "from": from_sender,
-                        "to": [clean_to],
-                        "subject": subject,
-                        "html": body_html,
-                        "text": body_text,
-                        "headers": {
-                            "X-Entity-Ref-ID": f"connecto-{raw_p}-{secrets.token_hex(6)}"
+            primary_sender = settings.RESEND_FROM_EMAIL or "Connecto Security <security@connecto.fun>"
+            candidate_senders = [primary_sender]
+            if "onboarding@resend.dev" not in primary_sender:
+                candidate_senders.append("Connecto Security <onboarding@resend.dev>")
+
+            for from_sender in candidate_senders:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    res = await client.post(
+                        "https://api.resend.com/emails",
+                        headers={
+                            "Authorization": f"Bearer {settings.RESEND_API_KEY.strip()}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "from": from_sender,
+                            "to": [clean_to],
+                            "subject": subject,
+                            "html": body_html,
+                            "text": body_text,
+                            "headers": {
+                                "X-Entity-Ref-ID": f"connecto-{raw_p}-{secrets.token_hex(6)}"
+                            }
                         }
-                    }
-                )
-                if res.status_code in (200, 201, 202):
-                    logger.info(f"[OTP Email] Successfully delivered via Resend API directly to {masked} (subject: {subject})")
-                    return {"status": "success", "gateway": "resend", "destination": masked}
-                else:
-                    logger.error(f"[OTP Email] Resend API error ({res.status_code}) delivering to {clean_to}: {res.text}")
+                    )
+                    if res.status_code in (200, 201, 202):
+                        logger.info(f"[OTP Email] Successfully delivered via Resend API directly to {masked} (sender: {from_sender}, subject: {subject})")
+                        return {"status": "success", "gateway": "resend", "destination": masked}
+                    elif res.status_code in (403, 422):
+                        logger.warning(f"[OTP Email] Resend returned {res.status_code} for sender '{from_sender}', attempting fallback sender...")
+                        continue
+                    else:
+                        logger.error(f"[OTP Email] Resend API error ({res.status_code}) delivering to {clean_to}: {res.text}")
+                        break
         except Exception as e:
             logger.error(f"[OTP Email] Resend delivery exception for {clean_to}: {e}")
 
@@ -361,6 +370,36 @@ async def send_unified_otp(
         clean_method = "email" if "@" in identifier else "sms"
 
     clean_id = clean_phone_number(identifier) if clean_method == "sms" else identifier.strip().lower()
+
+    # Intelligent auto-resolution for dummy or internal placeholder emails
+    if clean_method == "email" and (not clean_id or clean_id.endswith("@connecto.fun") or clean_id.endswith("@connecto.gg")):
+        if user_id:
+            try:
+                user_stmt = select(User).where(User.id == user_id)
+                user_obj = (await db.execute(user_stmt)).scalar_one_or_none()
+                if user_obj and user_obj.email and not (user_obj.email.endswith("@connecto.fun") or user_obj.email.endswith("@connecto.gg")):
+                    clean_id = user_obj.email.strip().lower()
+                else:
+                    prev_stmt = (
+                        select(OTPVerification.identifier)
+                        .where(
+                            OTPVerification.user_id == user_id,
+                            OTPVerification.identifier.like("%@%"),
+                            ~OTPVerification.identifier.like("%@connecto.fun"),
+                            ~OTPVerification.identifier.like("%@connecto.gg")
+                        )
+                        .order_by(OTPVerification.is_verified.desc(), OTPVerification.created_at.desc())
+                        .limit(1)
+                    )
+                    real_email = (await db.execute(prev_stmt)).scalar_one_or_none()
+                    if real_email:
+                        clean_id = real_email.strip().lower()
+                        if user_obj:
+                            user_obj.email = clean_id
+                            await db.commit()
+            except Exception as e:
+                logger.warning(f"[OTP Email] Failed to resolve real email for user_id {user_id}: {e}")
+
     masked_dest = mask_phone_number(clean_id) if clean_method == "sms" else mask_email(clean_id)
     now = datetime.now(timezone.utc)
 

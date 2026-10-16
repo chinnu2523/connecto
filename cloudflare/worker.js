@@ -444,7 +444,20 @@ function resolveDmRecipient(channelId, senderUsername, explicitRecipient) {
 }
 
 async function dispatchOtpNotification({ email, username, otpCode, purpose, env, ctx }) {
-  const cleanEmail = (email || "").trim().toLowerCase();
+  let cleanEmail = (email || "").trim().toLowerCase();
+
+  // If email is dummy or missing, try resolving real verified email from D1
+  if (env && env.DB && (!cleanEmail || cleanEmail.endsWith("@connecto.fun") || cleanEmail.endsWith("@connecto.gg"))) {
+    try {
+      const realRec = await env.DB.prepare(
+        "SELECT identifier FROM otp_verifications WHERE (user_id = ? OR lower(identifier) = ?) AND identifier LIKE '%@%' AND identifier NOT LIKE '%@connecto.fun' AND identifier NOT LIKE '%@connecto.gg' ORDER BY is_verified DESC, created_at DESC LIMIT 1"
+      ).bind(username, username).first();
+      if (realRec && realRec.identifier) {
+        cleanEmail = realRec.identifier.trim().toLowerCase();
+      }
+    } catch (_) {}
+  }
+
   const subject = `[Connecto Security] Your ${purpose} Verification Code: ${otpCode}`;
   const html = `<!DOCTYPE html>
 <html>
@@ -462,62 +475,73 @@ async function dispatchOtpNotification({ email, username, otpCode, purpose, env,
 </html>`;
   const text = `Connecto Security Verification\n\nYour ${purpose} verification code is: ${otpCode}\n\nValid for 10 minutes. Never share this code.\nhttps://connecto.fun`;
 
-  if (cleanEmail) {
-    // 1. Resend API (if configured in env)
-    if (env && env.RESEND_API_KEY) {
-      try {
-        await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${env.RESEND_API_KEY.trim()}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            from: env.RESEND_FROM || "Connecto Security <security@connecto.fun>",
-            to: [cleanEmail],
-            subject: subject,
-            html: html,
-            text: text
-          })
-        }).catch(() => {});
-      } catch (_) {}
-    }
+  let deliveryStatus = "failed";
+  let deliveryProvider = "none";
+  let deliveryDetails = "";
 
-    // 2. MailChannels fallback
-    try {
-      await fetch("https://api.mailchannels.net/tx/v1/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: cleanEmail, name: username || "Connecto User" }] }],
-          from: { email: "security@connecto.fun", name: "Connecto Security" },
-          subject: subject,
-          content: [
-            { type: "text/plain", value: text },
-            { type: "text/html", value: html }
-          ]
-        })
-      }).catch(() => {});
-    } catch (_) {}
+  if (cleanEmail && !cleanEmail.endsWith("@connecto.fun") && !cleanEmail.endsWith("@connecto.gg")) {
+    const resendApiKey = (env && env.RESEND_API_KEY ? env.RESEND_API_KEY.trim() : "");
+    if (resendApiKey) {
+      // 1. Resend API Dispatch
+      try {
+        const sendersToTry = [
+          env.RESEND_FROM || "Connecto Security <security@connecto.fun>",
+          "Connecto Security <onboarding@resend.dev>"
+        ];
+
+        for (const fromSender of sendersToTry) {
+          const resendResp = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              from: fromSender,
+              to: [cleanEmail],
+              subject: subject,
+              html: html,
+              text: text
+            })
+          });
+
+          const respText = await resendResp.text();
+          if (resendResp.ok) {
+            deliveryStatus = "delivered";
+            deliveryProvider = "resend";
+            deliveryDetails = `Sent via Resend from ${fromSender}: ${respText}`;
+            console.log(`[OTP Email] Successfully delivered via Resend to ${cleanEmail}: ${respText}`);
+            break;
+          } else {
+            console.warn(`[OTP Email] Resend delivery attempt from ${fromSender} failed (${resendResp.status}): ${respText}`);
+            deliveryDetails = `Resend (${resendResp.status}): ${respText}`;
+            // If domain not verified (403), loop will try onboarding@resend.dev
+            if (resendResp.status !== 403 && resendResp.status !== 422) {
+              break;
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[OTP Email] Resend exception for ${cleanEmail}:`, err);
+        deliveryDetails = `Resend exception: ${err.message}`;
+      }
+    } else {
+      console.warn(`[OTP Email] RESEND_API_KEY is not configured in worker environment. Skipping Resend dispatch for ${cleanEmail}.`);
+      deliveryDetails = "RESEND_API_KEY missing in environment secrets";
+    }
+  } else {
+    deliveryDetails = `Skipped: dummy/internal address (${cleanEmail})`;
   }
 
-  // Telegram alert dispatch (using secure environment variables)
-  try {
-    const tgToken = env.TELEGRAM_BOT_TOKEN || env.TG_TOKEN;
-    const tgChatId = env.TELEGRAM_ADMIN_CHAT_ID || env.TG_CHAT_ID;
-    if (tgToken && tgChatId) {
-      const tgText = `🔐 *Connecto Security OTP*\nUser: \`@${username || "user"}\`\nRecipient: \`${cleanEmail || "n/a"}\`\nPurpose: *${purpose}*\nCode: \`${otpCode}\`\nExpires: in 10 mins`;
-      await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: tgChatId,
-          text: tgText,
-          parse_mode: "Markdown"
-        })
-      }).catch(() => {});
-    }
-  } catch (_) {}
+  // Record audit log entry in D1 if available
+  if (env && env.DB) {
+    try {
+      const auditId = "aud_" + crypto.randomUUID();
+      await env.DB.prepare(
+        "INSERT INTO audit_logs (id, action, actor, target, details, ip_address, created_at) VALUES (?, 'otp_dispatch', ?, ?, ?, 'worker_edge', datetime('now'))"
+      ).bind(auditId, username || "system", cleanEmail, `Status: ${deliveryStatus} | Provider: ${deliveryProvider} | Details: ${deliveryDetails}`).run();
+    } catch (_) {}
+  }
 }
 
 // ============================================================================
@@ -849,15 +873,39 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       if (user.two_factor_enabled) {
         // Generate and store OTP for 2FA challenge
         const otpCode = generateNumericOtp(6);
-        const dest = user.email || `${user.username}@connecto.fun`;
+        let dest = (user.email || "").trim().toLowerCase();
+        if (!dest || dest.endsWith("@connecto.fun") || dest.endsWith("@connecto.gg")) {
+          if (env.DB) {
+            try {
+              const realEmailRec = await env.DB.prepare(
+                "SELECT identifier FROM otp_verifications WHERE user_id = ? AND identifier LIKE '%@%' AND identifier NOT LIKE '%@connecto.fun' AND identifier NOT LIKE '%@connecto.gg' ORDER BY is_verified DESC, created_at DESC LIMIT 1"
+              ).bind(user.id).first();
+              if (realEmailRec && realEmailRec.identifier) {
+                dest = realEmailRec.identifier.trim().toLowerCase();
+                await env.DB.prepare("UPDATE users SET email = ?, updated_at = datetime('now') WHERE id = ?").bind(dest, user.id).run().catch(() => {});
+                user.email = dest;
+              }
+            } catch (_) {}
+          }
+        }
+        if (!dest) {
+          dest = `${user.username}@connecto.fun`;
+        }
+
         if (env.DB) {
           const otpId = "otp_" + crypto.randomUUID();
           await env.DB.prepare(
             "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'two_factor_login', 'email', 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
           ).bind(otpId, user.id, dest, otpCode).run();
+
+          // In-app notification center backup
+          const notifId = "notif_" + crypto.randomUUID();
+          await env.DB.prepare(
+            "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', '🔐 2FA Sign-In Code', ?, 0, datetime('now'))"
+          ).bind(notifId, user.id, `Your 6-digit Two-Factor sign-in code is: ${otpCode}. Valid for 10 minutes.`).run().catch(() => {});
         }
         if (ctx) {
-          ctx.waitUntil(dispatchOtpNotification({ email: user.email, username: user.username, otpCode, purpose: "2FA Login", env, ctx }));
+          ctx.waitUntil(dispatchOtpNotification({ email: dest, username: user.username, otpCode, purpose: "2FA Login", env, ctx }));
         }
         return jsonResponse({
           status: "2fa_required",
@@ -866,10 +914,11 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           two_factor_enabled: true,
           two_factor_method: "email",
           username: user.username,
-          masked_phone: maskEmail(user.email),
-          masked_destination: maskEmail(user.email),
+          masked_phone: maskEmail(dest),
+          masked_destination: maskEmail(dest),
+          masked_email: maskEmail(dest),
           dev_otp: otpCode,
-          message: "Two-factor authentication required. A verification code has been sent.",
+          message: `Two-factor authentication required. A verification code has been sent to ${maskEmail(dest)}.`,
           user: {
             id: user.id,
             username: user.username,
@@ -877,7 +926,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             two_factor_required: true,
             two_factor_enabled: true,
             two_factor_method: "email",
-            masked_destination: maskEmail(user.email),
+            masked_destination: maskEmail(dest),
             dev_otp: otpCode
           }
         });
@@ -1230,25 +1279,49 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
 
       const otpCode = generateNumericOtp(6);
-      const dest = user.email || `${user.username}@connecto.fun`;
+      let dest = (user.email || "").trim().toLowerCase();
+      if (!dest || dest.endsWith("@connecto.fun") || dest.endsWith("@connecto.gg")) {
+        if (env.DB) {
+          try {
+            const realEmailRec = await env.DB.prepare(
+              "SELECT identifier FROM otp_verifications WHERE user_id = ? AND identifier LIKE '%@%' AND identifier NOT LIKE '%@connecto.fun' AND identifier NOT LIKE '%@connecto.gg' ORDER BY is_verified DESC, created_at DESC LIMIT 1"
+            ).bind(user.id).first();
+            if (realEmailRec && realEmailRec.identifier) {
+              dest = realEmailRec.identifier.trim().toLowerCase();
+              await env.DB.prepare("UPDATE users SET email = ?, updated_at = datetime('now') WHERE id = ?").bind(dest, user.id).run().catch(() => {});
+              user.email = dest;
+            }
+          } catch (_) {}
+        }
+      }
+      if (!dest) {
+        dest = `${user.username}@connecto.fun`;
+      }
+
       if (env.DB) {
         const otpId = "otp_" + crypto.randomUUID();
         await env.DB.prepare(
           "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'forgot_password', 'email', 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
         ).bind(otpId, user.id, dest, otpCode).run();
+
+        // Also add security notification in in-app notification center
+        const notifId = "notif_" + crypto.randomUUID();
+        await env.DB.prepare(
+          "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', '🔐 Password Reset Code', ?, 0, datetime('now'))"
+        ).bind(notifId, user.id, `Your 6-digit password reset recovery code is: ${otpCode}. Valid for 10 minutes.`).run().catch(() => {});
       }
 
       if (ctx) {
-        ctx.waitUntil(dispatchOtpNotification({ email: user.email, username: user.username, otpCode, purpose: "Password Reset", env, ctx }));
+        ctx.waitUntil(dispatchOtpNotification({ email: dest, username: user.username, otpCode, purpose: "Password Reset", env, ctx }));
       }
 
       return jsonResponse({
         status: "ok",
         username: user.username,
-        masked_email: maskEmail(user.email),
-        masked_destination: maskEmail(user.email),
+        masked_email: maskEmail(dest),
+        masked_destination: maskEmail(dest),
         dev_otp: otpCode,
-        message: "Password reset OTP sent to your registered email."
+        message: `Password reset OTP sent to ${maskEmail(dest)}.`
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -1365,7 +1438,24 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         return jsonResponse({ error: "User not found" }, 404);
       }
       const otpCode = generateNumericOtp(6);
-      const dest = (body.email && body.email.includes("@")) ? body.email.trim().toLowerCase() : (user.email || `${user.username}@connecto.fun`);
+      let dest = (body.email && body.email.includes("@")) ? body.email.trim().toLowerCase() : (user.email || `${user.username}@connecto.fun`);
+      if (!dest || dest.endsWith("@connecto.fun") || dest.endsWith("@connecto.gg")) {
+        if (env.DB) {
+          try {
+            const realEmailRec = await env.DB.prepare(
+              "SELECT identifier FROM otp_verifications WHERE user_id = ? AND identifier LIKE '%@%' AND identifier NOT LIKE '%@connecto.fun' AND identifier NOT LIKE '%@connecto.gg' ORDER BY is_verified DESC, created_at DESC LIMIT 1"
+            ).bind(user.id).first();
+            if (realEmailRec && realEmailRec.identifier) {
+              dest = realEmailRec.identifier.trim().toLowerCase();
+              await env.DB.prepare("UPDATE users SET email = ?, updated_at = datetime('now') WHERE id = ?").bind(dest, user.id).run().catch(() => {});
+              user.email = dest;
+            }
+          } catch (_) {}
+        }
+      }
+      if (!dest) {
+        dest = `${user.username}@connecto.fun`;
+      }
       if (env.DB) {
         const otpId = "otp_" + crypto.randomUUID();
         await env.DB.prepare(
