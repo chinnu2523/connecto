@@ -5515,12 +5515,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.3.3",
-        "version_name": "v4.3.3",
-        "version_code": 62,
-        "release_tag": "v4.3.3-stable",
-        "sha256": "eab41a1566e5bac72023c7396db77f76be6d5afffb53018f44110d9b5f029d5d",
-        "md5": "c73852f59c2899ee81ee586ce935e63f",
+        "version": "4.3.5",
+        "version_name": "v4.3.5",
+        "version_code": 64,
+        "release_tag": "v4.3.5-stable",
+        "sha256": "3afcfb15fd00d53cf86b0a43ab65a6f0f0b23abc013568aad40787766103a53f",
+        "md5": "eb8f2257b9e90e7b29035518a05bab1e",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5530,6 +5530,9 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "Multi-Account Chat & Wallpaper Isolation: Complete private chat wallpaper, pinned message, theme, and lock isolation scoped to canonical channel keys (dm-{u1}-{u2}). Zero wallpaper leakage when multiple accounts share mutual friends.",
+            "0ms Wallpaper Resolution & Zero Overlap: Synchronous wallpaper resolution before rendering chat eliminates screen flicker, latency delay, and lingering wallpaper overlap when switching conversations.",
+            "Account Sign-Out & Switch Cache Sanitization: Completely wipes all cached preferences, local SQLite caches, and session credentials on logout or account switch.",
             "Auto-Delete Empty Groups: Groups are automatically deleted from database and chat lists when member count reaches 0",
             "Clean Group Chat Presence: Removed all online/offline presence dots, lights, and status indicators for group chats",
             "Profile Cover Photo Suite & Presets: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal",
@@ -5547,6 +5550,21 @@ async def get_platform_changelog():
     return {
         "status": "success",
         "releases": [
+            {
+                "version": "v4.3.5",
+                "date": "Oct 16, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.3.5: Multi-Account Chat & Wallpaper Isolation, 0ms Synchronous Transitions & Cache Sanitation",
+                "summary": "Resolves cross-account chat preferences and wallpaper leakage by scoping settings to canonical DM channel keys (dm-{u1}-{u2}), provides instant 0ms synchronous wallpaper application without screen flicker or overlap, and adds complete cache sanitation upon account sign out and switching.",
+                "highlights": [
+                    "Multi-Account Chat & Wallpaper Isolation: Scopes custom and preset wallpapers, pinned messages, locks, and themes strictly by user account and canonical DM channel ID (dm-{u1}-{u2}). Prevents mutual friend wallpaper leaks across distinct accounts.",
+                    "0ms Wallpaper Resolution & Zero Overlap: Synchronously resolves and applies chat wallpapers before composing the screen, eliminating flicker, latency delays, and lingering wallpaper overlap from previous conversations.",
+                    "Sign-Out & Switch Cache Sanitization: Completely wipes all cached preferences, local SQLite caches, and session credentials on logout or account switch.",
+                    "Android Native App v4.3.5 (Build 64 • 54.6 MB): SHA-256 3afcfb15fd00d53cf86b0a43ab65a6f0f0b23abc013568aad40787766103a53f."
+                ],
+                "author": "Connecto Core Team"
+            },
             {
                 "version": "v4.3.3",
                 "date": "Oct 15, 2026",

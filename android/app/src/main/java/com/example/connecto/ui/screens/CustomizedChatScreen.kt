@@ -594,6 +594,27 @@ fun CustomizedChatScreen(
     var chatWallpaperId by remember { mutableStateOf("default") }
     var customWallpaperUri by remember { mutableStateOf<String?>(null) }
 
+    // Synchronous wallpaper resolution helper (0ms latency, zero cross-chat overlap)
+    fun resolveChatWallpaper(friend: FriendItem?): Pair<String, String?> {
+        if (friend == null) return Pair("default", null)
+        val userPrefix = myUsername.lowercase()
+        val chatKey = getCanonicalChatId(friend)
+        val friendId = friend.id
+
+        // Strictly check userPrefix + chatKey first (canonical DM or group ID)
+        val wp = if (chatKey.isNotBlank()) friendPrefs.getString("${userPrefix}_chat_wallpaper_$chatKey", null) else null
+        val customUri = if (chatKey.isNotBlank()) friendPrefs.getString("${userPrefix}_chat_wallpaper_custom_$chatKey", null) else null
+
+        if (wp != null || customUri != null) {
+            return Pair(wp ?: "default", customUri)
+        }
+
+        // Fallback to friendId strictly scoped with userPrefix
+        val fallbackWp = friendPrefs.getString("${userPrefix}_chat_wallpaper_$friendId", null) ?: "default"
+        val fallbackUri = friendPrefs.getString("${userPrefix}_chat_wallpaper_custom_$friendId", null)
+        return Pair(fallbackWp, fallbackUri)
+    }
+
     // Custom Wallpaper Photo Picker Launcher
     val wallpaperPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -608,14 +629,22 @@ fun CustomizedChatScreen(
             val uriStr = uri.toString()
             customWallpaperUri = uriStr
             chatWallpaperId = "custom"
-            val fId = selectedFriend?.id
+            val sf = selectedFriend
+            val chatKey = getCanonicalChatId(sf)
+            val fId = sf?.id
             val userPrefix = myUsername.lowercase()
-            if (fId != null) {
-                friendPrefs.edit()
-                    .putString("${userPrefix}_chat_wallpaper_custom_$fId", uriStr)
-                    .putString("${userPrefix}_chat_wallpaper_$fId", "custom")
-                    .apply()
+            val editor = friendPrefs.edit()
+            if (chatKey.isNotBlank()) {
+                editor.putString("${userPrefix}_chat_wallpaper_custom_$chatKey", uriStr)
+                    .putString("${userPrefix}_chat_wallpaper_$chatKey", "custom")
             }
+            if (fId != null) {
+                editor.putString("${userPrefix}_chat_wallpaper_custom_$fId", uriStr)
+                    .putString("${userPrefix}_chat_wallpaper_$fId", "custom")
+                    .remove("chat_wallpaper_custom_$fId")
+                    .remove("chat_wallpaper_$fId")
+            }
+            editor.apply()
         }
     }
 
@@ -628,6 +657,9 @@ fun CustomizedChatScreen(
     LaunchedEffect(selectedFriend?.id, myUsername) {
         val friend = selectedFriend
         if (friend != null) {
+            val (resolvedWp, resolvedUri) = resolveChatWallpaper(friend)
+            chatWallpaperId = resolvedWp
+            customWallpaperUri = resolvedUri
             val friendId = friend.id
             val cleanHandle = friend.handle.trim().lowercase().removePrefix("@")
             val userPrefix = myUsername.lowercase()
@@ -635,8 +667,9 @@ fun CustomizedChatScreen(
             isChatMuted = mutedSet.any { it.trim().lowercase().removePrefix("#").removePrefix("@") == cleanHandle || it.trim().lowercase() == friendId.lowercase() }
             isChatLocked = friendPrefs.getBoolean("${userPrefix}_chat_locked_$friendId", false) || friendPrefs.getBoolean("${userPrefix}_chat_locked_$cleanHandle", false)
             chatThemeId = friendPrefs.getString("${userPrefix}_chat_theme_$friendId", null) ?: "default"
-            chatWallpaperId = friendPrefs.getString("${userPrefix}_chat_wallpaper_$friendId", null) ?: "default"
-            customWallpaperUri = friendPrefs.getString("${userPrefix}_chat_wallpaper_custom_$friendId", null)
+        } else {
+            chatWallpaperId = "default"
+            customWallpaperUri = null
         }
     }
 
@@ -706,10 +739,13 @@ fun CustomizedChatScreen(
                 it.name.equals(clean, ignoreCase = true)
             }
             if (matchingFriend != null) {
+                val (wId, cUri) = resolveChatWallpaper(matchingFriend)
+                chatWallpaperId = wId
+                customWallpaperUri = cUri
                 selectedFriend = matchingFriend
             } else {
                 val displayName = clean.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-                selectedFriend = FriendItem(
+                val targetFriend = FriendItem(
                     id = clean,
                     name = displayName,
                     handle = "@$clean",
@@ -720,6 +756,10 @@ fun CustomizedChatScreen(
                     isOnline = true,
                     avatarUrl = null
                 )
+                val (wId, cUri) = resolveChatWallpaper(targetFriend)
+                chatWallpaperId = wId
+                customWallpaperUri = cUri
+                selectedFriend = targetFriend
             }
             onTargetChatHandled?.invoke()
         }
@@ -1014,6 +1054,8 @@ fun CustomizedChatScreen(
                     }
                     if (selectedFriend != null && selectedFriend!!.isGroup && userGroupsList.none { it.id == selectedFriend!!.id }) {
                         selectedFriend = null
+                        chatWallpaperId = "default"
+                        customWallpaperUri = null
                     }
                 }
             } catch (_: Exception) {}
@@ -1136,6 +1178,8 @@ fun CustomizedChatScreen(
         }
         typedMessage = ""
         selectedFriend = null
+        chatWallpaperId = "default"
+        customWallpaperUri = null
         activeDmChannelId = null
         pinnedMessageForChat = null
         messageForAction = null
@@ -2544,12 +2588,18 @@ fun CustomizedChatScreen(
                                                         .clickable {
                                                             customWallpaperUri = null
                                                             chatWallpaperId = "default"
+                                                            val chatKey = getCanonicalChatId(friendObj)
                                                             val fId = friendObj.id
                                                             val userPrefix = myUsername.lowercase()
-                                                            friendPrefs.edit()
-                                                                .remove("${userPrefix}_chat_wallpaper_custom_" + fId)
-                                                                .putString("${userPrefix}_chat_wallpaper_" + fId, "default")
-                                                                .remove("chat_wallpaper_custom_" + fId)
+                                                            val editor = friendPrefs.edit()
+                                                            if (chatKey.isNotBlank()) {
+                                                                editor.remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                                                    .putString("${userPrefix}_chat_wallpaper_$chatKey", "default")
+                                                            }
+                                                            editor.remove("${userPrefix}_chat_wallpaper_custom_$fId")
+                                                                .putString("${userPrefix}_chat_wallpaper_$fId", "default")
+                                                                .remove("chat_wallpaper_custom_$fId")
+                                                                .remove("chat_wallpaper_$fId")
                                                                 .apply()
                                                         },
                                                     contentAlignment = Alignment.Center
@@ -2585,9 +2635,20 @@ fun CustomizedChatScreen(
                                                 )
                                                 .clickable {
                                                     chatWallpaperId = wallpaper.id
+                                                    customWallpaperUri = null
+                                                    val chatKey = getCanonicalChatId(friendObj)
                                                     val fId = friendObj.id
                                                     val userPrefix = myUsername.lowercase()
-                                                    friendPrefs.edit().putString("${userPrefix}_chat_wallpaper_$fId", wallpaper.id).apply()
+                                                    val editor = friendPrefs.edit()
+                                                    if (chatKey.isNotBlank()) {
+                                                        editor.putString("${userPrefix}_chat_wallpaper_$chatKey", wallpaper.id)
+                                                            .remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                                    }
+                                                    editor.putString("${userPrefix}_chat_wallpaper_$fId", wallpaper.id)
+                                                        .remove("${userPrefix}_chat_wallpaper_custom_$fId")
+                                                        .remove("chat_wallpaper_custom_$fId")
+                                                        .remove("chat_wallpaper_$fId")
+                                                        .apply()
                                                 }
                                                 .padding(10.dp)
                                         ) {
@@ -2828,6 +2889,8 @@ fun CustomizedChatScreen(
                                 showUnfriendConfirmDialog = false
                                 showFriendProfileDialog = false
                                 selectedFriend = null
+                                chatWallpaperId = "default"
+                                customWallpaperUri = null
                                 Toast.makeText(context, "Unfriended @$friendUser. Chat and call history permanently deleted.", Toast.LENGTH_LONG).show()
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -2891,6 +2954,9 @@ fun CustomizedChatScreen(
                 friendMessages = emptyList()
                 activeDmChannelId = null
                 isLoadingMessages = true
+                val (wId, cUri) = resolveChatWallpaper(friendItem)
+                chatWallpaperId = wId
+                customWallpaperUri = cUri
                 typedMessage = messageDrafts[friendItem.id] ?: ""
                 selectedFriend = friendItem
                 onDirectChatStateChanged(true)
@@ -2933,6 +2999,9 @@ fun CustomizedChatScreen(
                 } else {
                     userGroupsList[existingIdx] = newGroupItem
                 }
+                val (gwId, gcUri) = resolveChatWallpaper(newGroupItem)
+                chatWallpaperId = gwId
+                customWallpaperUri = gcUri
                 selectedFriend = newGroupItem
             }
         )
@@ -2985,12 +3054,16 @@ fun CustomizedChatScreen(
                 val gId = groupItem.id
                 userGroupsList.removeAll { it.id == gId }
                 selectedFriend = null
+                chatWallpaperId = "default"
+                customWallpaperUri = null
                 showGroupProfileDialog = false
             },
             onLeaveGroup = {
                 val gId = groupItem.id
                 userGroupsList.removeAll { it.id == gId }
                 selectedFriend = null
+                chatWallpaperId = "default"
+                customWallpaperUri = null
                 showGroupProfileDialog = false
             },
             onDismissRequest = { showGroupProfileDialog = false }
@@ -3103,6 +3176,8 @@ fun CustomizedChatScreen(
                                     }
                                     typedMessage = ""
                                     selectedFriend = null
+                                 chatWallpaperId = "default"
+                                 customWallpaperUri = null
                                     activeDmChannelId = null
                                     isLoadingMessages = false
                                     onDirectChatStateChanged(false)
@@ -3671,6 +3746,9 @@ fun CustomizedChatScreen(
                             val isUnlocked = unlockedLockedFriends.contains(friend.id)
 
                             val openFriendChat = {
+                                val (initialWp, initialUri) = resolveChatWallpaper(friend)
+                                chatWallpaperId = initialWp
+                                customWallpaperUri = initialUri
                                 selectedFriend = friend
                                 typedMessage = messageDrafts[friend.id] ?: ""
                                 friendMessages = emptyList()

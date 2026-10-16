@@ -99,14 +99,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.3.4",
-        version_name: "v4.3.4",
-        version_code: 63,
-        build: 63,
-        sha256: "ae6bcf86e1588a1b99adec9e9aac25609ef4866619c456f6a95a3098fe1e8b8c",
-        md5: "d6d09e31ae8306bdefa4d88bd28cbb86",
+        version: "4.3.5",
+        version_name: "v4.3.5",
+        version_code: 64,
+        build: 64,
+        sha256: "3afcfb15fd00d53cf86b0a43ab65a6f0f0b23abc013568aad40787766103a53f",
+        md5: "eb8f2257b9e90e7b29035518a05bab1e",
         filename: "connecto-fun.apk",
-        size_bytes: 57220293,
+        size_bytes: 57302149,
         size_display: "54.6 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -114,6 +114,9 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Multi-Account Chat & Wallpaper Isolation: Complete private chat wallpaper, pinned message, theme, and lock isolation scoped to canonical channel keys (dm-{u1}-{u2}). Zero wallpaper leakage when multiple accounts share mutual friends.",
+          "0ms Wallpaper Resolution & Zero Overlap: Synchronous wallpaper resolution before rendering chat eliminates screen flicker, latency delay, and lingering wallpaper overlap when switching conversations.",
+          "Account Sign-Out & Switch Cache Sanitization: Completely wipes all cached preferences, local SQLite caches, and session credentials on logout or account switch.",
           "Monochrome Black & White Chat UI: Crisp solid white bubbles (#FFFFFF) with jet black text (#000000) and dark delivery ticks for sent messages; dark zinc graphite bubbles (#18181B) with crisp white text for incoming messages",
           "Restored Black & White Channel UI: High-contrast monochrome cards, white illuminated circular send button with bold black send arrow, and distraction-free dark aesthetics",
           "Instant 0ms Message Persistence & Delivery: Zero-latency local message caching and offline delivery indicators in direct chat and channels",
@@ -166,11 +169,11 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.3.4/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.3.5/connecto-fun.apk";
         const upstreamResp = await fetch(canonicalApkUrl, {
           redirect: "follow",
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.3.4"
+            "User-Agent": "Connecto-Cloud-Worker/4.3.5"
           }
         });
         if (upstreamResp.ok) {
@@ -181,8 +184,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.3.4");
-          downloadHeaders.set("X-Connecto-Build", "63");
+          downloadHeaders.set("X-Connecto-Version", "v4.3.5");
+          downloadHeaders.set("X-Connecto-Build", "64");
           return new Response(upstreamResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -191,7 +194,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.4/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.5/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -4329,10 +4332,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.3.4",
+          version: "v4.3.5",
           date: "Oct 16, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.3.5: Multi-Account Chat & Wallpaper Isolation, 0ms Synchronous Transitions & Cache Sanitation",
+          summary: "Resolves cross-account chat preferences and wallpaper leakage by scoping settings to canonical DM channel keys (dm-{u1}-{u2}), provides instant 0ms synchronous wallpaper application without screen flicker or overlap, and adds complete cache sanitation upon account sign out and switching.",
+          highlights: [
+            "Multi-Account Chat & Wallpaper Isolation: Scopes custom and preset wallpapers, pinned messages, locks, and themes strictly by user account and canonical DM channel ID (dm-{u1}-{u2}). Prevents mutual friend wallpaper leaks across distinct accounts.",
+            "0ms Wallpaper Resolution & Zero Overlap: Synchronously resolves and applies chat wallpapers before composing the screen, eliminating flicker, latency delays, and lingering wallpaper overlap from previous conversations.",
+            "Sign-Out & Switch Cache Sanitization: Completely wipes all cached preferences, local SQLite caches, and session credentials on logout or account switch.",
+            "Android Native App v4.3.5 (Build 64 • 54.6 MB): SHA-256 3afcfb15fd00d53cf86b0a43ab65a6f0f0b23abc013568aad40787766103a53f."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.3.4",
+          date: "Oct 16, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.3.4: Monochrome Black & White Chat & Channel Styling, Direct Fast Download & 0ms Persistence",
           summary: "Features high-contrast black-and-white chat and channel UI styling with pure white sent bubbles and dark zinc incoming bubbles, illuminated white send actions, zero-latency local message persistence, and direct-on-site APK downloading without GitHub redirection.",
           highlights: [
