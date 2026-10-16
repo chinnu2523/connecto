@@ -142,13 +142,16 @@ export default {
           }
         } catch (_) {}
       }
+      const isTailscale = localServerStatus === "UP";
       return jsonResponse({
-        active_server: localServerStatus === "UP" ? "local_server" : "cloud_server",
+        active_server: isTailscale ? "local_server" : "cloud_server",
+        server_type: isTailscale ? "Tailscale" : "Cloudflare",
+        network: isTailscale ? "Tailscale" : "Cloudflare",
         origin_status: localServerStatus,
         cloud_edge: "active",
         automation: "active",
         timestamp: new Date().toISOString()
-      });
+      }, 200, isTailscale ? "local_server" : "cloud_server");
     }
 
     // 3b. Direct APK Download Gateway (Direct stream to client with zero external redirects)
@@ -230,6 +233,7 @@ export default {
           if (!isApiRoute || (!contentType.includes("text/html") && originResponse.status !== 404)) {
             const headers = new Headers(originResponse.headers);
             headers.set("X-Connecto-Mode", "local_server");
+            headers.set("X-Connecto-Server", "Tailscale");
             headers.set("Access-Control-Allow-Origin", "*");
 
             if (contentType.includes("text/html")) {
@@ -5001,6 +5005,7 @@ async function handleSystemStatus(env) {
 }
 
 function jsonResponse(data, status = 200, mode = "cloud_server") {
+  const serverType = (mode === "local_server" || mode === "tailscale") ? "Tailscale" : "Cloudflare";
   return new Response(JSON.stringify(data), {
     status: status,
     headers: {
@@ -5015,7 +5020,8 @@ function jsonResponse(data, status = 200, mode = "cloud_server") {
       "Permissions-Policy": "camera=(), geolocation=(), microphone=(self)",
       "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "Cache-Control": "no-store, no-cache, must-revalidate",
-      "X-Connecto-Mode": mode
+      "X-Connecto-Mode": mode,
+      "X-Connecto-Server": serverType
     }
   });
 }
@@ -5289,6 +5295,7 @@ export class ConnectoRealtimeRoom {
         webSocket: client,
         headers: {
           "X-Connecto-Mode": "cloud_server",
+          "X-Connecto-Server": "Cloudflare",
           "X-Realtime-Engine": "Cloudflare-Durable-Object",
           "Access-Control-Allow-Origin": "*"
         }
@@ -5349,6 +5356,8 @@ export class ConnectoRealtimeRoom {
         type: "connected",
         event: "connected",
         mode: "cloud_server",
+        server: "Cloudflare",
+        server_type: "Cloudflare",
         engine: "Cloudflare-Durable-Object",
         user: cleanUser,
         username: cleanUser,

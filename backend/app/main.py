@@ -833,6 +833,19 @@ async def ws_user_only_endpoint(websocket: WebSocket, username: str):
     websocket.scope["ws_username"] = username
     await websocket_endpoint(websocket)
 
+@app.get("/api/server-mode")
+@app.get("/api/v1/system/mode")
+async def get_server_mode():
+    return {
+        "active_server": "local_server",
+        "server_type": "Tailscale",
+        "network": "Tailscale",
+        "origin_status": "UP",
+        "cloud_edge": "fallback",
+        "automation": "active",
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+
 @app.get("/api/v1/health")
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 @app.get("/api/status")

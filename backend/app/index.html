@@ -19706,7 +19706,7 @@ pre, .code-block, .chat-code-snippet {
           <div class="connecto-greeting-title" id="homeGreetingTitle">Welcome to Connecto 👋</div>
           <div class="connecto-greeting-sub">
             <span style="width:7px; height:7px; border-radius:50%; background:#22C55E; display:inline-block;"></span>
-            <span>Connected to connecto.fun Network</span>
+            <span id="homeNetworkStatusText">Connected to the Connecto Network</span>
           </div>
         </div>
 
@@ -29414,7 +29414,16 @@ pre, .code-block, .chat-code-snippet {
           const data = JSON.parse(e.data);
           console.log('[DEBUG-WS] Event received:', data.type);
 
-          if (data.type === 'presence_update') {
+          if (data.type === 'connected') {
+            const sType = data.server_type || data.server;
+            const mode = data.mode;
+            if ((sType && sType.toLowerCase() === 'tailscale') || (mode && mode === 'local_server')) {
+              currentDetectedServerType = 'Tailscale';
+            } else if ((sType && sType.toLowerCase() === 'cloudflare') || (mode && mode === 'cloud_server')) {
+              currentDetectedServerType = 'Cloudflare';
+            }
+            if (typeof updateNetworkStatusBadge === 'function') updateNetworkStatusBadge();
+          } else if (data.type === 'presence_update') {
             const targetUsername = (data.username || '').toLowerCase();
             const targetId = String(data.user_id || '').toLowerCase();
             const isOnline = Boolean(data.is_online);
@@ -33926,6 +33935,68 @@ function updateGreeting() {
   if (avCalls) { if (typeof renderAvatarHTML === 'function') avCalls.innerHTML = avHtml; else avCalls.textContent = initial; }
   if (av2) av2.textContent = initial;
   if (uDisp) uDisp.textContent = '@' + user;
+  updateNetworkStatusBadge();
+}
+
+let currentDetectedServerType = null;
+
+async function updateNetworkStatusBadge() {
+  const statusEl = document.getElementById('homeNetworkStatusText');
+  if (!statusEl) return;
+
+  const user = (typeof currentUser !== 'undefined' && currentUser && currentUser !== 'guest') 
+    ? currentUser.toLowerCase().trim().replace(/^@/, '') : '';
+
+  const isUserAdmin = Boolean(
+    (user && (
+      user === 'chinnu14754x' ||
+      user === 'chinnu' ||
+      user === 'connecto_admin' || 
+      user === 'admin' ||
+      user === 'vance' ||
+      user === 'madara' ||
+      user === 'viki' ||
+      user.endsWith('_admin')
+    )) ||
+    localStorage.getItem('connecto_is_admin') === '1' ||
+    (window.currentUserObj && (window.currentUserObj.is_admin || window.currentUserObj.is_admin === 1))
+  );
+
+  if (!isUserAdmin) {
+    statusEl.textContent = 'Connected to the Connecto Network';
+    return;
+  }
+
+  // Admin user: determine whether connected to Tailscale or Cloudflare
+  let serverType = currentDetectedServerType;
+  if (!serverType) {
+    try {
+      const res = await fetch('/api/server-mode', { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        const sType = data.server_type || data.network;
+        const active = data.active_server;
+        const originStatus = data.origin_status;
+        if ((sType && sType.toLowerCase() === 'tailscale') || 
+            (active && active === 'local_server') ||
+            (originStatus && originStatus === 'UP')) {
+          serverType = 'Tailscale';
+        } else {
+          serverType = 'Cloudflare';
+        }
+      }
+    } catch (_) {
+      if (window.location.hostname.includes('ts.net') || window.location.hostname.startsWith('100.')) {
+        serverType = 'Tailscale';
+      } else {
+        serverType = 'Cloudflare';
+      }
+    }
+    if (!serverType) serverType = 'Cloudflare';
+    currentDetectedServerType = serverType;
+  }
+
+  statusEl.textContent = `Connected to the Connecto Network (${serverType})`;
 }
 
 function handleHomeSearch(val) {

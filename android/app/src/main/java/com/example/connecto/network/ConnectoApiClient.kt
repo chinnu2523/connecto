@@ -358,6 +358,27 @@ object ConnectoApiClient {
         )
     }
 
+    @Volatile
+    var currentUserIsAdmin: Boolean = false
+
+    private val _currentUserIsAdminState = MutableStateFlow<Boolean>(false)
+    val currentUserIsAdminState: StateFlow<Boolean> = _currentUserIsAdminState.asStateFlow()
+
+    private val _activeServerTypeState = MutableStateFlow<String>(ConnectoNetworkConfig.activeServerType)
+    val activeServerTypeState: StateFlow<String> = _activeServerTypeState.asStateFlow()
+
+    fun updateAdminState(isAdmin: Boolean) {
+        currentUserIsAdmin = isAdmin
+        ConnectoNetworkConfig.isUserAdmin = isAdmin
+        _currentUserIsAdminState.value = isAdmin
+    }
+
+    fun updateServerType(serverType: String) {
+        val type = if (serverType.equals("tailscale", ignoreCase = true) || serverType.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
+        ConnectoNetworkConfig.activeServerType = type
+        _activeServerTypeState.value = type
+    }
+
     suspend fun setPresenceOffline(username: String? = null): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val user = (username ?: currentUsername)?.trim()?.lowercase()?.removePrefix("@") ?: return@withContext Result.success(false)
@@ -439,6 +460,13 @@ object ConnectoApiClient {
                 val pPrefs = context.getSharedPreferences("connecto_user_profile_prefs", android.content.Context.MODE_PRIVATE)
                 val savedBanner = prefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
                 updateBannerState(savedBanner)
+                val cleanUser = savedUsername.trim().lowercase().removePrefix("@")
+                val isAdmin = prefs.getBoolean("is_admin", false) ||
+                              cleanUser == "chinnu14754x" || cleanUser == "chinnu" ||
+                              cleanUser == "connecto_admin" || cleanUser == "admin" ||
+                              cleanUser == "vance" || cleanUser == "madara" ||
+                              cleanUser == "viki" || cleanUser.endsWith("_admin")
+                updateAdminState(isAdmin)
             }
         } catch (e: Exception) {
             // ignore
@@ -514,6 +542,46 @@ object ConnectoApiClient {
             }
         }
         false
+    }
+
+    suspend fun fetchServerMode(): String = withContext(Dispatchers.IO) {
+        try {
+            val candidateUrls = ConnectoNetworkConfig.getCandidateBases()
+            for (base in candidateUrls) {
+                try {
+                    val url = URL("$base/api/server-mode")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        requestMethod = "GET"
+                        connectTimeout = 4000
+                        readTimeout = 4000
+                        setRequestProperty("User-Agent", USER_AGENT)
+                        setRequestProperty("Accept", "application/json")
+                    }
+                    if (conn.responseCode in 200..299) {
+                        val body = conn.inputStream.bufferedReader().use { it.readText() }
+                        val json = JSONObject(body)
+                        val sType = json.optString("server_type").ifEmpty { json.optString("network") }
+                        val aServer = json.optString("active_server")
+                        val isTailscale = sType.equals("tailscale", ignoreCase = true) || aServer.equals("local_server", ignoreCase = true)
+                        val detected = if (isTailscale) "Tailscale" else "Cloudflare"
+                        ConnectoNetworkConfig.activeServerMode = if (isTailscale) "local_server" else "cloud_server"
+                        updateServerType(detected)
+                        return@withContext detected
+                    }
+                } catch (_: Exception) {}
+            }
+        } catch (_: Exception) {}
+
+        val fallback = if (ConnectoNetworkConfig.activeBaseUrl.contains("100.") ||
+            ConnectoNetworkConfig.activeBaseUrl.contains("ts.net") ||
+            ConnectoNetworkConfig.activeBaseUrl.contains("box-1") ||
+            ConnectoNetworkConfig.activeServerMode == "local_server") {
+            "Tailscale"
+        } else {
+            "Cloudflare"
+        }
+        updateServerType(fallback)
+        fallback
     }
 
     suspend fun isServerInMaintenance(): Boolean = withContext(Dispatchers.IO) {
@@ -4148,8 +4216,15 @@ object ConnectoApiClient {
                 val isSuccess = responseCode in 200..299
                 android.util.Log.d("ConnectoSync", "executeRequest: $method $fullUrl returned $responseCode (success=$isSuccess)")
 
-                // Detect Cloudflare server mode
+                // Detect Cloudflare server mode & type
+                val serverTypeHeader = conn.getHeaderField("X-Connecto-Server")
                 val serverMode = conn.getHeaderField("X-Connecto-Mode")
+                if (!serverTypeHeader.isNullOrBlank()) {
+                    updateServerType(serverTypeHeader)
+                } else if (!serverMode.isNullOrBlank()) {
+                    val inferred = if (serverMode.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
+                    updateServerType(inferred)
+                }
                 if (!serverMode.isNullOrBlank()) {
                     ConnectoNetworkConfig.activeServerMode = serverMode
                     android.util.Log.d("ConnectoSync", "Connecto active server mode: $serverMode")
@@ -4327,6 +4402,17 @@ object ConnectoApiClient {
                     updateBannerState(prof.bannerUrl)
                     updateStealthModeState(prof.isStealth)
                     updateVerificationState(isVerified, isBlocked, daysLeft, deadlineStr)
+                    val cleanSelf = u.trim().lowercase().removePrefix("@")
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) ||
+                                  cleanSelf == "chinnu14754x" || cleanSelf == "chinnu" ||
+                                  cleanSelf == "connecto_admin" || cleanSelf == "admin" ||
+                                  cleanSelf == "vance" || cleanSelf == "madara" ||
+                                  cleanSelf == "viki" || cleanSelf.endsWith("_admin")
+                    updateAdminState(isAdmin)
+                    try {
+                        applicationContext?.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                            ?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
+                    } catch (_: Exception) {}
                 }
                 Result.success(prof)
             } else {

@@ -15,6 +15,12 @@ object ConnectoNetworkConfig {
     @Volatile
     var activeServerMode: String = "cloud_server" // "cloud_server" or "local_server"
 
+    @Volatile
+    var activeServerType: String = "Cloudflare" // "Tailscale" or "Cloudflare"
+
+    @Volatile
+    var isUserAdmin: Boolean = false
+
     fun getCandidateBases(): List<String> {
         val list = mutableListOf<String>()
         if (activeBaseUrl.isNotBlank()) list.add(activeBaseUrl)

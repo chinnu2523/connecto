@@ -243,6 +243,12 @@ fun HomeChatScreen(
     var isLoadingDashboard by remember { mutableStateOf(false) }
 
     val isWsConnected by VoiceCallManager.isWsConnectedFlow.collectAsState()
+    val isUserAdmin by ConnectoApiClient.currentUserIsAdminState.collectAsState()
+    val activeServerType by ConnectoApiClient.activeServerTypeState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        ConnectoApiClient.fetchServerMode()
+    }
 
     // Bug #2 fix: show "Server Offline" after 12s of failed connection instead of "Connecting..." forever
     var connectTimedOut by remember { mutableStateOf(false) }
@@ -611,7 +617,10 @@ fun HomeChatScreen(
                             Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
                             Text(
                                 text = when {
-                                    isWsConnected -> "Connected to Connecto Network (Tailscale)"
+                                    isWsConnected -> {
+                                        if (isUserAdmin) "Connected to the Connecto Network ($activeServerType)"
+                                        else "Connected to the Connecto Network"
+                                    }
                                     connectTimedOut -> "Server in Maintenance · Tap to view details"
                                     else -> "Connecting..."
                                 },

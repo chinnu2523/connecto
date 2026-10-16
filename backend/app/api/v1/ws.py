@@ -132,6 +132,21 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await ws_manager.connect(user.id, websocket, user.username)
 
+    # Send instant welcome confirmation
+    try:
+        await websocket.send_text(json.dumps({
+            "type": "connected",
+            "event": "connected",
+            "mode": "local_server",
+            "server": "Tailscale",
+            "server_type": "Tailscale",
+            "user": user.username,
+            "username": user.username,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }))
+    except Exception:
+        pass
+
     # Auto-subscribe channel from path if provided
     ch_id = websocket.path_params.get("channel_id") or websocket.scope.get("channel_id")
     if ch_id:

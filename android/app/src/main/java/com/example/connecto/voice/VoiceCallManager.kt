@@ -997,6 +997,15 @@ object VoiceCallManager {
                     isWsConnected = true
                     _isWsConnectedFlow.value = true
 
+                    val serverHdr = response.header("X-Connecto-Server")
+                    val modeHdr = response.header("X-Connecto-Mode")
+                    if (!serverHdr.isNullOrBlank()) {
+                        ConnectoApiClient.updateServerType(serverHdr)
+                    } else if (!modeHdr.isNullOrBlank()) {
+                        val inferred = if (modeHdr.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
+                        ConnectoApiClient.updateServerType(inferred)
+                    }
+
                     // Auto-resubscribe to all active channels
                     if (subscribedChannels.isNotEmpty()) {
                         try {
@@ -1135,6 +1144,12 @@ object VoiceCallManager {
                 }
                 "pong" -> {
                     // Keepalive pong received
+                }
+                "connected", "welcome", "init" -> {
+                    val sType = json.optString("server_type").ifEmpty { json.optString("server").ifEmpty { json.optString("network") } }
+                    val sMode = json.optString("mode")
+                    val detected = if (sType.equals("tailscale", ignoreCase = true) || sMode.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
+                    ConnectoApiClient.updateServerType(detected)
                 }
                 "message_created", "new_message", "dm_message", "new_dm_alert", "channel_message", "chat_message", "message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json
