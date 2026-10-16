@@ -308,12 +308,6 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         }
     }
 
-    fun deleteMessage(messageId: String) {
-        try {
-            val db = writableDatabase
-            db.delete(TABLE_MESSAGES, "$COL_MSG_ID = ?", arrayOf(messageId))
-        } catch (_: Exception) {}
-    }
 
     fun getMessagesForChannel(channelId: String, limit: Int = 50, beforeCreatedAt: String? = null): List<MessageDto> {
         val cleanCh = channelId.trim().lowercase().removePrefix("#")
@@ -657,6 +651,13 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             } catch (_: Exception) {}
         }
         return list.reversed().distinctBy { it.id }
+    }
+
+    fun deleteMessage(messageId: String) {
+        try {
+            val writeDb = writableDatabase
+            writeDb.delete(TABLE_MESSAGES, "$COL_MSG_ID = ?", arrayOf(messageId))
+        } catch (_: Exception) {}
     }
 
     fun saveDmChannel(canonicalName: String, channelId: String) {

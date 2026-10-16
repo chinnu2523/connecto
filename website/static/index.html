@@ -20533,6 +20533,64 @@ pre, .code-block, .chat-code-snippet {
               </div>
             </div>
 
+            <!-- Change Password Feature in Personal Details -->
+            <div class="profile-card-section" id="personalChangePasswordCard" style="border:1px solid rgba(255,255,255,0.12); border-radius:12px; padding:16px; margin-top:16px; background:rgba(255,255,255,0.02);">
+              <div class="profile-card-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span><span>🔐</span> Change Password</span>
+                <span id="oldPwdVerifiedBadge" style="display:none; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.4); font-size:10px; font-weight:800; padding:3px 8px; border-radius:6px; letter-spacing:0.5px;">OLD PASSWORD VERIFIED ✓</span>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Enter your old password and click Verify. Once verified, the new password fields will highlight and unlock.</p>
+              
+              <!-- 1. Old Password & Side Verify Button -->
+              <div class="form-group">
+                <label for="profileOldPassword" style="font-weight:700; font-size:12px;">Old Password</label>
+                <div style="display:flex; gap:8px;">
+                  <div class="auth-input-wrap" style="flex:1;">
+                    <span class="auth-input-icon">🔑</span>
+                    <input type="password" class="auth-input-field" id="profileOldPassword" placeholder="Enter current password">
+                  </div>
+                  <button type="button" id="btnVerifyOldPassword" onclick="verifyOldPasswordInPersonalDetails()" style="padding:0 18px; height:42px; border-radius:8px; font-weight:700; font-size:12.5px; background:var(--primary); color:#fff; border:none; cursor:pointer; white-space:nowrap; transition:all 0.2s;">Verify</button>
+                </div>
+                <div id="profileOldPasswordFeedback" style="font-size:11.5px; margin-top:4px; font-weight:700; display:none;"></div>
+              </div>
+
+              <!-- 2. New Password & Re-enter (Highlighted when verified) -->
+              <div id="newPasswordSectionWrap" style="display:none; margin-top:14px; padding:14px; border-radius:10px; background:rgba(34, 211, 238, 0.05); border:2px solid var(--primary); transition:all 0.3s;">
+                <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px; display:flex; justify-content:space-between;">
+                  <span>✨ Set New Password</span>
+                  <span style="font-weight:normal; color:var(--text-muted); font-size:11px;">Min 4 characters</span>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                  <div class="form-group">
+                    <label for="profileNewPassword" style="font-weight:700; font-size:12px;">New Password</label>
+                    <div class="auth-input-wrap">
+                      <span class="auth-input-icon">🔒</span>
+                      <input type="password" class="auth-input-field" id="profileNewPassword" placeholder="Enter new password" style="border-color:var(--primary);">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="profileReenterPassword" style="font-weight:700; font-size:12px;">Re-enter Password</label>
+                    <div class="auth-input-wrap">
+                      <span class="auth-input-icon">🔒</span>
+                      <input type="password" class="auth-input-field" id="profileReenterPassword" placeholder="Re-enter new password" style="border-color:var(--primary);">
+                    </div>
+                  </div>
+                </div>
+                
+                <div id="profileChangePasswordFeedback" style="font-size:11.5px; margin-top:8px; font-weight:700; display:none;"></div>
+
+                <!-- 3. Confirm to change password button -->
+                <button type="button" id="btnConfirmChangePassword" onclick="confirmChangePasswordInPersonalDetails()" style="width:100%; margin-top:12px; height:44px; border-radius:8px; font-weight:800; font-size:13px; background:var(--primary); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                  <span>✓</span> Confirm to change password
+                </button>
+              </div>
+
+              <!-- Success Notification -->
+              <div id="profileChangePasswordSuccess" style="display:none; margin-top:12px; padding:10px 14px; border-radius:8px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); color:#10b981; font-size:12px; font-weight:700;">
+                ✓ Password changed successfully in the database! When you enter the new password it will open your account.
+              </div>
+            </div>
+
           </div>
 
           <!-- ==================== TAB 2: ACCOUNT & 2FA SECURITY ==================== -->
@@ -20601,6 +20659,26 @@ pre, .code-block, .chat-code-snippet {
               <button type="button" class="btn btn-outline" style="padding:8px 16px; font-size:12.5px; border-radius:10px;" onclick="closeSettingsModal(); openAccountRecovery('password');">
                 🔑 Request Password Reset via Email OTP ➔
               </button>
+            </div>
+
+            <!-- Active Logged-In Sessions Card -->
+            <div class="profile-card-section" id="activeSessionsCard">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div class="profile-card-title" style="margin-bottom:0;"><span>💻</span> Active Logged-In Sessions</div>
+                <button type="button" class="btn btn-outline" style="padding:4px 10px; font-size:11px; border-radius:8px; border-color:rgba(239, 68, 68, 0.4); color:#ef4444; font-weight:700;" onclick="terminateAllOtherWebSessions()">
+                  Log Out All Other Devices
+                </button>
+              </div>
+              <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+                Where your account is currently signed in. Check locations, active times, and manage your device sessions.
+              </p>
+
+              <!-- Sessions List -->
+              <div id="webActiveSessionsList" style="display:flex; flex-direction:column; gap:10px;">
+                <div style="text-align:center; padding:14px; color:var(--text-muted); font-size:12px;">
+                  Loading active sessions...
+                </div>
+              </div>
             </div>
 
           </div>
@@ -29910,6 +29988,9 @@ function switchProfileStudioTab(tabId) {
         const curTheme = localStorage.getItem('connecto_home_theme') || document.documentElement.getAttribute('data-theme') || 'parchment';
         setHomepageTheme(curTheme, false);
       }
+      if (tabId === 'security' && typeof loadWebActiveSessions === 'function') {
+        loadWebActiveSessions();
+      }
     }
 
 function selectSettingsAvatar(emoji, el) {
@@ -30937,6 +31018,314 @@ function selectSettingsAvatar(emoji, el) {
     }
 
     function handleSettingsPhoneInput(val) { /* phone removed - email only */ }
+
+    // Change Password in Personal Details
+    async function verifyOldPasswordInPersonalDetails() {
+      const oldPwdInp = document.getElementById('profileOldPassword');
+      const fb = document.getElementById('profileOldPasswordFeedback');
+      const btn = document.getElementById('btnVerifyOldPassword');
+      const badge = document.getElementById('oldPwdVerifiedBadge');
+      const newSection = document.getElementById('newPasswordSectionWrap');
+      const newPwdInp = document.getElementById('profileNewPassword');
+      if (!oldPwdInp || !btn) return;
+
+      const oldPwd = oldPwdInp.value;
+      if (!oldPwd) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerText = '❌ Please enter your current old password';
+        }
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Verifying...';
+      if (fb) fb.style.display = 'none';
+
+      try {
+        const curUser = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+        const resp = await fetch('/api/auth/verify-old-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: curUser, old_password: oldPwd })
+        });
+        const data = await resp.json();
+        if (resp.ok && (data.valid || data.status === 'ok')) {
+          btn.innerText = 'Verified ✓';
+          btn.style.background = '#10b981';
+          oldPwdInp.disabled = true;
+          if (badge) badge.style.display = 'inline-block';
+          if (fb) {
+            fb.style.display = 'block';
+            fb.style.color = '#10b981';
+            fb.innerText = '✓ ' + (data.message || 'Old password verified successfully!');
+          }
+          if (newSection) {
+            newSection.style.display = 'block';
+            newSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+          if (newPwdInp) {
+            newPwdInp.focus();
+          }
+        } else {
+          btn.disabled = false;
+          btn.innerText = 'Verify';
+          if (fb) {
+            fb.style.display = 'block';
+            fb.style.color = '#ef4444';
+            fb.innerText = '❌ ' + (data.detail || data.error || 'Incorrect old password.');
+          }
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerText = 'Verify';
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerText = '❌ Network error verifying password: ' + err.message;
+        }
+      }
+    }
+
+    async function confirmChangePasswordInPersonalDetails() {
+      const oldPwdInp = document.getElementById('profileOldPassword');
+      const newPwdInp = document.getElementById('profileNewPassword');
+      const reenterPwdInp = document.getElementById('profileReenterPassword');
+      const fb = document.getElementById('profileChangePasswordFeedback');
+      const btn = document.getElementById('btnConfirmChangePassword');
+      const successBox = document.getElementById('profileChangePasswordSuccess');
+      if (!newPwdInp || !reenterPwdInp || !btn) return;
+
+      const oldPwd = oldPwdInp ? oldPwdInp.value : '';
+      const newPwd = newPwdInp.value;
+      const reenterPwd = reenterPwdInp.value;
+
+      if (!newPwd) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerText = '❌ Please enter a new password.';
+        }
+        return;
+      }
+      if (newPwd.length < 4) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerText = '❌ New password must be at least 4 characters long.';
+        }
+        return;
+      }
+      if (newPwd !== reenterPwd) {
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerText = '❌ Passwords do not match. Please re-enter carefully.';
+        }
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'Updating password in database...';
+      if (fb) fb.style.display = 'none';
+
+      try {
+        const curUser = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+        const resp = await fetch('/api/auth/change-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: curUser, old_password: oldPwd, new_password: newPwd })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.status === 'ok') {
+          if (successBox) {
+            successBox.style.display = 'block';
+            successBox.innerText = '✓ ' + (data.message || 'Password changed successfully in the database! You can now log in or unlock with your new password.');
+          }
+          document.getElementById('newPasswordSectionWrap').style.display = 'none';
+          if (oldPwdInp) {
+            oldPwdInp.value = '';
+            oldPwdInp.disabled = false;
+          }
+          const verifyBtn = document.getElementById('btnVerifyOldPassword');
+          if (verifyBtn) {
+            verifyBtn.disabled = false;
+            verifyBtn.innerText = 'Verify';
+            verifyBtn.style.background = 'var(--primary)';
+          }
+          const badge = document.getElementById('oldPwdVerifiedBadge');
+          if (badge) badge.style.display = 'none';
+          const oldFb = document.getElementById('profileOldPasswordFeedback');
+          if (oldFb) oldFb.style.display = 'none';
+          newPwdInp.value = '';
+          reenterPwdInp.value = '';
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = '<span>✓</span> Confirm to change password';
+          if (fb) {
+            fb.style.display = 'block';
+            fb.style.color = '#ef4444';
+            fb.innerText = '❌ ' + (data.detail || data.error || 'Failed to change password.');
+          }
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>✓</span> Confirm to change password';
+        if (fb) {
+          fb.style.display = 'block';
+          fb.style.color = '#ef4444';
+          fb.innerText = '❌ Network error: ' + err.message;
+        }
+      }
+    }
+
+    // Active Logged-in Sessions Feature
+    async function loadWebActiveSessions() {
+      const container = document.getElementById('webActiveSessionsList');
+      if (!container) return;
+
+      const token = localStorage.getItem('connecto_token') || '';
+      const username = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (username) headers['X-Username'] = username;
+
+        const res = await fetch('/api/auth/sessions', { headers });
+        if (!res.ok) {
+          container.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-muted); font-size:12px;">Could not load active sessions.</div>';
+          return;
+        }
+        const data = await res.json();
+        const sessions = data.sessions || [];
+        if (sessions.length === 0) {
+          container.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-muted); font-size:12px;">No active sessions found.</div>';
+          return;
+        }
+
+        container.innerHTML = sessions.map(s => {
+          const isCurrent = s.is_current;
+          const devName = s.device_name || 'Web Browser';
+          const loc = s.location || 'Unknown Location';
+          const ip = s.ip_address || '';
+          const timeStr = formatWebSessionTime(s.created_at, s.last_active_at, isCurrent);
+
+          let icon = '💻';
+          const lowerDev = devName.toLowerCase();
+          if (lowerDev.includes('android') || lowerDev.includes('phone') || lowerDev.includes('mobile')) icon = '📱';
+          else if (lowerDev.includes('mac') || lowerDev.includes('apple')) icon = '🍎';
+          else if (lowerDev.includes('windows')) icon = '🪟';
+          else if (lowerDev.includes('linux')) icon = '🐧';
+
+          return `
+            <div style="background:rgba(255,255,255,0.03); border:1px solid ${isCurrent ? 'rgba(16,185,129,0.35)' : 'rgba(255,255,255,0.08)'}; border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <span style="font-size:20px; width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:${isCurrent ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)'};">${icon}</span>
+                  <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span style="font-weight:700; font-size:13px; color:var(--text);">${escapeHTML(devName)}</span>
+                      ${isCurrent ? '<span style="font-size:9px; font-weight:800; background:rgba(16,185,129,0.2); color:#10b981; border:1px solid rgba(16,185,129,0.4); padding:1px 6px; border-radius:4px;">THIS DEVICE</span>' : ''}
+                    </div>
+                    <div style="font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:4px; margin-top:2px;">
+                      <span>📍</span> <span>${escapeHTML(loc)}</span>
+                    </div>
+                  </div>
+                </div>
+                ${!isCurrent ? `
+                  <button type="button" onclick="terminateWebSession('${s.id}')" style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); color:#ef4444; border-radius:6px; font-size:10px; font-weight:700; padding:4px 8px; cursor:pointer;">
+                    LOG OUT
+                  </button>
+                ` : ''}
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted); border-top:1px solid rgba(255,255,255,0.04); padding-top:6px;">
+                <span style="display:flex; align-items:center; gap:4px;">
+                  <span>🕒</span> <span>${timeStr}</span>
+                </span>
+                ${ip ? `<span>IP: ${escapeHTML(ip)}</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (err) {
+        container.innerHTML = '<div style="text-align:center; padding:12px; color:var(--text-muted); font-size:12px;">Failed to load sessions.</div>';
+      }
+    }
+
+    function formatWebSessionTime(createdAt, lastActiveAt, isCurrent) {
+      if (isCurrent) return 'Active Now';
+      const timeToUse = lastActiveAt || createdAt;
+      if (!timeToUse) return 'Recently';
+
+      try {
+        const cleanTime = timeToUse.replace('T', ' ').replace('Z', '');
+        const date = new Date(timeToUse.includes('Z') ? timeToUse : timeToUse + 'Z');
+        if (!isNaN(date.getTime())) {
+          const now = Date.now();
+          const diff = now - date.getTime();
+          if (diff < 60000) return 'Just now';
+          if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+          if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+          return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+        }
+      } catch (_) {}
+      return 'Logged in: ' + timeToUse;
+    }
+
+    async function terminateWebSession(sessionId) {
+      if (!confirm('Log out this device session?')) return;
+      const token = localStorage.getItem('connecto_token') || '';
+      const username = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (username) headers['X-Username'] = username;
+
+        const res = await fetch('/api/auth/sessions/terminate', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ session_id: sessionId })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          loadWebActiveSessions();
+        } else {
+          alert(data.detail || data.error || 'Failed to terminate session.');
+        }
+      } catch (err) {
+        alert('Network error terminating session.');
+      }
+    }
+
+    async function terminateAllOtherWebSessions() {
+      if (!confirm('Log out all other devices except this one?')) return;
+      const token = localStorage.getItem('connecto_token') || '';
+      const username = (window.currentUser && window.currentUser.username) || (localStorage.getItem('connecto_username') || '');
+
+      try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        if (username) headers['X-Username'] = username;
+
+        const res = await fetch('/api/auth/sessions/terminate', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ terminate_others: true })
+        });
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          loadWebActiveSessions();
+        } else {
+          alert(data.detail || data.error || 'Failed to terminate sessions.');
+        }
+      } catch (err) {
+        alert('Network error terminating other sessions.');
+      }
+    }
 
     function handleForgotPassword() {
       const uInput = document.getElementById('signInUsername');

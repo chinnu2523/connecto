@@ -67,6 +67,16 @@ data class TwoFactorToggleResult(
     val message: String
 )
 
+data class UserSessionDto(
+    val id: String,
+    val deviceName: String,
+    val location: String,
+    val ipAddress: String,
+    val createdAt: String,
+    val lastActiveAt: String,
+    val isCurrent: Boolean
+)
+
 data class UserDto(
     val id: String,
     val username: String,
@@ -129,6 +139,15 @@ data class MessageDto(
     val replyToId: String? = null,
     val replyToContent: String? = null,
     val replyToAuthor: String? = null
+)
+
+data class PinnedMessageDto(
+    val messageId: String,
+    val channelId: String,
+    val authorName: String,
+    val content: String,
+    val pinnedBy: String,
+    val pinnedAt: String
 )
 
 data class UserSearchResultDto(
@@ -1108,6 +1127,180 @@ object ConnectoApiClient {
         }
     }
 
+    suspend fun verifyOldPassword(
+        username: String,
+        oldPassword: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("username", username.trim())
+                put("old_password", oldPassword)
+            }
+            val response = executeRequest(
+                endpoint = "/api/auth/verify-old-password",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                if (json.optBoolean("valid", false) || json.optString("status") == "ok") {
+                    Result.success(true)
+                } else {
+                    Result.failure(Exception(json.optString("detail", json.optString("error", "Incorrect old password."))))
+                }
+            } else {
+                val rawMsg = response.exceptionOrNull()?.message ?: "Incorrect old password."
+                // Clean HTTP error payload if wrapped in JSON
+                val cleanMsg = try {
+                    if (rawMsg.contains("{")) {
+                        val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
+                        parsed.optString("detail", parsed.optString("error", rawMsg))
+                    } else rawMsg
+                } catch (_: Exception) { rawMsg }
+                Result.failure(Exception(cleanMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun changePassword(
+        username: String,
+        oldPassword: String,
+        newPassword: String
+    ): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("username", username.trim())
+                put("old_password", oldPassword)
+                put("new_password", newPassword)
+            }
+            val response = executeRequest(
+                endpoint = "/api/auth/change-password",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                val newToken = json.optString("token").takeIf { it.isNotEmpty() }
+                if (newToken != null) {
+                    sessionToken = newToken
+                }
+                Result.success(json.optString("message", "Password changed successfully in the database."))
+            } else {
+                val rawMsg = response.exceptionOrNull()?.message ?: "Failed to change password."
+                val cleanMsg = try {
+                    if (rawMsg.contains("{")) {
+                        val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
+                        parsed.optString("detail", parsed.optString("error", rawMsg))
+                    } else rawMsg
+                } catch (_: Exception) { rawMsg }
+                Result.failure(Exception(cleanMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getUserSessions(): Result<List<UserSessionDto>> = withContext(Dispatchers.IO) {
+        try {
+            val response = executeRequest(
+                endpoint = "/api/auth/sessions",
+                method = "GET",
+                body = null,
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                val sessionsArray = json.optJSONArray("sessions") ?: JSONArray()
+                val list = mutableListOf<UserSessionDto>()
+                for (i in 0 until sessionsArray.length()) {
+                    val item = sessionsArray.getJSONObject(i)
+                    list.add(
+                        UserSessionDto(
+                            id = item.optString("id", ""),
+                            deviceName = item.optString("device_name", "Connected Device"),
+                            location = item.optString("location", "Unknown Location"),
+                            ipAddress = item.optString("ip_address", "Unknown IP"),
+                            createdAt = item.optString("created_at", ""),
+                            lastActiveAt = item.optString("last_active_at", ""),
+                            isCurrent = item.optBoolean("is_current", false)
+                        )
+                    )
+                }
+                Result.success(list)
+            } else {
+                val rawMsg = response.exceptionOrNull()?.message ?: "Failed to fetch active sessions"
+                val cleanMsg = try {
+                    if (rawMsg.contains("{")) {
+                        val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
+                        parsed.optString("detail", parsed.optString("error", rawMsg))
+                    } else rawMsg
+                } catch (_: Exception) { rawMsg }
+                Result.failure(Exception(cleanMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun terminateSession(sessionId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("session_id", sessionId)
+            }
+            val response = executeRequest(
+                endpoint = "/api/auth/sessions/terminate",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                Result.success(true)
+            } else {
+                val rawMsg = response.exceptionOrNull()?.message ?: "Failed to terminate session"
+                val cleanMsg = try {
+                    if (rawMsg.contains("{")) {
+                        val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
+                        parsed.optString("detail", parsed.optString("error", rawMsg))
+                    } else rawMsg
+                } catch (_: Exception) { rawMsg }
+                Result.failure(Exception(cleanMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun terminateOtherSessions(): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            val response = executeRequest(
+                endpoint = "/api/auth/sessions/terminate-others",
+                method = "POST",
+                body = "{}",
+                token = sessionToken
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                val count = json.optInt("count", 0)
+                Result.success(count)
+            } else {
+                val rawMsg = response.exceptionOrNull()?.message ?: "Failed to terminate other sessions"
+                val cleanMsg = try {
+                    if (rawMsg.contains("{")) {
+                        val parsed = JSONObject(rawMsg.substring(rawMsg.indexOf("{")))
+                        parsed.optString("detail", parsed.optString("error", rawMsg))
+                    } else rawMsg
+                } catch (_: Exception) { rawMsg }
+                Result.failure(Exception(cleanMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun request2FaSetupOtp(
         method: String,
         phoneNumber: String? = null,
@@ -1861,6 +2054,103 @@ object ConnectoApiClient {
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to send message"))
             }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun deleteMessageForMe(
+        messageId: String,
+        username: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val body = JSONObject().apply {
+                put("message_id", messageId)
+                put("username", username.trim().removePrefix("@"))
+            }
+            val res = executeRequest(
+                endpoint = "/api/messages/delete-for-me",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun pinMessage(
+        channelId: String,
+        messageId: String,
+        username: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId.trim().lowercase().removePrefix("#")
+            val body = JSONObject().apply {
+                put("channel_id", cleanChannel)
+                put("message_id", messageId)
+                put("username", username.trim().removePrefix("@"))
+            }
+            val res = executeRequest(
+                endpoint = "/api/channels/$cleanChannel/pin",
+                method = "POST",
+                body = body.toString(),
+                token = sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun unpinMessage(
+        channelId: String
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId.trim().lowercase().removePrefix("#")
+            val res = executeRequest(
+                endpoint = "/api/channels/$cleanChannel/unpin",
+                method = "POST",
+                body = "{}",
+                token = sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getPinnedMessage(
+        channelId: String
+    ): Result<PinnedMessageDto?> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId.trim().lowercase().removePrefix("#")
+            val res = executeRequest(
+                endpoint = "/api/channels/$cleanChannel/pin",
+                method = "GET",
+                body = null,
+                token = sessionToken
+            )
+            if (res.isSuccess) {
+                val text = res.getOrNull()
+                if (text != null && text.isNotBlank() && text != "null") {
+                    val obj = JSONObject(text)
+                    if (obj.optBoolean("pinned", false) || (obj.has("message_id") && obj.getString("message_id").isNotBlank())) {
+                        return@withContext Result.success(
+                            PinnedMessageDto(
+                                messageId = obj.optString("message_id"),
+                                channelId = obj.optString("channel_id", cleanChannel),
+                                authorName = obj.optString("author_name", "Shinobi"),
+                                content = obj.optString("content", ""),
+                                pinnedBy = obj.optString("pinned_by", ""),
+                                pinnedAt = obj.optString("pinned_at", "")
+                            )
+                        )
+                    }
+                }
+            }
+            Result.success(null)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -3833,6 +4123,9 @@ object ConnectoApiClient {
                     if (!u.isNullOrBlank()) {
                         setRequestProperty("X-User-Username", u.trim().lowercase().removePrefix("@"))
                     }
+                    val devName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim()
+                    setRequestProperty("X-Device-Name", devName)
+                    setRequestProperty("X-Device-OS", "Android ${android.os.Build.VERSION.RELEASE}")
                 }
 
                 if (body != null && (method == "POST" || method == "PUT" || method == "PATCH")) {

@@ -1053,3 +1053,75 @@ async def legacy_resend_otp(req: LegacyResendOtpRequest, db: AsyncSession = Depe
     dest = user.phone_number if method == "sms" and user.phone_number else user.email
     return await send_unified_otp(db=db, identifier=dest, method=method, purpose="two_factor_login", user_id=user.id)
 
+
+class VerifyOldPasswordPayload(BaseModel):
+    username: Optional[str] = None
+    old_password: str
+
+class ChangePasswordPayload(BaseModel):
+    username: Optional[str] = None
+    old_password: str
+    new_password: str
+
+@router.post("/verify-old-password", status_code=status.HTTP_200_OK)
+async def verify_old_password_endpoint(
+    req: VerifyOldPasswordPayload,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    target_user = current_user
+    if not target_user and req.username:
+        target_user = await find_user_by_identifier(db, req.username)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
+    
+    clean_pwd = (req.old_password or "").strip()
+    is_valid = verify_password(target_user.password_hash, req.old_password)
+    if not is_valid and clean_pwd != req.old_password:
+        is_valid = verify_password(target_user.password_hash, clean_pwd)
+    
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect old password.")
+    
+    return {
+        "status": "ok",
+        "valid": True,
+        "message": "Old password verified successfully! You may now enter your new password."
+    }
+
+@router.post("/change-password", status_code=status.HTTP_200_OK)
+async def change_password_endpoint(
+    req: ChangePasswordPayload,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
+    target_user = current_user
+    if not target_user and req.username:
+        target_user = await find_user_by_identifier(db, req.username)
+    if not target_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
+
+    if not req.old_password or not req.new_password:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Both old and new passwords are required.")
+    
+    if len(req.new_password) < 4:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 4 characters long.")
+
+    clean_pwd = (req.old_password or "").strip()
+    is_valid = verify_password(target_user.password_hash, req.old_password)
+    if not is_valid and clean_pwd != req.old_password:
+        is_valid = verify_password(target_user.password_hash, clean_pwd)
+    
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect old password.")
+
+    target_user.password_hash = hash_password(req.new_password)
+    await db.commit()
+
+    return {
+        "status": "ok",
+        "message": "Password changed successfully in the database! You can now log in or unlock with your new password.",
+        "username": target_user.username
+    }
+
+

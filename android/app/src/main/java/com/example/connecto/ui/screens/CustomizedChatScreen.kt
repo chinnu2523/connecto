@@ -47,10 +47,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -103,6 +106,9 @@ import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
 import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -196,6 +202,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.network.ProfileDataDto
+import com.example.connecto.network.PinnedMessageDto
 import java.util.UUID
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
@@ -448,7 +455,8 @@ data class FriendItem(
     val memberCount: Int = 0,
     val members: List<String> = emptyList(),
     val admin: String = "",
-    val creator: String = ""
+    val creator: String = "",
+    val lastMessageTimestamp: Long = 0L
 )
 
 data class CustomMessageItem(
@@ -553,6 +561,7 @@ fun CustomizedChatScreen(
     val friendPrefs = remember { context.getSharedPreferences("connecto_friend_prefs", Context.MODE_PRIVATE) }
     val notifPrefs = remember { context.getSharedPreferences("connecto_notifications_prefs", Context.MODE_PRIVATE) }
     val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
+    val myUsername = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
 
     // Friend Profile Preview Lightbox & Per-Chat Preferences
     var showPhotoLightbox by remember { mutableStateOf(false) }
@@ -859,6 +868,7 @@ fun CustomizedChatScreen(
                     val unread = readPrefs.getInt("unread_${f.friendId}", 0)
                     val lastMsg = readPrefs.getString("last_msg_${f.friendId}", "Direct chat active • Tap to message") ?: "Direct chat active • Tap to message"
                     val time = formatIsoTime(readPrefs.getString("last_time_${f.friendId}", "Active") ?: "Active")
+                    val lastTs = readPrefs.getLong("last_timestamp_${f.friendId}", 0L)
                     val isFriendOnline = f.isOnline && !f.isStealth
                     FriendItem(
                         id = f.friendId.ifBlank { f.id },
@@ -872,7 +882,8 @@ fun CustomizedChatScreen(
                         unreadCount = unread,
                         isOnline = isFriendOnline,
                         avatarUrl = f.friendAvatarUrl,
-                        bannerUrl = null
+                        bannerUrl = null,
+                        lastMessageTimestamp = lastTs
                     )
                 }
 
@@ -885,7 +896,13 @@ fun CustomizedChatScreen(
                 friendsList.removeAll { it.id !in newIds }
                 for (item in mapped) {
                     val idx = friendsList.indexOfFirst { it.id == item.id }
-                    if (idx == -1) friendsList.add(item) else friendsList[idx] = item
+                    if (idx == -1) {
+                        friendsList.add(item)
+                    } else {
+                        val existingTs = friendsList[idx].lastMessageTimestamp
+                        val effectiveTs = maxOf(existingTs, item.lastMessageTimestamp)
+                        friendsList[idx] = item.copy(lastMessageTimestamp = effectiveTs)
+                    }
                 }
                 isFriendsLoadedOnce = true
 
@@ -934,6 +951,9 @@ fun CustomizedChatScreen(
                         val init = if (g.name.isNotBlank()) g.name.first().toString().uppercase() else "G"
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
                         val isCreated = g.isCreatedByMe || g.description.contains(effUsername, ignoreCase = true) || g.admin.lowercase().removePrefix("@") == myUsernameLower
+                        val gLastMsg = readPrefs.getString("last_msg_${g.id}", "Group Chat • Tap to open and talk") ?: "Group Chat • Tap to open and talk"
+                        val gTime = formatIsoTime(readPrefs.getString("last_time_${g.id}", "Active") ?: "Active")
+                        val gTs = readPrefs.getLong("last_timestamp_${g.id}", 0L)
                         FriendItem(
                             id = g.id,
                             name = g.name,
@@ -941,8 +961,8 @@ fun CustomizedChatScreen(
                             initial = init,
                             status = "$count members • ${if (isCreated) "Created Group" else "Joined Group"}",
                             bio = g.description.ifBlank { "Connecto Group Chat • $count members" },
-                            lastMessage = "Group Chat • Tap to open and talk",
-                            timeAgo = "Active",
+                            lastMessage = gLastMsg,
+                            timeAgo = gTime,
                             unreadCount = 0,
                             isOnline = false,
                             avatarUrl = g.iconUrl,
@@ -951,14 +971,21 @@ fun CustomizedChatScreen(
                             memberCount = count,
                             members = g.members,
                             admin = g.admin,
-                            creator = g.creator
+                            creator = g.creator,
+                            lastMessageTimestamp = gTs
                         )
                     }
                     val gIds = mappedGroups.map { it.id }.toSet()
                     userGroupsList.removeAll { it.id !in gIds }
                     for (item in mappedGroups) {
                         val idx = userGroupsList.indexOfFirst { it.id == item.id }
-                        if (idx == -1) userGroupsList.add(item) else userGroupsList[idx] = item
+                        if (idx == -1) {
+                            userGroupsList.add(item)
+                        } else {
+                            val existingTs = userGroupsList[idx].lastMessageTimestamp
+                            val effectiveTs = maxOf(existingTs, item.lastMessageTimestamp)
+                            userGroupsList[idx] = item.copy(lastMessageTimestamp = effectiveTs)
+                        }
                     }
                     if (selectedFriend != null && selectedFriend!!.isGroup && userGroupsList.none { it.id == selectedFriend!!.id }) {
                         selectedFriend = null
@@ -1020,8 +1047,9 @@ fun CustomizedChatScreen(
                 "ADDED_GROUPS" -> userGroupsList.filter { !it.isCreatedByMe }
                 else -> friendsList.toList() + userGroupsList.toList()
             }
-            if (friendSearchQuery.isBlank()) baseList
-            else baseList.filter {
+            val sortedList = baseList.sortedByDescending { it.lastMessageTimestamp }
+            if (friendSearchQuery.isBlank()) sortedList
+            else sortedList.filter {
                 it.name.contains(friendSearchQuery, ignoreCase = true) || it.handle.contains(friendSearchQuery, ignoreCase = true)
             }
         }
@@ -1032,6 +1060,9 @@ fun CustomizedChatScreen(
     var friendMessages by remember {
         mutableStateOf<List<CustomMessageItem>>(emptyList())
     }
+    var pinnedMessageForChat by remember { mutableStateOf<PinnedMessageDto?>(null) }
+    var messageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
+    var showMessageActionDialog by remember { mutableStateOf(false) }
 
     // Handle System Back button when in 1:1 direct chat
     BackHandler(enabled = selectedFriend != null) {
@@ -1045,6 +1076,9 @@ fun CustomizedChatScreen(
         typedMessage = ""
         selectedFriend = null
         activeDmChannelId = null
+        pinnedMessageForChat = null
+        messageForAction = null
+        showMessageActionDialog = false
         isLoadingMessages = false
         VoiceCallManager.activeChatRoomOrFriend = null
         onDirectChatStateChanged(false)
@@ -1238,18 +1272,45 @@ fun CustomizedChatScreen(
                 }
 
                 // Update friends list entry — current chat always has 0 unread
+                val currentTs = System.currentTimeMillis()
                 val fIdx = friendsList.indexOfFirst {
                     it.id == currentFriend!!.id || it.handle.removePrefix("@").equals(currentFriend!!.handle.removePrefix("@"), ignoreCase = true)
                 }
                 if (fIdx != -1) {
-                    friendsList[fIdx] = friendsList[fIdx].copy(
+                    val updated = friendsList[fIdx].copy(
                         lastMessage = dto.content,
                         timeAgo = formatIsoTime(dto.createdAt),
-                        unreadCount = 0
+                        unreadCount = 0,
+                        lastMessageTimestamp = currentTs
                     )
+                    friendsList.removeAt(fIdx)
+                    friendsList.add(0, updated)
+                    readPrefs.edit()
+                        .putString("last_msg_${updated.id}", dto.content)
+                        .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
+                        .putLong("last_timestamp_${updated.id}", currentTs)
+                        .apply()
+                } else {
+                    val gIdx = userGroupsList.indexOfFirst { it.id == currentFriend!!.id }
+                    if (gIdx != -1) {
+                        val updated = userGroupsList[gIdx].copy(
+                            lastMessage = dto.content,
+                            timeAgo = formatIsoTime(dto.createdAt),
+                            unreadCount = 0,
+                            lastMessageTimestamp = currentTs
+                        )
+                        userGroupsList.removeAt(gIdx)
+                        userGroupsList.add(0, updated)
+                        readPrefs.edit()
+                            .putString("last_msg_${updated.id}", dto.content)
+                            .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
+                            .putLong("last_timestamp_${updated.id}", currentTs)
+                            .apply()
+                    }
                 }
             } else if (!isMe) {
-                // Incoming message for another friend — ONLY increment if NOT sent by myself
+                // Incoming message for another friend or group — ONLY increment if NOT sent by myself
+                val currentTs = System.currentTimeMillis()
                 val fIdx = friendsList.indexOfFirst {
                     val h = it.handle.removePrefix("@").trim().lowercase()
                     h == authorClean || it.name.trim().lowercase() == authorNameClean || h == authorNameClean
@@ -1257,17 +1318,40 @@ fun CustomizedChatScreen(
                 if (fIdx != -1) {
                     val targetFriend = friendsList[fIdx]
                     val newUnread = targetFriend.unreadCount + 1
-                    friendsList[fIdx] = targetFriend.copy(
+                    val updated = targetFriend.copy(
                         lastMessage = dto.content,
                         timeAgo = formatIsoTime(dto.createdAt),
-                        unreadCount = newUnread
+                        unreadCount = newUnread,
+                        lastMessageTimestamp = currentTs
                     )
+                    friendsList.removeAt(fIdx)
+                    friendsList.add(0, updated)
                     readPrefs.edit()
                         .putString("last_msg_${targetFriend.id}", dto.content)
                         .putString("last_time_${targetFriend.id}", formatIsoTime(dto.createdAt))
                         .putInt("unread_${targetFriend.id}", newUnread)
+                        .putLong("last_timestamp_${targetFriend.id}", currentTs)
                         .apply()
                     onUnreadStatusChanged(true)
+                } else {
+                    val gIdx = userGroupsList.indexOfFirst {
+                        it.id.equals(dtoChannelClean, ignoreCase = true) || it.name.trim().lowercase() == dtoChannelClean
+                    }
+                    if (gIdx != -1) {
+                        val targetGroup = userGroupsList[gIdx]
+                        val updated = targetGroup.copy(
+                            lastMessage = dto.content,
+                            timeAgo = formatIsoTime(dto.createdAt),
+                            lastMessageTimestamp = currentTs
+                        )
+                        userGroupsList.removeAt(gIdx)
+                        userGroupsList.add(0, updated)
+                        readPrefs.edit()
+                            .putString("last_msg_${targetGroup.id}", dto.content)
+                            .putString("last_time_${targetGroup.id}", formatIsoTime(dto.createdAt))
+                            .putLong("last_timestamp_${targetGroup.id}", currentTs)
+                            .apply()
+                    }
                 }
             }
         }
@@ -1401,8 +1485,12 @@ fun CustomizedChatScreen(
                     )
                 }
 
+                val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
+                val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
                 val lastFriendMsgTime = mappedCached.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
-                val resolvedCached = mappedCached.map { msg ->
+                val resolvedCached = mappedCached
+                    .filter { it.id !in deletedSet }
+                    .map { msg ->
                     if (msg.isMe) {
                         if (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime) {
                             msg.copy(isDelivered = true, isRead = true)
@@ -1420,6 +1508,38 @@ fun CustomizedChatScreen(
             } else {
                 friendMessages = emptyList()
                 isLoadingMessages = true
+            }
+
+            // Fetch pinned message for this conversation
+            val pinChannelId = if (friend.isGroup) friend.id else canonicalName
+            val cachedPinId = friendPrefs.getString("pinned_msg_${friend.id}", null)
+            val cachedPinContent = friendPrefs.getString("pinned_content_${friend.id}", null)
+            val cachedPinAuthor = friendPrefs.getString("pinned_author_${friend.id}", null)
+            if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
+                pinnedMessageForChat = PinnedMessageDto(
+                    messageId = cachedPinId,
+                    channelId = pinChannelId,
+                    authorName = cachedPinAuthor ?: "Pinned",
+                    content = cachedPinContent,
+                    pinnedBy = "",
+                    pinnedAt = ""
+                )
+            }
+            coroutineScope.launch {
+                val serverPinRes = ConnectoApiClient.getPinnedMessage(pinChannelId)
+                if (serverPinRes.isSuccess) {
+                    val serverPin = serverPinRes.getOrNull()
+                    if (serverPin != null) {
+                        pinnedMessageForChat = serverPin
+                        friendPrefs.edit()
+                            .putString("pinned_msg_${friend.id}", serverPin.messageId)
+                            .putString("pinned_content_${friend.id}", serverPin.content)
+                            .putString("pinned_author_${friend.id}", serverPin.authorName)
+                            .apply()
+                    } else if (cachedPinId == null) {
+                        pinnedMessageForChat = null
+                    }
+                }
             }
 
             // Immediately subscribe to channel over WebSocket
@@ -1608,7 +1728,12 @@ fun CustomizedChatScreen(
                                         true
                                     }
                                 }
-                                val merged = (mappedResolved + unconfirmedLocal).distinctBy { it.id }.sortedBy { it.timestampMillis }
+                                val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
+                                val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
+                                val merged = (mappedResolved + unconfirmedLocal)
+                                    .filter { it.id !in deletedSet }
+                                    .distinctBy { it.id }
+                                    .sortedBy { it.timestampMillis }
                                 if (friendMessages != merged) {
                                     friendMessages = merged
                                 }
@@ -1622,19 +1747,22 @@ fun CustomizedChatScreen(
                                 }
 
                                 // Update last message in friends list and persist
-                                val last = merged.last()
-                                val fIdx = friendsList.indexOfFirst { it.id == friend.id || it.handle.removePrefix("@").equals(friend.handle.removePrefix("@"), ignoreCase = true) }
-                                if (fIdx != -1) {
-                                    friendsList[fIdx] = friendsList[fIdx].copy(
-                                        lastMessage = last.content,
-                                        timeAgo = last.time,
-                                        unreadCount = 0
-                                    )
-                                    readPrefs.edit()
-                                        .putString("last_msg_${friend.id}", last.content)
-                                        .putString("last_time_${friend.id}", last.time)
-                                        .putInt("unread_${friend.id}", 0)
-                                        .apply()
+                                if (merged.isNotEmpty()) {
+                                    val last = merged.last()
+                                    val fIdx = friendsList.indexOfFirst { it.id == friend.id || it.handle.removePrefix("@").equals(friend.handle.removePrefix("@"), ignoreCase = true) }
+                                    if (fIdx != -1) {
+                                        val updated = friendsList[fIdx].copy(
+                                            lastMessage = last.content,
+                                            timeAgo = last.time,
+                                            lastMessageTimestamp = last.timestampMillis
+                                        )
+                                        friendsList[fIdx] = updated
+                                        readPrefs.edit()
+                                            .putString("last_msg_${updated.id}", last.content)
+                                            .putString("last_time_${updated.id}", last.time)
+                                            .putLong("last_timestamp_${updated.id}", last.timestampMillis)
+                                            .apply()
+                                    }
                                 }
                             } else {
                                 // Server returned empty: NEVER wipe existing local cached or user messages.
@@ -3624,6 +3752,126 @@ fun CustomizedChatScreen(
                         Column(
                             modifier = Modifier.fillMaxSize()
                         ) {
+                            // Pinned Message Banner at top of chat
+                            AnimatedVisibility(
+                                visible = pinnedMessageForChat != null,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val pinned = pinnedMessageForChat
+                                if (pinned != null) {
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                            .clip(RoundedCornerShape(14.dp))
+                                            .clickable {
+                                                val targetIdx = friendMessages.indexOfFirst { it.id == pinned.messageId }
+                                                if (targetIdx != -1) {
+                                                    coroutineScope.launch {
+                                                        listState.animateScrollToItem(targetIdx)
+                                                    }
+                                                }
+                                            },
+                                        color = if (isLiquidGlassTheme || isGlassTheme) {
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                                        } else if (isPureBlack) {
+                                            Color(0xFF18181B)
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        },
+                                        shape = RoundedCornerShape(14.dp),
+                                        tonalElevation = 2.dp,
+                                        shadowElevation = 2.dp
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PushPin,
+                                                    contentDescription = "Pinned",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "PINNED MESSAGE",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            letterSpacing = 0.8.sp
+                                                        ),
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    if (pinned.authorName.isNotBlank()) {
+                                                        Text(
+                                                            text = " • ${pinned.authorName}",
+                                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Medium
+                                                            ),
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = pinned.content,
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(28.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable {
+                                                        val activeChan = activeDmChannelId
+                                                        val currentFriend = selectedFriend
+                                                        pinnedMessageForChat = null
+                                                        if (currentFriend != null) {
+                                                            friendPrefs.edit()
+                                                                .remove("pinned_msg_${currentFriend.id}")
+                                                                .remove("pinned_content_${currentFriend.id}")
+                                                                .remove("pinned_author_${currentFriend.id}")
+                                                                .apply()
+                                                        }
+                                                        if (activeChan != null) {
+                                                            coroutineScope.launch {
+                                                                ConnectoApiClient.unpinMessage(activeChan)
+                                                            }
+                                                        }
+                                                    },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Unpin",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
@@ -3782,7 +4030,11 @@ fun CustomizedChatScreen(
                                                     ownText = ownBubbleText,
                                                     friendBg = friendBubbleBg,
                                                     friendBorder = friendBubbleBorder,
-                                                    friendText = friendBubbleText
+                                                    friendText = friendBubbleText,
+                                                    onEmptySideLongPress = { targetMsg ->
+                                                        messageForAction = targetMsg
+                                                        showMessageActionDialog = true
+                                                    }
                                                 )
                                             }
                                         }
@@ -4248,6 +4500,45 @@ fun CustomizedChatScreen(
                                     friendMessages = updatedList
                                     isLoadingMessages = false
 
+                                    // Move current friend/group to index 0 of conversations list with latest message and timestamp
+                                    selectedFriend?.let { friend ->
+                                        val fIdx = friendsList.indexOfFirst {
+                                            it.id == friend.id || it.handle.removePrefix("@").equals(friend.handle.removePrefix("@"), ignoreCase = true)
+                                        }
+                                        if (fIdx != -1) {
+                                            val updated = friendsList[fIdx].copy(
+                                                lastMessage = userMsg,
+                                                timeAgo = "Just now",
+                                                unreadCount = 0,
+                                                lastMessageTimestamp = nowMillis
+                                            )
+                                            friendsList.removeAt(fIdx)
+                                            friendsList.add(0, updated)
+                                            readPrefs.edit()
+                                                .putString("last_msg_${updated.id}", userMsg)
+                                                .putString("last_time_${updated.id}", "Just now")
+                                                .putLong("last_timestamp_${updated.id}", nowMillis)
+                                                .apply()
+                                        } else {
+                                            val gIdx = userGroupsList.indexOfFirst { it.id == friend.id }
+                                            if (gIdx != -1) {
+                                                val updated = userGroupsList[gIdx].copy(
+                                                    lastMessage = userMsg,
+                                                    timeAgo = "Just now",
+                                                    unreadCount = 0,
+                                                    lastMessageTimestamp = nowMillis
+                                                )
+                                                userGroupsList.removeAt(gIdx)
+                                                userGroupsList.add(0, updated)
+                                                readPrefs.edit()
+                                                    .putString("last_msg_${updated.id}", userMsg)
+                                                    .putString("last_time_${updated.id}", "Just now")
+                                                    .putLong("last_timestamp_${updated.id}", nowMillis)
+                                                    .apply()
+                                            }
+                                        }
+                                    }
+
                                     // Instantly scroll to the bottom on sending message - zero lag, zero page load
                                     coroutineScope.launch {
                                         try { listState.scrollToItem(updatedList.size) } catch (_: Exception) {}
@@ -4426,6 +4717,221 @@ fun CustomizedChatScreen(
             }
         }
     }
+    if (showMessageActionDialog && messageForAction != null) {
+        val targetMsg = messageForAction!!
+        AlertDialog(
+            onDismissRequest = {
+                showMessageActionDialog = false
+                messageForAction = null
+            },
+            title = {
+                Text(
+                    text = "Message Options",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Preview snippet of the message
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = targetMsg.content,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Option 1: Pin
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                val currentFriend = selectedFriend
+                                val chanId = activeDmChannelId
+                                val msgId = targetMsg.id
+                                val authorName = targetMsg.senderName.ifBlank { "Message" }
+                                val content = targetMsg.content
+
+                                pinnedMessageForChat = PinnedMessageDto(
+                                    messageId = msgId,
+                                    channelId = chanId ?: "",
+                                    authorName = authorName,
+                                    content = content,
+                                    pinnedBy = myUsername,
+                                    pinnedAt = System.currentTimeMillis().toString()
+                                )
+                                if (currentFriend != null) {
+                                    friendPrefs.edit()
+                                        .putString("pinned_msg_${currentFriend.id}", msgId)
+                                        .putString("pinned_content_${currentFriend.id}", content)
+                                        .putString("pinned_author_${currentFriend.id}", authorName)
+                                        .apply()
+                                }
+                                if (chanId != null) {
+                                    coroutineScope.launch {
+                                        ConnectoApiClient.pinMessage(chanId, msgId, myUsername)
+                                    }
+                                }
+                                showMessageActionDialog = false
+                                messageForAction = null
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PushPin,
+                                    contentDescription = "Pin",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Pin",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Pin to top of chat",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Option 2: Delete (Delete for me)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                val msgId = targetMsg.id
+                                val chanId = activeDmChannelId
+
+                                // 1. Update in-memory state: filter out this message
+                                friendMessages = friendMessages.filterNot { it.id == msgId }
+
+                                // 2. If it was the pinned message, remove pin
+                                if (pinnedMessageForChat?.messageId == msgId) {
+                                    pinnedMessageForChat = null
+                                    selectedFriend?.let { f ->
+                                        friendPrefs.edit()
+                                            .remove("pinned_msg_${f.id}")
+                                            .remove("pinned_content_${f.id}")
+                                            .remove("pinned_author_${f.id}")
+                                            .apply()
+                                    }
+                                    if (chanId != null) {
+                                        coroutineScope.launch {
+                                            ConnectoApiClient.unpinMessage(chanId)
+                                        }
+                                    }
+                                }
+
+                                // 3. Save to local deleted_for_me set so it won't reload
+                                val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())
+                                    ?.toMutableSet() ?: mutableSetOf()
+                                deletedSet.add(msgId)
+                                friendPrefs.edit()
+                                    .putStringSet("deleted_for_me_$myUsername", deletedSet)
+                                    .apply()
+
+                                // 4. Remove from local SQLite database
+                                try {
+                                    dbHelper.deleteMessage(msgId)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+
+                                // 5. Call backend API to record deletion for me only
+                                coroutineScope.launch {
+                                    ConnectoApiClient.deleteMessageForMe(msgId, myUsername)
+                                }
+
+                                showMessageActionDialog = false
+                                messageForAction = null
+                            },
+                        color = Color(0xFFEF4444).copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "Delete",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Delete",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                    color = Color(0xFFEF4444)
+                                )
+                                Text(
+                                    text = "Delete for me only",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFFEF4444).copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showMessageActionDialog = false
+                        messageForAction = null
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 }
 
@@ -4437,6 +4943,7 @@ fun CustomChatBubble(
     friendBg: Color,
     friendBorder: Color,
     friendText: Color,
+    onEmptySideLongPress: (CustomMessageItem) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showReactionPill by remember { mutableStateOf(false) }
@@ -4450,10 +4957,29 @@ fun CustomChatBubble(
     )
 
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
         horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
+        if (message.isMe) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .defaultMinSize(minHeight = 44.dp)
+                    .pointerInput(message.id) {
+                        detectTapGestures(
+                            onLongPress = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onEmptySideLongPress(message)
+                            }
+                        )
+                    }
+            )
+        }
+
         if (!message.isMe) {
             ConnectoAvatar(
                 name = message.senderName,
@@ -4816,6 +5342,22 @@ fun CustomChatBubble(
                     }
                 }
             }
+        }
+        if (!message.isMe) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .defaultMinSize(minHeight = 44.dp)
+                    .pointerInput(message.id) {
+                        detectTapGestures(
+                            onLongPress = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onEmptySideLongPress(message)
+                            }
+                        )
+                    }
+            )
         }
     }
 }

@@ -130,6 +130,8 @@ class MainActivity : FragmentActivity() {
             window.navigationBarColor = android.graphics.Color.parseColor("#000000")
         }
         com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
+        // Ensure legacy Connecto Active foreground notification is removed and its channel deleted
+        com.example.connecto.notifications.ConnectoRealtimeService.dismissConnectoActiveNotification(this)
         // Schedule message purge on background IO thread (not in onOpen which blocks Main thread)
         com.example.connecto.data.ConnectoDatabaseHelper.getInstance(this).schedulePurgeAsync()
 
@@ -473,8 +475,6 @@ fun ConnectoApp(
             if (event == Lifecycle.Event.ON_STOP) {
                 val isLoggedIn = prefs.getBoolean("is_logged_in", false)
                 if (isLoggedIn) {
-                    // Keep WebSocket and persistent real-time background service running so incoming calls & notifications work when app is closed!
-                    com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
                     com.example.connecto.voice.VoiceCallManager.connectWebSocket()
                 }
             } else if (event == Lifecycle.Event.ON_START) {

@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     session_token_hash TEXT NOT NULL UNIQUE,
     ip_address TEXT DEFAULT NULL,
     user_agent TEXT DEFAULT NULL,
+    device_name TEXT DEFAULT NULL,
+    location TEXT DEFAULT NULL,
+    last_active_at TEXT DEFAULT NULL,
     expires_at TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -54,6 +57,12 @@ CREATE TABLE IF NOT EXISTS user_sessions (
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_expires ON user_sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token_hash);
+
+-- Terminated sessions blacklist for immediate token invalidation
+CREATE TABLE IF NOT EXISTS terminated_sessions (
+    session_token_hash TEXT PRIMARY KEY,
+    terminated_at TEXT DEFAULT (datetime('now'))
+);
 
 -- Multi-Factor & Verification OTPs
 CREATE TABLE IF NOT EXISTS otp_verifications (

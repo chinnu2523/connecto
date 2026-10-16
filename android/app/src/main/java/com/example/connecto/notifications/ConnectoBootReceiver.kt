@@ -6,8 +6,7 @@ import android.content.Intent
 import android.util.Log
 
 /**
- * Starts ConnectoRealtimeService after device boot, app update, or task removal
- * so real-time calls and notifications continue working when the app is closed.
+ * Receiver for device boot and app update to clear any legacy notifications.
  */
 class ConnectoBootReceiver : BroadcastReceiver() {
 
@@ -19,11 +18,6 @@ class ConnectoBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val action = intent?.action ?: return
         Log.d(TAG, "ConnectoBootReceiver received action: $action")
-        if (action == Intent.ACTION_BOOT_COMPLETED ||
-            action == Intent.ACTION_MY_PACKAGE_REPLACED ||
-            action == ACTION_RESTART_SERVICE
-        ) {
-            ConnectoRealtimeService.startService(context)
-        }
+        ConnectoRealtimeService.dismissConnectoActiveNotification(context)
     }
 }

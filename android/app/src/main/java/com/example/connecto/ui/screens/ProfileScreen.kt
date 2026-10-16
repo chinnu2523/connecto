@@ -128,6 +128,13 @@ import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Smartphone
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -183,6 +190,8 @@ import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ConnectoTopHeader
 import com.example.connecto.ui.components.LiquidGlassTransparencyBar
 import com.example.connecto.ui.theme.OnlineGreen
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import com.example.connecto.ui.theme.TextDisabledColor
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
@@ -229,7 +238,7 @@ enum class ProfileSubPage(
     ),
     TWO_FACTOR_SECURITY(
         title = "Two-Factor & Security",
-        subtitle = "Email 2FA verification & instant inbox recovery",
+        subtitle = "Change password & email 2FA verification",
         icon = Icons.Default.Shield
     ),
     BIOMETRIC_LOCK(
@@ -347,6 +356,12 @@ fun ProfileScreen(
     }
     var revealEmail by remember { mutableStateOf(false) }
     var changeContactTarget by remember { mutableStateOf<String?>(null) } // "email" only
+
+    var activeSessions by remember { mutableStateOf<List<com.example.connecto.network.UserSessionDto>>(emptyList()) }
+    var isLoadingSessions by remember { mutableStateOf(false) }
+    var terminatingSessionId by remember { mutableStateOf<String?>(null) }
+    var isTerminatingOtherSessions by remember { mutableStateOf(false) }
+    var sessionErrorMessage by remember { mutableStateOf<String?>(null) }
 
     var showForgotPasswordDialog by rememberSaveable { mutableStateOf(false) }
     var show2FaSetupDialog by rememberSaveable { mutableStateOf(false) }
@@ -495,6 +510,70 @@ fun ProfileScreen(
 
     // Active dedicated sub-page (null = main profile menu, non-null = dedicated sub-screen)
     var activeSubPage by rememberSaveable { mutableStateOf<ProfileSubPage?>(null) }
+
+    fun refreshUserSessions() {
+        coroutineScope.launch {
+            isLoadingSessions = true
+            sessionErrorMessage = null
+            try {
+                val res = ConnectoApiClient.getUserSessions()
+                if (res.isSuccess) {
+                    activeSessions = res.getOrThrow()
+                } else {
+                    sessionErrorMessage = res.exceptionOrNull()?.message ?: "Failed to fetch active sessions"
+                }
+            } catch (e: Exception) {
+                sessionErrorMessage = e.message
+            } finally {
+                isLoadingSessions = false
+            }
+        }
+    }
+
+    LaunchedEffect(activeSubPage) {
+        if (activeSubPage == ProfileSubPage.TWO_FACTOR_SECURITY) {
+            refreshUserSessions()
+        }
+    }
+
+    val onTerminateSession: (String) -> Unit = { sessId ->
+        coroutineScope.launch {
+            terminatingSessionId = sessId
+            try {
+                val res = ConnectoApiClient.terminateSession(sessId)
+                if (res.isSuccess) {
+                    activeSessions = activeSessions.filter { it.id != sessId }
+                    Toast.makeText(context, "Session logged out successfully", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, res.exceptionOrNull()?.message ?: "Failed to terminate session", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                terminatingSessionId = null
+            }
+        }
+    }
+
+    val onTerminateOtherSessions: () -> Unit = {
+        coroutineScope.launch {
+            isTerminatingOtherSessions = true
+            try {
+                val res = ConnectoApiClient.terminateOtherSessions()
+                if (res.isSuccess) {
+                    val count = res.getOrThrow()
+                    activeSessions = activeSessions.filter { it.isCurrent }
+                    Toast.makeText(context, "Logged out of $count other session(s)", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, res.exceptionOrNull()?.message ?: "Failed to log out of other sessions", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+            } finally {
+                isTerminatingOtherSessions = false
+            }
+        }
+    }
 
     // Saved feedback banner
     var showSavedBadge by remember { mutableStateOf(false) }
@@ -1879,6 +1958,14 @@ fun ProfileScreen(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
+                                    // ================= CHANGE PASSWORD FEATURE =================
+                                    PersonalDetailsChangePasswordSection(
+                                        username = currentUsernameState,
+                                        context = context
+                                    )
+
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
+
                                     // 1. Password Reset Action
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -2140,6 +2227,21 @@ fun ProfileScreen(
                                     }
                                 }
                             }
+                                }
+
+                                item(key = "sub_logged_in_sessions") {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    LoggedInSessionsCard(
+                                        sessions = activeSessions,
+                                        isLoading = isLoadingSessions,
+                                        errorMessage = sessionErrorMessage,
+                                        terminatingSessionId = terminatingSessionId,
+                                        isTerminatingAllOthers = isTerminatingOtherSessions,
+                                        onRefresh = { refreshUserSessions() },
+                                        onTerminateSession = onTerminateSession,
+                                        onTerminateAllOthers = onTerminateOtherSessions,
+                                        hasCoverPhoto = hasCoverPhoto
+                                    )
                                 }
                             }
                             ProfileSubPage.BIOMETRIC_LOCK -> {
@@ -5197,4 +5299,783 @@ private fun ProfileSubPageHeroCard(
             }
         }
 }
+
+// ---------------------------------------------------------------------------
+// Personal Details: Change Password Component
+// ---------------------------------------------------------------------------
+@Composable
+private fun PersonalDetailsChangePasswordSection(
+    username: String,
+    context: Context
+) {
+    val coroutineScope = rememberCoroutineScope()
+    var oldPassword by remember { mutableStateOf("") }
+    var isOldPasswordVerified by remember { mutableStateOf(false) }
+    var isVerifyingOldPassword by remember { mutableStateOf(false) }
+    var oldPasswordError by remember { mutableStateOf<String?>(null) }
+    var oldPasswordVisible by remember { mutableStateOf(false) }
+
+    var newPassword by remember { mutableStateOf("") }
+    var newPasswordVisible by remember { mutableStateOf(false) }
+
+    var reenterPassword by remember { mutableStateOf("") }
+    var reenterPasswordVisible by remember { mutableStateOf(false) }
+
+    var isChangingPassword by remember { mutableStateOf(false) }
+    var changePasswordSuccessMsg by remember { mutableStateOf<String?>(null) }
+    var changePasswordErrorMsg by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+            .border(
+                1.dp,
+                if (isOldPasswordVerified) MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                RoundedCornerShape(16.dp)
+            )
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.LockReset,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Change Password",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            if (isOldPasswordVerified) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(OnlineGreen.copy(alpha = 0.2f))
+                        .border(1.dp, OnlineGreen.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "OLD PASSWORD VERIFIED",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = OnlineGreen
+                    )
+                }
+            }
+        }
+
+        Text(
+            text = if (isOldPasswordVerified)
+                "Current password confirmed. Enter and confirm your new password below."
+            else
+                "Enter your current password and tap Verify to unlock new password fields.",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+            lineHeight = 16.sp
+        )
+
+        // 1. Old Password Field & Side Verify Button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = oldPassword,
+                onValueChange = {
+                    oldPassword = it
+                    oldPasswordError = null
+                    changePasswordErrorMsg = null
+                },
+                enabled = !isOldPasswordVerified && !isVerifyingOldPassword,
+                label = { Text("Old Password", fontSize = 12.sp) },
+                singleLine = true,
+                visualTransformation = if (oldPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    IconButton(onClick = { oldPasswordVisible = !oldPasswordVisible }) {
+                        Icon(
+                            imageVector = if (oldPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = "Toggle old password visibility",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                    disabledBorderColor = if (isOldPasswordVerified) OnlineGreen.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                    disabledTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1f)
+            )
+
+            // Side Verify Button
+            Button(
+                onClick = {
+                    if (oldPassword.isBlank()) {
+                        oldPasswordError = "Please enter your old password"
+                        return@Button
+                    }
+                    isVerifyingOldPassword = true
+                    oldPasswordError = null
+                    changePasswordErrorMsg = null
+                    changePasswordSuccessMsg = null
+                    coroutineScope.launch {
+                        val res = ConnectoApiClient.verifyOldPassword(username, oldPassword)
+                        isVerifyingOldPassword = false
+                        if (res.isSuccess) {
+                            isOldPasswordVerified = true
+                            oldPasswordError = null
+                            Toast.makeText(context, "Current password verified! Enter new password.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            oldPasswordError = res.exceptionOrNull()?.message ?: "Incorrect old password."
+                        }
+                    }
+                },
+                enabled = !isOldPasswordVerified && !isVerifyingOldPassword && oldPassword.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isOldPasswordVerified) OnlineGreen else MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = if (isOldPasswordVerified) OnlineGreen.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant
+                ),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(54.dp)
+            ) {
+                if (isVerifyingOldPassword) {
+                    Text("Verifying...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                } else if (isOldPasswordVerified) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Verified", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Text("Verify", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        if (oldPasswordError != null) {
+            Text(
+                text = "⚠️ $oldPasswordError",
+                color = Color(0xFFEF4444),
+                fontSize = 11.5.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(start = 4.dp)
+            )
+        }
+
+        // 2. New Password & Re-enter Password (HIGHLIGHTED when verified)
+        AnimatedVisibility(
+            visible = isOldPasswordVerified,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                    .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                    .padding(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "✨ Set New Password",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Min 4 characters",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = {
+                        newPassword = it
+                        changePasswordErrorMsg = null
+                    },
+                    label = { Text("New Password", fontSize = 12.sp) },
+                    singleLine = true,
+                    visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                            Icon(
+                                imageVector = if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = "Toggle new password visibility",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = reenterPassword,
+                    onValueChange = {
+                        reenterPassword = it
+                        changePasswordErrorMsg = null
+                    },
+                    label = { Text("Re-enter Password", fontSize = 12.sp) },
+                    singleLine = true,
+                    visualTransformation = if (reenterPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { reenterPasswordVisible = !reenterPasswordVisible }) {
+                            Icon(
+                                imageVector = if (reenterPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = "Toggle re-enter password visibility",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (changePasswordErrorMsg != null) {
+                    Text(
+                        text = "⚠️ $changePasswordErrorMsg",
+                        color = Color(0xFFEF4444),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
+                }
+
+                // 3. Confirm to Change Password Button (Under new password fields)
+                Button(
+                    onClick = {
+                        if (newPassword.isBlank()) {
+                            changePasswordErrorMsg = "Please enter a new password."
+                            return@Button
+                        }
+                        if (newPassword.length < 4) {
+                            changePasswordErrorMsg = "New password must be at least 4 characters long."
+                            return@Button
+                        }
+                        if (newPassword != reenterPassword) {
+                            changePasswordErrorMsg = "Passwords do not match. Please re-enter carefully."
+                            return@Button
+                        }
+                        isChangingPassword = true
+                        changePasswordErrorMsg = null
+                        coroutineScope.launch {
+                            val res = ConnectoApiClient.changePassword(username, oldPassword, newPassword)
+                            isChangingPassword = false
+                            if (res.isSuccess) {
+                                changePasswordSuccessMsg = res.getOrNull() ?: "Password changed successfully in the database!"
+                                oldPassword = ""
+                                newPassword = ""
+                                reenterPassword = ""
+                                isOldPasswordVerified = false
+                                Toast.makeText(context, "Password updated in database! Use your new password to open/login.", Toast.LENGTH_LONG).show()
+                            } else {
+                                changePasswordErrorMsg = res.exceptionOrNull()?.message ?: "Failed to change password."
+                            }
+                        }
+                    },
+                    enabled = !isChangingPassword && newPassword.isNotBlank() && reenterPassword.isNotBlank(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                ) {
+                    if (isChangingPassword) {
+                        Text("Updating Password...", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Confirm to change password", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (changePasswordSuccessMsg != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(OnlineGreen.copy(alpha = 0.15f))
+                    .border(1.dp, OnlineGreen.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                    .padding(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = OnlineGreen, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = changePasswordSuccessMsg!!,
+                        color = OnlineGreen,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun LoggedInSessionsCard(
+    sessions: List<com.example.connecto.network.UserSessionDto>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    terminatingSessionId: String?,
+    isTerminatingAllOthers: Boolean,
+    onRefresh: () -> Unit,
+    onTerminateSession: (String) -> Unit,
+    onTerminateAllOthers: () -> Unit,
+    hasCoverPhoto: Boolean
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .liquidGlassCard(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = if (ConnectoTheme.isLiquidGlass) Color.Transparent
+                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                    else MaterialTheme.colorScheme.surface,
+                borderColor = if (ConnectoTheme.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                    else MaterialTheme.colorScheme.primary
+            )
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            // Header Row: Icon + Title + Refresh Button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Devices,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "Logged-In Sessions",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "Where & when your account is active",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                IconButton(
+                    onClick = onRefresh,
+                    enabled = !isLoading,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Refresh Sessions",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                thickness = 1.dp
+            )
+
+            // Content
+            if (isLoading && sessions.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp),
+                        strokeWidth = 2.5.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else if (errorMessage != null && sessions.isEmpty()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Unable to load sessions",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = errorMessage,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "TAP TO RETRY",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onRefresh() }
+                    )
+                }
+            } else if (sessions.isEmpty()) {
+                Text(
+                    text = "No active sessions recorded.",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            } else {
+                // Sessions list
+                val otherSessionsCount = sessions.count { !it.isCurrent }
+
+                sessions.forEach { session ->
+                    SessionItemRow(
+                        session = session,
+                        isTerminating = terminatingSessionId == session.id,
+                        onTerminate = { onTerminateSession(session.id) }
+                    )
+                }
+
+                // If multiple sessions or other sessions exist:
+                if (otherSessionsCount > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.3f),
+                                RoundedCornerShape(12.dp)
+                            )
+                            .clickable(enabled = !isTerminatingAllOthers) {
+                                onTerminateAllOthers()
+                            }
+                            .padding(vertical = 10.dp, horizontal = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isTerminatingAllOthers) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "LOG OUT OF OTHER SESSIONS ($otherSessionsCount)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SessionItemRow(
+    session: com.example.connecto.network.UserSessionDto,
+    isTerminating: Boolean,
+    onTerminate: () -> Unit
+) {
+    val devLower = session.deviceName.lowercase()
+    val deviceIcon = when {
+        devLower.contains("iphone") || devLower.contains("android") || devLower.contains("phone") || devLower.contains("pixel") || devLower.contains("samsung") -> Icons.Default.Smartphone
+        devLower.contains("mac") || devLower.contains("windows") || devLower.contains("pc") || devLower.contains("laptop") || devLower.contains("desktop") -> Icons.Default.Computer
+        else -> Icons.Default.Devices
+    }
+
+    val formattedTime = remember(session.createdAt, session.lastActiveAt) {
+        formatSessionTimestamp(session.createdAt, session.lastActiveAt, session.isCurrent)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(
+                if (session.isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+            )
+            .border(
+                1.dp,
+                if (session.isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                RoundedCornerShape(14.dp)
+            )
+            .padding(12.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (session.isCurrent) OnlineGreen.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = deviceIcon,
+                            contentDescription = null,
+                            tint = if (session.isCurrent) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = session.deviceName,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (session.isCurrent) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(OnlineGreen.copy(alpha = 0.18f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "THIS DEVICE",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = OnlineGreen
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        // Location
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = session.location,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+
+                // If not current session, show terminate button
+                if (!session.isCurrent) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.error.copy(alpha = 0.1f))
+                            .border(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                            .clickable(enabled = !isTerminating) { onTerminate() }
+                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isTerminating) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(12.dp),
+                                strokeWidth = 1.5.dp,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        } else {
+                            Text(
+                                text = "LOG OUT",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Footer row: Login time + IP address
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Schedule,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = formattedTime,
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (session.ipAddress.isNotBlank()) {
+                    Text(
+                        text = "IP: ${session.ipAddress}",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun formatSessionTimestamp(createdAt: String, lastActiveAt: String, isCurrent: Boolean): String {
+    if (isCurrent) return "Active Now"
+    val timeToUse = if (lastActiveAt.isNotBlank()) lastActiveAt else createdAt
+    if (timeToUse.isBlank()) return "Recently"
+
+    return try {
+        val cleanTime = timeToUse.replace("T", " ").replace("Z", "")
+        val dotIdx = cleanTime.indexOf(".")
+        val finalStr = if (dotIdx != -1) cleanTime.substring(0, dotIdx) else cleanTime
+        val sdfIn = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).apply {
+            timeZone = java.util.TimeZone.getTimeZone("UTC")
+        }
+        val date = sdfIn.parse(finalStr)
+        if (date != null) {
+            val now = System.currentTimeMillis()
+            val diff = now - date.time
+            when {
+                diff < 60_000 -> "Just now"
+                diff < 3600_000 -> "${diff / 60_000}m ago"
+                diff < 86400_000 -> "${diff / 3600_000}h ago"
+                else -> {
+                    val sdfOut = java.text.SimpleDateFormat("MMM d, yyyy 'at' h:mm a", java.util.Locale.getDefault())
+                    sdfOut.timeZone = java.util.TimeZone.getDefault()
+                    sdfOut.format(date)
+                }
+            }
+        } else {
+            "Logged in: $timeToUse"
+        }
+    } catch (_: Exception) {
+        "Logged in: $timeToUse"
+    }
+}
+
 

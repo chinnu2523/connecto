@@ -718,6 +718,100 @@ async function verifyEdgeToken(token, env) {
   return userId;
 }
 
+async function sha256Hex(str) {
+  if (!str) return "";
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function extractDeviceInfo(request, body = {}) {
+  const ua = request.headers.get("user-agent") || "";
+  const headerDevice = request.headers.get("x-device-name") || "";
+  const headerOS = request.headers.get("x-device-os") || "";
+  const bodyDevice = (body && body.device_name) || "";
+  
+  let deviceName = headerDevice || bodyDevice;
+  if (!deviceName) {
+    if (ua.includes("Android")) {
+      const match = ua.match(/Android[^;]+;\s*([^;)]+)/);
+      deviceName = match ? match[1].trim() : "Android Device";
+    } else if (ua.includes("iPhone")) {
+      deviceName = "Apple iPhone";
+    } else if (ua.includes("iPad")) {
+      deviceName = "Apple iPad";
+    } else if (ua.includes("Macintosh")) {
+      deviceName = "Apple Mac";
+    } else if (ua.includes("Windows")) {
+      deviceName = "Windows PC";
+    } else if (ua.includes("Linux")) {
+      deviceName = "Linux Desktop";
+    } else if (ua.includes("curl") || ua.includes("Postman")) {
+      deviceName = "API Client (" + ua.split("/")[0] + ")";
+    } else {
+      deviceName = "Android Mobile Device";
+    }
+  }
+
+  if (headerOS && !deviceName.includes(headerOS)) {
+    deviceName = `${deviceName} (${headerOS})`;
+  }
+
+  // IP address extraction
+  const ip = request.headers.get("cf-connecting-ip") ||
+             (request.headers.get("x-forwarded-for") ? request.headers.get("x-forwarded-for").split(",")[0].trim() : "") ||
+             request.headers.get("x-real-ip") ||
+             "127.0.0.1";
+
+  // Location extraction from Cloudflare edge geodata
+  let location = "Unknown Location";
+  if (request.cf && (request.cf.city || request.cf.country)) {
+    const parts = [];
+    if (request.cf.city) parts.push(request.cf.city);
+    if (request.cf.region && request.cf.region !== request.cf.city) parts.push(request.cf.region);
+    if (request.cf.country) parts.push(request.cf.country);
+    location = parts.join(", ");
+  } else if (ip === "127.0.0.1" || ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")) {
+    location = "Local Network";
+  }
+
+  return { deviceName, location, ip, userAgent: ua };
+}
+
+async function recordUserSession(userId, token, request, body = {}, env) {
+  if (!env || !env.DB || !userId || !token) return;
+  try {
+    const { deviceName, location, ip, userAgent } = extractDeviceInfo(request, body);
+    const hashHex = await sha256Hex(token);
+    const sessionId = "sess_" + crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 30 * 86400 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+
+    await env.DB.prepare(
+      `INSERT INTO user_sessions (id, user_id, session_token_hash, ip_address, user_agent, device_name, location, expires_at, created_at, last_active_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(session_token_hash) DO UPDATE SET
+         last_active_at = excluded.last_active_at,
+         ip_address = excluded.ip_address,
+         location = excluded.location,
+         device_name = excluded.device_name`
+    ).bind(
+      sessionId,
+      userId,
+      hashHex,
+      ip,
+      userAgent.substring(0, 255),
+      deviceName.substring(0, 100),
+      location.substring(0, 100),
+      expiresAt,
+      nowIso,
+      nowIso
+    ).run();
+  } catch (err) {
+    console.warn("[recordUserSession] Failed to record session:", err.message);
+  }
+}
+
 async function resolveUserFromRequest(request, env) {
   const authHeader = request.headers.get("Authorization") || "";
   const cookie = request.headers.get("Cookie") || "";
@@ -730,6 +824,19 @@ async function resolveUserFromRequest(request, env) {
   }
 
   if (!env || !env.DB) return null;
+
+  // Check if token was explicitly terminated/revoked
+  if (token) {
+    try {
+      const hashHex = await sha256Hex(token);
+      const isTerminated = await env.DB.prepare(
+        "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? OR session_token_hash = ? LIMIT 1"
+      ).bind(hashHex, token).first();
+      if (isTerminated) {
+        return null;
+      }
+    } catch (_) {}
+  }
 
   let user = null;
 
@@ -744,10 +851,7 @@ async function resolveUserFromRequest(request, env) {
   // 2. Local origin session token (SHA-256 hash match against user_sessions in D1)
   if (!user && token) {
     try {
-      const enc = new TextEncoder().encode(token);
-      const buf = await crypto.subtle.digest("SHA-256", enc);
-      const hashHex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
-
+      const hashHex = await sha256Hex(token);
       const session = await env.DB.prepare(
         "SELECT user_id FROM user_sessions WHERE (session_token_hash = ? OR id = ?) LIMIT 1"
       ).bind(hashHex, token).first();
@@ -761,7 +865,7 @@ async function resolveUserFromRequest(request, env) {
   }
 
   // 3. Fallback to client-provided X-User-Username or X-Username header
-  if (!user) {
+  if (!user && !token) {
     const uHeader = (
       request.headers.get("X-User-Username") ||
       request.headers.get("X-Username") ||
@@ -934,6 +1038,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
       // Generate edge session token
       const token = await generateEdgeToken(user.id, env);
+      await recordUserSession(user.id, token, request, body, env);
 
       // Update online status
       if (env.DB) {
@@ -1029,6 +1134,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
 
       const token = await generateEdgeToken(user.id, env);
+      await recordUserSession(user.id, token, request, body, env);
       return jsonResponse({
         status: "ok",
         token: token,
@@ -1403,6 +1509,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
 
       const token = await generateEdgeToken(user.id, env);
+      await recordUserSession(user.id, token, request, body, env);
 
       return jsonResponse({
         status: "ok",
@@ -1415,6 +1522,272 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           email: user.email,
           avatar_url: user.avatar_url || "👾"
         }
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3h-1. Verify Old Password (for Personal Details Change Password feature)
+  if (path === "/api/auth/verify-old-password" || path === "/api/v1/auth/verify-old-password") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const ident = (body.username || body.identifier || body.email || "").trim().toLowerCase();
+      const oldPassword = body.old_password || body.password || "";
+      if (!oldPassword) {
+        return jsonResponse({ error: "Old password is required", valid: false }, 400);
+      }
+      let user = null;
+      if (env.DB && ident) {
+        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? OR lower(email) = ? OR id = ? LIMIT 1").bind(ident, ident, ident).first();
+      }
+      if (!user) {
+        user = await resolveUserFromRequest(request, env);
+      }
+      if (!user) {
+        return jsonResponse({ error: "User not found", valid: false }, 404);
+      }
+
+      const pwdClean = oldPassword.trim();
+      let passwordValid = await verifyPassword(user.password_hash, oldPassword);
+      if (!passwordValid && pwdClean !== oldPassword) {
+        passwordValid = await verifyPassword(user.password_hash, pwdClean);
+      }
+
+      if (!passwordValid) {
+        return jsonResponse({
+          status: "error",
+          valid: false,
+          error: "Incorrect old password",
+          detail: "The old password you entered does not match your current account password."
+        }, 400);
+      }
+
+      return jsonResponse({
+        status: "ok",
+        valid: true,
+        message: "Old password verified successfully! You may now set your new password."
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message, valid: false }, 500);
+    }
+  }
+
+  // 3h-2. Change Password in Database (for Personal Details Change Password feature)
+  if (path === "/api/auth/change-password" || path === "/api/v1/auth/change-password") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const ident = (body.username || body.identifier || body.email || "").trim().toLowerCase();
+      const oldPassword = body.old_password || "";
+      const newPassword = body.new_password || "";
+
+      if (!oldPassword || !newPassword) {
+        return jsonResponse({ error: "Both old password and new password are required." }, 400);
+      }
+      if (newPassword.length < 4) {
+        return jsonResponse({ error: "New password must be at least 4 characters long." }, 400);
+      }
+
+      let user = null;
+      if (env.DB && ident) {
+        user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? OR lower(email) = ? OR id = ? LIMIT 1").bind(ident, ident, ident).first();
+      }
+      if (!user) {
+        user = await resolveUserFromRequest(request, env);
+      }
+      if (!user) {
+        return jsonResponse({ error: "User not found" }, 404);
+      }
+
+      const pwdClean = oldPassword.trim();
+      let passwordValid = await verifyPassword(user.password_hash, oldPassword);
+      if (!passwordValid && pwdClean !== oldPassword) {
+        passwordValid = await verifyPassword(user.password_hash, pwdClean);
+      }
+
+      if (!passwordValid) {
+        return jsonResponse({ error: "Incorrect old password", detail: "The old password you entered is incorrect." }, 400);
+      }
+
+      const hashedPassword = await hashPasswordPbkdf2(newPassword);
+
+      if (env.DB) {
+        await env.DB.prepare(
+          "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?"
+        ).bind(hashedPassword, user.id).run();
+
+        // Edge audit log
+        const auditId = "aud_" + crypto.randomUUID();
+        await env.DB.prepare(
+          "INSERT INTO audit_logs (id, action, actor, target, details, ip_address, created_at) VALUES (?, 'password_change', ?, ?, 'Password changed via Personal Details', 'worker_edge', datetime('now'))"
+        ).bind(auditId, user.username, user.email || user.username).run().catch(() => {});
+
+        // In-app notification
+        const notifId = "notif_" + crypto.randomUUID();
+        await env.DB.prepare(
+          "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', '🔐 Password Updated', 'Your Connecto account password was successfully changed from Personal Details.', 0, datetime('now'))"
+        ).bind(notifId, user.id).run().catch(() => {});
+      }
+
+      const newToken = await generateEdgeToken(user.id, env);
+      await recordUserSession(user.id, newToken, request, body, env);
+
+      return jsonResponse({
+        status: "ok",
+        message: "Password changed successfully in the database! You can now log in or unlock with your new password.",
+        token: newToken,
+        username: user.username
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3h-3. Logged-in Sessions Management (GET /api/auth/sessions)
+  if (path === "/api/auth/sessions" || path === "/api/v1/auth/sessions") {
+    if (method !== "GET") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const user = await resolveUserFromRequest(request, env);
+      if (!user) {
+        return jsonResponse({ error: "Unauthorized", message: "Valid authentication required" }, 401);
+      }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      const cookie = request.headers.get("Cookie") || "";
+      let token = "";
+      if (authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7).trim();
+      } else if (cookie.includes("connecto_session=")) {
+        token = (cookie.split("connecto_session=")[1] || "").split(";")[0].trim();
+      }
+
+      let currentHash = "";
+      if (token) {
+        currentHash = await sha256Hex(token);
+        // Ensure current session exists in user_sessions (auto-register if created earlier)
+        const existingCurrent = await env.DB.prepare(
+          "SELECT id FROM user_sessions WHERE session_token_hash = ? LIMIT 1"
+        ).bind(currentHash).first();
+
+        if (!existingCurrent) {
+          await recordUserSession(user.id, token, request, {}, env);
+        } else {
+          // Update last_active_at and IP/location
+          const devInfo = extractDeviceInfo(request, {});
+          await env.DB.prepare(
+            "UPDATE user_sessions SET last_active_at = datetime('now'), ip_address = ?, location = coalesce(location, ?) WHERE session_token_hash = ?"
+          ).bind(devInfo.ip, devInfo.location, currentHash).run().catch(() => {});
+        }
+      }
+
+      // Fetch all non-terminated sessions for this user
+      const rawSessions = await env.DB.prepare(
+        `SELECT s.id, s.device_name, s.location, s.ip_address, s.created_at, s.last_active_at, s.session_token_hash
+         FROM user_sessions s
+         WHERE s.user_id = ? 
+           AND s.expires_at > datetime('now')
+           AND NOT EXISTS (SELECT 1 FROM terminated_sessions t WHERE t.session_token_hash = s.session_token_hash)
+         ORDER BY s.last_active_at DESC, s.created_at DESC`
+      ).bind(user.id).all();
+
+      const sessionsList = (rawSessions.results || []).map(s => ({
+        id: s.id,
+        device_name: s.device_name || "Connected Device",
+        location: s.location || "Unknown Location",
+        ip_address: s.ip_address || "Unknown IP",
+        created_at: s.created_at,
+        last_active_at: s.last_active_at || s.created_at,
+        is_current: currentHash ? (s.session_token_hash === currentHash) : false
+      }));
+
+      return jsonResponse({
+        status: "ok",
+        sessions: sessionsList
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3h-4. Terminate Single Session (POST /api/auth/sessions/terminate)
+  if (path === "/api/auth/sessions/terminate" || path === "/api/v1/auth/sessions/terminate") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const user = await resolveUserFromRequest(request, env);
+      if (!user) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+      const body = await request.json().catch(() => ({}));
+      const sessionId = (body.session_id || body.sessionId || body.id || "").trim();
+      if (!sessionId) {
+        return jsonResponse({ error: "session_id required" }, 400);
+      }
+
+      // Find target session
+      const target = await env.DB.prepare(
+        "SELECT session_token_hash FROM user_sessions WHERE id = ? AND user_id = ? LIMIT 1"
+      ).bind(sessionId, user.id).first();
+
+      if (!target) {
+        return jsonResponse({ error: "Session not found" }, 404);
+      }
+
+      await env.DB.prepare(
+        "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
+      ).bind(target.session_token_hash).run();
+
+      await env.DB.prepare(
+        "DELETE FROM user_sessions WHERE id = ?"
+      ).bind(sessionId).run();
+
+      return jsonResponse({
+        status: "ok",
+        message: "Session terminated successfully",
+        terminated_id: sessionId
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3h-5. Terminate All Other Sessions (POST /api/auth/sessions/terminate-others)
+  if (path === "/api/auth/sessions/terminate-others" || path === "/api/v1/auth/sessions/terminate-others") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const user = await resolveUserFromRequest(request, env);
+      if (!user) {
+        return jsonResponse({ error: "Unauthorized" }, 401);
+      }
+
+      const authHeader = request.headers.get("Authorization") || "";
+      let token = "";
+      if (authHeader.startsWith("Bearer ")) token = authHeader.substring(7).trim();
+      const currentHash = token ? await sha256Hex(token) : "";
+
+      // Fetch all OTHER sessions
+      const otherSessions = await env.DB.prepare(
+        "SELECT id, session_token_hash FROM user_sessions WHERE user_id = ? AND session_token_hash != ?"
+      ).bind(user.id, currentHash).all();
+
+      let terminatedCount = 0;
+      if (otherSessions.results && otherSessions.results.length > 0) {
+        for (const s of otherSessions.results) {
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
+          ).bind(s.session_token_hash).run().catch(() => {});
+          await env.DB.prepare(
+            "DELETE FROM user_sessions WHERE id = ?"
+          ).bind(s.id).run().catch(() => {});
+          terminatedCount++;
+        }
+      }
+
+      return jsonResponse({
+        status: "ok",
+        message: "All other sessions have been terminated",
+        count: terminatedCount
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -1562,6 +1935,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       }
 
       const token = await generateEdgeToken(newId, env);
+      await recordUserSession(newId, token, request, body, env);
       return jsonResponse({
         status: "ok",
         token: token,
@@ -2711,8 +3085,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
     if (method === "GET") {
       let messages = [];
+      const reqUser = (
+        url.searchParams.get("username") ||
+        url.searchParams.get("user") ||
+        request.headers.get("X-User-Username") ||
+        ""
+      ).trim().toLowerCase().replace(/^@/, "");
+
       if (env.DB) {
-        const res = await env.DB.prepare(`
+        let querySql = `
           SELECT m.id, m.channel_id, m.content, m.created_at,
                  COALESCE(u.username, m.sender_id, 'shinobi') as author_name,
                  COALESCE(u.display_name, u.username, m.sender_id, 'Shinobi') as author_display_name,
@@ -2724,13 +3105,21 @@ async function handleCloudApiRequest(request, url, env, ctx) {
                  OR m.channel_id IN (SELECT id FROM channels WHERE name = ? OR id = ? OR name = ? OR id = ?)
                  OR m.channel_id IN (SELECT name FROM channels WHERE id = ? OR name = ? OR id = ? OR name = ?))
             AND m.id NOT LIKE '%_name'
-          ORDER BY m.created_at ASC
-          LIMIT 100
-        `).bind(
+        `;
+        const queryBindings = [
           canonicalChannel, channelId, resolvedChannelId,
           canonicalChannel, channelId, resolvedChannelId, canonicalChannel,
           canonicalChannel, channelId, resolvedChannelId, canonicalChannel
-        ).all();
+        ];
+
+        if (reqUser) {
+          querySql += ` AND m.id NOT IN (SELECT message_id FROM message_deletions WHERE lower(username) = ?) `;
+          queryBindings.push(reqUser);
+        }
+
+        querySql += ` ORDER BY m.created_at ASC LIMIT 100 `;
+
+        const res = await env.DB.prepare(querySql).bind(...queryBindings).all();
 
         messages = (res.results || []).map(r => ({
           id: r.id,
@@ -3093,6 +3482,89 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       action: "added",
       reactions: { [emoji]: [uname] }
     });
+  }
+
+  // 17d. Delete Message For Me: POST (/api/messages/delete-for-me)
+  if ((path === "/api/messages/delete-for-me" || path === "/api/v1/chat/messages/delete-for-me") && method === "POST") {
+    const body = await request.json().catch(() => ({}));
+    const messageId = (body.message_id || body.messageId || "").trim();
+    let uname = (body.username || body.user || "").trim().toLowerCase().replace(/^@/, "");
+    if (!uname) {
+      const u = await resolveUserFromRequest(request, env);
+      if (u) uname = (u.username || "").toLowerCase();
+    }
+    if (!messageId || !uname) {
+      return jsonResponse({ error: "message_id and username required" }, 400);
+    }
+    if (env.DB) {
+      try {
+        await env.DB.prepare(
+          "INSERT OR IGNORE INTO message_deletions (message_id, username) VALUES (?, ?)"
+        ).bind(messageId, uname).run();
+      } catch (err) {
+        return jsonResponse({ error: err.message }, 500);
+      }
+    }
+    return jsonResponse({ status: "ok", message_id: messageId, username: uname });
+  }
+
+  // 17e. Channel Pins: GET, POST, DELETE (/api/channels/:id/pin, /api/channels/:id/unpin)
+  const pinMatch = path.match(/\/(?:channels|chat\/channels)\/([^\/]+)\/(pin|unpin)$/);
+  if (pinMatch) {
+    const chId = pinMatch[1];
+    const action = pinMatch[2];
+    if (action === "unpin" || (action === "pin" && method === "DELETE")) {
+      if (env.DB) {
+        try {
+          await env.DB.prepare(
+            "DELETE FROM pinned_messages WHERE channel_id = ? OR channel_id = (SELECT id FROM channels WHERE lower(name) = ? OR lower(id) = ?)"
+          ).bind(chId, chId.toLowerCase(), chId.toLowerCase()).run();
+        } catch (_) {}
+      }
+      return jsonResponse({ status: "ok", unpinned: true });
+    }
+    if (action === "pin" && method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const msgId = (body.message_id || body.messageId || "").trim();
+      const uname = (body.username || body.user || "user").trim();
+      if (env.DB && msgId) {
+        try {
+          await env.DB.prepare(
+            "INSERT OR REPLACE INTO pinned_messages (channel_id, message_id, pinned_by, pinned_at) VALUES (?, ?, ?, datetime('now'))"
+          ).bind(chId, msgId, uname).run();
+        } catch (_) {}
+      }
+      return jsonResponse({ status: "ok", pinned: true, channel_id: chId, message_id: msgId });
+    }
+    if (action === "pin" && method === "GET") {
+      let pinData = null;
+      if (env.DB) {
+        try {
+          const row = await env.DB.prepare(`
+            SELECT p.channel_id, p.message_id, p.pinned_by, p.pinned_at,
+                   m.content, m.sender_id, m.created_at,
+                   COALESCE(u.display_name, u.username, m.sender_id) as author_name
+            FROM pinned_messages p
+            JOIN messages m ON p.message_id = m.id
+            LEFT JOIN users u ON m.sender_id = u.id OR m.sender_id = u.username
+            WHERE p.channel_id = ? OR p.channel_id = (SELECT id FROM channels WHERE lower(name) = ? OR lower(id) = ?)
+            ORDER BY p.pinned_at DESC LIMIT 1
+          `).bind(chId, chId.toLowerCase(), chId.toLowerCase()).first();
+          if (row) {
+            pinData = {
+              pinned: true,
+              message_id: row.message_id,
+              channel_id: row.channel_id,
+              pinned_by: row.pinned_by,
+              pinned_at: row.pinned_at,
+              content: row.content,
+              author_name: row.author_name
+            };
+          }
+        } catch (_) {}
+      }
+      return jsonResponse(pinData || { pinned: false });
+    }
   }
 
   // 18. Secondary Channel Endpoints (Pins, Polls, Canvas, Automod, Slowmode)
@@ -3974,6 +4446,17 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       (authUser && authUser.username) ||
       ""
     ).trim().toLowerCase().replace(/^@/, "");
+
+    const authHeader = request.headers.get("Authorization") || "";
+    let logoutToken = "";
+    if (authHeader.startsWith("Bearer ")) logoutToken = authHeader.substring(7).trim();
+    if (logoutToken && env.DB) {
+      try {
+        const hashHex = await sha256Hex(logoutToken);
+        await env.DB.prepare("INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)").bind(hashHex).run().catch(() => {});
+        await env.DB.prepare("DELETE FROM user_sessions WHERE session_token_hash = ?").bind(hashHex).run().catch(() => {});
+      } catch (_) {}
+    }
 
     if (targetUser) {
       if (env.DB) {

@@ -22,11 +22,10 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- Foreground service for voice calls, audio, and persistent real-time background sync -->
+    <!-- Foreground service for voice calls and audio playback -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -53,15 +52,14 @@
             android:stopWithTask="false"
             android:foregroundServiceType="microphone" />
 
-        <!-- Persistent Real-Time Background Service for Calls & Notifications when app is closed -->
+        <!-- Real-Time Background Service for Calls & Notifications when app is running -->
         <service
             android:name=".notifications.ConnectoRealtimeService"
             android:enabled="true"
             android:exported="false"
-            android:stopWithTask="false"
-            android:foregroundServiceType="dataSync" />
+            android:stopWithTask="true" />
 
-        <!-- Auto-start receiver for boot, app update, and task-removal recovery -->
+        <!-- Auto-start receiver for boot and app update cleanup -->
         <receiver
             android:name=".notifications.ConnectoBootReceiver"
             android:enabled="true"
@@ -69,7 +67,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-                <action android:name="com.connecto.app.RESTART_REALTIME_SERVICE" />
             </intent-filter>
         </receiver>
 
