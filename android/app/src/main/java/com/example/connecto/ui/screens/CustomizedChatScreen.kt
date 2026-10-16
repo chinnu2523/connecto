@@ -2619,7 +2619,7 @@ fun CustomizedChatScreen(
         )
     }
 
-    // Unfriend Confirmation Modal Dialog
+    // Unfriend Confirmation Modal Dialog with Data Wipe Warning Tab
     if (showUnfriendConfirmDialog && selectedFriend != null) {
         val friendToRemove = selectedFriend!!
         val friendUser = friendToRemove.handle.removePrefix("@").ifBlank { friendToRemove.name }
@@ -2628,40 +2628,136 @@ fun CustomizedChatScreen(
         AlertDialog(
             onDismissRequest = { if (!isUnfriending) showUnfriendConfirmDialog = false },
             title = {
-                Text(
-                    text = "Unfriend $friendName?",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 17.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "⚠️ Permanent Data Deletion",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 17.sp
+                    )
+                }
             },
             text = {
-                Text(
-                    text = "Are you sure you want to remove @$friendUser from your friends? Direct private messaging and voice calls will be disconnected.",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Warning Callout Box
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFFEF4444).copy(alpha = 0.12f))
+                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🛑", fontSize = 13.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "IRREVERSIBLE ACTION",
+                                    color = Color(0xFFEF4444),
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 12.sp,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Unfriending @$friendUser will permanently delete all mutual history for BOTH users.",
+                                color = Color(0xFFFCA5A5),
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+
+                    // Itemized Deletion Checklist
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                            .padding(12.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "THE FOLLOWING DATA WILL BE PERMANENTLY ERASED:",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                letterSpacing = 0.4.sp
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("💬", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Direct Messages: Mutual chat history & media",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("📞", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Call Logs: Voice & video call logs between users",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("🔔", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Notifications: Pending alerts and badges",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("👥", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Friend Connection: Removed from both rosters",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         coroutineScope.launch {
                             isUnfriending = true
                             try {
                                 val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
                                 ConnectoApiClient.unfriendUser(targetUsername = friendUser, token = null)
-                                dbHelper.deleteFriend(friendToRemove.id)
-                                dbHelper.deleteFriend(friendUser)
+                                dbHelper.deleteMutualConversationData(effUser, friendUser)
                                 friendsList.removeAll {
                                     it.id == friendToRemove.id ||
                                     it.handle.removePrefix("@").equals(friendUser, ignoreCase = true) ||
                                     it.name.equals(friendName, ignoreCase = true)
                                 }
+                                if (activeDmChannelId != null && (activeDmChannelId?.contains(friendUser, ignoreCase = true) == true || selectedFriend?.id == friendToRemove.id)) {
+                                    friendMessages = emptyList()
+                                    activeDmChannelId = null
+                                    pinnedMessageForChat = null
+                                }
                                 showUnfriendConfirmDialog = false
                                 showFriendProfileDialog = false
                                 selectedFriend = null
-                                Toast.makeText(context, "Removed @$friendUser from friends", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Unfriended @$friendUser. Chat and call history permanently deleted.", Toast.LENGTH_LONG).show()
                             } catch (e: Exception) {
                                 Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                             } finally {
@@ -2669,12 +2765,14 @@ fun CustomizedChatScreen(
                             }
                         }
                     },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp),
                     enabled = !isUnfriending
                 ) {
                     if (isUnfriending) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color(0xFFEF4444))
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
                     } else {
-                        Text("UNFRIEND", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold)
+                        Text("🗑️ Confirm & Delete Everything", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.5.sp)
                     }
                 }
             },
@@ -2683,7 +2781,7 @@ fun CustomizedChatScreen(
                     onClick = { showUnfriendConfirmDialog = false },
                     enabled = !isUnfriending
                 ) {
-                    Text("CANCEL", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         )

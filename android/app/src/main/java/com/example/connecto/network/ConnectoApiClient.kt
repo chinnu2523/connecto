@@ -2940,8 +2940,8 @@ object ConnectoApiClient {
                 body = payload.toString(),
                 token = token ?: sessionToken
             )
-            if (response.isSuccess) {
-                Result.success(true)
+            val isOk = if (response.isSuccess) {
+                true
             } else {
                 val fallback = executeRequest(
                     endpoint = "/api/friends/unfriend",
@@ -2949,8 +2949,16 @@ object ConnectoApiClient {
                     body = payload.toString(),
                     token = token ?: sessionToken
                 )
-                Result.success(fallback.isSuccess)
+                fallback.isSuccess
             }
+            if (isOk) {
+                cachedCallLogs = cachedCallLogs.filter { log ->
+                    val user = log.username.trim().lowercase().removePrefix("@")
+                    val caller = log.callerName.trim().lowercase().removePrefix("@")
+                    user != cleanTarget && caller != cleanTarget
+                }
+            }
+            Result.success(isOk)
         } catch (e: Exception) {
             Result.failure(e)
         }

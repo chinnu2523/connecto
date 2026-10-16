@@ -1673,13 +1673,25 @@ object VoiceCallManager {
                     }
                 }
 
-                "friend_removed" -> {
-                    val friendUser = json.optString("friend_username")
+                "friend_removed", "unfriend_event" -> {
+                    val myName = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+                    var friendUser = json.optString("friend_username")
+                    if (friendUser.isEmpty()) {
+                        val u1 = json.optString("user1")
+                        val u2 = json.optString("user2")
+                        friendUser = if (u1.equals(myName, ignoreCase = true)) u2 else u1
+                    }
                     if (friendUser.isNotEmpty()) {
                         appContext?.let { ctx ->
-                            ConnectoDatabaseHelper.getInstance(ctx).deleteFriend(friendUser)
+                            val clean = friendUser.trim().lowercase().removePrefix("@")
+                            ConnectoDatabaseHelper.getInstance(ctx).deleteMutualConversationData(myName, clean)
+                            ConnectoApiClient.cachedCallLogs = ConnectoApiClient.cachedCallLogs.filter { log ->
+                                val u = log.username.trim().lowercase().removePrefix("@")
+                                val c = log.callerName.trim().lowercase().removePrefix("@")
+                                u != clean && c != clean
+                            }
                             val intent = Intent("com.connecto.app.FRIEND_REQUEST_UPDATED").apply {
-                                putExtra("friend_username", friendUser)
+                                putExtra("friend_username", clean)
                                 putExtra("action", "removed")
                                 setPackage(ctx.packageName)
                             }

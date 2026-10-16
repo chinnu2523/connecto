@@ -2463,27 +2463,135 @@ async function handleCloudApiRequest(request, url, env, ctx) {
   if (path === "/api/friends/decline" || path === "/api/friends/remove" || path === "/api/friends/unfriend") {
     try {
       const body = await request.json().catch(() => ({}));
-      let targetName = (body.friend_username || body.username || body.sender || "").trim().toLowerCase().replace(/^@/, "");
-      let myName = (body.recipient || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      // Target user being unfriended
+      let targetName = (body.friend_username || body.target_username || "").trim().toLowerCase().replace(/^@/, "");
+      // Current user initiating the unfriend
+      let myName = (body.current_user || body.sender || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+
+      if (!targetName && body.recipient) {
+        targetName = (body.recipient || "").trim().toLowerCase().replace(/^@/, "");
+      }
+      if (!targetName && body.username && body.username.trim().toLowerCase().replace(/^@/, "") !== myName) {
+        targetName = body.username.trim().toLowerCase().replace(/^@/, "");
+      }
+
+      if (!myName) {
+        const authUser = await resolveUserFromRequest(request, env);
+        if (authUser && authUser.username) {
+          myName = authUser.username.trim().toLowerCase().replace(/^@/, "");
+        }
+      }
+      if (!myName && body.username && body.username.trim().toLowerCase().replace(/^@/, "") !== targetName) {
+        myName = body.username.trim().toLowerCase().replace(/^@/, "");
+      }
+
       if (targetName === "chinnu") targetName = "chinnu14754x";
       if (myName === "chinnu") myName = "chinnu14754x";
+
       if (targetName && myName && env.DB) {
         const u1 = await env.DB.prepare(`
-          SELECT id FROM users 
+          SELECT id, username FROM users 
           WHERE lower(username) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
           LIMIT 1
         `).bind(targetName, targetName).first();
+
         const u2 = await env.DB.prepare(`
-          SELECT id FROM users 
+          SELECT id, username FROM users 
           WHERE lower(username) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
           LIMIT 1
         `).bind(myName, myName).first();
+
         if (u1 && u2) {
+          // 1. Delete mutual friendships
           await env.DB.prepare("DELETE FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").bind(u1.id, u2.id, u2.id, u1.id).run();
+
+          // 2. Identify all direct message channels between both users
+          const userA = u1.username.toLowerCase();
+          const userB = u2.username.toLowerCase();
+          const sortedPair = [userA, userB].sort();
+          const canonDash = "dm-" + sortedPair.join("-");
+          const canonUnderscore = "dm_" + sortedPair.join("_");
+          const dir1 = "dm-" + userA + "-" + userB;
+          const dir2 = "dm-" + userB + "-" + userA;
+          const dir3 = "dm_" + userA + "_" + userB;
+          const dir4 = "dm_" + userB + "_" + userA;
+
+          const chRows = await env.DB.prepare(`
+            SELECT id FROM channels 
+            WHERE lower(name) IN (?, ?, ?, ?, ?, ?) 
+               OR lower(id) IN (?, ?, ?, ?, ?, ?)
+               OR id IN (
+                  SELECT p1.channel_id FROM dm_participants p1
+                  JOIN dm_participants p2 ON p1.channel_id = p2.channel_id
+                  WHERE p1.user_id = ? AND p2.user_id = ?
+               )
+          `).bind(canonDash, canonUnderscore, dir1, dir2, dir3, dir4, canonDash, canonUnderscore, dir1, dir2, dir3, dir4, u1.id, u2.id).all();
+
+          const channelIds = new Set((chRows.results || []).map(r => r.id));
+          channelIds.add(canonDash);
+          channelIds.add(canonUnderscore);
+          channelIds.add(dir1);
+          channelIds.add(dir2);
+          channelIds.add(dir3);
+          channelIds.add(dir4);
+
+          // 3. Delete messages, read receipts, and channel records for all mutual DM channels
+          for (const chId of channelIds) {
+            await env.DB.prepare("DELETE FROM message_read_receipts WHERE message_id IN (SELECT id FROM messages WHERE channel_id = ?)").bind(chId).run().catch(() => {});
+            await env.DB.prepare("DELETE FROM dm_read_states WHERE channel_id = ?").bind(chId).run().catch(() => {});
+            await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(chId).run().catch(() => {});
+            await env.DB.prepare("DELETE FROM messages WHERE channel_id = ?").bind(chId).run().catch(() => {});
+            await env.DB.prepare("DELETE FROM channels WHERE id = ?").bind(chId).run().catch(() => {});
+          }
+
+          // Delete any additional direct messages containing both usernames in channel_id
+          await env.DB.prepare(`
+            DELETE FROM messages 
+            WHERE (channel_id LIKE ? AND channel_id LIKE ?)
+          `).bind(`%${userA}%`, `%${userB}%`).run().catch(() => {});
+
+          // 4. Delete mutual call logs between both users
+          await env.DB.prepare(`
+            DELETE FROM call_logs 
+            WHERE (lower(username) = ? AND lower(caller_name) = ?)
+               OR (lower(username) = ? AND lower(caller_name) = ?)
+               OR lower(room_name) IN (?, ?, ?, ?)
+               OR lower(room_code) IN (?, ?, ?, ?)
+          `).bind(
+            userA, userB,
+            userB, userA,
+            canonDash, canonUnderscore, dir1, dir2,
+            canonDash, canonUnderscore, dir1, dir2
+          ).run().catch(() => {});
+
+          // 5. Delete mutual notifications
+          await env.DB.prepare(`
+            DELETE FROM notifications 
+            WHERE (user_id = ? AND lower(sender_username) = ?)
+               OR (user_id = ? AND lower(sender_username) = ?)
+               OR reference_id IN (?, ?, ?, ?)
+          `).bind(
+            u1.id, userB,
+            u2.id, userA,
+            canonDash, canonUnderscore, dir1, dir2
+          ).run().catch(() => {});
+
+          // 6. Broadcast real-time unfriend wipe event over WebSocket
+          try {
+            ctx.waitUntil(broadcastRealtime(env, {
+              type: "friend_removed",
+              action: "unfriend",
+              user1: userA,
+              user2: userB,
+              friend_username: userB,
+              target_username: userA,
+              channel_ids: Array.from(channelIds)
+            }));
+          } catch (_) {}
         }
       }
     } catch (_) {}
-    return jsonResponse({ status: "ok", message: "Friend removed" });
+    return jsonResponse({ status: "ok", message: "Friend removed and mutual chat & call history permanently deleted" });
   }
 
   // 10. Direct Messages: Contact List (/api/dms)

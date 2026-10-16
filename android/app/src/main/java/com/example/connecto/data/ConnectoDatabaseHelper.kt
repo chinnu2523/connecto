@@ -824,6 +824,41 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         )
     }
 
+    /** Permanently wipe all mutual local cached data (messages, channels, friend entry) between two users. */
+    fun deleteMutualConversationData(currentUsername: String, friendUsername: String) {
+        val db = writableDatabase
+        val u1 = currentUsername.trim().lowercase().removePrefix("@")
+        val u2 = friendUsername.trim().lowercase().removePrefix("@")
+        if (u1.isEmpty() || u2.isEmpty()) return
+
+        val sortedPair = listOf(u1, u2).sorted()
+        val canonDash = "dm-${sortedPair[0]}-${sortedPair[1]}"
+        val canonUnderscore = "dm_${sortedPair[0]}_${sortedPair[1]}"
+        val dir1 = "dm-$u1-$u2"
+        val dir2 = "dm-$u2-$u1"
+        val dir3 = "dm_${u1}_${u2}"
+        val dir4 = "dm_${u2}_${u1}"
+
+        db.beginTransaction()
+        try {
+            val channelArgs = arrayOf(canonDash, canonUnderscore, dir1, dir2, dir3, dir4)
+            val placeholders = channelArgs.joinToString(",") { "?" }
+            db.delete(TABLE_MESSAGES, "$COL_MSG_CHANNEL IN ($placeholders)", channelArgs)
+            db.delete(TABLE_MESSAGES, "$COL_MSG_CHANNEL LIKE ? AND $COL_MSG_CHANNEL LIKE ?", arrayOf("%$u1%", "%$u2%"))
+            db.delete(TABLE_CHANNELS, "$COL_CH_ID IN ($placeholders) OR $COL_CH_NAME IN ($placeholders)", arrayOf(*channelArgs, *channelArgs))
+            db.delete(
+                TABLE_FRIENDS,
+                "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ?",
+                arrayOf(u2, u2, "@$u2", u2)
+            )
+            db.setTransactionSuccessful()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
     fun clearAllCache() {
         val db = writableDatabase
         db.beginTransaction()

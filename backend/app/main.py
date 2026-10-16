@@ -5356,15 +5356,72 @@ async def unfriend_user_compat(
             u1 = (await db.execute(select(User).where(User.id == friendship.user_id))).scalar_one_or_none()
         if not u2:
             u2 = (await db.execute(select(User).where(User.id == friendship.friend_id))).scalar_one_or_none()
+
         await db.delete(friendship)
-        await db.commit()
 
         if u1 and u2:
+            clean1, clean2 = u1.username.strip().lower(), u2.username.strip().lower()
+            sorted_pair = sorted([clean1, clean2])
+            canon_dash = f"dm-{sorted_pair[0]}-{sorted_pair[1]}"
+            canon_und = f"dm_{sorted_pair[0]}_{sorted_pair[1]}"
+            dir1 = f"dm-{clean1}-{clean2}"
+            dir2 = f"dm-{clean2}-{clean1}"
+
+            # Delete DM channels and cascaded messages
+            from app.db.models.chat import Channel
+            dm_channels = (await db.execute(
+                select(Channel).where(
+                    or_(
+                        Channel.name.in_([canon_dash, canon_und, dir1, dir2]),
+                        Channel.id.in_([canon_dash, canon_und, dir1, dir2])
+                    )
+                )
+            )).scalars().all()
+            for ch in dm_channels:
+                await db.delete(ch)
+
+            # Delete call logs
+            try:
+                from app.db.models.voice import CallLog
+                from sqlalchemy import delete as sa_delete, func
+                await db.execute(
+                    sa_delete(CallLog).where(
+                        or_(
+                            and_(func.lower(CallLog.username) == clean1, func.lower(CallLog.caller_name) == clean2),
+                            and_(func.lower(CallLog.username) == clean2, func.lower(CallLog.caller_name) == clean1),
+                            CallLog.room_name.in_([canon_dash, canon_und, dir1, dir2]),
+                            CallLog.room_code.in_([canon_dash, canon_und, dir1, dir2])
+                        )
+                    )
+                )
+            except Exception:
+                pass
+
+            # Delete notifications
+            try:
+                from app.db.models.notification import Notification
+                from sqlalchemy import delete as sa_delete, func
+                await db.execute(
+                    sa_delete(Notification).where(
+                        or_(
+                            and_(Notification.user_id == u1.id, func.lower(Notification.sender_username) == clean2),
+                            and_(Notification.user_id == u2.id, func.lower(Notification.sender_username) == clean1)
+                        )
+                    )
+                )
+            except Exception:
+                pass
+
+            await db.commit()
+
             # Emit real-time unfriend event over WebSocket to both users
             await ws_manager.send_personal_event(u1.id, {"type": "friend_removed", "friend_username": u2.username, "friend_id": u2.id})
             await ws_manager.send_personal_event(u2.id, {"type": "friend_removed", "friend_username": u1.username, "friend_id": u1.id})
 
-        return {"status": "ok", "message": "Friend removed successfully", "friend_username": u2.username if u2 else recipient_name}
+        else:
+            await db.commit()
+
+        return {"status": "ok", "message": "Friend removed and mutual chat & call history permanently deleted", "friend_username": u2.username if u2 else recipient_name}
 
     return {"status": "ok", "message": "Friend removed"}
 
