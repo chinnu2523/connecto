@@ -986,7 +986,24 @@ fun CustomizedChatScreen(
     // Load cached friends from SQLite on IO thread on first composition
     LaunchedEffect(Unit) {
         val cached = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            dbHelper.getCachedFriends()
+            val list = dbHelper.getCachedFriends()
+            list.map { f ->
+                val cleanHandle = f.handle.removePrefix("@").trim().lowercase()
+                var ts = f.lastMessageTimestamp
+                if (ts == 0L) {
+                    ts = maxOf(
+                        readPrefs.getLong("last_timestamp_${f.id}", 0L),
+                        readPrefs.getLong("last_timestamp_${cleanHandle}", 0L)
+                    )
+                }
+                if (ts == 0L && currentUsername.isNotBlank()) {
+                    val latest = dbHelper.getLatestMessageInfoForFriend(currentUsername, cleanHandle)
+                    if (latest != null) {
+                        ts = latest.second
+                    }
+                }
+                if (ts != f.lastMessageTimestamp) f.copy(lastMessageTimestamp = ts) else f
+            }
         }
         if (cached.isNotEmpty() && friendsList.isEmpty()) {
             friendsList.addAll(cached)
@@ -1162,11 +1179,17 @@ fun CustomizedChatScreen(
                     }
                     val rawPrefTime = readPrefs.getString("last_time_${f.friendId}", null) ?: readPrefs.getString("last_time_${cleanUsername.lowercase()}", null)
                     val time = formatIsoTime(if (!rawPrefTime.isNullOrBlank()) rawPrefTime else (cachedFriend?.timeAgo ?: "Active"))
-                    val lastTs = maxOf(
+                    var lastTs = maxOf(
                         readPrefs.getLong("last_timestamp_${f.friendId}", 0L),
                         readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L),
                         cachedFriend?.lastMessageTimestamp ?: 0L
                     )
+                    if (lastTs == 0L && currentUsername.isNotBlank()) {
+                        val latest = dbHelper.getLatestMessageInfoForFriend(currentUsername, cleanUsername)
+                        if (latest != null) {
+                            lastTs = latest.second
+                        }
+                    }
                     val isFriendOnline = f.isOnline && !f.isStealth
                     FriendItem(
                         id = f.friendId.ifBlank { f.id },
@@ -1387,7 +1410,10 @@ fun CustomizedChatScreen(
                 "ADDED_GROUPS" -> userGroupsList.filter { !it.isCreatedByMe }
                 else -> friendsList.toList() + userGroupsList.toList()
             }
-            val sortedList = baseList.sortedByDescending { it.lastMessageTimestamp }
+            val sortedList = baseList.sortedWith(
+                compareByDescending<FriendItem> { it.lastMessageTimestamp }
+                    .thenBy { it.name.lowercase() }
+            )
             if (friendSearchQuery.isBlank()) sortedList
             else sortedList.filter {
                 it.name.contains(friendSearchQuery, ignoreCase = true) || it.handle.contains(friendSearchQuery, ignoreCase = true)
@@ -1709,7 +1735,9 @@ fun CustomizedChatScreen(
                     it.id == currentFriend!!.id || it.handle.removePrefix("@").equals(currentFriend!!.handle.removePrefix("@"), ignoreCase = true)
                 }
                 if (fIdx != -1) {
-                    val updated = friendsList[fIdx].copy(
+                    val target = friendsList[fIdx]
+                    val cleanHandle = target.handle.removePrefix("@").trim().lowercase()
+                    val updated = target.copy(
                         lastMessage = dto.content,
                         timeAgo = formatIsoTime(dto.createdAt),
                         unreadCount = 0,
@@ -1719,9 +1747,17 @@ fun CustomizedChatScreen(
                     friendsList.add(0, updated)
                     readPrefs.edit()
                         .putString("last_msg_${updated.id}", dto.content)
+                        .putString("last_msg_${cleanHandle}", dto.content)
                         .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
+                        .putString("last_time_${cleanHandle}", formatIsoTime(dto.createdAt))
                         .putLong("last_timestamp_${updated.id}", currentTs)
+                        .putLong("last_timestamp_${cleanHandle}", currentTs)
                         .apply()
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            dbHelper.updateFriendLastMessageAndUnread(updated.id, dto.content, formatIsoTime(dto.createdAt), 0, currentTs)
+                        } catch (_: Exception) {}
+                    }
                     markFriendChatAsReadLocallyAndRemotely(updated)
                 } else {
                     val gIdx = userGroupsList.indexOfFirst { it.id == currentFriend!!.id }
@@ -1763,6 +1799,7 @@ fun CustomizedChatScreen(
 
                 if (fIdx != -1) {
                     val targetFriend = friendsList[fIdx]
+                    val cleanHandle = targetFriend.handle.removePrefix("@").trim().lowercase()
                     val newUnread = targetFriend.unreadCount + 1
                     val updated = targetFriend.copy(
                         lastMessage = decContent,
@@ -1774,13 +1811,17 @@ fun CustomizedChatScreen(
                     friendsList.add(0, updated)
                     readPrefs.edit()
                         .putString("last_msg_${targetFriend.id}", decContent)
+                        .putString("last_msg_${cleanHandle}", decContent)
                         .putString("last_time_${targetFriend.id}", formatIsoTime(dto.createdAt))
+                        .putString("last_time_${cleanHandle}", formatIsoTime(dto.createdAt))
                         .putInt("unread_${targetFriend.id}", newUnread)
+                        .putInt("unread_${cleanHandle}", newUnread)
                         .putLong("last_timestamp_${targetFriend.id}", currentTs)
+                        .putLong("last_timestamp_${cleanHandle}", currentTs)
                         .apply()
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-                            dbHelper.updateFriendLastMessageAndUnread(targetFriend.id, decContent, formatIsoTime(dto.createdAt), newUnread)
+                            dbHelper.updateFriendLastMessageAndUnread(targetFriend.id, decContent, formatIsoTime(dto.createdAt), newUnread, currentTs)
                         } catch (_: Exception) {}
                     }
                     onUnreadStatusChanged(true)
@@ -1811,6 +1852,7 @@ fun CustomizedChatScreen(
                         coroutineScope.launch(Dispatchers.IO) {
                             val cachedFriend = dbHelper.getFriendByUsernameOrHandle(authorClean)
                             if (cachedFriend != null) {
+                                val cleanH = cachedFriend.handle.removePrefix("@").trim().lowercase()
                                 val newUnread = cachedFriend.unreadCount + 1
                                 val updated = cachedFriend.copy(
                                     lastMessage = decContent,
@@ -1818,6 +1860,19 @@ fun CustomizedChatScreen(
                                     unreadCount = newUnread,
                                     lastMessageTimestamp = currentTs
                                 )
+                                readPrefs.edit()
+                                    .putString("last_msg_${cachedFriend.id}", decContent)
+                                    .putString("last_msg_${cleanH}", decContent)
+                                    .putString("last_time_${cachedFriend.id}", formatIsoTime(dto.createdAt))
+                                    .putString("last_time_${cleanH}", formatIsoTime(dto.createdAt))
+                                    .putInt("unread_${cachedFriend.id}", newUnread)
+                                    .putInt("unread_${cleanH}", newUnread)
+                                    .putLong("last_timestamp_${cachedFriend.id}", currentTs)
+                                    .putLong("last_timestamp_${cleanH}", currentTs)
+                                    .apply()
+                                try {
+                                    dbHelper.updateFriendLastMessageAndUnread(cachedFriend.id, decContent, formatIsoTime(dto.createdAt), newUnread, currentTs)
+                                } catch (_: Exception) {}
                                 withContext(Dispatchers.Main) {
                                     val existingIdx = friendsList.indexOfFirst { it.id == updated.id }
                                     if (existingIdx != -1) {
@@ -2148,11 +2203,20 @@ fun CustomizedChatScreen(
                                             lastMessageTimestamp = last.timestampMillis
                                         )
                                         friendsList[fIdx] = updated
+                                        val cleanH = updated.handle.removePrefix("@").trim().lowercase()
                                         readPrefs.edit()
                                             .putString("last_msg_${updated.id}", last.content)
+                                            .putString("last_msg_${cleanH}", last.content)
                                             .putString("last_time_${updated.id}", last.time)
+                                            .putString("last_time_${cleanH}", last.time)
                                             .putLong("last_timestamp_${updated.id}", last.timestampMillis)
+                                            .putLong("last_timestamp_${cleanH}", last.timestampMillis)
                                             .apply()
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            try {
+                                                dbHelper.updateFriendLastMessageAndUnread(updated.id, last.content, last.time, updated.unreadCount, last.timestampMillis)
+                                            } catch (_: Exception) {}
+                                        }
                                     }
                                 }
                             } else {
@@ -4349,8 +4413,7 @@ fun CustomizedChatScreen(
                                 markFriendChatAsReadLocallyAndRemotely(friend)
                             }
 
-                            StaggeredReveal(index = index) {
-                                Card(
+                            Card(
                                 onClick = {
                                     if (isFriendLocked && !isUnlocked) {
                                         val activity = context.findFragmentActivity()
@@ -4374,7 +4437,9 @@ fun CustomizedChatScreen(
                                         openFriendChat()
                                     }
                                 },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem(),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
@@ -4529,7 +4594,6 @@ fun CustomizedChatScreen(
                                 }
                             }
                         }
-                    }
                     } // end DisableSelection
                 }
                 } else {
@@ -5474,11 +5538,20 @@ fun CustomizedChatScreen(
                                             )
                                             friendsList.removeAt(fIdx)
                                             friendsList.add(0, updated)
+                                            val cleanHandle = updated.handle.removePrefix("@").trim().lowercase()
                                             readPrefs.edit()
                                                 .putString("last_msg_${updated.id}", userMsg)
+                                                .putString("last_msg_${cleanHandle}", userMsg)
                                                 .putString("last_time_${updated.id}", "Just now")
+                                                .putString("last_time_${cleanHandle}", "Just now")
                                                 .putLong("last_timestamp_${updated.id}", nowMillis)
+                                                .putLong("last_timestamp_${cleanHandle}", nowMillis)
                                                 .apply()
+                                            coroutineScope.launch(Dispatchers.IO) {
+                                                try {
+                                                    dbHelper.updateFriendLastMessageAndUnread(updated.id, userMsg, "Just now", 0, nowMillis)
+                                                } catch (_: Exception) {}
+                                            }
                                         } else {
                                             val gIdx = userGroupsList.indexOfFirst { it.id == friend.id }
                                             if (gIdx != -1) {

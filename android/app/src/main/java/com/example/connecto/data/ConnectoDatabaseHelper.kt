@@ -21,7 +21,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
     companion object {
         private const val DATABASE_NAME = "connecto_local_cache.db"
-        private const val DATABASE_VERSION = 7
+        private const val DATABASE_VERSION = 8
 
         @Volatile
         private var INSTANCE: ConnectoDatabaseHelper? = null
@@ -66,6 +66,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         private const val COL_FRIEND_IS_ONLINE = "is_online"
         private const val COL_FRIEND_AVATAR = "avatar_url"
         private const val COL_FRIEND_BANNER = "banner_url"
+        private const val COL_FRIEND_LAST_TIMESTAMP = "last_message_timestamp"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -115,7 +116,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 $COL_FRIEND_UNREAD INTEGER DEFAULT 0,
                 $COL_FRIEND_IS_ONLINE INTEGER DEFAULT 0,
                 $COL_FRIEND_AVATAR TEXT,
-                $COL_FRIEND_BANNER TEXT
+                $COL_FRIEND_BANNER TEXT,
+                $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0
             )
             """.trimIndent()
         )
@@ -137,7 +139,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     $COL_FRIEND_UNREAD INTEGER DEFAULT 0,
                     $COL_FRIEND_IS_ONLINE INTEGER DEFAULT 0,
                     $COL_FRIEND_AVATAR TEXT,
-                    $COL_FRIEND_BANNER TEXT
+                    $COL_FRIEND_BANNER TEXT,
+                    $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0
                 )
                 """.trimIndent()
             )
@@ -169,6 +172,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         }
         if (oldVersion < 7) {
             try { db.execSQL("ALTER TABLE $TABLE_FRIENDS ADD COLUMN $COL_FRIEND_BANNER TEXT") } catch (_: Exception) {}
+        }
+        if (oldVersion < 8) {
+            try { db.execSQL("ALTER TABLE $TABLE_FRIENDS ADD COLUMN $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0") } catch (_: Exception) {}
         }
     }
 
@@ -836,9 +842,32 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         val db = writableDatabase
         db.beginTransaction()
         try {
+            // Read existing cached timestamps to prevent overwriting with 0L
+            val existingTimestamps = mutableMapOf<String, Long>()
+            try {
+                val cur = db.rawQuery("SELECT $COL_FRIEND_ID, $COL_FRIEND_HANDLE, $COL_FRIEND_LAST_TIMESTAMP FROM $TABLE_FRIENDS", null)
+                cur.use {
+                    val idCol = it.getColumnIndex(COL_FRIEND_ID)
+                    val hCol = it.getColumnIndex(COL_FRIEND_HANDLE)
+                    val tsCol = it.getColumnIndex(COL_FRIEND_LAST_TIMESTAMP)
+                    while (it.moveToNext()) {
+                        val id = if (idCol >= 0) it.getString(idCol)?.lowercase() else null
+                        val h = if (hCol >= 0) it.getString(hCol)?.lowercase()?.removePrefix("@") else null
+                        val ts = if (tsCol >= 0) it.getLong(tsCol) else 0L
+                        if (ts > 0L) {
+                            if (!id.isNullOrBlank()) existingTimestamps[id] = ts
+                            if (!h.isNullOrBlank()) existingTimestamps[h] = ts
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
             db.delete(TABLE_FRIENDS, null, null)
             val uniqueFriends = friends.distinctBy { it.handle.trim().lowercase().removePrefix("@") }
             for (f in uniqueFriends) {
+                val cleanH = f.handle.trim().lowercase().removePrefix("@")
+                val existingTs = maxOf(existingTimestamps[f.id.lowercase()] ?: 0L, existingTimestamps[cleanH] ?: 0L)
+                val effectiveTs = maxOf(f.lastMessageTimestamp, existingTs)
                 val cv = ContentValues().apply {
                     put(COL_FRIEND_ID, f.id)
                     put(COL_FRIEND_NAME, f.name)
@@ -852,6 +881,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     put(COL_FRIEND_IS_ONLINE, if (f.isOnline) 1 else 0)
                     put(COL_FRIEND_AVATAR, f.avatarUrl)
                     put(COL_FRIEND_BANNER, f.bannerUrl)
+                    put(COL_FRIEND_LAST_TIMESTAMP, effectiveTs)
                 }
                 db.insertWithOnConflict(TABLE_FRIENDS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -871,6 +901,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 val avatarUrl = if (avatarCol >= 0) it.getString(avatarCol) else null
                 val bannerCol = it.getColumnIndex(COL_FRIEND_BANNER)
                 val bannerUrl = if (bannerCol >= 0) it.getString(bannerCol) else null
+                val tsCol = it.getColumnIndex(COL_FRIEND_LAST_TIMESTAMP)
+                val lastTs = if (tsCol >= 0) it.getLong(tsCol) else 0L
                 list.add(
                     FriendItem(
                         id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)),
@@ -884,7 +916,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         unreadCount = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_UNREAD)),
                         isOnline = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_IS_ONLINE)) == 1,
                         avatarUrl = avatarUrl,
-                        bannerUrl = bannerUrl
+                        bannerUrl = bannerUrl,
+                        lastMessageTimestamp = lastTs
                     )
                 )
             }
@@ -911,7 +944,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         friendIdOrHandle: String,
         lastMessage: String,
         timeAgo: String,
-        unreadCount: Int
+        unreadCount: Int,
+        lastMessageTimestamp: Long = 0L
     ) {
         try {
             val db = writableDatabase
@@ -921,6 +955,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 put(COL_FRIEND_UNREAD, unreadCount)
                 put(COL_FRIEND_LAST_MSG, lastMessage)
                 put(COL_FRIEND_TIME, timeAgo)
+                if (lastMessageTimestamp > 0L) {
+                    put(COL_FRIEND_LAST_TIMESTAMP, lastMessageTimestamp)
+                }
             }
             db.update(
                 TABLE_FRIENDS,
@@ -950,7 +987,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
     fun incrementFriendUnreadCount(
         friendIdOrHandle: String,
         lastMessage: String? = null,
-        timeAgo: String? = null
+        timeAgo: String? = null,
+        lastMessageTimestamp: Long = 0L
     ): Int {
         try {
             val db = writableDatabase
@@ -985,6 +1023,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 put(COL_FRIEND_UNREAD, newUnread)
                 if (!lastMessage.isNullOrBlank()) put(COL_FRIEND_LAST_MSG, lastMessage)
                 if (!timeAgo.isNullOrBlank()) put(COL_FRIEND_TIME, timeAgo)
+                if (lastMessageTimestamp > 0L) put(COL_FRIEND_LAST_TIMESTAMP, lastMessageTimestamp)
             }
 
             if (friendId != null) {
@@ -1026,6 +1065,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     val avatarUrl = if (avatarCol >= 0) it.getString(avatarCol) else null
                     val bannerCol = it.getColumnIndex(COL_FRIEND_BANNER)
                     val bannerUrl = if (bannerCol >= 0) it.getString(bannerCol) else null
+                    val tsCol = it.getColumnIndex(COL_FRIEND_LAST_TIMESTAMP)
+                    val lastTs = if (tsCol >= 0) it.getLong(tsCol) else 0L
                     return FriendItem(
                         id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)),
                         name = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_NAME)),
@@ -1038,12 +1079,29 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         unreadCount = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_UNREAD)),
                         isOnline = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_IS_ONLINE)) == 1,
                         avatarUrl = avatarUrl,
-                        bannerUrl = bannerUrl
+                        bannerUrl = bannerUrl,
+                        lastMessageTimestamp = lastTs
                     )
                 }
             }
         } catch (_: Exception) {}
         return null
+    }
+
+    /**
+     * Resolves the latest message content and timestamp for a friend conversation by searching
+     * cached messages in direct channels / allowed authors.
+     */
+    fun getLatestMessageInfoForFriend(myUsername: String, friendHandleOrId: String): Pair<String, Long>? {
+        return try {
+            val msgs = getDirectMessages(myUsername, friendHandleOrId, limit = 5)
+            val latest = msgs.lastOrNull() ?: return null
+            val content = latest.content
+            val ts = parseIsoEpochMillis(latest.createdAt) ?: 0L
+            Pair(content, ts)
+        } catch (_: Exception) {
+            null
+        }
     }
 
     fun deleteFriend(friendIdOrHandle: String) {

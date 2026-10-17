@@ -5711,12 +5711,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.4.2",
-        "version_name": "v4.4.2",
-        "version_code": 71,
-        "release_tag": "v4.4.2-stable",
-        "sha256": "c39e76dc65616e831f57daae0c2f0dc056dca0464f55ee6c700c8996380275e0",
-        "md5": "582ebc069a8b6fc087de4aec3011e7a0",
+        "version": "4.4.3",
+        "version_name": "v4.4.3",
+        "version_code": 72,
+        "release_tag": "v4.4.3-stable",
+        "sha256": "e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121",
+        "md5": "696dca0300535b05e685ac5fb99b17aa",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5726,12 +5726,12 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
+            "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
+            "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
             "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
             "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
-            "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping.",
-            "Profile Tab & User Profile Screenshot Privacy: OS-level WindowManager.FLAG_SECURE blocks screenshots and screen recording on personal profile and friend profile views.",
-            "Cloudflare Global Edge CDN Fast Delivery: Edge worker caches APK downloads across 300+ data centers with immutable caching and routes static assets directly to Cloudflare Pages edge for <10ms latency.",
-            "Base64 WebP Cover Photos & Coil Disk Cache Fix: Enabled data URI WebP base64 decoding for user cover photos and fixed Coil memory/disk cache key truncation."
+            "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping."
         ]
     }
 
@@ -5743,10 +5743,27 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.4.2",
+                "version": "v4.4.3",
                 "date": "Oct 18, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.4.3: Messages Tab Stabilized Ordering, Instant Float-to-Top & DB Recency",
+                "summary": "Completely eliminates visual jumping of user cards in the Messages tab by removing delayed vertical translation animations, introduces smooth Jetpack Compose item placement animations, guarantees conversations with recent messages stay at the top and float to index 0 on message arrival, adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8), and applies secondary alphabetical sorting for stable inactive contacts.",
+                "highlights": [
+                    "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
+                    "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
+                    "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
+                    "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
+                    "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
+                    "Android Native App v4.4.3 (Build 72 • 54.8 MB): SHA-256 e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.4.2",
+                "date": "Oct 18, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.4.2: Animated Typing Bubble, 24/7 High-Availability Sync & Notification Avatars",
                 "summary": "Delivers real-time 3-dot animated bouncing typing indicator bubble inside chat with automatic smooth scrolling and live header typing status, 24/7 high-availability bi-directional synchronization and sub-second automatic failover between SSH origin server and Cloudflare Edge with zero data loss, and remote sender avatars rendered directly in MessagingStyle notifications.",
                 "highlights": [

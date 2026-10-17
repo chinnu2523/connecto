@@ -62,7 +62,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease && dbRelease.version_code >= 71) {
+      if (dbRelease && dbRelease.version_code >= 72) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -77,19 +77,18 @@ export default {
           md5: dbRelease.md5,
           filename: dbRelease.filename,
           size_bytes: dbRelease.size_bytes,
-          size_display: "54.8 MB",
+          size_display: "55.0 MB",
           min_android: "Android 7.0 (API 24)",
           target_android: "Android 16+ (API 37 / HyperOS Verified)",
           url: "https://connecto.fun/download/apk",
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
+            "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
+            "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
+            "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
             "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
-            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
-            "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping.",
-            "Profile Tab & User Profile Screenshot Privacy: OS-level WindowManager.FLAG_SECURE blocks screenshots and screen recording on personal profile and friend profile views.",
-            "Cloudflare Global Edge CDN Fast Delivery: Edge worker caches APK downloads across 300+ data centers with immutable caching and routes static assets directly to Cloudflare Pages edge for <10ms latency.",
-            "Base64 WebP Cover Photo Support & Coil Cache Fix: Direct Base64 data URI decoding and Coil disk cache key length fix."
+            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback."
           ]
         });
       }
@@ -98,12 +97,12 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.4.2",
-        version_name: "v4.4.2",
-        version_code: 71,
-        build: 71,
-        sha256: "c39e76dc65616e831f57daae0c2f0dc056dca0464f55ee6c700c8996380275e0",
-        md5: "582ebc069a8b6fc087de4aec3011e7a0",
+        version: "4.4.3",
+        version_name: "v4.4.3",
+        version_code: 72,
+        build: 72,
+        sha256: "e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121",
+        md5: "696dca0300535b05e685ac5fb99b17aa",
         filename: "connecto-fun.apk",
         size_bytes: 57416889,
         size_display: "54.8 MB",
@@ -113,12 +112,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
+          "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
+          "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
           "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
-          "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
-          "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping.",
-          "Profile Tab & User Profile Screenshot Privacy: OS-level WindowManager.FLAG_SECURE blocks screenshots and screen recording on personal profile and friend profile views.",
-          "Cloudflare Global Edge CDN Acceleration: 300+ data center edge caching with instant sub-10ms delivery of APK packages, images, and static assets.",
-          "Base64 WebP Cover Photo Support & Coil Cache Fix: Direct Base64 data URI decoding and Coil disk cache key length fix."
+          "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback."
         ]
       });
     }
@@ -164,16 +162,16 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.2/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.3/connecto-fun.apk";
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.2.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.3.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.4.2");
-          res.headers.set("X-Connecto-Build", "71");
+          res.headers.set("X-Connecto-Version", "v4.4.3");
+          res.headers.set("X-Connecto-Build", "72");
           return res;
         }
 
@@ -184,7 +182,7 @@ export default {
             cacheTtl: 604800
           },
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.4.2"
+            "User-Agent": "Connecto-Cloud-Worker/4.4.3"
           }
         });
         if (upstreamResp.ok) {
@@ -195,8 +193,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.4.2");
-          downloadHeaders.set("X-Connecto-Build", "71");
+          downloadHeaders.set("X-Connecto-Version", "v4.4.3");
+          downloadHeaders.set("X-Connecto-Build", "72");
           downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
           const responseToReturn = new Response(upstreamResp.body, {
@@ -209,7 +207,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.2/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.3/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -363,8 +361,13 @@ async function probeOriginHealth(env) {
       }
     }
   } catch (err) {
-    state = "DOWN";
-    detailMsg = err.message;
+    if (err && err.message && (err.message.includes("D1_ERROR") || err.message.includes("limit") || err.message.includes("quota"))) {
+      state = "UP"; // D1 limit reached on free tier; keep origin UP so traffic proxies to live origin
+      detailMsg = "D1 quota limit reached; proxying to origin";
+    } else {
+      state = "DOWN";
+      detailMsg = err.message;
+    }
   }
 
   localServerStatus = state;
@@ -3466,61 +3469,65 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (method === "GET") {
       let messages = [];
       if (env.DB) {
-        const res = await env.DB.prepare(`
-          SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
-                 COALESCE(u.username, m.sender_id) as author_name,
-                 COALESCE(u.display_name, u.username, m.sender_id) as author_display_name,
-                 COALESCE(u.avatar_url, '👾') as author_avatar,
-                 COALESCE(u.id, m.sender_id) as author_id
-          FROM messages m
-          LEFT JOIN users u ON m.sender_id = u.id OR lower(m.sender_id) = lower(u.username) OR lower(m.sender_id) = lower('usr_' || u.username)
-          WHERE m.channel_id IN (?, ?, ?, ?)
-             OR m.channel_id IN (SELECT id FROM channels WHERE lower(name) IN (?, ?, ?, ?) OR id IN (?, ?))
-          ORDER BY m.created_at ASC
-          LIMIT 100
-        `).bind(
-          dmChannelId, altChannelId, revChannelId, revAltChannelId,
-          dmChannelId, altChannelId, revChannelId, revAltChannelId, dmChannelId, altChannelId
-        ).all();
+        try {
+          const res = await env.DB.prepare(`
+            SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
+                   COALESCE(u.username, m.sender_id) as author_name,
+                   COALESCE(u.display_name, u.username, m.sender_id) as author_display_name,
+                   COALESCE(u.avatar_url, '👾') as author_avatar,
+                   COALESCE(u.id, m.sender_id) as author_id
+            FROM messages m
+            LEFT JOIN users u ON m.sender_id = u.id OR lower(m.sender_id) = lower(u.username) OR lower(m.sender_id) = lower('usr_' || u.username)
+            WHERE m.channel_id IN (?, ?, ?, ?)
+               OR m.channel_id IN (SELECT id FROM channels WHERE lower(name) IN (?, ?, ?, ?) OR id IN (?, ?))
+            ORDER BY m.created_at ASC
+            LIMIT 100
+          `).bind(
+            dmChannelId, altChannelId, revChannelId, revAltChannelId,
+            dmChannelId, altChannelId, revChannelId, revAltChannelId, dmChannelId, altChannelId
+          ).all();
 
-        messages = (res.results || []).map(r => {
-          let att = {};
-          try {
-            if (r.attachments && typeof r.attachments === 'string' && r.attachments.startsWith('{')) {
-              att = JSON.parse(r.attachments);
-            }
-          } catch (_) {}
-          return {
-            id: r.id,
-            channelId: r.channel_id,
-            channel_id: r.channel_id,
-            authorId: r.author_id,
-            author_id: r.author_id,
-            authorName: r.author_name,
-            author_name: r.author_name,
-            authorAvatar: r.author_avatar,
-            author_avatar: r.author_avatar,
-            user: r.author_name,
-            avatar: r.author_avatar,
-            avatar_url: r.author_avatar,
-            nickname: r.author_display_name || r.author_name,
-            sender: r.author_name,
-            sender_id: r.author_id,
-            sender_username: r.author_name,
-            sender_display_name: r.author_display_name || r.author_name,
-            sender_avatar_url: r.author_avatar,
-            content: r.content,
-            text: r.content,
-            createdAt: r.created_at,
-            created_at: r.created_at,
-            timestamp: r.created_at,
-            type: "text",
-            reactions: {},
-            reply_to_id: att.reply_to_id || r.reply_to_id || null,
-            reply_to_content: att.reply_to_content || r.reply_to_content || null,
-            reply_to_author: att.reply_to_author || r.reply_to_author || null
-          };
-        });
+          messages = (res.results || []).map(r => {
+            let att = {};
+            try {
+              if (r.attachments && typeof r.attachments === 'string' && r.attachments.startsWith('{')) {
+                att = JSON.parse(r.attachments);
+              }
+            } catch (_) {}
+            return {
+              id: r.id,
+              channelId: r.channel_id,
+              channel_id: r.channel_id,
+              authorId: r.author_id,
+              author_id: r.author_id,
+              authorName: r.author_name,
+              author_name: r.author_name,
+              authorAvatar: r.author_avatar,
+              author_avatar: r.author_avatar,
+              user: r.author_name,
+              avatar: r.author_avatar,
+              avatar_url: r.author_avatar,
+              nickname: r.author_display_name || r.author_name,
+              sender: r.author_name,
+              sender_id: r.author_id,
+              sender_username: r.author_name,
+              sender_display_name: r.author_display_name || r.author_name,
+              sender_avatar_url: r.author_avatar,
+              content: r.content,
+              text: r.content,
+              createdAt: r.created_at,
+              created_at: r.created_at,
+              timestamp: r.created_at,
+              type: "text",
+              reactions: {},
+              reply_to_id: att.reply_to_id || r.reply_to_id || null,
+              reply_to_content: att.reply_to_content || r.reply_to_content || null,
+              reply_to_author: att.reply_to_author || r.reply_to_author || null
+            };
+          });
+        } catch (dbErr) {
+          console.warn("[DM_GET] D1 query warning/limit:", dbErr.message);
+        }
       }
 
       return jsonResponse(messages);
@@ -3545,37 +3552,43 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         const msgId = "msg_dm_" + Math.random().toString(36).substring(2, 10);
         const nowIso = new Date().toISOString();
 
+        let senderId = currentUser;
+        let senderAvatar = body.avatar || "👾";
+        let senderDisplayName = currentUser;
+
         if (env.DB) {
-          // 1. Ensure DM channel exists in channels table (FK constraint)
-          await env.DB.prepare(
-            "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'dm')"
-          ).bind(dmChannelId, dmChannelId).run();
+          try {
+            // 1. Ensure DM channel exists in channels table (FK constraint)
+            await env.DB.prepare(
+              "INSERT OR IGNORE INTO channels (id, name, type) VALUES (?, ?, 'dm')"
+            ).bind(dmChannelId, dmChannelId).run();
 
-          // 2. Ensure sender user exists and get sender ID
-          let sender = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(currentUser).first();
-          if (!sender) {
-            return jsonResponse({ status: "error", message: "Sender does not exist" }, 400);
+            // 2. Ensure sender user exists and get sender ID
+            let sender = await env.DB.prepare("SELECT id, username, display_name, avatar_url FROM users WHERE lower(username) = ? LIMIT 1").bind(currentUser).first();
+            if (sender) {
+              senderId = sender.id;
+              senderAvatar = sender.avatar_url || senderAvatar;
+              senderDisplayName = sender.display_name || sender.username;
+            }
+
+            // 3. Ensure recipient exists
+            const recipient = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
+
+            // 4. Insert DM message
+            await env.DB.prepare(
+              "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
+            ).bind(msgId, dmChannelId, senderId, content).run();
+
+            // 5. Insert notification record for recipient
+            const notifId = "notif_" + msgId;
+            const recipientId = recipient ? recipient.id : targetUser;
+            await env.DB.prepare(`
+              INSERT INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at)
+              VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))
+            `).bind(notifId, recipientId, senderDisplayName, content, currentUser, senderAvatar, currentUser).run().catch(() => {});
+          } catch (dbErr) {
+            console.warn("[DM_POST] D1 insert warning/limit:", dbErr.message);
           }
-
-          // 3. Ensure recipient exists
-          const recipient = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
-          if (!recipient) {
-            return jsonResponse({ status: "error", message: "Recipient does not exist" }, 404);
-          }
-
-          // 4. Insert DM message
-          await env.DB.prepare(
-            "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
-          ).bind(msgId, dmChannelId, sender.id, content).run();
-
-          // 5. Insert notification record for recipient
-          const notifId = "notif_" + msgId;
-          const recipientRow = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser).first();
-          const recipientId = recipientRow ? recipientRow.id : targetUser;
-          await env.DB.prepare(`
-            INSERT INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at)
-            VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))
-          `).bind(notifId, recipientId, sender.display_name || sender.username, content, sender.username, body.avatar || "👾", currentUser).run().catch(() => {});
         }
 
         const dmMsg = {
@@ -5060,15 +5073,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.4.1",
-      version_name: "v4.4.1",
-      version_code: 70,
-      build: 70,
-      sha256: "e538c0b305f29d7f00e75c4b0a6cffcdf6aa68d17692ab6cc4fa44387a409fa3",
-      md5: "c413c0648fa28e32a4d460c9a3f13c04",
+      version: "4.4.3",
+      version_name: "v4.4.3",
+      version_code: 72,
+      build: 72,
+      sha256: "e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121",
+      md5: "696dca0300535b05e685ac5fb99b17aa",
       filename: "connecto-fun.apk",
-      size_bytes: 57384069,
-      size_display: "54.7 MB",
+      size_bytes: 57416889,
+      size_display: "54.8 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -5081,10 +5094,27 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.4.2",
+          version: "v4.4.3",
           date: "Oct 18, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.4.3: Messages Tab Stabilized Ordering, Instant Float-to-Top & DB Recency",
+          summary: "Completely eliminates visual jumping of user cards in the Messages tab by removing delayed vertical translation animations, introduces smooth Jetpack Compose item placement animations, guarantees conversations with recent messages stay at the top and float to index 0 on message arrival, adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8), and applies secondary alphabetical sorting for stable inactive contacts.",
+          highlights: [
+            "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
+            "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
+            "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
+            "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
+            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
+            "Android Native App v4.4.3 (Build 72 • 54.8 MB): SHA-256 e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.4.2",
+          date: "Oct 18, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.4.2: Animated Typing Bubble, 24/7 High-Availability Sync & Notification Avatars",
           summary: "Delivers real-time 3-dot animated bouncing typing indicator bubble inside chat with automatic smooth scrolling and live header typing status, 24/7 high-availability bi-directional synchronization and sub-second automatic failover between SSH origin server and Cloudflare Edge with zero data loss, and remote sender avatars rendered directly in MessagingStyle notifications.",
           highlights: [

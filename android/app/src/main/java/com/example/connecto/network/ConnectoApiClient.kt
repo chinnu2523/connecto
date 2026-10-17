@@ -4326,8 +4326,8 @@ object ConnectoApiClient {
                         }
                     }
                     requestMethod = method
-                    connectTimeout = 12000
-                    readTimeout = 15000
+                    connectTimeout = 3000
+                    readTimeout = 5000
                     setRequestProperty("User-Agent", USER_AGENT)
                     setRequestProperty("Accept", "application/json")
                     setRequestProperty("Content-Type", "application/json")
@@ -4407,12 +4407,13 @@ object ConnectoApiClient {
                         triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
                     }
                     return Result.failure(Exception(errorDetail))
-                } else if (responseCode in 400..499 && responseCode != 404) {
+                } else if (responseCode in 400..499 && responseCode != 404 && responseCode != 429) {
                     ConnectoNetworkConfig.activeBaseUrl = base
                     val errorDetail = parseErrorMessage(responseText, responseCode)
                     return Result.failure(Exception(errorDetail))
                 } else {
-                    // 404 or 5xx: fall through to check next server base
+                    // 404, 429 (rate/quota limited), or 5xx: fall through to check next server base
+                    android.util.Log.w("ConnectoSync", "Server base $base returned $responseCode, trying next candidate server...")
                     lastException = Exception("Server returned code $responseCode: $responseText")
                 }
             } catch (e: Exception) {
