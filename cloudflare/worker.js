@@ -62,7 +62,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease) {
+      if (dbRelease && dbRelease.version_code >= 69) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -77,7 +77,7 @@ export default {
           md5: dbRelease.md5,
           filename: dbRelease.filename,
           size_bytes: dbRelease.size_bytes,
-          size_display: "54.5 MB",
+          size_display: "54.7 MB",
           min_android: "Android 7.0 (API 24)",
           target_android: "Android 16+ (API 37 / HyperOS Verified)",
           url: "https://connecto.fun/download/apk",
@@ -99,14 +99,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.3.9",
-        version_name: "v4.3.9",
-        version_code: 68,
-        build: 68,
-        sha256: "223a47bbc26e0ad7717e984fe961dc8ac868417cb8fb89c627d2e1be79249e9e",
+        version: "4.4.0",
+        version_name: "v4.4.0",
+        version_code: 69,
+        build: 69,
+        sha256: "516881b774a2d19e94107ed69fa67bb6c78b589951893d52937ad618edcc1d74",
         md5: "c413c0648fa28e32a4d460c9a3f13c04",
         filename: "connecto-fun.apk",
-        size_bytes: 57318533,
+        size_bytes: 57384069,
         size_display: "54.7 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -114,12 +114,12 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Resend Email 2FA & Secure OTP: Integrated Resend email delivery for 2FA login verification and forgotten password resets with instant token validation.",
-          "Profile Photo Protection & Avatar Isolation: Resolved generic upload endpoint to isolate group icons and chat attachments from overwriting personal avatars.",
-          "Zero-Flicker Cover Photo Suite: Complete flicker-free cover photo persistence across tab switching, touch scrolling, and full-screen lightboxes with 7 curated artistic presets.",
-          "Monochrome Black & White UI: Pure OLED jet black surfaces with high-contrast text and instant 0ms message caching.",
-          "Multi-Account Chat & Wallpaper Isolation: Scopes custom and preset wallpapers, pinned messages, locks, and themes strictly by user account and canonical DM channel ID (dm-{u1}-{u2}).",
-          "Touch-Scroll Gesture Engine & Voice Lounge Hardening: Hardware echo cancellation, background suppression, and fluid swipe-to-reply."
+          "Admin & User Base64 WebP Cover Photo Support: Base64 data URI decoding and Coil disk cache length fix for instant cover photo rendering.",
+          "Android Notification Person Avatar Engine: Solved MessagingStyle system notification remote sender icons using in-memory bitmap decode.",
+          "Real-Time Unread DMs & Snippet Updates: Instant real-time unread badges and snippet updates on Messages tab without requiring app reload.",
+          "Atomic SQLite Unread Counter: Atomic transaction increments for unread message counts in local database helper.",
+          "Backend Device Registration Fix: Solved MultipleResultsFound exception by cleanly handling duplicate APNs/FCM tokens.",
+          "Resend Email 2FA & Secure OTP: Integrated Resend email delivery for 2FA login verification and forgotten password resets."
         ]
       });
     }
@@ -165,11 +165,11 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.3.9/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.0/connecto-fun.apk";
         const upstreamResp = await fetch(canonicalApkUrl, {
           redirect: "follow",
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.3.9"
+            "User-Agent": "Connecto-Cloud-Worker/4.4.0"
           }
         });
         if (upstreamResp.ok) {
@@ -180,8 +180,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.3.9");
-          downloadHeaders.set("X-Connecto-Build", "68");
+          downloadHeaders.set("X-Connecto-Version", "v4.4.0");
+          downloadHeaders.set("X-Connecto-Build", "69");
           return new Response(upstreamResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -190,7 +190,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.9/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.0/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -4887,14 +4887,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.3.9",
-      version_name: "v4.3.9",
-      version_code: 68,
-      build: 68,
-      sha256: "223a47bbc26e0ad7717e984fe961dc8ac868417cb8fb89c627d2e1be79249e9e",
+      version: "4.4.0",
+      version_name: "v4.4.0",
+      version_code: 69,
+      build: 69,
+      sha256: "516881b774a2d19e94107ed69fa67bb6c78b589951893d52937ad618edcc1d74",
       md5: "c413c0648fa28e32a4d460c9a3f13c04",
       filename: "connecto-fun.apk",
-      size_bytes: 57318533,
+      size_bytes: 57384069,
       size_display: "54.7 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -4908,10 +4908,26 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.3.9",
+          version: "v4.4.0",
           date: "Oct 17, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.4.0: Base64 Cover Photos, Notification Avatars & Real-Time Unread DMs",
+          summary: "Enables base64 data URI WebP rendering for custom user cover photos with Coil disk cache stabilization, implements remote sender person avatar decoding for Android MessagingStyle push notifications, and delivers atomic real-time unread badge increments and snippet refreshes.",
+          highlights: [
+            "Admin & User Base64 WebP Cover Photo Support: Fixed Coil disk cache key length issues by enabling direct Base64 and data URI WebP bitmap decoding for profile cover photos.",
+            "System Notification Sender Avatar Engine: In-memory network bitmap loader extracts sender profile picture for Android MessagingStyle notification Person objects.",
+            "Real-Time Unread Badge Counter & Snippet Updates: SQLite atomic increments with instant StateFlow emission to update unread message badges and preview text on the Messages tab.",
+            "Backend Device Registration Fix: Solved MultipleResultsFound exception by cleanly handling duplicate APNs/FCM tokens.",
+            "Android Native App v4.4.0 (Build 69 • 54.7 MB): SHA-256 516881b774a2d19e94107ed69fa67bb6c78b589951893d52937ad618edcc1d74."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.3.9",
+          date: "Oct 17, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.3.9: Resend Email 2FA & OTP, Profile Photo Isolation & Protection, Zero-Flicker Cover Photos",
           summary: "Integrates Resend email infrastructure for end-to-end 2FA login verification and secure password resets, fixes generic media upload route to completely isolate group/channel avatars and chat attachments from overwriting personal profile pictures, and delivers a zero-flicker profile cover photo suite.",
           highlights: [

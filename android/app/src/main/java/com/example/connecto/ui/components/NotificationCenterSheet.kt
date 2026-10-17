@@ -410,12 +410,22 @@ private fun NotificationItemRow(
             verticalAlignment = Alignment.Top
         ) {
             // Left Sender Avatar or Icon Badge
-            val resolvedAvatar = item.senderAvatar?.let { raw ->
-                if (raw.startsWith("http://") || raw.startsWith("https://")) raw
-                else "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/${raw.trimStart('/')}"
-            }
+            val rawAvatar = item.senderAvatar?.trim()
+            val isEmojiAvatar = rawAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } ?: false
+            val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(rawAvatar)
 
-            if (!resolvedAvatar.isNullOrBlank()) {
+            if (isEmojiAvatar && !rawAvatar.isNullOrBlank()) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF1E202A))
+                        .border(1.5.dp, Brush.linearGradient(gradientColors), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = rawAvatar, fontSize = 22.sp)
+                }
+            } else if (resolvedModel != null) {
                 Box(
                     modifier = Modifier
                         .size(42.dp)
@@ -423,7 +433,7 @@ private fun NotificationItemRow(
                         .border(1.5.dp, Brush.linearGradient(gradientColors), CircleShape)
                 ) {
                     AsyncImage(
-                        model = resolvedAvatar,
+                        model = resolvedModel,
                         contentDescription = item.senderUsername ?: item.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop

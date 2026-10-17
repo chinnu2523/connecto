@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -29,13 +30,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
@@ -68,6 +73,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -183,6 +189,31 @@ fun FullScreenGroupProfileDialog(
                     isUploadingAvatar = false
                 }
             }
+        }
+    }
+
+    // Group Wallpaper Photo Picker Launcher
+    val groupWallpaperPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            val fileUriStr = try {
+                val wallpapersDir = java.io.File(context.filesDir, "chat_wallpapers")
+                if (!wallpapersDir.exists()) wallpapersDir.mkdirs()
+                val cleanUser = currentUsername.trim().removePrefix("@").lowercase()
+                val localFile = java.io.File(wallpapersDir, "wp_${cleanUser}_${group.id}.jpg")
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    localFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                android.net.Uri.fromFile(localFile).toString()
+            } catch (_: Exception) {
+                uri.toString()
+            }
+            onWallpaperSelected("custom", fileUriStr)
+            Toast.makeText(context, "Custom group wallpaper applied!", Toast.LENGTH_SHORT).show()
+            showWallpaperSelectorModal = false
         }
     }
 
@@ -490,52 +521,62 @@ fun FullScreenGroupProfileDialog(
                         }
                     }
 
-                    // ================= 2. GROUP CHAT WALLPAPER OPTION (ADMIN ONLY BUTTON) =================
-                    if (isAdmin) {
-                        item(key = "group_wallpaper_section") {
-                            val activeWallpaper = AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == chatWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Wallpaper,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "GROUP CHAT WALLPAPER (ADMIN)",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                }
+                    // ================= 2. GROUP CHAT WALLPAPER OPTION =================
+                    item(key = "group_wallpaper_section") {
+                        val activeWallpaper = AVAILABLE_CHAT_WALLPAPERS.firstOrNull { it.id == chatWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Wallpaper,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    text = "GROUP CHAT WALLPAPER",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
 
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                        .border(
-                                            1.dp,
-                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                            RoundedCornerShape(16.dp)
-                                        )
-                                        .clickable { showWallpaperSelectorModal = true }
-                                        .padding(14.dp)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                        RoundedCornerShape(16.dp)
+                                    )
+                                    .clickable { showWallpaperSelectorModal = true }
+                                    .padding(14.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
+                                        if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) {
+                                            AsyncImage(
+                                                model = customWallpaperUri,
+                                                contentDescription = "Custom Wallpaper",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .size(46.dp, 34.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                                            )
+                                        } else {
                                             Box(
                                                 modifier = Modifier
                                                     .size(46.dp, 34.dp)
@@ -543,35 +584,35 @@ fun FullScreenGroupProfileDialog(
                                                     .background(if (isLight) activeWallpaper.lightBrush else activeWallpaper.darkBrush)
                                                     .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
                                             )
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
-                                                Text(
-                                                    text = activeWallpaper.name,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = "Tap to customize group wallpaper",
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
                                         }
-
-                                        Button(
-                                            onClick = { showWallpaperSelectorModal = true },
-                                            shape = RoundedCornerShape(10.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Wallpaper,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(14.dp)
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column {
+                                            Text(
+                                                text = if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) "Custom Photo Wallpaper" else activeWallpaper.name,
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
                                             )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Wallpapers", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(
+                                                text = "Tap to customize group wallpaper",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
+                                    }
+
+                                    Button(
+                                        onClick = { showWallpaperSelectorModal = true },
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Wallpaper,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Wallpapers", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -941,9 +982,8 @@ fun FullScreenGroupProfileDialog(
         )
     }
 
-    // Admin-only modal to select from curated group wallpapers
-    if (showWallpaperSelectorModal && isAdmin) {
-        val curatedWallpapers = remember { AVAILABLE_CHAT_WALLPAPERS.take(5) }
+    // Group chat wallpaper selector modal (accessible to all group members)
+    if (showWallpaperSelectorModal) {
         Dialog(
             onDismissRequest = { showWallpaperSelectorModal = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -951,12 +991,16 @@ fun FullScreenGroupProfileDialog(
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
+                    .fillMaxHeight(0.85f)
                     .clip(RoundedCornerShape(24.dp))
                     .background(MaterialTheme.colorScheme.surface)
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
                     .padding(20.dp)
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -978,7 +1022,7 @@ fun FullScreenGroupProfileDialog(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Admin customization • Choose a wallpaper",
+                                    text = "Personalize this group chat wallpaper",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -998,9 +1042,123 @@ fun FullScreenGroupProfileDialog(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        curatedWallpapers.forEach { wallpaper ->
-                            val isSelected = chatWallpaperId == wallpaper.id
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Custom Photo Wallpaper Card
+                        val isCustomSelected = chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isCustomSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                )
+                                .border(
+                                    width = if (isCustomSelected) 2.dp else 1.dp,
+                                    color = if (isCustomSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    if (!customWallpaperUri.isNullOrBlank()) {
+                                        AsyncImage(
+                                            model = customWallpaperUri,
+                                            contentDescription = "Custom Wallpaper",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 46.dp, height = 34.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                        )
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(width = 46.dp, height = 34.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(6.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.AddPhotoAlternate,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                            text = "Custom Photo Wallpaper",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = if (!customWallpaperUri.isNullOrBlank()) "Photo active for this group" else "Pick custom photo from gallery",
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.primary)
+                                            .clickable {
+                                                groupWallpaperPickerLauncher.launch("image/*")
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = if (customWallpaperUri.isNullOrBlank()) "Choose" else "Change",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentOnGradient
+                                        )
+                                    }
+
+                                    if (!customWallpaperUri.isNullOrBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(30.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFDC2626).copy(alpha = 0.15f))
+                                                .clickable {
+                                                    onWallpaperSelected("default", null)
+                                                    Toast.makeText(context, "Custom wallpaper removed", Toast.LENGTH_SHORT).show()
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Remove Custom Wallpaper",
+                                                tint = Color(0xFFEF4444),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Curated Wallpaper Presets
+                        AVAILABLE_CHAT_WALLPAPERS.forEach { wallpaper ->
+                            val isSelected = chatWallpaperId == wallpaper.id && (wallpaper.id == "default" || customWallpaperUri.isNullOrBlank())
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()

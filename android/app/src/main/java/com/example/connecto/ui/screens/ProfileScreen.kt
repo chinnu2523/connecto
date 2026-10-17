@@ -308,8 +308,8 @@ fun ProfileScreen(
         val saved = prefs.getString("banner_uri_$username", null)
         val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
         val initial = when {
-            localCover.exists() -> localCover.absolutePath
             !saved.isNullOrBlank() && saved != "null" -> saved
+            localCover.exists() -> localCover.absolutePath
             else -> null
         }
         mutableStateOf(initial)
@@ -507,16 +507,9 @@ fun ProfileScreen(
                     val sBan = prof.bannerUrl.trim()
                     val isCorrupted = sBan.startsWith("data:") && sBan.length < 500
                     if (!isCorrupted) {
-                        val localCover = java.io.File(context.filesDir, "cover_${prof.username.lowercase()}.webp")
-                        if (isCoverPreset(sBan)) {
-                            bannerPhotoUri = sBan
-                            bannerUrlFieldInput = sBan
-                            prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
-                        } else if (!localCover.exists()) {
-                            bannerPhotoUri = sBan
-                            bannerUrlFieldInput = sBan
-                            prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
-                        }
+                        bannerPhotoUri = sBan
+                        bannerUrlFieldInput = sBan
+                        prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
                     }
                 }
             }
@@ -735,14 +728,19 @@ fun ProfileScreen(
     val hasCoverPhoto = !sanitizedBannerPhoto.isNullOrBlank() || isPresetBanner
 
     val bannerImageRequest = remember(bannerPhotoUri, context) {
-        if (bannerPhotoUri.isNullOrBlank() || isPresetBanner) null
+        val curUri = bannerPhotoUri
+        if (curUri.isNullOrBlank() || isPresetBanner) null
         else {
-            val resolved = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto ?: bannerPhotoUri
+            val resolved = resolveImageModel(curUri) ?: sanitizedBannerPhoto ?: curUri
+            val cacheKey = if (curUri.startsWith("data:") || curUri.length > 100) {
+                "banner_${curUri.hashCode()}"
+            } else {
+                curUri
+            }
             ImageRequest.Builder(context)
                 .data(resolved)
-                .memoryCacheKey(bannerPhotoUri)
-                .diskCacheKey(bannerPhotoUri)
-                .crossfade(false)
+                .memoryCacheKey(cacheKey)
+                .crossfade(true)
                 .build()
         }
     }

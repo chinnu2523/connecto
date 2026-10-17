@@ -154,10 +154,9 @@ fun InAppNotificationBanner(
                     label = "bannerSwipeOffset"
                 )
 
-                val resolvedAvatar = current.avatarUrl?.let { raw ->
-                    if (raw.startsWith("http://") || raw.startsWith("https://")) raw
-                    else "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/${raw.trimStart('/')}"
-                }
+                val rawAvatar = current.avatarUrl?.trim()
+                val isEmojiAvatar = rawAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } ?: false
+                val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(rawAvatar)
 
                 val borderGradient = Brush.linearGradient(
                     listOf(
@@ -247,7 +246,18 @@ fun InAppNotificationBanner(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // User Profile Picture or Initial
-                        if (!resolvedAvatar.isNullOrBlank()) {
+                        if (isEmojiAvatar && !rawAvatar.isNullOrBlank()) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF1E202A))
+                                    .border(1.5.dp, borderGradient, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(text = rawAvatar, fontSize = 24.sp)
+                            }
+                        } else if (resolvedModel != null) {
                             Box(
                                 modifier = Modifier
                                     .size(46.dp)
@@ -255,7 +265,7 @@ fun InAppNotificationBanner(
                                     .border(1.5.dp, borderGradient, CircleShape)
                             ) {
                                 AsyncImage(
-                                    model = resolvedAvatar,
+                                    model = resolvedModel,
                                     contentDescription = current.username ?: current.title,
                                     modifier = Modifier.fillMaxSize(),
                                     contentScale = ContentScale.Crop

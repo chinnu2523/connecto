@@ -59,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,6 +76,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.connecto.R
@@ -183,6 +185,8 @@ fun AuthHomeScreen(
     var pending2FaLogin by remember { mutableStateOf("") }
     var pending2FaMaskedDest by remember { mutableStateOf<String?>(null) }
     var pending2FaMethod by remember { mutableStateOf("email") }
+    var showLegalTermsDialog by remember { mutableStateOf(false) }
+    var legalTermsInitialTab by remember { mutableIntStateOf(0) }
 
     val emailPattern = Regex("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")
 
@@ -695,11 +699,10 @@ fun AuthHomeScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Terms and Conditions Checkbox
+                        // Terms of Use & Privacy Policy Checkbox
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { agreedToTerms = !agreedToTerms }
                                 .padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -712,12 +715,52 @@ fun AuthHomeScreen(
                                 )
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "I confirm I am 18+ years of age and agree to the Terms and Conditions",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                lineHeight = 16.sp
-                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "I confirm I am 18+ years of age and agree to the",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    lineHeight = 16.sp,
+                                    modifier = Modifier.clickable { agreedToTerms = !agreedToTerms }
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(top = 2.dp)
+                                ) {
+                                    Text(
+                                        text = "Terms of Use",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = gradientColors.first(),
+                                        textDecoration = TextDecoration.Underline,
+                                        modifier = Modifier
+                                            .clickable {
+                                                legalTermsInitialTab = 0
+                                                showLegalTermsDialog = true
+                                            }
+                                            .padding(vertical = 2.dp)
+                                    )
+                                    Text(
+                                        text = " and ",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.clickable { agreedToTerms = !agreedToTerms }
+                                    )
+                                    Text(
+                                        text = "Privacy Policy",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = gradientColors.first(),
+                                        textDecoration = TextDecoration.Underline,
+                                        modifier = Modifier
+                                            .clickable {
+                                                legalTermsInitialTab = 1
+                                                showLegalTermsDialog = true
+                                            }
+                                            .padding(vertical = 2.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 } else {
@@ -1010,6 +1053,17 @@ fun AuthHomeScreen(
             onSuccess = { authResult ->
                 show2FaLoginDialog = false
                 onAuthSuccess(authResult.username)
+            }
+        )
+    }
+
+    if (showLegalTermsDialog) {
+        LegalTermsDialog(
+            initialTab = legalTermsInitialTab,
+            onDismiss = { showLegalTermsDialog = false },
+            onAccept = {
+                agreedToTerms = true
+                showLegalTermsDialog = false
             }
         )
     }

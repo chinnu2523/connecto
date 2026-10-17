@@ -21,7 +21,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
     companion object {
         private const val DATABASE_NAME = "connecto_local_cache.db"
-        private const val DATABASE_VERSION = 6
+        private const val DATABASE_VERSION = 7
 
         @Volatile
         private var INSTANCE: ConnectoDatabaseHelper? = null
@@ -65,6 +65,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         private const val COL_FRIEND_UNREAD = "unread_count"
         private const val COL_FRIEND_IS_ONLINE = "is_online"
         private const val COL_FRIEND_AVATAR = "avatar_url"
+        private const val COL_FRIEND_BANNER = "banner_url"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -113,7 +114,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 $COL_FRIEND_TIME TEXT,
                 $COL_FRIEND_UNREAD INTEGER DEFAULT 0,
                 $COL_FRIEND_IS_ONLINE INTEGER DEFAULT 0,
-                $COL_FRIEND_AVATAR TEXT
+                $COL_FRIEND_AVATAR TEXT,
+                $COL_FRIEND_BANNER TEXT
             )
             """.trimIndent()
         )
@@ -134,7 +136,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     $COL_FRIEND_TIME TEXT,
                     $COL_FRIEND_UNREAD INTEGER DEFAULT 0,
                     $COL_FRIEND_IS_ONLINE INTEGER DEFAULT 0,
-                    $COL_FRIEND_AVATAR TEXT
+                    $COL_FRIEND_AVATAR TEXT,
+                    $COL_FRIEND_BANNER TEXT
                 )
                 """.trimIndent()
             )
@@ -163,6 +166,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_REPLY_TO_ID TEXT") } catch (_: Exception) {}
             try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_REPLY_TO_CONTENT TEXT") } catch (_: Exception) {}
             try { db.execSQL("ALTER TABLE $TABLE_MESSAGES ADD COLUMN $COL_MSG_REPLY_TO_AUTHOR TEXT") } catch (_: Exception) {}
+        }
+        if (oldVersion < 7) {
+            try { db.execSQL("ALTER TABLE $TABLE_FRIENDS ADD COLUMN $COL_FRIEND_BANNER TEXT") } catch (_: Exception) {}
         }
     }
 
@@ -665,6 +671,16 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         } catch (_: Exception) {}
     }
 
+    fun updateMessageContent(messageId: String, newContent: String) {
+        try {
+            val writeDb = writableDatabase
+            val cv = ContentValues().apply {
+                put(COL_MSG_CONTENT, newContent)
+            }
+            writeDb.update(TABLE_MESSAGES, cv, "$COL_MSG_ID = ?", arrayOf(messageId))
+        } catch (_: Exception) {}
+    }
+
     fun saveDmChannel(canonicalName: String, channelId: String) {
         try {
             val db = writableDatabase
@@ -768,6 +784,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     put(COL_FRIEND_UNREAD, f.unreadCount)
                     put(COL_FRIEND_IS_ONLINE, if (f.isOnline) 1 else 0)
                     put(COL_FRIEND_AVATAR, f.avatarUrl)
+                    put(COL_FRIEND_BANNER, f.bannerUrl)
                 }
                 db.insertWithOnConflict(TABLE_FRIENDS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
             }
@@ -785,6 +802,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             while (it.moveToNext()) {
                 val avatarCol = it.getColumnIndex(COL_FRIEND_AVATAR)
                 val avatarUrl = if (avatarCol >= 0) it.getString(avatarCol) else null
+                val bannerCol = it.getColumnIndex(COL_FRIEND_BANNER)
+                val bannerUrl = if (bannerCol >= 0) it.getString(bannerCol) else null
                 list.add(
                     FriendItem(
                         id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)),
@@ -797,7 +816,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         timeAgo = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_TIME)) ?: "Active",
                         unreadCount = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_UNREAD)),
                         isOnline = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_IS_ONLINE)) == 1,
-                        avatarUrl = avatarUrl
+                        avatarUrl = avatarUrl,
+                        bannerUrl = bannerUrl
                     )
                 )
             }
@@ -820,6 +840,30 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         )
     }
 
+    fun updateFriendLastMessageAndUnread(
+        friendIdOrHandle: String,
+        lastMessage: String,
+        timeAgo: String,
+        unreadCount: Int
+    ) {
+        try {
+            val db = writableDatabase
+            val clean = friendIdOrHandle.trim().lowercase().removePrefix("@")
+            val cleanBase = clean.replace(Regex("\\d+$"), "")
+            val cv = ContentValues().apply {
+                put(COL_FRIEND_UNREAD, unreadCount)
+                put(COL_FRIEND_LAST_MSG, lastMessage)
+                put(COL_FRIEND_TIME, timeAgo)
+            }
+            db.update(
+                TABLE_FRIENDS,
+                cv,
+                "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ? OR ($COL_FRIEND_HANDLE LIKE ? AND ? != '')",
+                arrayOf(clean, clean, "@$clean", clean, "%$cleanBase%", cleanBase)
+            )
+        } catch (_: Exception) {}
+    }
+
     fun updateFriendUnreadCount(friendIdOrHandle: String, unreadCount: Int = 0) {
         try {
             val db = writableDatabase
@@ -834,6 +878,105 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 arrayOf(clean, clean, "@$clean", clean)
             )
         } catch (_: Exception) {}
+    }
+
+    fun incrementFriendUnreadCount(
+        friendIdOrHandle: String,
+        lastMessage: String? = null,
+        timeAgo: String? = null
+    ): Int {
+        try {
+            val db = writableDatabase
+            val clean = friendIdOrHandle.trim().lowercase().removePrefix("@")
+            val cleanBase = clean.replace(Regex("\\d+$"), "")
+
+            var friendId: String? = null
+            var currentUnread = 0
+
+            val cursor = db.rawQuery(
+                """
+                SELECT $COL_FRIEND_ID, $COL_FRIEND_UNREAD 
+                FROM $TABLE_FRIENDS 
+                WHERE LOWER($COL_FRIEND_ID) = ? 
+                   OR LOWER($COL_FRIEND_HANDLE) = ? 
+                   OR LOWER($COL_FRIEND_HANDLE) = ? 
+                   OR LOWER($COL_FRIEND_NAME) = ?
+                   OR ($COL_FRIEND_HANDLE LIKE ? AND ? != '')
+                LIMIT 1
+                """.trimIndent(),
+                arrayOf(clean, clean, "@$clean", clean, "%$cleanBase%", cleanBase)
+            )
+            cursor.use {
+                if (it.moveToFirst()) {
+                    friendId = it.getString(0)
+                    currentUnread = it.getInt(1)
+                }
+            }
+
+            val newUnread = currentUnread + 1
+            val cv = ContentValues().apply {
+                put(COL_FRIEND_UNREAD, newUnread)
+                if (!lastMessage.isNullOrBlank()) put(COL_FRIEND_LAST_MSG, lastMessage)
+                if (!timeAgo.isNullOrBlank()) put(COL_FRIEND_TIME, timeAgo)
+            }
+
+            if (friendId != null) {
+                db.update(TABLE_FRIENDS, cv, "$COL_FRIEND_ID = ?", arrayOf(friendId))
+            } else {
+                db.update(
+                    TABLE_FRIENDS,
+                    cv,
+                    "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ?",
+                    arrayOf(clean, clean, "@$clean", clean)
+                )
+            }
+            return newUnread
+        } catch (_: Exception) {
+            return 1
+        }
+    }
+
+    fun getFriendByUsernameOrHandle(identifier: String): FriendItem? {
+        try {
+            val db = readableDatabase
+            val clean = identifier.trim().lowercase().removePrefix("@")
+            val cleanBase = clean.replace(Regex("\\d+$"), "")
+            val cursor = db.rawQuery(
+                """
+                SELECT * FROM $TABLE_FRIENDS 
+                WHERE LOWER($COL_FRIEND_ID) = ? 
+                   OR LOWER($COL_FRIEND_HANDLE) = ? 
+                   OR LOWER($COL_FRIEND_HANDLE) = ? 
+                   OR LOWER($COL_FRIEND_NAME) = ?
+                   OR ($COL_FRIEND_HANDLE LIKE ? AND ? != '')
+                LIMIT 1
+                """.trimIndent(),
+                arrayOf(clean, clean, "@$clean", clean, "%$cleanBase%", cleanBase)
+            )
+            cursor.use {
+                if (it.moveToFirst()) {
+                    val avatarCol = it.getColumnIndex(COL_FRIEND_AVATAR)
+                    val avatarUrl = if (avatarCol >= 0) it.getString(avatarCol) else null
+                    val bannerCol = it.getColumnIndex(COL_FRIEND_BANNER)
+                    val bannerUrl = if (bannerCol >= 0) it.getString(bannerCol) else null
+                    return FriendItem(
+                        id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)),
+                        name = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_NAME)),
+                        handle = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_HANDLE)),
+                        initial = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_INITIAL)),
+                        status = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_STATUS)) ?: "Accepted Friend",
+                        bio = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_BIO)) ?: "Connecto Gamer",
+                        lastMessage = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_LAST_MSG)) ?: "Direct chat active",
+                        timeAgo = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_TIME)) ?: "Active",
+                        unreadCount = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_UNREAD)),
+                        isOnline = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_IS_ONLINE)) == 1,
+                        avatarUrl = avatarUrl,
+                        bannerUrl = bannerUrl
+                    )
+                }
+            }
+        } catch (_: Exception) {}
+        return null
     }
 
     fun deleteFriend(friendIdOrHandle: String) {

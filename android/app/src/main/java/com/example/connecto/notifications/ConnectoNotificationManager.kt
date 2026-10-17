@@ -269,6 +269,23 @@ object ConnectoNotificationManager {
         }
     }
 
+    fun createEmojiBitmap(emoji: String): Bitmap {
+        val size = 128
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#1A1D24")
+        }
+        canvas.drawCircle(size / 2f, size / 2f, size / 2f, bgPaint)
+        val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textSize = 64f
+            textAlign = Paint.Align.CENTER
+        }
+        val yOffset = (size / 2f) - ((textPaint.descent() + textPaint.ascent()) / 2f)
+        canvas.drawText(emoji, size / 2f, yOffset, textPaint)
+        return bitmap
+    }
+
     fun createMonogramBitmap(name: String): Bitmap {
         val size = 128
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -312,29 +329,104 @@ object ConnectoNotificationManager {
         return output
     }
 
-    private suspend fun fetchAvatarBitmap(avatarUrl: String?): Bitmap? = withContext(Dispatchers.IO) {
-        if (avatarUrl.isNullOrBlank()) return@withContext null
-        try {
-            val resolvedUrl = if (avatarUrl.startsWith("http://") || avatarUrl.startsWith("https://")) {
-                avatarUrl
-            } else {
-                val cleanPath = avatarUrl.trimStart('/')
-                "${com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl}/$cleanPath"
-            }
-            val connection = java.net.URL(resolvedUrl).openConnection() as java.net.HttpURLConnection
-            connection.doInput = true
-            connection.connectTimeout = 3000
-            connection.readTimeout = 3000
-            connection.connect()
-            if (connection.responseCode == 200) {
-                connection.inputStream.use { input ->
-                    val rawBitmap = BitmapFactory.decodeStream(input)
-                    if (rawBitmap != null) getCircularBitmap(rawBitmap) else null
+    private suspend fun fetchAvatarBitmap(
+        avatarUrl: String?,
+        senderName: String? = null,
+        senderUsername: String? = null
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        var rawUrl = avatarUrl?.trim()
+
+        val isEmojiOnly = rawUrl != null && !rawUrl.contains("/") && !rawUrl.contains(".") && !rawUrl.startsWith("data:")
+        // 1. If avatarUrl is null/blank or emoji, attempt to resolve actual photo from local SQLite cached friends
+        if (rawUrl.isNullOrBlank() || isEmojiOnly) {
+            val ctx = appContext
+            if (ctx != null) {
+                val candidateKey = senderUsername?.ifBlank { null } ?: senderName?.ifBlank { null }
+                if (!candidateKey.isNullOrBlank()) {
+                    val friend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(ctx)
+                        .getFriendByUsernameOrHandle(candidateKey)
+                    val dbAvatar = friend?.avatarUrl?.trim()
+                    if (!dbAvatar.isNullOrBlank() && (dbAvatar.contains("/") || dbAvatar.contains(".") || dbAvatar.startsWith("data:"))) {
+                        rawUrl = dbAvatar
+                    }
                 }
-            } else null
-        } catch (_: Exception) {
-            null
+            }
         }
+
+        if (rawUrl.isNullOrBlank()) return@withContext null
+
+        // 2. Check for base64 data URL (e.g. data:image/png;base64,...)
+        if (rawUrl.startsWith("data:")) {
+            try {
+                val commaIdx = rawUrl.indexOf(",")
+                if (commaIdx != -1) {
+                    val base64Data = rawUrl.substring(commaIdx + 1)
+                    val bytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bmp != null) return@withContext getCircularBitmap(bmp)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to decode base64 avatar data: ${e.message}")
+            }
+        }
+
+        // 3. Check for local file path (e.g. file:// or /data/user/0/...)
+        val localFilePath = if (rawUrl.startsWith("file://")) rawUrl.removePrefix("file://") else rawUrl
+        val localFile = java.io.File(localFilePath)
+        if (localFile.exists() && localFile.isFile && localFile.length() > 0) {
+            try {
+                val bmp = BitmapFactory.decodeFile(localFile.absolutePath)
+                if (bmp != null) return@withContext getCircularBitmap(bmp)
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to decode local file avatar: ${e.message}")
+            }
+        }
+
+        // 4. Check for emoji avatar (e.g. 👾)
+        if (!rawUrl.contains("/") && !rawUrl.contains(".") && rawUrl.length <= 4) {
+            try {
+                return@withContext createEmojiBitmap(rawUrl)
+            } catch (_: Exception) {}
+        }
+
+        // 5. Remote HTTP/HTTPS fetch with multi-base fallback
+        val candidateUrls = mutableListOf<String>()
+        if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+            candidateUrls.add(rawUrl)
+        } else {
+            val cleanPath = rawUrl.trimStart('/')
+            val activeBase = com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')
+            candidateUrls.add("$activeBase/$cleanPath")
+            if (!activeBase.contains("connecto.fun")) {
+                candidateUrls.add("https://connecto.fun/$cleanPath")
+            }
+            candidateUrls.add("http://10.0.2.2:8080/$cleanPath")
+        }
+
+        for (targetUrl in candidateUrls) {
+            try {
+                val connection = java.net.URL(targetUrl).openConnection() as java.net.HttpURLConnection
+                connection.doInput = true
+                connection.connectTimeout = 3000
+                connection.readTimeout = 3000
+                connection.instanceFollowRedirects = true
+                connection.connect()
+                if (connection.responseCode in 200..299) {
+                    connection.inputStream.use { input ->
+                        val rawBitmap = BitmapFactory.decodeStream(input)
+                        if (rawBitmap != null) {
+                            return@withContext getCircularBitmap(rawBitmap)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "Attempt to fetch avatar from $targetUrl failed: ${e.message}")
+            }
+        }
+
+        null
     }
 
     @SuppressLint("MissingPermission")
@@ -342,7 +434,8 @@ object ConnectoNotificationManager {
         senderName: String,
         messageText: String,
         channelOrDmId: String,
-        senderAvatar: String? = null
+        senderAvatar: String? = null,
+        senderUsername: String? = null
     ) {
         val context = appContext ?: return
         if (!hasNotificationPermission()) return
@@ -350,7 +443,8 @@ object ConnectoNotificationManager {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val avatarBitmap = fetchAvatarBitmap(senderAvatar) ?: createMonogramBitmap(senderName)
+                val avatarBitmap = fetchAvatarBitmap(senderAvatar, senderName, senderUsername)
+                    ?: createMonogramBitmap(senderName)
 
                 val intent = Intent(context, MainActivity::class.java).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -367,15 +461,25 @@ object ConnectoNotificationManager {
                 val isDm = channelOrDmId.startsWith("dm-") || channelOrDmId.startsWith("dm_") || !channelOrDmId.startsWith("#")
                 val subText = if (isDm) "Connecto • DM" else "Connecto • #${channelOrDmId.removePrefix("#")}"
 
-                val personBuilder = Person.Builder()
+                // In Android MessagingStyle, user is the CURRENT (local) user; senderPerson is the remote sender.
+                // This ensures Android renders senderPerson's avatar icon correctly in notification shade!
+                val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@")
+                val myDisplayName = (com.example.connecto.network.ConnectoApiClient.currentUserDisplayName ?: "").ifBlank { myUsername.ifEmpty { "Me" } }
+
+                val localUser = Person.Builder()
+                    .setName(myDisplayName)
+                    .setKey(myUsername.ifEmpty { "self" })
+                    .build()
+
+                val senderPerson = Person.Builder()
                     .setName(senderName)
                     .setKey(channelOrDmId)
                     .setIcon(IconCompat.createWithBitmap(avatarBitmap))
-                val person = personBuilder.build()
+                    .build()
 
-                val messagingStyle = NotificationCompat.MessagingStyle(person)
+                val messagingStyle = NotificationCompat.MessagingStyle(localUser)
                     .setConversationTitle(if (isDm) null else "#${channelOrDmId.removePrefix("#")}")
-                    .addMessage(messageText, System.currentTimeMillis(), person)
+                    .addMessage(messageText, System.currentTimeMillis(), senderPerson)
 
                 val builder = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
                     .setSmallIcon(R.mipmap.ic_launcher)

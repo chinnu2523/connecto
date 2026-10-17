@@ -183,6 +183,19 @@ object VoiceCallManager {
     )
     val incomingPollUpdates: SharedFlow<PollDto> = _incomingPollUpdates.asSharedFlow()
 
+    private val _deletedMessageIds = MutableSharedFlow<String>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val deletedMessageIds: SharedFlow<String> = _deletedMessageIds.asSharedFlow()
+
+    data class MessageEditEvent(val messageId: String, val newContent: String)
+    private val _editedMessages = MutableSharedFlow<MessageEditEvent>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val editedMessages: SharedFlow<MessageEditEvent> = _editedMessages.asSharedFlow()
+
     // Typing indicator events: Pair(username, isTyping)
     data class TypingEvent(val username: String, val displayName: String, val channelId: String, val isTyping: Boolean)
     private val _typingEvents = MutableSharedFlow<TypingEvent>(
@@ -986,10 +999,17 @@ object VoiceCallManager {
 
             isWsConnecting = true
 
-        val username = ConnectoApiClient.currentUsername?.ifEmpty { "User" } ?: "User"
+        val username = ConnectoApiClient.currentUsername?.ifEmpty { "" } ?: ""
         val cleanUser = username.trim().lowercase().removePrefix("@")
-        val userId = ConnectoApiClient.currentUserId?.ifEmpty { cleanUser } ?: cleanUser
         val token = ConnectoApiClient.sessionToken ?: ""
+
+        if (cleanUser.isBlank() || cleanUser == "user" || token.isBlank()) {
+            Log.d(TAG, "connectWebSocket skipped: unauthenticated state (username='$cleanUser', hasToken=${token.isNotBlank()})")
+            isWsConnecting = false
+            return
+        }
+
+        val userId = ConnectoApiClient.currentUserId?.ifEmpty { cleanUser } ?: cleanUser
 
         val encodedUser = try { URLEncoder.encode(cleanUser, "UTF-8") } catch (_: Exception) { cleanUser }
         val encodedId = try { URLEncoder.encode(userId, "UTF-8") } catch (_: Exception) { userId }
@@ -1060,7 +1080,8 @@ object VoiceCallManager {
                     isWsConnecting = false
                     isWsConnected = false
                     _isWsConnectedFlow.value = false
-                    if (code == 4001 || reason.contains("Session terminated", ignoreCase = true) || reason.contains("Unauthorized", ignoreCase = true)) {
+                    if ((code == 4001 || reason.contains("Session terminated", ignoreCase = true) || reason.contains("Unauthorized", ignoreCase = true)) &&
+                        !token.isNullOrBlank() && !ConnectoApiClient.sessionToken.isNullOrBlank()) {
                         Log.w(TAG, "Voice WebSocket permanently closed due to session revocation (code=$code, reason=$reason)")
                         ConnectoApiClient.triggerSessionExpired("Your session was logged out.")
                         return
@@ -1076,7 +1097,8 @@ object VoiceCallManager {
                     isWsConnected = false
                     _isWsConnectedFlow.value = false
                     val respCode = response?.code
-                    if (respCode == 401 || respCode == 4001) {
+                    if ((respCode == 401 || respCode == 4001) &&
+                        !token.isNullOrBlank() && !ConnectoApiClient.sessionToken.isNullOrBlank()) {
                         Log.w(TAG, "Voice WebSocket handshake rejected: HTTP $respCode Unauthorized")
                         ConnectoApiClient.triggerSessionExpired("Your session has expired or was terminated.")
                         return
@@ -1198,6 +1220,38 @@ object VoiceCallManager {
                         Log.d(TAG, "Received session_terminated event, but current session is the initiator or not targeted.")
                     }
                 }
+                "message_deleted", "delete_message" -> {
+                    val data = json.optJSONObject("data") ?: json.optJSONObject("payload") ?: json
+                    val msgId = data.optString("message_id").ifEmpty { json.optString("message_id").ifEmpty { data.optString("id") } }
+                    if (msgId.isNotBlank()) {
+                        appContext?.let { ctx ->
+                            try {
+                                ConnectoDatabaseHelper.getInstance(ctx).deleteMessage(msgId)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to delete message locally: ${e.message}")
+                            }
+                        }
+                        _deletedMessageIds.tryEmit(msgId)
+                        Log.d(TAG, "Real-time message deleted event received via WebSocket: $msgId")
+                    }
+                }
+                "message_edited", "edit_message" -> {
+                    val data = json.optJSONObject("data") ?: json.optJSONObject("payload") ?: json
+                    val msgObj = data.optJSONObject("message") ?: data
+                    val msgId = msgObj.optString("id").ifEmpty { json.optString("message_id") }
+                    val newContent = msgObj.optString("content").ifEmpty { msgObj.optString("text") }
+                    if (msgId.isNotBlank() && newContent.isNotBlank()) {
+                        appContext?.let { ctx ->
+                            try {
+                                ConnectoDatabaseHelper.getInstance(ctx).updateMessageContent(msgId, newContent)
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Failed to update message locally: ${e.message}")
+                            }
+                        }
+                        _editedMessages.tryEmit(MessageEditEvent(msgId, newContent))
+                        Log.d(TAG, "Real-time message edited event received via WebSocket: $msgId -> $newContent")
+                    }
+                }
                 "message_created", "new_message", "dm_message", "new_dm_alert", "channel_message", "chat_message", "message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json
                     val rawChId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { data.optString("channel_id").ifEmpty { data.optString("channel") } } }
@@ -1218,7 +1272,16 @@ object VoiceCallManager {
                     val content = data.optString("content").ifEmpty { data.optString("text") }
                     val msgId = data.optString("id").ifEmpty { json.optString("message_id") }
                     val createdAt = data.optString("created_at").ifEmpty { data.optString("timestamp") }
-                    val authorAvatar = data.optString("avatar_url").ifEmpty { data.optString("sender_avatar_url").ifEmpty { data.optString("author_avatar").ifEmpty { data.optString("authorAvatar").ifEmpty { data.optString("avatar").ifEmpty { json.optString("sender_avatar").ifEmpty { null } } } } } }
+                    var authorAvatar = data.optString("avatar_url").ifEmpty { data.optString("sender_avatar_url").ifEmpty { data.optString("author_avatar").ifEmpty { data.optString("authorAvatar").ifEmpty { data.optString("avatar").ifEmpty { json.optString("sender_avatar").ifEmpty { null } } } } } }
+                    val isAuthorAvatarEmoji = authorAvatar != null && !authorAvatar.contains("/") && !authorAvatar.contains(".") && !authorAvatar.startsWith("data:")
+                    if (authorAvatar.isNullOrBlank() || isAuthorAvatarEmoji) {
+                        val dbAvatar = appContext?.let { ctx ->
+                            ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(senderUsername)?.avatarUrl
+                        }
+                        if (!dbAvatar.isNullOrBlank() && (dbAvatar.contains("/") || dbAvatar.contains(".") || dbAvatar.startsWith("data:"))) {
+                            authorAvatar = dbAvatar
+                        }
+                    }
                     var poll = if (data.has("poll") && !data.isNull("poll")) ConnectoApiClient.parsePollDto(data.optJSONObject("poll")) else null
                     var pollId = data.optString("poll_id").ifEmpty { poll?.id }
                     var type = data.optString("type").ifEmpty { if (poll != null) "poll" else "text" }
@@ -1320,8 +1383,30 @@ object VoiceCallManager {
                                     senderName = displayTitle,
                                     messageText = content,
                                     channelOrDmId = navRef,
-                                    senderAvatar = authorAvatar
+                                    senderAvatar = authorAvatar,
+                                    senderUsername = senderUsername
                                 )
+                                appContext?.let { ctx ->
+                                    try {
+                                        val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
+                                        ConnectoDatabaseHelper.getInstance(ctx).incrementFriendUnreadCount(
+                                            friendIdOrHandle = cleanSender,
+                                            lastMessage = content,
+                                            timeAgo = timeStr
+                                        )
+                                        val friendObj = ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanSender)
+                                        if (friendObj != null) {
+                                            val rPrefs = ctx.getSharedPreferences("connecto_chat_prefs", Context.MODE_PRIVATE)
+                                            val curUnread = rPrefs.getInt("unread_${friendObj.id}", 0) + 1
+                                            rPrefs.edit()
+                                                .putString("last_msg_${friendObj.id}", content)
+                                                .putString("last_time_${friendObj.id}", timeStr)
+                                                .putInt("unread_${friendObj.id}", curUnread)
+                                                .putLong("last_timestamp_${friendObj.id}", System.currentTimeMillis())
+                                                .apply()
+                                        }
+                                    } catch (_: Exception) {}
+                                }
                             }
                             // In-app notification banner suppressed for personal chat / messages per user requirement
                         }

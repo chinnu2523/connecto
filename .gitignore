@@ -15,6 +15,7 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.agent/
 
 # Environment & Secrets (NEVER COMMIT)
 .env

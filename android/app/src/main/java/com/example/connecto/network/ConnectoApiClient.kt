@@ -2164,6 +2164,50 @@ object ConnectoApiClient {
         }
     }
 
+    suspend fun deleteMessage(
+        messageId: String,
+        channelId: String? = null,
+        token: String? = null
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId?.trim()?.lowercase()?.removePrefix("#")
+            val query = if (!cleanChannel.isNullOrBlank()) "?channel_id=${java.net.URLEncoder.encode(cleanChannel, "UTF-8")}" else ""
+            val res = executeRequest(
+                endpoint = "/api/messages/$messageId$query",
+                method = "DELETE",
+                body = null,
+                token = token ?: sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun editMessage(
+        messageId: String,
+        newContent: String,
+        channelId: String? = null,
+        token: String? = null
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId?.trim()?.lowercase()?.removePrefix("#")
+            val query = if (!cleanChannel.isNullOrBlank()) "?channel_id=${java.net.URLEncoder.encode(cleanChannel, "UTF-8")}" else ""
+            val body = JSONObject().apply {
+                put("content", newContent.trim())
+            }
+            val res = executeRequest(
+                endpoint = "/api/messages/$messageId$query",
+                method = "PUT",
+                body = body.toString(),
+                token = token ?: sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun deleteMessageForMe(
         messageId: String,
         username: String
@@ -4299,7 +4343,7 @@ object ConnectoApiClient {
                     ConnectoNetworkConfig.activeBaseUrl = base
                     val errorDetail = parseErrorMessage(responseText, responseCode)
                     android.util.Log.e("ConnectoSync", "HTTP 401 Unauthorized on $method $fullUrl: $errorDetail")
-                    if (!isAuthEndpoint) {
+                    if (!isAuthEndpoint && !sessionToken.isNullOrBlank() && !token.isNullOrBlank()) {
                         triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
                     }
                     return Result.failure(Exception(errorDetail))
@@ -4647,9 +4691,11 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<List<NotificationDto>> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "user_99"
+            val u = (username ?: currentUsername)?.trim()?.takeIf { it.isNotBlank() && it != "user_99" }
+                ?: return@withContext Result.success(emptyList())
+            val effectiveToken = token ?: sessionToken ?: return@withContext Result.success(emptyList())
             val endpoint = "/api/v1/notifications?username=$u&unread_only=$unreadOnly&limit=$limit"
-            val response = executeRequest(endpoint, "GET", null, token ?: sessionToken)
+            val response = executeRequest(endpoint, "GET", null, effectiveToken)
             if (response.isSuccess) {
                 val raw = response.getOrThrow().trim()
                 val array = if (raw.startsWith("[")) {
@@ -4690,9 +4736,11 @@ object ConnectoApiClient {
         token: String? = null
     ): Result<Int> = withContext(Dispatchers.IO) {
         try {
-            val u = username ?: currentUsername ?: "user_99"
+            val u = (username ?: currentUsername)?.trim()?.takeIf { it.isNotBlank() && it != "user_99" }
+                ?: return@withContext Result.success(0)
+            val effectiveToken = token ?: sessionToken ?: return@withContext Result.success(0)
             val endpoint = "/api/v1/notifications/count?username=$u"
-            val response = executeRequest(endpoint, "GET", null, token ?: sessionToken)
+            val response = executeRequest(endpoint, "GET", null, effectiveToken)
             if (response.isSuccess) {
                 val obj = JSONObject(response.getOrThrow())
                 val count = if (obj.has("unread_count")) obj.optInt("unread_count", 0) else obj.optInt("unread", obj.optInt("count", 0))

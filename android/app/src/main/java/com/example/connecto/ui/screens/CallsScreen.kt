@@ -38,11 +38,15 @@ import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.ui.text.input.ImeAction
 import com.example.connecto.ui.designsystem.ConnectoTextField
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -425,16 +429,41 @@ fun CallsScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Top Header (Notification bell removed)
+            // Top Header (Profile button removed, Group Voice Call button enabled)
             ConnectoTopHeader(
                 title = "CALLS",
                 subtitle = "Call History & Voice Hub",
                 userInitial = userInitial,
-                onAddFriendClick = { showAddFriendDialog = true },
-                onVoiceGroupClick = { showCreateVoiceGroupDialog = true },
-                onAvatarClick = onOpenProfile,
+                onAddFriendClick = null,
+                onVoiceGroupClick = null,
+                showProfileButton = false,
+                onAvatarClick = {},
                 onNotificationClick = null,
-                unreadNotificationsCount = 0
+                unreadNotificationsCount = 0,
+                customAction = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Brush.linearGradient(gradientColors))
+                            .clickable { showCreateVoiceGroupDialog = true }
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.GroupAdd,
+                            contentDescription = "Group Voice Call",
+                            tint = contentOnGradient,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Group Call",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = contentOnGradient
+                        )
+                    }
+                }
             )
 
             // Call History Search Bar
@@ -646,6 +675,23 @@ fun CallsScreen(
                                     fontSize = 12.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Button(
+                                    onClick = { showCreateVoiceGroupDialog = true },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = gradientColors.first(),
+                                        contentColor = contentOnGradient
+                                    ),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.GroupAdd,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Group Voice Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                }
                             }
                         }
                     }
@@ -854,6 +900,35 @@ fun CallsScreen(
                 refreshCallLogs()
             }
         }
+
+        // Prominent Floating Action Button for Group Voice Call
+        ExtendedFloatingActionButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                showCreateVoiceGroupDialog = true
+            },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.GroupAdd,
+                    contentDescription = "New Group Call",
+                    tint = contentOnGradient
+                )
+            },
+            text = {
+                Text(
+                    text = "Group Voice Call",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.5.sp,
+                    color = contentOnGradient
+                )
+            },
+            containerColor = gradientColors.first(),
+            contentColor = contentOnGradient,
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 20.dp, end = 16.dp)
+        )
 
         if (showAddFriendDialog) {
             AddFriendDialog(

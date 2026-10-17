@@ -48,8 +48,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.automirrored.filled.Reply
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.runtime.mutableFloatStateOf
 import kotlin.math.roundToInt
@@ -79,12 +83,21 @@ import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Security
 import androidx.compose.material.icons.rounded.SportsEsports
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -125,6 +138,7 @@ import coil.compose.AsyncImage
 import com.example.connecto.data.ConnectoDatabaseHelper
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.network.MessageDto
+import com.example.connecto.network.PinnedMessageDto
 import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ChannelNavigationDrawer
 import com.example.connecto.ui.components.ConnectoEmojiPicker
@@ -210,10 +224,20 @@ fun ChannelsWorkspaceScreen(
     var isLoadingMessages by remember { mutableStateOf(true) }
     var typedMessage by remember { mutableStateOf("") }
     var isSending by remember { mutableStateOf(false) }
-    var showEmojiPicker by remember { mutableStateOf(false) }
     var isInputFocused by remember { mutableStateOf(false) }
+    var showEmojiPicker by remember { mutableStateOf(false) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var replyingTo by remember { mutableStateOf<MessageDto?>(null) }
+    var pinnedMessageForChannel by remember { mutableStateOf<PinnedMessageDto?>(null) }
+    var messageForAction by remember { mutableStateOf<MessageDto?>(null) }
+    var showMessageActionDialog by remember { mutableStateOf(false) }
+    var selectedMessageForAction by remember { mutableStateOf<MessageDto?>(null) }
+    var showMoreOptionsMenu by remember { mutableStateOf(false) }
+    var editingMessage by remember { mutableStateOf<MessageDto?>(null) }
+
+    BackHandler(enabled = selectedMessageForAction != null) {
+        selectedMessageForAction = null
+    }
 
     // Friends list for detecting friend-only private DM reply in channels
     var friendsList by remember { mutableStateOf<List<FriendItem>>(emptyList()) }
@@ -297,15 +321,35 @@ fun ChannelsWorkspaceScreen(
         sharedPrefs.edit().putString("last_active_channel", cleanCh).apply()
         VoiceCallManager.subscribeChannel(cleanCh)
 
+        // Load cached pinned message for this channel
+        val cachedPinId = sharedPrefs.getString("pinned_msg_ch_$cleanCh", null)
+        val cachedPinContent = sharedPrefs.getString("pinned_content_ch_$cleanCh", null)
+        val cachedPinAuthor = sharedPrefs.getString("pinned_author_ch_$cleanCh", null)
+        if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
+            pinnedMessageForChannel = PinnedMessageDto(
+                messageId = cachedPinId,
+                channelId = cleanCh,
+                authorName = cachedPinAuthor ?: "Pinned",
+                content = cachedPinContent,
+                pinnedBy = "",
+                pinnedAt = ""
+            )
+        } else {
+            pinnedMessageForChannel = null
+        }
+
         // Clear previous channel's messages to avoid showing stale content
         messages.clear()
         isLoadingMessages = true
+
+        val deletedForMeSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
+            ?.toSet() ?: emptySet()
 
         // Instant local cache display (0ms delay)
         withContext(Dispatchers.IO) {
             val cached = dbHelper.getMessagesForChannel(cleanCh, limit = 50)
             if (cached.isNotEmpty()) {
-                val distinctCached = cached.reversed().distinctBy { it.id }
+                val distinctCached = cached.reversed().distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
                 withContext(Dispatchers.Main) {
                     messages.clear()
                     messages.addAll(distinctCached)
@@ -319,9 +363,33 @@ fun ChannelsWorkspaceScreen(
         // Parallel network refresh
         withContext(Dispatchers.IO) {
             try {
+                val serverPinRes = ConnectoApiClient.getPinnedMessage(cleanCh)
+                if (serverPinRes.isSuccess) {
+                    val serverPin = serverPinRes.getOrNull()
+                    withContext(Dispatchers.Main) {
+                        if (serverPin != null) {
+                            pinnedMessageForChannel = serverPin
+                            sharedPrefs.edit()
+                                .putString("pinned_msg_ch_$cleanCh", serverPin.messageId)
+                                .putString("pinned_content_ch_$cleanCh", serverPin.content)
+                                .putString("pinned_author_ch_$cleanCh", serverPin.authorName)
+                                .apply()
+                        } else {
+                            pinnedMessageForChannel = null
+                            sharedPrefs.edit()
+                                .remove("pinned_msg_ch_$cleanCh")
+                                .remove("pinned_content_ch_$cleanCh")
+                                .remove("pinned_author_ch_$cleanCh")
+                                .apply()
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            try {
                 val res = ConnectoApiClient.getMessages(channelId = cleanCh, limit = 50)
                 if (res.isSuccess) {
-                    val fresh = res.getOrThrow().distinctBy { it.id }
+                    val fresh = res.getOrThrow().distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
                     withContext(Dispatchers.Main) {
                         messages.clear()
                         messages.addAll(fresh)
@@ -355,6 +423,10 @@ fun ChannelsWorkspaceScreen(
     LaunchedEffect(selectedChannelId) {
         val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
         VoiceCallManager.incomingChannelMessages.collect { incoming ->
+            val deletedForMeSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
+                ?.toSet() ?: emptySet()
+            if (deletedForMeSet.contains(incoming.id)) return@collect
+
             val incCh = incoming.channelId?.trim()?.lowercase()?.removePrefix("#") ?: ""
             if (incCh.equals(cleanCh, ignoreCase = true) || incCh.equals(activeChip.id, ignoreCase = true) || incCh.equals(activeChip.name, ignoreCase = true)) {
                 val tempIdx = messages.indexOfFirst { it.id.startsWith("temp_") && it.content == incoming.content && it.authorId == incoming.authorId }
@@ -367,6 +439,23 @@ fun ChannelsWorkspaceScreen(
                 if (messages.size > 0) {
                     try { listState.animateScrollToItem(messages.size) } catch (_: Exception) {}
                 }
+            }
+        }
+    }
+
+    // Real-time listener for deleted messages broadcast over WebSocket
+    LaunchedEffect(Unit) {
+        VoiceCallManager.deletedMessageIds.collect { deletedId ->
+            messages.removeAll { it.id == deletedId }
+        }
+    }
+
+    // Real-time listener for edited messages broadcast over WebSocket
+    LaunchedEffect(Unit) {
+        VoiceCallManager.editedMessages.collect { evt ->
+            val index = messages.indexOfFirst { it.id == evt.messageId }
+            if (index != -1) {
+                messages[index] = messages[index].copy(content = evt.newContent)
             }
         }
     }
@@ -414,6 +503,24 @@ fun ChannelsWorkspaceScreen(
     fun handleSendMessage() {
         val text = typedMessage.trim()
         if (text.isEmpty() || isSending) return
+
+        if (editingMessage != null) {
+            val editTarget = editingMessage!!
+            val newText = text
+            val index = messages.indexOfFirst { it.id == editTarget.id }
+            if (index != -1) {
+                messages[index] = messages[index].copy(content = newText)
+            }
+            val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
+            coroutineScope.launch(Dispatchers.IO) {
+                dbHelper.updateMessageContent(editTarget.id, newText)
+                ConnectoApiClient.editMessage(editTarget.id, newText, cleanCh)
+            }
+            editingMessage = null
+            typedMessage = ""
+            focusManager.clearFocus()
+            return
+        }
 
         val activeReply = replyingTo
         val targetFriend = matchedFriendTarget
@@ -597,48 +704,316 @@ fun ChannelsWorkspaceScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // ================= STANDARDIZED TOP HEADER BAR =================
-                ConnectoTopHeader(
-                    title = "#${activeChip.name}",
-                    subtitle = activeChip.description,
-                    userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
-                    onMenuClick = {
-                        coroutineScope.launch {
-                            if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                        }
-                    },
-                    onAddFriendClick = { showAddFriendDialog = true },
-                    onAvatarClick = onOpenProfile,
-                    customAction = if (activeChip.id == "voice-lounge") {
-                        {
-                            Box(
-                                modifier = Modifier
-                                    .pressScaleEffect(onClick = { onNavigateToCalls?.invoke() })
-                                    .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                    .background(Brush.linearGradient(gradientColors))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                // ================= STANDARDIZED TOP HEADER BAR / SELECTION HEADER =================
+                if (selectedMessageForAction != null) {
+                    val selMsg = selectedMessageForAction!!
+                    val isMyMsg = remember(selMsg, currentUsername) {
+                        val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                        val myDisplay = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase().removePrefix("@")
+                        val myUserId = (ConnectoApiClient.currentUserId ?: "").trim().lowercase()
+                        val authorClean = selMsg.authorId.trim().lowercase().removePrefix("@")
+                        val authorNameClean = selMsg.authorName.trim().lowercase().removePrefix("@")
+                        (myUser.isNotBlank() && (authorClean == myUser || authorNameClean == myUser)) ||
+                        (myDisplay.isNotBlank() && (authorClean == myDisplay || authorNameClean == myDisplay)) ||
+                        (myUserId.isNotBlank() && (authorClean == myUserId || authorNameClean == myUserId || selMsg.authorId.equals(myUserId, ignoreCase = true)))
+                    }
+                    val isPinned = pinnedMessageForChannel?.messageId == selMsg.id
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding(),
+                        color = if (colors.isDark) Color(0xFF13151B) else colors.surface,
+                        tonalElevation = 4.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = { selectedMessageForAction = null }
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close Selection",
+                                    tint = colors.textPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "1 selected",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textPrimary
+                            )
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            // Right side 3-dots button
+                            Box {
+                                IconButton(
+                                    onClick = { showMoreOptionsMenu = true }
+                                ) {
                                     Icon(
-                                        imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
-                                        contentDescription = null,
-                                        tint = contentOnGradient,
-                                        modifier = Modifier.size(14.dp)
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "Message Options",
+                                        tint = colors.textPrimary
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
+
+                                DropdownMenu(
+                                    expanded = showMoreOptionsMenu,
+                                    onDismissRequest = { showMoreOptionsMenu = false },
+                                    modifier = Modifier.background(if (colors.isDark) Color(0xFF1E2029) else Color.White)
+                                ) {
+                                    // 1. Pin / Unpin
+                                    DropdownMenuItem(
+                                        text = { Text(if (isPinned) "Unpin" else "Pin", color = colors.textPrimary) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = Icons.Default.PushPin,
+                                                contentDescription = null,
+                                                tint = colors.primary
+                                            )
+                                        },
+                                        onClick = {
+                                            showMoreOptionsMenu = false
+                                            val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+                                            if (isPinned) {
+                                                pinnedMessageForChannel = null
+                                                sharedPrefs.edit()
+                                                    .remove("pinned_msg_ch_$cleanCh")
+                                                    .remove("pinned_content_ch_$cleanCh")
+                                                    .remove("pinned_author_ch_$cleanCh")
+                                                    .apply()
+                                                coroutineScope.launch { ConnectoApiClient.unpinMessage(cleanCh) }
+                                            } else {
+                                                pinnedMessageForChannel = PinnedMessageDto(
+                                                    messageId = selMsg.id,
+                                                    channelId = cleanCh,
+                                                    authorName = selMsg.authorName.ifBlank { selMsg.authorId },
+                                                    content = selMsg.content,
+                                                    pinnedBy = currentUsername,
+                                                    pinnedAt = System.currentTimeMillis().toString()
+                                                )
+                                                sharedPrefs.edit()
+                                                    .putString("pinned_msg_ch_$cleanCh", selMsg.id)
+                                                    .putString("pinned_content_ch_$cleanCh", selMsg.content)
+                                                    .putString("pinned_author_ch_$cleanCh", selMsg.authorName.ifBlank { selMsg.authorId })
+                                                    .apply()
+                                                coroutineScope.launch { ConnectoApiClient.pinMessage(cleanCh, selMsg.id, currentUsername) }
+                                            }
+                                            selectedMessageForAction = null
+                                        }
+                                    )
+
+                                    // 2. Edit (only for own message)
+                                    if (isMyMsg) {
+                                        DropdownMenuItem(
+                                            text = { Text("Edit", color = colors.textPrimary) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = null,
+                                                    tint = colors.primary
+                                                )
+                                            },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                editingMessage = selMsg
+                                                typedMessage = selMsg.content
+                                                selectedMessageForAction = null
+                                            }
+                                        )
+                                    }
+
+                                    // 3. Delete (only for own message)
+                                    if (isMyMsg) {
+                                        DropdownMenuItem(
+                                            text = { Text("Delete", color = Color(0xFFEF4444)) },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Default.Delete,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFEF4444)
+                                                )
+                                            },
+                                            onClick = {
+                                                showMoreOptionsMenu = false
+                                                val msgId = selMsg.id
+                                                val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+                                                messages.removeAll { it.id == msgId }
+                                                if (pinnedMessageForChannel?.messageId == msgId) {
+                                                    pinnedMessageForChannel = null
+                                                    sharedPrefs.edit()
+                                                        .remove("pinned_msg_ch_$cleanCh")
+                                                        .remove("pinned_content_ch_$cleanCh")
+                                                        .remove("pinned_author_ch_$cleanCh")
+                                                        .apply()
+                                                }
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    dbHelper.deleteMessage(msgId)
+                                                    ConnectoApiClient.deleteMessage(msgId, cleanCh)
+                                                }
+                                                selectedMessageForAction = null
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ConnectoTopHeader(
+                        title = "#${activeChip.name}",
+                        subtitle = activeChip.description,
+                        userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
+                        onMenuClick = {
+                            coroutineScope.launch {
+                                if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                            }
+                        },
+                        onAddFriendClick = { showAddFriendDialog = true },
+                        showProfileButton = false,
+                        onAvatarClick = {},
+                        customAction = if (activeChip.id == "voice-lounge") {
+                            {
+                                Box(
+                                    modifier = Modifier
+                                        .pressScaleEffect(onClick = { onNavigateToCalls?.invoke() })
+                                        .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                        .background(Brush.linearGradient(gradientColors))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
+                                            contentDescription = null,
+                                            tint = contentOnGradient,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Join Voice",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = contentOnGradient
+                                        )
+                                    }
+                                }
+                            }
+                        } else null
+                    )
+                }
+
+
+
+                // ================= PINNED MESSAGE BANNER =================
+                AnimatedVisibility(
+                    visible = pinnedMessageForChannel != null,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    val pinned = pinnedMessageForChannel
+                    if (pinned != null) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 4.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    val targetIdx = messages.indexOfFirst { it.id == pinned.messageId }
+                                    if (targetIdx != -1) {
+                                        coroutineScope.launch {
+                                            try { listState.animateScrollToItem(targetIdx) } catch (_: Exception) {}
+                                        }
+                                    }
+                                },
+                            color = colors.surfaceVariant.copy(alpha = 0.85f),
+                            shape = RoundedCornerShape(14.dp),
+                            tonalElevation = 2.dp,
+                            shadowElevation = 2.dp
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.primary.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PushPin,
+                                        contentDescription = "Pinned",
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = "PINNED MESSAGE",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = 0.8.sp,
+                                            color = colors.primary
+                                        )
+                                        if (pinned.authorName.isNotBlank()) {
+                                            Text(
+                                                text = " • ${pinned.authorName}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = colors.textSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
                                     Text(
-                                        text = "Join Voice",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = contentOnGradient
+                                        text = pinned.content,
+                                        fontSize = 12.5.sp,
+                                        color = colors.textPrimary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
+                                            pinnedMessageForChannel = null
+                                            sharedPrefs.edit()
+                                                .remove("pinned_msg_ch_$cleanCh")
+                                                .remove("pinned_content_ch_$cleanCh")
+                                                .remove("pinned_author_ch_$cleanCh")
+                                                .apply()
+                                            coroutineScope.launch {
+                                                ConnectoApiClient.unpinMessage(cleanCh)
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Unpin",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(15.dp)
                                     )
                                 }
                             }
                         }
-                    } else null
-                )
-
-
+                    }
+                }
 
                 // ================= MESSAGES TIMELINE FEED =================
                 Box(
@@ -857,7 +1232,16 @@ fun ChannelsWorkspaceScreen(
                                                     }
                                                     channelReactions[msg.id] = currentList
                                                 },
-                                                onReply = { replyingTo = msg }
+                                                onReply = { replyingTo = msg },
+                                                isSelected = selectedMessageForAction?.id == msg.id,
+                                                onMessageClick = {
+                                                    if (selectedMessageForAction != null) {
+                                                        selectedMessageForAction = if (selectedMessageForAction?.id == msg.id) null else msg
+                                                    }
+                                                },
+                                                onMessageLongPress = { targetMsg ->
+                                                    selectedMessageForAction = targetMsg
+                                                }
                                             )
                                         }
                                     }
@@ -1015,6 +1399,78 @@ fun ChannelsWorkspaceScreen(
                                     }
                                 }
                             )
+                        }
+                    }
+
+                    // Active Editing Message Banner
+                    AnimatedVisibility(
+                        visible = editingMessage != null,
+                        enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(tween(180)) + expandVertically(),
+                        exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(tween(150)) + shrinkVertically()
+                    ) {
+                        editingMessage?.let { editTarget ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(colors.primary.copy(alpha = 0.15f))
+                                    .border(
+                                        width = 1.dp,
+                                        color = colors.primary.copy(alpha = 0.4f),
+                                        shape = RoundedCornerShape(16.dp)
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.primary.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Editing",
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Editing message",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.primary
+                                    )
+                                    Text(
+                                        text = editTarget.content,
+                                        fontSize = 11.sp,
+                                        color = colors.textSecondary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .clickable {
+                                            editingMessage = null
+                                            typedMessage = ""
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Cancel edit",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
                         }
                     }
 
@@ -1307,6 +1763,7 @@ fun ChannelsWorkspaceScreen(
                     onFriendAdded = { showAddFriendDialog = false }
                 )
             }
+
         }
     }
 }
@@ -1323,7 +1780,10 @@ private fun ChannelMessageCard(
     reactions: List<String>,
     onToggleReaction: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onReply: (() -> Unit)? = null
+    isSelected: Boolean = false,
+    onReply: (() -> Unit)? = null,
+    onMessageClick: (() -> Unit)? = null,
+    onMessageLongPress: (MessageDto) -> Unit = {}
 ) {
     val colors = LocalConnectoColors.current
     val contentOnGradient = getContentColorOnAccentGradient()
@@ -1389,6 +1849,27 @@ private fun ChannelMessageCard(
             horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start,
             verticalAlignment = Alignment.Bottom
         ) {
+            if (isMe) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 44.dp)
+                        .pointerInput(message.id, isSelected) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (onMessageClick != null) {
+                                        onMessageClick()
+                                    }
+                                },
+                                onLongPress = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onMessageLongPress(message)
+                                }
+                            )
+                        }
+                )
+            }
+
             // Left Avatar for other members
             if (!isMe) {
                 Box(
@@ -1503,13 +1984,33 @@ private fun ChannelMessageCard(
                         )
                 }
 
+                val selectionBorder = if (isSelected) {
+                    Modifier
+                        .border(2.dp, colors.primary, bubbleShape)
+                        .background(colors.primary.copy(alpha = 0.22f), bubbleShape)
+                } else Modifier
+
                 Box(
                     modifier = bubbleModifier
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            showReactionPicker = !showReactionPicker
+                        .then(selectionBorder)
+                        .pointerInput(message.id, isSelected) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (onMessageClick != null) {
+                                        onMessageClick()
+                                    } else if (showReactionPicker) {
+                                        showReactionPicker = false
+                                    }
+                                },
+                                onDoubleTap = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    showReactionPicker = true
+                                },
+                                onLongPress = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onMessageLongPress(message)
+                                }
+                            )
                         }
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
@@ -1906,6 +2407,26 @@ private fun ChannelMessageCard(
                         )
                     }
                 }
+            }
+            if (!isMe) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .defaultMinSize(minHeight = 44.dp)
+                        .pointerInput(message.id, isSelected) {
+                            detectTapGestures(
+                                onTap = {
+                                    if (onMessageClick != null) {
+                                        onMessageClick()
+                                    }
+                                },
+                                onLongPress = {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onMessageLongPress(message)
+                                }
+                            )
+                        }
+                )
             }
         }
     }

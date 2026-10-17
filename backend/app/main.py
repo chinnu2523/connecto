@@ -492,9 +492,18 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Serve uploaded static media files and downloads
 uploads_dir = settings.UPLOAD_DIR
 os.makedirs(uploads_dir, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
 candidate_static = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "website", "static"))
+candidate_uploads = os.path.join(candidate_static, "uploads")
+if os.path.isdir(candidate_uploads):
+    import shutil
+    try:
+        shutil.copytree(candidate_uploads, uploads_dir, dirs_exist_ok=True)
+    except Exception:
+        pass
+
+app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
 if os.path.isdir(candidate_static) and os.path.exists(os.path.join(candidate_static, "index.html")):
     static_dir = candidate_static
 else:
@@ -532,7 +541,7 @@ async def legacy_api_deprecation_middleware(request: Request, call_next):
 # ==================== BANNER & AVATAR UPLOAD ENDPOINTS ====================
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
-from fastapi import UploadFile, File
+from fastapi import UploadFile, File, Form
 from app.core.storage import process_and_save_banner, process_and_save_avatar
 
 # =============================================================================
@@ -2368,7 +2377,7 @@ async def start_dm_compat(
     if not current_u:
         raise HTTPException(status_code=401, detail="Authentication required to start a direct message.")
         
-    target_u = (await db.execute(select(User).where(func.lower(User.username) == target))).scalar_one_or_none()
+    target_u = (await db.execute(select(User).where(func.lower(User.username) == target))).scalars().first()
     if not target_u or not current_u:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -2381,7 +2390,7 @@ async def start_dm_compat(
                 and_(Friendship.user_id == target_u.id, Friendship.friend_id == current_u.id)
             )
         )
-        existing_friendship = (await db.execute(friendship_stmt)).scalar_one_or_none()
+        existing_friendship = (await db.execute(friendship_stmt)).scalars().first()
         if not existing_friendship and not getattr(current_u, "is_admin", False):
             raise HTTPException(
                 status_code=403,
@@ -2401,9 +2410,9 @@ async def start_dm_compat(
         .group_by(Channel.id)
         .having(func.count(DMParticipant.user_id) == 2)
     )
-    existing_channel_id = (await db.execute(dm_stmt)).scalar_one_or_none()
+    existing_channel_id = (await db.execute(dm_stmt)).scalars().first()
     if existing_channel_id:
-        existing_ch = (await db.execute(select(Channel).where(Channel.id == existing_channel_id))).scalar_one()
+        existing_ch = (await db.execute(select(Channel).where(Channel.id == existing_channel_id))).scalars().first()
         return {
             "id": existing_ch.id,
             "name": existing_ch.name,
@@ -2413,12 +2422,12 @@ async def start_dm_compat(
         }
         
     name_stmt = select(Channel).where(Channel.name == canonical_dm_name)
-    existing_name_ch = (await db.execute(name_stmt)).scalar_one_or_none()
+    existing_name_ch = (await db.execute(name_stmt)).scalars().first()
     if existing_name_ch:
-        p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == existing_name_ch.id, DMParticipant.user_id == current_u.id))).scalar_one_or_none()
+        p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == existing_name_ch.id, DMParticipant.user_id == current_u.id))).scalars().first()
         if not p1:
             db.add(DMParticipant(channel_id=existing_name_ch.id, user_id=current_u.id))
-        p2 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == existing_name_ch.id, DMParticipant.user_id == target_u.id))).scalar_one_or_none()
+        p2 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == existing_name_ch.id, DMParticipant.user_id == target_u.id))).scalars().first()
         if not p2:
             db.add(DMParticipant(channel_id=existing_name_ch.id, user_id=target_u.id))
         await db.commit()
@@ -2674,7 +2683,7 @@ async def post_channel_message_compat(
             if len(parts) >= 3:
                 u1_name, u2_name = parts[1].lower(), parts[2].lower()
                 other_uname = u2_name if user.username.lower() == u1_name else u1_name
-                other_obj = (await db.execute(select(User).where(func.lower(User.username) == other_uname))).scalar_one_or_none()
+                other_obj = (await db.execute(select(User).where(func.lower(User.username) == other_uname))).scalars().first()
                 if other_obj:
                     other_uid = other_obj.id
         if other_uid and other_uid != user.id:
@@ -2688,7 +2697,7 @@ async def post_channel_message_compat(
                     )
                 )
             )
-            if not (await db.execute(f_check)).scalar_one_or_none():
+            if not (await db.execute(f_check)).scalars().first():
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Direct messaging is restricted to accepted friends. You cannot send messages until friendship is accepted."
@@ -2805,6 +2814,9 @@ async def post_channel_message_compat(
                 await db.commit()
 
     norm_user_avatar = _normalize_avatar_url(user.avatar_url) or None
+    full_avatar = norm_user_avatar
+    if full_avatar and full_avatar.startswith("/"):
+        full_avatar = f"https://connecto.fun{full_avatar}"
     # Broadcast WebSocket event with both channel UUID and human-readable channel name
     event_data = {
         "id": new_msg.id,
@@ -2813,7 +2825,7 @@ async def post_channel_message_compat(
         "sender_id": user.id,
         "sender_username": user.username,
         "sender_display_name": user.display_name or user.username,
-        "sender_avatar_url": norm_user_avatar,
+        "sender_avatar_url": full_avatar or norm_user_avatar,
         "content": new_msg.content,
         "text": new_msg.content,
         "attachments": attachments_data,
@@ -2828,8 +2840,8 @@ async def post_channel_message_compat(
         "nonce": None,
         "user": user.username,
         "nickname": user.display_name or user.username,
-        "avatar": norm_user_avatar,
-        "avatar_url": norm_user_avatar,
+        "avatar": full_avatar or norm_user_avatar,
+        "avatar_url": full_avatar or norm_user_avatar,
         "timestamp": str(new_msg.created_at) if new_msg.created_at else "Just now",
         "created_at": str(new_msg.created_at) if new_msg.created_at else ""
     }
@@ -2887,7 +2899,7 @@ async def post_channel_message_compat(
                     parts = dm_string.removeprefix("dm-").removeprefix("dm_").split("_")
                 if len(parts) == 2:
                     other_uname = parts[1] if parts[0].lower() == user.username.lower() else parts[0]
-                    other_u = (await db.execute(select(User).where(func.lower(User.username) == other_uname.lower()))).scalar_one_or_none()
+                    other_u = (await db.execute(select(User).where(func.lower(User.username) == other_uname.lower()))).scalars().first()
                     if other_u and other_u.id != user.id:
                         recipients.append(other_u.id)
 
@@ -2899,6 +2911,18 @@ async def post_channel_message_compat(
                 "channel_name": ch_name_str,
                 "message": event_data
             })
+            await ws_manager.send_personal_event(p_id, {
+                "type": "new_message",
+                "channel_id": channel.id,
+                "channel_name": ch_name_str,
+                "message": event_data
+            })
+            await ws_manager.send_personal_event(p_id, {
+                "type": "message_created",
+                "channel_id": channel.id,
+                "channel_name": ch_name_str,
+                "data": event_data
+            })
             try:
                 await create_user_notification(
                     db=db,
@@ -2907,13 +2931,13 @@ async def post_channel_message_compat(
                     title=user.display_name or user.username,
                     content=new_msg.content,
                     sender_username=user.username,
-                    sender_avatar=norm_user_avatar,
+                    sender_avatar=full_avatar or norm_user_avatar,
                     reference_id=user.username
                 )
             except Exception as _notif_err:
                 pass
             try:
-                p_user = (await db.execute(select(User).where(User.id == p_id))).scalar_one_or_none()
+                p_user = (await db.execute(select(User).where(User.id == p_id))).scalars().first()
                 if p_user and p_user.fcm_token:
                     from app.core.push import send_push_notification
                     asyncio.create_task(send_push_notification(
@@ -3003,9 +3027,9 @@ async def post_channel_message_compat(
         "sender_username": user.username,
         "nickname": user.display_name or user.username,
         "sender_display_name": user.display_name or user.username,
-        "avatar_url": user.avatar_url,
-        "sender_avatar_url": user.avatar_url,
-        "avatar": user.avatar_url,
+        "avatar_url": full_avatar or user.avatar_url,
+        "sender_avatar_url": full_avatar or user.avatar_url,
+        "avatar": full_avatar or user.avatar_url,
         "content": new_msg.content,
         "text": new_msg.content,
         "reactions": {},
@@ -4224,14 +4248,14 @@ async def post_dm_messages_compat(
     alt_dm_name = f"dm_{min(clean_sender, clean_target)}_{max(clean_sender, clean_target)}"
 
     stmt = select(Channel).where(or_(Channel.name == canonical_dm_name, Channel.name == alt_dm_name))
-    channel = (await db.execute(stmt)).scalar_one_or_none()
+    channel = (await db.execute(stmt)).scalars().first()
     if not channel:
         channel = Channel(name=canonical_dm_name, type="dm")
         db.add(channel)
         await db.commit()
         await db.refresh(channel)
 
-    tgt_user = (await db.execute(select(User).where(func.lower(User.username) == clean_target))).scalar_one_or_none()
+    tgt_user = (await db.execute(select(User).where(func.lower(User.username) == clean_target))).scalars().first()
     if not tgt_user:
         raise HTTPException(status_code=404, detail=f"User @{clean_target} not found")
 
@@ -4254,7 +4278,7 @@ async def post_dm_messages_compat(
             )
         )
     )
-    friend_rel = (await db.execute(friend_check_stmt)).scalar_one_or_none()
+    friend_rel = (await db.execute(friend_check_stmt)).scalars().first()
     if not friend_rel:
         pending_check_stmt = (
             select(Friendship)
@@ -4266,7 +4290,7 @@ async def post_dm_messages_compat(
                 )
             )
         )
-        pending_rel = (await db.execute(pending_check_stmt)).scalar_one_or_none()
+        pending_rel = (await db.execute(pending_check_stmt)).scalars().first()
         if pending_rel:
             detail_msg = f"Friend request with @{clean_target} is pending. You can send direct messages once the request is accepted."
         else:
@@ -4281,7 +4305,7 @@ async def post_dm_messages_compat(
         from datetime import datetime, timezone as _tz
         from app.db.models.dm_read_state import DMReadState as _DRS
         _rs_stmt = select(_DRS).where(_DRS.user_id == current_user.id, _DRS.channel_id == channel.id)
-        _rs = (await db.execute(_rs_stmt)).scalar_one_or_none()
+        _rs = (await db.execute(_rs_stmt)).scalars().first()
         _now = datetime.now(_tz.utc)
         if _rs:
             _rs.last_read_at = _now
@@ -5629,12 +5653,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.3.5",
-        "version_name": "v4.3.5",
-        "version_code": 64,
-        "release_tag": "v4.3.5-stable",
-        "sha256": "3afcfb15fd00d53cf86b0a43ab65a6f0f0b23abc013568aad40787766103a53f",
-        "md5": "eb8f2257b9e90e7b29035518a05bab1e",
+        "version": "4.4.0",
+        "version_name": "v4.4.0",
+        "version_code": 69,
+        "release_tag": "v4.4.0-stable",
+        "sha256": "516881b774a2d19e94107ed69fa67bb6c78b589951893d52937ad618edcc1d74",
+        "md5": "c413c0648fa28e32a4d460c9a3f13c04",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5644,16 +5668,12 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Multi-Account Chat & Wallpaper Isolation: Complete private chat wallpaper, pinned message, theme, and lock isolation scoped to canonical channel keys (dm-{u1}-{u2}). Zero wallpaper leakage when multiple accounts share mutual friends.",
-            "0ms Wallpaper Resolution & Zero Overlap: Synchronous wallpaper resolution before rendering chat eliminates screen flicker, latency delay, and lingering wallpaper overlap when switching conversations.",
-            "Account Sign-Out & Switch Cache Sanitization: Completely wipes all cached preferences, local SQLite caches, and session credentials on logout or account switch.",
-            "Auto-Delete Empty Groups: Groups are automatically deleted from database and chat lists when member count reaches 0",
-            "Clean Group Chat Presence: Removed all online/offline presence dots, lights, and status indicators for group chats",
-            "Profile Cover Photo Suite & Presets: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal",
-            "Edge-to-Edge Friend Cover Banners: 132dp banner with overlapping avatar and tap-to-view fullscreen lightbox",
-            "Transparent Liquid Glass Aesthetic: True 0-nit black #000000 theme with transparent liquid glass containers and specular borders",
-            "Swipe-to-Reply in Channels: Fluid right-swipe gesture on channel messages activates reply banner with quoted message bubble rendering",
-            "Spatial Mesh Voice: Ultra low-latency WebRTC mesh audio lounges with hardware acoustic echo cancellation"
+            "Base64 WebP Cover Photos & Coil Disk Cache Fix: Enabled data URI WebP base64 decoding for user cover photos and fixed Coil memory/disk cache key truncation.",
+            "Android Notification Person Avatar Engine: Solved MessagingStyle system notification remote sender icons using in-memory bitmap decode and remote avatar fetching.",
+            "Real-Time Unread DMs & Snippet Updates: Instant real-time unread badges and snippet updates on Messages tab without requiring app reload.",
+            "Atomic SQLite Unread Counter: Atomic transaction increments for unread message counts in local database helper.",
+            "Backend MultipleResultsFound Crash Fix: Fixed duplicate device token lookup crashes in APNs/FCM registration.",
+            "Multi-Account Chat & Wallpaper Isolation: Scopes custom and preset wallpapers, pinned messages, locks, and themes strictly by user account and canonical DM channel ID (dm-{u1}-{u2})."
         ]
     }
 
@@ -5665,10 +5685,41 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.4.0",
+                "date": "Oct 17, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.4.0: Base64 Cover Photos, Notification Avatars & Real-Time Unread DMs",
+                "summary": "Enables base64 data URI WebP rendering for custom user cover photos with Coil disk cache stabilization, implements remote sender person avatar decoding for Android MessagingStyle push notifications, and delivers atomic real-time unread badge increments and snippet refreshes.",
+                "highlights": [
+                    "Admin & User Base64 WebP Cover Photo Support: Fixed Coil disk cache key length issues by enabling direct Base64 and data URI WebP bitmap decoding for profile cover photos.",
+                    "System Notification Sender Avatar Engine: In-memory network bitmap loader extracts sender profile picture for Android MessagingStyle notification Person objects.",
+                    "Real-Time Unread Badge Counter & Snippet Updates: SQLite atomic increments with instant StateFlow emission to update unread message badges and preview text on the Messages tab.",
+                    "Backend Device Registration Fix: Solved MultipleResultsFound exception by cleanly handling duplicate APNs/FCM tokens.",
+                    "Android Native App v4.4.0 (Build 69 • 54.7 MB): SHA-256 516881b774a2d19e94107ed69fa67bb6c78b589951893d52937ad618edcc1d74."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.3.9",
+                "date": "Oct 17, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
+                "title": "Connecto v4.3.9: Resend Email 2FA & OTP, Profile Photo Isolation & Protection, Zero-Flicker Cover Photos",
+                "summary": "Integrates Resend email infrastructure for end-to-end 2FA login verification and secure password resets, fixes generic media upload route to completely isolate group/channel avatars and chat attachments from overwriting personal profile pictures, and delivers a zero-flicker profile cover photo suite.",
+                "highlights": [
+                    "Resend Email 2FA & Secure OTP: Instant email delivery and verification for two-factor authentication and password recovery via Resend API.",
+                    "Profile Photo Protection & Avatar Isolation: Isolated generic upload endpoints so uploading group/channel icons or sending screenshots in chat never mutates personal profile pictures.",
+                    "Zero-Flicker Profile Cover Photo Suite: Fixed cover photo flickering across tab navigation, scrolling, and lightboxes with 7 curated artistic presets and instant caching.",
+                    "Android Native App v4.3.9 (Build 68 • 54.7 MB): SHA-256 223a47bbc26e0ad7717e984fe961dc8ac868417cb8fb89c627d2e1be79249e9e."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.3.5",
                 "date": "Oct 16, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.3.5: Multi-Account Chat & Wallpaper Isolation, 0ms Synchronous Transitions & Cache Sanitation",
                 "summary": "Resolves cross-account chat preferences and wallpaper leakage by scoping settings to canonical DM channel keys (dm-{u1}-{u2}), provides instant 0ms synchronous wallpaper application without screen flicker or overlap, and adds complete cache sanitation upon account sign out and switching.",
                 "highlights": [

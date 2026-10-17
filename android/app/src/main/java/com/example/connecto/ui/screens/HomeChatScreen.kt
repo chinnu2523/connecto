@@ -356,6 +356,48 @@ fun HomeChatScreen(
         }
     }
 
+    // Real-time WebSocket Incoming Messages Listener for Direct Messages dashboard
+    LaunchedEffect(Unit) {
+        VoiceCallManager.incomingChannelMessages.collect { dto ->
+            val myUsername = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
+            val myDisplayName = (ConnectoApiClient.currentUserDisplayName ?: "").trim().lowercase()
+            val authorClean = dto.authorId.trim().removePrefix("@").lowercase()
+            val authorNameClean = dto.authorName.trim().removePrefix("@").lowercase()
+            val isMe = (authorClean == myUsername || authorNameClean == myUsername ||
+                (myDisplayName.isNotBlank() && (authorNameClean == myDisplayName || authorClean == myDisplayName)))
+            if (!isMe) {
+                val decContent = try {
+                    if (ConnectoE2EEncryption.isEncrypted(dto.content)) {
+                        val senderKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean)
+                        ConnectoE2EEncryption.decryptMessage(dto.content, senderKey)
+                    } else dto.content
+                } catch (_: Exception) { dto.content }
+
+                recentConversations = recentConversations.map { item ->
+                    val cleanU = item.username.trim().lowercase().removePrefix("@")
+                    if (cleanU == authorClean || item.name.trim().equals(dto.authorName.trim(), ignoreCase = true)) {
+                        item.copy(
+                            unreadCount = item.unreadCount + 1,
+                            lastMessage = decContent,
+                            timestamp = "Just now"
+                        )
+                    } else item
+                }.sortedByDescending { it.timestamp == "Just now" }
+
+                allFriendConversations = allFriendConversations.map { item ->
+                    val cleanU = item.username.trim().lowercase().removePrefix("@")
+                    if (cleanU == authorClean || item.name.trim().equals(dto.authorName.trim(), ignoreCase = true)) {
+                        item.copy(
+                            unreadCount = item.unreadCount + 1,
+                            lastMessage = decContent,
+                            timestamp = "Just now"
+                        )
+                    } else item
+                }
+            }
+        }
+    }
+
     // Time-of-day greeting
     val greeting = remember {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
@@ -636,14 +678,15 @@ fun HomeChatScreen(
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 1. Standardized Top Header with Status and Profile Avatar (Clean, no group buttons on top)
+            // 1. Standardized Top Header with Status (Profile avatar removed as requested)
             ConnectoTopHeader(
                 title = "Connecto",
                 subtitle = "Dashboard",
                 userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
                 onMenuClick = null,
                 onVoiceGroupClick = null,
-                onAvatarClick = onNavigateToProfile,
+                showProfileButton = false,
+                onAvatarClick = {},
                 customAction = null
             )
 
@@ -803,13 +846,6 @@ fun HomeChatScreen(
                                 icon = Icons.Default.Tag,
                                 label = "Channels",
                                 onClick = { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
-                            )
-                        }
-                        item {
-                            QuickActionChip(
-                                icon = Icons.Default.Person,
-                                label = "Profile",
-                                onClick = onNavigateToProfile
                             )
                         }
                         item {
