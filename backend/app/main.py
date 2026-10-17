@@ -5688,15 +5688,17 @@ async def download_qr_direct():
 @app.get("/api/v1/app/version")
 @app.get("/api/app/version")
 async def get_app_version_endpoint(response: Response = None):
-    apk_path = os.path.join(static_dir, "downloads", "connecto-fun.apk")
-    if not os.path.exists(apk_path):
-        apk_path = os.path.join(static_dir, "downloads", "connecto-release.apk")
-    if not os.path.exists(apk_path):
-        apk_path = os.path.join(static_dir, "downloads", "connecto-latest.apk")
-    size_bytes = 56916705
-    size_mb = "54.3 MB"
-    last_modified = "2026-10-02T18:15:00Z"
-    if os.path.exists(apk_path):
+    candidates = [
+        os.path.join(os.path.dirname(static_dir), "downloads", "connecto-fun.apk"),
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "downloads", "connecto-fun.apk"),
+        os.path.join(static_dir, "downloads", "connecto-fun.apk"),
+        os.path.join(static_dir, "downloads", "connecto-latest.apk")
+    ]
+    apk_path = next((p for p in candidates if os.path.exists(p)), None)
+    size_bytes = 57416889
+    size_mb = "54.8 MB"
+    last_modified = "2026-10-18T02:34:00Z"
+    if apk_path and os.path.exists(apk_path):
         stat = os.stat(apk_path)
         size_bytes = stat.st_size
         size_mb = f"{size_bytes / (1024 * 1024):.1f} MB"
