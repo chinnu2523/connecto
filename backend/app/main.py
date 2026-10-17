@@ -5653,11 +5653,11 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.4.0",
-        "version_name": "v4.4.0",
-        "version_code": 69,
-        "release_tag": "v4.4.0-stable",
-        "sha256": "516881b774a2d19e94107ed69fa67bb6c78b589951893d52937ad618edcc1d74",
+        "version": "4.4.1",
+        "version_name": "v4.4.1",
+        "version_code": 70,
+        "release_tag": "v4.4.1-stable",
+        "sha256": "e538c0b305f29d7f00e75c4b0a6cffcdf6aa68d17692ab6cc4fa44387a409fa3",
         "md5": "c413c0648fa28e32a4d460c9a3f13c04",
         "size_bytes": size_bytes,
         "size_display": size_mb,
@@ -5668,6 +5668,8 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "Profile Tab & User Profile Screenshot Privacy: OS-level WindowManager.FLAG_SECURE blocks screenshots and screen recording on personal profile and friend profile views.",
+            "Cloudflare Global Edge CDN Fast Delivery: Edge worker caches APK downloads across 300+ data centers with immutable caching and routes static assets directly to Cloudflare Pages edge for <10ms latency.",
             "Base64 WebP Cover Photos & Coil Disk Cache Fix: Enabled data URI WebP base64 decoding for user cover photos and fixed Coil memory/disk cache key truncation.",
             "Android Notification Person Avatar Engine: Solved MessagingStyle system notification remote sender icons using in-memory bitmap decode and remote avatar fetching.",
             "Real-Time Unread DMs & Snippet Updates: Instant real-time unread badges and snippet updates on Messages tab without requiring app reload.",
@@ -5685,10 +5687,25 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.4.0",
+                "version": "v4.4.1",
                 "date": "Oct 17, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.4.1: Profile Tab & User Profile Screenshot Privacy & Global Edge CDN",
+                "summary": "Enforces OS-level WindowManager FLAG_SECURE screenshot and screen-recording prevention on personal Profile tabs and friend profile modals, adds web profile privacy shield against PrintScreen and media captures, and deploys Cloudflare Edge CDN caching for instant sub-10ms package and asset delivery.",
+                "highlights": [
+                    "Profile Screenshot & Recording Privacy Protection: Android OS-level WindowManager.LayoutParams.FLAG_SECURE and Compose SecureFlagPolicy.SecureOn completely block screen captures, recordings, and preview caching on ProfileScreen, friend profile dialogs, and photo lightboxes.",
+                    "Web Profile Privacy & Anti-Capture Shield: Disables drag/context menu on user avatars and covers, suppresses text selection on profile tabs, and deploys a live PrintScreen blur shield.",
+                    "Cloudflare Global Edge CDN Fast Delivery: Edge worker caches APK downloads across 300+ data centers with immutable caching and routes static assets directly to Cloudflare Pages edge for <10ms latency.",
+                    "Android Native App v4.4.1 (Build 70 • 54.7 MB): SHA-256 e538c0b305f29d7f00e75c4b0a6cffcdf6aa68d17692ab6cc4fa44387a409fa3."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.4.0",
+                "date": "Oct 17, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.4.0: Base64 Cover Photos, Notification Avatars & Real-Time Unread DMs",
                 "summary": "Enables base64 data URI WebP rendering for custom user cover photos with Coil disk cache stabilization, implements remote sender person avatar decoding for Android MessagingStyle push notifications, and delivers atomic real-time unread badge increments and snippet refreshes.",
                 "highlights": [

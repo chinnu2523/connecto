@@ -279,6 +279,17 @@ fun ProfileScreen(
     val activity = remember(context) { context.findFragmentActivity() }
     val prefs = remember { context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE) }
 
+    // Enforce screenshot privacy protection on ProfileScreen
+    androidx.compose.runtime.DisposableEffect(activity) {
+        activity?.window?.setFlags(
+            android.view.WindowManager.LayoutParams.FLAG_SECURE,
+            android.view.WindowManager.LayoutParams.FLAG_SECURE
+        )
+        onDispose {
+            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
+
     // ================= USER PROFILE STATE =================
     var displayNameInput by remember(username) {
         val initialName = prefs.getString("display_name_$username", null)

@@ -138,7 +138,7 @@ fun PhotoLightboxDialog(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
-            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOff
+            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
         )
     ) {
         var zoomScale by remember { mutableFloatStateOf(1.0f) }
@@ -569,7 +569,10 @@ fun CoverPresetsDialog(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+        )
     ) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -737,7 +740,10 @@ fun CoverOptionsMenuDialog(
 ) {
     Dialog(
         onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+        )
     ) {
         Surface(
             shape = RoundedCornerShape(28.dp),
@@ -1043,7 +1049,8 @@ fun InteractiveCropFitDialog(
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = !isProcessingCrop,
-            dismissOnClickOutside = !isProcessingCrop
+            dismissOnClickOutside = !isProcessingCrop,
+            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
         )
     ) {
         Surface(

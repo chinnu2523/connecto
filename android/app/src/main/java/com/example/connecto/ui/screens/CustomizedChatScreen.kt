@@ -2104,11 +2104,23 @@ fun CustomizedChatScreen(
         val isTwoFactorActive = profData?.twoFactorEnabled ?: false
         val twoFactorMethod = profData?.twoFactorMethod ?: "email"
 
+        // Enforce screenshot privacy protection on other user's profile dialog
+        val activity = remember(context) { context.findFragmentActivity() }
+        androidx.compose.runtime.DisposableEffect(showFriendProfileDialog) {
+            activity?.window?.setFlags(
+                android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                android.view.WindowManager.LayoutParams.FLAG_SECURE
+            )
+            onDispose {
+                activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
+
         Dialog(
             onDismissRequest = { showFriendProfileDialog = false },
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
-                securePolicy = SecureFlagPolicy.Inherit
+                securePolicy = SecureFlagPolicy.SecureOn
             )
         ) {
             Surface(

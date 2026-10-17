@@ -219,7 +219,10 @@ fun FullScreenGroupProfileDialog(
 
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+        )
     ) {
         Surface(
             modifier = Modifier.fillMaxSize(),
