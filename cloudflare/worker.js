@@ -99,31 +99,27 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.3.5",
-        version_name: "v4.3.5",
-        version_code: 64,
-        build: 64,
-        sha256: "3afcfb15fd00d53cf86b0a43ab65a6f0f0b23abc013568aad40787766103a53f",
-        md5: "eb8f2257b9e90e7b29035518a05bab1e",
+        version: "4.3.9",
+        version_name: "v4.3.9",
+        version_code: 68,
+        build: 68,
+        sha256: "223a47bbc26e0ad7717e984fe961dc8ac868417cb8fb89c627d2e1be79249e9e",
+        md5: "c413c0648fa28e32a4d460c9a3f13c04",
         filename: "connecto-fun.apk",
-        size_bytes: 57302149,
-        size_display: "54.6 MB",
+        size_bytes: 57318533,
+        size_display: "54.7 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Multi-Account Chat & Wallpaper Isolation: Complete private chat wallpaper, pinned message, theme, and lock isolation scoped to canonical channel keys (dm-{u1}-{u2}). Zero wallpaper leakage when multiple accounts share mutual friends.",
-          "0ms Wallpaper Resolution & Zero Overlap: Synchronous wallpaper resolution before rendering chat eliminates screen flicker, latency delay, and lingering wallpaper overlap when switching conversations.",
-          "Account Sign-Out & Switch Cache Sanitization: Completely wipes all cached preferences, local SQLite caches, and session credentials on logout or account switch.",
-          "Monochrome Black & White Chat UI: Crisp solid white bubbles (#FFFFFF) with jet black text (#000000) and dark delivery ticks for sent messages; dark zinc graphite bubbles (#18181B) with crisp white text for incoming messages",
-          "Restored Black & White Channel UI: High-contrast monochrome cards, white illuminated circular send button with bold black send arrow, and distraction-free dark aesthetics",
-          "Instant 0ms Message Persistence & Delivery: Zero-latency local message caching and offline delivery indicators in direct chat and channels",
-          "Clean Input Composers: Sanitized channel input and streamlined direct chat bar without misplaced voice or emoji clutter",
-          "Automatic 0-Member Group Lifecycle: Groups with 0 members are instantly and automatically deleted across database, backend API, and Android client",
-          "Clean Group Chat Presence: Completely removed misleading presence lights, green indicator dots, and presence text from group chats",
-          "Profile Cover Photo Suite & Presets: Interactive Crop & Fit gallery upload (16:9, 2.4:1, 3:1), 7 curated artistic gradient presets, and instant cover removal"
+          "Resend Email 2FA & Secure OTP: Integrated Resend email delivery for 2FA login verification and forgotten password resets with instant token validation.",
+          "Profile Photo Protection & Avatar Isolation: Resolved generic upload endpoint to isolate group icons and chat attachments from overwriting personal avatars.",
+          "Zero-Flicker Cover Photo Suite: Complete flicker-free cover photo persistence across tab switching, touch scrolling, and full-screen lightboxes with 7 curated artistic presets.",
+          "Monochrome Black & White UI: Pure OLED jet black surfaces with high-contrast text and instant 0ms message caching.",
+          "Multi-Account Chat & Wallpaper Isolation: Scopes custom and preset wallpapers, pinned messages, locks, and themes strictly by user account and canonical DM channel ID (dm-{u1}-{u2}).",
+          "Touch-Scroll Gesture Engine & Voice Lounge Hardening: Hardware echo cancellation, background suppression, and fluid swipe-to-reply."
         ]
       });
     }
@@ -169,11 +165,11 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.3.5/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.3.9/connecto-fun.apk";
         const upstreamResp = await fetch(canonicalApkUrl, {
           redirect: "follow",
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.3.5"
+            "User-Agent": "Connecto-Cloud-Worker/4.3.9"
           }
         });
         if (upstreamResp.ok) {
@@ -184,8 +180,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=86400, s-maxage=86400");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.3.5");
-          downloadHeaders.set("X-Connecto-Build", "64");
+          downloadHeaders.set("X-Connecto-Version", "v4.3.9");
+          downloadHeaders.set("X-Connecto-Build", "68");
           return new Response(upstreamResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -194,7 +190,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.5/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.3.9/connecto-fun.apk", 302);
     }
 
     // 4. WebSocket Upgrade Handling (Durable Object Real-Time Mesh & WebRTC Signaling)
@@ -465,29 +461,81 @@ async function dispatchOtpNotification({ email, username, otpCode, purpose, env,
     } catch (_) {}
   }
 
-  const subject = `[Connecto Security] Your ${purpose} Verification Code: ${otpCode}`;
+  let badgeTitle = "SECURITY VERIFICATION";
+  let badgeBg = "#238636";
+  let borderColor = "#2ea043";
+  let textColor = "#86efac";
+  let guidanceText = `Use this verification code to complete ${purpose}.`;
+
+  const purpLower = (purpose || "").toLowerCase();
+  let subject = `[Connecto Security] Your ${purpose} Verification Code: ${otpCode}`;
+
+  if (purpLower.includes("login") || purpLower.includes("sign-in")) {
+    subject = `[Connecto 2FA Sign-In] Your Two-Factor Sign-In Code: ${otpCode}`;
+    badgeTitle = "TWO-FACTOR SIGN-IN VERIFICATION";
+    badgeBg = "#1f6feb";
+    borderColor = "#388bfd";
+    textColor = "#93c5fd";
+    guidanceText = "This verification code is strictly for <b>signing into your Connecto account</b>. <b>Do NOT use this code for password reset.</b>";
+  } else if (purpLower.includes("setup")) {
+    subject = `[Connecto 2FA Setup] Your Two-Factor Activation Code: ${otpCode}`;
+    badgeTitle = "TWO-FACTOR SECURITY SETUP";
+    badgeBg = "#6c5ce7";
+    borderColor = "#a855f7";
+    textColor = "#d8b4fe";
+    guidanceText = "This verification code is strictly for <b>activating Two-Factor Authentication (2FA)</b> in your Connecto Account Settings.";
+  } else if (purpLower.includes("disable") || purpLower.includes("turn-off") || purpLower.includes("deactivation")) {
+    subject = `[Connecto 2FA Deactivation] Your Two-Factor Turn-Off Code: ${otpCode}`;
+    badgeTitle = "TWO-FACTOR DEACTIVATION";
+    badgeBg = "#dc2626";
+    borderColor = "#ef4444";
+    textColor = "#fca5a5";
+    guidanceText = "This verification code is strictly to <b>turn OFF Two-Factor Authentication</b> on your account. If you did not request this, please secure your account immediately.";
+  } else if (purpLower.includes("password") || purpLower.includes("recovery") || purpLower.includes("reset")) {
+    subject = `[Connecto Password Reset] Your Account Recovery Code: ${otpCode}`;
+    badgeTitle = "PASSWORD RESET RECOVERY";
+    badgeBg = "#d29922";
+    borderColor = "#e3b341";
+    textColor = "#fde047";
+    guidanceText = "This verification code is strictly for <b>resetting your forgotten password</b>. Never share this code with anyone.";
+  } else if (purpLower.includes("email") || purpLower.includes("signup")) {
+    subject = `[Connecto Email Verification] Your 6-Digit Verification Code: ${otpCode}`;
+    badgeTitle = "ACCOUNT EMAIL VERIFICATION";
+    badgeBg = "#059669";
+    borderColor = "#10b981";
+    textColor = "#6ee7b7";
+    guidanceText = "This verification code is to <b>verify your email address</b> on Connecto. Enter this 6-digit code in the app to complete account verification.";
+  } else if (purpLower.includes("contact")) {
+    subject = `[Connecto Contact Update] Your Contact Verification Code: ${otpCode}`;
+    badgeTitle = "CONTACT VERIFICATION";
+    badgeBg = "#2563eb";
+    borderColor = "#3b82f6";
+    textColor = "#93c5fd";
+    guidanceText = "This verification code confirms your new email address or phone number on Connecto. Enter this 6-digit code to complete the update.";
+  }
+
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0d1117; color: #f0f6fc; padding: 20px;">
   <div style="max-width: 480px; margin: auto; background: #161b22; border-radius: 16px; border: 1px solid #30363d; padding: 32px; text-align: center;">
-    <div style="display: inline-block; background: #238636; color: white; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">CONNECTO SECURITY</div>
+    <div style="display: inline-block; background: ${badgeBg}; color: white; padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">${badgeTitle}</div>
     <h2 style="margin: 18px 0 8px; color: #ffffff;">${purpose} Verification</h2>
     <p style="color: #8b949e; font-size: 14px;">Use the code below to complete your authentication.</p>
-    <div style="font-size: 34px; font-weight: 900; letter-spacing: 12px; color: #58a6ff; background: #0d1117; padding: 18px 24px; border-radius: 14px; border: 1px dashed #58a6ff; margin: 20px 0; font-family: monospace;">${otpCode}</div>
+    <div style="background: rgba(255,255,255,0.04); border-left: 3px solid ${borderColor}; padding: 12px 14px; border-radius: 6px; text-align: left; font-size: 13px; color: ${textColor}; margin: 16px 0; line-height: 1.4;">${guidanceText}</div>
+    <div style="font-size: 34px; font-weight: 900; letter-spacing: 12px; color: #ffffff; background: #0d1117; padding: 18px 24px; border-radius: 14px; border: 1px dashed ${borderColor}; margin: 20px 0; font-family: monospace;">${otpCode}</div>
     <p style="color: #8b949e; font-size: 13px;">This code will expire in 10 minutes. Never share this code with anyone.</p>
     <div style="font-size: 11px; color: #484f58; margin-top: 28px; border-top: 1px solid #21262d; padding-top: 16px;">Connecto Gaming & Community &bull; https://connecto.fun</div>
   </div>
 </body>
 </html>`;
-  const text = `Connecto Security Verification\n\nYour ${purpose} verification code is: ${otpCode}\n\nValid for 10 minutes. Never share this code.\nhttps://connecto.fun`;
+  const text = `Connecto Security Verification\n\nYour ${purpose} verification code is: ${otpCode}\n\n${guidanceText.replace(/<[^>]*>/g, '')}\n\nValid for 10 minutes. Never share this code.\nhttps://connecto.fun`;
 
   let deliveryStatus = "failed";
   let deliveryProvider = "none";
   let deliveryDetails = "";
-
   if (cleanEmail && !cleanEmail.endsWith("@connecto.fun") && !cleanEmail.endsWith("@connecto.gg")) {
-    const resendApiKey = (env && env.RESEND_API_KEY ? env.RESEND_API_KEY.trim() : "");
+    const resendApiKey = (env && env.RESEND_API_KEY && env.RESEND_API_KEY.trim() ? env.RESEND_API_KEY.trim() : "");
     if (resendApiKey) {
       // 1. Resend API Dispatch
       try {
@@ -852,6 +900,43 @@ async function resolveUserFromRequest(request, env) {
     const userId = await verifyEdgeToken(token, env);
     if (userId) {
       user = await env.DB.prepare("SELECT * FROM users WHERE id = ? OR lower(username) = ? LIMIT 1").bind(userId, userId.toLowerCase()).first();
+      if (user) {
+        // Check all_before revocation
+        const revRow = await env.DB.prepare(
+          "SELECT 1 FROM terminated_sessions WHERE session_token_hash = ? LIMIT 1"
+        ).bind(`all_before_${user.id}`).first().catch(() => null);
+
+        if (revRow) {
+          const dotIdx = token.lastIndexOf(".");
+          const payload = dotIdx !== -1 ? token.substring(8, dotIdx) : token.substring(8);
+          const lastUnderscore = payload.lastIndexOf("_");
+          const tokenTs = lastUnderscore !== -1 ? parseInt(payload.substring(lastUnderscore + 1), 10) : 0;
+          if (tokenTs > 0) {
+            // Check if this specific session was spared in user_sessions
+            const hashHex = await sha256Hex(token);
+            const activeSession = await env.DB.prepare(
+              "SELECT 1 FROM user_sessions WHERE session_token_hash = ? AND expires_at > datetime('now') LIMIT 1"
+            ).bind(hashHex).first().catch(() => null);
+            if (!activeSession) {
+              return null;
+            }
+          }
+        }
+
+        // Check if user has active sessions in user_sessions, but this token's hash is deleted
+        const hashHex = await sha256Hex(token);
+        const userHasSessions = await env.DB.prepare(
+          "SELECT 1 FROM user_sessions WHERE user_id = ? LIMIT 1"
+        ).bind(user.id).first().catch(() => null);
+        if (userHasSessions) {
+          const thisSession = await env.DB.prepare(
+            "SELECT 1 FROM user_sessions WHERE (session_token_hash = ? OR id = ?) AND expires_at > datetime('now') LIMIT 1"
+          ).bind(hashHex, token).first().catch(() => null);
+          if (!thisSession) {
+            return null;
+          }
+        }
+      }
     }
   }
 
@@ -1018,12 +1103,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         if (ctx) {
           ctx.waitUntil(dispatchOtpNotification({ email: dest, username: user.username, otpCode, purpose: "2FA Login", env, ctx }));
         }
+        const tempToken = "2fa_temp_" + crypto.randomUUID();
         return jsonResponse({
           status: "2fa_required",
           two_factor_required: true,
           requires_2fa: true,
           two_factor_enabled: true,
           two_factor_method: "email",
+          temp_token: tempToken,
           username: user.username,
           masked_phone: maskEmail(dest),
           masked_destination: maskEmail(dest),
@@ -1165,6 +1252,151 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
   }
 
+  // 3b-1. Signup / Registration Request OTP (Android / Web)
+  if (
+    path === "/api/auth/signup/request-otp" ||
+    path === "/api/v1/auth/signup/request-otp" ||
+    path === "/api/auth/verify-email/request-otp" ||
+    path === "/api/v1/auth/verify-email/request-otp"
+  ) {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const body = await request.json().catch(() => ({}));
+      let rawEmail = (body.email || "").trim().toLowerCase();
+
+      // If email not in body, resolve from authenticated session if available
+      if (!rawEmail) {
+        const u = await resolveUserFromRequest(request, env);
+        if (u && u.email) rawEmail = u.email.trim().toLowerCase();
+      }
+
+      if (!rawEmail || !rawEmail.includes("@") || rawEmail.length > 100) {
+        return jsonResponse({ error: "Please provide a valid email address.", detail: "Invalid email" }, 400);
+      }
+
+      // Check if email already registered in D1 users table (for new signup requests)
+      const isSignupPath = path.includes("signup");
+      if (isSignupPath && env.DB) {
+        const existing = await env.DB.prepare("SELECT id FROM users WHERE lower(email) = ? LIMIT 1").bind(rawEmail).first();
+        if (existing) {
+          return jsonResponse({
+            error: "This email address is already registered. Please sign in instead.",
+            detail: "Email taken"
+          }, 400);
+        }
+      }
+
+      const otpCode = generateNumericOtp(6);
+      if (env.DB) {
+        // Invalidate previous unverified signup OTPs for this email
+        await env.DB.prepare(
+          "DELETE FROM otp_verifications WHERE lower(identifier) = ? AND purpose IN ('signup_verification', 'email_verification') AND is_verified = 0"
+        ).bind(rawEmail).run().catch(() => {});
+
+        const otpId = "otp_" + crypto.randomUUID();
+        const purp = isSignupPath ? "signup_verification" : "email_verification";
+        await env.DB.prepare(
+          "INSERT INTO otp_verifications (id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'email', 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
+        ).bind(otpId, rawEmail, otpCode, purp).run();
+      }
+
+      const notifPromise = dispatchOtpNotification({
+        email: rawEmail,
+        username: rawEmail.split("@")[0],
+        otpCode,
+        purpose: "Email Verification",
+        env,
+        ctx
+      });
+
+      if (ctx) {
+        ctx.waitUntil(notifPromise);
+      } else {
+        await notifPromise;
+      }
+
+      return jsonResponse({
+        status: "ok",
+        message: `Verification code sent to ${maskEmail(rawEmail)}`,
+        masked_destination: maskEmail(rawEmail),
+        identifier: rawEmail,
+        dev_otp: otpCode
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3b-2. Signup / Registration Verify OTP (Android / Web)
+  if (
+    path === "/api/auth/signup/verify-otp" ||
+    path === "/api/v1/auth/signup/verify-otp" ||
+    path === "/api/auth/verify-email/confirm" ||
+    path === "/api/v1/auth/verify-email/confirm"
+  ) {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const body = await request.json().catch(() => ({}));
+      let rawEmail = (body.email || "").trim().toLowerCase();
+      const code = (body.otp_code || body.otp || "").trim();
+
+      if (!rawEmail) {
+        const u = await resolveUserFromRequest(request, env);
+        if (u && u.email) rawEmail = u.email.trim().toLowerCase();
+      }
+
+      if (!rawEmail || !code || code.length !== 6) {
+        return jsonResponse({
+          error: "Please enter the complete 6-digit verification code.",
+          detail: "Invalid parameters"
+        }, 400);
+      }
+
+      let valid = false;
+      let matched = null;
+      if (env.DB) {
+        const records = await env.DB.prepare(`
+          SELECT * FROM otp_verifications 
+          WHERE lower(identifier) = ? 
+            AND purpose IN ('signup_verification', 'email_verification') 
+            AND is_verified = 0 
+            AND datetime(expires_at) >= datetime('now')
+          ORDER BY created_at DESC LIMIT 5
+        `).bind(rawEmail).all();
+
+        for (const r of (records.results || [])) {
+          if (r.otp_code === code) {
+            valid = true;
+            matched = r;
+            break;
+          }
+        }
+      }
+
+      if (!valid) {
+        return jsonResponse({
+          error: "Invalid or expired verification code. Please check your email or request a new one.",
+          detail: "Verification failed"
+        }, 400);
+      }
+
+      if (matched && env.DB) {
+        await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matched.id).run();
+        // If this is for an existing user confirming their email, mark is_email_verified = 1
+        await env.DB.prepare("UPDATE users SET is_email_verified = 1, updated_at = datetime('now') WHERE lower(email) = ?").bind(rawEmail).run().catch(() => {});
+      }
+
+      return jsonResponse({
+        status: "ok",
+        verified: true,
+        email: rawEmail,
+        message: "Email verified successfully ✓"
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
   // 3c. 2FA Setup / Disable Request OTP (Android / Web)
   if (path === "/api/v1/auth/2fa/request-otp" || path === "/api/auth/2fa/request-otp") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -1275,19 +1507,22 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       // If verified OTP was sent to an email, update users table email
       const verifiedEmail = (matchedRecord && matchedRecord.identifier && matchedRecord.identifier.includes("@") && !matchedRecord.identifier.endsWith("@connecto.fun")) ? matchedRecord.identifier : ((phoneVal && phoneVal.includes("@")) ? phoneVal : user.email);
 
+      const isDisable = (matchedRecord && (matchedRecord.purpose === "two_factor_disable" || matchedRecord.purpose === "disable")) || body.purpose === "disable";
+      const targetEnabled = isDisable ? 0 : 1;
+
       if (env.DB) {
         await env.DB.prepare(
-          "UPDATE users SET two_factor_enabled = 1, two_factor_method = ?, email = coalesce(?, email), phone_number = coalesce(?, phone_number), updated_at = datetime('now') WHERE id = ?"
-        ).bind(methodVal, verifiedEmail, (phoneVal && !phoneVal.includes("@") ? phoneVal : user.phone_number), user.id).run();
+          "UPDATE users SET two_factor_enabled = ?, two_factor_method = ?, email = coalesce(?, email), phone_number = coalesce(?, phone_number), updated_at = datetime('now') WHERE id = ?"
+        ).bind(targetEnabled, methodVal, verifiedEmail, (phoneVal && !phoneVal.includes("@") ? phoneVal : user.phone_number), user.id).run();
       }
 
       return jsonResponse({
         status: "ok",
-        two_factor_enabled: true,
+        two_factor_enabled: targetEnabled === 1,
         two_factor_method: methodVal,
         email: verifiedEmail,
         phone_number: user.phone_number || "",
-        message: "Two-Factor Authentication enabled successfully."
+        message: targetEnabled === 1 ? "Two-Factor Authentication enabled successfully." : "Two-Factor Authentication disabled successfully."
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -1299,7 +1534,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
     try {
       const body = await request.json().catch(() => ({}));
-      const enabled = (body.enabled === true || body.enabled === 1 || body.enabled === "true");
+      const enabled = (body.enabled === true || body.enabled === 1 || body.enabled === "true" || body.enable === true || body.enable === 1 || body.enable === "true");
       const methodVal = (body.method || "email").toLowerCase();
       const phoneVal = body.phone_number || null;
       const otpCode = (body.otp_code || body.otp || "").trim();
@@ -1433,8 +1668,69 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         username: user.username,
         masked_email: maskEmail(dest),
         masked_destination: maskEmail(dest),
-        dev_otp: otpCode,
         message: `Password reset OTP sent to ${maskEmail(dest)}.`
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3f-2. Verify Forgot Password Recovery OTP (Edge)
+  if (
+    path === "/api/v1/auth/forgot-password/verify-otp" ||
+    path === "/api/forgot-password/verify-otp"
+  ) {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const body = await request.json().catch(() => ({}));
+      const ident = (body.identifier || body.username || body.email || "").trim().toLowerCase();
+      const otp = (body.otp_code || body.otp || "").trim();
+
+      if (!ident || !otp) {
+        return jsonResponse({ error: "Missing fields", detail: "Identifier and OTP code required" }, 400);
+      }
+
+      let user = null;
+      if (env.DB) {
+        user = await env.DB.prepare(
+          "SELECT * FROM users WHERE lower(username) = ? OR lower(email) = ? OR id = ? LIMIT 1"
+        ).bind(ident, ident, ident).first();
+      }
+
+      let validOtp = false;
+      let matchedRecord = null;
+      if (env.DB) {
+        const records = await env.DB.prepare(`
+          SELECT * FROM otp_verifications 
+          WHERE (lower(identifier) = ? OR lower(identifier) = ? OR (user_id IS NOT NULL AND user_id = ?))
+            AND purpose = 'forgot_password'
+            AND is_verified IN (0, 1)
+            AND datetime(expires_at) >= datetime('now')
+          ORDER BY created_at DESC LIMIT 5
+        `).bind(ident, user ? (user.email || "").toLowerCase() : ident, user ? user.id : "").all();
+
+        for (const r of (records.results || [])) {
+          if (r.otp_code === otp) {
+            validOtp = true;
+            matchedRecord = r;
+            break;
+          }
+        }
+      }
+
+      if (!validOtp) {
+        return jsonResponse({ error: "Invalid or expired OTP code", detail: "The code entered is invalid or has expired." }, 400);
+      }
+
+      if (matchedRecord && env.DB) {
+        await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matchedRecord.id).run();
+      }
+
+      return jsonResponse({
+        status: "ok",
+        verified: true,
+        identifier: ident,
+        message: "Verification code verified successfully! You may now set your new password."
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -1772,16 +2068,28 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
       await env.DB.prepare(
         "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
-      ).bind(target.session_token_hash).run();
+      ).bind(target.session_token_hash).run().catch(() => {});
 
       await env.DB.prepare(
         "DELETE FROM user_sessions WHERE id = ?"
-      ).bind(sessionId).run();
+      ).bind(sessionId).run().catch(() => {});
+
+      await broadcastRealtime(env, {
+        type: "session_terminated",
+        user_id: user.id,
+        username: user.username,
+        session_id: sessionId,
+        session_token_hash: target.session_token_hash,
+        terminated_hashes: [target.session_token_hash],
+        reason: "session_terminated",
+        message: "Your session was logged out."
+      }).catch(() => {});
 
       return jsonResponse({
         status: "ok",
         message: "Session terminated successfully",
-        terminated_id: sessionId
+        terminated_id: sessionId,
+        count: 1
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -1808,8 +2116,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       ).bind(user.id, currentHash).all();
 
       let terminatedCount = 0;
+      const termHashes = [];
       if (otherSessions.results && otherSessions.results.length > 0) {
         for (const s of otherSessions.results) {
+          termHashes.push(s.session_token_hash);
           await env.DB.prepare(
             "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
           ).bind(s.session_token_hash).run().catch(() => {});
@@ -1819,6 +2129,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           terminatedCount++;
         }
       }
+
+      await env.DB.prepare(
+        "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
+      ).bind(`all_before_${user.id}`).run().catch(() => {});
+
+      await broadcastRealtime(env, {
+        type: "session_terminated",
+        user_id: user.id,
+        username: user.username,
+        initiator_token_hash: currentHash,
+        terminated_hashes: termHashes,
+        reason: "other_sessions_terminated",
+        message: "Your session was logged out from another device."
+      }).catch(() => {});
 
       return jsonResponse({
         status: "ok",
@@ -1930,6 +2254,122 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     }
   }
 
+  // 3j. Change Contact / Request OTP (Email or Phone)
+  if (path === "/api/v1/users/me/change-contact/request-otp" || path === "/api/users/me/change-contact/request-otp") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const user = await resolveUserFromRequest(request, env);
+      if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+      const body = await request.json().catch(() => ({}));
+      const newContact = (body.new_contact || body.destination || body.email || body.phone_number || "").trim().toLowerCase();
+      const methodVal = (body.method || (newContact.includes("@") ? "email" : "sms")).toLowerCase();
+
+      if (!newContact || (methodVal === "email" && !newContact.includes("@"))) {
+        return jsonResponse({ error: "Please enter a valid email address." }, 400);
+      }
+
+      // Ensure not already registered by another user
+      if (env.DB) {
+        const existing = await env.DB.prepare(
+          "SELECT id FROM users WHERE (lower(email) = ? OR phone_number = ?) AND id != ? LIMIT 1"
+        ).bind(newContact, newContact, user.id).first();
+        if (existing) {
+          return jsonResponse({ error: "This destination is already associated with another account." }, 400);
+        }
+      }
+
+      const otpCode = generateNumericOtp(6);
+      if (env.DB) {
+        await env.DB.prepare(
+          "DELETE FROM otp_verifications WHERE (user_id = ? OR lower(identifier) = ?) AND purpose = 'change_contact' AND is_verified = 0"
+        ).bind(user.id, newContact).run().catch(() => {});
+
+        const otpId = "otp_" + crypto.randomUUID();
+        await env.DB.prepare(
+          "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'change_contact', ?, 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
+        ).bind(otpId, user.id, newContact, otpCode, methodVal).run();
+      }
+
+      if (ctx) {
+        ctx.waitUntil(dispatchOtpNotification({ email: newContact, username: user.username, otpCode, purpose: "Contact Verification", env, ctx }));
+      } else {
+        await dispatchOtpNotification({ email: newContact, username: user.username, otpCode, purpose: "Contact Verification", env, ctx });
+      }
+
+      return jsonResponse({
+        status: "ok",
+        message: `Verification code sent to ${maskEmail(newContact)}`,
+        masked_destination: maskEmail(newContact),
+        identifier: newContact,
+        dev_otp: otpCode
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
+  // 3k. Change Contact / Verify OTP
+  if (path === "/api/v1/users/me/change-contact/verify" || path === "/api/users/me/change-contact/verify") {
+    if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    try {
+      const user = await resolveUserFromRequest(request, env);
+      if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
+
+      const body = await request.json().catch(() => ({}));
+      const newContact = (body.new_contact || body.destination || body.email || body.phone_number || "").trim().toLowerCase();
+      const otp = (body.otp_code || body.otp || "").trim();
+      const methodVal = (body.method || (newContact.includes("@") ? "email" : "sms")).toLowerCase();
+
+      if (!newContact || !otp || otp.length !== 6) {
+        return jsonResponse({ error: "Please enter the complete 6-digit verification code." }, 400);
+      }
+
+      let valid = false;
+      let matched = null;
+      if (env.DB) {
+        const records = await env.DB.prepare(`
+          SELECT * FROM otp_verifications 
+          WHERE (user_id = ? OR lower(identifier) = ?) 
+            AND purpose = 'change_contact' 
+            AND is_verified = 0 
+            AND datetime(expires_at) >= datetime('now')
+          ORDER BY created_at DESC LIMIT 5
+        `).bind(user.id, newContact).all();
+
+        for (const r of (records.results || [])) {
+          if (r.otp_code === otp) {
+            valid = true;
+            matched = r;
+            break;
+          }
+        }
+      }
+
+      if (!valid) {
+        return jsonResponse({ error: "Invalid or expired verification code." }, 400);
+      }
+
+      if (matched && env.DB) {
+        await env.DB.prepare("UPDATE otp_verifications SET is_verified = 1 WHERE id = ?").bind(matched.id).run();
+        if (methodVal === "email") {
+          await env.DB.prepare("UPDATE users SET email = ?, is_email_verified = 1, updated_at = datetime('now') WHERE id = ?").bind(newContact, user.id).run();
+        } else {
+          await env.DB.prepare("UPDATE users SET phone_number = ?, updated_at = datetime('now') WHERE id = ?").bind(newContact, user.id).run();
+        }
+      }
+
+      return jsonResponse({
+        status: "ok",
+        message: "Contact details updated successfully ✓",
+        email: methodVal === "email" ? newContact : user.email,
+        phone_number: methodVal === "sms" ? newContact : user.phone_number
+      });
+    } catch (err) {
+      return jsonResponse({ error: err.message }, 500);
+    }
+  }
+
   // 4. Authentication: Signup / Register
   if (path === "/api/auth/register" || path === "/api/register" || path === "/api/v1/auth/signup") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -1960,6 +2400,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       const displayName = sanitizeText(body.display_name || body.nickname || username, 50);
       const email = sanitizeText(rawEmail, 100);
       const newId = "usr_" + username;
+
+      // Enforce email OTP verification for registrations
+      if (!rawEmail.endsWith("@connecto.fun") && !rawEmail.endsWith("@connecto.gg") && env.DB) {
+        if (body.otp_code) {
+          const validOtp = await env.DB.prepare(
+            "SELECT * FROM otp_verifications WHERE lower(identifier) = ? AND purpose = 'signup_verification' AND otp_code = ? AND datetime(expires_at, '+15 minutes') >= datetime('now') ORDER BY created_at DESC LIMIT 1"
+          ).bind(email, (body.otp_code || "").trim()).first();
+          if (!validOtp) {
+            return jsonResponse({ error: "Invalid or expired email verification code." }, 400);
+          }
+        } else {
+          const verifiedRec = await env.DB.prepare(
+            "SELECT * FROM otp_verifications WHERE lower(identifier) = ? AND purpose = 'signup_verification' AND is_verified = 1 AND datetime(expires_at, '+30 minutes') >= datetime('now') ORDER BY created_at DESC LIMIT 1"
+          ).bind(email).first();
+          if (!verifiedRec) {
+            return jsonResponse({ error: "Please verify your email address using the OTP code sent to your inbox before signing up." }, 400);
+          }
+        }
+      }
 
       // Hash password using PBKDF2-SHA256 with cryptographically random salt
       const hashedPassword = await hashPasswordPbkdf2(rawPassword);
@@ -2039,8 +2498,13 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       let dataUrl = "";
       let caller = await resolveUserFromRequest(request, env);
 
+      let uploadPurpose = (url.searchParams.get("purpose") || "").toLowerCase().trim();
+
       if (contentType.includes("multipart/form-data")) {
         const formData = await request.formData();
+        if (!uploadPurpose) {
+          uploadPurpose = (formData.get("purpose") || "").toString().toLowerCase().trim();
+        }
         // Look for file in standard field names
         const fileEntry = formData.get("file") || formData.get("avatar") || formData.get("image") || formData.get("banner");
         
@@ -2068,6 +2532,9 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
       } else if (contentType.includes("application/json")) {
         const body = await request.json().catch(() => ({}));
+        if (!uploadPurpose) {
+          uploadPurpose = (body.purpose || "").toLowerCase().trim();
+        }
         dataUrl = body.avatar_url || body.url || body.data || body.image || "";
         const reqUser = (body.username || "").toLowerCase().trim();
         if (!caller && reqUser && env.DB) {
@@ -2082,20 +2549,29 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         return jsonResponse({ error: "No image file provided in upload" }, 400);
       }
 
-      const isBanner = path.includes("banner");
+      const isBanner = path.includes("banner") || uploadPurpose === "banner";
+      const isAvatar = path.includes("avatar") || uploadPurpose === "avatar" || path.includes("/me/avatar");
 
-      // If caller is authenticated, persist immediately into D1 users table and Realtime Durable Object storage
+      // Only mutate user profile photo if this upload was EXPLICITLY an avatar or banner upload.
+      // General file uploads (chat message attachments, group/channel icons, shared media) must NOT mutate the caller's profile photo.
       if (caller) {
-        await saveProfileToRealtimeStorage(env, caller.id, caller.username, isBanner ? { banner_url: dataUrl } : { avatar_url: dataUrl });
-        if (env.DB) {
-          try {
-            if (isBanner) {
+        if (isBanner) {
+          await saveProfileToRealtimeStorage(env, caller.id, caller.username, { banner_url: dataUrl });
+          if (env.DB) {
+            try {
               await env.DB.prepare("UPDATE users SET banner_url = ?, updated_at = datetime('now') WHERE id = ?").bind(dataUrl, caller.id).run();
-            } else {
-              await env.DB.prepare("UPDATE users SET avatar_url = ?, updated_at = datetime('now') WHERE id = ?").bind(dataUrl, caller.id).run();
+            } catch (dbErr) {
+              console.warn("[CloudUpload] Could not write banner to D1:", dbErr.message);
             }
-          } catch (dbErr) {
-            console.warn("[CloudUpload] Could not write to D1:", dbErr.message);
+          }
+        } else if (isAvatar) {
+          await saveProfileToRealtimeStorage(env, caller.id, caller.username, { avatar_url: dataUrl });
+          if (env.DB) {
+            try {
+              await env.DB.prepare("UPDATE users SET avatar_url = ?, updated_at = datetime('now') WHERE id = ?").bind(dataUrl, caller.id).run();
+            } catch (dbErr) {
+              console.warn("[CloudUpload] Could not write avatar to D1:", dbErr.message);
+            }
           }
         }
       }
@@ -2106,10 +2582,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         message: "Image uploaded successfully (edge cloud)",
         url: dataUrl,
         avatar_url: dataUrl,
-        banner_url: dataUrl,
+        banner_url: isBanner ? dataUrl : undefined,
         file_url: dataUrl,
         secure_url: dataUrl,
-        filename: isBanner ? "banner.webp" : "avatar.webp"
+        filename: isBanner ? "banner.webp" : (isAvatar ? "avatar.webp" : "upload.webp")
       });
     } catch (err) {
       return jsonResponse({ error: "Upload failed at cloud edge: " + err.message }, 500);
@@ -2136,7 +2612,18 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         }
 
         const displayName = sanitizeText(body.nickname || body.display_name || body.full_name || caller.display_name, 50);
-        const rawAvatar = body.avatar_url || body.avatar || body.picture || (caller.avatar_url || "👾");
+        const bio = sanitizeText(body.bio || (caller.bio || ""), 500);
+        let rawAvatar = caller.avatar_url;
+        if (body.avatar_url !== undefined && body.avatar_url !== null && body.avatar_url !== "") {
+          rawAvatar = body.avatar_url;
+        } else if (body.avatar !== undefined && body.avatar !== null && body.avatar !== "") {
+          rawAvatar = body.avatar;
+        } else if (body.picture !== undefined && body.picture !== null && body.picture !== "") {
+          rawAvatar = body.picture;
+        }
+        if (!rawAvatar) {
+          rawAvatar = caller.avatar_url || "👾";
+        }
         const avatar = typeof rawAvatar === "string" && rawAvatar.startsWith("data:image/") ? rawAvatar.slice(0, 1000000) : sanitizeText(rawAvatar, 2048);
         const rawBanner = body.banner_url !== undefined ? body.banner_url : (caller.banner_url || "");
         const banner = typeof rawBanner === "string" && rawBanner.startsWith("data:image/") ? rawBanner.slice(0, 1000000) : (rawBanner === "" || rawBanner === null ? "" : sanitizeText(rawBanner, 2048));
@@ -2807,7 +3294,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       let messages = [];
       if (env.DB) {
         const res = await env.DB.prepare(`
-          SELECT m.id, m.channel_id, m.content, m.created_at,
+          SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
                  COALESCE(u.username, m.sender_id) as author_name,
                  COALESCE(u.display_name, u.username, m.sender_id) as author_display_name,
                  COALESCE(u.avatar_url, '👾') as author_avatar,
@@ -2823,33 +3310,44 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           dmChannelId, altChannelId, revChannelId, revAltChannelId, dmChannelId, altChannelId
         ).all();
 
-        messages = (res.results || []).map(r => ({
-          id: r.id,
-          channelId: r.channel_id,
-          channel_id: r.channel_id,
-          authorId: r.author_id,
-          author_id: r.author_id,
-          authorName: r.author_name,
-          author_name: r.author_name,
-          authorAvatar: r.author_avatar,
-          author_avatar: r.author_avatar,
-          user: r.author_name,
-          avatar: r.author_avatar,
-          avatar_url: r.author_avatar,
-          nickname: r.author_display_name || r.author_name,
-          sender: r.author_name,
-          sender_id: r.author_id,
-          sender_username: r.author_name,
-          sender_display_name: r.author_display_name || r.author_name,
-          sender_avatar_url: r.author_avatar,
-          content: r.content,
-          text: r.content,
-          createdAt: r.created_at,
-          created_at: r.created_at,
-          timestamp: r.created_at,
-          type: "text",
-          reactions: {}
-        }));
+        messages = (res.results || []).map(r => {
+          let att = {};
+          try {
+            if (r.attachments && typeof r.attachments === 'string' && r.attachments.startsWith('{')) {
+              att = JSON.parse(r.attachments);
+            }
+          } catch (_) {}
+          return {
+            id: r.id,
+            channelId: r.channel_id,
+            channel_id: r.channel_id,
+            authorId: r.author_id,
+            author_id: r.author_id,
+            authorName: r.author_name,
+            author_name: r.author_name,
+            authorAvatar: r.author_avatar,
+            author_avatar: r.author_avatar,
+            user: r.author_name,
+            avatar: r.author_avatar,
+            avatar_url: r.author_avatar,
+            nickname: r.author_display_name || r.author_name,
+            sender: r.author_name,
+            sender_id: r.author_id,
+            sender_username: r.author_name,
+            sender_display_name: r.author_display_name || r.author_name,
+            sender_avatar_url: r.author_avatar,
+            content: r.content,
+            text: r.content,
+            createdAt: r.created_at,
+            created_at: r.created_at,
+            timestamp: r.created_at,
+            type: "text",
+            reactions: {},
+            reply_to_id: att.reply_to_id || r.reply_to_id || null,
+            reply_to_content: att.reply_to_content || r.reply_to_content || null,
+            reply_to_author: att.reply_to_author || r.reply_to_author || null
+          };
+        });
       }
 
       return jsonResponse(messages);
@@ -2952,6 +3450,53 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
   // 13. DM Read Status (/api/dms/:target/read or /api/dm/:target/mark-read)
   if (path.includes("/read") && (path.startsWith("/api/dms/") || path.startsWith("/api/dm/"))) {
+    try {
+      const match = path.match(/^\/api\/(?:dms|dm)\/([^\/]+)\/(?:read|mark-read)/);
+      const targetUser = match ? decodeURIComponent(match[1]).trim().toLowerCase().replace(/^@/, "") : "";
+      let myUser = (
+        url.searchParams.get("username") ||
+        url.searchParams.get("user") ||
+        request.headers.get("X-User-Username") ||
+        ""
+      ).trim().toLowerCase().replace(/^@/, "");
+
+      if (!myUser) {
+        const authUser = await resolveUserFromRequest(request, env);
+        if (authUser && authUser.username) {
+          myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
+        }
+      }
+
+      if (env.DB && myUser && targetUser) {
+        const callerRow = await env.DB.prepare(
+          "SELECT id, username FROM users WHERE lower(username) = ? LIMIT 1"
+        ).bind(myUser).first();
+        const targetRow = await env.DB.prepare(
+          "SELECT id, username FROM users WHERE lower(username) = ? LIMIT 1"
+        ).bind(targetUser).first();
+
+        if (callerRow && targetRow) {
+          const canonName = "dm-" + [myUser, targetUser].sort().join("-");
+          const altName = "dm_" + [myUser, targetUser].sort().join("_");
+          const chRows = await env.DB.prepare(
+            "SELECT id FROM channels WHERE lower(name) IN (?, ?) OR lower(id) IN (?, ?)"
+          ).bind(canonName, altName, canonName, altName).all();
+
+          const chIds = new Set((chRows.results || []).map(r => r.id));
+          chIds.add(canonName);
+
+          const now = new Date().toISOString();
+          for (const chId of chIds) {
+            const readId = "rd_" + Math.random().toString(36).substring(2, 10);
+            await env.DB.prepare(`
+              INSERT INTO dm_read_states (id, user_id, channel_id, last_read_at, created_at)
+              VALUES (?, ?, ?, ?, ?)
+              ON CONFLICT(user_id, channel_id) DO UPDATE SET last_read_at = ?
+            `).bind(readId, callerRow.id, chId, now, now, now).run().catch(() => {});
+          }
+        }
+      }
+    } catch (_) {}
     return jsonResponse({ status: "ok", read: true });
   }
 
@@ -3250,7 +3795,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
       if (env.DB) {
         let querySql = `
-          SELECT m.id, m.channel_id, m.content, m.created_at,
+          SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
                  COALESCE(u.username, m.sender_id, 'shinobi') as author_name,
                  COALESCE(u.display_name, u.username, m.sender_id, 'Shinobi') as author_display_name,
                  COALESCE(u.avatar_url, '👾') as author_avatar,
@@ -3277,31 +3822,42 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 
         const res = await env.DB.prepare(querySql).bind(...queryBindings).all();
 
-        messages = (res.results || []).map(r => ({
-          id: r.id,
-          channelId: r.channel_id,
-          channel_id: r.channel_id,
-          authorId: r.author_id,
-          author_id: r.author_id,
-          authorName: r.author_name,
-          author_name: r.author_name,
-          authorAvatar: r.author_avatar,
-          author_avatar: r.author_avatar,
-          user: r.author_name,
-          avatar: r.author_avatar,
-          nickname: r.author_display_name,
-          sender: r.author_name,
-          sender_username: r.author_name,
-          sender_display_name: r.author_display_name,
-          sender_avatar_url: r.author_avatar,
-          content: r.content,
-          text: r.content,
-          createdAt: r.created_at,
-          created_at: r.created_at,
-          timestamp: r.created_at,
-          type: "text",
-          reactions: {}
-        }));
+        messages = (res.results || []).map(r => {
+          let att = {};
+          try {
+            if (r.attachments && typeof r.attachments === 'string' && r.attachments.startsWith('{')) {
+              att = JSON.parse(r.attachments);
+            }
+          } catch (_) {}
+          return {
+            id: r.id,
+            channelId: r.channel_id,
+            channel_id: r.channel_id,
+            authorId: r.author_id,
+            author_id: r.author_id,
+            authorName: r.author_name,
+            author_name: r.author_name,
+            authorAvatar: r.author_avatar,
+            author_avatar: r.author_avatar,
+            user: r.author_name,
+            avatar: r.author_avatar,
+            nickname: r.author_display_name,
+            sender: r.author_name,
+            sender_username: r.author_name,
+            sender_display_name: r.author_display_name,
+            sender_avatar_url: r.author_avatar,
+            content: r.content,
+            text: r.content,
+            createdAt: r.created_at,
+            created_at: r.created_at,
+            timestamp: r.created_at,
+            type: "text",
+            reactions: {},
+            reply_to_id: att.reply_to_id || r.reply_to_id || null,
+            reply_to_content: att.reply_to_content || r.reply_to_content || null,
+            reply_to_author: att.reply_to_author || r.reply_to_author || null
+          };
+        });
       }
       return jsonResponse({
         status: "ok",
@@ -3376,10 +3932,23 @@ async function handleCloudApiRequest(request, url, env, ctx) {
             return jsonResponse({ status: "error", message: "Sender not registered" }, 403);
           }
 
+          // Extract reply metadata and serialize into attachments
+          const replyToId = body.reply_to_id || null;
+          const replyToContent = body.reply_to_content || null;
+          const replyToAuthor = body.reply_to_author || null;
+          let attObj = {};
+          if (body.attachments && typeof body.attachments === "object") {
+            attObj = { ...body.attachments };
+          }
+          if (replyToId) attObj.reply_to_id = replyToId;
+          if (replyToContent) attObj.reply_to_content = replyToContent;
+          if (replyToAuthor) attObj.reply_to_author = replyToAuthor;
+          const attStr = JSON.stringify(attObj);
+
           // Insert into messages table
           await env.DB.prepare(
-            "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
-          ).bind(newMsgId, canonicalChannel, senderId, content).run();
+            "INSERT INTO messages (id, channel_id, sender_id, content, attachments) VALUES (?, ?, ?, ?, ?)"
+          ).bind(newMsgId, canonicalChannel, senderId, content, attStr).run();
 
           if (isDm && dmRecipient) {
             const notifId = "notif_" + newMsgId;
@@ -3394,6 +3963,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
           console.error("[postMessage] DB insert error:", dbErr.message);
         }
       }
+
+      const replyToId = body.reply_to_id || null;
+      const replyToContent = body.reply_to_content || null;
+      const replyToAuthor = body.reply_to_author || null;
 
       const msgResponse = {
         id: newMsgId,
@@ -3418,7 +3991,10 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         created_at: nowIso,
         timestamp: nowIso,
         type: "text",
-        reactions: {}
+        reactions: {},
+        reply_to_id: replyToId,
+        reply_to_content: replyToContent,
+        reply_to_author: replyToAuthor
       };
 
       if (ctx) {
@@ -4311,20 +4887,20 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.3.2",
-      version_name: "v4.3.2",
-      version_code: 61,
-      build: 61,
-      sha256: "f5863f9562cafa776434936bcac7aedf997468041b1ae80f74428b0efe4d6842",
-      md5: "8fbdb546b3dd9a828f133eb8427cc605",
+      version: "4.3.9",
+      version_name: "v4.3.9",
+      version_code: 68,
+      build: 68,
+      sha256: "223a47bbc26e0ad7717e984fe961dc8ac868417cb8fb89c627d2e1be79249e9e",
+      md5: "c413c0648fa28e32a4d460c9a3f13c04",
       filename: "connecto-fun.apk",
-      size_bytes: 57171141,
-      size_display: "54.5 MB",
+      size_bytes: 57318533,
+      size_display: "54.7 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
       download_url: "/download/apk",
-      direct_download_url: "https://connecto.fun/download/apk"
+      direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk"
     });
   }
   if (path === "/api/changelog" || path === "/api/v1/changelog") {
@@ -4332,10 +4908,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.3.9",
+          date: "Oct 17, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.3.9: Resend Email 2FA & OTP, Profile Photo Isolation & Protection, Zero-Flicker Cover Photos",
+          summary: "Integrates Resend email infrastructure for end-to-end 2FA login verification and secure password resets, fixes generic media upload route to completely isolate group/channel avatars and chat attachments from overwriting personal profile pictures, and delivers a zero-flicker profile cover photo suite.",
+          highlights: [
+            "Resend Email 2FA & Secure OTP: Instant email delivery and verification for two-factor authentication and password recovery via Resend API.",
+            "Profile Photo Protection & Avatar Isolation: Isolated generic upload endpoints so uploading group/channel icons or sending screenshots in chat never mutates personal profile pictures.",
+            "Zero-Flicker Profile Cover Photo Suite: Fixed cover photo flickering across tab navigation, scrolling, and lightboxes with 7 curated artistic presets and instant caching.",
+            "Android Native App v4.3.9 (Build 68 • 54.7 MB): SHA-256 223a47bbc26e0ad7717e984fe961dc8ac868417cb8fb89c627d2e1be79249e9e."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
           version: "v4.3.5",
           date: "Oct 16, 2026",
           category: "feature",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.3.5: Multi-Account Chat & Wallpaper Isolation, 0ms Synchronous Transitions & Cache Sanitation",
           summary: "Resolves cross-account chat preferences and wallpaper leakage by scoping settings to canonical DM channel keys (dm-{u1}-{u2}), provides instant 0ms synchronous wallpaper application without screen flicker or overlap, and adds complete cache sanitation upon account sign out and switching.",
           highlights: [

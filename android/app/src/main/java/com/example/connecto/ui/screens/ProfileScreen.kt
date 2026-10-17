@@ -183,6 +183,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -302,15 +303,24 @@ fun ProfileScreen(
             profilePhotoUri = globalAvatar
         }
     }
+    val globalBanner by ConnectoApiClient.currentUserBannerState.collectAsState()
     var bannerPhotoUri by remember(username) {
         val saved = prefs.getString("banner_uri_$username", null)
         val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
         val initial = when {
-            !saved.isNullOrBlank() && saved != "null" -> saved
             localCover.exists() -> localCover.absolutePath
+            !saved.isNullOrBlank() && saved != "null" -> saved
             else -> null
         }
         mutableStateOf(initial)
+    }
+    LaunchedEffect(globalBanner) {
+        if (!globalBanner.isNullOrBlank() && globalBanner != "null" && bannerPhotoUri != globalBanner) {
+            val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
+            if (isCoverPreset(globalBanner) || !localCover.exists() || bannerPhotoUri.isNullOrBlank()) {
+                bannerPhotoUri = globalBanner
+            }
+        }
     }
     var isUploadingBanner by remember { mutableStateOf(false) }
     var bannerUrlFieldInput by remember { mutableStateOf("") }
@@ -497,9 +507,16 @@ fun ProfileScreen(
                     val sBan = prof.bannerUrl.trim()
                     val isCorrupted = sBan.startsWith("data:") && sBan.length < 500
                     if (!isCorrupted) {
-                        bannerPhotoUri = sBan
-                        prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
-                        bannerUrlFieldInput = sBan
+                        val localCover = java.io.File(context.filesDir, "cover_${prof.username.lowercase()}.webp")
+                        if (isCoverPreset(sBan)) {
+                            bannerPhotoUri = sBan
+                            bannerUrlFieldInput = sBan
+                            prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
+                        } else if (!localCover.exists()) {
+                            bannerPhotoUri = sBan
+                            bannerUrlFieldInput = sBan
+                            prefs.edit().putString("banner_uri_${prof.username}", sBan).apply()
+                        }
                     }
                 }
             }
@@ -713,7 +730,22 @@ fun ProfileScreen(
     val themeColors = ConnectoTheme.colors
     val isThemeDark = themeColors.isDark
     val sanitizedBannerPhoto = sanitizeAvatarUrl(bannerPhotoUri)
-    val hasCoverPhoto = !sanitizedBannerPhoto.isNullOrBlank() || isCoverPreset(bannerPhotoUri)
+    val isPresetBanner = isCoverPreset(bannerPhotoUri)
+    val presetBannerObj = if (isPresetBanner) getCoverPreset(bannerPhotoUri) else null
+    val hasCoverPhoto = !sanitizedBannerPhoto.isNullOrBlank() || isPresetBanner
+
+    val bannerImageRequest = remember(bannerPhotoUri, context) {
+        if (bannerPhotoUri.isNullOrBlank() || isPresetBanner) null
+        else {
+            val resolved = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto ?: bannerPhotoUri
+            ImageRequest.Builder(context)
+                .data(resolved)
+                .memoryCacheKey(bannerPhotoUri)
+                .diskCacheKey(bannerPhotoUri)
+                .crossfade(false)
+                .build()
+        }
+    }
 
     Box(
         modifier = modifier
@@ -721,31 +753,25 @@ fun ProfileScreen(
             .background(themeColors.background)
     ) {
         if (hasCoverPhoto) {
-            val isPreset = isCoverPreset(bannerPhotoUri)
-            val presetObj = if (isPreset) getCoverPreset(bannerPhotoUri) else null
-            
             // Full-Screen Transparent Cover Photo Layer
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { alpha = 0.35f }
             ) {
-                if (isPreset && presetObj != null) {
+                if (isPresetBanner && presetBannerObj != null) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(presetObj.brush)
+                            .background(presetBannerObj.brush)
                     )
-                } else {
-                    val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
-                    if (bannerModel != null) {
-                        AsyncImage(
-                            model = bannerModel,
-                            contentDescription = "Profile Cover Background",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
+                } else if (bannerImageRequest != null) {
+                    AsyncImage(
+                        model = bannerImageRequest,
+                        contentDescription = "Profile Cover Background",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
@@ -942,13 +968,11 @@ fun ProfileScreen(
                                                 }
                                             }
                                     ) {
-                                        val isPreset = isCoverPreset(bannerPhotoUri)
-                                        val presetObj = if (isPreset) getCoverPreset(bannerPhotoUri) else null
-                                        if (isPreset && presetObj != null) {
+                                        if (isPresetBanner && presetBannerObj != null) {
                                             Box(
                                                 modifier = Modifier
                                                     .fillMaxSize()
-                                                    .background(presetObj.brush)
+                                                    .background(presetBannerObj.brush)
                                             )
                                             Box(
                                                 modifier = Modifier
@@ -963,10 +987,9 @@ fun ProfileScreen(
                                                         )
                                                     )
                                             )
-                                        } else if (hasCoverPhoto && (resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto) != null) {
-                                            val bannerModel = resolveImageModel(bannerPhotoUri) ?: sanitizedBannerPhoto
+                                        } else if (bannerImageRequest != null) {
                                             AsyncImage(
-                                                model = bannerModel,
+                                                model = bannerImageRequest,
                                                 contentDescription = "Profile Cover Banner",
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
@@ -3326,6 +3349,10 @@ fun ProfileScreen(
                 bannerUrlFieldInput = preset.id
                 prefs.edit().putString("banner_uri_$username", preset.id).apply()
                 ConnectoApiClient.updateBannerState(preset.id, context)
+                val localCover = java.io.File(context.filesDir, "cover_${username.lowercase()}.webp")
+                if (localCover.exists()) {
+                    try { localCover.delete() } catch (_: Exception) {}
+                }
                 triggerAutoSave()
             },
             onDismiss = { showCoverPresetsDialog = false }
@@ -3400,10 +3427,10 @@ fun ProfileScreen(
                             if (result.isSuccess) {
                                 val serverUrl = result.getOrThrow()
                                 if (serverUrl.isNotBlank()) {
-                                    bannerPhotoUri = serverUrl
+                                    // Retain localCover in bannerPhotoUri to eliminate network re-download flickering
                                     bannerUrlFieldInput = serverUrl
                                     prefs.edit().putString("banner_uri_$username", serverUrl).apply()
-                                    ConnectoApiClient.updateBannerState(serverUrl, context)
+                                    ConnectoApiClient.currentUserBanner = serverUrl
                                 }
                             }
                         } finally {

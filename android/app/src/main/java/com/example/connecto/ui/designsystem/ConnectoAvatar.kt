@@ -130,6 +130,8 @@ fun sanitizeAvatarUrl(url: String?): String? {
     return trimmed
 }
 
+private val base64DecodedCache = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
+
 /**
  * Resolves a model suitable for Coil's AsyncImage from a remote URL, local file path, file URI, or data:base64 URL.
  */
@@ -137,11 +139,17 @@ fun resolveImageModel(url: String?): Any? {
     if (url.isNullOrBlank()) return null
     val sanitized = sanitizeAvatarUrl(url) ?: return null
     if (sanitized.startsWith("data:")) {
+        val cached = base64DecodedCache[sanitized]
+        if (cached != null) return cached
         try {
             val commaIdx = sanitized.indexOf(",")
             if (commaIdx != -1) {
                 val base64Data = sanitized.substring(commaIdx + 1)
-                return android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                val decoded = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
+                if (decoded != null) {
+                    base64DecodedCache[sanitized] = decoded
+                    return decoded
+                }
             }
         } catch (e: Exception) {
             // fallback to sanitized string

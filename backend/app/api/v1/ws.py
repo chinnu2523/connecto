@@ -6,7 +6,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.security import hash_session_token
 from app.core.ws import ws_manager
-from app.db.models.user import User, UserSession
+from app.db.models.user import User, UserSession, TerminatedSession
 from app.db.session import AsyncSessionLocal
 
 router = APIRouter(tags=["WebSocket"])
@@ -26,6 +26,19 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
 
     async with AsyncSessionLocal() as db:
         if session_token:
+            token_hash = hash_session_token(session_token)
+            websocket.scope["session_token_hash"] = token_hash
+            now = datetime.now(timezone.utc)
+
+            # Check if token is explicitly terminated
+            term_stmt = select(TerminatedSession).where(
+                (TerminatedSession.session_token_hash == token_hash) |
+                (TerminatedSession.session_token_hash == session_token)
+            )
+            term_row = (await db.execute(term_stmt)).scalar_one_or_none()
+            if term_row:
+                return None
+
             if session_token.startswith("cf_edge_"):
                 try:
                     import hmac
@@ -38,6 +51,8 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
                     last_us = payload_part.rfind("_")
                     if last_us != -1:
                         edge_uid = payload_part[:last_us]
+                        ts_part = payload_part[last_us + 1:]
+                        token_ts_ms = int(ts_part) if ts_part.isdigit() else 0
                         valid_sig = (dot_idx == -1)
                         if not valid_sig:
                             for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
@@ -58,6 +73,30 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
                             )
                             edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
                             if edge_user:
+                                # Check all_before revocation
+                                rev_stmt = select(TerminatedSession).where(
+                                    TerminatedSession.session_token_hash == f"all_before_{edge_user.id}"
+                                )
+                                rev_row = (await db.execute(rev_stmt)).scalar_one_or_none()
+                                if rev_row and rev_row.terminated_at:
+                                    rev_ms = int(rev_row.terminated_at.timestamp() * 1000)
+                                    if token_ts_ms > 0 and token_ts_ms <= rev_ms:
+                                        return None
+
+                                # Check if session exists in user_sessions
+                                sess_stmt = select(UserSession).where(
+                                    (UserSession.session_token_hash == token_hash) &
+                                    (UserSession.expires_at > now)
+                                )
+                                active_sess = (await db.execute(sess_stmt)).scalar_one_or_none()
+                                if active_sess:
+                                    return edge_user
+
+                                # If user has active sessions, but this one is deleted -> it was terminated
+                                user_has_sessions = (await db.execute(select(UserSession).where(UserSession.user_id == edge_user.id))).scalars().first()
+                                if user_has_sessions:
+                                    return None
+
                                 return edge_user
                 except Exception:
                     pass

@@ -367,6 +367,9 @@ async def list_channel_messages(
             expires_at=expires_at,
             attachments=msg.attachments or [],
             nonce=msg.nonce,
+            reply_to_id=getattr(msg, "reply_to_id", None) or (att.get("reply_to_id") if isinstance(att, dict) else None),
+            reply_to_content=getattr(msg, "reply_to_content", None) or (att.get("reply_to_content") if isinstance(att, dict) else None),
+            reply_to_author=getattr(msg, "reply_to_author", None) or (att.get("reply_to_author") if isinstance(att, dict) else None),
             created_at=msg.created_at
         ))
     return output

@@ -179,6 +179,8 @@ class TwoFactorToggleRequest(BaseModel):
     enabled: bool
     method: Optional[str] = Field(default="sms", description="'sms' or 'email'")
     phone_number: Optional[str] = None
+    otp_code: Optional[str] = None
+    otp: Optional[str] = None
 
 class TwoFactorRequestOtp(BaseModel):
     method: Optional[str] = Field(default="sms")

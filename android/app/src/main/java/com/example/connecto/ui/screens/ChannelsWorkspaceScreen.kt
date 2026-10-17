@@ -464,8 +464,21 @@ fun ChannelsWorkspaceScreen(
             coroutineScope.launch(Dispatchers.IO) {
                 dbHelper.saveMessage(optDmMsg)
                 dbHelper.saveMessages(canonicalDmId, listOf(optDmMsg))
-                dbHelper.saveMessages(targetU, listOf(optDmMsg))
             }
+
+            // Immediately update readPrefs so Messages conversation list shows preview
+            try {
+                val readPrefs = context.getSharedPreferences("connecto_chat_read_prefs", Context.MODE_PRIVATE)
+                val nowMillis = System.currentTimeMillis()
+                readPrefs.edit()
+                    .putString("last_msg_${targetFriend.id}", privateContent)
+                    .putString("last_msg_$targetU", privateContent)
+                    .putString("last_time_${targetFriend.id}", "Just now")
+                    .putString("last_time_$targetU", "Just now")
+                    .putLong("last_timestamp_${targetFriend.id}", nowMillis)
+                    .putLong("last_timestamp_$targetU", nowMillis)
+                    .apply()
+            } catch (_: Exception) {}
 
             coroutineScope.launch(Dispatchers.IO) {
                 try {
@@ -482,7 +495,10 @@ fun ChannelsWorkspaceScreen(
                             withContext(Dispatchers.IO) {
                                 dbHelper.saveMessage(serverMsg)
                                 dbHelper.saveMessages(canonicalDmId, listOf(serverMsg))
-                                dbHelper.saveMessages(targetU, listOf(serverMsg))
+                                if (!serverMsg.channelId.isNullOrBlank() && serverMsg.channelId != canonicalDmId) {
+                                    dbHelper.saveMessages(serverMsg.channelId, listOf(serverMsg))
+                                    dbHelper.saveDmChannel(canonicalDmId, serverMsg.channelId)
+                                }
                             }
                             Toast.makeText(context, "Direct message sent to @$targetU's private chat 🔒", Toast.LENGTH_SHORT).show()
                         } else {

@@ -129,6 +129,20 @@ async def deliver_email_otp(to_email: str, otp_code: str, purpose: str, raw_purp
         border_color = "#10b981"
         text_color = "#6ee7b7"
         guidance_text = "This verification code is to <b>verify your email address</b> on Connecto. Enter this 6-digit code in the app to complete account verification."
+    elif raw_p in ("two_factor_disable", "2fa_disable", "disable"):
+        subject = f"[Connecto 2FA Deactivation] Your Two-Factor Turn-Off Code: {otp_code}"
+        badge_title = "TWO-FACTOR DEACTIVATION"
+        badge_bg = "#dc2626"
+        border_color = "#ef4444"
+        text_color = "#fca5a5"
+        guidance_text = "This verification code is strictly to <b>turn OFF Two-Factor Authentication</b> on your account. If you did not initiate this, please secure your account immediately."
+    elif raw_p in ("change_contact", "contact_change", "email_change"):
+        subject = f"[Connecto Contact Update] Your Contact Verification Code: {otp_code}"
+        badge_title = "CONTACT VERIFICATION"
+        badge_bg = "#2563eb"
+        border_color = "#3b82f6"
+        text_color = "#93c5fd"
+        guidance_text = "This verification code confirms your new email address or phone number on Connecto. Enter this 6-digit code to complete the update."
     else:
         subject = f"[Connecto Security] Your {purpose} Verification Code: {otp_code}"
         badge_title = f"{purpose.upper()} VERIFICATION"

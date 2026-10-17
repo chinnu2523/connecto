@@ -70,3 +70,10 @@ class OTPVerification(Base):
     is_verified = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
+class TerminatedSession(Base):
+    __tablename__ = "terminated_sessions"
+
+    session_token_hash = Column(String(255), primary_key=True)
+    user_id = Column(String(36), nullable=True, index=True)
+    terminated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+

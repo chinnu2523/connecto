@@ -1060,6 +1060,11 @@ object VoiceCallManager {
                     isWsConnecting = false
                     isWsConnected = false
                     _isWsConnectedFlow.value = false
+                    if (code == 4001 || reason.contains("Session terminated", ignoreCase = true) || reason.contains("Unauthorized", ignoreCase = true)) {
+                        Log.w(TAG, "Voice WebSocket permanently closed due to session revocation (code=$code, reason=$reason)")
+                        ConnectoApiClient.triggerSessionExpired("Your session was logged out.")
+                        return
+                    }
                     if (code != 1000 && !isExplicitlyDisconnected) {
                         reconnectWebSocketAfterDelay()
                     }
@@ -1070,6 +1075,12 @@ object VoiceCallManager {
                     isWsConnecting = false
                     isWsConnected = false
                     _isWsConnectedFlow.value = false
+                    val respCode = response?.code
+                    if (respCode == 401 || respCode == 4001) {
+                        Log.w(TAG, "Voice WebSocket handshake rejected: HTTP $respCode Unauthorized")
+                        ConnectoApiClient.triggerSessionExpired("Your session has expired or was terminated.")
+                        return
+                    }
                     if (!isExplicitlyDisconnected) {
                         reconnectWebSocketAfterDelay()
                     }
@@ -1161,6 +1172,31 @@ object VoiceCallManager {
                     val sMode = json.optString("mode")
                     val detected = if (sType.equals("tailscale", ignoreCase = true) || sMode.equals("local_server", ignoreCase = true)) "Tailscale" else "Cloudflare"
                     ConnectoApiClient.updateServerType(detected)
+                }
+                "session_terminated", "session_revoked", "force_logout" -> {
+                    val initiatorHash = json.optString("initiator_token_hash").ifEmpty { json.optString("current_hash") }
+                    val myHash = ConnectoApiClient.getSessionTokenHash()
+                    val termHashes = mutableListOf<String>()
+                    val arr = json.optJSONArray("terminated_hashes")
+                    if (arr != null) {
+                        for (i in 0 until arr.length()) {
+                            termHashes.add(arr.optString(i))
+                        }
+                    }
+                    val singleHash = json.optString("session_token_hash")
+                    if (singleHash.isNotBlank()) termHashes.add(singleHash)
+
+                    val isTerminated = (myHash.isNotBlank() && termHashes.contains(myHash)) ||
+                            (initiatorHash.isNotBlank() && myHash.isNotBlank() && initiatorHash != myHash)
+
+                    if (isTerminated) {
+                        Log.w(TAG, "This session has been terminated by another device/session! Initiating sign out.")
+                        disconnectWebSocket()
+                        val reason = json.optString("message").ifEmpty { "Your session was logged out from another device." }
+                        ConnectoApiClient.triggerSessionExpired(reason)
+                    } else {
+                        Log.d(TAG, "Received session_terminated event, but current session is the initiator or not targeted.")
+                    }
                 }
                 "message_created", "new_message", "dm_message", "new_dm_alert", "channel_message", "chat_message", "message" -> {
                     val data = json.optJSONObject("data") ?: json.optJSONObject("message") ?: json.optJSONObject("payload") ?: json
@@ -1325,13 +1361,19 @@ object VoiceCallManager {
                         if (newAvatar.isNotBlank()) {
                             ConnectoApiClient.updateAvatarState(newAvatar, appContext)
                         }
+                        val newBanner = json.optString("banner_url").ifEmpty {
+                            json.optJSONObject("data")?.optString("banner_url") ?: ""
+                        }
+                        if (newBanner.isNotBlank()) {
+                            ConnectoApiClient.updateBannerState(newBanner, appContext)
+                        }
                         val newDisplay = json.optString("display_name").ifEmpty {
                             json.optJSONObject("data")?.optString("display_name") ?: ""
                         }
                         if (newDisplay.isNotBlank()) {
                             ConnectoApiClient.currentUserDisplayName = newDisplay
                         }
-                        Log.d(TAG, "Real-time user avatar/profile updated: avatar=$newAvatar, display=$newDisplay")
+                        Log.d(TAG, "Real-time user avatar/banner/profile updated: avatar=$newAvatar, banner=$newBanner, display=$newDisplay")
                     }
                 }
 

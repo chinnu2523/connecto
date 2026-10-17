@@ -19,8 +19,8 @@ class Settings(BaseSettings):
     MAX_AVATAR_SIZE_MB: int = 5
 
     # Resend Email Delivery API (https://resend.com) - RECOMMENDED
-    RESEND_API_KEY: str = ""
-    RESEND_FROM_EMAIL: str = "Connecto Security <security@connecto.fun>"
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
+    RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "Connecto Security <security@connecto.fun>")
 
     # MSG91 SMS Gateway for India (https://msg91.com) - RECOMMENDED FOR INDIA
     MSG91_AUTH_KEY: str = ""

@@ -723,6 +723,50 @@ fun CustomizedChatScreen(
     val userGroupsList = remember { mutableStateListOf<FriendItem>() }
     var messageTabFilter by rememberSaveable { mutableStateOf("ALL") } // "ALL", "DIRECT", "CREATED_GROUPS", "ADDED_GROUPS"
 
+    val markFriendChatAsReadLocallyAndRemotely: (FriendItem) -> Unit = { targetFriend ->
+        val cleanTarget = targetFriend.handle.removePrefix("@").trim()
+        val friendId = targetFriend.id
+
+        // 1. Update in-memory friends list
+        val idx = friendsList.indexOfFirst {
+            it.id == friendId || it.handle.removePrefix("@").equals(cleanTarget, ignoreCase = true)
+        }
+        if (idx != -1) {
+            friendsList[idx] = friendsList[idx].copy(unreadCount = 0)
+        }
+
+        // 2. Persist to SharedPreferences for both ID and clean username keys
+        readPrefs.edit()
+            .putInt("unread_$friendId", 0)
+            .putBoolean("read_$friendId", true)
+            .putInt("unread_${cleanTarget.lowercase()}", 0)
+            .putBoolean("read_${cleanTarget.lowercase()}", true)
+            .apply()
+
+        // 3. Persist to local SQLite database (TABLE_FRIENDS) so cold starts don't resurrect unread badge
+        coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                dbHelper.updateFriendUnreadCount(friendId, 0)
+                if (cleanTarget.isNotBlank() && cleanTarget != friendId) {
+                    dbHelper.updateFriendUnreadCount(cleanTarget, 0)
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 4. Notify backend API to update dm_read_states
+        if (!targetFriend.isGroup && cleanTarget.isNotBlank()) {
+            coroutineScope.launch {
+                try {
+                    ConnectoApiClient.markDmRead(cleanTarget)
+                } catch (_: Exception) {}
+            }
+        }
+
+        // 5. Update global unread indicator
+        val hasRemainingUnread = friendsList.any { it.unreadCount > 0 }
+        onUnreadStatusChanged(hasRemainingUnread)
+    }
+
     // Auto-select chat or group when opened from navigation or push notification intent
     LaunchedEffect(targetChatUserOrChannel, friendsList.size, userGroupsList.size) {
         val target = targetChatUserOrChannel?.trim()
@@ -743,6 +787,7 @@ fun CustomizedChatScreen(
                 chatWallpaperId = wId
                 customWallpaperUri = cUri
                 selectedFriend = matchingFriend
+                markFriendChatAsReadLocallyAndRemotely(matchingFriend)
             } else {
                 val displayName = clean.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
                 val targetFriend = FriendItem(
@@ -760,6 +805,7 @@ fun CustomizedChatScreen(
                 chatWallpaperId = wId
                 customWallpaperUri = cUri
                 selectedFriend = targetFriend
+                markFriendChatAsReadLocallyAndRemotely(targetFriend)
             }
             onTargetChatHandled?.invoke()
         }
@@ -978,12 +1024,28 @@ fun CustomizedChatScreen(
                         val serverUnread = unreadRes.getOrThrow() // Map<String, Int> partner→count
                         for (i in friendsList.indices) {
                             val friendHandle = friendsList[i].handle.removePrefix("@").trim().lowercase()
-                        val serverCount = serverUnread[friendHandle] ?: serverUnread.entries
-                            .firstOrNull { it.key.trim().removePrefix("@").equals(friendHandle, ignoreCase = true) }?.value ?: 0
-                        if (serverCount != friendsList[i].unreadCount) {
-                            friendsList[i] = friendsList[i].copy(unreadCount = serverCount)
-                            readPrefs.edit().putInt("unread_${friendsList[i].id}", serverCount).apply()
-                        }
+                            val isCurrentlyOpen = selectedFriend != null && (
+                                selectedFriend?.id == friendsList[i].id ||
+                                selectedFriend?.handle?.removePrefix("@")?.trim()?.equals(friendHandle, ignoreCase = true) == true
+                            )
+                            val serverCount = if (isCurrentlyOpen) 0 else (serverUnread[friendHandle] ?: serverUnread.entries
+                                .firstOrNull { it.key.trim().removePrefix("@").equals(friendHandle, ignoreCase = true) }?.value ?: 0)
+                            if (serverCount != friendsList[i].unreadCount) {
+                                friendsList[i] = friendsList[i].copy(unreadCount = serverCount)
+                                readPrefs.edit()
+                                    .putInt("unread_${friendsList[i].id}", serverCount)
+                                    .putInt("unread_$friendHandle", serverCount)
+                                    .apply()
+                                val fid = friendsList[i].id
+                                coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                                    try {
+                                        dbHelper.updateFriendUnreadCount(fid, serverCount)
+                                        if (friendHandle.isNotBlank() && friendHandle != fid) {
+                                            dbHelper.updateFriendUnreadCount(friendHandle, serverCount)
+                                        }
+                                    } catch (_: Exception) {}
+                                }
+                            }
                         }
                         val hasUnread = friendsList.any { it.unreadCount > 0 }
                         onUnreadStatusChanged(hasUnread)
@@ -1170,6 +1232,7 @@ fun CustomizedChatScreen(
     // Handle System Back button when in 1:1 direct chat
     BackHandler(enabled = selectedFriend != null) {
         selectedFriend?.let { friend ->
+            markFriendChatAsReadLocallyAndRemotely(friend)
             if (typedMessage.isNotBlank()) {
                 messageDrafts[friend.id] = typedMessage
             } else {
@@ -1393,6 +1456,7 @@ fun CustomizedChatScreen(
                         .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
                         .putLong("last_timestamp_${updated.id}", currentTs)
                         .apply()
+                    markFriendChatAsReadLocallyAndRemotely(updated)
                 } else {
                     val gIdx = userGroupsList.indexOfFirst { it.id == currentFriend!!.id }
                     if (gIdx != -1) {
@@ -1470,20 +1534,11 @@ fun CustomizedChatScreen(
         VoiceCallManager.activeChatRoomOrFriend = friend?.handle?.removePrefix("@")?.lowercase()
 
         if (friend != null) {
+            val friendId = friend.id
             typedMessage = messageDrafts[friend.id] ?: ""
             activeDmChannelId = null
 
-            val friendId = friend.id
-            val idx = friendsList.indexOfFirst { it.id == friendId }
-            if (idx != -1) {
-                friendsList[idx] = friendsList[idx].copy(unreadCount = 0)
-            }
-            readPrefs.edit()
-                .putInt("unread_$friendId", 0)
-                .putBoolean("read_$friendId", true)
-                .apply()
-            val hasRemainingUnread = friendsList.any { it.unreadCount > 0 }
-            onUnreadStatusChanged(hasRemainingUnread)
+            markFriendChatAsReadLocallyAndRemotely(friend)
 
             val cleanTarget = friend.handle.removePrefix("@")
             val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
@@ -3168,6 +3223,7 @@ fun CustomizedChatScreen(
                                 )
                                 .clickable {
                                     selectedFriend?.let { friend ->
+                                        markFriendChatAsReadLocallyAndRemotely(friend)
                                         if (typedMessage.isNotBlank()) {
                                             messageDrafts[friend.id] = typedMessage
                                         } else {
@@ -3755,15 +3811,7 @@ fun CustomizedChatScreen(
                                 activeDmChannelId = null
                                 isLoadingMessages = true
                                 onDirectChatStateChanged(true)
-                                val idx = friendsList.indexOfFirst { it.id == friend.id }
-                                if (idx != -1) {
-                                    friendsList[idx] = friendsList[idx].copy(unreadCount = 0)
-                                }
-                                readPrefs.edit()
-                                    .putInt("unread_${friend.id}", 0)
-                                    .putBoolean("read_${friend.id}", true)
-                                    .apply()
-                                onUnreadStatusChanged(friendsList.any { it.unreadCount > 0 })
+                                markFriendChatAsReadLocallyAndRemotely(friend)
                             }
 
                             StaggeredReveal(index = index) {

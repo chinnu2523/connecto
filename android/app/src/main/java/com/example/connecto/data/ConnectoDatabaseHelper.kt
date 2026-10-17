@@ -443,7 +443,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         val rev1 = "dm-${maxOf(u1, u2)}-${minOf(u1, u2)}"
         val rev2 = "dm_${maxOf(u1, u2)}_${minOf(u1, u2)}"
 
-        val candidates = mutableListOf(canon1, canon2, rev1, rev2)
+        val candidates = mutableListOf(canon1, canon2, rev1, rev2, u2, "@$u2", "dm-$u2", "dm_$u2")
 
         if (u1Base.isNotEmpty() && u1Base != u1) {
             candidates.add("dm-${minOf(u1Base, u2)}-${maxOf(u1Base, u2)}")
@@ -456,6 +456,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             candidates.add("dm_${minOf(u1, u2Base)}_${maxOf(u1, u2Base)}")
             candidates.add("dm-${maxOf(u1, u2Base)}-${minOf(u1, u2Base)}")
             candidates.add("dm_${maxOf(u1, u2Base)}_${minOf(u1, u2Base)}")
+            candidates.add(u2Base)
+            candidates.add("@$u2Base")
         }
 
         if (!channelId.isNullOrBlank()) {
@@ -541,6 +543,12 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         ConnectoApiClient.currentUserDisplayName?.trim()?.lowercase()?.let { if (it.isNotEmpty()) myIdentifiers.add(it) }
 
         val allowedAuthors = (myIdentifiers + friendIdentifiers).map { it.lowercase() }.toSet()
+
+        friendIdentifiers.forEach { fId ->
+            if (fId.isNotBlank() && !candidates.contains(fId)) {
+                candidates.add(fId)
+            }
+        }
 
         val distinctCandidates = candidates.distinct()
 
@@ -810,6 +818,22 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ?",
             arrayOf(clean, clean, "@$clean", clean)
         )
+    }
+
+    fun updateFriendUnreadCount(friendIdOrHandle: String, unreadCount: Int = 0) {
+        try {
+            val db = writableDatabase
+            val clean = friendIdOrHandle.trim().lowercase().removePrefix("@")
+            val cv = ContentValues().apply {
+                put(COL_FRIEND_UNREAD, unreadCount)
+            }
+            db.update(
+                TABLE_FRIENDS,
+                cv,
+                "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ?",
+                arrayOf(clean, clean, "@$clean", clean)
+            )
+        } catch (_: Exception) {}
     }
 
     fun deleteFriend(friendIdOrHandle: String) {

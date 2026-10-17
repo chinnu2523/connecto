@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import hash_session_token
-from app.db.models.user import User, UserSession
+from app.db.models.user import User, UserSession, TerminatedSession
 from app.db.session import AsyncSessionLocal
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -46,6 +46,19 @@ async def get_current_user(
 
     # Try candidate tokens until an active session is found
     for raw_token in candidate_tokens:
+        token_hash = hash_session_token(raw_token)
+
+        # 1. First check if token is blacklisted in terminated_sessions
+        term_stmt = select(TerminatedSession).where(
+            (TerminatedSession.session_token_hash == token_hash) |
+            (TerminatedSession.session_token_hash == raw_token)
+        )
+        if (await db.execute(term_stmt)).scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session has been terminated. Please log in again."
+            )
+
         if raw_token.startswith("cf_edge_"):
             try:
                 import hmac
@@ -58,6 +71,8 @@ async def get_current_user(
                 last_us = payload_part.rfind("_")
                 if last_us != -1:
                     edge_uid = payload_part[:last_us]
+                    ts_part = payload_part[last_us + 1:]
+                    token_ts_ms = int(ts_part) if ts_part.isdigit() else 0
                     valid_sig = (dot_idx == -1)
                     if not valid_sig:
                         for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
@@ -78,7 +93,40 @@ async def get_current_user(
                         )
                         edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
                         if edge_user:
+                            # Check all_before revocation
+                            rev_check = select(TerminatedSession).where(
+                                TerminatedSession.session_token_hash == f"all_before_{edge_user.id}"
+                            )
+                            rev_row = (await db.execute(rev_check)).scalar_one_or_none()
+                            if rev_row and rev_row.terminated_at:
+                                rev_epoch_ms = int(rev_row.terminated_at.timestamp() * 1000)
+                                if token_ts_ms > 0 and token_ts_ms <= rev_epoch_ms:
+                                    raise HTTPException(
+                                        status_code=status.HTTP_401_UNAUTHORIZED,
+                                        detail="Session has been terminated from another device. Please log in again."
+                                    )
+
+                            # Verify that session is active in user_sessions if present
+                            sess_stmt = select(UserSession).where(
+                                (UserSession.session_token_hash == token_hash) &
+                                (UserSession.expires_at > now)
+                            )
+                            active_sess = (await db.execute(sess_stmt)).scalar_one_or_none()
+                            if active_sess:
+                                return edge_user
+
+                            # If user has other sessions in user_sessions, but this specific token_hash is NOT among them,
+                            # it was explicitly terminated/deleted!
+                            user_has_sessions = (await db.execute(select(UserSession).where(UserSession.user_id == edge_user.id))).scalars().first()
+                            if user_has_sessions:
+                                raise HTTPException(
+                                    status_code=status.HTTP_401_UNAUTHORIZED,
+                                    detail="Session has been terminated from another device. Please log in again."
+                                )
+
                             return edge_user
+            except HTTPException:
+                raise
             except Exception:
                 pass
 

@@ -193,6 +193,38 @@ class ConnectionManager:
             import logging
             logging.getLogger(__name__).warning(f"[WS_PRESENCE] Failed to set is_online={online} for {user_id}: {e}")
 
+    async def terminate_user_sessions(
+        self,
+        user_id: str,
+        current_token_hash: Optional[str] = None,
+        terminated_hashes: Optional[Union[list, set]] = None
+    ):
+        """Immediately closes WebSockets belonging to terminated sessions."""
+        term_set = set(terminated_hashes or [])
+        candidate_sockets = set()
+        if user_id in self.active_connections:
+            candidate_sockets.update(self.active_connections[user_id])
+        clean_u = self.id_to_username.get(user_id)
+        if clean_u and clean_u in self.active_connections:
+            candidate_sockets.update(self.active_connections[clean_u])
+
+        for ws in list(candidate_sockets):
+            ws_token_hash = ws.scope.get("session_token_hash")
+            if current_token_hash and ws_token_hash == current_token_hash:
+                continue
+            should_close = False
+            if term_set and ws_token_hash in term_set:
+                should_close = True
+            elif current_token_hash and ws_token_hash != current_token_hash:
+                should_close = True
+
+            if should_close:
+                try:
+                    await ws.close(code=4001, reason="Session terminated")
+                except Exception:
+                    pass
+                self.prune_dead_socket(ws)
+
     def resolve_user_id(self, identifier: str) -> str:
         """Resolves username or display id to canonical user_id."""
         if not identifier:

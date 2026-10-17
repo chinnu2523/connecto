@@ -348,6 +348,22 @@ fun ConnectoApp(
     var hasUnreadChats by remember { mutableStateOf(false) }
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
 
+    // Global session revocation & 401 expiration listener
+    androidx.compose.runtime.DisposableEffect(authenticatedUsername) {
+        com.example.connecto.network.ConnectoApiClient.onSessionExpired = { reason ->
+            (context as? android.app.Activity)?.runOnUiThread {
+                if (flowState != AppFlowState.AUTH_HOME) {
+                    android.widget.Toast.makeText(context, reason, android.widget.Toast.LENGTH_LONG).show()
+                    performCompleteSignOut(context, authenticatedUsername)
+                    flowState = AppFlowState.AUTH_HOME
+                }
+            }
+        }
+        onDispose {
+            com.example.connecto.network.ConnectoApiClient.onSessionExpired = null
+        }
+    }
+
     val unreadNotifCount by com.example.connecto.network.ConnectoApiClient.unreadNotificationCount.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
     val incomingCallData by VoiceCallManager.incomingCall.collectAsState()

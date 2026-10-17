@@ -99,6 +99,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -142,6 +143,19 @@ fun PhotoLightboxDialog(
     ) {
         var zoomScale by remember { mutableFloatStateOf(1.0f) }
         var panOffset by remember { mutableStateOf(Offset.Zero) }
+        val context = androidx.compose.ui.platform.LocalContext.current
+        val lightboxImageRequest = remember(imageUrl, context) {
+            if (imageUrl.isNullOrBlank() || com.example.connecto.ui.designsystem.isCoverPreset(imageUrl)) null
+            else {
+                val model = com.example.connecto.ui.designsystem.resolveImageModel(imageUrl) ?: imageUrl
+                ImageRequest.Builder(context)
+                    .data(model)
+                    .memoryCacheKey(imageUrl)
+                    .diskCacheKey(imageUrl)
+                    .crossfade(false)
+                    .build()
+            }
+        }
 
         Box(
             modifier = Modifier
@@ -344,10 +358,9 @@ fun PhotoLightboxDialog(
                             )
                         }
                     }
-                } else if (!imageUrl.isNullOrBlank()) {
-                    val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(imageUrl) ?: imageUrl
+                } else if (lightboxImageRequest != null) {
                     AsyncImage(
-                        model = resolvedModel,
+                        model = lightboxImageRequest,
                         contentDescription = title,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier

@@ -32,6 +32,9 @@ class MessageCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=4096)
     nonce: Optional[str] = Field(None, description="Client optimistic UI temp ID")
     attachments: Optional[Any] = Field(default_factory=list)
+    reply_to_id: Optional[str] = None
+    reply_to_content: Optional[str] = None
+    reply_to_author: Optional[str] = None
 
 class MessageResponse(BaseModel):
     id: str
@@ -50,6 +53,9 @@ class MessageResponse(BaseModel):
     expires_at: Optional[str] = None
     attachments: Optional[Any] = None
     nonce: Optional[str] = None
+    reply_to_id: Optional[str] = None
+    reply_to_content: Optional[str] = None
+    reply_to_author: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

@@ -307,6 +307,23 @@ object ConnectoApiClient {
     @Volatile
     var currentUserDisplayName: String? = null
 
+    @Volatile
+    var onSessionExpired: ((String) -> Unit)? = null
+
+    fun triggerSessionExpired(reason: String) {
+        android.util.Log.w("ConnectoApiClient", "Session expired triggered: $reason")
+        onSessionExpired?.invoke(reason)
+    }
+
+    fun getSessionTokenHash(): String {
+        val token = sessionToken ?: getPersistedToken() ?: return ""
+        return try {
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            val bytes = md.digest(token.toByteArray(Charsets.UTF_8))
+            bytes.joinToString("") { "%02x".format(it) }
+        } catch (_: Exception) { "" }
+    }
+
     // Set by WebSocket typing events; null means no one is typing in the community channel
     @Volatile
     var activeTypingUser: String? = null
@@ -1077,7 +1094,8 @@ object ConnectoApiClient {
         try {
             val body = JSONObject().apply {
                 put("identifier", identifier.trim())
-                // production server determines method automatically
+                put("username", identifier.trim())
+                put("method", method)
             }
             val response = executeRequest(
                 endpoint = "/api/auth/forgot-password",
@@ -1112,7 +1130,9 @@ object ConnectoApiClient {
         try {
             val body = JSONObject().apply {
                 put("username", identifier.trim())
+                put("identifier", identifier.trim())
                 put("otp", otpCode.trim())
+                put("otp_code", otpCode.trim())
             }
             val response = executeRequest(
                 endpoint = "/api/verify-otp",
@@ -1146,7 +1166,9 @@ object ConnectoApiClient {
         try {
             val body = JSONObject().apply {
                 put("username", identifier.trim())
+                put("identifier", identifier.trim())
                 put("otp", otpCode.trim())
+                put("otp_code", otpCode.trim())
                 put("new_password", newPassword)
             }
             val response = executeRequest(
@@ -1910,19 +1932,20 @@ object ConnectoApiClient {
                     var pollId = if (obj.has("poll_id") && !obj.isNull("poll_id")) obj.optString("poll_id") else null
                     var pollDto = if (obj.has("poll") && !obj.isNull("poll")) parsePollDto(obj.optJSONObject("poll")) else null
 
+                    val attObj: JSONObject? = when {
+                        obj.has("attachments") && !obj.isNull("attachments") -> {
+                            val raw = obj.get("attachments")
+                            when (raw) {
+                                is JSONObject -> raw
+                                is String -> try { if (raw.trim().startsWith("{")) JSONObject(raw) else null } catch (_: Exception) { null }
+                                else -> null
+                            }
+                        }
+                        else -> null
+                    }
+
                     // If poll not populated at root, inspect nested attachments
                     if (pollDto == null || msgType == "text") {
-                        val attObj: JSONObject? = when {
-                            obj.has("attachments") && !obj.isNull("attachments") -> {
-                                val raw = obj.get("attachments")
-                                when (raw) {
-                                    is JSONObject -> raw
-                                    is String -> try { if (raw.trim().startsWith("{")) JSONObject(raw) else null } catch (_: Exception) { null }
-                                    else -> null
-                                }
-                            }
-                            else -> null
-                        }
                         if (attObj != null) {
                             if (attObj.optString("type") == "poll") {
                                 msgType = "poll"
@@ -1938,14 +1961,22 @@ object ConnectoApiClient {
 
                     val timerSec = if (obj.has("timer_seconds") && !obj.isNull("timer_seconds")) obj.optInt("timer_seconds") else null
                     val expiresAt = if (obj.has("expires_at") && !obj.isNull("expires_at")) obj.optString("expires_at") else null
-                    val replyToId = if (obj.has("reply_to_id") && !obj.isNull("reply_to_id")) obj.optString("reply_to_id") else null
-                    val replyToContent = if (obj.has("reply_to_content") && !obj.isNull("reply_to_content")) obj.optString("reply_to_content") else null
-                    val replyToAuthor = if (obj.has("reply_to_author") && !obj.isNull("reply_to_author")) obj.optString("reply_to_author") else null
+                    var replyToId = if (obj.has("reply_to_id") && !obj.isNull("reply_to_id")) obj.optString("reply_to_id") else null
+                    var replyToContent = if (obj.has("reply_to_content") && !obj.isNull("reply_to_content")) obj.optString("reply_to_content") else null
+                    var replyToAuthor = if (obj.has("reply_to_author") && !obj.isNull("reply_to_author")) obj.optString("reply_to_author") else null
+
+                    if (replyToId.isNullOrBlank() && attObj != null) {
+                        if (attObj.has("reply_to_id")) replyToId = attObj.optString("reply_to_id")
+                        if (attObj.has("reply_to_content")) replyToContent = attObj.optString("reply_to_content")
+                        if (attObj.has("reply_to_author")) replyToAuthor = attObj.optString("reply_to_author")
+                    }
+
+                    val serverChannel = if (obj.has("channel_id") && obj.optString("channel_id").isNotBlank()) obj.optString("channel_id") else cleanChannel
 
                     list.add(
                         MessageDto(
                             id = obj.optString("id").ifEmpty { UUID.randomUUID().toString() },
-                            channelId = cleanChannel,
+                            channelId = serverChannel,
                             authorId = authorId,
                             authorName = authorName,
                             content = obj.optString("content").ifEmpty { obj.optString("text") },
@@ -2100,10 +2131,16 @@ object ConnectoApiClient {
                 val rContent = if (obj.has("reply_to_content") && !obj.isNull("reply_to_content")) obj.optString("reply_to_content") else replyToContent
                 val rAuthor = if (obj.has("reply_to_author") && !obj.isNull("reply_to_author")) obj.optString("reply_to_author") else replyToAuthor
 
+                val respChannelId = if (obj.has("channel_id") && obj.optString("channel_id").isNotBlank()) obj.optString("channel_id") else cleanChannel
+                if (respChannelId.isNotEmpty() && respChannelId != cleanChannel) {
+                    channelCache[cleanChannel] = respChannelId
+                    channelCache[respChannelId.lowercase()] = cleanChannel
+                }
+
                 Result.success(
                     MessageDto(
                         id = obj.optString("id").ifEmpty { UUID.randomUUID().toString() },
-                        channelId = cleanChannel,
+                        channelId = respChannelId,
                         authorId = myUsername,
                         authorName = myDisplayName,
                         content = content.trim(),
@@ -3710,9 +3747,12 @@ object ConnectoApiClient {
                         }
                     }
 
-                    // Write multipart body (field name must be "file")
                     conn.outputStream.use { output ->
                         val writer = java.io.PrintWriter(java.io.OutputStreamWriter(output, "UTF-8"), true)
+                        writer.append("--$boundary\r\n")
+                        writer.append("Content-Disposition: form-data; name=\"purpose\"\r\n")
+                        writer.append("\r\n")
+                        writer.append("avatar\r\n")
                         if (!u.isNullOrEmpty()) {
                             writer.append("--$boundary\r\n")
                             writer.append("Content-Disposition: form-data; name=\"username\"\r\n")
@@ -3849,6 +3889,10 @@ object ConnectoApiClient {
 
                     conn.outputStream.use { output ->
                         val writer = java.io.PrintWriter(java.io.OutputStreamWriter(output, "UTF-8"), true)
+                        writer.append("--$boundary\r\n")
+                        writer.append("Content-Disposition: form-data; name=\"purpose\"\r\n")
+                        writer.append("\r\n")
+                        writer.append("group_avatar\r\n")
                         writer.append("--$boundary\r\n")
                         writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"$fileName\"\r\n")
                         writer.append("Content-Type: $mimeType\r\n")
@@ -4251,6 +4295,14 @@ object ConnectoApiClient {
                 if (isSuccess) {
                     ConnectoNetworkConfig.activeBaseUrl = base
                     return Result.success(responseText)
+                } else if (responseCode == 401) {
+                    ConnectoNetworkConfig.activeBaseUrl = base
+                    val errorDetail = parseErrorMessage(responseText, responseCode)
+                    android.util.Log.e("ConnectoSync", "HTTP 401 Unauthorized on $method $fullUrl: $errorDetail")
+                    if (!isAuthEndpoint) {
+                        triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
+                    }
+                    return Result.failure(Exception(errorDetail))
                 } else if (responseCode in 400..499 && responseCode != 404) {
                     ConnectoNetworkConfig.activeBaseUrl = base
                     val errorDetail = parseErrorMessage(responseText, responseCode)
@@ -4718,7 +4770,14 @@ object ConnectoApiClient {
      */
     suspend fun getDmUnreadCounts(): Result<Map<String, Int>> = withContext(Dispatchers.IO) {
         try {
-            val response = executeRequest("/api/dm/unread-counts", "GET", null, sessionToken)
+            val myUname = (currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val endpoint = if (myUname.isNotBlank()) {
+                val enc = java.net.URLEncoder.encode(myUname, "UTF-8")
+                "/api/dm/unread-counts?username=$enc"
+            } else {
+                "/api/dm/unread-counts"
+            }
+            val response = executeRequest(endpoint, "GET", null, sessionToken)
             if (response.isSuccess) {
                 val body = response.getOrThrow()
                 val obj = JSONObject(body)
@@ -4755,8 +4814,14 @@ object ConnectoApiClient {
     suspend fun markDmRead(targetUsername: String): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             if (targetUsername.isBlank()) return@withContext Result.success(false)
-            val encoded = java.net.URLEncoder.encode(targetUsername.trim(), "UTF-8")
-            val response = executeRequest("/api/dms/$encoded/read", "POST", "{}", sessionToken)
+            val cleanTarget = targetUsername.trim().removePrefix("@")
+            val myUname = (currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val encodedTarget = java.net.URLEncoder.encode(cleanTarget, "UTF-8")
+            val encodedMyUname = java.net.URLEncoder.encode(myUname, "UTF-8")
+            val queryParam = if (myUname.isNotBlank()) "?username=$encodedMyUname" else ""
+            
+            val response = executeRequest("/api/dms/$encodedTarget/read$queryParam", "POST", "{}", sessionToken)
+            executeRequest("/api/dm/$encodedTarget/mark-read$queryParam", "POST", "{}", sessionToken)
             Result.success(response.isSuccess)
         } catch (e: Exception) {
             Result.failure(e)

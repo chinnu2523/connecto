@@ -1,3 +1,4 @@
+import asyncio
 import re
 import secrets
 import logging
@@ -11,7 +12,7 @@ from app.api.deps import get_db, get_current_user, get_current_user_optional
 from app.core.config import settings
 from app.core.security import hash_password, verify_password, needs_rehash, generate_session_token, hash_session_token
 from app.core.otp import send_unified_otp, verify_unified_otp, clean_phone_number, mask_phone_number, mask_email
-from app.db.models.user import User, UserSession, OTPVerification
+from app.db.models.user import User, UserSession, OTPVerification, TerminatedSession
 from app.schemas.user import (
     UserSignup, UserLogin, UserResponse,
     SignupRequestOtp, SignupVerifyOtp,
@@ -688,6 +689,9 @@ async def forgot_password_request_otp(
             if cleaned and len(cleaned) >= 7:
                 target_phone = cleaned
 
+    if method == "sms" and not target_phone and target_email:
+        method = "email"
+
     target = clean_phone_number(target_phone) if (method == "sms" and target_phone) else (target_email.lower() if target_email else None)
     if not target:
         if method == "sms":
@@ -758,6 +762,7 @@ async def forgot_password_reset(
         OTPVerification.identifier == clean_phone_number(raw_id)
     ]
     if user:
+        conditions.append(OTPVerification.user_id == user.id)
         if user.email:
             conditions.append(OTPVerification.identifier == user.email.lower())
         if user.phone_number:
@@ -804,6 +809,7 @@ async def forgot_password_reset(
 
     # Update password
     target_user.password_hash = hash_password(req.new_password)
+    target_user.updated_at = datetime.now(timezone.utc)
 
     # Delete used OTP
     await db.delete(otp_record)
@@ -827,6 +833,14 @@ async def forgot_password_reset(
     )
     db.add(session)
     await db.commit()
+    await db.refresh(target_user)
+
+    # Immediately push updated user credentials to Cloudflare D1
+    try:
+        from app.db.d1_sync import d1_sync_manager
+        asyncio.create_task(asyncio.to_thread(d1_sync_manager.sync_table_to_cloud, "users"))
+    except Exception as e:
+        logger.warning(f"[AUTH] Could not immediately push password reset to D1: {e}")
 
     response.set_cookie(
         key=settings.COOKIE_NAME,
@@ -937,6 +951,21 @@ async def two_factor_toggle(
     Enables or disables 2FA directly for the authenticated user.
     """
     if not req.enabled:
+        if current_user.two_factor_enabled:
+            otp_val = (req.otp_code or req.otp or "").strip()
+            if not otp_val:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="A valid 6-digit verification code from your email is required to turn off Two-Factor Authentication."
+                )
+            ident = current_user.email or current_user.username
+            await verify_unified_otp(
+                db=db,
+                identifier=ident,
+                otp_code=otp_val,
+                purpose="two_factor_disable",
+                user_id=current_user.id
+            )
         current_user.two_factor_enabled = False
         await db.commit()
         await db.refresh(current_user)
@@ -944,7 +973,7 @@ async def two_factor_toggle(
             "status": "ok",
             "two_factor_enabled": False,
             "two_factor_method": current_user.two_factor_method,
-            "message": "Two-Factor Authentication disabled."
+            "message": "Two-Factor Authentication disabled successfully."
         }
     else:
         if req.phone_number:
@@ -1033,8 +1062,15 @@ class LegacyResendOtpRequest(BaseModel):
 
 @router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def legacy_forgot_password(req: LegacyForgotPwRequest, db: AsyncSession = Depends(get_db)):
-    method = "email" if "@" in req.identifier else "sms"
-    return await forgot_password_request_otp(ForgotPasswordRequest(identifier=req.identifier, method=method), db=db)
+    raw_id = req.identifier.strip()
+    user = await find_user_by_identifier(db, raw_id)
+    if user and user.email:
+        method = "email"
+    elif "@" in raw_id:
+        method = "email"
+    else:
+        method = "sms"
+    return await forgot_password_request_otp(ForgotPasswordRequest(identifier=raw_id, method=method), db=db)
 
 @router.post("/reset-password-with-otp", status_code=status.HTTP_200_OK)
 async def legacy_reset_password(req: LegacyResetPwWithOtpRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)):
@@ -1116,7 +1152,16 @@ async def change_password_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect old password.")
 
     target_user.password_hash = hash_password(req.new_password)
+    target_user.updated_at = datetime.now(timezone.utc)
     await db.commit()
+    await db.refresh(target_user)
+
+    # Immediately push updated user credential to Cloudflare D1
+    try:
+        from app.db.d1_sync import d1_sync_manager
+        asyncio.create_task(asyncio.to_thread(d1_sync_manager.sync_table_to_cloud, "users"))
+    except Exception as e:
+        logger.warning(f"[AUTH] Could not immediately push password update to D1: {e}")
 
     return {
         "status": "ok",
@@ -1160,7 +1205,10 @@ async def get_active_sessions_endpoint(
         select(UserSession)
         .where(
             UserSession.user_id == target_user.id,
-            UserSession.expires_at > now
+            UserSession.expires_at > now,
+            ~UserSession.session_token_hash.in_(
+                select(TerminatedSession.session_token_hash)
+            )
         )
         .order_by(UserSession.created_at.desc())
     )
@@ -1221,6 +1269,30 @@ async def get_active_sessions_endpoint(
     }
 
 
+async def _sync_terminated_to_d1(token_hashes: list, user_id: str):
+    try:
+        from app.db.d1_client import get_d1_client
+        d1 = get_d1_client()
+        if d1 and token_hashes:
+            stmts = []
+            for h in token_hashes:
+                stmts.append({
+                    "sql": "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?);",
+                    "params": [h]
+                })
+                stmts.append({
+                    "sql": "DELETE FROM user_sessions WHERE session_token_hash = ?;",
+                    "params": [h]
+                })
+            stmts.append({
+                "sql": "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?);",
+                "params": [f"all_before_{user_id}"]
+            })
+            await d1.batch(stmts)
+    except Exception as e:
+        logger.warning(f"Failed to sync terminated sessions to D1: {e}")
+
+
 @router.post("/sessions/terminate", status_code=status.HTTP_200_OK)
 async def terminate_session_endpoint(
     req: TerminateSessionPayload,
@@ -1246,15 +1318,62 @@ async def terminate_session_endpoint(
         raw_token = request.cookies.get(settings.COOKIE_NAME, "")
     current_token_hash = hash_session_token(raw_token) if raw_token else None
 
+    now = datetime.now(timezone.utc)
+    terminated_hashes = []
+
     if req.terminate_others:
         stmt = select(UserSession).where(UserSession.user_id == target_user.id)
         sessions = (await db.execute(stmt)).scalars().all()
         for s in sessions:
             if current_token_hash and s.session_token_hash == current_token_hash:
                 continue
+            terminated_hashes.append(s.session_token_hash)
+            term_obj = TerminatedSession(
+                session_token_hash=s.session_token_hash,
+                user_id=target_user.id,
+                terminated_at=now
+            )
+            await db.merge(term_obj)
             await db.delete(s)
+
+        all_before_marker = TerminatedSession(
+            session_token_hash=f"all_before_{target_user.id}",
+            user_id=target_user.id,
+            terminated_at=now
+        )
+        await db.merge(all_before_marker)
         await db.commit()
-        return {"status": "ok", "message": "All other sessions have been logged out."}
+
+        # Real-time WebSocket event & forced socket termination
+        try:
+            from app.core.ws import ws_manager
+            termination_event = {
+                "type": "session_terminated",
+                "reason": "other_sessions_terminated",
+                "message": "Your session was logged out from another device.",
+                "initiator_token_hash": current_token_hash,
+                "terminated_hashes": terminated_hashes,
+                "timestamp": now.isoformat()
+            }
+            await ws_manager.send_personal_event(target_user.id, termination_event)
+            if target_user.username:
+                await ws_manager.send_personal_event(target_user.username, termination_event)
+
+            await ws_manager.terminate_user_sessions(
+                target_user.id,
+                current_token_hash=current_token_hash,
+                terminated_hashes=terminated_hashes
+            )
+        except Exception as e:
+            logger.warning(f"Error terminating WebSocket sessions: {e}")
+
+        asyncio.create_task(_sync_terminated_to_d1(terminated_hashes, target_user.id))
+
+        return {
+            "status": "ok",
+            "message": "All other sessions have been logged out.",
+            "count": len(terminated_hashes)
+        }
 
     if req.session_id:
         stmt = select(UserSession).where(
@@ -1263,9 +1382,41 @@ async def terminate_session_endpoint(
         )
         session_to_delete = (await db.execute(stmt)).scalar_one_or_none()
         if session_to_delete:
+            th = session_to_delete.session_token_hash
+            term_obj = TerminatedSession(
+                session_token_hash=th,
+                user_id=target_user.id,
+                terminated_at=now
+            )
+            await db.merge(term_obj)
             await db.delete(session_to_delete)
             await db.commit()
-            return {"status": "ok", "message": "Session terminated successfully."}
+
+            try:
+                from app.core.ws import ws_manager
+                termination_event = {
+                    "type": "session_terminated",
+                    "reason": "session_terminated",
+                    "message": "Your session was logged out.",
+                    "session_id": req.session_id,
+                    "session_token_hash": th,
+                    "terminated_hashes": [th],
+                    "timestamp": now.isoformat()
+                }
+                await ws_manager.send_personal_event(target_user.id, termination_event)
+                if target_user.username:
+                    await ws_manager.send_personal_event(target_user.username, termination_event)
+
+                await ws_manager.terminate_user_sessions(
+                    target_user.id,
+                    terminated_hashes=[th]
+                )
+            except Exception as e:
+                logger.warning(f"Error terminating WebSocket session: {e}")
+
+            asyncio.create_task(_sync_terminated_to_d1([th], target_user.id))
+
+            return {"status": "ok", "message": "Session terminated successfully.", "count": 1}
         else:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
 

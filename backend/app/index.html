@@ -207,6 +207,7 @@
     const preview = document.getElementById('settingsBannerPreview');
     if (preview) {
       if (!bg) bg = BANNER_PRESETS.preset_aurora;
+      if (BANNER_PRESETS[bg]) bg = BANNER_PRESETS[bg];
       if (bg.startsWith('http') || bg.startsWith('data:') || bg.startsWith('/')) {
         const fullUrl = (bg.startsWith('http') || bg.startsWith('data:')) ? bg : (window.location.origin + (bg.startsWith('/') ? bg : '/' + bg));
         preview.style.background = `url('${fullUrl}') center/cover no-repeat`;
@@ -215,6 +216,7 @@
         preview.style.backgroundPosition = 'center';
       } else {
         preview.style.background = bg;
+        preview.style.backgroundImage = 'none';
         preview.style.backgroundSize = 'cover';
         preview.style.backgroundPosition = 'center';
       }
@@ -30606,6 +30608,7 @@ function selectSettingsAvatar(emoji, el) {
       syncAudioSettingsToUI();
       update2FAStatusUI(false);
       updateStealthStatusUI(false);
+      applyBannerToPreview(currentUserBanner);
       modal.style.display = 'flex';
 
       try {
@@ -34868,16 +34871,23 @@ async function syncDynamicDMs() {
     if (homeList) {
       const favs = getSavedFavourites();
       if (favs.length === 0) {
-        if (homeEditBtn) homeEditBtn.style.display = 'none';
-        homeList.innerHTML = `
-          <div class="home-fav-add-card" onclick="openFavouritesModal()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 16px; background:rgba(255,255,255,0.02); border-radius:16px; border:1px dashed rgba(99,102,241,0.35); cursor:pointer; text-align:center; transition:all 0.2s ease;">
-            <div style="width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #3b82f6); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(99,102,241,0.35); margin-bottom:12px;">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        if (homeEditBtn) {
+          homeEditBtn.style.display = 'inline-block';
+          homeEditBtn.textContent = '★ Pin Favourites';
+        }
+        if (contacts.length === 0) {
+          homeList.innerHTML = `
+            <div class="home-fav-add-card" onclick="openFavouritesModal()" style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 16px; background:rgba(255,255,255,0.02); border-radius:16px; border:1px dashed rgba(99,102,241,0.35); cursor:pointer; text-align:center; transition:all 0.2s ease;">
+              <div style="width:52px; height:52px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #3b82f6); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(99,102,241,0.35); margin-bottom:12px;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </div>
+              <div style="font-size:15px; font-weight:600; color:#f8fafc; margin-bottom:4px;">Add to Favourites</div>
+              <div style="font-size:12px; color:#94a3b8; max-width:280px;">Tap to select up to 5 favourite people for quick direct messaging</div>
             </div>
-            <div style="font-size:15px; font-weight:600; color:#f8fafc; margin-bottom:4px;">Add to Favourites</div>
-            <div style="font-size:12px; color:#94a3b8; max-width:280px;">Tap to select up to 5 favourite people for quick direct messaging</div>
-          </div>
-        `;
+          `;
+        } else {
+          homeList.innerHTML = renderDmCardsHTML(contacts);
+        }
       } else {
         if (homeEditBtn) {
           homeEditBtn.style.display = 'inline-block';
@@ -34902,6 +34912,12 @@ async function syncDynamicDMs() {
         }).filter(Boolean);
 
         let cardsHtml = renderDmCardsHTML(favContacts);
+        const favSet = new Set(favs.map(f => f.toLowerCase().replace(/^@/, '')));
+        const otherContacts = contacts.filter(c => !favSet.has((c.username || '').toLowerCase().replace(/^@/, '')));
+        if (otherContacts.length > 0) {
+          cardsHtml += '<div style="margin-top:14px; margin-bottom:6px; font-size:12px; font-weight:600; color:#94a3b8; padding-left:4px;">Other Conversations</div>';
+          cardsHtml += renderDmCardsHTML(otherContacts);
+        }
         if (favs.length < 5) {
           cardsHtml += `
             <div onclick="openFavouritesModal()" style="margin-top:10px; padding:10px 14px; border-radius:10px; background:rgba(255,255,255,0.02); border:1px dashed rgba(99,102,241,0.3); text-align:center; cursor:pointer; font-size:12px; color:#818cf8; font-weight:500; display:flex; align-items:center; justify-content:center; gap:6px;">

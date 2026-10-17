@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -47,11 +48,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -96,6 +101,8 @@ fun ForgotPasswordDialog(
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     var isLoading by remember { mutableStateOf(false) }
     var isVerifyingOtp by remember { mutableStateOf(false) }
@@ -333,9 +340,6 @@ fun ForgotPasswordDialog(
                                     val data = res.getOrNull()
                                     maskedDestination = data?.maskedDestination
                                     devOtp = data?.devOtp
-                                    if (!data?.devOtp.isNullOrBlank()) {
-                                        otpCode = data!!.devOtp!!
-                                    }
                                     statusMessage = data?.message ?: "Verification code dispatched to your email!"
                                     currentStep = ForgotPasswordStep.OTP_VERIFICATION
                                 } else {
@@ -464,9 +468,6 @@ fun ForgotPasswordDialog(
                                         if (res.isSuccess) {
                                             val data = res.getOrNull()
                                             devOtp = data?.devOtp
-                                            if (!data?.devOtp.isNullOrBlank()) {
-                                                otpCode = data!!.devOtp!!
-                                            }
                                             statusMessage = "New code sent!"
                                         } else {
                                             errorMessage = res.exceptionOrNull()?.message ?: "Failed to resend."
@@ -541,7 +542,7 @@ fun ForgotPasswordDialog(
                             newPassword = it
                             errorMessage = null
                         },
-                        placeholder = { Text("New Password (min 4 chars)", fontSize = 14.sp) },
+                        placeholder = { Text("New Password (min 4 chars)", fontSize = 14.sp, color = subtitleColor) },
                         leadingIcon = {
                             Icon(Icons.Outlined.Lock, contentDescription = null, tint = subtitleColor)
                         },
@@ -555,12 +556,24 @@ fun ForgotPasswordDialog(
                             }
                         },
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                        ),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            cursorColor = gradientColors.first(),
                             focusedBorderColor = gradientColors.first(),
-                            unfocusedBorderColor = cardBorder
+                            unfocusedBorderColor = cardBorder,
+                            focusedPlaceholderColor = subtitleColor,
+                            unfocusedPlaceholderColor = subtitleColor
                         )
                     )
 
@@ -572,26 +585,58 @@ fun ForgotPasswordDialog(
                             confirmPassword = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Confirm New Password", fontSize = 14.sp) },
+                        placeholder = { Text("Confirm New Password", fontSize = 14.sp, color = subtitleColor) },
                         leadingIcon = {
                             Icon(Icons.Outlined.Lock, contentDescription = null, tint = subtitleColor)
                         },
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(
+                                    if (confirmPasswordVisible) Icons.Outlined.VisibilityOff else Icons.Outlined.Visibility,
+                                    contentDescription = null,
+                                    tint = subtitleColor
+                                )
+                            }
+                        },
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onDone = { focusManager.clearFocus() }
+                        ),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            cursorColor = gradientColors.first(),
                             focusedBorderColor = gradientColors.first(),
-                            unfocusedBorderColor = cardBorder
+                            unfocusedBorderColor = cardBorder,
+                            focusedPlaceholderColor = subtitleColor,
+                            unfocusedPlaceholderColor = subtitleColor
                         )
                     )
 
                     Spacer(modifier = Modifier.height(20.dp))
 
+                    val canSubmit = newPassword.isNotBlank() && confirmPassword.isNotBlank()
+
                     Button(
                         onClick = {
+                            focusManager.clearFocus()
+                            if (newPassword.isBlank()) {
+                                errorMessage = "Please enter your new password."
+                                return@Button
+                            }
                             if (newPassword.length < 4) {
                                 errorMessage = "Password must be at least 4 characters long."
+                                return@Button
+                            }
+                            if (confirmPassword.isBlank()) {
+                                errorMessage = "Please confirm your new password."
                                 return@Button
                             }
                             if (newPassword != confirmPassword) {
@@ -620,12 +665,13 @@ fun ForgotPasswordDialog(
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                        enabled = !isLoading && newPassword.isNotBlank() && confirmPassword.isNotBlank()
+                        enabled = !isLoading
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp)
+                                .alpha(if (canSubmit) 1f else 0.7f)
                                 .background(Brush.horizontalGradient(gradientColors), RoundedCornerShape(14.dp)),
                             contentAlignment = Alignment.Center
                         ) {

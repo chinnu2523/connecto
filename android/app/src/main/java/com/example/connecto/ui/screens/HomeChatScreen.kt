@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.filled.Star
 import com.example.connecto.ui.components.CreateGroupChatDialog
 import com.example.connecto.ui.components.CreateVoiceGroupDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -298,6 +299,42 @@ fun HomeChatScreen(
         }
     }
     val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
+
+    val onOpenConversation: (RecentConversationItem) -> Unit = { convo ->
+        val target = if (convo.isGroup) convo.id else convo.username
+        val cleanTarget = convo.username.removePrefix("@").trim()
+
+        recentConversations = recentConversations.map {
+            if (it.id == convo.id || (!it.isGroup && it.username.equals(convo.username, ignoreCase = true))) {
+                it.copy(unreadCount = 0)
+            } else it
+        }
+        allFriendConversations = allFriendConversations.map {
+            if (it.id == convo.id || (!it.isGroup && it.username.equals(convo.username, ignoreCase = true))) {
+                it.copy(unreadCount = 0)
+            } else it
+        }
+
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                dbHelper.updateFriendUnreadCount(convo.id, 0)
+                if (cleanTarget.isNotBlank() && cleanTarget != convo.id) {
+                    dbHelper.updateFriendUnreadCount(cleanTarget, 0)
+                }
+            } catch (_: Exception) {}
+        }
+        if (!convo.isGroup && cleanTarget.isNotBlank()) {
+            coroutineScope.launch {
+                try {
+                    ConnectoApiClient.markDmRead(cleanTarget)
+                } catch (_: Exception) {}
+            }
+        }
+
+        com.example.connecto.MainActivity.pendingOpenChatTarget = target
+        onNavigateToMessages()
+    }
+
     var isLoadingDashboard by remember { mutableStateOf(false) }
 
     val isWsConnected by VoiceCallManager.isWsConnectedFlow.collectAsState()
@@ -887,8 +924,9 @@ fun HomeChatScreen(
                                 modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
                             )
                         } else {
-                            filteredChannels.take(if (searchQuery.isNotEmpty()) 10 else 4).forEachIndexed { index, ch ->
-                                StaggeredReveal(index = index) {
+                            val displayedChannels = filteredChannels.take(if (searchQuery.isNotEmpty()) 10 else 4)
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                displayedChannels.forEachIndexed { index, ch ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -927,14 +965,16 @@ fun HomeChatScreen(
                                             )
                                         }
                                     }
-                                    ConnectoDivider(thickness = 0.5.dp)
+                                    if (index < displayedChannels.size - 1) {
+                                        ConnectoDivider(thickness = 0.5.dp)
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // 7. Recent Conversations / Direct Messages (Favourites)
+                // 7. Recent Conversations / Direct Messages (Favourites & All Contacts)
                 item {
                     Column(
                         modifier = Modifier
@@ -947,23 +987,21 @@ fun HomeChatScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Direct Messages (Favourites)",
+                                text = if (favouriteUsernames.isNotEmpty()) "Direct Messages (Favourites)" else "Direct Messages",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = colors.textPrimary
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (favouriteUsernames.isNotEmpty()) {
-                                    Text(
-                                        text = "Edit (${favouriteUsernames.size}/5)",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.primary,
-                                        modifier = Modifier
-                                            .clickable { isFavouritesDialogOpen = true }
-                                            .padding(end = 12.dp)
-                                    )
-                                }
+                                Text(
+                                    text = if (favouriteUsernames.isNotEmpty()) "Edit (${favouriteUsernames.size}/5)" else "★ Add Favourites",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = colors.primary,
+                                    modifier = Modifier
+                                        .clickable { isFavouritesDialogOpen = true }
+                                        .padding(end = 12.dp)
+                                )
                                 Text(
                                     text = "Open Chat",
                                     fontSize = 13.sp,
@@ -976,169 +1014,288 @@ fun HomeChatScreen(
 
                         Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
 
-                        if (favouriteUsernames.isEmpty()) {
-                            // Centered aesthetic + button card
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = ConnectoSpacing.sm)
-                                    .clip(RoundedCornerShape(ConnectoRadius.lg))
-                                    .background(colors.surfaceVariant.copy(alpha = 0.6f))
-                                    .border(
-                                        width = 1.dp,
-                                        brush = Brush.linearGradient(
-                                            listOf(
-                                                colors.primary.copy(alpha = 0.45f),
-                                                colors.primary.copy(alpha = 0.15f)
+                        if (favouriteUsernames.isNotEmpty()) {
+                            // Render pinned favourites
+                            if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
+                                Text(
+                                    text = "No favourites matching \"$searchQuery\"",
+                                    fontSize = 13.sp,
+                                    color = colors.textSecondary,
+                                    modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
+                                )
+                            } else {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    displayedFavourites.forEachIndexed { index, convo ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                                .clickable { onOpenConversation(convo) }
+                                                .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            ConnectoAvatar(
+                                                name = convo.name,
+                                                avatarUrl = convo.avatarUrl,
+                                                size = ConnectoAvatarSize.MD,
+                                                status = if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE
                                             )
-                                        ),
-                                        shape = RoundedCornerShape(ConnectoRadius.lg)
-                                    )
-                                    .clickable { isFavouritesDialogOpen = true }
-                                    .padding(vertical = 24.dp, horizontal = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    // Aesthetic glowing circular + button
-                                    Box(
-                                        modifier = Modifier
-                                            .size(56.dp)
-                                            .clip(CircleShape)
-                                            .background(Brush.linearGradient(gradientColors)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = "Add Favourites",
-                                            tint = contentOnGradient,
-                                            modifier = Modifier.size(28.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
-
-                                    Text(
-                                        text = "Add to Favourites",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = colors.textPrimary
-                                    )
-
-                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                    Text(
-                                        text = "Tap to choose up to 5 favourite people for quick messaging",
-                                        fontSize = 12.sp,
-                                        color = colors.textSecondary,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                        } else if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
-                            Text(
-                                text = "No favourites matching \"$searchQuery\"",
-                                fontSize = 13.sp,
-                                color = colors.textSecondary,
-                                modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
-                            )
-                        } else {
-                            displayedFavourites.forEachIndexed { index, convo ->
-                                StaggeredReveal(index = index) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                            .clickable {
-                                                com.example.connecto.MainActivity.pendingOpenChatTarget = convo.username
-                                                onNavigateToMessages()
-                                            }
-                                            .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        ConnectoAvatar(
-                                            name = convo.name,
-                                            avatarUrl = convo.avatarUrl,
-                                            size = ConnectoAvatarSize.MD,
-                                            status = if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE
-                                        )
-                                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = convo.name,
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.SemiBold,
-                                                    color = colors.textPrimary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                                Text(
-                                                    text = convo.timestamp,
-                                                    fontSize = 11.sp,
-                                                    color = colors.textDisabled
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = "@${convo.username} • ${convo.lastMessage}",
-                                                    fontSize = 12.sp,
-                                                    color = colors.textSecondary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis,
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                                if (convo.unreadCount > 0) {
-                                                    ConnectoBadge(count = convo.unreadCount)
+                                            Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.weight(1f, fill = false)
+                                                    ) {
+                                                        Text(
+                                                            text = convo.name,
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = colors.textPrimary,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Icon(
+                                                            imageVector = Icons.Default.Star,
+                                                            contentDescription = "Pinned Favourite",
+                                                            tint = Color(0xFFFFB800),
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+                                                    Text(
+                                                        text = convo.timestamp,
+                                                        fontSize = 11.sp,
+                                                        color = colors.textDisabled
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = "@${convo.username} • ${convo.lastMessage}",
+                                                        fontSize = 12.sp,
+                                                        color = colors.textSecondary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    if (convo.unreadCount > 0) {
+                                                        ConnectoBadge(count = convo.unreadCount)
+                                                    }
                                                 }
                                             }
                                         }
+                                        if (index < displayedFavourites.size - 1) {
+                                            ConnectoDivider(thickness = 0.5.dp)
+                                        }
                                     }
-                                    ConnectoDivider(thickness = 0.5.dp)
+                                }
+
+                                if (favouriteUsernames.size < 5) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(top = ConnectoSpacing.xs)
+                                            .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                            .background(colors.surfaceVariant.copy(alpha = 0.5f))
+                                            .border(
+                                                1.dp,
+                                                colors.primary.copy(alpha = 0.25f),
+                                                RoundedCornerShape(ConnectoRadius.sm)
+                                            )
+                                            .clickable { isFavouritesDialogOpen = true }
+                                            .padding(vertical = 10.dp, horizontal = ConnectoSpacing.md),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = colors.primary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Add More Favourites (${favouriteUsernames.size}/5)",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = colors.primary
+                                        )
+                                    }
+                                }
+
+                                // Also show remaining active conversations so user profiles are never hidden
+                                val favCleanSet = favouriteUsernames.map { it.trim().lowercase().removePrefix("@") }.toSet()
+                                val otherConvos = filteredConversations.filter { !favCleanSet.contains(it.username.trim().lowercase().removePrefix("@")) }
+                                if (otherConvos.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+                                    Text(
+                                        text = "Other Conversations",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.textSecondary,
+                                        modifier = Modifier.padding(vertical = 4.dp, horizontal = ConnectoSpacing.xs)
+                                    )
+                                    Column(modifier = Modifier.fillMaxWidth()) {
+                                        otherConvos.forEachIndexed { index, convo ->
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                                    .clickable { onOpenConversation(convo) }
+                                                    .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                ConnectoAvatar(
+                                                    name = convo.name,
+                                                    avatarUrl = convo.avatarUrl,
+                                                    size = ConnectoAvatarSize.MD,
+                                                    status = if (convo.isGroup) null else (if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE)
+                                                )
+                                                Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = convo.name,
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = colors.textPrimary,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis
+                                                        )
+                                                        Text(
+                                                            text = convo.timestamp,
+                                                            fontSize = 11.sp,
+                                                            color = colors.textDisabled
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Text(
+                                                            text = if (convo.isGroup) convo.lastMessage else "@${convo.username} • ${convo.lastMessage}",
+                                                            fontSize = 12.sp,
+                                                            color = colors.textSecondary,
+                                                            maxLines = 1,
+                                                            overflow = TextOverflow.Ellipsis,
+                                                            modifier = Modifier.weight(1f)
+                                                        )
+                                                        if (convo.unreadCount > 0) {
+                                                            ConnectoBadge(count = convo.unreadCount)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            if (index < otherConvos.size - 1) {
+                                                ConnectoDivider(thickness = 0.5.dp)
+                                            }
+                                        }
+                                    }
                                 }
                             }
-
-                            if (favouriteUsernames.size < 5) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = ConnectoSpacing.xs)
-                                        .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                        .background(colors.surfaceVariant.copy(alpha = 0.5f))
-                                        .border(
-                                            1.dp,
-                                            colors.primary.copy(alpha = 0.25f),
-                                            RoundedCornerShape(ConnectoRadius.sm)
-                                        )
-                                        .clickable { isFavouritesDialogOpen = true }
-                                        .padding(vertical = 10.dp, horizontal = ConnectoSpacing.md),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
+                        } else {
+                            // Favourites empty: display all conversations and user profiles directly!
+                            if (recentConversations.isEmpty() && isLoadingDashboard) {
+                                androidx.compose.foundation.layout.Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = null,
-                                        tint = colors.primary,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "Add More Favourites (${favouriteUsernames.size}/5)",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = colors.primary
-                                    )
+                                    repeat(3) {
+                                        ShimmerConversationItem()
+                                    }
+                                }
+                            } else if (filteredConversations.isEmpty() && searchQuery.isNotEmpty()) {
+                                Text(
+                                    text = "No conversations matching \"$searchQuery\"",
+                                    fontSize = 13.sp,
+                                    color = colors.textSecondary,
+                                    modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
+                                )
+                            } else if (filteredConversations.isEmpty()) {
+                                ConnectoEmptyState(
+                                    title = "No conversations yet",
+                                    description = "Connect with colleagues or friends to start messaging.",
+                                    icon = Icons.Outlined.Chat,
+                                    actionText = "Add a Friend",
+                                    onActionClick = { isAddFriendOpen = true }
+                                )
+                            } else {
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    filteredConversations.forEachIndexed { index, convo ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                                .clickable { onOpenConversation(convo) }
+                                                .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            ConnectoAvatar(
+                                                name = convo.name,
+                                                avatarUrl = convo.avatarUrl,
+                                                size = ConnectoAvatarSize.MD,
+                                                status = if (convo.isGroup) null else (if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE)
+                                            )
+                                            Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = convo.name,
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = colors.textPrimary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    Text(
+                                                        text = convo.timestamp,
+                                                        fontSize = 11.sp,
+                                                        color = colors.textDisabled
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = if (convo.isGroup) convo.lastMessage else "@${convo.username} • ${convo.lastMessage}",
+                                                        fontSize = 12.sp,
+                                                        color = colors.textSecondary,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    if (convo.unreadCount > 0) {
+                                                        ConnectoBadge(count = convo.unreadCount)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        if (index < filteredConversations.size - 1) {
+                                            ConnectoDivider(thickness = 0.5.dp)
+                                        }
+                                    }
                                 }
                             }
                         }

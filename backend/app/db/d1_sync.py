@@ -153,15 +153,15 @@ class D1SyncManager:
                     col_names = ", ".join(cols)
                     placeholders = ", ".join(["?" for _ in cols])
                     if table_name == "users":
-                        # CRITICAL: Preserve password_hash and security credentials in Cloudflare D1
+                        # CRITICAL: Preserve and update password_hash correctly in Cloudflare D1
                         update_cols = [c for c in cols if c not in ("id", "password_hash")]
                         set_clause = ", ".join([f"{c} = excluded.{c}" for c in update_cols])
                         stmt = (
                             f"INSERT INTO users ({col_names}) VALUES ({placeholders}) "
                             f"ON CONFLICT(id) DO UPDATE SET {set_clause}, "
                             f"password_hash = CASE "
-                            f"  WHEN users.password_hash IS NOT NULL AND users.password_hash != '' THEN users.password_hash "
-                            f"  ELSE excluded.password_hash "
+                            f"  WHEN excluded.password_hash IS NOT NULL AND excluded.password_hash != '' THEN excluded.password_hash "
+                            f"  ELSE users.password_hash "
                             f"END;"
                         )
                     else:
@@ -188,6 +188,7 @@ class D1SyncManager:
         target_tables = [
             "users",
             "user_sessions",
+            "terminated_sessions",
             "user_academy_profiles",
             "servers",
             "channels",
@@ -291,11 +292,24 @@ class D1SyncManager:
                     cur.execute("SELECT id, avatar_url, banner_url, bio, display_name, password_hash, updated_at FROM users WHERE id = ?", (uid,))
                     loc_u = cur.fetchone()
                     if loc_u:
-                        c_updated = cu.get("updated_at") or ""
-                        l_updated = loc_u["updated_at"] or ""
+                        c_updated = str(cu.get("updated_at") or "")
+                        l_updated = str(loc_u["updated_at"] or "")
                         c_pwd = cu.get("password_hash")
                         l_pwd = loc_u["password_hash"]
-                        should_update_pwd = bool(c_pwd and (c_pwd != l_pwd) and (c_updated >= l_updated or not l_pwd or not str(l_pwd).startswith("pbkdf2_sha256$")))
+
+                        # Local origin is the authoritative source for passwords.
+                        # NEVER overwrite a valid local PBKDF2 hash unless cloud has a valid PBKDF2 hash
+                        # AND was updated strictly more recently than local.
+                        l_has_valid_pwd = bool(l_pwd and str(l_pwd).startswith("pbkdf2_sha256$"))
+                        c_has_valid_pwd = bool(c_pwd and str(c_pwd).startswith("pbkdf2_sha256$"))
+
+                        should_update_pwd = False
+                        if c_has_valid_pwd and c_pwd != l_pwd:
+                            if not l_has_valid_pwd:
+                                should_update_pwd = True
+                            elif c_updated > l_updated:
+                                should_update_pwd = True
+
                         # If cloud version has avatar/banner or newer timestamp or updated password, pull cloud profile
                         if (cu.get("avatar_url") and cu.get("avatar_url") != loc_u["avatar_url"]) or \
                            (cu.get("banner_url") and cu.get("banner_url") != loc_u["banner_url"]) or \
@@ -376,8 +390,8 @@ class D1SyncManager:
                     # Send UP heartbeat
                     await asyncio.to_thread(self.send_heartbeat, "UP", "Local server running on port 8081")
 
-                    # Periodically sync incremental updates (every 60 seconds)
-                    if counter % 4 == 0:
+                    # Periodically sync incremental updates (every 5 minutes to protect D1 write quota)
+                    if counter % 20 == 0:
                         await asyncio.to_thread(self.sync_all_to_cloud)
                 else:
                     logger.debug("[D1_SYNC] Cloud server probe did not respond, retrying next cycle...")

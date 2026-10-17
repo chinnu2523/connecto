@@ -565,6 +565,8 @@ def _normalize_banner_url(url: Optional[str]) -> str:
     clean = str(url).strip()
     if clean.lower() in ("null", "none", "undefined", "nil", "false", ""):
         return ""
+    if clean.startswith("preset_"):
+        return clean
     if not (clean.startswith("/") or clean.startswith("http://") or clean.startswith("https://") or clean.startswith("data:")):
         return ""
     if clean.startswith("https://connecto.fun/"):
@@ -624,14 +626,19 @@ async def upload_banner_endpoint(
     }
 
 @app.post("/api/upload")
+@app.post("/api/upload/avatar")
 async def general_upload_endpoint(
+    request: Request,
     file: UploadFile = File(...),
+    purpose: Optional[str] = Form(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    General file/avatar upload endpoint.
+    General file/media upload endpoint.
     If image file, validates magic bytes and saves to /uploads/avatars/ as WebP.
+    Only mutates current_user.avatar_url if the endpoint is /api/upload/avatar
+    or purpose='avatar' is explicitly passed.
     """
     file_bytes = await file.read()
     if not file_bytes:
@@ -639,10 +646,11 @@ async def general_upload_endpoint(
     if len(file_bytes) > 25 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="File exceeds size limit.")
     
-    # Try avatar processing first
+    # Try avatar/image processing
     try:
         avatar_url = process_and_save_avatar(file_bytes)
-        if current_user:
+        is_explicit_avatar = request.url.path.endswith("/avatar") or (purpose and purpose.lower().strip() == "avatar")
+        if is_explicit_avatar and current_user:
             current_user.avatar_url = avatar_url
             await db.commit()
             await db.refresh(current_user)
@@ -662,7 +670,8 @@ async def general_upload_endpoint(
         return {
             "status": "ok",
             "url": avatar_url,
-            "avatar_url": avatar_url
+            "avatar_url": avatar_url,
+            "file_url": avatar_url
         }
     except Exception:
         # Security: reject non-image files — no raw fallback upload allowed
@@ -2455,7 +2464,8 @@ async def get_channel_messages_compat(
     channel = (await db.execute(stmt)).scalars().first()
     
     if not channel:
-        channel = Channel(id=clean_id if len(clean_id) == 36 else None, name=clean_id, type="text")
+        ch_type = "dm" if (clean_id.startswith("dm-") or clean_id.startswith("dm_") or clean_id.startswith("dm:")) else "text"
+        channel = Channel(id=clean_id if len(clean_id) == 36 else None, name=clean_id, type=ch_type)
         db.add(channel)
         await db.commit()
         await db.refresh(channel)
@@ -2647,7 +2657,8 @@ async def post_channel_message_compat(
     stmt = select(Channel).where(or_(Channel.id == target_channel, Channel.name == target_channel))
     channel = (await db.execute(stmt)).scalars().first()
     if not channel:
-        channel = Channel(id=target_channel if len(target_channel) == 36 else None, name=target_channel, type="text")
+        ch_type = "dm" if (target_channel.startswith("dm-") or target_channel.startswith("dm_") or target_channel.startswith("dm:")) else "text"
+        channel = Channel(id=target_channel if len(target_channel) == 36 else None, name=target_channel, type=ch_type)
         db.add(channel)
         await db.commit()
         await db.refresh(channel)
@@ -2735,6 +2746,13 @@ async def post_channel_message_compat(
                     reply_to_author = (parent_author.display_name or parent_author.username) if parent_author else "Unknown"
         except Exception:
             pass
+
+    if reply_to_id:
+        attachments_data["reply_to_id"] = reply_to_id
+    if reply_to_content:
+        attachments_data["reply_to_content"] = reply_to_content
+    if reply_to_author:
+        attachments_data["reply_to_author"] = reply_to_author
 
     new_msg = Message(
         channel_id=channel.id,
@@ -3870,57 +3888,120 @@ async def get_dms_compat(
 @app.get("/api/dm/unread-counts")
 async def get_dm_unread_counts_compat(
     username: Optional[str] = Query(None),
+    user: Optional[str] = Query(None),
+    request: Request = None,
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     """Returns unread DM count per partner username.
     Messages sent by the requesting user themselves are never counted as unread.
+    Handles multi-channel aliases, canonical naming, and duplicate DM records.
     """
     from app.db.models.dm_read_state import DMReadState
     # Resolve caller
     caller = current_user
-    if not caller and username:
-        caller = (await db.execute(select(User).where(func.lower(User.username) == username.strip().lower()))).scalar_one_or_none()
+    if not caller:
+        candidate = (username or user or (request.headers.get("X-User-Username") if request else None) or "").strip().lower().removeprefix("@")
+        if candidate:
+            caller = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalar_one_or_none()
     if not caller:
         return {}
 
-    # Find all DM channels this user participates in
-    part_stmt = select(DMParticipant.channel_id).where(DMParticipant.user_id == caller.id)
-    channel_ids = list((await db.execute(part_stmt)).scalars().all())
-    if not channel_ids:
-        return {}
+    clean_caller = caller.username.strip().lower().removeprefix("@")
+
+    # 1. Discover all DM channels and partners for this caller
+    # Look for channels starting with dm- or dm_ involving caller, or via DMParticipant
+    chan_query = select(Channel).where(
+        Channel.type == "dm",
+        or_(
+            Channel.name.ilike(f"dm-{clean_caller}-%"),
+            Channel.name.ilike(f"dm-%-{clean_caller}"),
+            Channel.name.ilike(f"dm_{clean_caller}_%"),
+            Channel.name.ilike(f"dm_%_{clean_caller}")
+        )
+    )
+    dm_channels = list((await db.execute(chan_query)).scalars().all())
+
+    # Also discover any DM channels through DMParticipant
+    part_query = select(DMParticipant.channel_id).where(DMParticipant.user_id == caller.id)
+    participating_channel_ids = set((await db.execute(part_query)).scalars().all())
+    if participating_channel_ids:
+        extra_channels = list((await db.execute(
+            select(Channel).where(
+                Channel.id.in_(list(participating_channel_ids)),
+                Channel.type == "dm"
+            )
+        )).scalars().all())
+        dm_channels.extend(extra_channels)
+
+    # Map partners -> set of channel IDs
+    partner_channels = {}  # partner_username -> set of channel_ids
+    partner_objs = {}      # partner_username -> User
+
+    for ch in dm_channels:
+        # Determine partner from channel name
+        partner_uname = None
+        ch_name_clean = (ch.name or "").lower().removeprefix("dm-").removeprefix("dm_")
+        parts = ch_name_clean.split("-")
+        if len(parts) != 2:
+            parts = ch_name_clean.split("_")
+        if len(parts) == 2:
+            p1, p2 = parts[0].strip(), parts[1].strip()
+            if p1 == clean_caller and p2 != clean_caller:
+                partner_uname = p2
+            elif p2 == clean_caller and p1 != clean_caller:
+                partner_uname = p1
+
+        # Fallback to DMParticipant other user
+        if not partner_uname:
+            other_part_stmt = select(DMParticipant.user_id).where(
+                DMParticipant.channel_id == ch.id,
+                DMParticipant.user_id != caller.id
+            )
+            other_uid = (await db.execute(other_part_stmt)).scalars().first()
+            if other_uid:
+                other_u = (await db.execute(select(User).where(User.id == other_uid))).scalar_one_or_none()
+                if other_u:
+                    partner_uname = other_u.username.strip().lower().removeprefix("@")
+                    partner_objs[partner_uname] = other_u
+
+        if partner_uname:
+            if partner_uname not in partner_channels:
+                partner_channels[partner_uname] = set()
+            partner_channels[partner_uname].add(ch.id)
+            if ch.name:
+                partner_channels[partner_uname].add(ch.name)
 
     unread_map = {}
-    for ch_id in channel_ids:
-        # Find the other participant in this DM
-        other_stmt = select(DMParticipant).where(
-            DMParticipant.channel_id == ch_id,
-            DMParticipant.user_id != caller.id
-        )
-        other_part = (await db.execute(other_stmt)).scalar_one_or_none()
-        if not other_part:
+    for partner_uname, ch_ids in partner_channels.items():
+        if not ch_ids:
             continue
-        # Get the other user's username
-        other_user = (await db.execute(select(User).where(User.id == other_part.user_id))).scalar_one_or_none()
-        if not other_user:
-            continue
-        # Get last_read_at for this user in this channel
-        read_stmt = select(DMReadState).where(
+        # Also ensure canonical and alt names are included in channel IDs
+        canon_name = f"dm-{min(clean_caller, partner_uname)}-{max(clean_caller, partner_uname)}"
+        alt_name = f"dm_{min(clean_caller, partner_uname)}_{max(clean_caller, partner_uname)}"
+        ch_ids.add(canon_name)
+        ch_ids.add(alt_name)
+
+        # Get latest read timestamp across all these channel IDs for caller
+        read_stmt = select(DMReadState.last_read_at).where(
             DMReadState.user_id == caller.id,
-            DMReadState.channel_id == ch_id
+            DMReadState.channel_id.in_(list(ch_ids))
         )
-        read_state = (await db.execute(read_stmt)).scalar_one_or_none()
-        last_read_at = read_state.last_read_at if read_state else None
-        # Count messages in this channel NOT sent by caller, after last_read_at
+        read_states = (await db.execute(read_stmt)).scalars().all()
+        max_read_at = max(read_states) if read_states else None
+
+        # Count messages across all these channels not sent by caller after max_read_at
         count_stmt = select(func.count(Message.id)).where(
-            Message.channel_id == ch_id,
+            Message.channel_id.in_(list(ch_ids)),
             Message.sender_id != caller.id
         )
-        if last_read_at:
-            count_stmt = count_stmt.where(Message.created_at > last_read_at)
+        if max_read_at:
+            count_stmt = count_stmt.where(Message.created_at > max_read_at)
+
         unread_count = (await db.execute(count_stmt)).scalar_one()
         if unread_count > 0:
-            unread_map[other_user.username] = unread_count
+            unread_map[partner_uname] = unread_count
+
     return unread_map
 
 @app.post("/api/push/register-token")
@@ -3960,74 +4041,104 @@ async def mark_dm_read(
     from app.db.models.dm_read_state import DMReadState
     caller = current_user
     if not caller:
+        candidate = (username or user or (request.headers.get("X-User-Username") if request else None) or "").strip().lower().removeprefix("@")
+        if candidate:
+            caller = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalar_one_or_none()
+    if not caller:
         return {"status": "ok", "detail": "anonymous"}
 
-    clean_sender = caller.username.strip().lower()
-    clean_target = target_user.strip().lower()
+    clean_sender = caller.username.strip().lower().removeprefix("@")
+    clean_target = target_user.strip().lower().removeprefix("@")
     if clean_sender == clean_target:
         return {"status": "ok"}
+
+    target_u = (await db.execute(select(User).where(func.lower(User.username) == clean_target))).scalars().first()
+
     canonical_dm_name = f"dm-{min(clean_sender, clean_target)}-{max(clean_sender, clean_target)}"
     alt_dm_name = f"dm_{min(clean_sender, clean_target)}_{max(clean_sender, clean_target)}"
-    stmt = select(Channel).where(or_(Channel.name == canonical_dm_name, Channel.name == alt_dm_name))
-    channel = (await db.execute(stmt)).scalar_one_or_none()
-    if not channel:
-        return {"status": "ok", "detail": "no channel found"}
-    # Upsert read state
-    read_stmt = select(DMReadState).where(
-        DMReadState.user_id == caller.id,
-        DMReadState.channel_id == channel.id
+
+    chan_stmt = select(Channel.id).where(
+        or_(
+            Channel.name.in_([canonical_dm_name, alt_dm_name]),
+            Channel.id.in_([canonical_dm_name, alt_dm_name])
+        )
     )
-    read_state = (await db.execute(read_stmt)).scalar_one_or_none()
+    matching_ch_ids = set((await db.execute(chan_stmt)).scalars().all())
+    matching_ch_ids.add(canonical_dm_name)
+
+    if target_u:
+        part_sub = select(DMParticipant.channel_id).join(
+            Channel, Channel.id == DMParticipant.channel_id
+        ).where(
+            Channel.type == 'dm',
+            DMParticipant.user_id.in_([caller.id, target_u.id])
+        ).group_by(DMParticipant.channel_id).having(func.count(DMParticipant.user_id) >= 2)
+        part_ch_ids = (await db.execute(part_sub)).scalars().all()
+        matching_ch_ids.update(part_ch_ids)
+
     now = datetime.now(tz.utc)
-    if read_state:
-        read_state.last_read_at = now
-    else:
-        db.add(DMReadState(
-            user_id=caller.id,
-            channel_id=channel.id,
-            last_read_at=now
-        ))
+    for ch_id in matching_ch_ids:
+        # Ensure channel row exists in channels table
+        ch_obj = (await db.execute(select(Channel).where(Channel.id == ch_id))).scalars().first()
+        if not ch_obj:
+            ch_obj = Channel(id=ch_id, name=canonical_dm_name, type="dm")
+            db.add(ch_obj)
+            await db.flush()
+
+        # Ensure both participants are recorded
+        if target_u:
+            for uid in (caller.id, target_u.id):
+                part_check = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == ch_id, DMParticipant.user_id == uid))).scalar_one_or_none()
+                if not part_check:
+                    db.add(DMParticipant(channel_id=ch_id, user_id=uid))
+
+        read_state = (await db.execute(
+            select(DMReadState).where(
+                DMReadState.user_id == caller.id,
+                DMReadState.channel_id == ch_id
+            )
+        )).scalars().first()
+        if read_state:
+            read_state.last_read_at = now
+        else:
+            db.add(DMReadState(
+                user_id=caller.id,
+                channel_id=ch_id,
+                last_read_at=now
+            ))
+
     await db.commit()
+
+    # Real-time WebSocket broadcast to clear read state across user's active devices
+    try:
+        from app.core.ws import ws_manager
+        await ws_manager.broadcast_to_user(
+            caller.username,
+            {"type": "dm_read", "user": clean_sender, "target": clean_target, "read_at": now.isoformat()}
+        )
+    except Exception:
+        pass
+
     return {"status": "ok", "last_read_at": now.isoformat()}
 
 @app.post("/api/dm/{target_user}/mark-read")
 async def mark_dm_read_alias(
     target_user: str,
-    username: str = Query(None),
-    current_user: User = Depends(get_current_user_optional),
+    request: Request = None,
+    username: Optional[str] = Query(None),
+    user: Optional[str] = Query(None),
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db)
 ):
     """Alias for /api/dms/{target}/read - marks DM conversation as read."""
-    if not current_user:
-        return {"status": "ok", "detail": "not authenticated"}
-    from datetime import datetime, timezone as tz
-    from app.db.models.dm_read_state import DMReadState
-    clean_sender = current_user.username.strip().lower()
-    clean_target = target_user.strip().lower()
-    if clean_sender == clean_target:
-        return {"status": "ok"}
-    canonical_dm_name = f"dm-{min(clean_sender, clean_target)}-{max(clean_sender, clean_target)}"
-    alt_dm_name = f"dm_{min(clean_sender, clean_target)}_{max(clean_sender, clean_target)}"
-    stmt = select(Channel).where(or_(Channel.name == canonical_dm_name, Channel.name == alt_dm_name))
-    channel = (await db.execute(stmt)).scalar_one_or_none()
-    if not channel:
-        return {"status": "ok", "detail": "no channel found"}
-    read_stmt = select(DMReadState).where(
-        DMReadState.user_id == current_user.id,
-        DMReadState.channel_id == channel.id
+    return await mark_dm_read(
+        target_user=target_user,
+        request=request,
+        username=username,
+        user=user,
+        current_user=current_user,
+        db=db
     )
-    read_state = (await db.execute(read_stmt)).scalar_one_or_none()
-    now = datetime.now(tz.utc)
-    if read_state:
-        read_state.last_read_at = now
-    else:
-        db.add(DMReadState(
-            user_id=current_user.id,
-            channel_id=channel.id,
-            last_read_at=now
-        ))
-    await db.commit()
-    return {"status": "ok", "last_read_at": now.isoformat()}
 
 
 @app.get("/api/auth/session")
@@ -4564,6 +4675,9 @@ async def set_presence_offline_endpoint(
 @app.post("/api/users/profile")
 @app.patch("/api/users/profile")
 @app.put("/api/users/profile")
+@app.patch("/api/v1/users/me")
+@app.put("/api/v1/users/me")
+@app.post("/api/v1/users/me")
 async def update_user_profile_compat(
     request: Request,
     current_user: User = Depends(get_current_user),
