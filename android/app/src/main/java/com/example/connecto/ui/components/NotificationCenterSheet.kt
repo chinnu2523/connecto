@@ -410,11 +410,28 @@ private fun NotificationItemRow(
             verticalAlignment = Alignment.Top
         ) {
             // Left Sender Avatar or Icon Badge
+            val context = androidx.compose.ui.platform.LocalContext.current
             val rawAvatar = item.senderAvatar?.trim()
             val isEmojiAvatar = rawAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } ?: false
-            val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(rawAvatar)
+            val effectiveAvatar = remember(item.id, rawAvatar, item.senderUsername, item.title) {
+                if (!rawAvatar.isNullOrBlank() && !isEmojiAvatar) {
+                    rawAvatar
+                } else {
+                    val key = item.senderUsername?.ifBlank { null } ?: item.title.ifBlank { null }
+                    if (!key.isNullOrBlank()) {
+                        val dbFriend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                            .getFriendByUsernameOrHandle(key)
+                        val dbAv = dbFriend?.avatarUrl?.trim()
+                        if (!dbAv.isNullOrBlank() && (dbAv.contains("/") || dbAv.contains(".") || dbAv.startsWith("data:"))) {
+                            dbAv
+                        } else rawAvatar
+                    } else rawAvatar
+                }
+            }
+            val isEffectiveEmoji = effectiveAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } ?: false
+            val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(effectiveAvatar)
 
-            if (isEmojiAvatar && !rawAvatar.isNullOrBlank()) {
+            if (isEffectiveEmoji && !effectiveAvatar.isNullOrBlank()) {
                 Box(
                     modifier = Modifier
                         .size(42.dp)
@@ -423,7 +440,7 @@ private fun NotificationItemRow(
                         .border(1.5.dp, Brush.linearGradient(gradientColors), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = rawAvatar, fontSize = 22.sp)
+                    Text(text = effectiveAvatar, fontSize = 22.sp)
                 }
             } else if (resolvedModel != null) {
                 Box(

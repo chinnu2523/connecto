@@ -97,8 +97,12 @@ fun InAppNotificationBanner(
     onNavigate: (actionType: String, referenceId: String?) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val notification by InAppNotificationController.currentNotificationFlow.collectAsState()
     val current = notification
+    val isContentHidden = remember(current?.id) {
+        com.example.connecto.notifications.NotificationPreferences.isHideContentEnabled(context)
+    }
 
     // Progress (1f → 0f) for the countdown bar
     var progress by remember(current?.id) { mutableFloatStateOf(1f) }
@@ -156,7 +160,23 @@ fun InAppNotificationBanner(
 
                 val rawAvatar = current.avatarUrl?.trim()
                 val isEmojiAvatar = rawAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } ?: false
-                val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(rawAvatar)
+                val effectiveAvatar = remember(current.id, rawAvatar, current.username, current.title) {
+                    if (!rawAvatar.isNullOrBlank() && !isEmojiAvatar) {
+                        rawAvatar
+                    } else {
+                        val key = current.username?.ifBlank { null } ?: current.title.ifBlank { null }
+                        if (!key.isNullOrBlank()) {
+                            val dbFriend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                                .getFriendByUsernameOrHandle(key)
+                            val dbAv = dbFriend?.avatarUrl?.trim()
+                            if (!dbAv.isNullOrBlank() && (dbAv.contains("/") || dbAv.contains(".") || dbAv.startsWith("data:"))) {
+                                dbAv
+                            } else rawAvatar
+                        } else rawAvatar
+                    }
+                }
+                val isEffectiveEmoji = effectiveAvatar?.let { !it.contains("/") && !it.contains(".") && it.length <= 4 } ?: false
+                val resolvedModel = com.example.connecto.ui.designsystem.resolveImageModel(effectiveAvatar)
 
                 val borderGradient = Brush.linearGradient(
                     listOf(
@@ -246,7 +266,7 @@ fun InAppNotificationBanner(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // User Profile Picture or Initial
-                        if (isEmojiAvatar && !rawAvatar.isNullOrBlank()) {
+                        if (isEffectiveEmoji && !effectiveAvatar.isNullOrBlank()) {
                             Box(
                                 modifier = Modifier
                                     .size(46.dp)
@@ -255,7 +275,7 @@ fun InAppNotificationBanner(
                                     .border(1.5.dp, borderGradient, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(text = rawAvatar, fontSize = 24.sp)
+                                Text(text = effectiveAvatar, fontSize = 24.sp)
                             }
                         } else if (resolvedModel != null) {
                             Box(
@@ -303,7 +323,7 @@ fun InAppNotificationBanner(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = current.title,
+                                    text = if (isContentHidden) "Connecto" else current.title,
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
@@ -311,27 +331,44 @@ fun InAppNotificationBanner(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .background(Color(0xFF6C5CE7).copy(alpha = 0.28f))
-                                        .padding(horizontal = 5.dp, vertical = 1.5.dp)
-                                ) {
-                                    Text(
-                                        text = "NOW",
-                                        color = Color(0xFFC084FC),
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        letterSpacing = 0.5.sp
-                                    )
+                                if (isContentHidden) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(Color(0xFFEF4444).copy(alpha = 0.22f))
+                                            .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                                    ) {
+                                        Text(
+                                            text = "HIDDEN",
+                                            color = Color(0xFFF87171),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                    }
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(Color(0xFF6C5CE7).copy(alpha = 0.28f))
+                                            .padding(horizontal = 5.dp, vertical = 1.5.dp)
+                                    ) {
+                                        Text(
+                                            text = "NOW",
+                                            color = Color(0xFFC084FC),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            letterSpacing = 0.5.sp
+                                        )
+                                    }
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(3.dp))
 
                             Text(
-                                text = current.message,
-                                color = Color(0xFFB0B7C3),
+                                text = if (isContentHidden) "New message received" else current.message,
+                                color = if (isContentHidden) Color(0xFF9CA3AF) else Color(0xFFB0B7C3),
                                 fontSize = 12.5.sp,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,

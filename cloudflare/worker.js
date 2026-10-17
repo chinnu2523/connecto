@@ -62,7 +62,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease && dbRelease.version_code >= 70) {
+      if (dbRelease && dbRelease.version_code >= 71) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -77,19 +77,19 @@ export default {
           md5: dbRelease.md5,
           filename: dbRelease.filename,
           size_bytes: dbRelease.size_bytes,
-          size_display: "54.7 MB",
+          size_display: "54.8 MB",
           min_android: "Android 7.0 (API 24)",
           target_android: "Android 16+ (API 37 / HyperOS Verified)",
           url: "https://connecto.fun/download/apk",
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
+            "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
+            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
+            "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping.",
             "Profile Tab & User Profile Screenshot Privacy: OS-level WindowManager.FLAG_SECURE blocks screenshots and screen recording on personal profile and friend profile views.",
-            "Cloudflare Global Edge CDN Acceleration: 300+ data center edge caching with instant sub-10ms delivery of APK packages, images, and static assets.",
-            "Base64 WebP Cover Photo Support & Coil Cache Fix: Direct Base64 data URI decoding and Coil disk cache key length fix.",
-            "Android Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications.",
-            "Real-Time Unread DMs & Snippet Updates: Instant real-time unread badges and snippet updates on Messages tab.",
-            "Atomic SQLite Unread Counter: Atomic transaction increments for unread message counts in local database helper."
+            "Cloudflare Global Edge CDN Fast Delivery: Edge worker caches APK downloads across 300+ data centers with immutable caching and routes static assets directly to Cloudflare Pages edge for <10ms latency.",
+            "Base64 WebP Cover Photo Support & Coil Cache Fix: Direct Base64 data URI decoding and Coil disk cache key length fix."
           ]
         });
       }
@@ -98,27 +98,27 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.4.1",
-        version_name: "v4.4.1",
-        version_code: 70,
-        build: 70,
-        sha256: "e538c0b305f29d7f00e75c4b0a6cffcdf6aa68d17692ab6cc4fa44387a409fa3",
-        md5: "c413c0648fa28e32a4d460c9a3f13c04",
+        version: "4.4.2",
+        version_name: "v4.4.2",
+        version_code: 71,
+        build: 71,
+        sha256: "c39e76dc65616e831f57daae0c2f0dc056dca0464f55ee6c700c8996380275e0",
+        md5: "582ebc069a8b6fc087de4aec3011e7a0",
         filename: "connecto-fun.apk",
-        size_bytes: 57384069,
-        size_display: "54.7 MB",
+        size_bytes: 57416889,
+        size_display: "54.8 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
+          "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
+          "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping.",
           "Profile Tab & User Profile Screenshot Privacy: OS-level WindowManager.FLAG_SECURE blocks screenshots and screen recording on personal profile and friend profile views.",
           "Cloudflare Global Edge CDN Acceleration: 300+ data center edge caching with instant sub-10ms delivery of APK packages, images, and static assets.",
-          "Base64 WebP Cover Photo Support & Coil Cache Fix: Direct Base64 data URI decoding and Coil disk cache key length fix.",
-          "Android Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications.",
-          "Real-Time Unread DMs & Snippet Updates: Instant real-time unread badges and snippet updates on Messages tab.",
-          "Atomic SQLite Unread Counter: Atomic transaction increments for unread message counts in local database helper."
+          "Base64 WebP Cover Photo Support & Coil Cache Fix: Direct Base64 data URI decoding and Coil disk cache key length fix."
         ]
       });
     }
@@ -164,16 +164,16 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.1/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.2/connecto-fun.apk";
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.1.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.2.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.4.1");
-          res.headers.set("X-Connecto-Build", "70");
+          res.headers.set("X-Connecto-Version", "v4.4.2");
+          res.headers.set("X-Connecto-Build", "71");
           return res;
         }
 
@@ -184,7 +184,7 @@ export default {
             cacheTtl: 604800
           },
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.4.1"
+            "User-Agent": "Connecto-Cloud-Worker/4.4.2"
           }
         });
         if (upstreamResp.ok) {
@@ -195,8 +195,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.4.1");
-          downloadHeaders.set("X-Connecto-Build", "70");
+          downloadHeaders.set("X-Connecto-Version", "v4.4.2");
+          downloadHeaders.set("X-Connecto-Build", "71");
           downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
           const responseToReturn = new Response(upstreamResp.body, {
@@ -209,7 +209,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.1/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.2/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -269,13 +269,22 @@ export default {
       return handleEdgeWebSocket(request, env, ctx);
     }
 
-    // 5. Intelligent Automated Proxy
-    // Always attempt origin proxy first unless explicitly forced to cloud
-    const forceCloud = request.headers.get("X-Force-Cloud") === "1" || url.searchParams.get("force_cloud") === "1";
-    if (!forceCloud) {
+    // 5. Intelligent Automated Proxy & Instant Edge Failover
+    // Always attempt origin proxy first unless explicitly forced to cloud or origin is known DOWN
+    const forceCloud = request.headers.get("X-Force-Cloud") === "1" || 
+                       url.searchParams.get("force_cloud") === "1" ||
+                       url.pathname.startsWith("/api/auth/sessions") ||
+                       url.pathname.startsWith("/api/v1/auth/sessions");
+
+    // Check origin health in background if interval expired
+    if (!forceCloud && (Date.now() - lastOriginProbeTime > PROBE_INTERVAL_MS)) {
+      ctx.waitUntil(probeOriginHealth(env));
+    }
+
+    if (!forceCloud && localServerStatus !== "DOWN") {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
         const originResponse = await fetch(request.clone(), { signal: controller.signal });
         clearTimeout(timeoutId);
 
@@ -296,10 +305,13 @@ export default {
               headers: headers
             });
           }
+        } else {
+          markLocalServerDown(env, ctx);
         }
       } catch (err) {
-        // Origin threw network timeout or connection refused - fall through to edge fallback
+        // Origin threw network timeout or connection refused - trip circuit breaker and fall through
         console.error("[PROXY_FALLBACK]", url.pathname, err.message);
+        markLocalServerDown(env, ctx);
       }
     }
 
@@ -323,6 +335,13 @@ export default {
 
 function markLocalServerDown(env, ctx) {
   localServerStatus = "DOWN";
+  if (env && env.DB && ctx) {
+    ctx.waitUntil(
+      env.DB.prepare(
+        "UPDATE server_status SET origin_state = 'DOWN', details = 'Edge detected connection failure / offline' WHERE id = 'main_origin'"
+      ).run().catch(() => {})
+    );
+  }
 }
 
 async function probeOriginHealth(env) {
@@ -809,36 +828,146 @@ async function sha256Hex(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-function extractDeviceInfo(request, body = {}) {
-  const ua = request.headers.get("user-agent") || "";
-  const headerDevice = request.headers.get("x-device-name") || "";
-  const headerOS = request.headers.get("x-device-os") || "";
-  const bodyDevice = (body && body.device_name) || "";
-  
-  let deviceName = headerDevice || bodyDevice;
-  if (!deviceName) {
-    if (ua.includes("Android")) {
-      const match = ua.match(/Android[^;]+;\s*([^;)]+)/);
-      deviceName = match ? match[1].trim() : "Android Device";
-    } else if (ua.includes("iPhone")) {
-      deviceName = "Apple iPhone";
-    } else if (ua.includes("iPad")) {
-      deviceName = "Apple iPad";
-    } else if (ua.includes("Macintosh")) {
-      deviceName = "Apple Mac";
-    } else if (ua.includes("Windows")) {
-      deviceName = "Windows PC";
-    } else if (ua.includes("Linux")) {
-      deviceName = "Linux Desktop";
-    } else if (ua.includes("curl") || ua.includes("Postman")) {
-      deviceName = "API Client (" + ua.split("/")[0] + ")";
+function parseSessionDeviceDetails(ua = "", headers = null) {
+  let deviceModel = "Unknown Device";
+  let phoneVersion = "Unknown OS";
+  let deviceType = "Desktop";
+  let displayName = "Web Browser";
+
+  ua = ua || "";
+  const lowerUa = ua.toLowerCase();
+
+  let hModel = (headers ? (headers.get("x-phone-type") || headers.get("x-device-model") || headers.get("x-device-name") || "") : "").trim();
+  let hVer = (headers ? (headers.get("x-phone-version") || headers.get("x-device-version") || headers.get("x-device-os") || "") : "").trim();
+  let hType = (headers ? (headers.get("x-device-type") || "") : "").trim();
+
+  const modelMatch = ua.match(/model:\s*([^|;]+)/i);
+  if (modelMatch) hModel = hModel || modelMatch[1].trim();
+
+  const verMatch = ua.match(/version:\s*([^|;]+)/i);
+  if (verMatch) hVer = hVer || verMatch[1].trim();
+
+  const typeMatch = ua.match(/type:\s*([^|;]+)/i);
+  if (typeMatch) hType = hType || typeMatch[1].trim();
+
+  if (lowerUa.includes("android")) {
+    deviceType = "Smartphone";
+    const androidVerMatch = ua.match(/android\s+([0-9\.]+)/i);
+    const androidVerNum = androidVerMatch ? androidVerMatch[1] : "";
+    const apiMatch = ua.match(/api\s+([0-9]+)/i);
+    const apiLevel = apiMatch ? apiMatch[1] : "";
+
+    if (androidVerNum) {
+      phoneVersion = apiLevel ? `Android ${androidVerNum} (API ${apiLevel})` : `Android ${androidVerNum}`;
     } else {
-      deviceName = "Android Mobile Device";
+      phoneVersion = "Android";
     }
+
+    let modelCandidate = "";
+    const parenMatch = ua.match(/\(([^)]+)\)/);
+    if (parenMatch) {
+      const parts = parenMatch[1].split(";").map(p => p.trim());
+      const filtered = parts.filter(p => !/^(linux|u|wv|[a-z]{2}-[a-z]{2}|android\s+[0-9\.]+|api\s+[0-9]+|k|mobile)$/i.test(p));
+      if (filtered.length > 0) {
+        let rawModel = filtered[filtered.length - 1];
+        rawModel = rawModel.replace(/\s*Build\/.*$/i, "").trim();
+        if (rawModel) modelCandidate = rawModel;
+      }
+    }
+
+    if (hModel) {
+      deviceModel = hModel;
+    } else if (modelCandidate) {
+      deviceModel = modelCandidate;
+    } else {
+      deviceModel = "Android Device";
+    }
+
+    if (hVer) phoneVersion = hVer;
+    if (hType) {
+      deviceType = hType;
+    } else if (lowerUa.includes("tablet")) {
+      deviceType = "Tablet";
+    } else if (["sdk_gphone", "emulator", "google_sdk"].some(k => lowerUa.includes(k))) {
+      deviceType = "Smartphone (Emulator)";
+    }
+
+    displayName = deviceModel;
+  } else if (lowerUa.includes("iphone")) {
+    deviceType = "Smartphone";
+    deviceModel = "Apple iPhone";
+    const iosMatch = ua.match(/os\s+([0-9_]+)/i);
+    phoneVersion = iosMatch ? `iOS ${iosMatch[1].replace(/_/g, ".")}` : "iOS";
+    displayName = "Apple iPhone";
+  } else if (lowerUa.includes("ipad")) {
+    deviceType = "Tablet";
+    deviceModel = "Apple iPad";
+    const iosMatch = ua.match(/os\s+([0-9_]+)/i);
+    phoneVersion = iosMatch ? `iPadOS ${iosMatch[1].replace(/_/g, ".")}` : "iPadOS";
+    displayName = "Apple iPad";
+  } else if (lowerUa.includes("macintosh") || lowerUa.includes("mac os")) {
+    deviceType = "Computer";
+    deviceModel = "Apple Mac";
+    const macMatch = ua.match(/mac os x\s+([0-9_]+)/i);
+    phoneVersion = macMatch ? `macOS ${macMatch[1].replace(/_/g, ".")}` : "macOS";
+    if (lowerUa.includes("chrome")) displayName = "Chrome on macOS";
+    else if (lowerUa.includes("safari")) displayName = "Safari on macOS";
+    else if (lowerUa.includes("firefox")) displayName = "Firefox on macOS";
+    else displayName = "macOS Browser";
+  } else if (lowerUa.includes("windows")) {
+    deviceType = "Computer";
+    deviceModel = "Windows PC";
+    phoneVersion = "Windows";
+    if (lowerUa.includes("edg")) displayName = "Edge on Windows";
+    else if (lowerUa.includes("chrome")) displayName = "Chrome on Windows";
+    else if (lowerUa.includes("firefox")) displayName = "Firefox on Windows";
+    else displayName = "Windows PC";
+  } else if (lowerUa.includes("linux")) {
+    deviceType = "Computer";
+    deviceModel = "Linux PC";
+    phoneVersion = "Linux";
+    displayName = "Linux Browser";
   }
 
-  if (headerOS && !deviceName.includes(headerOS)) {
-    deviceName = `${deviceName} (${headerOS})`;
+  if (hModel) {
+    deviceModel = hModel;
+    displayName = hModel;
+  }
+  if (hVer) phoneVersion = hVer;
+  if (hType) deviceType = hType;
+
+  return {
+    device_name: displayName,
+    phone_type: deviceModel,
+    phone_version: phoneVersion,
+    os_version: phoneVersion,
+    device_type: deviceType
+  };
+}
+
+function extractDeviceInfo(request, body = {}) {
+  const ua = request.headers.get("user-agent") || "";
+  const headerDevice = (request.headers.get("x-phone-type") || request.headers.get("x-device-model") || request.headers.get("x-device-name") || "").trim();
+  const headerOS = (request.headers.get("x-phone-version") || request.headers.get("x-device-version") || request.headers.get("x-device-os") || "").trim();
+  const headerType = (request.headers.get("x-device-type") || "").trim();
+  const bodyDevice = (body && (body.phone_type || body.device_model || body.device_name) || "").trim();
+  const bodyVersion = (body && (body.phone_version || body.device_version || body.os_version) || "").trim();
+  const bodyType = (body && body.device_type || "").trim();
+
+  const parsed = parseSessionDeviceDetails(ua, request.headers);
+  const deviceName = headerDevice || bodyDevice || parsed.device_name;
+  const phoneType = headerDevice || bodyDevice || parsed.phone_type;
+  const phoneVersion = headerOS || bodyVersion || parsed.phone_version;
+  const deviceType = headerType || bodyType || parsed.device_type;
+
+  // Enrich user-agent if headers exist
+  let enrichedUa = ua;
+  const parts = [];
+  if (phoneType && !ua.toLowerCase().includes("model:")) parts.push(`Model: ${phoneType}`);
+  if (phoneVersion && !ua.toLowerCase().includes("version:")) parts.push(`Version: ${phoneVersion}`);
+  if (deviceType && !ua.toLowerCase().includes("type:")) parts.push(`Type: ${deviceType}`);
+  if (parts.length > 0) {
+    enrichedUa = `${ua} | ${parts.join(" | ")}`.substring(0, 500);
   }
 
   // IP address extraction
@@ -859,13 +988,13 @@ function extractDeviceInfo(request, body = {}) {
     location = "Local Network";
   }
 
-  return { deviceName, location, ip, userAgent: ua };
+  return { deviceName, phoneType, phoneVersion, deviceType, location, ip, userAgent: enrichedUa };
 }
 
 async function recordUserSession(userId, token, request, body = {}, env) {
   if (!env || !env.DB || !userId || !token) return;
   try {
-    const { deviceName, location, ip, userAgent } = extractDeviceInfo(request, body);
+    const { deviceName, phoneType, location, ip, userAgent } = extractDeviceInfo(request, body);
     const hashHex = await sha256Hex(token);
     const sessionId = "sess_" + crypto.randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 86400 * 1000).toISOString();
@@ -877,6 +1006,7 @@ async function recordUserSession(userId, token, request, body = {}, env) {
        ON CONFLICT(session_token_hash) DO UPDATE SET
          last_active_at = excluded.last_active_at,
          ip_address = excluded.ip_address,
+         user_agent = excluded.user_agent,
          location = excluded.location,
          device_name = excluded.device_name`
     ).bind(
@@ -884,8 +1014,8 @@ async function recordUserSession(userId, token, request, body = {}, env) {
       userId,
       hashHex,
       ip,
-      userAgent.substring(0, 255),
-      deviceName.substring(0, 100),
+      userAgent.substring(0, 500),
+      (phoneType || deviceName).substring(0, 100),
       location.substring(0, 100),
       expiresAt,
       nowIso,
@@ -2006,17 +2136,17 @@ async function handleCloudApiRequest(request, url, env, ctx) {
         if (!existingCurrent) {
           await recordUserSession(user.id, token, request, {}, env);
         } else {
-          // Update last_active_at and IP/location
+          // Update last_active_at, user_agent, device_name and IP/location
           const devInfo = extractDeviceInfo(request, {});
           await env.DB.prepare(
-            "UPDATE user_sessions SET last_active_at = datetime('now'), ip_address = ?, location = coalesce(location, ?) WHERE session_token_hash = ?"
-          ).bind(devInfo.ip, devInfo.location, currentHash).run().catch(() => {});
+            "UPDATE user_sessions SET last_active_at = datetime('now'), ip_address = ?, user_agent = ?, device_name = ?, location = coalesce(location, ?) WHERE session_token_hash = ?"
+          ).bind(devInfo.ip, devInfo.userAgent.substring(0, 500), (devInfo.phoneType || devInfo.deviceName).substring(0, 100), devInfo.location, currentHash).run().catch(() => {});
         }
       }
 
       // Fetch all non-terminated sessions for this user
       const rawSessions = await env.DB.prepare(
-        `SELECT s.id, s.device_name, s.location, s.ip_address, s.created_at, s.last_active_at, s.session_token_hash
+        `SELECT s.id, s.device_name, s.location, s.ip_address, s.user_agent, s.created_at, s.last_active_at, s.session_token_hash
          FROM user_sessions s
          WHERE s.user_id = ? 
            AND s.expires_at > datetime('now')
@@ -2024,15 +2154,29 @@ async function handleCloudApiRequest(request, url, env, ctx) {
          ORDER BY s.last_active_at DESC, s.created_at DESC`
       ).bind(user.id).all();
 
-      const sessionsList = (rawSessions.results || []).map(s => ({
-        id: s.id,
-        device_name: s.device_name || "Connected Device",
-        location: s.location || "Unknown Location",
-        ip_address: s.ip_address || "Unknown IP",
-        created_at: s.created_at,
-        last_active_at: s.last_active_at || s.created_at,
-        is_current: currentHash ? (s.session_token_hash === currentHash) : false
-      }));
+      let hasCurrent = false;
+      const sessionsList = (rawSessions.results || []).map(s => {
+        const isCurrent = currentHash ? (s.session_token_hash === currentHash) : false;
+        if (isCurrent) hasCurrent = true;
+        const devDetails = parseSessionDeviceDetails(s.user_agent || "", isCurrent ? request.headers : null);
+        return {
+          id: s.id,
+          device_name: devDetails.device_name || s.device_name || "Connected Device",
+          phone_type: devDetails.phone_type,
+          phone_version: devDetails.phone_version,
+          os_version: devDetails.os_version,
+          device_type: devDetails.device_type,
+          location: s.location || "Unknown Location",
+          ip_address: s.ip_address || "Unknown IP",
+          created_at: s.created_at,
+          last_active_at: s.last_active_at || s.created_at,
+          is_current: isCurrent
+        };
+      });
+
+      if (!hasCurrent && sessionsList.length > 0) {
+        sessionsList[0].is_current = true;
+      }
 
       return jsonResponse({
         status: "ok",
@@ -4937,10 +5081,25 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.4.2",
+          date: "Oct 18, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.4.2: Animated Typing Bubble, 24/7 High-Availability Sync & Notification Avatars",
+          summary: "Delivers real-time 3-dot animated bouncing typing indicator bubble inside chat with automatic smooth scrolling and live header typing status, 24/7 high-availability bi-directional synchronization and sub-second automatic failover between SSH origin server and Cloudflare Edge with zero data loss, and remote sender avatars rendered directly in MessagingStyle notifications.",
+          highlights: [
+            "Real-Time Animated Typing Indicator: Interactive 3-dot bouncing typing indicator bubble inside chat with auto-scroll and live header typing status, direct recipient routing, and instant cancellation on message send or input clear.",
+            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional sync daemon between Origin server and Cloudflare Edge (D1) with sub-second health checks and zero-data-loss failover.",
+            "Android Notification Person Avatar Engine: Remote sender avatars loaded and rendered directly in system MessagingStyle notifications with circular cropping.",
+            "Android Native App v4.4.2 (Build 71 • 54.8 MB): SHA-256 c39e76dc65616e831f57daae0c2f0dc056dca0464f55ee6c700c8996380275e0."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
           version: "v4.4.1",
           date: "Oct 17, 2026",
           category: "feature",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.4.1: Profile Tab & User Profile Screenshot Privacy & Global Edge CDN",
           summary: "Enforces OS-level WindowManager FLAG_SECURE screenshot and screen-recording prevention on personal Profile tabs and friend profile modals, adds web profile privacy shield against PrintScreen and media captures, and deploys Cloudflare Edge CDN caching for instant sub-10ms package and asset delivery.",
           highlights: [
@@ -5505,16 +5664,34 @@ async function handleDbQuery(request, env) {
     }
     if (payload.sql) {
       const trimmed = payload.sql.trim();
-      const stmts = trimmed.split(";").map(s => s.trim()).filter(Boolean);
+      const params = Array.isArray(payload.params) ? payload.params : [];
+
+      // If params provided, always treat as a single parameterized statement
+      if (params.length > 0) {
+        const stmt = env.DB.prepare(trimmed.replace(/;\s*$/, "")).bind(...params);
+        const isSelect = trimmed.toUpperCase().startsWith("SELECT") || trimmed.toUpperCase().startsWith("PRAGMA");
+        const result = isSelect ? await stmt.all() : await stmt.run();
+        return jsonResponse({ success: true, results: result.results || [], meta: result.meta || {} });
+      }
+
+      const cleanSql = trimmed.replace(/;\s*$/, "");
+      const isSelect = cleanSql.toUpperCase().startsWith("SELECT") || cleanSql.toUpperCase().startsWith("PRAGMA");
+      if (!cleanSql.includes(";") || isSelect) {
+        const stmt = env.DB.prepare(cleanSql);
+        const result = isSelect ? await stmt.all() : await stmt.run();
+        return jsonResponse({ success: true, results: result.results || [], meta: result.meta || {} });
+      }
+
+      // Safe multi-statement split (only semicolons outside single quotes)
+      const stmts = cleanSql.split(/;(?=(?:(?:[^']*'){2})*[^']*$)/).map(s => s.trim()).filter(Boolean);
       if (stmts.length > 1) {
         const batchStmts = stmts.map(s => env.DB.prepare(s));
         const batchRes = await env.DB.batch(batchStmts);
         return jsonResponse({ success: true, batch_results: batchRes });
       }
-      const params = Array.isArray(payload.params) ? payload.params : [];
-      const stmt = env.DB.prepare(payload.sql).bind(...params);
-      const isSelect = payload.sql.trim().toUpperCase().startsWith("SELECT") || payload.sql.trim().toUpperCase().startsWith("PRAGMA");
-      const result = isSelect ? await stmt.all() : await stmt.run();
+
+      const stmt = env.DB.prepare(cleanSql);
+      const result = await stmt.run();
       return jsonResponse({ success: true, results: result.results || [], meta: result.meta || {} });
     }
     if (Array.isArray(payload.batch)) {
@@ -6115,6 +6292,7 @@ export class ConnectoRealtimeRoom {
         }
       } catch (_) {}
     }
+    meta.isStealth = userIsStealth;
 
     if (this.env && this.env.DB && !userIsStealth) {
       try {
@@ -6167,16 +6345,46 @@ export class ConnectoRealtimeRoom {
         }
 
         // 3. Typing Indicators
-        if (data.action === "typing" || data.type === "typing" || data.type === "typing_start" || data.type === "typing_stop") {
-          const targetCh = (data.channel_id || data.channel || "general").toLowerCase().trim();
+        if (data.action === "typing" || data.type === "typing" || data.type === "typing_start" || data.type === "typing_stop" || data.action === "typing:start" || data.action === "typing:stop") {
+          if (meta.isStealth || data.is_stealth) {
+            return;
+          }
+          const targetCh = (data.channel_id || data.channel || "general").toLowerCase().trim().replace(/^#/, "");
+          let targetUser = (data.target_user || data.recipient || data.target || "").toLowerCase().trim().replace(/^@/, "");
+
+          if (!targetUser && (targetCh.startsWith("dm-") || targetCh.startsWith("dm_"))) {
+            targetUser = resolveDmRecipient(targetCh, meta.username, null);
+          } else if (!targetUser && targetCh !== "general" && !targetCh.startsWith("grp_") && !targetCh.startsWith("chan_") && !targetCh.startsWith("server_")) {
+            targetUser = targetCh;
+          }
+
           const isStop = data.type === "typing_stop" || data.action === "typing:stop";
-          this.broadcastToChannel(targetCh, {
+          const typingPayload = {
             type: isStop ? "typing_stop" : "typing_start",
+            action: isStop ? "typing:stop" : "typing:start",
             user: meta.username,
             username: meta.username,
-            display_name: meta.displayName,
-            channel_id: targetCh
-          }, server);
+            display_name: meta.displayName || meta.username,
+            avatar_url: meta.avatar || "",
+            channel_id: targetCh,
+            channel: targetCh,
+            target_user: targetUser || "",
+            recipient: targetUser || "",
+            is_stealth: false
+          };
+
+          // 1. Broadcast to channel
+          this.broadcastToChannel(targetCh, typingPayload, server);
+
+          // 2. If target user (DM or explicit), send directly to user socket and inverse DM channel
+          if (targetUser) {
+            this.sendToUser(targetUser, typingPayload);
+            const myUser = meta.username.toLowerCase();
+            const invDm = `dm-${targetUser}-${myUser}`;
+            this.broadcastToChannel(invDm, typingPayload, server);
+            const canonDm = `dm-${myUser}-${targetUser}`;
+            this.broadcastToChannel(canonDm, typingPayload, server);
+          }
           return;
         }
 

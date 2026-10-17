@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -219,16 +220,67 @@ fun ChannelsWorkspaceScreen(
     val activeChip = defaultChannels.find { it.id.equals(selectedChannelId, ignoreCase = true) || it.name.equals(selectedChannelId, ignoreCase = true) }
         ?: defaultChannels[0]
 
-    // Messages feed state
-    val messages = remember { mutableStateListOf<MessageDto>() }
-    var isLoadingMessages by remember { mutableStateOf(true) }
+    val cleanSelectedChannel = remember(selectedChannelId) {
+        selectedChannelId.trim().lowercase().removePrefix("#")
+    }
+
+    val deletedForMeSet = remember(currentUsername) {
+        sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())?.toSet() ?: emptySet()
+    }
+
+    // Seed cached messages synchronously so LazyColumn never starts at index 0 (welcome banner / oldest messages)
+    val initialCached = remember(cleanSelectedChannel) {
+        try {
+            val cached = dbHelper.getMessagesForChannel(cleanSelectedChannel, limit = 100)
+            android.util.Log.e("ChannelsDebug", "initialCached for '$cleanSelectedChannel': rawCached=${cached.size}")
+            if (cached.isNotEmpty()) {
+                val res = cached.distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
+                android.util.Log.e("ChannelsDebug", "initialCached for '$cleanSelectedChannel': distinctCount=${res.size}, first=${res.firstOrNull()?.id}, last=${res.lastOrNull()?.id}")
+                res
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("ChannelsDebug", "initialCached exception: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+    // Messages feed state initialized with cached messages from frame 1
+    val messages = remember(cleanSelectedChannel) {
+        mutableStateListOf<MessageDto>().apply { addAll(initialCached) }
+    }
+    var isLoadingMessages by remember(cleanSelectedChannel) {
+        mutableStateOf(initialCached.isEmpty())
+    }
     var typedMessage by remember { mutableStateOf("") }
     var isSending by remember { mutableStateOf(false) }
     var isInputFocused by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var replyingTo by remember { mutableStateOf<MessageDto?>(null) }
-    var pinnedMessageForChannel by remember { mutableStateOf<PinnedMessageDto?>(null) }
+
+    // Seed pinned message from cached preferences synchronously
+    val initialPinnedMessage = remember(cleanSelectedChannel) {
+        val cachedPinId = sharedPrefs.getString("pinned_msg_ch_$cleanSelectedChannel", null)
+        val cachedPinContent = sharedPrefs.getString("pinned_content_ch_$cleanSelectedChannel", null)
+        val cachedPinAuthor = sharedPrefs.getString("pinned_author_ch_$cleanSelectedChannel", null)
+        if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
+            PinnedMessageDto(
+                messageId = cachedPinId,
+                channelId = cleanSelectedChannel,
+                authorName = cachedPinAuthor ?: "Pinned",
+                content = cachedPinContent,
+                pinnedBy = "",
+                pinnedAt = ""
+            )
+        } else {
+            null
+        }
+    }
+    var pinnedMessageForChannel by remember(cleanSelectedChannel) {
+        mutableStateOf<PinnedMessageDto?>(initialPinnedMessage)
+    }
     var messageForAction by remember { mutableStateOf<MessageDto?>(null) }
     var showMessageActionDialog by remember { mutableStateOf(false) }
     var selectedMessageForAction by remember { mutableStateOf<MessageDto?>(null) }
@@ -313,49 +365,43 @@ fun ChannelsWorkspaceScreen(
     // Local reactions storage: messageId -> list of emoji strings
     val channelReactions = remember { mutableStateMapOf<String, List<String>>() }
 
-    val listState = rememberLazyListState()
+    val initialScrollIndex = remember(cleanSelectedChannel) {
+        if (initialCached.isNotEmpty()) initialCached.size else 0
+    }
+    val listState = remember(cleanSelectedChannel) {
+        LazyListState(firstVisibleItemIndex = initialScrollIndex)
+    }
+
+    var hasScrolledToBottomOnEntry by remember(cleanSelectedChannel) { mutableStateOf(false) }
+    LaunchedEffect(cleanSelectedChannel, messages.size) {
+        if (messages.isNotEmpty() && !hasScrolledToBottomOnEntry) {
+            hasScrolledToBottomOnEntry = true
+            try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+        }
+    }
 
     // 1. Instant Cache-First Loading + Background Network Sync
     LaunchedEffect(selectedChannelId) {
-        val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
+        val cleanCh = cleanSelectedChannel
         sharedPrefs.edit().putString("last_active_channel", cleanCh).apply()
         VoiceCallManager.subscribeChannel(cleanCh)
 
-        // Load cached pinned message for this channel
-        val cachedPinId = sharedPrefs.getString("pinned_msg_ch_$cleanCh", null)
-        val cachedPinContent = sharedPrefs.getString("pinned_content_ch_$cleanCh", null)
-        val cachedPinAuthor = sharedPrefs.getString("pinned_author_ch_$cleanCh", null)
-        if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
-            pinnedMessageForChannel = PinnedMessageDto(
-                messageId = cachedPinId,
-                channelId = cleanCh,
-                authorName = cachedPinAuthor ?: "Pinned",
-                content = cachedPinContent,
-                pinnedBy = "",
-                pinnedAt = ""
-            )
-        } else {
-            pinnedMessageForChannel = null
-        }
-
-        // Clear previous channel's messages to avoid showing stale content
-        messages.clear()
-        isLoadingMessages = true
-
-        val deletedForMeSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
+        val currentDeletedSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
             ?.toSet() ?: emptySet()
 
-        // Instant local cache display (0ms delay)
-        withContext(Dispatchers.IO) {
-            val cached = dbHelper.getMessagesForChannel(cleanCh, limit = 50)
-            if (cached.isNotEmpty()) {
-                val distinctCached = cached.reversed().distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
-                withContext(Dispatchers.Main) {
-                    messages.clear()
-                    messages.addAll(distinctCached)
-                    isLoadingMessages = false
-                    delay(50)
-                    try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+        // Fallback: If messages was empty at composition, try reading from local SQLite
+        if (messages.isEmpty()) {
+            withContext(Dispatchers.IO) {
+                val cached = dbHelper.getMessagesForChannel(cleanCh, limit = 100)
+                if (cached.isNotEmpty()) {
+                    val distinctCached = cached.distinctBy { it.id }.filterNot { currentDeletedSet.contains(it.id) }
+                    withContext(Dispatchers.Main) {
+                        if (messages.isEmpty()) {
+                            messages.addAll(distinctCached)
+                            isLoadingMessages = false
+                            try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+                        }
+                    }
                 }
             }
         }
@@ -387,15 +433,31 @@ fun ChannelsWorkspaceScreen(
             } catch (_: Exception) {}
 
             try {
-                val res = ConnectoApiClient.getMessages(channelId = cleanCh, limit = 50)
+                val res = ConnectoApiClient.getMessages(channelId = cleanCh, limit = 100)
                 if (res.isSuccess) {
-                    val fresh = res.getOrThrow().distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
+                    val fresh = res.getOrThrow().distinctBy { it.id }.filterNot { currentDeletedSet.contains(it.id) }
                     withContext(Dispatchers.Main) {
-                        messages.clear()
-                        messages.addAll(fresh)
                         isLoadingMessages = false
-                        delay(60)
-                        try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+                        val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                        val wasNearBottom = messages.isEmpty() || lastVisible >= (messages.size - 3).coerceAtLeast(0)
+
+                        // In-place non-destructive synchronization that preserves exact chronological ordering
+                        for (i in fresh.indices) {
+                            if (i < messages.size) {
+                                if (messages[i] != fresh[i]) {
+                                    messages[i] = fresh[i]
+                                }
+                            } else {
+                                messages.add(fresh[i])
+                            }
+                        }
+                        while (messages.size > fresh.size) {
+                            messages.removeAt(messages.size - 1)
+                        }
+
+                        if (wasNearBottom) {
+                            try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+                        }
                     }
                     dbHelper.saveMessages(cleanCh, fresh)
                 }
@@ -489,12 +551,16 @@ fun ChannelsWorkspaceScreen(
     // Broadcast current user's typing activity in channel, suppressed if Stealth Mode is ON
     LaunchedEffect(typedMessage, activeChip.id) {
         val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
-        if (typedMessage.isNotBlank() && cleanCh.isNotEmpty()) {
+        if (cleanCh.isNotEmpty()) {
             val isStealth = ConnectoApiClient.isStealthMode || context.getSharedPreferences("connecto_profile", android.content.Context.MODE_PRIVATE).getBoolean("stealth_mode_${currentUsername}", false)
             if (!isStealth) {
-                VoiceCallManager.sendTypingStart(cleanCh)
-                kotlinx.coroutines.delay(2500)
-                VoiceCallManager.sendTypingStop(cleanCh)
+                if (typedMessage.isNotBlank()) {
+                    VoiceCallManager.sendTypingStart(cleanCh)
+                    kotlinx.coroutines.delay(2500)
+                    VoiceCallManager.sendTypingStop(cleanCh)
+                } else {
+                    VoiceCallManager.sendTypingStop(cleanCh)
+                }
             }
         }
     }

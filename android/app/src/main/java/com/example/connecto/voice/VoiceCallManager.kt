@@ -254,38 +254,63 @@ object VoiceCallManager {
     }
 
     /** Send a typing_start event to the server for the given channel. */
-    fun sendTypingStart(channelId: String) {
+    fun sendTypingStart(channelId: String, recipientUsername: String? = null) {
         val clean = channelId.trim().lowercase().removePrefix("#")
         if (!isWsConnected || clean.isEmpty()) return
         // Stealth Mode check: Never broadcast typing if stealth mode is enabled
         if (ConnectoApiClient.isStealthMode) return
+        val currentU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
         appContext?.let { ctx ->
             try {
                 val prefs = ctx.getSharedPreferences("connecto_profile", android.content.Context.MODE_PRIVATE)
-                val username = ConnectoApiClient.currentUsername ?: ""
-                if (username.isNotEmpty() && prefs.getBoolean("stealth_mode_$username", false)) {
+                if (currentU.isNotEmpty() && prefs.getBoolean("stealth_mode_$currentU", false)) {
                     return
                 }
             } catch (_: Exception) {}
         }
+        val targetU = recipientUsername?.trim()?.lowercase()?.removePrefix("@") ?: ""
         try {
+            Log.d(TAG, "sendTypingStart: channel=$clean, recipient=$targetU, sender=$currentU")
             sendWsMessage(JSONObject().apply {
                 put("type", "typing_start")
                 put("action", "typing:start")
                 put("channel_id", clean)
+                put("channel", clean)
+                if (currentU.isNotEmpty()) {
+                    put("user", currentU)
+                    put("username", currentU)
+                }
+                if (targetU.isNotEmpty()) {
+                    put("target_user", targetU)
+                    put("recipient", targetU)
+                    put("target", targetU)
+                }
             })
         } catch (_: Exception) {}
     }
 
     /** Send a typing_stop event to the server for the given channel. */
-    fun sendTypingStop(channelId: String) {
+    fun sendTypingStop(channelId: String, recipientUsername: String? = null) {
         val clean = channelId.trim().lowercase().removePrefix("#")
         if (!isWsConnected || clean.isEmpty()) return
+        val currentU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        val targetU = recipientUsername?.trim()?.lowercase()?.removePrefix("@") ?: ""
         try {
+            Log.d(TAG, "sendTypingStop: channel=$clean, recipient=$targetU, sender=$currentU")
             sendWsMessage(JSONObject().apply {
                 put("type", "typing_stop")
                 put("action", "typing:stop")
                 put("channel_id", clean)
+                put("channel", clean)
+                if (currentU.isNotEmpty()) {
+                    put("user", currentU)
+                    put("username", currentU)
+                }
+                if (targetU.isNotEmpty()) {
+                    put("target_user", targetU)
+                    put("recipient", targetU)
+                    put("target", targetU)
+                }
             })
         } catch (_: Exception) {}
     }
@@ -1395,15 +1420,27 @@ object VoiceCallManager {
                                             timeAgo = timeStr
                                         )
                                         val friendObj = ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanSender)
-                                        if (friendObj != null) {
-                                            val rPrefs = ctx.getSharedPreferences("connecto_chat_prefs", Context.MODE_PRIVATE)
-                                            val curUnread = rPrefs.getInt("unread_${friendObj.id}", 0) + 1
-                                            rPrefs.edit()
-                                                .putString("last_msg_${friendObj.id}", content)
-                                                .putString("last_time_${friendObj.id}", timeStr)
-                                                .putInt("unread_${friendObj.id}", curUnread)
-                                                .putLong("last_timestamp_${friendObj.id}", System.currentTimeMillis())
-                                                .apply()
+                                        val fid = friendObj?.id ?: cleanSender
+                                        val fHandle = friendObj?.handle?.removePrefix("@")?.lowercase() ?: cleanSender
+                                        for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
+                                            val rPrefs = ctx.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                                            val curUnread = maxOf(rPrefs.getInt("unread_$fid", 0), rPrefs.getInt("unread_$cleanSender", 0)) + 1
+                                            val editor = rPrefs.edit()
+                                                .putString("last_msg_$fid", content)
+                                                .putString("last_time_$fid", timeStr)
+                                                .putInt("unread_$fid", curUnread)
+                                                .putLong("last_timestamp_$fid", System.currentTimeMillis())
+                                                .putString("last_msg_$cleanSender", content)
+                                                .putString("last_time_$cleanSender", timeStr)
+                                                .putInt("unread_$cleanSender", curUnread)
+                                                .putLong("last_timestamp_$cleanSender", System.currentTimeMillis())
+                                            if (fHandle != cleanSender && fHandle.isNotBlank()) {
+                                                editor.putString("last_msg_$fHandle", content)
+                                                    .putString("last_time_$fHandle", timeStr)
+                                                    .putInt("unread_$fHandle", curUnread)
+                                                    .putLong("last_timestamp_$fHandle", System.currentTimeMillis())
+                                            }
+                                            editor.apply()
                                         }
                                     } catch (_: Exception) {}
                                 }
@@ -1481,9 +1518,9 @@ object VoiceCallManager {
 
                 // --- TYPING INDICATORS ---
                 "typing_start", "typing:start" -> {
-                    val chId = json.optString("channel_id").ifEmpty { "general" }
-                    val username = json.optString("username")
-                    val displayName = json.optString("display_name").ifEmpty { username }
+                    val chId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { "general" } }
+                    val username = json.optString("username").ifEmpty { json.optString("user") }
+                    val displayName = json.optString("display_name").ifEmpty { json.optString("displayName").ifEmpty { username } }
                     val isStealth = json.optBoolean("is_stealth", false)
                     if (username.isNotBlank() && !isStealth) {
                         _typingEvents.tryEmit(TypingEvent(username, displayName, chId, isTyping = true))
@@ -1493,8 +1530,8 @@ object VoiceCallManager {
                 }
 
                 "typing_stop", "typing:stop" -> {
-                    val chId = json.optString("channel_id").ifEmpty { "general" }
-                    val username = json.optString("username")
+                    val chId = json.optString("channel_id").ifEmpty { json.optString("channel").ifEmpty { "general" } }
+                    val username = json.optString("username").ifEmpty { json.optString("user") }
                     if (username.isNotBlank()) {
                         _typingEvents.tryEmit(TypingEvent(username, username, chId, isTyping = false))
                         if (ConnectoApiClient.activeTypingUser == username) {
@@ -1517,13 +1554,12 @@ object VoiceCallManager {
                 }
 
                 // --- READ RECEIPTS ---
-                "message_read" -> {
+                "message_read", "dm_read" -> {
                     val msgId = json.optString("message_id").ifEmpty { "" }
-                    val chId = json.optString("channel_id").ifEmpty { "" }
-                    val readerUsername = json.optString("reader_username").ifEmpty { "" }
-                    if (msgId.isNotBlank()) {
-                        _readReceiptEvents.tryEmit(ReadReceiptEvent(msgId, chId, readerUsername))
-                    }
+                    val chId = json.optString("channel_id").ifEmpty { json.optString("channel") }
+                    val readerUsername = json.optString("reader_username").ifEmpty { json.optString("user").ifEmpty { json.optString("target") } }
+                    _readReceiptEvents.tryEmit(ReadReceiptEvent(msgId, chId, readerUsername))
+                    Log.d(TAG, "Read receipt received via WebSocket from $readerUsername for channel $chId")
                 }
 
 
@@ -1805,7 +1841,8 @@ object VoiceCallManager {
                                 senderName = "🤝 Alliance Forged",
                                 messageText = "You and @$friendDisplay are now friends!",
                                 channelOrDmId = "dm",
-                                senderAvatar = friendAvatar
+                                senderAvatar = friendAvatar,
+                                senderUsername = friendUser
                             )
                             com.example.connecto.ui.components.InAppNotificationController.show(
                                 com.example.connecto.ui.components.InAppNotificationData(
@@ -1901,7 +1938,8 @@ object VoiceCallManager {
                                     senderName = nTitle.ifEmpty { "🤝 Alliance Forged" },
                                     messageText = nContent,
                                     channelOrDmId = "dm",
-                                    senderAvatar = nAvatar
+                                    senderAvatar = nAvatar,
+                                    senderUsername = nSender
                                 )
                                 com.example.connecto.ui.components.InAppNotificationController.show(
                                     com.example.connecto.ui.components.InAppNotificationData(
@@ -1946,7 +1984,8 @@ object VoiceCallManager {
                                                 senderName = nSender.ifEmpty { nTitle },
                                                 messageText = nContent,
                                                 channelOrDmId = nRefId.ifEmpty { nSender },
-                                                senderAvatar = nAvatar
+                                                senderAvatar = nAvatar,
+                                                senderUsername = cleanSender.ifEmpty { nSender }
                                             )
                                         }
                                         // Ensure message is dispatched to real-time chat stream and local DB so it is visible in chat
@@ -1990,7 +2029,8 @@ object VoiceCallManager {
                                     senderName = nTitle.ifEmpty { "Connecto" },
                                     messageText = nContent,
                                     channelOrDmId = nRefId,
-                                    senderAvatar = nAvatar
+                                    senderAvatar = nAvatar,
+                                    senderUsername = nSender
                                 )
                             }
                         }

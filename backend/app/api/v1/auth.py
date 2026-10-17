@@ -55,6 +55,159 @@ async def find_user_by_identifier(db: AsyncSession, identifier: str) -> Optional
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
+def extract_request_user_agent(request: Request) -> str:
+    ua = request.headers.get("User-Agent") or ""
+    dev_model = request.headers.get("X-Phone-Type") or request.headers.get("X-Device-Model") or request.headers.get("X-Device-Name")
+    dev_ver = request.headers.get("X-Phone-Version") or request.headers.get("X-Device-Version") or request.headers.get("X-Device-OS")
+    dev_type = request.headers.get("X-Device-Type")
+
+    parts = []
+    if dev_model and "model:" not in ua.lower():
+        parts.append(f"Model: {dev_model}")
+    if dev_ver and "version:" not in ua.lower():
+        parts.append(f"Version: {dev_ver}")
+    if dev_type and "type:" not in ua.lower():
+        parts.append(f"Type: {dev_type}")
+
+    if parts:
+        combined = f"{ua} | {' | '.join(parts)}"
+        return combined[:500]
+    return ua[:500]
+
+def parse_session_device_details(ua: str, headers: Optional[dict] = None) -> dict:
+    device_model = "Unknown Device"
+    phone_version = "Unknown OS"
+    device_type = "Desktop"
+    display_name = "Web Browser"
+
+    ua = ua or ""
+    lower_ua = ua.lower()
+
+    h_model = (headers.get("x-phone-type") or headers.get("x-device-model") or headers.get("x-device-name") or "").strip() if headers else ""
+    h_ver = (headers.get("x-phone-version") or headers.get("x-device-version") or headers.get("x-device-os") or "").strip() if headers else ""
+    h_type = (headers.get("x-device-type") or "").strip() if headers else ""
+
+    if "model:" in lower_ua:
+        m = re.search(r"model:\s*([^|;]+)", ua, re.IGNORECASE)
+        if m:
+            h_model = h_model or m.group(1).strip()
+    if "version:" in lower_ua:
+        m = re.search(r"version:\s*([^|;]+)", ua, re.IGNORECASE)
+        if m:
+            h_ver = h_ver or m.group(1).strip()
+    if "type:" in lower_ua:
+        m = re.search(r"type:\s*([^|;]+)", ua, re.IGNORECASE)
+        if m:
+            h_type = h_type or m.group(1).strip()
+
+    if "android" in lower_ua:
+        device_type = "Smartphone"
+        android_ver_match = re.search(r"android\s+([0-9\.]+)", ua, re.IGNORECASE)
+        android_ver_num = android_ver_match.group(1) if android_ver_match else ""
+
+        api_match = re.search(r"api\s+([0-9]+)", ua, re.IGNORECASE)
+        api_level = api_match.group(1) if api_match else ""
+
+        if android_ver_num:
+            phone_version = f"Android {android_ver_num} (API {api_level})" if api_level else f"Android {android_ver_num}"
+        else:
+            phone_version = "Android"
+
+        model_candidate = ""
+        paren_match = re.search(r"\(([^)]+)\)", ua)
+        if paren_match:
+            parts = [p.strip() for p in paren_match.group(1).split(";")]
+            filtered = [
+                p for p in parts
+                if not re.search(r"^(linux|u|wv|[a-z]{2}-[a-z]{2}|android\s+[0-9\.]+|api\s+[0-9]+|k|mobile)$", p.strip(), re.IGNORECASE)
+            ]
+            if filtered:
+                raw_model = filtered[-1]
+                raw_model = re.sub(r"\s*Build/.*$", "", raw_model, flags=re.IGNORECASE).strip()
+                if raw_model:
+                    model_candidate = raw_model
+
+        if h_model:
+            device_model = h_model
+        elif model_candidate:
+            device_model = model_candidate
+        else:
+            device_model = "Android Device"
+
+        if h_ver:
+            phone_version = h_ver
+        if h_type:
+            device_type = h_type
+        elif "tablet" in lower_ua:
+            device_type = "Tablet"
+        elif any(k in lower_ua for k in ("sdk_gphone", "emulator", "google_sdk")):
+            device_type = "Smartphone (Emulator)"
+
+        display_name = device_model
+
+    elif "iphone" in lower_ua:
+        device_type = "Smartphone"
+        device_model = "Apple iPhone"
+        ios_match = re.search(r"os\s+([0-9_]+)", ua, re.IGNORECASE)
+        phone_version = f"iOS {ios_match.group(1).replace('_', '.')}" if ios_match else "iOS"
+        display_name = "Apple iPhone"
+
+    elif "ipad" in lower_ua:
+        device_type = "Tablet"
+        device_model = "Apple iPad"
+        ios_match = re.search(r"os\s+([0-9_]+)", ua, re.IGNORECASE)
+        phone_version = f"iPadOS {ios_match.group(1).replace('_', '.')}" if ios_match else "iPadOS"
+        display_name = "Apple iPad"
+
+    elif "macintosh" in lower_ua or "mac os" in lower_ua:
+        device_type = "Computer"
+        device_model = "Apple Mac"
+        mac_match = re.search(r"mac os x\s+([0-9_]+)", ua, re.IGNORECASE)
+        phone_version = f"macOS {mac_match.group(1).replace('_', '.')}" if mac_match else "macOS"
+        if "chrome" in lower_ua:
+            display_name = "Chrome on macOS"
+        elif "safari" in lower_ua:
+            display_name = "Safari on macOS"
+        elif "firefox" in lower_ua:
+            display_name = "Firefox on macOS"
+        else:
+            display_name = "macOS Browser"
+
+    elif "windows" in lower_ua:
+        device_type = "Computer"
+        device_model = "Windows PC"
+        phone_version = "Windows"
+        if "edg" in lower_ua:
+            display_name = "Edge on Windows"
+        elif "chrome" in lower_ua:
+            display_name = "Chrome on Windows"
+        elif "firefox" in lower_ua:
+            display_name = "Firefox on Windows"
+        else:
+            display_name = "Windows PC"
+
+    elif "linux" in lower_ua:
+        device_type = "Computer"
+        device_model = "Linux PC"
+        phone_version = "Linux"
+        display_name = "Linux Browser"
+
+    if h_model:
+        device_model = h_model
+        display_name = h_model
+    if h_ver:
+        phone_version = h_ver
+    if h_type:
+        device_type = h_type
+
+    return {
+        "device_name": display_name,
+        "phone_type": device_model,
+        "phone_version": phone_version,
+        "os_version": phone_version,
+        "device_type": device_type
+    }
+
 @router.post("/signup/request-otp")
 async def signup_request_otp(
     req: SignupRequestOtp,
@@ -389,7 +542,7 @@ async def signup(
         user_id=new_user.id,
         session_token_hash=token_hash,
         ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("User-Agent"),
+        user_agent=extract_request_user_agent(request),
         expires_at=expires
     )
     db.add(session)
@@ -508,7 +661,7 @@ async def login(
         user_id=user.id,
         session_token_hash=token_hash,
         ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("User-Agent"),
+        user_agent=extract_request_user_agent(request),
         expires_at=expires
     )
     db.add(session)
@@ -622,7 +775,7 @@ async def verify_login_2fa(
         user_id=user.id,
         session_token_hash=token_hash,
         ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("User-Agent"),
+        user_agent=extract_request_user_agent(request),
         expires_at=expires
     )
     db.add(session)
@@ -828,7 +981,7 @@ async def forgot_password_reset(
         user_id=target_user.id,
         session_token_hash=token_hash,
         ip_address=request.client.host if request.client else None,
-        user_agent=request.headers.get("User-Agent"),
+        user_agent=extract_request_user_agent(request),
         expires_at=expires
     )
     db.add(session)
@@ -1222,26 +1375,19 @@ async def get_active_sessions_endpoint(
         if current_token_hash and s.session_token_hash == current_token_hash:
             is_curr = True
             has_current = True
-        
-        ua = s.user_agent or ""
-        dev_name = "Web Browser"
-        lower_ua = ua.lower()
-        if "android" in lower_ua:
-            dev_name = "Connecto Android App"
-        elif "iphone" in lower_ua or "ipad" in lower_ua:
-            dev_name = "Connecto iOS (Safari)"
-        elif "macintosh" in lower_ua or "mac os" in lower_ua:
-            if "chrome" in lower_ua: dev_name = "Chrome on macOS"
-            elif "safari" in lower_ua: dev_name = "Safari on macOS"
-            elif "firefox" in lower_ua: dev_name = "Firefox on macOS"
-            else: dev_name = "macOS Browser"
-        elif "windows" in lower_ua:
-            if "edg" in lower_ua: dev_name = "Edge on Windows"
-            elif "chrome" in lower_ua: dev_name = "Chrome on Windows"
-            elif "firefox" in lower_ua: dev_name = "Firefox on Windows"
-            else: dev_name = "Windows PC"
-        elif "linux" in lower_ua:
-            dev_name = "Linux Browser"
+
+        req_headers = request.headers if is_curr else None
+        dev_info = parse_session_device_details(s.user_agent or "", headers=req_headers)
+
+        # Upgrade stored UA for the current session if richer metadata is available
+        if is_curr:
+            enriched_ua = extract_request_user_agent(request)
+            if enriched_ua and s.user_agent != enriched_ua:
+                try:
+                    s.user_agent = enriched_ua
+                    await db.commit()
+                except Exception as ex:
+                    logger.debug(f"Failed to refresh session UA: {ex}")
 
         loc = "Online"
         if s.ip_address:
@@ -1252,7 +1398,11 @@ async def get_active_sessions_endpoint(
 
         session_list.append({
             "id": s.id,
-            "device_name": dev_name,
+            "device_name": dev_info["device_name"],
+            "phone_type": dev_info["phone_type"],
+            "phone_version": dev_info["phone_version"],
+            "os_version": dev_info["os_version"],
+            "device_type": dev_info["device_type"],
             "location": loc,
             "ip_address": s.ip_address or "",
             "is_current": is_curr,

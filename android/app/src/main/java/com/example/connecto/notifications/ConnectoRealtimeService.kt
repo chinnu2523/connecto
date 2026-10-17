@@ -209,7 +209,8 @@ class ConnectoRealtimeService : Service() {
                                                     ConnectoNotificationManager.showFriendRequestNotification(
                                                         senderName = n.senderUsername ?: n.title.ifEmpty { "Gamer" },
                                                         requestId = n.id,
-                                                        senderAvatar = n.senderAvatar
+                                                        senderAvatar = n.senderAvatar,
+                                                        senderUsername = n.senderUsername
                                                     )
                                                 }
                                                 else -> {
@@ -219,7 +220,8 @@ class ConnectoRealtimeService : Service() {
                                                             senderName = sender,
                                                             messageText = n.content,
                                                             channelOrDmId = n.referenceId ?: sender,
-                                                            senderAvatar = n.senderAvatar
+                                                            senderAvatar = n.senderAvatar,
+                                                            senderUsername = n.senderUsername ?: sender
                                                         )
                                                     }
                                                 }

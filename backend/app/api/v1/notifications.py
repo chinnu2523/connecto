@@ -113,7 +113,9 @@ async def create_user_notification(
                     "title": title,
                     "body": content,
                     "reference_id": reference_id or "",
-                    "room_id": reference_id or ""
+                    "room_id": reference_id or "",
+                    "sender_avatar": sender_avatar or "",
+                    "avatar": sender_avatar or ""
                 },
                 notification_type=type
             ))

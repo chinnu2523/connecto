@@ -233,29 +233,82 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text(json.dumps({"type": "pong"}))
 
                 # --- TYPING INDICATORS ---
-                elif msg_type in ("typing_start", "typing:start"):
+                elif msg_type in ("typing_start", "typing:start", "typing"):
                     is_stealth = bool(payload.get("is_stealth")) or bool(getattr(user, "is_stealth", False))
                     if is_stealth:
                         continue
-                    ch_id = (payload.get("channel_id") or payload.get("channel") or "general").strip()
-                    await ws_manager.broadcast_to_channel(ch_id, {
+                    ch_id = (payload.get("channel_id") or payload.get("channel") or "general").strip().removeprefix("#")
+                    target_user = (payload.get("target_user") or payload.get("recipient") or payload.get("target") or "").strip().lower().removeprefix("@")
+
+                    # If target_user not explicitly specified, check if ch_id is a DM pattern or username
+                    if not target_user:
+                        if ch_id.startswith("dm-") or ch_id.startswith("dm_"):
+                            sep = "-" if ch_id.startswith("dm-") else "_"
+                            parts = ch_id.removeprefix(f"dm{sep}").split(sep)
+                            if len(parts) == 2:
+                                target_user = parts[1] if parts[0].lower() == user.username.lower() else parts[0]
+                        elif ch_id.lower() != "general" and not any(ch_id.startswith(p) for p in ("grp_", "chan_", "server_")):
+                            target_user = ch_id.lower()
+
+                    typing_data = {
                         "type": "typing_start",
+                        "action": "typing:start",
                         "channel_id": ch_id,
+                        "channel": ch_id,
                         "user_id": user.id,
+                        "user": user.username,
                         "username": user.username,
                         "display_name": user.display_name or user.username,
-                        "avatar_url": user.avatar_url,
+                        "avatar_url": user.avatar_url or "",
+                        "target_user": target_user,
+                        "recipient": target_user,
                         "is_stealth": False,
-                    })
+                    }
+
+                    # 1. Broadcast to channel
+                    await ws_manager.broadcast_to_channel(ch_id, typing_data)
+
+                    # 2. If DM, send directly to friend's personal socket and inverse channel alias
+                    if target_user:
+                        await ws_manager.send_personal_event(target_user, typing_data)
+                        inv_dm = f"dm-{target_user}-{user.username.lower()}"
+                        await ws_manager.broadcast_to_channel(inv_dm, typing_data)
+                        canon_dm = f"dm-{user.username.lower()}-{target_user}"
+                        await ws_manager.broadcast_to_channel(canon_dm, typing_data)
 
                 elif msg_type in ("typing_stop", "typing:stop"):
-                    ch_id = (payload.get("channel_id") or payload.get("channel") or "general").strip()
-                    await ws_manager.broadcast_to_channel(ch_id, {
+                    ch_id = (payload.get("channel_id") or payload.get("channel") or "general").strip().removeprefix("#")
+                    target_user = (payload.get("target_user") or payload.get("recipient") or payload.get("target") or "").strip().lower().removeprefix("@")
+
+                    if not target_user:
+                        if ch_id.startswith("dm-") or ch_id.startswith("dm_"):
+                            sep = "-" if ch_id.startswith("dm-") else "_"
+                            parts = ch_id.removeprefix(f"dm{sep}").split(sep)
+                            if len(parts) == 2:
+                                target_user = parts[1] if parts[0].lower() == user.username.lower() else parts[0]
+                        elif ch_id.lower() != "general" and not any(ch_id.startswith(p) for p in ("grp_", "chan_", "server_")):
+                            target_user = ch_id.lower()
+
+                    stop_data = {
                         "type": "typing_stop",
+                        "action": "typing:stop",
                         "channel_id": ch_id,
+                        "channel": ch_id,
                         "user_id": user.id,
+                        "user": user.username,
                         "username": user.username,
-                    })
+                        "display_name": user.display_name or user.username,
+                        "target_user": target_user,
+                        "recipient": target_user,
+                    }
+
+                    await ws_manager.broadcast_to_channel(ch_id, stop_data)
+                    if target_user:
+                        await ws_manager.send_personal_event(target_user, stop_data)
+                        inv_dm = f"dm-{target_user}-{user.username.lower()}"
+                        await ws_manager.broadcast_to_channel(inv_dm, stop_data)
+                        canon_dm = f"dm-{user.username.lower()}-{target_user}"
+                        await ws_manager.broadcast_to_channel(canon_dm, stop_data)
 
 
                 # --- 1:1 DIRECT CALL SIGNALING ---

@@ -68,6 +68,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -567,7 +568,6 @@ fun CustomizedChatScreen(
     val activeCallPartner by VoiceCallManager.activeCallPartner.collectAsState()
 
     val coroutineScope = rememberCoroutineScope()
-    val listState = rememberLazyListState()
 
     // Send Button Animation State
     var isSendPressed by remember { mutableStateOf(false) }
@@ -591,6 +591,161 @@ fun CustomizedChatScreen(
         val clean = f.handle.trim().removePrefix("@").lowercase()
         val u = myUsername.lowercase()
         return "dm-${minOf(u, clean)}-${maxOf(u, clean)}"
+    }
+
+    // Direct Messages Feed & State
+    var activeDmChannelId by remember { mutableStateOf<String?>(null) }
+    var friendMessages by remember {
+        mutableStateOf<List<CustomMessageItem>>(emptyList())
+    }
+    var pinnedMessageForChat by remember { mutableStateOf<PinnedMessageDto?>(null) }
+    var messageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
+    var showMessageActionDialog by remember { mutableStateOf(false) }
+
+    fun deduplicateCustomMessages(messages: List<CustomMessageItem>): List<CustomMessageItem> {
+        val result = mutableListOf<CustomMessageItem>()
+        for (msg in messages) {
+            val existingIndex = result.indexOfFirst { existing ->
+                if (existing.id == msg.id) return@indexOfFirst true
+                val sameContent = existing.content.trim() == msg.content.trim() && msg.content.isNotBlank()
+                if (!sameContent) return@indexOfFirst false
+
+                val sameRole = existing.isMe == msg.isMe
+                if (!sameRole) return@indexOfFirst false
+
+                val timeDiff = kotlin.math.abs(existing.timestampMillis - msg.timestampMillis)
+                timeDiff <= 30_000L || existing.time == msg.time
+            }
+            if (existingIndex == -1) {
+                result.add(msg)
+            } else {
+                val existing = result[existingIndex]
+                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_")
+                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_")
+                if (existingIsTemp && !newIsTemp) {
+                    result[existingIndex] = msg.copy(
+                        reaction = existing.reaction ?: msg.reaction,
+                        isDelivered = existing.isDelivered || msg.isDelivered,
+                        isRead = existing.isRead || msg.isRead
+                    )
+                } else {
+                    result[existingIndex] = existing.copy(
+                        reaction = existing.reaction ?: msg.reaction,
+                        isDelivered = existing.isDelivered || msg.isDelivered,
+                        isRead = existing.isRead || msg.isRead,
+                        senderName = if (existing.senderName.contains("@") && !msg.senderName.contains("@")) msg.senderName else existing.senderName
+                    )
+                }
+            }
+        }
+        return result.sortedBy { it.timestampMillis }
+    }
+
+    fun loadLocalMessagesForFriend(friend: FriendItem): List<CustomMessageItem> {
+        val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+        val cleanTarget = friend.handle.removePrefix("@")
+        val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
+        val existingDmId = dbHelper.getDmChannelId(canonicalName)
+
+        val cachedMessages = if (friend.isGroup) {
+            dbHelper.getMessagesForChannel(friend.id, limit = 50)
+        } else {
+            dbHelper.getDirectMessages(
+                myUsername = myUser,
+                friendUsername = cleanTarget,
+                channelId = existingDmId,
+                limit = 50
+            )
+        }
+
+        if (cachedMessages.isEmpty()) return emptyList()
+
+        val myUName = ConnectoApiClient.currentUsername ?: currentUsername
+        val myDisplayName = ConnectoApiClient.currentUserDisplayName ?: ""
+        val myUserId = ConnectoApiClient.currentUserId
+        val otherUser = friend.handle.removePrefix("@")
+        val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUName, otherUser)
+        val isRecipientOnline = friend.isOnline
+
+        val mappedCached = cachedMessages.map { dto ->
+            val isMe = (
+                dto.authorId.equals(myUName, ignoreCase = true) ||
+                dto.authorName.equals(myUName, ignoreCase = true) ||
+                (myDisplayName.isNotBlank() && dto.authorName.equals(myDisplayName, ignoreCase = true)) ||
+                (myUserId != null && (dto.authorId == myUserId || dto.authorName == myUserId)) ||
+                dto.authorId.equals(currentUsername, ignoreCase = true) ||
+                dto.authorName.equals(currentUsername, ignoreCase = true)
+            )
+            val effectiveSenderName = if (isMe) {
+                if (myDisplayName.isNotBlank()) myDisplayName else myUName
+            } else {
+                if (dto.authorName.isNotBlank() && !dto.authorName.equals("gamer", ignoreCase = true)) {
+                    dto.authorName
+                } else {
+                    if (friend.isGroup) dto.authorName else friend.name
+                }
+            }
+            val init = if (effectiveSenderName.isNotBlank()) effectiveSenderName.first().toString().uppercase() else "U"
+            val msgAvatar = if (isMe) {
+                ConnectoApiClient.currentUserAvatarUrl
+            } else {
+                dto.authorAvatar ?: (if (friend.isGroup) null else friend.avatarUrl)
+            }
+
+            val (decryptedContent, decryptedReplyContent, isEnc) = if (friend.isGroup) {
+                Triple(dto.content, dto.replyToContent, false)
+            } else {
+                val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
+                val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
+                    ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                } else dto.replyToContent
+                Triple(decMsg, decReply, enc)
+            }
+
+            val msgMillis = parseMessageTimestamp(dto.createdAt)
+            val isReadValue = if (isMe) (dto.isRead ?: false) else true
+            CustomMessageItem(
+                id = dto.id,
+                senderName = effectiveSenderName,
+                initial = init,
+                content = decryptedContent,
+                time = formatIsoTime(dto.createdAt),
+                isMe = isMe,
+                isDelivered = if (isMe) (if (friend.isGroup) true else isRecipientOnline) else true,
+                isRead = isReadValue,
+                avatarUrl = msgAvatar,
+                replyToId = dto.replyToId,
+                replyToContent = decryptedReplyContent,
+                replyToAuthor = dto.replyToAuthor,
+                isEncrypted = isEnc,
+                timestampMillis = msgMillis
+            )
+        }
+
+        val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
+        val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
+        val lastFriendMsgTime = mappedCached.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
+        val resolvedCached = mappedCached
+            .filter { it.id !in deletedSet }
+            .map { msg ->
+                if (msg.isMe) {
+                    if (msg.isRead || (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime)) {
+                        msg.copy(isDelivered = true, isRead = true)
+                    } else {
+                        msg.copy(isDelivered = if (friend.isGroup) true else isRecipientOnline, isRead = false)
+                    }
+                } else msg
+            }
+        return deduplicateCustomMessages(resolvedCached)
+    }
+
+    val currentChatKey = selectedFriend?.let { getCanonicalChatId(it) } ?: ""
+    val initialScrollIndex = remember(currentChatKey) {
+        if (friendMessages.isNotEmpty()) friendMessages.size else 0
+    }
+    val listState = remember(currentChatKey) {
+        LazyListState(firstVisibleItemIndex = initialScrollIndex)
     }
 
     // Friend Profile Preview Lightbox & Per-Chat Preferences
@@ -994,16 +1149,24 @@ fun CustomizedChatScreen(
                                else if (cleanUsername.isNotBlank()) cleanUsername.first().toString().uppercase()
                                else "G"
                     val cachedFriend = dbHelper.getFriendByUsernameOrHandle(cleanUsername) ?: dbHelper.getFriendByUsernameOrHandle(f.friendId)
-                    val unread = readPrefs.getInt("unread_${f.friendId}", cachedFriend?.unreadCount ?: 0)
-                    val rawPrefMsg = readPrefs.getString("last_msg_${f.friendId}", null)
+                    val unread = maxOf(
+                        readPrefs.getInt("unread_${f.friendId}", 0),
+                        readPrefs.getInt("unread_${cleanUsername.lowercase()}", 0),
+                        cachedFriend?.unreadCount ?: 0
+                    )
+                    val rawPrefMsg = readPrefs.getString("last_msg_${f.friendId}", null) ?: readPrefs.getString("last_msg_${cleanUsername.lowercase()}", null)
                     val lastMsg = if (!rawPrefMsg.isNullOrBlank() && rawPrefMsg != "Direct chat active • Tap to message") {
                         rawPrefMsg
                     } else {
                         cachedFriend?.lastMessage?.ifBlank { null } ?: "Direct chat active • Tap to message"
                     }
-                    val rawPrefTime = readPrefs.getString("last_time_${f.friendId}", null)
+                    val rawPrefTime = readPrefs.getString("last_time_${f.friendId}", null) ?: readPrefs.getString("last_time_${cleanUsername.lowercase()}", null)
                     val time = formatIsoTime(if (!rawPrefTime.isNullOrBlank()) rawPrefTime else (cachedFriend?.timeAgo ?: "Active"))
-                    val lastTs = readPrefs.getLong("last_timestamp_${f.friendId}", cachedFriend?.lastMessageTimestamp ?: 0L)
+                    val lastTs = maxOf(
+                        readPrefs.getLong("last_timestamp_${f.friendId}", 0L),
+                        readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L),
+                        cachedFriend?.lastMessageTimestamp ?: 0L
+                    )
                     val isFriendOnline = f.isOnline && !f.isStealth
                     FriendItem(
                         id = f.friendId.ifBlank { f.id },
@@ -1034,9 +1197,23 @@ fun CustomizedChatScreen(
                     if (idx == -1) {
                         friendsList.add(item)
                     } else {
+                        val cleanU = item.handle.removePrefix("@").trim().lowercase()
                         val existingTs = friendsList[idx].lastMessageTimestamp
                         val effectiveTs = maxOf(existingTs, item.lastMessageTimestamp)
-                        friendsList[idx] = item.copy(lastMessageTimestamp = effectiveTs)
+                        val existingUnread = friendsList[idx].unreadCount
+                        val isChatOpen = selectedFriend != null && (
+                            selectedFriend?.id == item.id ||
+                            selectedFriend?.handle?.removePrefix("@")?.trim()?.equals(cleanU, ignoreCase = true) == true
+                        )
+                        val effectiveUnread = if (isChatOpen) 0 else maxOf(existingUnread, item.unreadCount)
+                        val effectiveLastMsg = if (item.lastMessage.isNotBlank() && item.lastMessage != "Direct chat active • Tap to message") item.lastMessage else friendsList[idx].lastMessage
+                        val effectiveTime = if (item.timeAgo.isNotBlank() && item.timeAgo != "Active") item.timeAgo else friendsList[idx].timeAgo
+                        friendsList[idx] = item.copy(
+                            lastMessage = effectiveLastMsg,
+                            timeAgo = effectiveTime,
+                            unreadCount = effectiveUnread,
+                            lastMessageTimestamp = effectiveTs
+                        )
                     }
                 }
                 isFriendsLoadedOnce = true
@@ -1048,12 +1225,22 @@ fun CustomizedChatScreen(
                         val serverUnread = unreadRes.getOrThrow() // Map<String, Int> partner→count
                         for (i in friendsList.indices) {
                             val friendHandle = friendsList[i].handle.removePrefix("@").trim().lowercase()
+                            val friendId = friendsList[i].id.trim().lowercase()
+                            val friendName = friendsList[i].name.trim().lowercase()
                             val isCurrentlyOpen = selectedFriend != null && (
                                 selectedFriend?.id == friendsList[i].id ||
                                 selectedFriend?.handle?.removePrefix("@")?.trim()?.equals(friendHandle, ignoreCase = true) == true
                             )
-                            val serverCount = if (isCurrentlyOpen) 0 else (serverUnread[friendHandle] ?: serverUnread.entries
-                                .firstOrNull { it.key.trim().removePrefix("@").equals(friendHandle, ignoreCase = true) }?.value ?: 0)
+                            val serverCount = if (isCurrentlyOpen) {
+                                0
+                            } else {
+                                serverUnread[friendHandle] ?:
+                                serverUnread[friendId] ?:
+                                serverUnread.entries.firstOrNull { entry ->
+                                    val k = entry.key.trim().removePrefix("@").lowercase()
+                                    k == friendHandle || k == friendId || k == friendName
+                                }?.value ?: friendsList[i].unreadCount // Preserve in-memory unread count if server omitted
+                            }
                             if (serverCount != friendsList[i].unreadCount) {
                                 friendsList[i] = friendsList[i].copy(unreadCount = serverCount)
                                 readPrefs.edit()
@@ -1208,14 +1395,7 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Direct Messages Feed
-    var activeDmChannelId by remember { mutableStateOf<String?>(null) }
-    var friendMessages by remember {
-        mutableStateOf<List<CustomMessageItem>>(emptyList())
-    }
-    var pinnedMessageForChat by remember { mutableStateOf<PinnedMessageDto?>(null) }
-    var messageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
-    var showMessageActionDialog by remember { mutableStateOf(false) }
+
 
     // Message Context Action States (Pin, Edit, Delete via Contextual Header 3-Dots Menu)
     var selectedMessageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
@@ -1241,15 +1421,27 @@ fun CustomizedChatScreen(
     }
 
     // Real-Time Typing Indicator Observer for Active Direct Chat / Group
-    LaunchedEffect(selectedFriend?.id, activeDmChannelId) {
+    LaunchedEffect(selectedFriend?.id, selectedFriend?.handle, activeDmChannelId) {
         val targetHandle = selectedFriend?.handle?.removePrefix("@")?.lowercase()
         val targetId = selectedFriend?.id?.lowercase()
+        val targetName = selectedFriend?.name?.lowercase()
+        val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
         isFriendTyping = false
         VoiceCallManager.typingEvents.collect { ev ->
             val evUser = ev.username.lowercase().removePrefix("@")
             val evCh = ev.channelId.lowercase().removePrefix("#")
-            val isTargetUser = (targetHandle != null && evUser == targetHandle) || (targetId != null && evUser == targetId)
-            val isTargetChannel = (activeDmChannelId != null && evCh == activeDmChannelId?.lowercase()?.removePrefix("#"))
+
+            // Ignore own typing events
+            if (evUser == myUser) return@collect
+
+            val isTargetUser = (targetHandle != null && evUser == targetHandle) ||
+                               (targetId != null && evUser == targetId) ||
+                               (targetName != null && evUser == targetName)
+            val isTargetChannel = (activeDmChannelId != null && (
+                evCh == activeDmChannelId?.lowercase()?.removePrefix("#") ||
+                evCh == "dm-${myUser}-${targetHandle ?: targetName ?: targetId}" ||
+                evCh == "dm-${targetHandle ?: targetName ?: targetId}-${myUser}"
+            ))
             if (isTargetUser || isTargetChannel) {
                 isFriendTyping = ev.isTyping
             }
@@ -1258,6 +1450,11 @@ fun CustomizedChatScreen(
 
     LaunchedEffect(isFriendTyping) {
         if (isFriendTyping) {
+            coroutineScope.launch {
+                try {
+                    listState.animateScrollToItem(friendMessages.size)
+                } catch (_: Exception) {}
+            }
             kotlinx.coroutines.delay(4000)
             isFriendTyping = false
         }
@@ -1265,13 +1462,18 @@ fun CustomizedChatScreen(
 
     // Broadcast current user's typing activity in DM, suppressed if Stealth Mode is ON
     LaunchedEffect(typedMessage, selectedFriend?.id, activeDmChannelId) {
-        val target = activeDmChannelId ?: selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.id
-        if (!target.isNullOrBlank() && typedMessage.isNotBlank()) {
+        val recipientUser = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name ?: selectedFriend?.id
+        val target = activeDmChannelId ?: recipientUser
+        if (!target.isNullOrBlank()) {
             val isStealth = ConnectoApiClient.isStealthMode || context.getSharedPreferences("connecto_profile", Context.MODE_PRIVATE).getBoolean("stealth_mode_${currentUsername}", false)
             if (!isStealth) {
-                VoiceCallManager.sendTypingStart(target)
-                kotlinx.coroutines.delay(2500)
-                VoiceCallManager.sendTypingStop(target)
+                if (typedMessage.isNotBlank()) {
+                    VoiceCallManager.sendTypingStart(target, recipientUser)
+                    kotlinx.coroutines.delay(2500)
+                    VoiceCallManager.sendTypingStop(target, recipientUser)
+                } else {
+                    VoiceCallManager.sendTypingStop(target, recipientUser)
+                }
             }
         }
     }
@@ -1337,6 +1539,34 @@ fun CustomizedChatScreen(
                     isOnline = isOnline,
                     status = if (isOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
                 )
+            }
+        }
+    }
+
+    // Real-time WebSocket Read Receipts Listener (updates outgoing message read state when friend reads chat)
+    LaunchedEffect(Unit) {
+        VoiceCallManager.readReceiptEvents.collect { receipt ->
+            val cleanReader = receipt.readerUsername.trim().lowercase().removePrefix("@")
+            val currentSelected = selectedFriend
+            if (currentSelected != null) {
+                val currentHandle = currentSelected.handle.lowercase().removePrefix("@")
+                val currentId = currentSelected.id.lowercase()
+                val currentName = currentSelected.name.lowercase()
+                val myU = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                val matchesReader = cleanReader.isBlank() || cleanReader == currentHandle || cleanReader == currentId || cleanReader == currentName
+                val currentCanonical = "dm-${minOf(myU, currentHandle)}-${maxOf(myU, currentHandle)}"
+                val matchesChannel = receipt.channelId.isBlank() || 
+                    receipt.channelId.equals(activeDmChannelId, ignoreCase = true) || 
+                    receipt.channelId.equals(currentCanonical, ignoreCase = true)
+                if (matchesReader || matchesChannel) {
+                    friendMessages = friendMessages.map { msg ->
+                        if (msg.isMe && (!msg.isDelivered || !msg.isRead)) {
+                            msg.copy(isDelivered = true, isRead = true)
+                        } else {
+                            msg
+                        }
+                    }
+                }
             }
         }
     }
@@ -1454,23 +1684,8 @@ fun CustomizedChatScreen(
                 } else friendMessages
 
                 // Reconcile and deduplicate:
-                val existingIdx = baseList.indexOfFirst {
-                    it.id == newItem.id || (
-                        isMe && it.isMe &&
-                        it.id.startsWith("opt-") &&
-                        kotlin.math.abs(it.timestampMillis - newItem.timestampMillis) < 60_000L &&
-                        it.content.trim() == newItem.content.trim()
-                    )
-                }
-
-                val resultList = baseList.toMutableList()
-                if (existingIdx != -1) {
-                    val existingItem = resultList[existingIdx]
-                    resultList[existingIdx] = newItem.copy(reaction = existingItem.reaction ?: newItem.reaction)
-                } else if (resultList.none { it.id == newItem.id }) {
-                    resultList.add(newItem)
-                }
-                friendMessages = resultList.sortedBy { it.timestampMillis }
+                val resultList = (baseList + newItem)
+                friendMessages = deduplicateCustomMessages(resultList)
                 coroutineScope.launch {
                     try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
                 }
@@ -1638,7 +1853,6 @@ fun CustomizedChatScreen(
         if (friend != null) {
             val friendId = friend.id
             typedMessage = messageDrafts[friend.id] ?: ""
-            activeDmChannelId = null
 
             markFriendChatAsReadLocallyAndRemotely(friend)
 
@@ -1648,121 +1862,32 @@ fun CustomizedChatScreen(
 
             if (friend.isGroup) {
                 activeDmChannelId = friend.id
+            } else if (activeDmChannelId == null) {
+                activeDmChannelId = dbHelper.getDmChannelId(canonicalName)
             }
 
-            // 1. Instant SQLite Cache Load (0ms UI latency across all channel aliases)
-            val cachedMessages = withContext(Dispatchers.IO) {
-                if (friend.isGroup) {
-                    dbHelper.getMessagesForChannel(friend.id, limit = 50)
-                } else {
-                    val resolvedChId = activeDmChannelId
-                        ?: ConnectoApiClient.channelCache[canonicalName.lowercase()]
-                        ?: dbHelper.getDmChannelId(canonicalName)
-                    dbHelper.getDirectMessages(
-                        myUsername = myUser,
-                        friendUsername = cleanTarget,
-                        channelId = resolvedChId,
-                        limit = 50
-                    )
+            // Fallback: If friendMessages was not populated yet (e.g. entry from external intent), load from SQLite
+            if (friendMessages.isEmpty()) {
+                val resolvedCached = withContext(Dispatchers.IO) {
+                    loadLocalMessagesForFriend(friend)
                 }
-            }
-
-            if (cachedMessages.isNotEmpty()) {
-                val myUsername = ConnectoApiClient.currentUsername ?: currentUsername
-                val myDisplayName = ConnectoApiClient.currentUserDisplayName ?: ""
-                val myUserId = ConnectoApiClient.currentUserId
-
-                // Use verified channel UUID if already mapped to this canonical conversation
-                val existingDmId = dbHelper.getDmChannelId(canonicalName)
-                if (existingDmId != null && !friend.isGroup) {
-                    if (activeDmChannelId == null) activeDmChannelId = existingDmId
-                    ConnectoApiClient.channelCache[canonicalName.lowercase()] = existingDmId
-                    ConnectoApiClient.channelCache[existingDmId.lowercase()] = canonicalName.lowercase()
-                    VoiceCallManager.subscribeChannel(existingDmId)
-                }
-
-                val otherUser = friend.handle.removePrefix("@")
-                val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
-                val isRecipientOnline = friend.isOnline || (selectedFriend?.isOnline == true)
-
-                val mappedCached = cachedMessages.map { dto ->
-                    val isMe = (
-                        dto.authorId.equals(myUsername, ignoreCase = true) ||
-                        dto.authorName.equals(myUsername, ignoreCase = true) ||
-                        (myDisplayName.isNotBlank() && dto.authorName.equals(myDisplayName, ignoreCase = true)) ||
-                        (myUserId != null && (dto.authorId == myUserId || dto.authorName == myUserId)) ||
-                        dto.authorId.equals(currentUsername, ignoreCase = true) ||
-                        dto.authorName.equals(currentUsername, ignoreCase = true)
-                    )
-                    val effectiveSenderName = if (isMe) {
-                        if (myDisplayName.isNotBlank()) myDisplayName else myUsername
-                    } else {
-                        if (dto.authorName.isNotBlank() && !dto.authorName.equals("gamer", ignoreCase = true)) {
-                            dto.authorName
-                        } else {
-                            if (friend.isGroup) dto.authorName else (selectedFriend?.name ?: friend.name)
-                        }
-                    }
-                    val init = if (effectiveSenderName.isNotBlank()) effectiveSenderName.first().toString().uppercase() else "U"
-                    val msgAvatar = if (isMe) {
-                        ConnectoApiClient.currentUserAvatarUrl
-                    } else {
-                        dto.authorAvatar ?: (if (friend.isGroup) null else (selectedFriend?.avatarUrl ?: friend.avatarUrl))
-                    }
-
-                    val (decryptedContent, decryptedReplyContent, isEnc) = if (friend.isGroup) {
-                        Triple(dto.content, dto.replyToContent, false)
-                    } else {
-                        val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
-                        val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
-                        val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
-                            ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
-                        } else dto.replyToContent
-                        Triple(decMsg, decReply, enc)
-                    }
-
-                    val msgMillis = parseMessageTimestamp(dto.createdAt)
-                    CustomMessageItem(
-                        id = dto.id,
-                        senderName = effectiveSenderName,
-                        initial = init,
-                        content = decryptedContent,
-                        time = formatIsoTime(dto.createdAt),
-                        isMe = isMe,
-                        isDelivered = if (isMe) (if (friend.isGroup) true else isRecipientOnline) else true,
-                        isRead = if (isMe) false else true,
-                        avatarUrl = msgAvatar,
-                        replyToId = dto.replyToId,
-                        replyToContent = decryptedReplyContent,
-                        replyToAuthor = dto.replyToAuthor,
-                        isEncrypted = isEnc,
-                        timestampMillis = msgMillis
-                    )
-                }
-
-                val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
-                val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
-                val lastFriendMsgTime = mappedCached.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
-                val resolvedCached = mappedCached
-                    .filter { it.id !in deletedSet }
-                    .map { msg ->
-                    if (msg.isMe) {
-                        if (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime) {
-                            msg.copy(isDelivered = true, isRead = true)
-                        } else {
-                            msg.copy(isDelivered = if (friend.isGroup) true else isRecipientOnline)
-                        }
-                    } else msg
-                }.sortedBy { it.timestampMillis }
-
-                friendMessages = resolvedCached
-                isLoadingMessages = false
-                coroutineScope.launch {
+                if (resolvedCached.isNotEmpty()) {
+                    friendMessages = resolvedCached
+                    isLoadingMessages = false
                     try { listState.scrollToItem(resolvedCached.size) } catch (_: Exception) {}
+                } else {
+                    isLoadingMessages = false
                 }
             } else {
-                friendMessages = emptyList()
-                isLoadingMessages = true
+                isLoadingMessages = false
+            }
+
+            val existingDmId = dbHelper.getDmChannelId(canonicalName)
+            if (existingDmId != null && !friend.isGroup) {
+                if (activeDmChannelId == null) activeDmChannelId = existingDmId
+                ConnectoApiClient.channelCache[canonicalName.lowercase()] = existingDmId
+                ConnectoApiClient.channelCache[existingDmId.lowercase()] = canonicalName.lowercase()
+                VoiceCallManager.subscribeChannel(existingDmId)
             }
 
             // Fetch pinned message for this conversation (isolated by canonical channel or group ID)
@@ -1949,6 +2074,7 @@ fun CustomizedChatScreen(
                                     }
 
                                     val msgMillis = parseMessageTimestamp(dto.createdAt)
+                                    val isReadValue = if (isMe) (dto.isRead ?: false) else true
                                     CustomMessageItem(
                                         id = dto.id,
                                         senderName = effectiveSenderName,
@@ -1957,7 +2083,7 @@ fun CustomizedChatScreen(
                                         time = formatIsoTime(dto.createdAt),
                                         isMe = isMe,
                                         isDelivered = if (isMe) (if (friend.isGroup) true else isRecipientOnline) else true,
-                                        isRead = if (isMe) false else true,
+                                        isRead = isReadValue,
                                         reaction = existingReactions[dto.id],
                                         avatarUrl = msgAvatar,
                                         replyToId = dto.replyToId,
@@ -1971,10 +2097,10 @@ fun CustomizedChatScreen(
                                 val lastFriendMsgTime = mapped.filter { !it.isMe }.maxOfOrNull { it.timestampMillis } ?: 0L
                                 val mappedResolved = mapped.map { msg ->
                                     if (msg.isMe) {
-                                        if (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime) {
+                                        if (msg.isRead || (lastFriendMsgTime > 0 && msg.timestampMillis <= lastFriendMsgTime)) {
                                             msg.copy(isDelivered = true, isRead = true)
                                         } else {
-                                            msg.copy(isDelivered = if (friend.isGroup) true else isRecipientOnline)
+                                            msg.copy(isDelivered = if (friend.isGroup) true else isRecipientOnline, isRead = false)
                                         }
                                     } else msg
                                 }
@@ -1984,31 +2110,32 @@ fun CustomizedChatScreen(
                                 val unconfirmedLocal = friendMessages.filter { localMsg ->
                                     if (mappedIds.contains(localMsg.id)) {
                                         false // Already confirmed in server list
-                                    } else if (localMsg.id.startsWith("opt-")) {
-                                        // Optimistic message: keep unless mapped already has a confirmed server message from me with identical content within 60 seconds
-                                        mappedResolved.none { m -> m.isMe && kotlin.math.abs(m.timestampMillis - localMsg.timestampMillis) < 60_000L && m.content.trim() == localMsg.content.trim() }
                                     } else {
-                                        // Confirmed locally or cached from DB: NEVER drop simply because server poll didn't return it!
-                                        true
+                                        // Keep local message only if server poll did not return any message matching this content and author
+                                        mappedResolved.none { m ->
+                                            m.isMe == localMsg.isMe &&
+                                            m.content.trim() == localMsg.content.trim() &&
+                                            (kotlin.math.abs(m.timestampMillis - localMsg.timestampMillis) < 30_000L || m.time == localMsg.time)
+                                        }
                                     }
                                 }
                                 val delPrefsKey = "deleted_for_me_${myUser.lowercase()}"
                                 val deletedSet = friendPrefs.getStringSet(delPrefsKey, emptySet()) ?: emptySet()
-                                val merged = (mappedResolved + unconfirmedLocal)
-                                    .filter { it.id !in deletedSet }
-                                    .distinctBy { it.id }
-                                    .sortedBy { it.timestampMillis }
+                                val merged = deduplicateCustomMessages(
+                                    (mappedResolved + unconfirmedLocal).filter { it.id !in deletedSet }
+                                )
                                 if (friendMessages != merged) {
+                                    val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                    val isAtBottom = lastVisible >= (friendMessages.size - 2).coerceAtLeast(0)
+                                    val hasNewItems = merged.size > friendMessages.size
                                     friendMessages = merged
-                                }
-
-                                // Ensure we scroll to the bottom on first server fetch
-                                if (!hasServerScrolledForFriend && merged.isNotEmpty()) {
-                                    hasServerScrolledForFriend = true
-                                    coroutineScope.launch {
-                                        try { listState.scrollToItem(merged.size) } catch (_: Exception) {}
+                                    if (isAtBottom && hasNewItems) {
+                                        coroutineScope.launch {
+                                            try { listState.scrollToItem(merged.size) } catch (_: Exception) {}
+                                        }
                                     }
                                 }
+                                hasServerScrolledForFriend = true
 
                                 // Update last message in friends list and persist
                                 if (merged.isNotEmpty()) {
@@ -4209,11 +4336,15 @@ fun CustomizedChatScreen(
                                 val (initialWp, initialUri) = resolveChatWallpaper(friend)
                                 chatWallpaperId = initialWp
                                 customWallpaperUri = initialUri
-                                selectedFriend = friend
+                                val initialMsgs = loadLocalMessagesForFriend(friend)
+                                friendMessages = initialMsgs
+                                val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                                val cleanTarget = friend.handle.removePrefix("@")
+                                val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
+                                activeDmChannelId = if (friend.isGroup) friend.id else dbHelper.getDmChannelId(canonicalName)
+                                isLoadingMessages = initialMsgs.isEmpty()
                                 typedMessage = messageDrafts[friend.id] ?: ""
-                                friendMessages = emptyList()
-                                activeDmChannelId = null
-                                isLoadingMessages = true
+                                selectedFriend = friend
                                 onDirectChatStateChanged(true)
                                 markFriendChatAsReadLocallyAndRemotely(friend)
                             }
@@ -4354,7 +4485,8 @@ fun CustomizedChatScreen(
                                         Text(
                                             text = friend.lastMessage,
                                             fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -4370,7 +4502,7 @@ fun CustomizedChatScreen(
                                         Text(
                                             text = formatIsoTime(friend.timeAgo),
                                             fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium,
+                                            fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
                                             color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1
                                         )
@@ -4379,9 +4511,10 @@ fun CustomizedChatScreen(
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Box(
                                                 modifier = Modifier
-                                                    .size(20.dp)
+                                                    .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
                                                     .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.primary),
+                                                    .background(MaterialTheme.colorScheme.primary)
+                                                    .padding(horizontal = 5.dp, vertical = 2.dp),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
@@ -5076,6 +5209,8 @@ fun CustomizedChatScreen(
                                         }
                                     }
                                 }
+                            }
+
                             // Active Editing Message Banner
                             AnimatedVisibility(
                                 visible = editingMessage != null,
@@ -5289,9 +5424,10 @@ fun CustomizedChatScreen(
                                     selectedFriend?.let { messageDrafts.remove(it.id) }
                                     showEmojiPicker = false
 
-                                    val typingTarget = activeDmChannelId ?: selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.id
+                                    val typingRecipient = selectedFriend?.handle?.removePrefix("@") ?: selectedFriend?.name ?: selectedFriend?.id
+                                    val typingTarget = activeDmChannelId ?: typingRecipient
                                     if (typingTarget != null) {
-                                        VoiceCallManager.sendTypingStop(typingTarget)
+                                        VoiceCallManager.sendTypingStop(typingTarget, typingRecipient)
                                     }
 
                                     val myName = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@")
@@ -5411,6 +5547,7 @@ fun CustomizedChatScreen(
                                             if (sendRes.isSuccess) {
                                                 val sentDto = sendRes.getOrThrow()
                                                 withContext(Dispatchers.IO) {
+                                                    dbHelper.deleteMessage(tempId)
                                                     dbHelper.saveMessage(sentDto)
                                                     if (isGrp) {
                                                         dbHelper.saveMessages(targetChannelId, listOf(sentDto))
@@ -5445,11 +5582,10 @@ fun CustomizedChatScreen(
                                                         reaction = curList[optIdx].reaction ?: realItem.reaction,
                                                         isDelivered = curList[optIdx].isDelivered || realItem.isDelivered
                                                     )
-                                                    friendMessages = curList.sortedBy { it.timestampMillis }
                                                 } else if (curList.none { it.id == realItem.id }) {
                                                     curList.add(realItem)
-                                                    friendMessages = curList.sortedBy { it.timestampMillis }
                                                 }
+                                                friendMessages = deduplicateCustomMessages(curList)
                                                 coroutineScope.launch {
                                                     try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
                                                 }
@@ -5542,7 +5678,6 @@ fun CustomizedChatScreen(
         }
     }
 
-}
 }
 }
 
@@ -5837,6 +5972,15 @@ fun CustomChatBubble(
                         modifier = Modifier.align(Alignment.End),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (message.isMe && !message.isRead) {
+                            Text(
+                                text = "1",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFFFB300), // Distinct amber unread indicator "1"
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+                        }
                         Text(
                             text = formatIsoTime(message.time),
                             fontSize = 10.sp,
@@ -5848,7 +5992,7 @@ fun CustomChatBubble(
                             Spacer(modifier = Modifier.width(4.dp))
                             val isDelivered = message.isDelivered
                             val isRead = message.isRead
-                            val tickIcon = if (isDelivered) Icons.Default.DoneAll else Icons.Default.Check
+                            val tickIcon = if (isRead || isDelivered) Icons.Default.DoneAll else Icons.Default.Check
                             val tickTint = if (isRead) {
                                 Color(0xFF0284C7) // Read receipt (distinct azure double tick)
                             } else if (isDelivered) {

@@ -74,7 +74,11 @@ data class UserSessionDto(
     val ipAddress: String,
     val createdAt: String,
     val lastActiveAt: String,
-    val isCurrent: Boolean
+    val isCurrent: Boolean,
+    val phoneType: String? = null,
+    val phoneVersion: String? = null,
+    val osVersion: String? = null,
+    val deviceType: String? = null
 )
 
 data class UserDto(
@@ -138,7 +142,8 @@ data class MessageDto(
     val expiresAt: String? = null,
     val replyToId: String? = null,
     val replyToContent: String? = null,
-    val replyToAuthor: String? = null
+    val replyToAuthor: String? = null,
+    val isRead: Boolean? = null
 )
 
 data class PinnedMessageDto(
@@ -506,7 +511,50 @@ object ConnectoApiClient {
         }
     }
 
-    private const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36 Connecto/2.5"
+    fun getPhoneModel(): String {
+        val manufacturer = android.os.Build.MANUFACTURER.orEmpty().trim()
+        val model = android.os.Build.MODEL.orEmpty().trim()
+        return if (model.lowercase().startsWith(manufacturer.lowercase())) {
+            model.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+        } else if (manufacturer.isNotBlank()) {
+            val formattedMan = manufacturer.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+            "$formattedMan $model"
+        } else {
+            model.ifBlank { "Android Smartphone" }
+        }
+    }
+
+    fun getPhoneVersion(): String {
+        val release = android.os.Build.VERSION.RELEASE
+        val sdk = android.os.Build.VERSION.SDK_INT
+        return "Android $release (API $sdk)"
+    }
+
+    fun getDeviceType(context: android.content.Context? = null): String {
+        val isEmulator = android.os.Build.FINGERPRINT.startsWith("generic") ||
+                android.os.Build.MODEL.contains("google_sdk") ||
+                android.os.Build.MODEL.contains("Emulator") ||
+                android.os.Build.MODEL.contains("Android SDK") ||
+                android.os.Build.HARDWARE.contains("goldfish") ||
+                android.os.Build.HARDWARE.contains("ranchu") ||
+                android.os.Build.PRODUCT.contains("sdk")
+        val ctx = context ?: applicationContext
+        if (ctx != null) {
+            val screenLayout = ctx.resources.configuration.screenLayout
+            val isTablet = (screenLayout and android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK) >= android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE
+            if (isTablet) return if (isEmulator) "Tablet (Emulator)" else "Tablet"
+        }
+        return if (isEmulator) "Smartphone (Emulator)" else "Smartphone"
+    }
+
+    fun getDynamicUserAgent(): String {
+        val osVer = android.os.Build.VERSION.RELEASE
+        val sdk = android.os.Build.VERSION.SDK_INT
+        val model = getPhoneModel()
+        return "Mozilla/5.0 (Linux; Android $osVer; API $sdk; $model) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36 Connecto/4.4"
+    }
+
+    val USER_AGENT: String get() = getDynamicUserAgent()
 
     suspend fun checkHealth(): Boolean = withContext(Dispatchers.IO) {
         val candidateUrls = ConnectoNetworkConfig.getCandidateBases()
@@ -1316,7 +1364,11 @@ object ConnectoApiClient {
                             ipAddress = item.optString("ip_address", "Unknown IP"),
                             createdAt = item.optString("created_at", ""),
                             lastActiveAt = item.optString("last_active_at", ""),
-                            isCurrent = item.optBoolean("is_current", false)
+                            isCurrent = item.optBoolean("is_current", false),
+                            phoneType = item.optString("phone_type").takeIf { it.isNotBlank() },
+                            phoneVersion = item.optString("phone_version").takeIf { it.isNotBlank() },
+                            osVersion = item.optString("os_version").takeIf { it.isNotBlank() },
+                            deviceType = item.optString("device_type").takeIf { it.isNotBlank() }
                         )
                     )
                 }
@@ -1989,7 +2041,8 @@ object ConnectoApiClient {
                             expiresAt = expiresAt,
                             replyToId = replyToId,
                             replyToContent = replyToContent,
-                            replyToAuthor = replyToAuthor
+                            replyToAuthor = replyToAuthor,
+                            isRead = if (obj.has("is_read")) obj.optBoolean("is_read") else null
                         )
                     )
                 }
@@ -4287,7 +4340,14 @@ object ConnectoApiClient {
                     if (!u.isNullOrBlank()) {
                         setRequestProperty("X-User-Username", u.trim().lowercase().removePrefix("@"))
                     }
-                    val devName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim()
+                    val devName = getPhoneModel()
+                    val devVersion = getPhoneVersion()
+                    val devType = getDeviceType()
+                    setRequestProperty("X-Phone-Type", devName)
+                    setRequestProperty("X-Phone-Version", devVersion)
+                    setRequestProperty("X-Device-Model", devName)
+                    setRequestProperty("X-Device-Version", devVersion)
+                    setRequestProperty("X-Device-Type", devType)
                     setRequestProperty("X-Device-Name", devName)
                     setRequestProperty("X-Device-OS", "Android ${android.os.Build.VERSION.RELEASE}")
                 }

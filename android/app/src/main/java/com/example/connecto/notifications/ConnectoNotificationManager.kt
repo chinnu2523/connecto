@@ -27,6 +27,8 @@ import android.graphics.Rect
 import android.graphics.Typeface
 import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -240,7 +242,7 @@ object ConnectoNotificationManager {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val avatarBitmap = fetchAvatarBitmap(callerAvatar) ?: createMonogramBitmap(callerName)
+                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername) ?: createMonogramBitmap(callerName)
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)
                     .setSmallIcon(R.mipmap.ic_launcher)
@@ -309,21 +311,23 @@ object ConnectoNotificationManager {
     }
 
     private fun getCircularBitmap(bitmap: Bitmap): Bitmap {
-        val size = minOf(bitmap.width, bitmap.height)
-        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val origSize = minOf(bitmap.width, bitmap.height)
+        val targetSize = minOf(origSize, 256)
+        val output = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(output)
         val paint = Paint().apply {
             isAntiAlias = true
+            isFilterBitmap = true
             color = -0x1
         }
-        val rect = Rect(0, 0, size, size)
+        val rect = Rect(0, 0, targetSize, targetSize)
         val srcRect = Rect(
-            (bitmap.width - size) / 2,
-            (bitmap.height - size) / 2,
-            (bitmap.width + size) / 2,
-            (bitmap.height + size) / 2
+            (bitmap.width - origSize) / 2,
+            (bitmap.height - origSize) / 2,
+            (bitmap.width + origSize) / 2,
+            (bitmap.height + origSize) / 2
         )
-        canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
+        canvas.drawCircle(targetSize / 2f, targetSize / 2f, targetSize / 2f, paint)
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         canvas.drawBitmap(bitmap, srcRect, rect, paint)
         return output
@@ -334,16 +338,16 @@ object ConnectoNotificationManager {
         senderName: String? = null,
         senderUsername: String? = null
     ): Bitmap? = withContext(Dispatchers.IO) {
+        val context = appContext
         var rawUrl = avatarUrl?.trim()
 
         val isEmojiOnly = rawUrl != null && !rawUrl.contains("/") && !rawUrl.contains(".") && !rawUrl.startsWith("data:")
         // 1. If avatarUrl is null/blank or emoji, attempt to resolve actual photo from local SQLite cached friends
         if (rawUrl.isNullOrBlank() || isEmojiOnly) {
-            val ctx = appContext
-            if (ctx != null) {
+            if (context != null) {
                 val candidateKey = senderUsername?.ifBlank { null } ?: senderName?.ifBlank { null }
                 if (!candidateKey.isNullOrBlank()) {
-                    val friend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(ctx)
+                    val friend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
                         .getFriendByUsernameOrHandle(candidateKey)
                     val dbAvatar = friend?.avatarUrl?.trim()
                     if (!dbAvatar.isNullOrBlank() && (dbAvatar.contains("/") || dbAvatar.contains(".") || dbAvatar.startsWith("data:"))) {
@@ -391,13 +395,20 @@ object ConnectoNotificationManager {
             } catch (_: Exception) {}
         }
 
-        // 5. Remote HTTP/HTTPS fetch with multi-base fallback
-        val candidateUrls = mutableListOf<String>()
+        // 5. Remote HTTP/HTTPS fetch with multi-base fallback & Coil ImageLoader
+        val candidateUrls = linkedSetOf<String>()
+        val activeBase = com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')
+
         if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
             candidateUrls.add(rawUrl)
+            if (rawUrl.contains("/uploads/")) {
+                val pathAfterUploads = "uploads/" + rawUrl.substringAfter("/uploads/").trimStart('/')
+                candidateUrls.add("$activeBase/$pathAfterUploads")
+                candidateUrls.add("http://10.0.2.2:8080/$pathAfterUploads")
+                candidateUrls.add("https://connecto.fun/$pathAfterUploads")
+            }
         } else {
             val cleanPath = rawUrl.trimStart('/')
-            val activeBase = com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')
             candidateUrls.add("$activeBase/$cleanPath")
             if (!activeBase.contains("connecto.fun")) {
                 candidateUrls.add("https://connecto.fun/$cleanPath")
@@ -405,6 +416,30 @@ object ConnectoNotificationManager {
             candidateUrls.add("http://10.0.2.2:8080/$cleanPath")
         }
 
+        // Attempt 5A: Coil ImageLoader (disk cache, memory cache, WebP, hardware=false)
+        if (context != null) {
+            for (targetUrl in candidateUrls) {
+                try {
+                    val request = coil.request.ImageRequest.Builder(context)
+                        .data(targetUrl)
+                        .allowHardware(false)
+                        .size(256, 256)
+                        .build()
+                    val result = coil.Coil.imageLoader(context).execute(request)
+                    if (result is coil.request.SuccessResult) {
+                        val drawable = result.drawable
+                        val bmp = (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                        if (bmp != null) {
+                            return@withContext getCircularBitmap(bmp)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.d(TAG, "Coil avatar fetch from $targetUrl failed: ${e.message}")
+                }
+            }
+        }
+
+        // Attempt 5B: Direct Buffered HttpURLConnection fallback with readBytes() -> decodeByteArray
         for (targetUrl in candidateUrls) {
             try {
                 val connection = java.net.URL(targetUrl).openConnection() as java.net.HttpURLConnection
@@ -414,15 +449,19 @@ object ConnectoNotificationManager {
                 connection.instanceFollowRedirects = true
                 connection.connect()
                 if (connection.responseCode in 200..299) {
-                    connection.inputStream.use { input ->
-                        val rawBitmap = BitmapFactory.decodeStream(input)
+                    val bytes = connection.inputStream.use { it.readBytes() }
+                    if (bytes.isNotEmpty()) {
+                        val opts = BitmapFactory.Options().apply {
+                            inPreferredConfig = Bitmap.Config.ARGB_8888
+                        }
+                        val rawBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
                         if (rawBitmap != null) {
                             return@withContext getCircularBitmap(rawBitmap)
                         }
                     }
                 }
             } catch (e: Exception) {
-                Log.d(TAG, "Attempt to fetch avatar from $targetUrl failed: ${e.message}")
+                Log.d(TAG, "Direct avatar fetch from $targetUrl failed: ${e.message}")
             }
         }
 
@@ -447,6 +486,7 @@ object ConnectoNotificationManager {
                     ?: createMonogramBitmap(senderName)
 
                 val intent = Intent(context, MainActivity::class.java).apply {
+                    action = ACTION_OPEN_CHAT
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
                     putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
@@ -458,11 +498,10 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val isDm = channelOrDmId.startsWith("dm-") || channelOrDmId.startsWith("dm_") || !channelOrDmId.startsWith("#")
+                val isDm = channelOrDmId.startsWith("dm-") || channelOrDmId.startsWith("dm_") || !channelOrDmId.contains("#")
                 val subText = if (isDm) "Connecto • DM" else "Connecto • #${channelOrDmId.removePrefix("#")}"
 
                 // In Android MessagingStyle, user is the CURRENT (local) user; senderPerson is the remote sender.
-                // This ensures Android renders senderPerson's avatar icon correctly in notification shade!
                 val myUsername = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@")
                 val myDisplayName = (com.example.connecto.network.ConnectoApiClient.currentUserDisplayName ?: "").ifBlank { myUsername.ifEmpty { "Me" } }
 
@@ -471,33 +510,77 @@ object ConnectoNotificationManager {
                     .setKey(myUsername.ifEmpty { "self" })
                     .build()
 
+                val senderPersonKey = (senderUsername ?: senderName).trim().lowercase()
                 val senderPerson = Person.Builder()
                     .setName(senderName)
-                    .setKey(channelOrDmId)
+                    .setKey(senderPersonKey)
                     .setIcon(IconCompat.createWithBitmap(avatarBitmap))
                     .build()
 
                 val messagingStyle = NotificationCompat.MessagingStyle(localUser)
                     .setConversationTitle(if (isDm) null else "#${channelOrDmId.removePrefix("#")}")
+                    .setGroupConversation(!isDm)
                     .addMessage(messageText, System.currentTimeMillis(), senderPerson)
+
+                val isContentHidden = NotificationPreferences.isHideContentEnabled(context)
+                val displayTitle = if (isContentHidden) "Connecto" else senderName
+                val displayMessage = if (isContentHidden) "New message received" else messageText
+                val displaySubText = if (isContentHidden) "Connecto • Private" else subText
 
                 val builder = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setLargeIcon(avatarBitmap)
-                    .setContentTitle(senderName)
-                    .setSubText(subText)
-                    .setContentText(messageText)
-                    .setStyle(messagingStyle)
+                    .setContentTitle(displayTitle)
+                    .setSubText(displaySubText)
+                    .setContentText(displayMessage)
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .setColor(0xFF6C5CE7.toInt()) // Connecto Brand Accent Purple
-                    .setDefaults(NotificationCompat.DEFAULT_ALL)
+                    .setVisibility(if (isContentHidden) NotificationCompat.VISIBILITY_PRIVATE else NotificationCompat.VISIBILITY_PUBLIC)
+
+                if (isDm && !isContentHidden) {
+                    try {
+                        val shortcutId = "dm_$senderPersonKey"
+                        val shortcutIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setClass(context, MainActivity::class.java)
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                            putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
+                            putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                        }
+                        val shortcut = ShortcutInfoCompat.Builder(context, shortcutId)
+                            .setShortLabel(senderName)
+                            .setLongLabel(senderName)
+                            .setIcon(IconCompat.createWithBitmap(avatarBitmap))
+                            .setIntent(shortcutIntent)
+                            .setLongLived(true)
+                            .setPerson(senderPerson)
+                            .build()
+                        ShortcutManagerCompat.pushDynamicShortcut(context, shortcut)
+                        builder.setShortcutId(shortcutId)
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to push conversation shortcut: ${e.message}", e)
+                    }
+                }
+
+                if (!isContentHidden) {
+                    builder.setStyle(messagingStyle)
+                } else {
+                    val publicNotif = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("Connecto")
+                        .setContentText("New message received")
+                        .build()
+                    builder.setPublicVersion(publicNotif)
+                }
 
                 val notification = builder.build()
                 NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_MESSAGE + (channelOrDmId.hashCode() % 1000), notification)
-                Log.d(TAG, "Message notification posted with sender avatar for: $senderName")
+                Log.d(TAG, "Message notification posted for: $senderName (contentHidden=$isContentHidden)")
+
+                // Play chosen trending notification sound
+                NotificationSoundManager.playNotificationSound(context)
             } catch (t: Throwable) {
                 Log.e(TAG, "Failed to post message notification: ${t.message}", t)
             }
@@ -508,7 +591,8 @@ object ConnectoNotificationManager {
     fun showFriendRequestNotification(
         senderName: String,
         requestId: String,
-        senderAvatar: String? = null
+        senderAvatar: String? = null,
+        senderUsername: String? = null
     ) {
         val context = appContext ?: return
         if (!hasNotificationPermission()) return
@@ -527,7 +611,7 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val avatarBitmap = fetchAvatarBitmap(senderAvatar) ?: createMonogramBitmap(senderName)
+                val avatarBitmap = fetchAvatarBitmap(senderAvatar, senderName, senderUsername) ?: createMonogramBitmap(senderName)
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_SOCIAL)
                     .setSmallIcon(R.mipmap.ic_launcher)
@@ -553,7 +637,8 @@ object ConnectoNotificationManager {
     fun showMissedCallNotification(
         callerName: String,
         callerAvatar: String? = null,
-        roomId: String? = null
+        roomId: String? = null,
+        callerUsername: String? = null
     ) {
         val context = appContext ?: return
         if (!hasNotificationPermission()) return
@@ -571,7 +656,7 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val avatarBitmap = fetchAvatarBitmap(callerAvatar) ?: createMonogramBitmap(callerName)
+                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername) ?: createMonogramBitmap(callerName)
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)
                     .setSmallIcon(android.R.drawable.stat_notify_missed_call)
@@ -599,7 +684,8 @@ object ConnectoNotificationManager {
         title: String,
         message: String,
         subText: String = "Connecto",
-        avatarUrl: String? = null
+        avatarUrl: String? = null,
+        username: String? = null
     ) {
         val context = appContext ?: return
         if (!hasNotificationPermission()) return
@@ -616,7 +702,7 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val avatarBitmap = fetchAvatarBitmap(avatarUrl) ?: createMonogramBitmap(title)
+                val avatarBitmap = fetchAvatarBitmap(avatarUrl, title, username) ?: createMonogramBitmap(title)
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_SOCIAL)
                     .setSmallIcon(R.mipmap.ic_launcher)

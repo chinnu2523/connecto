@@ -184,6 +184,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
     fun schedulePurgeAsync() {
         GlobalScope.launch(Dispatchers.IO) {
             try { purgeMessagesOlderThan24Hours() } catch (_: Exception) {}
+            try { purgeOptimisticMessages() } catch (_: Exception) {}
         }
     }
 
@@ -250,6 +251,15 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         return diff >= 24 * 60 * 60 * 1000L
     }
 
+    fun purgeOptimisticMessages(): Int {
+        var count = 0
+        try {
+            val db = writableDatabase
+            count = db.delete(TABLE_MESSAGES, "$COL_MSG_ID LIKE 'opt-%'", null)
+        } catch (_: Exception) {}
+        return count
+    }
+
     fun purgeMessagesOlderThan24Hours(): Int {
         var count = 0
         try {
@@ -280,8 +290,56 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         return System.currentTimeMillis() > epoch
     }
 
+    fun deduplicateMessages(messages: List<MessageDto>): List<MessageDto> {
+        val result = mutableListOf<MessageDto>()
+        for (msg in messages) {
+            val existingIndex = result.indexOfFirst { existing ->
+                if (existing.id == msg.id) return@indexOfFirst true
+                val sameContent = existing.content.trim() == msg.content.trim() && msg.content.isNotBlank()
+                if (!sameContent) return@indexOfFirst false
+
+                val u1 = existing.authorId.trim().lowercase().removePrefix("@")
+                val u2 = msg.authorId.trim().lowercase().removePrefix("@")
+                val n1 = existing.authorName.trim().lowercase().removePrefix("@")
+                val n2 = msg.authorName.trim().lowercase().removePrefix("@")
+                val sameSender = u1 == u2 || n1 == n2 || u1 == n2 || u2 == n1
+
+                if (!sameSender) return@indexOfFirst false
+
+                val t1 = parseIsoEpochMillis(existing.createdAt) ?: 0L
+                val t2 = parseIsoEpochMillis(msg.createdAt) ?: 0L
+                if (t1 > 0L && t2 > 0L) {
+                    kotlin.math.abs(t1 - t2) <= 30_000L
+                } else {
+                    existing.createdAt == msg.createdAt
+                }
+            }
+            if (existingIndex == -1) {
+                result.add(msg)
+            } else {
+                val existing = result[existingIndex]
+                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_")
+                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_")
+                if (existingIsTemp && !newIsTemp) {
+                    result[existingIndex] = msg
+                }
+            }
+        }
+        return result
+    }
+
     fun saveMessage(msg: MessageDto) {
         val db = writableDatabase
+        // When saving a confirmed message, automatically purge temporary optimistic/ws messages with the same content
+        if (!msg.id.startsWith("opt-") && !msg.id.startsWith("ws_") && msg.content.isNotBlank()) {
+            try {
+                db.delete(
+                    TABLE_MESSAGES,
+                    "($COL_MSG_ID LIKE 'opt-%' OR $COL_MSG_ID LIKE 'ws_%') AND $COL_MSG_CONTENT = ?",
+                    arrayOf(msg.content)
+                )
+            } catch (_: Exception) {}
+        }
         val cv = ContentValues().apply {
             put(COL_MSG_ID, msg.id)
             put(COL_MSG_CHANNEL, (msg.channelId ?: "general").trim().lowercase().removePrefix("#"))
@@ -307,6 +365,15 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         db.beginTransaction()
         try {
             for (msg in messages) {
+                if (!msg.id.startsWith("opt-") && !msg.id.startsWith("ws_") && msg.content.isNotBlank()) {
+                    try {
+                        db.delete(
+                            TABLE_MESSAGES,
+                            "($COL_MSG_ID LIKE 'opt-%' OR $COL_MSG_ID LIKE 'ws_%') AND $COL_MSG_CONTENT = ?",
+                            arrayOf(msg.content)
+                        )
+                    } catch (_: Exception) {}
+                }
                 val cv = ContentValues().apply {
                     put(COL_MSG_ID, msg.id)
                     put(COL_MSG_CHANNEL, cleanCh)
@@ -423,7 +490,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 }
             } catch (_: Exception) {}
         }
-        return list.reversed().distinctBy { it.id }
+        return deduplicateMessages(list.reversed())
     }
 
     /**
@@ -661,7 +728,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 }
             } catch (_: Exception) {}
         }
-        return list.reversed().distinctBy { it.id }
+        return deduplicateMessages(list.reversed())
     }
 
     fun deleteMessage(messageId: String) {

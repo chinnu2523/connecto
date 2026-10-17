@@ -64,28 +64,34 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
             }
             "dm", "message", "new_dm_alert" -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]
+                val senderUser = data["sender_username"] ?: sender
                 ConnectoNotificationManager.showMessageNotification(
                     senderName = sender.ifBlank { title },
                     messageText = body.ifBlank { "New message" },
-                    channelOrDmId = referenceId.ifBlank { sender },
-                    senderAvatar = senderAvatar
+                    channelOrDmId = referenceId.ifBlank { senderUser },
+                    senderAvatar = senderAvatar,
+                    senderUsername = senderUser
                 )
             }
             "friend_request" -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]
+                val senderUser = data["sender_username"] ?: sender
                 ConnectoNotificationManager.showFriendRequestNotification(
                     senderName = sender.ifBlank { title },
                     requestId = referenceId,
-                    senderAvatar = senderAvatar
+                    senderAvatar = senderAvatar,
+                    senderUsername = senderUser
                 )
             }
             else -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]
+                val senderUser = data["sender_username"] ?: sender
                 ConnectoNotificationManager.showMessageNotification(
                     senderName = title,
                     messageText = body.ifBlank { "You have a new notification" },
                     channelOrDmId = referenceId,
-                    senderAvatar = senderAvatar
+                    senderAvatar = senderAvatar,
+                    senderUsername = senderUser
                 )
             }
         }
