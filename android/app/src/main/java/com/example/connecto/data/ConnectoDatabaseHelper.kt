@@ -21,7 +21,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
     companion object {
         private const val DATABASE_NAME = "connecto_local_cache.db"
-        private const val DATABASE_VERSION = 8
+        private const val DATABASE_VERSION = 9
 
         @Volatile
         private var INSTANCE: ConnectoDatabaseHelper? = null
@@ -67,6 +67,24 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         private const val COL_FRIEND_AVATAR = "avatar_url"
         private const val COL_FRIEND_BANNER = "banner_url"
         private const val COL_FRIEND_LAST_TIMESTAMP = "last_message_timestamp"
+
+        private const val TABLE_GROUPS = "cached_groups"
+        private const val COL_GROUP_ID = "id"
+        private const val COL_GROUP_NAME = "name"
+        private const val COL_GROUP_HANDLE = "handle"
+        private const val COL_GROUP_INITIAL = "initial"
+        private const val COL_GROUP_STATUS = "status"
+        private const val COL_GROUP_BIO = "bio"
+        private const val COL_GROUP_LAST_MSG = "last_message"
+        private const val COL_GROUP_TIME = "time_ago"
+        private const val COL_GROUP_UNREAD = "unread_count"
+        private const val COL_GROUP_AVATAR = "avatar_url"
+        private const val COL_GROUP_IS_CREATED = "is_created_by_me"
+        private const val COL_GROUP_MEMBER_COUNT = "member_count"
+        private const val COL_GROUP_MEMBERS_JSON = "members_json"
+        private const val COL_GROUP_ADMIN = "admin"
+        private const val COL_GROUP_CREATOR = "creator"
+        private const val COL_GROUP_LAST_TIMESTAMP = "last_message_timestamp"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -118,6 +136,29 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 $COL_FRIEND_AVATAR TEXT,
                 $COL_FRIEND_BANNER TEXT,
                 $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0
+            )
+            """.trimIndent()
+        )
+
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS $TABLE_GROUPS (
+                $COL_GROUP_ID TEXT PRIMARY KEY,
+                $COL_GROUP_NAME TEXT NOT NULL,
+                $COL_GROUP_HANDLE TEXT NOT NULL,
+                $COL_GROUP_INITIAL TEXT NOT NULL,
+                $COL_GROUP_STATUS TEXT,
+                $COL_GROUP_BIO TEXT,
+                $COL_GROUP_LAST_MSG TEXT,
+                $COL_GROUP_TIME TEXT,
+                $COL_GROUP_UNREAD INTEGER DEFAULT 0,
+                $COL_GROUP_AVATAR TEXT,
+                $COL_GROUP_IS_CREATED INTEGER DEFAULT 0,
+                $COL_GROUP_MEMBER_COUNT INTEGER DEFAULT 0,
+                $COL_GROUP_MEMBERS_JSON TEXT,
+                $COL_GROUP_ADMIN TEXT,
+                $COL_GROUP_CREATOR TEXT,
+                $COL_GROUP_LAST_TIMESTAMP INTEGER DEFAULT 0
             )
             """.trimIndent()
         )
@@ -175,6 +216,32 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         }
         if (oldVersion < 8) {
             try { db.execSQL("ALTER TABLE $TABLE_FRIENDS ADD COLUMN $COL_FRIEND_LAST_TIMESTAMP INTEGER DEFAULT 0") } catch (_: Exception) {}
+        }
+        if (oldVersion < 9) {
+            try {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS $TABLE_GROUPS (
+                        $COL_GROUP_ID TEXT PRIMARY KEY,
+                        $COL_GROUP_NAME TEXT NOT NULL,
+                        $COL_GROUP_HANDLE TEXT NOT NULL,
+                        $COL_GROUP_INITIAL TEXT NOT NULL,
+                        $COL_GROUP_STATUS TEXT,
+                        $COL_GROUP_BIO TEXT,
+                        $COL_GROUP_LAST_MSG TEXT,
+                        $COL_GROUP_TIME TEXT,
+                        $COL_GROUP_UNREAD INTEGER DEFAULT 0,
+                        $COL_GROUP_AVATAR TEXT,
+                        $COL_GROUP_IS_CREATED INTEGER DEFAULT 0,
+                        $COL_GROUP_MEMBER_COUNT INTEGER DEFAULT 0,
+                        $COL_GROUP_MEMBERS_JSON TEXT,
+                        $COL_GROUP_ADMIN TEXT,
+                        $COL_GROUP_CREATOR TEXT,
+                        $COL_GROUP_LAST_TIMESTAMP INTEGER DEFAULT 0
+                    )
+                    """.trimIndent()
+                )
+            } catch (_: Exception) {}
         }
     }
 
@@ -925,6 +992,131 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         return list.distinctBy { it.handle.trim().lowercase().removePrefix("@") }
     }
 
+    fun saveGroups(groups: List<FriendItem>) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            // Read existing cached timestamps to prevent regression
+            val existingTimestamps = mutableMapOf<String, Long>()
+            try {
+                val cur = db.rawQuery("SELECT $COL_GROUP_ID, $COL_GROUP_LAST_TIMESTAMP FROM $TABLE_GROUPS", null)
+                cur.use {
+                    val idCol = it.getColumnIndex(COL_GROUP_ID)
+                    val tsCol = it.getColumnIndex(COL_GROUP_LAST_TIMESTAMP)
+                    while (it.moveToNext()) {
+                        val id = if (idCol >= 0) it.getString(idCol) else null
+                        val ts = if (tsCol >= 0) it.getLong(tsCol) else 0L
+                        if (!id.isNullOrBlank() && ts > 0L) {
+                            existingTimestamps[id] = ts
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+
+            db.delete(TABLE_GROUPS, null, null)
+            val uniqueGroups = groups.distinctBy { it.id }
+            for (g in uniqueGroups) {
+                val existingTs = existingTimestamps[g.id] ?: 0L
+                val effectiveTs = maxOf(g.lastMessageTimestamp, existingTs)
+                val membersJson = try {
+                    val arr = JSONArray()
+                    g.members.forEach { arr.put(it) }
+                    arr.toString()
+                } catch (_: Exception) { "[]" }
+
+                val cv = ContentValues().apply {
+                    put(COL_GROUP_ID, g.id)
+                    put(COL_GROUP_NAME, g.name)
+                    put(COL_GROUP_HANDLE, g.handle)
+                    put(COL_GROUP_INITIAL, g.initial)
+                    put(COL_GROUP_STATUS, g.status)
+                    put(COL_GROUP_BIO, g.bio)
+                    put(COL_GROUP_LAST_MSG, g.lastMessage)
+                    put(COL_GROUP_TIME, g.timeAgo)
+                    put(COL_GROUP_UNREAD, g.unreadCount)
+                    put(COL_GROUP_AVATAR, g.avatarUrl)
+                    put(COL_GROUP_IS_CREATED, if (g.isCreatedByMe) 1 else 0)
+                    put(COL_GROUP_MEMBER_COUNT, g.memberCount)
+                    put(COL_GROUP_MEMBERS_JSON, membersJson)
+                    put(COL_GROUP_ADMIN, g.admin)
+                    put(COL_GROUP_CREATOR, g.creator)
+                    put(COL_GROUP_LAST_TIMESTAMP, effectiveTs)
+                }
+                db.insertWithOnConflict(TABLE_GROUPS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
+            }
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun getCachedGroups(): List<FriendItem> {
+        val db = readableDatabase
+        val list = mutableListOf<FriendItem>()
+        val cursor = db.query(TABLE_GROUPS, null, null, null, null, null, null)
+        cursor.use {
+            while (it.moveToNext()) {
+                val avatarCol = it.getColumnIndex(COL_GROUP_AVATAR)
+                val avatarUrl = if (avatarCol >= 0) it.getString(avatarCol) else null
+                val tsCol = it.getColumnIndex(COL_GROUP_LAST_TIMESTAMP)
+                val lastTs = if (tsCol >= 0) it.getLong(tsCol) else 0L
+                val membersCol = it.getColumnIndex(COL_GROUP_MEMBERS_JSON)
+                val members = mutableListOf<String>()
+                if (membersCol >= 0) {
+                    val mJson = it.getString(membersCol)
+                    if (!mJson.isNullOrBlank()) {
+                        try {
+                            val arr = JSONArray(mJson)
+                            for (i in 0 until arr.length()) {
+                                members.add(arr.getString(i))
+                            }
+                        } catch (_: Exception) {}
+                    }
+                }
+                val isCreated = it.getInt(it.getColumnIndexOrThrow(COL_GROUP_IS_CREATED)) == 1
+                val mCount = it.getInt(it.getColumnIndexOrThrow(COL_GROUP_MEMBER_COUNT))
+
+                list.add(
+                    FriendItem(
+                        id = it.getString(it.getColumnIndexOrThrow(COL_GROUP_ID)),
+                        name = it.getString(it.getColumnIndexOrThrow(COL_GROUP_NAME)),
+                        handle = it.getString(it.getColumnIndexOrThrow(COL_GROUP_HANDLE)),
+                        initial = it.getString(it.getColumnIndexOrThrow(COL_GROUP_INITIAL)),
+                        status = it.getString(it.getColumnIndexOrThrow(COL_GROUP_STATUS)) ?: "$mCount members",
+                        bio = it.getString(it.getColumnIndexOrThrow(COL_GROUP_BIO)) ?: "Connecto Group Chat",
+                        lastMessage = it.getString(it.getColumnIndexOrThrow(COL_GROUP_LAST_MSG)) ?: "Group Chat • Tap to open and talk",
+                        timeAgo = it.getString(it.getColumnIndexOrThrow(COL_GROUP_TIME)) ?: "Active",
+                        unreadCount = it.getInt(it.getColumnIndexOrThrow(COL_GROUP_UNREAD)),
+                        isOnline = false,
+                        avatarUrl = avatarUrl,
+                        isGroup = true,
+                        isCreatedByMe = isCreated,
+                        memberCount = mCount,
+                        members = members,
+                        admin = it.getString(it.getColumnIndexOrThrow(COL_GROUP_ADMIN)) ?: "",
+                        creator = it.getString(it.getColumnIndexOrThrow(COL_GROUP_CREATOR)) ?: "",
+                        lastMessageTimestamp = lastTs
+                    )
+                )
+            }
+        }
+        return list
+    }
+
+    fun updateGroupLastMessage(groupId: String, lastMessage: String, timeAgo: String, timestampMillis: Long) {
+        try {
+            val db = writableDatabase
+            val cv = ContentValues().apply {
+                put(COL_GROUP_LAST_MSG, lastMessage)
+                put(COL_GROUP_TIME, timeAgo)
+                if (timestampMillis > 0L) {
+                    put(COL_GROUP_LAST_TIMESTAMP, timestampMillis)
+                }
+            }
+            db.update(TABLE_GROUPS, cv, "$COL_GROUP_ID = ?", arrayOf(groupId))
+        } catch (_: Exception) {}
+    }
+
     fun updateFriendOnlineStatus(identifier: String, isOnline: Boolean) {
         val db = writableDatabase
         val clean = identifier.trim().lowercase().removePrefix("@")
@@ -1156,6 +1348,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             db.delete(TABLE_MESSAGES, null, null)
             db.delete(TABLE_CHANNELS, null, null)
             db.delete(TABLE_FRIENDS, null, null)
+            db.delete(TABLE_GROUPS, null, null)
             db.setTransactionSuccessful()
         } finally {
             db.endTransaction()

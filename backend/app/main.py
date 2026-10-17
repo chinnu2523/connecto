@@ -5711,12 +5711,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.4.3",
-        "version_name": "v4.4.3",
-        "version_code": 72,
-        "release_tag": "v4.4.3-stable",
-        "sha256": "e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121",
-        "md5": "696dca0300535b05e685ac5fb99b17aa",
+        "version": "4.4.4",
+        "version_name": "v4.4.4",
+        "version_code": 73,
+        "release_tag": "v4.4.4-stable",
+        "sha256": "d6d91d9f1109f77723f69a27b417ef3c90053d8594edd27dcd69b233430750dd",
+        "md5": "ebe70ef8d3d8d0ab750c6a1bb5772c62",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5726,12 +5726,10 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
-            "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
-            "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
-            "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
-            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback.",
-            "Notification Person Sender Avatar Engine: Remote sender avatars rendered directly in MessagingStyle notifications with circular cropping."
+            "Background Closed Notifications & High-Priority Push: Root cause resolved — enabled ADC / environment credential discovery and high-priority data payloads waking ConnectoFirebaseMessagingService even when app process is closed or swiped from Recents.",
+            "Trending Viral Notification Sounds: Replaced legacy tones with viral meme sounds — Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, and Wah Kya Scene Hai with real audio playback.",
+            "Channel Tab Direct Back Navigation: System back button on Channels workspace returns directly to the Home tab; pressing back again on Home cleanly exits the app.",
+            "Messages Tab Instant Group Caching: Cached groups table in SQLite local cache (DATABASE_VERSION = 9) enables 0ms instant display of all created and joined groups in the All tab without waiting for network."
         ]
     }
 
@@ -5743,10 +5741,25 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.4.3",
+                "version": "v4.4.4",
                 "date": "Oct 18, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.4.4: Background Closed Notifications, Viral Sounds, Channel Back Navigation & Group Caching",
+                "summary": "Fixes background push notifications when app is closed by integrating ADC credentials and high-priority FCM data delivery, overhauls notification sounds with viral meme hits (Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, Wah Kya Scene Hai), adds direct Channel-to-Home back button navigation, and eliminates group loading delays in Messages All tab via SQLite user caching (DATABASE_VERSION = 9).",
+                "highlights": [
+                    "Background Notifications When Closed: Fixed root cause where missing Firebase service account prevented backend push; now resolves ApplicationDefault credentials automatically and sends high-priority FCM data payloads that wake ConnectoFirebaseMessagingService when closed.",
+                    "Latest Trending Notification Sounds: Removed legacy chime sounds and added high-fidelity viral meme audio clips (Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, Wah Kya Scene Hai).",
+                    "Channel Tab Back Button Navigation: Pressing system back on the Channel tab navigates directly to Home tab; pressing back on Home closes the application.",
+                    "Messages Tab 0ms Group Caching: User groups now cache locally in SQLite cached_groups table, instantly populating the All filter tab at 0ms alongside cached friends."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.4.3",
+                "date": "Oct 18, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.4.3: Messages Tab Stabilized Ordering, Instant Float-to-Top & DB Recency",
                 "summary": "Completely eliminates visual jumping of user cards in the Messages tab by removing delayed vertical translation animations, introduces smooth Jetpack Compose item placement animations, guarantees conversations with recent messages stay at the top and float to index 0 on message arrival, adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8), and applies secondary alphabetical sorting for stable inactive contacts.",
                 "highlights": [

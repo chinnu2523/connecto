@@ -2,11 +2,12 @@ package com.example.connecto.notifications
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
+import android.media.MediaPlayer
 import android.media.Ringtone
 import android.media.RingtoneManager
+import android.net.Uri
 import android.util.Log
+import com.example.connecto.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -15,9 +16,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.exp
-import kotlin.math.sin
 
 /**
  * Sound model representing a trending notification sound.
@@ -27,82 +25,109 @@ data class TrendingNotificationSound(
     val name: String,
     val subtitle: String,
     val tag: String,
-    val durationMs: Int
+    val durationMs: Int,
+    val rawResId: Int = 0
 )
 
 /**
- * Manages playback, preview, and generation of trending notification sounds.
+ * Manages playback, preview, and selection of latest trending notification sounds:
+ * Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, Wah Kya Scene Hai.
  */
 object NotificationSoundManager {
     private const val TAG = "NotifSoundManager"
-    private const val SAMPLE_RATE = 44100
 
     val TRENDING_SOUNDS = listOf(
         TrendingNotificationSound(
-            id = "aurora_chime",
-            name = "Aurora Chime",
-            subtitle = "Ethereal crystal chime with harmonic decay",
-            tag = "Trending #1",
-            durationMs = 550
+            id = "sound_faah",
+            name = "Faah",
+            subtitle = "Telugu viral meme punch sound",
+            tag = "Viral #1",
+            durationMs = 2600,
+            rawResId = R.raw.sound_faah
         ),
         TrendingNotificationSound(
-            id = "cosmic_pulse",
-            name = "Cosmic Pulse",
-            subtitle = "Deep analog synth bloom with bass warmth",
+            id = "sound_yeh_kya_hai",
+            name = "Yeh kya hai",
+            subtitle = "Iconic hilarious confused meme dialogue",
+            tag = "Trending",
+            durationMs = 3000,
+            rawResId = R.raw.sound_yeh_kya_hai
+        ),
+        TrendingNotificationSound(
+            id = "sound_aayein",
+            name = "Aayein",
+            subtitle = "Aditya Kumar viral 'Aayein? Baingan!' reaction",
             tag = "Viral",
-            durationMs = 480
+            durationMs = 650,
+            rawResId = R.raw.sound_aayein
         ),
         TrendingNotificationSound(
-            id = "cyber_ripple",
-            name = "Cyber Ripple",
-            subtitle = "Rapid tri-tone high-tech digital sequence",
-            tag = "Futuristic",
-            durationMs = 420
+            id = "sound_moye_moye",
+            name = "Moye Moye",
+            subtitle = "Catchy melancholic reel trend hook",
+            tag = "Global Trend",
+            durationMs = 3500,
+            rawResId = R.raw.sound_moye_moye
         ),
         TrendingNotificationSound(
-            id = "zen_crystal",
-            name = "Zen Crystal",
-            subtitle = "528Hz Solfeggio pure singing crystal bowl",
-            tag = "Aesthetic",
-            durationMs = 650
+            id = "sound_chin_tapak",
+            name = "Chin Tapak Dum Dum",
+            subtitle = "Viral dialogue soundbite trend",
+            tag = "Viral",
+            durationMs = 2300,
+            rawResId = R.raw.sound_chin_tapak
         ),
         TrendingNotificationSound(
-            id = "neon_pop",
-            name = "Neon Pop",
-            subtitle = "Punchy retro-arcade alert pop",
-            tag = "Popular",
-            durationMs = 220
-        ),
-        TrendingNotificationSound(
-            id = "vapor_wave",
-            name = "Vapor Wave",
-            subtitle = "Dreamy major 7th chord swell with tape warmth",
-            tag = "Lofi Vibe",
-            durationMs = 600
-        ),
-        TrendingNotificationSound(
-            id = "echo_drop",
-            name = "Echo Drop",
-            subtitle = "Crisp water droplet with acoustic bounce",
-            tag = "Minimal",
-            durationMs = 480
+            id = "sound_wah_kya_scene",
+            name = "Wah Kya Scene Hai",
+            subtitle = "Classic hilarious Bollywood meme alert",
+            tag = "Legendary",
+            durationMs = 2100,
+            rawResId = R.raw.sound_wah_kya_scene
         ),
         TrendingNotificationSound(
             id = "system_default",
             name = "System Default",
             subtitle = "Android device system default ringtone",
             tag = "System",
-            durationMs = 500
+            durationMs = 500,
+            rawResId = 0
         )
     )
 
     private val _currentlyPlayingSoundId = MutableStateFlow<String?>(null)
     val currentlyPlayingSoundId: StateFlow<String?> = _currentlyPlayingSoundId.asStateFlow()
 
-    private var activeAudioTrack: AudioTrack? = null
+    private var activeMediaPlayer: MediaPlayer? = null
     private var activeRingtone: Ringtone? = null
     private var playbackJob: Job? = null
-    private val scope = CoroutineScope(Dispatchers.Default)
+    private val scope = CoroutineScope(Dispatchers.Main)
+
+    /**
+     * Resolves the raw resource ID for a sound ID.
+     */
+    fun getRawResourceForSound(soundId: String): Int {
+        return when (soundId) {
+            "sound_faah", "faah" -> R.raw.sound_faah
+            "sound_yeh_kya_hai", "yeh_kya_hai", "ye_kya_hai" -> R.raw.sound_yeh_kya_hai
+            "sound_aayein", "aayein" -> R.raw.sound_aayein
+            "sound_moye_moye", "moye_moye" -> R.raw.sound_moye_moye
+            "sound_chin_tapak", "chin_tapak", "chin_tapak_dum_dum" -> R.raw.sound_chin_tapak
+            "sound_wah_kya_scene", "wah_kya_scene", "waah_kya_scene_hai" -> R.raw.sound_wah_kya_scene
+            else -> R.raw.sound_faah
+        }
+    }
+
+    /**
+     * Returns an Android resource Uri for a given sound ID.
+     */
+    fun getSoundUri(context: Context, soundId: String): Uri? {
+        if (soundId == "system_default") {
+            return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+        }
+        val resId = getRawResourceForSound(soundId)
+        return Uri.parse("android.resource://${context.packageName}/$resId")
+    }
 
     /**
      * Previews a selected sound. Automatically stops previous audio.
@@ -117,14 +142,11 @@ object NotificationSoundManager {
                 if (soundId == "system_default") {
                     playSystemRingtone(context)
                 } else {
-                    playSynthesizedSound(soundId)
+                    val resId = getRawResourceForSound(soundId)
+                    playRawSound(context, resId, isPreview = true)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to play sound preview: ${e.message}", e)
-            } finally {
-                if (_currentlyPlayingSoundId.value == soundId) {
-                    _currentlyPlayingSoundId.value = null
-                }
             }
         }
     }
@@ -141,7 +163,8 @@ object NotificationSoundManager {
                     val ringtone = RingtoneManager.getRingtone(context.applicationContext, notificationUri)
                     ringtone?.play()
                 } else {
-                    playSynthesizedSound(soundId, isPreview = false)
+                    val resId = getRawResourceForSound(soundId)
+                    playRawSound(context, resId, isPreview = false)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to play notification sound: ${e.message}", e)
@@ -162,13 +185,14 @@ object NotificationSoundManager {
         } catch (_: Exception) {}
 
         try {
-            activeAudioTrack?.let { track ->
-                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                    track.stop()
+            activeMediaPlayer?.let { player ->
+                if (player.isPlaying) {
+                    player.stop()
                 }
-                track.release()
+                player.reset()
+                player.release()
             }
-            activeAudioTrack = null
+            activeMediaPlayer = null
         } catch (_: Exception) {}
 
         _currentlyPlayingSoundId.value = null
@@ -184,269 +208,28 @@ object NotificationSoundManager {
         activeRingtone = null
     }
 
-    private suspend fun playSynthesizedSound(soundId: String, isPreview: Boolean = true) {
-        val samples = generateSamplesForSound(soundId)
-        if (samples.isEmpty()) return
-
-        val audioAttributes = AudioAttributes.Builder()
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .setUsage(if (isPreview) AudioAttributes.USAGE_MEDIA else AudioAttributes.USAGE_NOTIFICATION)
-            .build()
-
-        val audioFormat = AudioFormat.Builder()
-            .setSampleRate(SAMPLE_RATE)
-            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-            .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-            .build()
-
-        val bufferSize = samples.size * 2 // 2 bytes per 16-bit short
-
-        val track = AudioTrack.Builder()
-            .setAudioAttributes(audioAttributes)
-            .setAudioFormat(audioFormat)
-            .setBufferSizeInBytes(bufferSize)
-            .setTransferMode(AudioTrack.MODE_STATIC)
-            .build()
-
-        if (isPreview) {
-            activeAudioTrack = track
-        }
-
+    private fun playRawSound(context: Context, resId: Int, isPreview: Boolean) {
         try {
-            track.write(samples, 0, samples.size)
-            track.play()
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(if (isPreview) AudioAttributes.USAGE_MEDIA else AudioAttributes.USAGE_NOTIFICATION)
+                .build()
 
-            val durationMs = (samples.size * 1000L) / SAMPLE_RATE
-            delay(durationMs + 60L)
-        } finally {
-            try {
-                if (track.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                    track.stop()
+            val player = MediaPlayer.create(context.applicationContext, resId, audioAttributes, 0) ?: return
+            activeMediaPlayer = player
+            player.setOnCompletionListener { mp ->
+                try {
+                    mp.reset()
+                    mp.release()
+                } catch (_: Exception) {}
+                if (activeMediaPlayer == mp) {
+                    activeMediaPlayer = null
                 }
-                track.release()
-            } catch (_: Exception) {}
-            if (activeAudioTrack == track) {
-                activeAudioTrack = null
+                _currentlyPlayingSoundId.value = null
             }
+            player.start()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error playing raw sound: ${e.message}", e)
         }
-    }
-
-    private fun generateSamplesForSound(soundId: String): ShortArray {
-        return when (soundId) {
-            "aurora_chime" -> generateAuroraChime()
-            "cosmic_pulse" -> generateCosmicPulse()
-            "cyber_ripple" -> generateCyberRipple()
-            "zen_crystal" -> generateZenCrystal()
-            "neon_pop" -> generateNeonPop()
-            "vapor_wave" -> generateVaporWave()
-            "echo_drop" -> generateEchoDrop()
-            else -> generateAuroraChime()
-        }
-    }
-
-    /**
-     * Aurora Chime: Ethereal shimmering crystalline bell (880Hz + 1320Hz + 1760Hz).
-     */
-    private fun generateAuroraChime(): ShortArray {
-        val durationMs = 550
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        val freq1 = 880.0
-        val freq2 = 1320.0
-        val freq3 = 1760.0
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val envelope = exp(-5.5 * t) // smooth exponential bell decay
-
-            // Fast attack ramp (first 10ms) to prevent initial pop
-            val attack = if (t < 0.01) (t / 0.01) else 1.0
-
-            val wave = 0.55 * sin(2.0 * PI * freq1 * t) +
-                    0.30 * sin(2.0 * PI * freq2 * t) +
-                    0.15 * sin(2.0 * PI * freq3 * t)
-
-            val sample = (wave * envelope * attack * 28000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
-    }
-
-    /**
-     * Cosmic Pulse: Warm analog synth bloom (330Hz -> 587Hz glide with sub-bass 165Hz).
-     */
-    private fun generateCosmicPulse(): ShortArray {
-        val durationMs = 480
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val progress = t / (durationMs / 1000.0)
-
-            // Warm upward pitch glide
-            val currentFreq = 330.0 + (257.0 * progress * (1.0 - progress * 0.5))
-            val subFreq = currentFreq * 0.5
-
-            // ADSR style curve: rise then smooth warm fall
-            val envelope = if (progress < 0.15) {
-                progress / 0.15
-            } else {
-                exp(-4.2 * (progress - 0.15))
-            }
-
-            val wave = 0.65 * sin(2.0 * PI * currentFreq * t) +
-                    0.35 * sin(2.0 * PI * subFreq * t)
-
-            val sample = (wave * envelope * 29000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
-    }
-
-    /**
-     * Cyber Ripple: Tri-tone rapid arpeggiated digital ripple (587Hz -> 740Hz -> 880Hz).
-     */
-    private fun generateCyberRipple(): ShortArray {
-        val durationMs = 420
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        val notes = doubleArrayOf(587.33, 739.99, 880.00) // D5, F#5, A5
-        val noteDuration = 0.14
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val noteIndex = (t / noteDuration).toInt().coerceIn(0, 2)
-            val noteTime = t - (noteIndex * noteDuration)
-            val freq = notes[noteIndex]
-
-            val noteAttack = if (noteTime < 0.008) (noteTime / 0.008) else 1.0
-            val noteDecay = exp(-7.0 * noteTime)
-            val wave = 0.70 * sin(2.0 * PI * freq * t) + 0.30 * sin(2.0 * PI * (freq * 2.0) * t)
-
-            val sample = (wave * noteAttack * noteDecay * 27000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
-    }
-
-    /**
-     * Zen Crystal: 528Hz Solfeggio frequency with pure harmonic singing bowl resonance.
-     */
-    private fun generateZenCrystal(): ShortArray {
-        val durationMs = 650
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        val freq = 528.0
-        val harmonic = 1056.0
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val envelope = exp(-3.8 * t)
-            val attack = if (t < 0.02) (t / 0.02) else 1.0
-
-            val wave = 0.82 * sin(2.0 * PI * freq * t) + 0.18 * sin(2.0 * PI * harmonic * t)
-            val sample = (wave * envelope * attack * 28000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
-    }
-
-    /**
-     * Neon Pop: Snappy retro-arcade pop alert (chirps 1400Hz -> 480Hz).
-     */
-    private fun generateNeonPop(): ShortArray {
-        val durationMs = 220
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val progress = t / (durationMs / 1000.0)
-
-            // Exponential downward chirp
-            val freq = 1400.0 * exp(-1.8 * progress)
-            val attack = if (progress < 0.06) (progress / 0.06) else 1.0
-            val decay = exp(-7.5 * progress)
-
-            val wave = sin(2.0 * PI * freq * t)
-            val sample = (wave * attack * decay * 31000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
-    }
-
-    /**
-     * Vapor Wave: Dreamy lush major 7th chord (F4, A4, C5, E5).
-     */
-    private fun generateVaporWave(): ShortArray {
-        val durationMs = 600
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        val f1 = 349.23 // F4
-        val f2 = 440.00 // A4
-        val f3 = 523.25 // C5
-        val f4 = 659.25 // E5
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-            val attack = if (t < 0.04) (t / 0.04) else 1.0
-            val decay = exp(-4.0 * t)
-
-            val wave = 0.30 * sin(2.0 * PI * f1 * t) +
-                    0.25 * sin(2.0 * PI * f2 * t) +
-                    0.25 * sin(2.0 * PI * f3 * t) +
-                    0.20 * sin(2.0 * PI * f4 * t)
-
-            val sample = (wave * attack * decay * 28000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
-    }
-
-    /**
-     * Echo Drop: Clean water droplet with two subtle acoustic bounces.
-     */
-    private fun generateEchoDrop(): ShortArray {
-        val durationMs = 480
-        val numSamples = (SAMPLE_RATE * durationMs) / 1000
-        val buffer = ShortArray(numSamples)
-
-        for (i in 0 until numSamples) {
-            val t = i.toDouble() / SAMPLE_RATE
-
-            // Primary drop (t: 0..0.18s)
-            val drop1 = if (t in 0.0..0.18) {
-                val pt = t
-                val freq = 1250.0 - (400.0 * (pt / 0.18))
-                val env = exp(-12.0 * pt)
-                0.75 * sin(2.0 * PI * freq * pt) * env
-            } else 0.0
-
-            // First echo bounce at t = 0.16s
-            val drop2 = if (t in 0.16..0.32) {
-                val pt = t - 0.16
-                val freq = 1100.0 - (300.0 * (pt / 0.16))
-                val env = exp(-14.0 * pt)
-                0.35 * sin(2.0 * PI * freq * pt) * env
-            } else 0.0
-
-            // Second micro-echo at t = 0.30s
-            val drop3 = if (t in 0.30..0.45) {
-                val pt = t - 0.30
-                val freq = 1000.0 - (200.0 * (pt / 0.15))
-                val env = exp(-16.0 * pt)
-                0.18 * sin(2.0 * PI * freq * pt) * env
-            } else 0.0
-
-            val wave = drop1 + drop2 + drop3
-            val sample = (wave * 29000.0).toInt().coerceIn(-32767, 32767)
-            buffer[i] = sample.toShort()
-        }
-        return buffer
     }
 }

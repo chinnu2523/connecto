@@ -52,12 +52,20 @@
             android:stopWithTask="false"
             android:foregroundServiceType="microphone" />
 
-        <!-- Real-Time Background Service for Calls & Notifications when app is running -->
+        <!-- Real-Time Background Service for Calls & Notifications -->
         <service
             android:name=".notifications.ConnectoRealtimeService"
             android:enabled="true"
             android:exported="false"
-            android:stopWithTask="true" />
+            android:stopWithTask="false" />
+
+        <!-- Default FCM notification channel & icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="connecto_messages_v2" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
 
         <!-- Auto-start receiver for boot and app update cleanup -->
         <receiver

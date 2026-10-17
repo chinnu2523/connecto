@@ -689,8 +689,16 @@ fun ConnectoApp(
 
                     val activity = context as? android.app.Activity
                     androidx.activity.compose.BackHandler(enabled = true) {
-                        // Move task to background without killing activity so it continues where left off
-                        activity?.moveTaskToBack(true)
+                        if (currentTab == ConnectoTab.CHANNELS) {
+                            // When the user in the channel tab and uses the back button -> directly get to the home tab
+                            updateCurrentTab(ConnectoTab.HOME)
+                        } else if (currentTab == ConnectoTab.HOME) {
+                            // When user is in the home tab and presses back button again -> app closes
+                            activity?.finish()
+                        } else {
+                            // From other top-level tabs, navigate back to Home tab
+                            updateCurrentTab(ConnectoTab.HOME)
+                        }
                     }
 
                     Scaffold(

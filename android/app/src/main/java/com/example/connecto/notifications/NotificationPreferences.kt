@@ -13,8 +13,18 @@ object NotificationPreferences {
     const val KEY_SELECTED_SOUND = "selected_notification_sound"
     const val KEY_SELECTED_SOUND_NAME = "selected_notification_sound_name"
 
-    const val DEFAULT_SOUND_ID = "aurora_chime"
-    const val DEFAULT_SOUND_NAME = "Aurora Chime"
+    const val DEFAULT_SOUND_ID = "sound_faah"
+    const val DEFAULT_SOUND_NAME = "Faah"
+
+    private val VALID_SOUND_IDS = setOf(
+        "sound_faah",
+        "sound_yeh_kya_hai",
+        "sound_aayein",
+        "sound_moye_moye",
+        "sound_chin_tapak",
+        "sound_wah_kya_scene",
+        "system_default"
+    )
 
     fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -35,16 +45,19 @@ object NotificationPreferences {
     }
 
     /**
-     * Gets the currently selected notification sound ID (e.g. "aurora_chime").
+     * Gets the currently selected notification sound ID (e.g. "sound_faah").
      */
     fun getSelectedSoundId(context: Context): String {
-        return getPrefs(context).getString(KEY_SELECTED_SOUND, DEFAULT_SOUND_ID) ?: DEFAULT_SOUND_ID
+        val saved = getPrefs(context).getString(KEY_SELECTED_SOUND, DEFAULT_SOUND_ID) ?: DEFAULT_SOUND_ID
+        return if (saved in VALID_SOUND_IDS) saved else DEFAULT_SOUND_ID
     }
 
     /**
-     * Gets the display name of the selected notification sound (e.g. "Aurora Chime").
+     * Gets the display name of the selected notification sound (e.g. "Faah").
      */
     fun getSelectedSoundName(context: Context): String {
+        val savedId = getPrefs(context).getString(KEY_SELECTED_SOUND, DEFAULT_SOUND_ID) ?: DEFAULT_SOUND_ID
+        if (savedId !in VALID_SOUND_IDS) return DEFAULT_SOUND_NAME
         return getPrefs(context).getString(KEY_SELECTED_SOUND_NAME, DEFAULT_SOUND_NAME) ?: DEFAULT_SOUND_NAME
     }
 

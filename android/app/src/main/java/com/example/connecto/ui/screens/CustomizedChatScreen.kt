@@ -983,11 +983,11 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Load cached friends from SQLite on IO thread on first composition
+    // Load cached friends AND cached groups from SQLite on IO thread on first composition for 0ms instant render
     LaunchedEffect(Unit) {
-        val cached = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val (cachedFriends, cachedGroups) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val list = dbHelper.getCachedFriends()
-            list.map { f ->
+            val mappedFriends = list.map { f ->
                 val cleanHandle = f.handle.removePrefix("@").trim().lowercase()
                 var ts = f.lastMessageTimestamp
                 if (ts == 0L) {
@@ -1004,10 +1004,27 @@ fun CustomizedChatScreen(
                 }
                 if (ts != f.lastMessageTimestamp) f.copy(lastMessageTimestamp = ts) else f
             }
+
+            val groupList = dbHelper.getCachedGroups()
+            val mappedGroups = groupList.map { g ->
+                var ts = g.lastMessageTimestamp
+                if (ts == 0L) {
+                    ts = readPrefs.getLong("last_timestamp_${g.id}", 0L)
+                }
+                val rawMsg = readPrefs.getString("last_msg_${g.id}", null)
+                val lastMsg = if (!rawMsg.isNullOrBlank()) rawMsg else g.lastMessage
+                val rawTime = readPrefs.getString("last_time_${g.id}", null)
+                val time = formatIsoTime(if (!rawTime.isNullOrBlank()) rawTime else g.timeAgo)
+                g.copy(lastMessage = lastMsg, timeAgo = time, lastMessageTimestamp = ts)
+            }
+            Pair(mappedFriends, mappedGroups)
         }
-        if (cached.isNotEmpty() && friendsList.isEmpty()) {
-            friendsList.addAll(cached)
+        if (cachedFriends.isNotEmpty() && friendsList.isEmpty()) {
+            friendsList.addAll(cachedFriends)
             isFriendsLoadedOnce = true
+        }
+        if (cachedGroups.isNotEmpty() && userGroupsList.isEmpty()) {
+            userGroupsList.addAll(cachedGroups)
         }
     }
 
@@ -1347,6 +1364,11 @@ fun CustomizedChatScreen(
                             val effectiveTs = maxOf(existingTs, item.lastMessageTimestamp)
                             userGroupsList[idx] = item.copy(lastMessageTimestamp = effectiveTs)
                         }
+                    }
+                    coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                        try {
+                            dbHelper.saveGroups(userGroupsList.toList())
+                        } catch (_: Exception) {}
                     }
                     if (selectedFriend != null && selectedFriend!!.isGroup && userGroupsList.none { it.id == selectedFriend!!.id }) {
                         selectedFriend = null
@@ -1775,6 +1797,11 @@ fun CustomizedChatScreen(
                             .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
                             .putLong("last_timestamp_${updated.id}", currentTs)
                             .apply()
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                dbHelper.updateGroupLastMessage(updated.id, dto.content, formatIsoTime(dto.createdAt), currentTs)
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
             } else if (!isMe) {
@@ -1846,6 +1873,11 @@ fun CustomizedChatScreen(
                             .putInt("unread_${targetGroup.id}", newUnread)
                             .putLong("last_timestamp_${targetGroup.id}", currentTs)
                             .apply()
+                        coroutineScope.launch(Dispatchers.IO) {
+                            try {
+                                dbHelper.updateGroupLastMessage(targetGroup.id, decContent, formatIsoTime(dto.createdAt), currentTs)
+                            } catch (_: Exception) {}
+                        }
                         onUnreadStatusChanged(true)
                     } else {
                         // Friend not yet in memory list — check local SQLite database
@@ -3409,6 +3441,9 @@ fun CustomizedChatScreen(
                 } else {
                     userGroupsList[existingIdx] = newGroupItem
                 }
+                coroutineScope.launch(Dispatchers.IO) {
+                    try { dbHelper.saveGroups(userGroupsList.toList()) } catch (_: Exception) {}
+                }
                 val (gwId, gcUri) = resolveChatWallpaper(newGroupItem)
                 chatWallpaperId = gwId
                 customWallpaperUri = gcUri
@@ -3469,10 +3504,16 @@ fun CustomizedChatScreen(
                 if (idx != -1) {
                     userGroupsList[idx] = updatedGroup
                 }
+                coroutineScope.launch(Dispatchers.IO) {
+                    try { dbHelper.saveGroups(userGroupsList.toList()) } catch (_: Exception) {}
+                }
             },
             onDeleteGroup = {
                 val gId = groupItem.id
                 userGroupsList.removeAll { it.id == gId }
+                coroutineScope.launch(Dispatchers.IO) {
+                    try { dbHelper.saveGroups(userGroupsList.toList()) } catch (_: Exception) {}
+                }
                 selectedFriend = null
                 chatWallpaperId = "default"
                 customWallpaperUri = null
@@ -3481,6 +3522,9 @@ fun CustomizedChatScreen(
             onLeaveGroup = {
                 val gId = groupItem.id
                 userGroupsList.removeAll { it.id == gId }
+                coroutineScope.launch(Dispatchers.IO) {
+                    try { dbHelper.saveGroups(userGroupsList.toList()) } catch (_: Exception) {}
+                }
                 selectedFriend = null
                 chatWallpaperId = "default"
                 customWallpaperUri = null
@@ -5568,6 +5612,11 @@ fun CustomizedChatScreen(
                                                     .putString("last_time_${updated.id}", "Just now")
                                                     .putLong("last_timestamp_${updated.id}", nowMillis)
                                                     .apply()
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    try {
+                                                        dbHelper.updateGroupLastMessage(updated.id, userMsg, "Just now", nowMillis)
+                                                    } catch (_: Exception) {}
+                                                }
                                             }
                                         }
                                     }
