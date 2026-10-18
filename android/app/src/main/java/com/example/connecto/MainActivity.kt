@@ -129,6 +129,9 @@ class MainActivity : FragmentActivity() {
             window.statusBarColor = android.graphics.Color.parseColor("#000000")
             window.navigationBarColor = android.graphics.Color.parseColor("#000000")
         }
+        com.example.connecto.security.ScreenSecurityManager.init(this)
+        com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
+        com.example.connecto.security.ScreenSecurityManager.registerListeners(this)
         com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
         // Ensure legacy Connecto Active foreground notification is removed and its channel deleted
         com.example.connecto.notifications.ConnectoRealtimeService.dismissConnectoActiveNotification(this)
@@ -209,6 +212,16 @@ class MainActivity : FragmentActivity() {
                 senderUsername = sender
             )
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        com.example.connecto.security.ScreenSecurityManager.unregisterListeners(this)
     }
 }
 
@@ -349,25 +362,13 @@ fun ConnectoApp(
     var hasUnreadChats by remember { mutableStateOf(false) }
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
 
-    // Dynamic screenshot protection: Block screenshots when user is on the Profile Tab (bypassed on emulators/debug for automated testing & verification)
-    androidx.compose.runtime.DisposableEffect(currentTab) {
-        val activity = context as? android.app.Activity
-        val isDevOrEmulator = android.os.Build.MODEL.contains("sdk") ||
-                android.os.Build.HARDWARE.contains("goldfish") ||
-                android.os.Build.HARDWARE.contains("ranchu") ||
-                android.os.Build.PRODUCT.contains("sdk") ||
-                com.example.connecto.BuildConfig.DEBUG
-        if (currentTab == ConnectoTab.PROFILE && !isDevOrEmulator) {
-            activity?.window?.setFlags(
-                android.view.WindowManager.LayoutParams.FLAG_SECURE,
-                android.view.WindowManager.LayoutParams.FLAG_SECURE
-            )
-        } else {
-            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-        }
-        onDispose {
-            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-        }
+    // App-wide screen privacy & blackscreen protection for screenshot, screenshare, and screencast
+    val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
+    val isRecordingActive by com.example.connecto.security.ScreenSecurityManager.isScreenRecordingActive.collectAsState()
+    val isCastingActive by com.example.connecto.security.ScreenSecurityManager.isCastingActive.collectAsState()
+    val mainActivityRef = context as? android.app.Activity
+    androidx.compose.runtime.LaunchedEffect(isScreenSecurityActive) {
+        com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(mainActivityRef)
     }
 
     // Global session revocation & 401 expiration listener

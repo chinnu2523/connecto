@@ -294,25 +294,10 @@ fun ProfileScreen(
     val activity = remember(context) { context.findFragmentActivity() }
     val prefs = remember { context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE) }
 
-    // Enforce screenshot privacy protection on ProfileScreen (bypassed on emulators/debug for automated testing & verification)
-    androidx.compose.runtime.DisposableEffect(activity) {
-        val isDevOrEmulator = android.os.Build.MODEL.contains("sdk") ||
-                android.os.Build.HARDWARE.contains("goldfish") ||
-                android.os.Build.HARDWARE.contains("ranchu") ||
-                android.os.Build.PRODUCT.contains("sdk") ||
-                com.example.connecto.BuildConfig.DEBUG
-        if (!isDevOrEmulator) {
-            activity?.window?.setFlags(
-                android.view.WindowManager.LayoutParams.FLAG_SECURE,
-                android.view.WindowManager.LayoutParams.FLAG_SECURE
-            )
-        } else {
-            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-        }
-        onDispose {
-            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
-        }
-    }
+    // Global Screen Security & Black Screen state
+    val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
+    val isRecordingActive by com.example.connecto.security.ScreenSecurityManager.isScreenRecordingActive.collectAsState()
+    val isCastingActive by com.example.connecto.security.ScreenSecurityManager.isCastingActive.collectAsState()
 
     // ================= USER PROFILE STATE =================
     var displayNameInput by remember(username) {
@@ -1518,11 +1503,11 @@ fun ProfileScreen(
                 // ================= 5. BIOMETRIC & APP LOCK BUTTON =================
                 item(key = "menu_biometric_vault") {
                     ProfileNavigationMenuButton(
-                        title = "Biometric & App Lock",
-                        subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
-                        icon = Icons.Default.Fingerprint,
-                        badgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
-                        badgeColor = if (isAppLockEnabled) OnlineGreen else TextDisabledColor,
+                        title = "Biometric & Screen Privacy",
+                        subtitle = "Biometrics, App Lock & Screen Share Black Screen",
+                        icon = Icons.Default.Shield,
+                        badgeText = if (isScreenSecurityActive && isAppLockEnabled) "MAX SECURED" else if (isScreenSecurityActive) "BLACKSCREEN ON" else if (isAppLockEnabled) "LOCKED" else "OFF",
+                        badgeColor = if (isScreenSecurityActive || isAppLockEnabled) OnlineGreen else TextDisabledColor,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.BIOMETRIC_LOCK }
                     )
@@ -1692,12 +1677,12 @@ fun ProfileScreen(
                                     hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.BIOMETRIC_LOCK -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Device Hardware Lock",
-                                    title = "Biometric & Screen Lock",
-                                    description = "Require fingerprint, face unlock, or device PIN authentication before opening Connecto on this device.",
-                                    icon = Icons.Default.Fingerprint,
-                                    statusBadgeText = if (isAppLockEnabled) "PROTECTED" else "UNLOCKED",
-                                    statusBadgeActive = isAppLockEnabled,
+                                    categoryLabel = "Hardware & Screen Security",
+                                    title = "Biometrics & Screen Privacy",
+                                    description = "Enforce biometric app locking and solid blackscreen protection against screenshots, screen share, and screen casting.",
+                                    icon = Icons.Default.Shield,
+                                    statusBadgeText = if (isScreenSecurityActive && isAppLockEnabled) "MAX SECURED" else if (isScreenSecurityActive) "BLACKSCREEN ACTIVE" else if (isAppLockEnabled) "LOCKED" else "OFF",
+                                    statusBadgeActive = isScreenSecurityActive || isAppLockEnabled,
                                     hasCoverPhoto = hasCoverPhoto
                                 )
                                 ProfileSubPage.APPEARANCE_THEME -> ProfileSubPageHeroCard(
@@ -2487,7 +2472,139 @@ fun ProfileScreen(
                                         }
                                     }
 
-                                    // 3. Auto-Lock on App Exit / Background Toggle
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
+
+                                    // 3. Screen Privacy & Black Screen Protection Switch
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(
+                                                        if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                        else MaterialTheme.colorScheme.surfaceVariant
+                                                    ),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isScreenSecurityActive) Icons.Default.Shield else Icons.Default.VisibilityOff,
+                                                    contentDescription = null,
+                                                    tint = if (isScreenSecurityActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "Screen Privacy (Black Screen)",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(if (isScreenSecurityActive) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = if (isScreenSecurityActive) "PROTECTED" else "OFF",
+                                                            fontSize = 9.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isScreenSecurityActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = "Shows a black screen for others during screenshot, screen share, and screen cast.",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+
+                                        Switch(
+                                            checked = isScreenSecurityActive,
+                                            onCheckedChange = { isChecked ->
+                                                com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
+                                                Toast.makeText(
+                                                    context,
+                                                    if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
+                                                    else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible.",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            },
+                                            colors = getMonochromeSwitchColors()
+                                        )
+                                    }
+
+                                    // Real-time Screen Share & Cast Hardware Protection Status Card
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isRecordingActive || isCastingActive) Color(0xFFEF4444).copy(alpha = 0.08f)
+                                                else if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (isRecordingActive || isCastingActive) Color(0xFFEF4444).copy(alpha = 0.35f)
+                                                else if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                                RoundedCornerShape(12.dp)
+                                            )
+                                            .padding(12.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            if (isRecordingActive || isCastingActive) Color(0xFFEF4444)
+                                                            else if (isScreenSecurityActive) Color(0xFF10B981)
+                                                            else Color(0xFF9CA3AF)
+                                                        )
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = if (isRecordingActive) "Screen Recording / Share Active (Black Screen Enforced)"
+                                                           else if (isCastingActive) "Wireless Screen Cast Active (Black Screen Enforced)"
+                                                           else if (isScreenSecurityActive) "SurfaceFlinger Hardware Privacy Active"
+                                                           else "Screen Capture Unrestricted",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isRecordingActive || isCastingActive) Color(0xFFEF4444)
+                                                            else if (isScreenSecurityActive) MaterialTheme.colorScheme.primary
+                                                            else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                            Text(
+                                                text = if (isScreenSecurityActive)
+                                                    "All screenshots, video captures, screen sharing (Discord, Zoom, Meet, Teams), and external display mirrors render as solid pitch black (#000000) for others."
+                                                else
+                                                    "Screenshots, recordings, and screen sharing can see all screen contents. Turn ON for blackscreen protection.",
+                                                fontSize = 11.sp,
+                                                lineHeight = 15.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+
+                                    // 4. Auto-Lock on App Exit / Background Toggle
                                     if (isAppLockEnabled) {
                                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
 

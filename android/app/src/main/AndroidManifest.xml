@@ -17,6 +17,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
+    <!-- Android 14+ (API 34+) Live Screen Recording Detection -->
+    <uses-permission android:name="android.permission.DETECT_SCREEN_RECORDING" />
+
     <!-- Bluetooth Audio Routing across API levels -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />

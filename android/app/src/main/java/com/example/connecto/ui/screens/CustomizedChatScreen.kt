@@ -2335,7 +2335,7 @@ fun CustomizedChatScreen(
                 android.view.WindowManager.LayoutParams.FLAG_SECURE
             )
             onDispose {
-                activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(activity)
             }
         }
 
