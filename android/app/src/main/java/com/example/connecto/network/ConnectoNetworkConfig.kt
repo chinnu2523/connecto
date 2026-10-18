@@ -26,10 +26,13 @@ object ConnectoNetworkConfig {
         if (activeBaseUrl.isNotBlank()) list.add(activeBaseUrl)
         if (BuildConfig.BASE_URL.isNotBlank() && !list.contains(BuildConfig.BASE_URL)) list.add(BuildConfig.BASE_URL)
         if (!list.contains(CLOUD_SERVER_URL)) list.add(CLOUD_SERVER_URL)
-        val localhostUrl = "http://127.0.0.1:8080"
-        if (!list.contains(localhostUrl)) list.add(localhostUrl)
-        val emulatorLoopback = "http://10.0.2.2:8080"
-        if (!list.contains(emulatorLoopback)) list.add(emulatorLoopback)
+        // Strictly avoid non-routable loopback addresses in cloud server mode
+        if (activeServerMode == "local_server" || BuildConfig.DEBUG) {
+            val localhostUrl = "http://127.0.0.1:8080"
+            if (!list.contains(localhostUrl)) list.add(localhostUrl)
+            val emulatorLoopback = "http://10.0.2.2:8080"
+            if (!list.contains(emulatorLoopback)) list.add(emulatorLoopback)
+        }
         return list
     }
 

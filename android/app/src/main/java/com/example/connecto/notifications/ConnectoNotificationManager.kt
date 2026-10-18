@@ -33,12 +33,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import android.util.LruCache
 import java.text.SimpleDateFormat
 import java.util.Locale
 import com.example.connecto.voice.CallActionReceiver
 
 object ConnectoNotificationManager {
     private const val TAG = "ConnectoNotifManager"
+    private val avatarMemoryCache = LruCache<String, Bitmap>(64)
 
     // Notification Channel IDs
     const val CHANNEL_CALLS = "connecto_voice_calls_v2"
@@ -349,6 +352,12 @@ object ConnectoNotificationManager {
         senderName: String? = null,
         senderUsername: String? = null
     ): Bitmap? = withContext(Dispatchers.IO) {
+        val cacheKey = (senderUsername ?: senderName ?: avatarUrl)?.trim()?.lowercase() ?: ""
+        if (cacheKey.isNotBlank()) {
+            val cached = avatarMemoryCache.get(cacheKey)
+            if (cached != null) return@withContext cached
+        }
+
         val context = appContext
         var rawUrl = avatarUrl?.trim()
 
@@ -379,7 +388,11 @@ object ConnectoNotificationManager {
                     val bytes = android.util.Base64.decode(base64Data, android.util.Base64.DEFAULT)
                     if (bytes != null && bytes.isNotEmpty()) {
                         val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        if (bmp != null) return@withContext getCircularBitmap(bmp)
+                        if (bmp != null) {
+                            val circ = getCircularBitmap(bmp)
+                            if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, circ)
+                            return@withContext circ
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -393,7 +406,11 @@ object ConnectoNotificationManager {
         if (localFile.exists() && localFile.isFile && localFile.length() > 0) {
             try {
                 val bmp = BitmapFactory.decodeFile(localFile.absolutePath)
-                if (bmp != null) return@withContext getCircularBitmap(bmp)
+                if (bmp != null) {
+                    val circ = getCircularBitmap(bmp)
+                    if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, circ)
+                    return@withContext circ
+                }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to decode local file avatar: ${e.message}")
             }
@@ -402,81 +419,54 @@ object ConnectoNotificationManager {
         // 4. Check for emoji avatar (e.g. 👾)
         if (!rawUrl.contains("/") && !rawUrl.contains(".") && rawUrl.length <= 4) {
             try {
-                return@withContext createEmojiBitmap(rawUrl)
+                val emojiBmp = createEmojiBitmap(rawUrl)
+                if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, emojiBmp)
+                return@withContext emojiBmp
             } catch (_: Exception) {}
         }
 
-        // 5. Remote HTTP/HTTPS fetch with multi-base fallback & Coil ImageLoader
-        val candidateUrls = linkedSetOf<String>()
-        val activeBase = com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')
+        // 5. Remote HTTP/HTTPS fetch with strict 400ms timeout (never hang notification delivery)
+        val resolvedBitmap = kotlinx.coroutines.withTimeoutOrNull(400L) {
+            val candidateUrls = linkedSetOf<String>()
+            val activeBase = com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')
 
-        if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
-            candidateUrls.add(rawUrl)
-            if (rawUrl.contains("/uploads/")) {
-                val pathAfterUploads = "uploads/" + rawUrl.substringAfter("/uploads/").trimStart('/')
-                candidateUrls.add("$activeBase/$pathAfterUploads")
-                candidateUrls.add("http://10.0.2.2:8080/$pathAfterUploads")
-                candidateUrls.add("https://connecto.fun/$pathAfterUploads")
-            }
-        } else {
-            val cleanPath = rawUrl.trimStart('/')
-            candidateUrls.add("$activeBase/$cleanPath")
-            if (!activeBase.contains("connecto.fun")) {
+            if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+                candidateUrls.add(rawUrl)
+            } else {
+                val cleanPath = rawUrl.trimStart('/')
+                if (activeBase.startsWith("http")) {
+                    candidateUrls.add("$activeBase/$cleanPath")
+                }
                 candidateUrls.add("https://connecto.fun/$cleanPath")
             }
-            candidateUrls.add("http://10.0.2.2:8080/$cleanPath")
-        }
 
-        // Attempt 5A: Coil ImageLoader (disk cache, memory cache, WebP, hardware=false)
-        if (context != null) {
-            for (targetUrl in candidateUrls) {
-                try {
-                    val request = coil.request.ImageRequest.Builder(context)
-                        .data(targetUrl)
-                        .allowHardware(false)
-                        .size(256, 256)
-                        .build()
-                    val result = coil.Coil.imageLoader(context).execute(request)
-                    if (result is coil.request.SuccessResult) {
-                        val drawable = result.drawable
-                        val bmp = (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
-                        if (bmp != null) {
-                            return@withContext getCircularBitmap(bmp)
+            // Attempt 5A: Coil ImageLoader (fast disk/memory cache)
+            if (context != null) {
+                for (targetUrl in candidateUrls) {
+                    try {
+                        val request = coil.request.ImageRequest.Builder(context)
+                            .data(targetUrl)
+                            .allowHardware(false)
+                            .size(256, 256)
+                            .build()
+                        val result = coil.Coil.imageLoader(context).execute(request)
+                        if (result is coil.request.SuccessResult) {
+                            val drawable = result.drawable
+                            val bmp = (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+                            if (bmp != null) {
+                                return@withTimeoutOrNull getCircularBitmap(bmp)
+                            }
                         }
-                    }
-                } catch (e: Exception) {
-                    Log.d(TAG, "Coil avatar fetch from $targetUrl failed: ${e.message}")
+                    } catch (_: Exception) {}
                 }
             }
+            null
         }
 
-        // Attempt 5B: Direct Buffered HttpURLConnection fallback with readBytes() -> decodeByteArray
-        for (targetUrl in candidateUrls) {
-            try {
-                val connection = java.net.URL(targetUrl).openConnection() as java.net.HttpURLConnection
-                connection.doInput = true
-                connection.connectTimeout = 3000
-                connection.readTimeout = 3000
-                connection.instanceFollowRedirects = true
-                connection.connect()
-                if (connection.responseCode in 200..299) {
-                    val bytes = connection.inputStream.use { it.readBytes() }
-                    if (bytes.isNotEmpty()) {
-                        val opts = BitmapFactory.Options().apply {
-                            inPreferredConfig = Bitmap.Config.ARGB_8888
-                        }
-                        val rawBitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-                        if (rawBitmap != null) {
-                            return@withContext getCircularBitmap(rawBitmap)
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.d(TAG, "Direct avatar fetch from $targetUrl failed: ${e.message}")
-            }
+        if (resolvedBitmap != null && cacheKey.isNotBlank()) {
+            avatarMemoryCache.put(cacheKey, resolvedBitmap)
         }
-
-        null
+        resolvedBitmap
     }
 
     @SuppressLint("MissingPermission")

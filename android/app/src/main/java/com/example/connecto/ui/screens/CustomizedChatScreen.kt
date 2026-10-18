@@ -3414,13 +3414,22 @@ fun CustomizedChatScreen(
                 )
                 friendMessages = emptyList()
                 activeDmChannelId = null
-                isLoadingMessages = true
+                isLoadingMessages = false
                 val (wId, cUri) = resolveChatWallpaper(friendItem)
                 chatWallpaperId = wId
                 customWallpaperUri = cUri
                 typedMessage = messageDrafts[friendItem.id] ?: ""
                 selectedFriend = friendItem
                 onDirectChatStateChanged(true)
+                coroutineScope.launch(Dispatchers.IO) {
+                    val initialMsgs = loadLocalMessagesForFriend(friendItem)
+                    withContext(Dispatchers.Main) {
+                        if (initialMsgs.isNotEmpty()) {
+                            friendMessages = initialMsgs
+                            try { listState.scrollToItem(initialMsgs.size) } catch (_: Exception) {}
+                        }
+                    }
+                }
             }
         )
     }
@@ -4463,17 +4472,23 @@ fun CustomizedChatScreen(
                                 val (initialWp, initialUri) = resolveChatWallpaper(friend)
                                 chatWallpaperId = initialWp
                                 customWallpaperUri = initialUri
-                                val initialMsgs = loadLocalMessagesForFriend(friend)
-                                friendMessages = initialMsgs
                                 val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
                                 val cleanTarget = friend.handle.removePrefix("@")
                                 val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
                                 activeDmChannelId = if (friend.isGroup) friend.id else dbHelper.getDmChannelId(canonicalName)
-                                isLoadingMessages = initialMsgs.isEmpty()
                                 typedMessage = messageDrafts[friend.id] ?: ""
                                 selectedFriend = friend
                                 onDirectChatStateChanged(true)
                                 markFriendChatAsReadLocallyAndRemotely(friend)
+
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val initialMsgs = loadLocalMessagesForFriend(friend)
+                                    withContext(Dispatchers.Main) {
+                                        friendMessages = initialMsgs
+                                        isLoadingMessages = false
+                                        try { listState.scrollToItem(initialMsgs.size) } catch (_: Exception) {}
+                                    }
+                                }
                             }
 
                             Card(

@@ -4341,11 +4341,14 @@ object ConnectoApiClient {
                         }
                     }
                     requestMethod = method
-                    connectTimeout = 3000
-                    readTimeout = 5000
+                    connectTimeout = 2500
+                    readTimeout = 4000
                     setRequestProperty("User-Agent", USER_AGENT)
                     setRequestProperty("Accept", "application/json")
                     setRequestProperty("Content-Type", "application/json")
+                    if (ConnectoNetworkConfig.activeServerMode == "cloud_server" || fullUrl.contains("connecto.fun")) {
+                        setRequestProperty("X-Force-Cloud", "1")
+                    }
                     if (!activeToken.isNullOrEmpty()) {
                         setRequestProperty("Authorization", "Bearer $activeToken")
                     } else if (!sessionCookie.isNullOrEmpty()) {
@@ -4422,12 +4425,12 @@ object ConnectoApiClient {
                         triggerSessionExpired(errorDetail.ifBlank { "Session has expired or was terminated. Please log in again." })
                     }
                     return Result.failure(Exception(errorDetail))
-                } else if (responseCode in 400..499 && responseCode != 404 && responseCode != 429) {
+                } else if (responseCode in 400..499 && responseCode != 429) {
                     ConnectoNetworkConfig.activeBaseUrl = base
                     val errorDetail = parseErrorMessage(responseText, responseCode)
                     return Result.failure(Exception(errorDetail))
                 } else {
-                    // 404, 429 (rate/quota limited), or 5xx: fall through to check next server base
+                    // 429 (rate/quota limited) or 5xx: fall through to check next server base if multiple are configured
                     android.util.Log.w("ConnectoSync", "Server base $base returned $responseCode, trying next candidate server...")
                     lastException = Exception("Server returned code $responseCode: $responseText")
                 }
