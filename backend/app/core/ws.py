@@ -140,9 +140,46 @@ class ConnectionManager:
                     # NOTE: Global online broadcast removed — DB presence updated only.
                 else:
                     await self._set_online(user_id, False)
-            except Exception as _ce:
+            except Exception:
                 pass
         asyncio.create_task(_check_stealth_and_broadcast())
+
+        # Auto-subscribe user to all their active DM and participating channels
+        async def _auto_subscribe_channels():
+            try:
+                from app.db.session import AsyncSessionLocal
+                from app.db.models.chat import Channel, DMParticipant
+                from sqlalchemy import select, or_
+                async with AsyncSessionLocal() as db:
+                    p_stmt = select(Channel.id, Channel.name).join(
+                        DMParticipant, DMParticipant.channel_id == Channel.id
+                    ).where(DMParticipant.user_id == user_id)
+                    p_res = (await db.execute(p_stmt)).all()
+                    for ch_id, ch_name in p_res:
+                        if ch_id:
+                            self.subscribe_channel(user_id, ch_id)
+                        if ch_name:
+                            self.subscribe_channel(user_id, ch_name)
+                    if username:
+                        clean_un = username.strip().lower()
+                        dm_stmt = select(Channel.id, Channel.name).where(
+                            Channel.type == "dm",
+                            or_(
+                                Channel.name.ilike(f"dm-{clean_un}-%"),
+                                Channel.name.ilike(f"dm-%-{clean_un}"),
+                                Channel.name.ilike(f"dm_{clean_un}_%"),
+                                Channel.name.ilike(f"dm_%_{clean_un}")
+                            )
+                        )
+                        dm_res = (await db.execute(dm_stmt)).all()
+                        for ch_id, ch_name in dm_res:
+                            if ch_id:
+                                self.subscribe_channel(user_id, ch_id)
+                            if ch_name:
+                                self.subscribe_channel(user_id, ch_name)
+            except Exception:
+                pass
+        asyncio.create_task(_auto_subscribe_channels())
 
     def disconnect(self, user_id: str, websocket: WebSocket):
         if user_id in self.active_connections:

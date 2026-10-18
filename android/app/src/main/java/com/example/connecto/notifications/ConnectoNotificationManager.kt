@@ -33,6 +33,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Locale
 import com.example.connecto.voice.CallActionReceiver
 
 object ConnectoNotificationManager {
@@ -40,7 +42,7 @@ object ConnectoNotificationManager {
 
     // Notification Channel IDs
     const val CHANNEL_CALLS = "connecto_voice_calls_v2"
-    const val CHANNEL_MESSAGES = "connecto_messages_v2"
+    const val CHANNEL_MESSAGES = "connecto_messages_v4"
     const val CHANNEL_SOCIAL = "connecto_social_v2"
 
     // Action Intents
@@ -71,8 +73,8 @@ object ConnectoNotificationManager {
             val context = appContext ?: return
             val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
-            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            val audioAttributes = AudioAttributes.Builder()
+            val callSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            val callAudioAttributes = AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
                 .build()
@@ -86,12 +88,18 @@ object ConnectoNotificationManager {
                 description = "Incoming 1:1 voice calls and war room alerts"
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 250, 500, 250, 500)
-                setSound(soundUri, audioAttributes)
+                setSound(callSoundUri, callAudioAttributes)
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
                 setShowBadge(true)
             }
 
-            // 2. Messages Channel
+            // 2. Messages Channel (High importance, heads-up banner, vibration, sound)
+            val notifSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            val notifAudioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
+                .build()
+
             val messagesChannel = NotificationChannel(
                 CHANNEL_MESSAGES,
                 "Chat Messages & Mentions",
@@ -99,8 +107,11 @@ object ConnectoNotificationManager {
             ).apply {
                 description = "Direct messages, channel mentions, and squad pings"
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 200, 100, 200)
-                lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
+                vibrationPattern = longArrayOf(0, 250, 200, 250)
+                setSound(notifSoundUri, notifAudioAttributes)
+                enableLights(true)
+                lightColor = 0xFF6C5CE7.toInt()
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
                 setShowBadge(true)
             }
 
@@ -116,7 +127,7 @@ object ConnectoNotificationManager {
             }
 
             notificationManager.createNotificationChannels(listOf(callsChannel, messagesChannel, socialChannel))
-            Log.d(TAG, "Notification channels registered successfully")
+            Log.d(TAG, "Notification channels registered successfully (v4 messages channel active)")
         }
     }
 
@@ -510,22 +521,112 @@ object ConnectoNotificationManager {
                     .setKey(myUsername.ifEmpty { "self" })
                     .build()
 
-                val senderPersonKey = (senderUsername ?: senderName).trim().lowercase()
+                val senderPersonKey = (senderUsername ?: senderName).trim().lowercase().removePrefix("@")
                 val senderPerson = Person.Builder()
                     .setName(senderName)
-                    .setKey(senderPersonKey)
+                    .setKey(senderPersonKey.ifBlank { "sender" })
                     .setIcon(IconCompat.createWithBitmap(avatarBitmap))
                     .build()
+
+                val dbHelper = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                val recentMessages = try {
+                    if (isDm) {
+                        dbHelper.getDirectMessages(myUsername, senderPersonKey, limit = 5)
+                    } else {
+                        dbHelper.getMessagesForChannel(channelOrDmId, limit = 5)
+                    }
+                } catch (_: Exception) {
+                    emptyList()
+                }
 
                 val messagingStyle = NotificationCompat.MessagingStyle(localUser)
                     .setConversationTitle(if (isDm) null else "#${channelOrDmId.removePrefix("#")}")
                     .setGroupConversation(!isDm)
-                    .addMessage(messageText, System.currentTimeMillis(), senderPerson)
+
+                // Build history messages in chronological order (oldest to newest)
+                val historyList = if (recentMessages.isNotEmpty()) {
+                    recentMessages.sortedBy { it.createdAt }
+                        .filter { it.content.trim() != messageText.trim() }
+                        .takeLast(4)
+                } else emptyList()
+
+                historyList.forEach { m ->
+                    val isMe = m.authorId.equals(myUsername, ignoreCase = true) || m.authorName.equals(myUsername, ignoreCase = true)
+                    val authorPerson = if (isMe) localUser else {
+                        Person.Builder()
+                            .setName(m.authorName.ifBlank { senderName })
+                            .setKey(m.authorId.lowercase().removePrefix("@"))
+                            .setIcon(IconCompat.createWithBitmap(avatarBitmap))
+                            .build()
+                    }
+                    val ts = try {
+                        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+                        sdf.parse(m.createdAt.substringBefore("."))?.time ?: System.currentTimeMillis()
+                    } catch (_: Exception) {
+                        System.currentTimeMillis()
+                    }
+                    messagingStyle.addMessage(m.content, ts, authorPerson)
+                }
+
+                // ALWAYS append the actual current incoming message as the latest message in messagingStyle
+                messagingStyle.addMessage(messageText, System.currentTimeMillis(), senderPerson)
 
                 val isContentHidden = NotificationPreferences.isHideContentEnabled(context)
                 val displayTitle = if (isContentHidden) "Connecto" else senderName
                 val displayMessage = if (isContentHidden) "New message received" else messageText
                 val displaySubText = if (isContentHidden) "Connecto • Private" else subText
+
+                val notifId = NOTIFICATION_ID_MESSAGE + (Math.abs(channelOrDmId.hashCode()) % 1000)
+
+                // Inline Direct Reply RemoteInput (just like WhatsApp)
+                val remoteInput = androidx.core.app.RemoteInput.Builder(DirectReplyReceiver.KEY_TEXT_REPLY)
+                    .setLabel("Reply to $senderName...")
+                    .build()
+
+                val replyIntent = Intent(context, DirectReplyReceiver::class.java).apply {
+                    action = DirectReplyReceiver.ACTION_DIRECT_REPLY
+                    putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                    putExtra("extra_sender_name", senderName)
+                    putExtra("extra_sender_username", senderUsername ?: senderName)
+                    putExtra("extra_notification_id", notifId)
+                }
+                val replyPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    notifId + 10,
+                    replyIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+                )
+
+                val replyAction = NotificationCompat.Action.Builder(
+                    android.R.drawable.ic_menu_send,
+                    "Reply",
+                    replyPendingIntent
+                ).addRemoteInput(remoteInput)
+                    .setAllowGeneratedReplies(true)
+                    .build()
+
+                val markReadIntent = Intent(context, DirectReplyReceiver::class.java).apply {
+                    action = DirectReplyReceiver.ACTION_MARK_AS_READ
+                    putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                    putExtra("extra_sender_username", senderUsername ?: senderName)
+                    putExtra("extra_notification_id", notifId)
+                }
+                val markReadPendingIntent = PendingIntent.getBroadcast(
+                    context,
+                    notifId + 20,
+                    markReadIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                val markReadAction = NotificationCompat.Action.Builder(
+                    android.R.drawable.checkbox_on_background,
+                    "Mark as read",
+                    markReadPendingIntent
+                ).build()
+
+                val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
+                val soundUri = NotificationSoundManager.getSoundUri(context, selectedSoundId)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                val vibrationPattern = longArrayOf(0, 250, 200, 250)
 
                 val builder = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
                     .setSmallIcon(R.mipmap.ic_launcher)
@@ -533,16 +634,21 @@ object ConnectoNotificationManager {
                     .setContentTitle(displayTitle)
                     .setSubText(displaySubText)
                     .setContentText(displayMessage)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
+                    .setPriority(NotificationCompat.PRIORITY_MAX)
                     .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                     .setAutoCancel(true)
                     .setContentIntent(pendingIntent)
                     .setColor(0xFF6C5CE7.toInt()) // Connecto Brand Accent Purple
                     .setVisibility(if (isContentHidden) NotificationCompat.VISIBILITY_PRIVATE else NotificationCompat.VISIBILITY_PUBLIC)
+                    .setDefaults(NotificationCompat.DEFAULT_ALL)
+                    .setSound(soundUri)
+                    .setVibrate(vibrationPattern)
+                    .addAction(replyAction)
+                    .addAction(markReadAction)
 
                 if (isDm && !isContentHidden) {
                     try {
-                        val shortcutId = "dm_$senderPersonKey"
+                        val shortcutId = "dm_${senderPersonKey.ifBlank { "user" }}"
                         val shortcutIntent = Intent(Intent.ACTION_VIEW).apply {
                             setClass(context, MainActivity::class.java)
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
@@ -576,8 +682,8 @@ object ConnectoNotificationManager {
                 }
 
                 val notification = builder.build()
-                NotificationManagerCompat.from(context).notify(NOTIFICATION_ID_MESSAGE + (channelOrDmId.hashCode() % 1000), notification)
-                Log.d(TAG, "Message notification posted for: $senderName (contentHidden=$isContentHidden)")
+                NotificationManagerCompat.from(context).notify(notifId, notification)
+                Log.d(TAG, "Message notification posted with heads-up banner & reply for: $senderName (notifId=$notifId)")
 
                 // Play chosen trending notification sound
                 NotificationSoundManager.playNotificationSound(context)

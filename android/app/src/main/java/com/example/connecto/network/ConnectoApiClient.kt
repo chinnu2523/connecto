@@ -183,7 +183,10 @@ data class FriendshipDto(
     val status: String,
     val isOnline: Boolean = false,
     val isStealth: Boolean = false,
-    val bio: String? = null
+    val bio: String? = null,
+    val lastMessage: String? = null,
+    val lastMessageTimestamp: Long = 0L,
+    val unreadCount: Int = 0
 )
 
 data class NotificationDto(
@@ -3063,6 +3066,9 @@ object ConnectoApiClient {
                             else if (rawBanner.startsWith("http://") || rawBanner.startsWith("https://") || rawBanner.startsWith("data:") || com.example.connecto.ui.designsystem.isCoverPreset(rawBanner)) rawBanner
                             else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawBanner.trimStart('/')}"
                         val itemBio = item.optString("bio").takeIf { it.isNotBlank() }
+                        val itemLastMsg = item.optString("last_message").takeIf { it.isNotBlank() }
+                        val itemLastTs = item.optLong("last_message_timestamp", 0L)
+                        val itemUnread = item.optInt("unread_count", 0)
                         list.add(
                             FriendshipDto(
                                 id = item.optString("id").ifEmpty { item.optString("friend_id").ifEmpty { uName } },
@@ -3075,7 +3081,10 @@ object ConnectoApiClient {
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,
                                 isStealth = isStealth,
-                                bio = itemBio
+                                bio = itemBio,
+                                lastMessage = itemLastMsg,
+                                lastMessageTimestamp = itemLastTs,
+                                unreadCount = itemUnread
                             )
                         )
                     }
@@ -3097,6 +3106,9 @@ object ConnectoApiClient {
                             else if (rawBanner.startsWith("http://") || rawBanner.startsWith("https://") || rawBanner.startsWith("data:") || com.example.connecto.ui.designsystem.isCoverPreset(rawBanner)) rawBanner
                             else "${ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')}/${rawBanner.trimStart('/')}"
                         val itemBio = item.optString("bio").takeIf { it.isNotBlank() }
+                        val itemLastMsg = item.optString("last_message").takeIf { it.isNotBlank() }
+                        val itemLastTs = item.optLong("last_message_timestamp", 0L)
+                        val itemUnread = item.optInt("unread_count", 0)
                         list.add(
                             FriendshipDto(
                                 id = item.optString("id").ifEmpty { item.optString("friend_id").ifEmpty { uName } },
@@ -3109,7 +3121,10 @@ object ConnectoApiClient {
                                 status = if (isOnline) "online" else "offline",
                                 isOnline = isOnline,
                                 isStealth = isStealth,
-                                bio = itemBio
+                                bio = itemBio,
+                                lastMessage = itemLastMsg,
+                                lastMessageTimestamp = itemLastTs,
+                                unreadCount = itemUnread
                             )
                         )
                     }

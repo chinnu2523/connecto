@@ -470,7 +470,7 @@ fun HomeChatScreen(
                         }
                     }).map { friend ->
                         val cleanHandle = (friend.friendUsername.ifEmpty { friend.friendDisplayName }).removePrefix("@")
-                        val unread = unreadMap[cleanHandle.lowercase()] ?: 0
+                        val unread = maxOf(unreadMap[cleanHandle.lowercase()] ?: 0, friend.unreadCount)
                         val myUName = currentUsername.removePrefix("@")
                         val lastDm = try {
                             dbHelper.getDirectMessages(myUName, cleanHandle, limit = 1).firstOrNull()
@@ -482,11 +482,19 @@ fun HomeChatScreen(
                                     ConnectoE2EEncryption.decryptMessage(lastDm.content, key)
                                 } else lastDm.content
                             }
+                            !friend.lastMessage.isNullOrBlank() && friend.lastMessage != "Connected via Cloudflare D1" -> {
+                                if (ConnectoE2EEncryption.isEncrypted(friend.lastMessage)) {
+                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle)
+                                    ConnectoE2EEncryption.decryptMessage(friend.lastMessage, key)
+                                } else friend.lastMessage
+                            }
                             else -> "Tap to open chat"
                         }
                         val lastMsgTime = lastDm?.createdAt?.let {
                             formatTimeAgoShort(it)
-                        } ?: if (friend.isOnline) "Online" else "Active"
+                        } ?: if (friend.lastMessageTimestamp > 0L) {
+                            formatTimeAgoShort(friend.lastMessageTimestamp)
+                        } else if (friend.isOnline) "Online" else "Active"
 
                         RecentConversationItem(
                             id = friend.id,
@@ -1621,6 +1629,15 @@ private fun GlobalSearchDialog(
                 }
             }
         }
+    }
+}
+
+private fun formatTimeAgoShort(timestampMs: Long): String {
+    return try {
+        val date = java.util.Date(timestampMs)
+        java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault()).format(date)
+    } catch (_: Exception) {
+        "Active"
     }
 }
 

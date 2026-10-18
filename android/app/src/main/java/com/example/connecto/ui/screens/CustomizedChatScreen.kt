@@ -607,14 +607,17 @@ fun CustomizedChatScreen(
         for (msg in messages) {
             val existingIndex = result.indexOfFirst { existing ->
                 if (existing.id == msg.id) return@indexOfFirst true
-                val sameContent = existing.content.trim() == msg.content.trim() && msg.content.isNotBlank()
-                if (!sameContent) return@indexOfFirst false
-
-                val sameRole = existing.isMe == msg.isMe
-                if (!sameRole) return@indexOfFirst false
-
-                val timeDiff = kotlin.math.abs(existing.timestampMillis - msg.timestampMillis)
-                timeDiff <= 30_000L || existing.time == msg.time
+                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_")
+                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_")
+                // Only merge by content and timestamp if at least one of them is temporary (optimistic)
+                if (existingIsTemp || newIsTemp) {
+                    val sameContent = existing.content.trim() == msg.content.trim() && msg.content.isNotBlank()
+                    if (sameContent && existing.isMe == msg.isMe) {
+                        val timeDiff = kotlin.math.abs(existing.timestampMillis - msg.timestampMillis)
+                        return@indexOfFirst (timeDiff <= 30_000L || existing.time == msg.time)
+                    }
+                }
+                false
             }
             if (existingIndex == -1) {
                 result.add(msg)
@@ -1186,11 +1189,14 @@ fun CustomizedChatScreen(
                     val unread = maxOf(
                         readPrefs.getInt("unread_${f.friendId}", 0),
                         readPrefs.getInt("unread_${cleanUsername.lowercase()}", 0),
-                        cachedFriend?.unreadCount ?: 0
+                        cachedFriend?.unreadCount ?: 0,
+                        f.unreadCount
                     )
                     val rawPrefMsg = readPrefs.getString("last_msg_${f.friendId}", null) ?: readPrefs.getString("last_msg_${cleanUsername.lowercase()}", null)
                     val lastMsg = if (!rawPrefMsg.isNullOrBlank() && rawPrefMsg != "Direct chat active • Tap to message") {
                         rawPrefMsg
+                    } else if (!f.lastMessage.isNullOrBlank() && f.lastMessage != "Direct chat active • Tap to message" && f.lastMessage != "Connected via Cloudflare D1") {
+                        f.lastMessage
                     } else {
                         cachedFriend?.lastMessage?.ifBlank { null } ?: "Direct chat active • Tap to message"
                     }
@@ -1199,7 +1205,8 @@ fun CustomizedChatScreen(
                     var lastTs = maxOf(
                         readPrefs.getLong("last_timestamp_${f.friendId}", 0L),
                         readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L),
-                        cachedFriend?.lastMessageTimestamp ?: 0L
+                        cachedFriend?.lastMessageTimestamp ?: 0L,
+                        f.lastMessageTimestamp
                     )
                     if (lastTs == 0L && currentUsername.isNotBlank()) {
                         val latest = dbHelper.getLatestMessageInfoForFriend(currentUsername, cleanUsername)
@@ -1421,6 +1428,15 @@ fun CustomizedChatScreen(
         while (true) {
             syncAcceptedFriends()
             delay(3500)
+        }
+    }
+
+    // Immediate sync on WebSocket connection / reconnection
+    LaunchedEffect(Unit) {
+        VoiceCallManager.isWsConnectedFlow.collect { connected ->
+            if (connected) {
+                syncAcceptedFriends()
+            }
         }
     }
 
@@ -1652,7 +1668,7 @@ fun CustomizedChatScreen(
             val isForCurrentChat = if (currentFriend == null) {
                 false
             } else if (currentFriend.isGroup) {
-                dtoChannelClean == currentFriend.id.trim().lowercase()
+                dtoChannelClean == currentFriend.id.trim().lowercase() || (currentDmId != null && dtoChannelClean == currentDmId)
             } else {
                 val myBase = myUsername.replace(Regex("\\d+$"), "")
                 val friendBase = friendHandleClean.replace(Regex("\\d+$"), "")
@@ -1672,7 +1688,7 @@ fun CustomizedChatScreen(
                     (friendIdClean.isNotBlank() && (authorClean == friendIdClean || authorNameClean == friendIdClean)) ||
                     (friendNameClean.isNotBlank() && (authorNameClean == friendNameClean || authorClean == friendNameClean))
                 )
-                channelMatches && (isMe || isFriend)
+                (isFriend && !dtoChannelClean.startsWith("grp_") && !dtoChannelClean.startsWith("group-")) || (channelMatches && (isMe || isFriend))
             }
 
             if (isForCurrentChat && currentFriend != null) {
@@ -1820,7 +1836,10 @@ fun CustomizedChatScreen(
                     val h = it.handle.removePrefix("@").trim().lowercase()
                     val id = it.id.trim().lowercase()
                     val n = it.name.trim().lowercase()
+                    val hBase = h.replace(Regex("\\d+$"), "")
+                    val authorBase = authorClean.replace(Regex("\\d+$"), "")
                     h == authorClean || id == authorClean || n == authorNameClean || h == authorNameClean ||
+                    (authorBase.isNotEmpty() && hBase == authorBase) ||
                     (dtoChannelClean.startsWith("dm-") && dtoChannelClean.contains(h))
                 }
 

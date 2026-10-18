@@ -113,7 +113,7 @@ def send_push_notification_sync(
             if raw_av and str(raw_av).strip().lower() not in ("null", "none", "undefined"):
                 clean_av = str(raw_av).strip()
                 if clean_av.startswith("/uploads/") or clean_av.startswith("uploads/"):
-                    avatar_img = "http://100.87.184.30/" + clean_av.lstrip("/")
+                    avatar_img = "https://connecto.fun/" + clean_av.lstrip("/")
                 elif clean_av.startswith("http://") or clean_av.startswith("https://"):
                     avatar_img = clean_av
 
@@ -127,21 +127,53 @@ def send_push_notification_sync(
         if "extra_notification_action" not in merged_data:
             merged_data["extra_notification_action"] = "com.example.connecto.ACTION_OPEN_CHAT"
 
+        channel_id = "connecto_messages_v4"
+        if notification_type in ("call", "call_invite", "incoming_call"):
+            channel_id = "connecto_voice_calls_v2"
+        elif notification_type in ("friend_request", "social"):
+            channel_id = "connecto_social_v2"
+
+        tag = merged_data.get("channel_id") or merged_data.get("sender_id") or merged_data.get("sender_username") or "connecto"
+
+        android_notification = messaging.AndroidNotification(
+            title=title,
+            body=body,
+            icon="ic_launcher",
+            color="#6C5CE7",
+            sound="default",
+            tag=str(tag),
+            channel_id=channel_id,
+            priority="max",
+            visibility="public",
+            click_action="com.example.connecto.ACTION_OPEN_CHAT",
+            default_sound=True,
+            default_vibrate_timings=True,
+        )
+
         android_config = messaging.AndroidConfig(
             priority="high",  # Always high priority for immediate background and Doze delivery
             ttl=86400,
+            notification=android_notification,
         )
 
-        # High-priority data message ensures ConnectoFirebaseMessagingService.onMessageReceived
-        # is called on Android even when the app process is completely closed or killed in background.
+        # Dual payload (Notification + Data):
+        # 1. When app is swiped away from Recents / process closed, Google Play Services
+        #    immediately renders the heads-up notification in the system shade (just like WhatsApp).
+        # 2. When user taps the notification or app is in foreground, rich data payload
+        #    is delivered directly to the app client and SQLite cache.
         message = messaging.Message(
             token=fcm_token,
+            notification=messaging.Notification(
+                title=title,
+                body=body,
+                image=avatar_img if (avatar_img and avatar_img.startswith("https://")) else None
+            ),
             android=android_config,
             data=merged_data
         )
 
         response = messaging.send(message)
-        logger.info(f"[FCM] High-priority push sent. MessageID={response} token={fcm_token[:20]}...")
+        logger.info(f"[FCM] WhatsApp-grade push sent. MessageID={response} channel={channel_id} token={fcm_token[:20]}...")
         return True
     except Exception as e:
         # Token may be expired — log but do NOT crash the request

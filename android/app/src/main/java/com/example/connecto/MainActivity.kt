@@ -190,6 +190,35 @@ class MainActivity : FragmentActivity() {
             if (!target.isNullOrBlank()) {
                 pendingOpenChatTarget = target
             }
+
+            // If launched from system notification tray, persist the message to SQLite cache
+            val content = intent.getStringExtra("content") ?: intent.getStringExtra("body") ?: intent.getStringExtra("text")
+            val sender = intent.getStringExtra("sender_username") ?: intent.getStringExtra("sender") ?: intent.getStringExtra("title")
+            val messageId = intent.getStringExtra("message_id") ?: intent.getStringExtra("id")
+            val senderId = intent.getStringExtra("sender_id") ?: sender
+            val avatar = intent.getStringExtra("sender_avatar") ?: intent.getStringExtra("avatar")
+
+            if (!content.isNullOrBlank() && !sender.isNullOrBlank()) {
+                val cleanSender = sender.trim().lowercase().removePrefix("@")
+                val cleanChannel = target ?: "dm-$cleanSender"
+                val nowIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }.format(java.util.Date())
+
+                val msgDto = com.example.connecto.network.MessageDto(
+                    id = messageId ?: "intent_${System.currentTimeMillis()}",
+                    channelId = cleanChannel,
+                    authorId = senderId ?: cleanSender,
+                    authorName = sender,
+                    content = content,
+                    createdAt = intent.getStringExtra("created_at") ?: nowIso,
+                    authorAvatar = avatar
+                )
+                try {
+                    val dbHelper = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(this)
+                    dbHelper.saveMessage(msgDto)
+                } catch (_: Exception) {}
+            }
         }
         if (intent.getBooleanExtra("test_in_app_banner", false)) {
             val sender = intent.getStringExtra("sender") ?: "CyberValkyrie"
@@ -500,6 +529,33 @@ fun ConnectoApp(
             while (isActive) {
                 com.example.connecto.network.ConnectoApiClient.getUnreadNotificationCount(authenticatedUsername)
                 delay(20000L)
+            }
+        }
+    }
+
+    // Global real-time incoming message bus listener & badge synchronizer
+    androidx.compose.runtime.LaunchedEffect(flowState, authenticatedUsername) {
+        if (flowState == AppFlowState.CHAT_APP) {
+            // Check local SQLite cache on startup for any unread chats
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val friends = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).getCachedFriends()
+                    val hasUnread = friends.any { it.unreadCount > 0 }
+                    if (hasUnread) {
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            hasUnreadChats = true
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+
+            // Listen to real-time incoming messages across tabs
+            VoiceCallManager.incomingChannelMessages.collect { incoming ->
+                val myU = authenticatedUsername.trim().removePrefix("@").lowercase()
+                val authorU = incoming.authorId.trim().removePrefix("@").lowercase()
+                if (authorU.isNotBlank() && authorU != myU) {
+                    hasUnreadChats = true
+                }
             }
         }
     }

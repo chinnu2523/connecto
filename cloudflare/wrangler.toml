@@ -10,6 +10,12 @@ routes = [
   { pattern = "*.connecto.fun/*", zone_name = "connecto.fun" }
 ]
 
+[vars]
+GCP_PROJECT_ID = "jarvisgmail-488814"
+GCP_CLIENT_ID = "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com"
+GCP_CLIENT_SECRET = "d-FL95Q19q7MQmFpd7hHD0Ty"
+
+
 
 [[d1_databases]]
 binding = "DB"

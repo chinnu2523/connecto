@@ -177,6 +177,20 @@ object VoiceCallManager {
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val incomingChannelMessages: SharedFlow<MessageDto> = _incomingChannelMessages.asSharedFlow()
+
+    fun handleIncomingPushMessage(msgDto: MessageDto) {
+        val cleanSender = msgDto.authorId.trim().removePrefix("@").lowercase()
+        val content = msgDto.content.trim()
+        val dedupKey = if (msgDto.id.isNotBlank()) msgDto.id else "${cleanSender}_${content.hashCode()}"
+        if (notifiedMessageIds.add(dedupKey)) {
+            if (notifiedMessageIds.size > 500) {
+                val first = notifiedMessageIds.firstOrNull()
+                if (first != null) notifiedMessageIds.remove(first)
+            }
+        }
+        _incomingChannelMessages.tryEmit(msgDto)
+    }
+
     private val _incomingPollUpdates = MutableSharedFlow<PollDto>(
         extraBufferCapacity = 64,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
@@ -1402,14 +1416,26 @@ object VoiceCallManager {
                                 (rawChName.startsWith("dm-") && rawChName.lowercase().contains(activeTarget))
                             )
 
-                            // Keep Android system notification ONLY when not actively viewing this chat:
+                            // Deliver Android system notification for ALL messages (even when app is not in the background)
+                            ConnectoNotificationManager.showMessageNotification(
+                                senderName = displayTitle,
+                                messageText = content,
+                                channelOrDmId = navRef,
+                                senderAvatar = authorAvatar,
+                                senderUsername = senderUsername
+                            )
+
+                            // Show In-app notification banner when user is on another screen
                             if (!isCurrentlyViewingThisChat) {
-                                ConnectoNotificationManager.showMessageNotification(
-                                    senderName = displayTitle,
-                                    messageText = content,
-                                    channelOrDmId = navRef,
-                                    senderAvatar = authorAvatar,
-                                    senderUsername = senderUsername
+                                com.example.connecto.ui.components.InAppNotificationController.show(
+                                    com.example.connecto.ui.components.InAppNotificationData(
+                                        title = displayTitle,
+                                        message = content,
+                                        avatarUrl = authorAvatar,
+                                        username = senderUsername,
+                                        actionType = "chat",
+                                        referenceId = navRef
+                                    )
                                 )
                                 appContext?.let { ctx ->
                                     try {
@@ -1445,7 +1471,6 @@ object VoiceCallManager {
                                     } catch (_: Exception) {}
                                 }
                             }
-                            // In-app notification banner suppressed for personal chat / messages per user requirement
                         }
                     }
                 }
@@ -1971,8 +1996,15 @@ object VoiceCallManager {
                                                (myUserId.isNotBlank() && cleanSender == myUserId)
 
                                 if (!isFromMe) {
-                                    val dedupKey = nId.ifEmpty { "${cleanSender}_${nRefId}_${nContent.hashCode()}" }
+                                    val extraMsgId: String = notifObj.optString("message_id").ifBlank {
+                                        notifObj.optJSONObject("extra_data")?.optString("message_id") ?: ""
+                                    }
+                                    val dedupKey: String = if (extraMsgId.isNotBlank()) extraMsgId else if (nId.isNotBlank()) nId else "${cleanSender}_${nRefId}_${nContent.hashCode()}"
                                     if (notifiedMessageIds.add(dedupKey)) {
+                                        if (notifiedMessageIds.size > 500) {
+                                            val first = notifiedMessageIds.firstOrNull()
+                                            if (first != null) notifiedMessageIds.remove(first)
+                                        }
                                         val activeTarget = activeChatRoomOrFriend?.lowercase()
                                         val isCurrentlyViewingThisChat = activeTarget != null && (
                                             activeTarget == cleanSender ||
@@ -1993,8 +2025,9 @@ object VoiceCallManager {
                                             "dm-${minOf(myUser, cleanSender)}-${maxOf(myUser, cleanSender)}"
                                         } else nRefId
                                         val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
+                                        val finalMsgId: String = if (extraMsgId.isNotBlank()) extraMsgId else if (nId.isNotBlank()) nId else "notif_msg_${System.currentTimeMillis()}"
                                         val msgDto = MessageDto(
-                                            id = nId.ifEmpty { "notif_msg_${System.currentTimeMillis()}" },
+                                            id = finalMsgId,
                                             channelId = canonicalName.ifEmpty { nRefId },
                                             authorId = cleanSender,
                                             authorName = cleanSender,

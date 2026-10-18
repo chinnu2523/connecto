@@ -61,7 +61,8 @@ async def create_user_notification(
     content: str,
     sender_username: Optional[str] = None,
     sender_avatar: Optional[str] = None,
-    reference_id: Optional[str] = None
+    reference_id: Optional[str] = None,
+    extra_data: Optional[dict] = None
 ) -> Notification:
     """Helper to persist a notification and emit real-time WebSocket event."""
     notification = Notification(
@@ -93,6 +94,8 @@ async def create_user_notification(
             "created_at": notification.created_at.isoformat()
         }
     }
+    if extra_data:
+        event_data["notification"].update(extra_data)
     await ws_manager.send_personal_event(user_id, event_data)
 
     # Send FCM push notification to the recipient's Android device (if registered)
@@ -101,22 +104,26 @@ async def create_user_notification(
         target_user = (await db.execute(stmt)).scalar_one_or_none()
         if target_user and target_user.fcm_token:
             import asyncio as _aio
+            push_payload = {
+                "type": type,
+                "sender": sender_username or "",
+                "sender_username": sender_username or "",
+                "caller_name": sender_username or "",
+                "title": title,
+                "body": content,
+                "reference_id": reference_id or "",
+                "room_id": reference_id or "",
+                "sender_avatar": sender_avatar or "",
+                "avatar": sender_avatar or "",
+                "extra_notification_action": "com.example.connecto.ACTION_OPEN_CHAT"
+            }
+            if extra_data:
+                push_payload.update(extra_data)
             _aio.create_task(send_push_notification(
                 fcm_token=target_user.fcm_token,
                 title=title,
                 body=content,
-                data={
-                    "type": type,
-                    "sender": sender_username or "",
-                    "sender_username": sender_username or "",
-                    "caller_name": sender_username or "",
-                    "title": title,
-                    "body": content,
-                    "reference_id": reference_id or "",
-                    "room_id": reference_id or "",
-                    "sender_avatar": sender_avatar or "",
-                    "avatar": sender_avatar or ""
-                },
+                data=push_payload,
                 notification_type=type
             ))
     except Exception as _push_e:
