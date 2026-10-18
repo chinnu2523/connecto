@@ -97,14 +97,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.4.7",
-        version_name: "v4.4.7",
-        version_code: 76,
-        build: 76,
-        sha256: "20133ec3cdf0df3144ba736af9dc1c9d0beaa6759ee8da66205b4ff87b2f8881",
-        md5: "609c2bb6652886174d3db37ac467d1a4",
+        version: "4.4.8",
+        version_name: "v4.4.8",
+        version_code: 77,
+        build: 77,
+        sha256: "9fab861c1f1591d2f367818707cefcfe199b0fcbf028c4df0d13e1c70af04003",
+        md5: "d87a4ad767d4c63cb22f3c5126323c8b",
         filename: "connecto-fun.apk",
-        size_bytes: 57668841,
+        size_bytes: 57701609,
         size_display: "55.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -112,18 +112,19 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Zero-Latency Instant Chat Loading: SQLite local messages & E2E decryption moved completely to background IO threads with 0ms instantaneous UI render on conversation open, eliminating all compose frame freezing.",
-          "Edge Fast-Path API Engine: Cloudflare Worker defaults directly to high-speed Edge D1 execution with X-Force-Cloud routing, cutting channel message and profile endpoint latency from 2.1s down to ~200ms (10x faster).",
-          "Instant Notification Delivery (<50ms): Integrated 64-entry in-memory LruCache for avatars with strict 400ms remote fetch timeout and non-routable loopback filtering, guaranteeing heads-up notifications pop up in under 50ms without waiting on slow network images.",
-          "Google FCM OAuth2 Edge Cache: Cached FCM v1 Bearer tokens directly inside Cloudflare Edge Cache across isolates with 50-minute TTL, eliminating external OAuth roundtrip delays for background push dispatch.",
-          "Fail-Fast Network Resilience: Eliminated multi-second 404 candidate base fallbacks (127.0.0.1 and 10.0.2.2 loopbacks) in production cloud builds, preventing 6-12s thread freezes on missing endpoints.",
-          "WhatsApp-Style Background Delivery: Direct Google OAuth2 FCM v1 push notification dispatch from Cloudflare Edge Worker immediately wakes up the device with high-priority heads-up banners, sound, and vibration even after swiping the app away from recent tasks.",
-          "Universal Foreground Notification Delivery: Delivers heads-up banners, notification sounds, and vibration for all incoming messages, whether browsing other tabs or actively chatting, ensuring no typed messages are missed.",
-          "Real-Time Conversation List & Unread Badge Sync: Automatically updates latest message snippets, timestamps, unread counts, and dynamically floats active chats to the top without needing to open the chat channel.",
-          "WhatsApp-Style Inline Direct Reply & Mark As Read: Reply to messages or mark them as read directly from the Android notification shade with remote input and dynamic conversation shortcuts.",
-          "Notification Content Accuracy: Fixed NotificationCompat.MessagingStyle so actual incoming typed messages are always cleanly displayed as the latest message without being overwritten by historical chips.",
-          "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens — screenshots, screen recording, screen sharing, and casting render pitch-black (#000000).",
-          "Trending Viral Notification Sounds: Viral audio chimes including Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, and Wah Kya Scene Hai."
+          "Help & Support Center in Profile Tab: Added dedicated 'Help & Support' menu navigation button above Sign Out with instant access to 24/7 customer care and diagnostic tools.",
+          "Live Cloudflare Edge Ping Tester: Built-in ping tool directly measuring real-time network latency to the closest Cloudflare Edge PoP.",
+          "Interactive Expandable FAQs: Instant answers for SurfaceFlinger screen protection, battery optimization/Doze mode, stealth mode presence, 2FA, and WebRTC mesh audio.",
+          "Hardware & System Diagnostics Card: Live inspection of Android OS, hardware model, SurfaceFlinger FLAG_SECURE status, and one-tap clipboard copy.",
+          "In-App Bug & Issue Reporter: Diagnostic bundle builder with category selection and automatic attachment of device metrics.",
+          "Zero-Latency Instant Chat Loading: SQLite local messages & E2E decryption moved completely to background IO threads with 0ms instantaneous UI render on conversation open.",
+          "Edge Fast-Path API Engine: Cloudflare Worker defaults directly to high-speed Edge D1 execution cutting channel message and profile endpoint latency down to ~200ms.",
+          "Instant Notification Delivery (<50ms): In-memory 64-entry LruCache for avatars with strict 400ms remote fetch timeout, guaranteeing heads-up notifications pop up in under 50ms.",
+          "Google FCM OAuth2 Edge Cache: Cached FCM v1 Bearer tokens directly inside Cloudflare Edge Cache across isolates with 50-minute TTL.",
+          "Fail-Fast Network Resilience: Eliminated multi-second 404 candidate loopbacks in production cloud builds.",
+          "WhatsApp-Style Background Delivery: High-priority heads-up banners, sound, and vibration even after swiping the app away from recent tasks.",
+          "Universal Foreground Notification Delivery: Delivers heads-up banners, notification sounds, and vibration for all incoming messages.",
+          "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens."
         ]
       });
     }
@@ -169,16 +170,16 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.7/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.8/connecto-fun.apk";
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.7.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.8.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.4.7");
-          res.headers.set("X-Connecto-Build", "76");
+          res.headers.set("X-Connecto-Version", "v4.4.8");
+          res.headers.set("X-Connecto-Build", "77");
           return res;
         }
 
@@ -189,7 +190,7 @@ export default {
             cacheTtl: 604800
           },
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.4.7"
+            "User-Agent": "Connecto-Cloud-Worker/4.4.8"
           }
         });
         if (upstreamResp.ok) {
@@ -200,8 +201,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.4.7");
-          downloadHeaders.set("X-Connecto-Build", "76");
+          downloadHeaders.set("X-Connecto-Version", "v4.4.8");
+          downloadHeaders.set("X-Connecto-Build", "77");
           downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
           const responseToReturn = new Response(upstreamResp.body, {
@@ -214,7 +215,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.7/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.8/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -5400,14 +5401,14 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.4.7",
-      version_name: "v4.4.7",
-      version_code: 76,
-      build: 76,
-      sha256: "20133ec3cdf0df3144ba736af9dc1c9d0beaa6759ee8da66205b4ff87b2f8881",
-      md5: "609c2bb6652886174d3db37ac467d1a4",
+      version: "4.4.8",
+      version_name: "v4.4.8",
+      version_code: 77,
+      build: 77,
+      sha256: "9fab861c1f1591d2f367818707cefcfe199b0fcbf028c4df0d13e1c70af04003",
+      md5: "d87a4ad767d4c63cb22f3c5126323c8b",
       filename: "connecto-fun.apk",
-      size_bytes: 57668841,
+      size_bytes: 57701609,
       size_display: "55.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -5421,10 +5422,27 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.4.8",
+          date: "Oct 18, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.4.8: Integrated Help & Support Center, Live Edge Latency Diagnostics & In-App Issue Reporter",
+          summary: "Introduces a full-featured Help & Support Center in the Android Profile tab. Includes direct contact channels (support@connecto.fun), in-app bug reporting with automatic system diagnostics, real-time Cloudflare Edge Ping latency testing, interactive expandable FAQs, system hardware & privacy status inspector, and one-tap clipboard diagnostic export.",
+          highlights: [
+            "Help & Support Button in Profile Tab: Added dedicated 'Help & Support' navigation button before Sign Out, leading to a comprehensive customer care and diagnostic hub.",
+            "Direct Support & Bug Reporting: One-tap email support intent and an in-app issue reporting dialog that automatically bundles OS version, device model, and user logs.",
+            "Live Cloudflare Edge Ping Tester: Built-in ping diagnostic measuring real-time round-trip latency to the nearest Cloudflare Edge PoP.",
+            "Interactive FAQ Accordion: Comprehensive answers for battery optimization, SurfaceFlinger blackscreen privacy, stealth mode presence, 2FA, and WebRTC mesh audio.",
+            "Hardware & System Diagnostics Card: Live inspection of Android OS, hardware model, SurfaceFlinger FLAG_SECURE status, and one-tap clipboard copy.",
+            "Android Native App v4.4.8 (Build 77 • 55.0 MB): SHA-256 9fab861c1f1591d2f367818707cefcfe199b0fcbf028c4df0d13e1c70af04003 • MD5 d87a4ad767d4c63cb22f3c5126323c8b."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
           version: "v4.4.7",
           date: "Oct 18, 2026",
           category: "performance",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.4.7: Sub-100ms Edge Message Pipeline, Zero-Latency Notification Dispatch & Instant Chat UI",
           summary: "Completely eliminates notification dispatch/receiving latency and chat message loading delays. Fixed edge worker origin proxy blocking by defaulting localServerStatus to DOWN and utilizing high-performance Cloudflare D1 query indexing, cached FCM OAuth access tokens at the global edge to eliminate cold-start auth roundtrips, optimized Android candidate base selection to avoid cascading timeouts, added in-memory LRU avatar caching with strict 400ms notification image timeouts, and migrated local SQLite chat history loading off the main UI thread.",
           highlights: [

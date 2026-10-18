@@ -5707,12 +5707,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.4.7",
-        "version_name": "v4.4.7",
-        "version_code": 76,
-        "release_tag": "v4.4.7-stable",
-        "sha256": "20133ec3cdf0df3144ba736af9dc1c9d0beaa6759ee8da66205b4ff87b2f8881",
-        "md5": "609c2bb6652886174d3db37ac467d1a4",
+        "version": "4.4.8",
+        "version_name": "v4.4.8",
+        "version_code": 77,
+        "release_tag": "v4.4.8-stable",
+        "sha256": "9fab861c1f1591d2f367818707cefcfe199b0fcbf028c4df0d13e1c70af04003",
+        "md5": "d87a4ad767d4c63cb22f3c5126323c8b",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5722,6 +5722,9 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "Help & Support Center in Profile Tab: Dedicated customer care hub with direct contact channels (support@connecto.fun), live Cloudflare Edge latency diagnostics, expandable FAQs, and in-app issue reporting.",
+            "Live Cloudflare Edge Ping Tester: Real-time roundtrip ping measurements to the nearest Cloudflare Edge PoP directly inside the mobile app.",
+            "System Hardware & Privacy Inspector: Live diagnostic view of Android OS version, device model, SurfaceFlinger FLAG_SECURE status, and one-tap clipboard export.",
             "Sub-100ms Edge Message API: Fixed edge worker origin proxy blocking by defaulting localServerStatus to DOWN (saving 3.5s timeout on cold isolates) and sending X-Force-Cloud headers from Android client for instant D1 execution.",
             "FCM OAuth Edge Caching: Caches Google OAuth2 v1 access tokens in Cloudflare Edge Cache (caches.default) for 50 minutes, eliminating 800ms authentication roundtrips during push notification dispatches.",
             "Instant Notification Posting (<50ms): Added 64-entry LRU bitmap memory cache for contact avatars and enforced a strict 400ms image fetch timeout with graceful monogram fallback, guaranteeing notifications post immediately without network stalls.",
@@ -5740,10 +5743,27 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.4.8",
+                "date": "Oct 18, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.4.8: Integrated Help & Support Center, Live Edge Latency Diagnostics & In-App Issue Reporter",
+                "summary": "Introduces a full-featured Help & Support Center in the Android Profile tab. Includes direct contact channels (support@connecto.fun), in-app bug reporting with automatic system diagnostics, real-time Cloudflare Edge Ping latency testing, interactive expandable FAQs, system hardware & privacy status inspector, and one-tap clipboard diagnostic export.",
+                "highlights": [
+                    "Help & Support Button in Profile Tab: Added dedicated 'Help & Support' navigation button before Sign Out, leading to a comprehensive customer care and diagnostic hub.",
+                    "Direct Support & Bug Reporting: One-tap email support intent and an in-app issue reporting dialog that automatically bundles OS version, device model, and user logs.",
+                    "Live Cloudflare Edge Ping Tester: Built-in ping diagnostic measuring real-time round-trip latency to the nearest Cloudflare Edge PoP.",
+                    "Interactive FAQ Accordion: Comprehensive answers for battery optimization, SurfaceFlinger blackscreen privacy, stealth mode presence, 2FA, and WebRTC mesh audio.",
+                    "Hardware & System Diagnostics Card: Live inspection of Android OS, hardware model, SurfaceFlinger FLAG_SECURE status, and one-tap clipboard copy.",
+                    "Android Native App v4.4.8 (Build 77 • 55.0 MB): SHA-256 9fab861c1f1591d2f367818707cefcfe199b0fcbf028c4df0d13e1c70af04003 • MD5 d87a4ad767d4c63cb22f3c5126323c8b."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.4.7",
                 "date": "Oct 18, 2026",
                 "category": "performance",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.4.7: Sub-100ms Edge Message Pipeline, Zero-Latency Notification Dispatch & Instant Chat UI",
                 "summary": "Completely eliminates notification dispatch/receiving latency and chat message loading delays. Fixed edge worker origin proxy blocking by defaulting localServerStatus to DOWN and utilizing high-performance Cloudflare D1 query indexing, cached FCM OAuth access tokens at the global edge to eliminate cold-start auth roundtrips, optimized Android candidate base selection to avoid cascading timeouts, added in-memory LRU avatar caching with strict 400ms notification image timeouts, and migrated local SQLite chat history loading off the main UI thread.",
                 "highlights": [

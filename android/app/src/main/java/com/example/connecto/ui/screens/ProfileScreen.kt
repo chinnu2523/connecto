@@ -141,6 +141,17 @@ import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.SupportAgent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.example.connecto.notifications.NotificationPreferences
 import com.example.connecto.notifications.NotificationSoundManager
 import com.example.connecto.notifications.ConnectoNotificationManager
@@ -271,6 +282,11 @@ enum class ProfileSubPage(
         title = "Notifications",
         subtitle = "Trending notification sounds, alert preferences & message privacy",
         icon = Icons.Default.Notifications
+    ),
+    HELP_SUPPORT(
+        title = "Help & Support",
+        subtitle = "Frequently asked questions, live edge latency & customer support",
+        icon = Icons.AutoMirrored.Filled.Help
     )
 }
 
@@ -553,6 +569,100 @@ fun ProfileScreen(
     }
     val playingSoundId by NotificationSoundManager.currentlyPlayingSoundId.collectAsState()
     var isNotificationSoundsExpanded by rememberSaveable { mutableStateOf(false) }
+
+    // Help & Support States & Actions
+    var expandedFaqIndex by rememberSaveable { mutableStateOf<Int?>(-1) }
+    var showBugReportDialog by rememberSaveable { mutableStateOf(false) }
+    var bugReportCategory by rememberSaveable { mutableStateOf("Connectivity & Notifications") }
+    var bugReportDescription by rememberSaveable { mutableStateOf("") }
+    var isEdgePingTesting by remember { mutableStateOf(false) }
+    var edgePingResult by remember { mutableStateOf<String?>(null) }
+
+    fun openWebUrl(url: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Cannot open browser: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun sendSupportEmail(subject: String = "Connecto App Support Request", prefilledBody: String = "") {
+        try {
+            val body = if (prefilledBody.isNotBlank()) prefilledBody else {
+                "Hello Connecto Support Team,\n\n[Please describe your issue or inquiry here]\n\n" +
+                "--- Device & App Information ---\n" +
+                "• App Version: 4.4.8 (Build 77)\n" +
+                "• Username: @$username\n" +
+                "• Android Version: Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})\n" +
+                "• Device Model: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n" +
+                "• Hardware Privacy: ${if (isScreenSecurityActive) "Blackscreen Active" else "Standard"}\n"
+            }
+            val intent = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("mailto:support@connecto.fun")
+                putExtra(Intent.EXTRA_SUBJECT, subject)
+                putExtra(Intent.EXTRA_TEXT, body)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(Intent.createChooser(intent, "Send Email via..."))
+        } catch (e: Exception) {
+            Toast.makeText(context, "No email application available: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun copyDiagnosticsToClipboard() {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+        val text = "=== CONNECTO SYSTEM DIAGNOSTICS ===\n" +
+                "App: Connecto for Android\n" +
+                "Version: v4.4.8 (Build 77)\n" +
+                "API Endpoint: https://connecto.fun\n" +
+                "User: @$username\n" +
+                "OS: Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})\n" +
+                "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (${android.os.Build.HARDWARE})\n" +
+                "Screen Privacy: ${if (isScreenSecurityActive) "FLAG_SECURE Active" else "Inactive"}\n" +
+                "App Lock: ${if (isAppLockEnabled) "Enabled" else "Disabled"}\n" +
+                "Stealth Mode: ${if (stealthModeEnabled) "Active" else "Inactive"}\n" +
+                "Timestamp: ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(java.util.Date())}"
+        val clip = android.content.ClipData.newPlainText("Connecto Diagnostics", text)
+        clipboard?.setPrimaryClip(clip)
+        Toast.makeText(context, "System diagnostics copied to clipboard!", Toast.LENGTH_SHORT).show()
+    }
+
+    fun runEdgePingTest() {
+        coroutineScope.launch {
+            isEdgePingTesting = true
+            edgePingResult = null
+            val startTime = System.currentTimeMillis()
+            try {
+                val ok = withContext(Dispatchers.IO) {
+                    val client = okhttp3.OkHttpClient.Builder()
+                        .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                        .readTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+                        .build()
+                    val req = okhttp3.Request.Builder()
+                        .url("https://connecto.fun/api/v1/app/version")
+                        .addHeader("X-Force-Cloud", "1")
+                        .get()
+                        .build()
+                    client.newCall(req).execute().use { resp ->
+                        resp.isSuccessful
+                    }
+                }
+                val duration = System.currentTimeMillis() - startTime
+                if (ok) {
+                    edgePingResult = "Optimal • ${duration}ms (Cloudflare Edge Connected)"
+                } else {
+                    edgePingResult = "Slow • ${duration}ms (Edge responded with non-200)"
+                }
+            } catch (e: Exception) {
+                edgePingResult = "Connection Error: ${e.message ?: "Failed"}"
+            } finally {
+                isEdgePingTesting = false
+            }
+        }
+    }
 
     // Stop audio preview when changing subpages or leaving screen
     androidx.compose.runtime.DisposableEffect(activeSubPage) {
@@ -1552,6 +1662,19 @@ fun ProfileScreen(
                     )
                 }
 
+                // ================= 9. HELP & SUPPORT BUTTON =================
+                item(key = "menu_help_support") {
+                    ProfileNavigationMenuButton(
+                        title = "Help & Support",
+                        subtitle = "FAQs, connectivity diagnostics, bug reports & developer contact",
+                        icon = Icons.AutoMirrored.Filled.Help,
+                        badgeText = "24/7 ASSIST",
+                        badgeColor = Color(0xFF10B981),
+                        hasCoverPhoto = hasCoverPhoto,
+                        onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
+                    )
+                }
+
                 item(key = "sign_out_button") {
                     Box(
                         modifier = Modifier
@@ -1709,6 +1832,15 @@ fun ProfileScreen(
                                     description = "Preview and choose from latest trending alert sounds, and toggle privacy to hide message content in notifications.",
                                     icon = Icons.Default.NotificationsActive,
                                     statusBadgeText = if (hideNotificationContent) "PRIVACY ACTIVE" else selectedNotificationSoundName.uppercase(),
+                                    statusBadgeActive = true,
+                                    hasCoverPhoto = hasCoverPhoto
+                                )
+                                ProfileSubPage.HELP_SUPPORT -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Customer Care & Knowledgebase",
+                                    title = "Help & Support Center",
+                                    description = "Get answers to frequently asked questions, test live Cloudflare Edge latency, submit bug reports, or contact Connecto engineers.",
+                                    icon = Icons.AutoMirrored.Filled.Help,
+                                    statusBadgeText = "ONLINE HELP",
                                     statusBadgeActive = true,
                                     hasCoverPhoto = hasCoverPhoto
                                 )
@@ -3785,6 +3917,509 @@ fun ProfileScreen(
                                     }
                                 }
                             }
+
+                            ProfileSubPage.HELP_SUPPORT -> {
+                            // 1. Quick Support Channels Bento
+                            item(key = "help_quick_actions") {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(
+                                        text = "DIRECT SUPPORT CHANNELS",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        letterSpacing = 1.sp
+                                    )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        // Email Support Card
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.surface
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .clickable { sendSupportEmail() }
+                                                .padding(14.dp)
+                                        ) {
+                                            Column {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.SupportAgent,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Text(
+                                                    text = "Email Support",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "support@connecto.fun",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+
+                                        // Report Bug Card
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.surface
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .clickable { showBugReportDialog = true }
+                                                .padding(14.dp)
+                                        ) {
+                                            Column {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFFEF4444).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.BugReport,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFFEF4444),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Text(
+                                                    text = "Report Issue",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "Bug reports & logs",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        // Documentation Card
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.surface
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .clickable { openWebUrl("https://connecto.fun/architecture") }
+                                                .padding(14.dp)
+                                        ) {
+                                            Column {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFF06B6D4).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Language,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF06B6D4),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Text(
+                                                    text = "Documentation",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "Architecture & guides",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+
+                                        // System Status Card
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(16.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.surface
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                    RoundedCornerShape(16.dp)
+                                                )
+                                                .clickable { openWebUrl("https://connecto.fun/status") }
+                                                .padding(14.dp)
+                                        ) {
+                                            Column {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFF10B981).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Speed,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF10B981),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                Text(
+                                                    text = "System Status",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = "Live edge monitoring",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Live Edge Latency Diagnostic Card
+                            item(key = "help_edge_latency_card") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(
+                                            if (hasCoverPhoto) Color.Black.copy(alpha = 0.38f)
+                                            else MaterialTheme.colorScheme.surface
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                            RoundedCornerShape(18.dp)
+                                        )
+                                        .padding(16.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(8.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF10B981))
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "Cloudflare Edge Diagnostic",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            Button(
+                                                onClick = { runEdgePingTest() },
+                                                enabled = !isEdgePingTesting,
+                                                shape = RoundedCornerShape(10.dp),
+                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                            ) {
+                                                Text(
+                                                    text = if (isEdgePingTesting) "Testing..." else "Test Latency",
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = edgePingResult ?: "Tap 'Test Latency' to measure roundtrip ping to the closest Cloudflare Edge data center.",
+                                            fontSize = 12.5.sp,
+                                            color = if (edgePingResult?.contains("Error") == true) MaterialTheme.colorScheme.error
+                                                else if (edgePingResult != null) Color(0xFF10B981)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 3. Interactive FAQs
+                            item(key = "help_faq_section") {
+                                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Text(
+                                        text = "FREQUENTLY ASKED QUESTIONS",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        letterSpacing = 1.sp
+                                    )
+
+                                    val faqs = listOf(
+                                        "How does App-Wide Blackscreen Privacy protect me?" to
+                                            "Connecto applies WindowManager.LayoutParams.FLAG_SECURE at Android's SurfaceFlinger hardware compositor level. Any screenshots, screen recordings, or screen sharing apps (such as Discord, Zoom, and Google Meet) display an opaque pitch-black screen (#000000) for viewers, safeguarding your chats and private data.",
+                                        "Why should I disable battery optimization for Connecto?" to
+                                            "Android aggressively suspends background network sockets in Doze Mode. Disabling battery optimization allows high-priority Google FCM v1 push messages to immediately wake your device with sounds, vibration, and heads-up banners even when the app is swiped away.",
+                                        "What does Stealth Mode do?" to
+                                            "Stealth Mode hides your online presence dot from friend lists, channels, and conversation cards. You can read and send messages freely while appearing completely offline to other members.",
+                                        "How does Two-Factor Authentication (2FA) work?" to
+                                            "When 2FA is enabled in Profile -> Two-Factor & Security, every sign-in from a new device requires a 6-digit one-time verification code dispatched to your verified email address.",
+                                        "How do WebRTC mesh voice rooms work?" to
+                                            "Connecto voice channels establish direct peer-to-peer WebRTC mesh connections between participants with Opus HD audio codecs, providing sub-20ms spatial latency with zero server recording.",
+                                        "Can I reply to messages directly from notifications?" to
+                                            "Yes! When a notification arrives, swipe down on the banner to access WhatsApp-style inline Direct Reply and Mark as Read actions without switching away from your current task."
+                                    )
+
+                                    faqs.forEachIndexed { index, (question, answer) ->
+                                        val isExpanded = expandedFaqIndex == index
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(
+                                                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                    else MaterialTheme.colorScheme.surface
+                                                )
+                                                .border(
+                                                    1.dp,
+                                                    if (isExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.15f)
+                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                                    RoundedCornerShape(14.dp)
+                                                )
+                                                .clickable {
+                                                    expandedFaqIndex = if (isExpanded) -1 else index
+                                                }
+                                                .padding(14.dp)
+                                        ) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Text(
+                                                        text = question,
+                                                        fontSize = 13.5.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                    Icon(
+                                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                if (isExpanded) {
+                                                    Text(
+                                                        text = answer,
+                                                        fontSize = 12.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        lineHeight = 18.sp
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 4. Device Diagnostics & Copy Button
+                            item(key = "help_device_diagnostics") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(
+                                            if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                                        )
+                                        .border(
+                                            1.dp,
+                                            if (hasCoverPhoto) Color.White.copy(alpha = 0.15f)
+                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                            RoundedCornerShape(18.dp)
+                                        )
+                                        .padding(16.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Column {
+                                                Text(
+                                                    text = "HARDWARE & SYSTEM SPECS",
+                                                    fontSize = 10.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                    letterSpacing = 1.sp
+                                                )
+                                                Text(
+                                                    text = "Connecto v4.4.8 (Build 77)",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface
+                                                )
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                    .clickable { copyDiagnosticsToClipboard() },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.ContentCopy,
+                                                    contentDescription = "Copy Diagnostics",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Column(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(Color.Black.copy(alpha = 0.4f))
+                                                .padding(10.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "Device: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+                                                fontSize = 11.5.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = Color(0xFFCBD5E1)
+                                            )
+                                            Text(
+                                                text = "OS: Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})",
+                                                fontSize = 11.5.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = Color(0xFFCBD5E1)
+                                            )
+                                            Text(
+                                                text = "Edge Origin: connecto.fun (Cloudflare)",
+                                                fontSize = 11.5.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = Color(0xFF10B981)
+                                            )
+                                            Text(
+                                                text = "Hardware Privacy: ${if (isScreenSecurityActive) "SurfaceFlinger Secure" else "Off"}",
+                                                fontSize = 11.5.sp,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = if (isScreenSecurityActive) Color(0xFF10B981) else Color(0xFF94A3B8)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 5. Platform Legal & Community Guidelines
+                            item(key = "help_legal_links") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                            .clickable { openWebUrl("https://connecto.fun/privacy") },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(text = "Privacy Policy", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(44.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                            .clickable { openWebUrl("https://connecto.fun/terms") },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(text = "Terms of Service", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         }
 
                         // Bottom Return to Profile Overview Action
@@ -3820,6 +4455,113 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+    if (showBugReportDialog) {
+        AlertDialog(
+            onDismissRequest = { showBugReportDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.BugReport,
+                        contentDescription = null,
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = "Report an Issue", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Describe what happened. Device details and system logs will be attached automatically.",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // Category Selector
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val categories = listOf("Notifications", "Chat Latency", "Voice / Audio", "UI / Theme", "Security", "Other")
+                        categories.forEach { cat ->
+                            val isSelected = bugReportCategory == cat
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                                    .clickable { bugReportCategory = cat }
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = cat,
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    // Text input
+                    BasicTextField(
+                        value = bugReportDescription,
+                        onValueChange = { bugReportDescription = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(110.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 14.sp
+                        ),
+                        decorationBox = { innerTextField ->
+                            if (bugReportDescription.isBlank()) {
+                                Text(
+                                    text = "What went wrong? Steps to reproduce...",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                    fontSize = 13.sp
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val desc = bugReportDescription.trim()
+                        if (desc.isBlank()) {
+                            Toast.makeText(context, "Please describe the issue before submitting.", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        val emailBody = "Issue Category: $bugReportCategory\n\n" +
+                                "User Report:\n$desc\n\n" +
+                                "--- System Diagnostics ---\n" +
+                                "App Version: 4.4.8 (Build 77)\n" +
+                                "User: @$username\n" +
+                                "Android: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})\n" +
+                                "Model: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n"
+                        sendSupportEmail(subject = "[Bug Report - $bugReportCategory] Connecto v4.4.8", prefilledBody = emailBody)
+                        showBugReportDialog = false
+                        bugReportDescription = ""
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Send via Email")
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showBugReportDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
     if (showAddFriendDialog) {
         AddFriendDialog(
