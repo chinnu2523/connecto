@@ -5711,12 +5711,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.4.4",
-        "version_name": "v4.4.4",
-        "version_code": 73,
-        "release_tag": "v4.4.4-stable",
-        "sha256": "d6d91d9f1109f77723f69a27b417ef3c90053d8594edd27dcd69b233430750dd",
-        "md5": "ebe70ef8d3d8d0ab750c6a1bb5772c62",
+        "version": "4.4.5",
+        "version_name": "v4.4.5",
+        "version_code": 74,
+        "release_tag": "v4.4.5-stable",
+        "sha256": "b7479bc6f7b705e582d1e80ebb6a3bc8d5badba216e9b6291e3b21a32f3c6935",
+        "md5": "f5f754fb3d22a3f553af9bca80150bb9",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5726,10 +5726,13 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Background Closed Notifications & High-Priority Push: Root cause resolved — enabled ADC / environment credential discovery and high-priority data payloads waking ConnectoFirebaseMessagingService even when app process is closed or swiped from Recents.",
-            "Trending Viral Notification Sounds: Replaced legacy tones with viral meme sounds — Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, and Wah Kya Scene Hai with real audio playback.",
-            "Channel Tab Direct Back Navigation: System back button on Channels workspace returns directly to the Home tab; pressing back again on Home cleanly exits the app.",
-            "Messages Tab Instant Group Caching: Cached groups table in SQLite local cache (DATABASE_VERSION = 9) enables 0ms instant display of all created and joined groups in the All tab without waiting for network."
+            "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens — screenshots, screen recording, screen sharing (Discord, Zoom, Google Meet, Teams), and screen casting (Miracast, Chromecast) render a solid pitch-black screen (#000000) for others.",
+            "Android 14+ Live Screen Recording Detection: Integrates DETECT_SCREEN_RECORDING permission and WindowManager.addScreenRecordingCallback to warn and protect user privacy in real time.",
+            "Biometric & Screen Privacy Controls: Dedicated user-facing Screen Privacy toggle with dynamic status badges (MAX SECURED, BLACKSCREEN ON, OFF) and live hardware protection cards in Profile Settings.",
+            "Background Closed Notifications & High-Priority Push: High-priority FCM data payloads wake ConnectoFirebaseMessagingService reliably even when app is closed or killed.",
+            "Trending Viral Notification Sounds: Viral audio chimes including Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, and Wah Kya Scene Hai.",
+            "Channel Tab Direct Back Navigation: System back button on Channels workspace returns directly to Home tab.",
+            "Messages Tab 0ms Group Caching: SQLite cached_groups table eliminates group loading latency in Messages All tab."
         ]
     }
 
@@ -5741,10 +5744,26 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.4.5",
+                "date": "Oct 18, 2026",
+                "category": "security",
+                "tag": "Latest Release",
+                "title": "Connecto v4.4.5: App-Wide Blackscreen Privacy Protection for Screenshots, Screen Sharing & Casting",
+                "summary": "Enforces bulletproof Android SurfaceFlinger hardware-level privacy protection (FLAG_SECURE) across the entire application, causing screenshots, screen sharing (Discord, Zoom, Meet, Teams), and screen casting (Miracast, Chromecast) to display a solid pitch-black screen (#000000) for others. Adds Android 14+ DETECT_SCREEN_RECORDING live detection, and introduces a user-facing toggle and live hardware security card in Profile -> Biometric & Screen Privacy.",
+                "highlights": [
+                    "App-Wide Blackscreen Protection: All screenshots, video recordings, screen sharing (Discord, Zoom, Teams, Google Meet), and wireless/cable screen casting render an opaque pitch-black screen (#000000) for others to safeguard private chats and credentials.",
+                    "SurfaceFlinger Hardware Privacy: WindowManager.LayoutParams.FLAG_SECURE is applied at the OS compositor level, eliminating thumbnail shoulder-surfing in the multitasking overview.",
+                    "Android 14+ Live Recording Detection: Utilizes WindowManager.addScreenRecordingCallback with DETECT_SCREEN_RECORDING permission to immediately alert users if active screen capture begins.",
+                    "Biometric & Screen Privacy Settings UI: Dedicated Screen Privacy toggle in Profile Settings with real-time hardware status indicators, dynamic navigation badges (MAX SECURED, BLACKSCREEN ON, OFF), and customizable protection.",
+                    "Android Native App v4.4.5 (Build 74 • 55.0 MB): SHA-256 b7479bc6f7b705e582d1e80ebb6a3bc8d5badba216e9b6291e3b21a32f3c6935 • MD5 f5f754fb3d22a3f553af9bca80150bb9."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.4.4",
                 "date": "Oct 18, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.4.4: Background Closed Notifications, Viral Sounds, Channel Back Navigation & Group Caching",
                 "summary": "Fixes background push notifications when app is closed by integrating ADC credentials and high-priority FCM data delivery, overhauls notification sounds with viral meme hits (Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, Wah Kya Scene Hai), adds direct Channel-to-Home back button navigation, and eliminates group loading delays in Messages All tab via SQLite user caching (DATABASE_VERSION = 9).",
                 "highlights": [

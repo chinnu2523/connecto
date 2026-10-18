@@ -97,26 +97,28 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.4.3",
-        version_name: "v4.4.3",
-        version_code: 72,
-        build: 72,
-        sha256: "e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121",
-        md5: "696dca0300535b05e685ac5fb99b17aa",
+        version: "4.4.5",
+        version_name: "v4.4.5",
+        version_code: 74,
+        build: 74,
+        sha256: "b7479bc6f7b705e582d1e80ebb6a3bc8d5badba216e9b6291e3b21a32f3c6935",
+        md5: "f5f754fb3d22a3f553af9bca80150bb9",
         filename: "connecto-fun.apk",
-        size_bytes: 57416889,
-        size_display: "54.8 MB",
+        size_bytes: 57652321,
+        size_display: "55.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
-          "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
-          "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
-          "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
-          "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback."
+          "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens — screenshots, screen recording, screen sharing (Discord, Zoom, Google Meet, Teams), and screen casting (Miracast, Chromecast) render a solid pitch-black screen (#000000) for others.",
+          "Android 14+ Live Screen Recording Detection: Integrates DETECT_SCREEN_RECORDING permission and WindowManager.addScreenRecordingCallback to warn and protect user privacy in real time.",
+          "Biometric & Screen Privacy Controls: Dedicated user-facing Screen Privacy toggle with dynamic status badges (MAX SECURED, BLACKSCREEN ON, OFF) and live hardware protection cards in Profile Settings.",
+          "Background Closed Notifications & High-Priority Push: High-priority FCM data payloads wake ConnectoFirebaseMessagingService reliably even when app is closed or killed.",
+          "Trending Viral Notification Sounds: Viral audio chimes including Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, and Wah Kya Scene Hai.",
+          "Channel Tab Direct Back Navigation: System back button on Channels workspace returns directly to Home tab.",
+          "Messages Tab 0ms Group Caching: SQLite cached_groups table eliminates group loading latency in Messages All tab."
         ]
       });
     }
@@ -162,16 +164,16 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.3/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.4.5/connecto-fun.apk";
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.3.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.4.5.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.4.3");
-          res.headers.set("X-Connecto-Build", "72");
+          res.headers.set("X-Connecto-Version", "v4.4.5");
+          res.headers.set("X-Connecto-Build", "74");
           return res;
         }
 
@@ -182,7 +184,7 @@ export default {
             cacheTtl: 604800
           },
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.4.3"
+            "User-Agent": "Connecto-Cloud-Worker/4.4.5"
           }
         });
         if (upstreamResp.ok) {
@@ -193,8 +195,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.4.3");
-          downloadHeaders.set("X-Connecto-Build", "72");
+          downloadHeaders.set("X-Connecto-Version", "v4.4.5");
+          downloadHeaders.set("X-Connecto-Build", "74");
           downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
           const responseToReturn = new Response(upstreamResp.body, {
@@ -207,7 +209,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.4.5/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -5073,15 +5075,15 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.4.3",
-      version_name: "v4.4.3",
-      version_code: 72,
-      build: 72,
-      sha256: "e7f263bf53883b1f35400901ff65b6be6ee1a71ed6958ae3729bea6bbb238121",
-      md5: "696dca0300535b05e685ac5fb99b17aa",
+      version: "4.4.5",
+      version_name: "v4.4.5",
+      version_code: 74,
+      build: 74,
+      sha256: "b7479bc6f7b705e582d1e80ebb6a3bc8d5badba216e9b6291e3b21a32f3c6935",
+      md5: "f5f754fb3d22a3f553af9bca80150bb9",
       filename: "connecto-fun.apk",
-      size_bytes: 57416889,
-      size_display: "54.8 MB",
+      size_bytes: 57652321,
+      size_display: "55.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -5093,6 +5095,37 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.4.5",
+          date: "Oct 18, 2026",
+          category: "security",
+          tag: "Latest Release",
+          title: "Connecto v4.4.5: App-Wide Blackscreen Privacy Protection for Screenshots, Screen Sharing & Casting",
+          summary: "Enforces bulletproof Android SurfaceFlinger hardware-level privacy protection (FLAG_SECURE) across the entire application, causing screenshots, screen sharing (Discord, Zoom, Meet, Teams), and screen casting (Miracast, Chromecast) to display a solid pitch-black screen (#000000) for others. Adds Android 14+ DETECT_SCREEN_RECORDING live detection, and introduces a user-facing toggle and live hardware security card in Profile -> Biometric & Screen Privacy.",
+          highlights: [
+            "App-Wide Blackscreen Protection: All screenshots, video recordings, screen sharing (Discord, Zoom, Teams, Google Meet), and wireless/cable screen casting render an opaque pitch-black screen (#000000) for others to safeguard private chats and credentials.",
+            "SurfaceFlinger Hardware Privacy: WindowManager.LayoutParams.FLAG_SECURE is applied at the OS compositor level, eliminating thumbnail shoulder-surfing in the multitasking overview.",
+            "Android 14+ Live Recording Detection: Utilizes WindowManager.addScreenRecordingCallback with DETECT_SCREEN_RECORDING permission to immediately alert users if active screen capture begins.",
+            "Biometric & Screen Privacy Settings UI: Dedicated Screen Privacy toggle in Profile Settings with real-time hardware status indicators, dynamic navigation badges (MAX SECURED, BLACKSCREEN ON, OFF), and customizable protection.",
+            "Android Native App v4.4.5 (Build 74 • 55.0 MB): SHA-256 b7479bc6f7b705e582d1e80ebb6a3bc8d5badba216e9b6291e3b21a32f3c6935 • MD5 f5f754fb3d22a3f553af9bca80150bb9."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.4.4",
+          date: "Oct 18, 2026",
+          category: "feature",
+          tag: "Previous Release",
+          title: "Connecto v4.4.4: Background Closed Notifications, Viral Sounds, Channel Back Navigation & Group Caching",
+          summary: "Fixes background push notifications when app is closed by integrating ADC credentials and high-priority FCM data delivery, overhauls notification sounds with viral meme hits (Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, Wah Kya Scene Hai), adds direct Channel-to-Home back button navigation, and eliminates group loading delays in Messages All tab via SQLite user caching (DATABASE_VERSION = 9).",
+          highlights: [
+            "Background Notifications When Closed: Fixed root cause where missing Firebase service account prevented backend push; now resolves ApplicationDefault credentials automatically and sends high-priority FCM data payloads that wake ConnectoFirebaseMessagingService when closed.",
+            "Latest Trending Notification Sounds: Removed legacy chime sounds and added high-fidelity viral meme audio clips (Faah, Yeh kya hai, Aayein, Moye Moye, Chin Tapak Dum Dum, Wah Kya Scene Hai).",
+            "Channel Tab Back Button Navigation: Pressing system back on the Channel tab navigates directly to Home tab; pressing back on Home closes the application.",
+            "Messages Tab 0ms Group Caching: User groups now cache locally in SQLite cached_groups table, instantly populating the All filter tab at 0ms alongside cached friends."
+          ],
+          author: "Connecto Core Team"
+        },
         {
           version: "v4.4.3",
           date: "Oct 18, 2026",
