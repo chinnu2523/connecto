@@ -116,14 +116,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.0",
-        version_name: "v4.5.0",
-        version_code: 79,
-        build: 79,
-        sha256: "4e63d5783b03f83182ec17b3818fc511e26ffaeb2b2746c91131da3e716c422b",
-        md5: "0f42826ec04118457bd681344df8f10f",
+        version: "4.5.1",
+        version_name: "v4.5.1",
+        version_code: 80,
+        build: 80,
+        sha256: "7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391",
+        md5: "7ff59a726b1c82587e86fe5be0e4b80c",
         filename: "connecto-fun.apk",
-        size_bytes: 57767181,
+        size_bytes: 57767177,
         size_display: "55.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -185,16 +185,16 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.5.0/connecto-fun.apk";
+        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.5.1/connecto-fun.apk";
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.0.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.1.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.0");
-          res.headers.set("X-Connecto-Build", "79");
+          res.headers.set("X-Connecto-Version", "v4.5.1");
+          res.headers.set("X-Connecto-Build", "80");
           return res;
         }
 
@@ -205,7 +205,7 @@ export default {
             cacheTtl: 604800
           },
           headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.5.0"
+            "User-Agent": "Connecto-Cloud-Worker/4.5.1"
           }
         });
         if (upstreamResp.ok) {
@@ -216,8 +216,8 @@ export default {
           if (cl) downloadHeaders.set("Content-Length", cl);
           downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.5.0");
-          downloadHeaders.set("X-Connecto-Build", "79");
+          downloadHeaders.set("X-Connecto-Version", "v4.5.1");
+          downloadHeaders.set("X-Connecto-Build", "80");
           downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
           const responseToReturn = new Response(upstreamResp.body, {
@@ -230,7 +230,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.0/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.1/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -1319,7 +1319,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       return jsonResponse({ status: "ok", friends: [], incoming_requests: [], outgoing_requests: [] }, 200);
     }
     if (url.pathname.includes("/messages")) {
-      return jsonResponse({ status: "ok", messages: [], count: 0 }, 200);
+      return jsonResponse({ status: "error", error: globalErr.message, messages: [] }, 503);
     }
     if (url.pathname.includes("/notifications")) {
       return jsonResponse({ status: "ok", total_unread: 0, notifications: [] }, 200);
@@ -4474,6 +4474,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         });
         } catch (d1Err) {
           console.warn("[D1_MESSAGES_FALLBACK]", d1Err.message);
+          return jsonResponse({
+            status: "error",
+            error: "Database unavailable: " + d1Err.message,
+            messages: []
+          }, 503);
         }
       }
       return jsonResponse({
@@ -5590,14 +5595,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.0",
-      version_name: "v4.5.0",
-      version_code: 79,
-      build: 79,
-      sha256: "4e63d5783b03f83182ec17b3818fc511e26ffaeb2b2746c91131da3e716c422b",
-      md5: "0f42826ec04118457bd681344df8f10f",
+      version: "4.5.1",
+      version_name: "v4.5.1",
+      version_code: 80,
+      build: 80,
+      sha256: "7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391",
+      md5: "7ff59a726b1c82587e86fe5be0e4b80c",
       filename: "connecto-fun.apk",
-      size_bytes: 57767181,
+      size_bytes: 57767177,
       size_display: "55.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -5611,10 +5616,27 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.5.1",
+          date: "Oct 19, 2026",
+          category: "patch",
+          tag: "Latest Release",
+          title: "Connecto v4.5.1: Resilient Channel Cache Engine & Edge Error Safeguards",
+          summary: "Connecto v4.5.1 resolves a transient race condition where channel messages could appear and then disappear. Local SQLite chat history is now fully protected against empty network syncs and Cloudflare D1 quota fallbacks.",
+          highlights: [
+            "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents destructive reconciliation when network returns an empty list.",
+            "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
+            "Streamlined Profile Navigation: Clean single-row layout without redundant metadata indicators.",
+            "Help & Support Customer Care Hub: In-app customer care, email intent, expandable FAQs, and diagnostics.",
+            "Admin-Guarded Edge Diagnostics: Latency testing restricted to admin users.",
+            "Android Native App v4.5.1 (Build 80 • 55.1 MB): SHA-256 7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391 • MD5 7ff59a726b1c82587e86fe5be0e4b80c."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
           version: "v4.5.0",
           date: "Oct 19, 2026",
           category: "feature",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.5.0: Streamlined Profile Experience, Admin-Secured Edge Diagnostics & Resilient Voice Mesh",
           summary: "Connecto v4.5.0 delivers a completely streamlined Profile Tab experience with single-row action items, a dedicated Help & Support Customer Care Hub with admin-guarded Cloudflare Edge latency testing, instant Friend Profile inspection, and resilient WebRTC mesh voice calling with floating overlay controls.",
           highlights: [

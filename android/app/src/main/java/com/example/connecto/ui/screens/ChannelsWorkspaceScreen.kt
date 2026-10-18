@@ -434,32 +434,38 @@ fun ChannelsWorkspaceScreen(
 
             try {
                 val res = ConnectoApiClient.getMessages(channelId = cleanCh, limit = 100)
+                withContext(Dispatchers.Main) {
+                    isLoadingMessages = false
+                }
                 if (res.isSuccess) {
                     val fresh = res.getOrThrow().distinctBy { it.id }.filterNot { currentDeletedSet.contains(it.id) }
                     withContext(Dispatchers.Main) {
-                        isLoadingMessages = false
                         val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
                         val wasNearBottom = messages.isEmpty() || lastVisible >= (messages.size - 3).coerceAtLeast(0)
 
-                        // In-place non-destructive synchronization that preserves exact chronological ordering
-                        for (i in fresh.indices) {
-                            if (i < messages.size) {
-                                if (messages[i] != fresh[i]) {
-                                    messages[i] = fresh[i]
+                        // Only reconcile if fresh messages were actually returned from the network.
+                        // NEVER purge local SQLite cached messages if the network returns an empty list
+                        // (e.g. D1 quota exhaustion, offline fallback, or transient network error)
+                        if (fresh.isNotEmpty()) {
+                            for (i in fresh.indices) {
+                                if (i < messages.size) {
+                                    if (messages[i] != fresh[i]) {
+                                        messages[i] = fresh[i]
+                                    }
+                                } else {
+                                    messages.add(fresh[i])
                                 }
-                            } else {
-                                messages.add(fresh[i])
                             }
-                        }
-                        while (messages.size > fresh.size) {
-                            messages.removeAt(messages.size - 1)
+                            while (messages.size > fresh.size) {
+                                messages.removeAt(messages.size - 1)
+                            }
+                            dbHelper.saveMessages(cleanCh, fresh)
                         }
 
-                        if (wasNearBottom) {
+                        if (wasNearBottom && fresh.isNotEmpty()) {
                             try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
                         }
                     }
-                    dbHelper.saveMessages(cleanCh, fresh)
                 }
             } catch (_: Exception) {
                 withContext(Dispatchers.Main) {

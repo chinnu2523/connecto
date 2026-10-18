@@ -5771,12 +5771,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.5.0",
-        "version_name": "v4.5.0",
-        "version_code": 79,
-        "release_tag": "v4.5.0-stable",
-        "sha256": "4e63d5783b03f83182ec17b3818fc511e26ffaeb2b2746c91131da3e716c422b",
-        "md5": "0f42826ec04118457bd681344df8f10f",
+        "version": "4.5.1",
+        "version_name": "v4.5.1",
+        "version_code": 80,
+        "release_tag": "v4.5.1-stable",
+        "sha256": "7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391",
+        "md5": "7ff59a726b1c82587e86fe5be0e4b80c",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5786,15 +5786,13 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
+            "Resilient Channel Cache Engine: Fixed transient message disappearance in Channels workspace. The in-memory feed now safeguards locally persisted SQLite history and never purges messages if the server returns an empty sync or encounters temporary edge database limits.",
+            "HTTP 503 Edge Protection: Cloudflare Worker now signals edge database unavailability with HTTP 503 instead of masking errors with empty message arrays.",
             "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata (standard, true, dark, etc.) and unused buttons for a clutter-free interface.",
             "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, hardware inspector, and automated bug diagnostic bundles.",
             "Admin-Guarded Cloudflare Edge Latency Diagnostics: Restricted live Edge PoP roundtrip ping testing to verified administrators for an uncluttered member experience.",
             "Instant Friend Profile Inspector: Dedicated modal view with avatar, status, bio, and quick actions directly from chat.",
-            "Resilient WebRTC Mesh Voice Calls: Floating active call overlay with drag controls, improved call state management, and reliable call action handlers.",
-            "Sub-100ms Edge Message API: Fixed edge worker origin proxy blocking by defaulting localServerStatus to DOWN (saving 3.5s timeout on cold isolates) and sending X-Force-Cloud headers from Android client for instant D1 execution.",
-            "FCM OAuth Edge Caching: Caches Google OAuth2 v1 access tokens in Cloudflare Edge Cache (caches.default) for 50 minutes, eliminating 800ms authentication roundtrips during push notification dispatches.",
-            "Instant Notification Posting (<50ms): Added 64-entry LRU bitmap memory cache for contact avatars and enforced a strict 400ms image fetch timeout with graceful monogram fallback, guaranteeing notifications post immediately without network stalls.",
-            "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens — screenshots, screen recording, screen sharing, and casting render pitch-black (#000000)."
+            "Resilient WebRTC Mesh Voice Calls: Floating active call overlay with drag controls, improved call state management, and reliable call action handlers."
         ]
     }
 
@@ -5806,10 +5804,27 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.5.1",
+                "date": "Oct 19, 2026",
+                "category": "patch",
+                "tag": "Latest Release",
+                "title": "Connecto v4.5.1: Resilient Channel Cache Engine & Edge Error Safeguards",
+                "summary": "Connecto v4.5.1 resolves a transient race condition where channel messages could appear and then disappear. Local SQLite chat history is now fully protected against empty network syncs and Cloudflare D1 quota fallbacks.",
+                "highlights": [
+                    "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents destructive reconciliation when network returns an empty list.",
+                    "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
+                    "Streamlined Profile Navigation: Clean single-row layout without redundant metadata indicators.",
+                    "Help & Support Customer Care Hub: In-app customer care, email intent, expandable FAQs, and diagnostics.",
+                    "Admin-Guarded Edge Diagnostics: Latency testing restricted to admin users.",
+                    "Android Native App v4.5.1 (Build 80 • 55.1 MB): SHA-256 7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391 • MD5 7ff59a726b1c82587e86fe5be0e4b80c."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
                 "version": "v4.5.0",
                 "date": "Oct 19, 2026",
                 "category": "feature",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.5.0: Streamlined Profile Experience, Admin-Secured Edge Diagnostics & Resilient Voice Mesh",
                 "summary": "Connecto v4.5.0 delivers a completely streamlined Profile Tab experience with single-row action items, a dedicated Help & Support Customer Care Hub with admin-guarded Cloudflare Edge latency testing, instant Friend Profile inspection, and resilient WebRTC mesh voice calling with floating overlay controls.",
                 "highlights": [
