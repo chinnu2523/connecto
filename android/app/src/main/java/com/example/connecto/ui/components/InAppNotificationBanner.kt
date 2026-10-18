@@ -279,17 +279,37 @@ fun InAppNotificationBanner(
                             }
                         } else if (resolvedModel != null) {
                             Box(
-                                modifier = Modifier
-                                    .size(46.dp)
-                                    .clip(CircleShape)
-                                    .border(1.5.dp, borderGradient, CircleShape)
+                                modifier = Modifier.size(46.dp)
                             ) {
-                                AsyncImage(
-                                    model = resolvedModel,
-                                    contentDescription = current.username ?: current.title,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, borderGradient, CircleShape)
+                                ) {
+                                    AsyncImage(
+                                        model = resolvedModel,
+                                        contentDescription = current.username ?: current.title,
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                // Connecto app icon badge on bottom of profile pic
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .align(Alignment.BottomEnd)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF0D0E15))
+                                        .border(1.dp, Color(0xFF6C5CE7), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    androidx.compose.foundation.Image(
+                                        painter = androidx.compose.ui.res.painterResource(id = com.example.connecto.R.drawable.connecto_app_icon),
+                                        contentDescription = "Connecto",
+                                        modifier = Modifier.size(12.dp).clip(CircleShape)
+                                    )
+                                }
                             }
                         } else {
                             val initial = (current.username ?: current.title).trim().take(1).uppercase().ifEmpty { "C" }

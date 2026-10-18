@@ -15,6 +15,7 @@ class CallActionReceiver : BroadcastReceiver() {
         const val ACTION_TOGGLE_MUTE = "com.example.connecto.ACTION_TOGGLE_MUTE"
         const val ACTION_DECLINE_CALL = "com.example.connecto.ACTION_DECLINE_CALL"
         const val ACTION_ANSWER_CALL = "com.example.connecto.ACTION_ANSWER_CALL"
+        const val ACTION_SET_BLUETOOTH_TEST = "com.example.connecto.ACTION_SET_BLUETOOTH_TEST"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -62,6 +63,13 @@ class CallActionReceiver : BroadcastReceiver() {
                 } catch (t: Throwable) {
                     Log.e(TAG, "Error answering call from notification: ${t.message}", t)
                 }
+            }
+
+            ACTION_SET_BLUETOOTH_TEST -> {
+                val connected = intent.getBooleanExtra("connected", true)
+                val deviceName = intent.getStringExtra("name") ?: "Galaxy Buds Pro"
+                VoiceCallManager.setBluetoothConnectedForTesting(connected, deviceName)
+                Log.d(TAG, "Bluetooth test set: connected=$connected, deviceName=$deviceName")
             }
         }
     }

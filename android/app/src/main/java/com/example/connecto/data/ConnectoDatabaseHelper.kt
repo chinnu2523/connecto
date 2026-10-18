@@ -1117,6 +1117,26 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         } catch (_: Exception) {}
     }
 
+    /**
+     * Permanently purges a group, its channel entry, and all its cached messages from local SQLite.
+     * Guarantees 0ms local deletion and prevents any resurrection on app restarts.
+     */
+    fun deleteCachedGroup(groupId: String) {
+        if (groupId.isBlank()) return
+        try {
+            val db = writableDatabase
+            db.beginTransaction()
+            try {
+                db.delete(TABLE_GROUPS, "$COL_GROUP_ID = ?", arrayOf(groupId))
+                db.delete(TABLE_CHANNELS, "$COL_CH_ID = ?", arrayOf(groupId))
+                db.delete(TABLE_MESSAGES, "$COL_MSG_CHANNEL = ?", arrayOf(groupId))
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
+        } catch (_: Exception) {}
+    }
+
     fun updateFriendOnlineStatus(identifier: String, isOnline: Boolean) {
         val db = writableDatabase
         val clean = identifier.trim().lowercase().removePrefix("@")

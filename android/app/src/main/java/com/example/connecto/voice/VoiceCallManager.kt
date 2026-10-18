@@ -74,6 +74,12 @@ enum class CallState {
     CONNECTED
 }
 
+enum class AudioRoute(val id: String, val displayName: String) {
+    EARPIECE("earpiece", "Earpiece"),
+    SPEAKER("speaker", "Speaker"),
+    BLUETOOTH("bluetooth", "Bluetooth")
+}
+
 data class IncomingCallData(
     val roomId: String,
     val callerId: String,
@@ -134,6 +140,20 @@ object VoiceCallManager {
 
     private val _isSpeakerOn = MutableStateFlow(true)
     val isSpeakerOn: StateFlow<Boolean> = _isSpeakerOn.asStateFlow()
+
+    private val _currentAudioRoute = MutableStateFlow(AudioRoute.SPEAKER)
+    val currentAudioRoute: StateFlow<AudioRoute> = _currentAudioRoute.asStateFlow()
+
+    private val _isBluetoothConnected = MutableStateFlow(false)
+    val isBluetoothConnected: StateFlow<Boolean> = _isBluetoothConnected.asStateFlow()
+
+    private val _bluetoothDeviceName = MutableStateFlow<String?>("Bluetooth Audio")
+    val bluetoothDeviceName: StateFlow<String?> = _bluetoothDeviceName.asStateFlow()
+
+    private val _availableAudioRoutes = MutableStateFlow<List<AudioRoute>>(listOf(AudioRoute.SPEAKER, AudioRoute.EARPIECE))
+    val availableAudioRoutes: StateFlow<List<AudioRoute>> = _availableAudioRoutes.asStateFlow()
+
+    private var audioDeviceCallback: android.media.AudioDeviceCallback? = null
 
     private val _liveAudioAmplitude = MutableStateFlow(0f)
     val liveAudioAmplitude: StateFlow<Float> = _liveAudioAmplitude.asStateFlow()
@@ -953,6 +973,7 @@ object VoiceCallManager {
         appContext = context.applicationContext
         audioManager = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
         initWebRtcFactory(context)
+        initAudioDeviceCallbacks()
         connectWebSocket()
         startPeriodicPing()
     }
@@ -2154,16 +2175,36 @@ object VoiceCallManager {
         }
 
         // Send call invite — production WS reads "type" field, must be "call:initiate"
+        val callerAvatar = ConnectoApiClient.currentUserAvatar ?: ""
+        val callerDisplayName = ConnectoApiClient.currentUserDisplayName ?: currentUsername
         val inviteMsg = JSONObject().apply {
             put("action", "call:initiate")
-            put("type", "call:initiate")   // FIX: was "call_invite" — production ignores that
+            put("type", "call:initiate")
             put("target", cleanTarget)
             put("target_user", cleanTarget)
             put("call_id", roomId)
             put("room_id", roomId)
-            put("avatar", "👤")
+            put("caller", currentUsername)
+            put("caller_username", currentUsername)
+            put("caller_name", callerDisplayName)
+            put("caller_avatar", callerAvatar)
+            put("avatar", callerAvatar)
         }
         sendWsMessage(inviteMsg)
+
+        if (avatarUrl.isNullOrBlank()) {
+            scope.launch {
+                try {
+                    val res = ConnectoApiClient.getProfile(cleanTarget)
+                    if (res.isSuccess) {
+                        val p = res.getOrNull()
+                        if (!p?.avatarUrl.isNullOrBlank()) {
+                            _activeCallAvatar.value = p?.avatarUrl
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+        }
 
         // Caller must also join the voice room so the server's in-memory voice_rooms map
         // includes the caller — otherwise voice_data broadcast won't reach them.
@@ -2178,7 +2219,7 @@ object VoiceCallManager {
         // Fallback REST call
         scope.launch {
             try {
-                ConnectoApiClient.inviteToVoiceCall(cleanTarget, roomId)
+                ConnectoApiClient.inviteToVoiceCall(cleanTarget, roomId, callerAvatar)
             } catch (_: Throwable) {}
         }
     }
@@ -2194,6 +2235,20 @@ object VoiceCallManager {
         _activeCallAvatar.value = call.callerAvatar
         _callState.value = CallState.CONNECTED
         _participantCount.value = 2
+
+        if (call.callerAvatar.isNullOrBlank() && call.callerUsername.isNotBlank()) {
+            scope.launch {
+                try {
+                    val res = ConnectoApiClient.getProfile(call.callerUsername)
+                    if (res.isSuccess) {
+                        val p = res.getOrNull()
+                        if (!p?.avatarUrl.isNullOrBlank()) {
+                            _activeCallAvatar.value = p?.avatarUrl
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+        }
         appContext?.let {
             VoiceCallForegroundService.startService(it, _activeCallTitle.value, call.callerName, _isMuted.value)
         }
@@ -2331,7 +2386,13 @@ object VoiceCallManager {
     fun endCall() {
         val roomId = _activeRoomId.value ?: _incomingCall.value?.roomId ?: _activeCallRoomCode.value
         markCallTerminated(roomId)
-        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value ?: _incomingCall.value?.callerUsername ?: _incomingCall.value?.callerName
+        val rawPartner = _activeCallPartnerUsername.value ?: _incomingCall.value?.callerUsername ?: _activeCallPartner.value ?: _incomingCall.value?.callerName ?: ""
+        val cleanPartner = rawPartner.trim()
+            .removePrefix("@")
+            .removePrefix("1:1 Voice Call with ")
+            .removePrefix("Voice Call with ")
+            .removePrefix("Call with ")
+            .trim()
         val partnerTitle = _activeCallPartner.value ?: _activeCallTitle.value
         val duration = _callDurationSeconds.value
         val isCaller = isCallCaller
@@ -2344,8 +2405,7 @@ object VoiceCallManager {
             val endMsg = JSONObject().apply {
                 put("action", "call:end")
                 put("type", "call:end")
-                if (!partner.isNullOrBlank()) {
-                    val cleanPartner = partner.trim().removePrefix("@")
+                if (cleanPartner.isNotBlank()) {
                     put("target", cleanPartner)
                     put("target_user", cleanPartner)
                 }
@@ -2357,8 +2417,7 @@ object VoiceCallManager {
             val callEndMsg = JSONObject().apply {
                 put("type", "call_end")
                 put("action", "call:end")
-                if (!partner.isNullOrBlank()) {
-                    val cleanPartner = partner.trim().removePrefix("@")
+                if (cleanPartner.isNotBlank()) {
                     put("target", cleanPartner)
                     put("target_user", cleanPartner)
                 }
@@ -2366,6 +2425,18 @@ object VoiceCallManager {
                 put("call_id", roomId)
             }
             sendWsMessage(callEndMsg)
+
+            val cancelMsg = JSONObject().apply {
+                put("type", "call:cancel")
+                put("action", "call:cancel")
+                if (cleanPartner.isNotBlank()) {
+                    put("target", cleanPartner)
+                    put("target_user", cleanPartner)
+                }
+                put("room_id", roomId)
+                put("call_id", roomId)
+            }
+            sendWsMessage(cancelMsg)
 
             // Also send voice_leave to remove us from server's voice_rooms map
             val leaveMsg = JSONObject().apply {
@@ -2377,7 +2448,10 @@ object VoiceCallManager {
             sendWsMessage(leaveMsg)
 
             scope.launch {
-                ConnectoApiClient.endVoiceCall(roomId, partner?.trim()?.removePrefix("@"))
+                ConnectoApiClient.endVoiceCall(roomId, cleanPartner)
+            }
+            scope.launch {
+                ConnectoApiClient.respondToVoiceCall(roomId, "decline", cleanPartner)
             }
         }
 
@@ -2449,37 +2523,200 @@ object VoiceCallManager {
         }
     }
 
-    fun toggleSpeaker() {
-        val newSpeaker = !_isSpeakerOn.value
-        _isSpeakerOn.value = newSpeaker
-        applySpeakerphoneSetting(newSpeaker)
-    }
-
-    private fun applySpeakerphoneSetting(isSpeaker: Boolean) {
+    fun refreshAudioDevices() {
         try {
+            val am = audioManager ?: return
+            var btFound = false
+            var btName = "Bluetooth Headset"
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                val devices = audioManager?.availableCommunicationDevices ?: emptyList()
-                val targetType = if (isSpeaker) AudioDeviceInfo.TYPE_BUILTIN_SPEAKER else AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
-                val targetDevice = devices.firstOrNull { it.type == targetType }
-                if (targetDevice != null) {
-                    audioManager?.setCommunicationDevice(targetDevice)
-                } else {
-                    @Suppress("DEPRECATION")
-                    audioManager?.isSpeakerphoneOn = isSpeaker
+                val devices = am.availableCommunicationDevices
+                val btDevice = devices.firstOrNull { dev ->
+                    dev.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    dev.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                    dev.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+                    dev.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                }
+                if (btDevice != null) {
+                    btFound = true
+                    btName = btDevice.productName?.toString()?.ifBlank { "Bluetooth Headset" } ?: "Bluetooth Headset"
                 }
             } else {
-                @Suppress("DEPRECATION")
-                audioManager?.isSpeakerphoneOn = isSpeaker
+                val outputs = am.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+                val btOut = outputs.firstOrNull { dev ->
+                    dev.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                    dev.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                }
+                if (btOut != null) {
+                    btFound = true
+                    btName = btOut.productName?.toString()?.ifBlank { "Bluetooth Headset" } ?: "Bluetooth Headset"
+                }
+            }
+
+            _isBluetoothConnected.value = btFound
+            _bluetoothDeviceName.value = if (btFound) btName else null
+            val routes = mutableListOf(AudioRoute.SPEAKER, AudioRoute.EARPIECE)
+            if (btFound) {
+                routes.add(0, AudioRoute.BLUETOOTH)
+            }
+            _availableAudioRoutes.value = routes
+
+            if (btFound && _callState.value == CallState.CONNECTED && _currentAudioRoute.value != AudioRoute.BLUETOOTH) {
+                setAudioRoute(AudioRoute.BLUETOOTH)
+            } else if (!btFound && _currentAudioRoute.value == AudioRoute.BLUETOOTH) {
+                setAudioRoute(AudioRoute.SPEAKER)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed setting speakerphone: ${e.message}")
+            Log.e(TAG, "Error refreshing audio devices: ${e.message}")
+        }
+    }
+
+    fun initAudioDeviceCallbacks() {
+        try {
+            val am = audioManager ?: return
+            if (audioDeviceCallback == null) {
+                val callback = object : android.media.AudioDeviceCallback() {
+                    override fun onAudioDevicesAdded(addedDevices: Array<out AudioDeviceInfo>?) {
+                        refreshAudioDevices()
+                    }
+                    override fun onAudioDevicesRemoved(removedDevices: Array<out AudioDeviceInfo>?) {
+                        refreshAudioDevices()
+                    }
+                }
+                audioDeviceCallback = callback
+                am.registerAudioDeviceCallback(callback, null)
+            }
+            refreshAudioDevices()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error registering AudioDeviceCallback: ${e.message}")
+        }
+    }
+
+    /**
+     * Testing hook to simulate Bluetooth connection on Android emulators
+     */
+    fun setBluetoothConnectedForTesting(connected: Boolean, deviceName: String = "Galaxy Buds Pro") {
+        _isBluetoothConnected.value = connected
+        _bluetoothDeviceName.value = if (connected) deviceName else null
+        val routes = mutableListOf(AudioRoute.SPEAKER, AudioRoute.EARPIECE)
+        if (connected) {
+            routes.add(0, AudioRoute.BLUETOOTH)
+            setAudioRoute(AudioRoute.BLUETOOTH)
+        } else {
+            if (_currentAudioRoute.value == AudioRoute.BLUETOOTH) {
+                setAudioRoute(AudioRoute.SPEAKER)
+            }
+        }
+        _availableAudioRoutes.value = routes
+        Log.d(TAG, "setBluetoothConnectedForTesting: connected=$connected, name=$deviceName, currentRoute=${_currentAudioRoute.value}")
+    }
+
+    fun setAudioRoute(route: AudioRoute) {
+        _currentAudioRoute.value = route
+        _isSpeakerOn.value = (route == AudioRoute.SPEAKER)
+        try {
+            val am = audioManager ?: return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val devices = am.availableCommunicationDevices
+                when (route) {
+                    AudioRoute.SPEAKER -> {
+                        am.clearCommunicationDevice()
+                        val spk = devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                        if (spk != null) {
+                            am.setCommunicationDevice(spk)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            am.isSpeakerphoneOn = true
+                        }
+                        try {
+                            am.stopBluetoothSco()
+                            am.isBluetoothScoOn = false
+                        } catch (_: Throwable) {}
+                    }
+                    AudioRoute.EARPIECE -> {
+                        am.clearCommunicationDevice()
+                        val earpiece = devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE }
+                        if (earpiece != null) {
+                            am.setCommunicationDevice(earpiece)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            am.isSpeakerphoneOn = false
+                        }
+                        try {
+                            am.stopBluetoothSco()
+                            am.isBluetoothScoOn = false
+                        } catch (_: Throwable) {}
+                    }
+                    AudioRoute.BLUETOOTH -> {
+                        val bt = devices.firstOrNull {
+                            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+                            it.type == AudioDeviceInfo.TYPE_BLE_HEADSET ||
+                            it.type == AudioDeviceInfo.TYPE_BLE_SPEAKER ||
+                            it.type == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP
+                        }
+                        if (bt != null) {
+                            am.setCommunicationDevice(bt)
+                        }
+                        try {
+                            am.startBluetoothSco()
+                            am.isBluetoothScoOn = true
+                            @Suppress("DEPRECATION")
+                            am.isSpeakerphoneOn = false
+                        } catch (_: Throwable) {}
+                    }
+                }
+            } else {
+                when (route) {
+                    AudioRoute.SPEAKER -> {
+                        try {
+                            am.stopBluetoothSco()
+                            am.isBluetoothScoOn = false
+                        } catch (_: Throwable) {}
+                        @Suppress("DEPRECATION")
+                        am.isSpeakerphoneOn = true
+                    }
+                    AudioRoute.EARPIECE -> {
+                        try {
+                            am.stopBluetoothSco()
+                            am.isBluetoothScoOn = false
+                        } catch (_: Throwable) {}
+                        @Suppress("DEPRECATION")
+                        am.isSpeakerphoneOn = false
+                    }
+                    AudioRoute.BLUETOOTH -> {
+                        @Suppress("DEPRECATION")
+                        am.isSpeakerphoneOn = false
+                        try {
+                            am.startBluetoothSco()
+                            am.isBluetoothScoOn = true
+                        } catch (_: Throwable) {}
+                    }
+                }
+            }
+            Log.d(TAG, "Switched audio route to: $route")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to switch audio route $route: ${e.message}")
+        }
+    }
+
+    fun toggleSpeaker() {
+        if (_isBluetoothConnected.value) {
+            val nextRoute = when (_currentAudioRoute.value) {
+                AudioRoute.BLUETOOTH -> AudioRoute.SPEAKER
+                AudioRoute.SPEAKER -> AudioRoute.EARPIECE
+                AudioRoute.EARPIECE -> AudioRoute.BLUETOOTH
+            }
+            setAudioRoute(nextRoute)
+        } else {
+            val nextRoute = if (_currentAudioRoute.value == AudioRoute.SPEAKER) AudioRoute.EARPIECE else AudioRoute.SPEAKER
+            setAudioRoute(nextRoute)
         }
     }
 
     fun applyAudioSettingsForCall() {
         try {
             audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
-            applySpeakerphoneSetting(_isSpeakerOn.value)
+            setAudioRoute(_currentAudioRoute.value)
         } catch (e: Exception) {
             Log.e(TAG, "Error setting AudioManager mode: ${e.message}")
         }

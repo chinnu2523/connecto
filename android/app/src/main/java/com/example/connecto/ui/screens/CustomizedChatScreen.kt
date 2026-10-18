@@ -108,6 +108,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Delete
@@ -543,7 +544,11 @@ fun CustomizedChatScreen(
 ) {
     var selectedFriend by remember { mutableStateOf<FriendItem?>(null) }
     var selectedFriendProfileData by remember { mutableStateOf<ProfileDataDto?>(null) }
+    val friendProfilesCache = remember { mutableStateMapOf<String, ProfileDataDto>() }
     var friendProfileSelectedTab by remember { mutableStateOf("settings") } // "settings", "customization", "actions"
+    var isFriendProfileOpen by remember { mutableStateOf(false) }
+    var friendProfileSubPage by remember { mutableStateOf<String?>(null) }
+    var openedProfileFromChatList by remember { mutableStateOf(false) }
     var showFriendProfileDialog by remember { mutableStateOf(false) }
     var showGroupProfileDialog by remember { mutableStateOf(false) }
     var showAddGroupMembersDialog by remember { mutableStateOf(false) }
@@ -1038,7 +1043,12 @@ fun CustomizedChatScreen(
     fun perform1on1Call(friend: FriendItem) {
         val friendUser = friend.handle.removePrefix("@").ifBlank { friend.name }
         val friendName = friend.name.ifBlank { friendUser }
-        VoiceCallManager.start1on1Call(friendUser, friendName)
+        val friendClean = friendUser.trim().lowercase()
+        val prof = (if (selectedFriend?.id == friend.id) selectedFriendProfileData else null)?.takeIf {
+            it.username.lowercase() == friendClean || (it.id.isNotBlank() && it.id == friend.id)
+        } ?: friendProfilesCache[friendClean]
+        val resolvedAvatar = friend.avatarUrl ?: prof?.avatarUrl
+        VoiceCallManager.start1on1Call(friendUser, friendName, avatarUrl = resolvedAvatar)
     }
 
     fun performGroupVoiceCall(group: FriendItem) {
@@ -1323,9 +1333,15 @@ fun CustomizedChatScreen(
                     val myUsernameLower = effUsername.trim().lowercase().removePrefix("@")
                     val validGroups = serverGroups.filter { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
+                        val isMember = g.isCreatedByMe || g.members.any { it.trim().lowercase().removePrefix("@") == myUsernameLower }
                         if (count <= 0) {
                             coroutineScope.launch {
                                 try { ConnectoApiClient.deleteGroup(g.id) } catch (_: Exception) {}
+                            }
+                            false
+                        } else if (!isMember) {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try { dbHelper.deleteCachedGroup(g.id) } catch (_: Exception) {}
                             }
                             false
                         } else {
@@ -1361,6 +1377,7 @@ fun CustomizedChatScreen(
                         )
                     }
                     val gIds = mappedGroups.map { it.id }.toSet()
+                    val removed = userGroupsList.filter { it.id !in gIds }
                     userGroupsList.removeAll { it.id !in gIds }
                     for (item in mappedGroups) {
                         val idx = userGroupsList.indexOfFirst { it.id == item.id }
@@ -1374,6 +1391,9 @@ fun CustomizedChatScreen(
                     }
                     coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
+                            for (rem in removed) {
+                                dbHelper.deleteCachedGroup(rem.id)
+                            }
                             dbHelper.saveGroups(userGroupsList.toList())
                         } catch (_: Exception) {}
                     }
@@ -1392,16 +1412,33 @@ fun CustomizedChatScreen(
 
     val screenCtx = LocalContext.current
 
-    // Real-time friend requests & accepted friends sync listener
+    // Real-time friend requests, accepted friends sync listener, and group removal listener
     DisposableEffect(screenCtx) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context?, intent: Intent?) {
-                coroutineScope.launch {
-                    syncAcceptedFriends()
+                when (intent?.action) {
+                    "com.example.connecto.ACTION_GROUP_REMOVED" -> {
+                        val gid = intent.getStringExtra("group_id") ?: return
+                        userGroupsList.removeAll { it.id == gid }
+                        if (selectedFriend?.id == gid) {
+                            selectedFriend = null
+                            chatWallpaperId = "default"
+                            customWallpaperUri = null
+                            showGroupProfileDialog = false
+                        }
+                    }
+                    else -> {
+                        coroutineScope.launch {
+                            syncAcceptedFriends()
+                        }
+                    }
                 }
             }
         }
-        val filter = IntentFilter("com.connecto.app.FRIEND_REQUEST_UPDATED")
+        val filter = IntentFilter().apply {
+            addAction("com.connecto.app.FRIEND_REQUEST_UPDATED")
+            addAction("com.example.connecto.ACTION_GROUP_REMOVED")
+        }
         try {
             ContextCompat.registerReceiver(
                 screenCtx,
@@ -1542,29 +1579,40 @@ fun CustomizedChatScreen(
         }
     }
 
-    // Handle System Back button when in 1:1 direct chat
-    BackHandler(enabled = selectedFriend != null) {
-        selectedFriend?.let { friend ->
-            markFriendChatAsReadLocallyAndRemotely(friend)
-            if (typedMessage.isNotBlank()) {
-                messageDrafts[friend.id] = typedMessage
-            } else {
-                messageDrafts.remove(friend.id)
+    // Handle System Back button when in friend profile or 1:1 direct chat
+    BackHandler(enabled = selectedFriend != null || isFriendProfileOpen) {
+        if (friendProfileSubPage != null) {
+            friendProfileSubPage = null
+        } else if (isFriendProfileOpen) {
+            isFriendProfileOpen = false
+            if (openedProfileFromChatList) {
+                openedProfileFromChatList = false
+                selectedFriend = null
+                onDirectChatStateChanged(false)
             }
+        } else {
+            selectedFriend?.let { friend ->
+                markFriendChatAsReadLocallyAndRemotely(friend)
+                if (typedMessage.isNotBlank()) {
+                    messageDrafts[friend.id] = typedMessage
+                } else {
+                    messageDrafts.remove(friend.id)
+                }
+            }
+            typedMessage = ""
+            selectedFriend = null
+            chatWallpaperId = "default"
+            customWallpaperUri = null
+            activeDmChannelId = null
+            pinnedMessageForChat = null
+            messageForAction = null
+            selectedMessageForAction = null
+            showMoreOptionsMenu = false
+            editingMessage = null
+            isLoadingMessages = false
+            VoiceCallManager.activeChatRoomOrFriend = null
+            onDirectChatStateChanged(false)
         }
-        typedMessage = ""
-        selectedFriend = null
-        chatWallpaperId = "default"
-        customWallpaperUri = null
-        activeDmChannelId = null
-        pinnedMessageForChat = null
-        messageForAction = null
-        selectedMessageForAction = null
-        showMoreOptionsMenu = false
-        editingMessage = null
-        isLoadingMessages = false
-        VoiceCallManager.activeChatRoomOrFriend = null
-        onDirectChatStateChanged(false)
     }
 
     // Real-time WebSocket User Presence Listener
@@ -2067,23 +2115,36 @@ fun CustomizedChatScreen(
                 }
 
                 // Re-fetch fresh profile data on view — avoids indefinite caching of avatar or display name
+                val currentOpeningFriendId = friend.id
+                val cleanOpeningTarget = cleanTarget
+                val cleanLower = cleanOpeningTarget.lowercase()
                 coroutineScope.launch {
                     try {
-                        val profRes = ConnectoApiClient.getProfile(cleanTarget)
+                        val profRes = ConnectoApiClient.getProfile(cleanOpeningTarget)
                         if (profRes.isSuccess) {
                             val prof = profRes.getOrThrow()
+                            friendProfilesCache[cleanLower] = prof
                             val freshAvatar = prof.avatarUrl
                             val freshName = prof.displayName.ifBlank { prof.username }
                             val freshBio = prof.bio ?: ""
                             val freshOnline = prof.isOnline
-                            selectedFriend = selectedFriend?.copy(
-                                avatarUrl = freshAvatar ?: selectedFriend?.avatarUrl,
-                                name = if (freshName.isNotBlank()) freshName else (selectedFriend?.name ?: cleanTarget),
-                                bio = freshBio,
-                                isOnline = freshOnline,
-                                status = if (freshOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
-                            )
-                            val fIdx = friendsList.indexOfFirst { it.id == friendId }
+
+                            // STRICT GUARD: Only mutate selectedFriend if the user is STILL viewing this exact same friend!
+                            val activeClean = selectedFriend?.handle?.removePrefix("@")?.trim()?.lowercase()
+                            if (activeClean == cleanLower || selectedFriend?.id == currentOpeningFriendId) {
+                                selectedFriend = selectedFriend?.copy(
+                                    avatarUrl = freshAvatar ?: selectedFriend?.avatarUrl,
+                                    name = if (freshName.isNotBlank()) freshName else (selectedFriend?.name ?: cleanOpeningTarget),
+                                    bio = freshBio,
+                                    isOnline = freshOnline,
+                                    status = if (freshOnline) "Accepted Friend • Online" else "Accepted Friend • Offline"
+                                )
+                                if (selectedFriendProfileData == null || selectedFriendProfileData?.username?.lowercase() == cleanLower) {
+                                    selectedFriendProfileData = prof
+                                }
+                            }
+
+                            val fIdx = friendsList.indexOfFirst { it.id == currentOpeningFriendId }
                             if (fIdx != -1) {
                                 friendsList[fIdx] = friendsList[fIdx].copy(
                                     avatarUrl = freshAvatar ?: friendsList[fIdx].avatarUrl,
@@ -2311,30 +2372,46 @@ fun CustomizedChatScreen(
         }
     }
 
-    LaunchedEffect(showFriendProfileDialog) {
-        if (showFriendProfileDialog && selectedFriend != null) {
-            val clean = selectedFriend!!.handle.removePrefix("@")
+    LaunchedEffect(selectedFriend?.id, selectedFriend?.handle, isFriendProfileOpen, showFriendProfileDialog) {
+        val currentFriend = selectedFriend
+        if ((isFriendProfileOpen || showFriendProfileDialog) && currentFriend != null) {
+            val clean = currentFriend.handle.removePrefix("@").trim()
+            val cleanLower = clean.lowercase()
+            val cached = friendProfilesCache[cleanLower]
+            if (cached != null) {
+                selectedFriendProfileData = cached
+            } else if (selectedFriendProfileData != null && !selectedFriendProfileData?.username.equals(cleanLower, ignoreCase = true)) {
+                // Instantly purge stale profile from previous friend so friend1 data is NEVER shown for friend2
+                selectedFriendProfileData = null
+            }
             try {
                 val res = ConnectoApiClient.getProfile(clean)
                 if (res.isSuccess) {
                     val prof = res.getOrThrow()
-                    selectedFriendProfileData = prof
-                    selectedFriend = selectedFriend?.copy(
-                        avatarUrl = prof.avatarUrl ?: selectedFriend?.avatarUrl,
-                        bannerUrl = prof.bannerUrl ?: selectedFriend?.bannerUrl,
-                        name = prof.displayName.ifBlank { prof.fullName.ifBlank { prof.username } },
-                        bio = prof.bio.ifBlank { selectedFriend?.bio ?: "" },
-                        isOnline = prof.isOnline
-                    )
+                    friendProfilesCache[cleanLower] = prof
+                    // Verify that the user is still viewing this exact friend
+                    val activeClean = selectedFriend?.handle?.removePrefix("@")?.trim()?.lowercase()
+                    if (activeClean == cleanLower || selectedFriend?.id == currentFriend.id) {
+                        selectedFriendProfileData = prof
+                        selectedFriend = selectedFriend?.copy(
+                            avatarUrl = prof.avatarUrl ?: selectedFriend?.avatarUrl,
+                            bannerUrl = prof.bannerUrl ?: selectedFriend?.bannerUrl,
+                            name = prof.displayName.ifBlank { prof.fullName.ifBlank { prof.username } },
+                            bio = prof.bio.ifBlank { selectedFriend?.bio ?: "" },
+                            isOnline = prof.isOnline
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 // Non-fatal
             }
+        } else if (currentFriend == null) {
+            selectedFriendProfileData = null
         }
     }
 
-    // Friend Profile Info Dialog - Enhanced with Tabs matching Profile tab
-    if (showFriendProfileDialog && selectedFriend != null) {
+    // Friend Profile Info Dialog - Disabled in favor of full screen Friend Profile tab
+    if (false && showFriendProfileDialog && selectedFriend != null) {
         val friendObj = selectedFriend!!
         val profData = selectedFriendProfileData
         val friendHandleClean = friendObj.handle.removePrefix("@")
@@ -3202,7 +3279,11 @@ fun CustomizedChatScreen(
     // Friend Profile Photo Fullscreen Lightbox Dialog
     if (showPhotoLightbox && selectedFriend != null) {
         val friendObj = selectedFriend!!
-        val resolvedAvatar = friendObj.avatarUrl ?: selectedFriendProfileData?.avatarUrl
+        val friendClean = friendObj.handle.removePrefix("@").trim().lowercase()
+        val prof = selectedFriendProfileData?.takeIf {
+            it.username.lowercase() == friendClean || (it.id.isNotBlank() && it.id == friendObj.id)
+        } ?: friendProfilesCache[friendClean]
+        val resolvedAvatar = friendObj.avatarUrl ?: prof?.avatarUrl
         PhotoLightboxDialog(
             title = friendObj.name,
             imageUrl = resolvedAvatar,
@@ -3540,8 +3621,25 @@ fun CustomizedChatScreen(
                 val gId = groupItem.id
                 userGroupsList.removeAll { it.id == gId }
                 coroutineScope.launch(Dispatchers.IO) {
+                    try { dbHelper.deleteCachedGroup(gId) } catch (_: Exception) {}
                     try { dbHelper.saveGroups(userGroupsList.toList()) } catch (_: Exception) {}
+                    try {
+                        val rPrefs = screenCtx.getSharedPreferences("connecto_read_receipts", Context.MODE_PRIVATE)
+                        rPrefs.edit()
+                            .remove("last_msg_$gId")
+                            .remove("last_time_$gId")
+                            .remove("last_timestamp_$gId")
+                            .remove("unread_$gId")
+                            .apply()
+                    } catch (_: Exception) {}
                 }
+                try {
+                    val broadcastIntent = Intent("com.example.connecto.ACTION_GROUP_REMOVED").apply {
+                        putExtra("group_id", gId)
+                        `package` = screenCtx.packageName
+                    }
+                    screenCtx.sendBroadcast(broadcastIntent)
+                } catch (_: Exception) {}
                 selectedFriend = null
                 chatWallpaperId = "default"
                 customWallpaperUri = null
@@ -3551,8 +3649,25 @@ fun CustomizedChatScreen(
                 val gId = groupItem.id
                 userGroupsList.removeAll { it.id == gId }
                 coroutineScope.launch(Dispatchers.IO) {
+                    try { dbHelper.deleteCachedGroup(gId) } catch (_: Exception) {}
                     try { dbHelper.saveGroups(userGroupsList.toList()) } catch (_: Exception) {}
+                    try {
+                        val rPrefs = screenCtx.getSharedPreferences("connecto_read_receipts", Context.MODE_PRIVATE)
+                        rPrefs.edit()
+                            .remove("last_msg_$gId")
+                            .remove("last_time_$gId")
+                            .remove("last_timestamp_$gId")
+                            .remove("unread_$gId")
+                            .apply()
+                    } catch (_: Exception) {}
                 }
+                try {
+                    val broadcastIntent = Intent("com.example.connecto.ACTION_GROUP_REMOVED").apply {
+                        putExtra("group_id", gId)
+                        `package` = screenCtx.packageName
+                    }
+                    screenCtx.sendBroadcast(broadcastIntent)
+                } catch (_: Exception) {}
                 selectedFriend = null
                 chatWallpaperId = "default"
                 customWallpaperUri = null
@@ -3789,6 +3904,8 @@ fun CustomizedChatScreen(
                         }
                     }
                 }
+            } else if (isFriendProfileOpen && selectedFriend != null && !selectedFriend!!.isGroup) {
+                // Friend Profile screen renders its own full-screen custom top header
             } else if (selectedFriend != null) {
                 // 1:1 Direct Chat Header with Call Buttons & Friend Profile Info Trigger
                 Box(
@@ -3887,6 +4004,7 @@ fun CustomizedChatScreen(
                                     }
                                     typedMessage = ""
                                     selectedFriend = null
+                                    selectedFriendProfileData = null
                                  chatWallpaperId = "default"
                                  customWallpaperUri = null
                                     activeDmChannelId = null
@@ -3917,7 +4035,8 @@ fun CustomizedChatScreen(
                                         showFriendProfileDialog = false
                                         showGroupProfileDialog = true
                                     } else {
-                                        showFriendProfileDialog = true
+                                        isFriendProfileOpen = true
+                                        friendProfileSubPage = null
                                     }
                                 }
                         ) {
@@ -4065,7 +4184,10 @@ fun CustomizedChatScreen(
                                         .clip(CircleShape)
                                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
                                         .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape)
-                                        .clickable { showFriendProfileDialog = true },
+                                        .clickable {
+                                            isFriendProfileOpen = true
+                                            friendProfileSubPage = null
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -4218,10 +4340,16 @@ fun CustomizedChatScreen(
                 )
             }
 
+            val currentScreenState = when {
+                isFriendProfileOpen && selectedFriend != null && !selectedFriend!!.isGroup -> "FRIEND_PROFILE"
+                selectedFriend != null -> "DIRECT_CHAT"
+                else -> "FRIENDS_LIST"
+            }
+
             AnimatedContent(
-                targetState = selectedFriend != null,
+                targetState = currentScreenState,
                 transitionSpec = {
-                    if (targetState) {
+                    if (targetState == "FRIEND_PROFILE" || (initialState == "FRIENDS_LIST" && targetState == "DIRECT_CHAT")) {
                         (slideInHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing), initialOffsetX = { fullWidth -> fullWidth }) + fadeIn(tween(280)))
                             .togetherWith(slideOutHorizontally(animationSpec = tween(280, easing = FastOutSlowInEasing), targetOffsetX = { fullWidth -> -fullWidth }) + fadeOut(tween(280)))
                     } else {
@@ -4231,8 +4359,9 @@ fun CustomizedChatScreen(
                 },
                 label = "friendChatViewTransition",
                 modifier = Modifier.weight(1f)
-            ) { isFriendSelected ->
-                if (!isFriendSelected) {
+            ) { screenState ->
+                when (screenState) {
+                    "FRIENDS_LIST" -> {
                     // ================= 1. FRIENDS LIST SCREEN =================
                     DisableSelection {
                     LazyColumn(
@@ -4469,11 +4598,13 @@ fun CustomizedChatScreen(
                             val isUnlocked = unlockedLockedFriends.contains(friend.id)
 
                             val openFriendChat = {
+                                val cleanTarget = friend.handle.removePrefix("@").trim()
+                                val cleanLower = cleanTarget.lowercase()
+                                selectedFriendProfileData = friendProfilesCache[cleanLower]
                                 val (initialWp, initialUri) = resolveChatWallpaper(friend)
                                 chatWallpaperId = initialWp
                                 customWallpaperUri = initialUri
                                 val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
-                                val cleanTarget = friend.handle.removePrefix("@")
                                 val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
                                 activeDmChannelId = if (friend.isGroup) friend.id else dbHelper.getDmChannelId(canonicalName)
                                 typedMessage = messageDrafts[friend.id] ?: ""
@@ -4556,16 +4687,27 @@ fun CustomizedChatScreen(
                                             }
                                         }
                                     } else {
-                                        // Avatar with online status ring
-                                        ConnectoAvatar(
-                                            name = friend.name,
-                                            avatarUrl = friend.avatarUrl,
-                                            customSizeDp = 48.dp,
-                                            customFontSizeSp = 18,
-                                            status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
-                                            borderWidth = 1.5.dp,
-                                            borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                        )
+                                        // Avatar with online status ring (clickable to open dedicated friend profile UI tab)
+                                        Box(
+                                            modifier = Modifier.clickable {
+                                                val clean = friend.handle.removePrefix("@").trim().lowercase()
+                                                selectedFriend = friend
+                                                selectedFriendProfileData = friendProfilesCache[clean]
+                                                isFriendProfileOpen = true
+                                                friendProfileSubPage = null
+                                                openedProfileFromChatList = true
+                                            }
+                                        ) {
+                                            ConnectoAvatar(
+                                                name = friend.name,
+                                                avatarUrl = friend.avatarUrl,
+                                                customSizeDp = 48.dp,
+                                                customFontSizeSp = 18,
+                                                status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
+                                                borderWidth = 1.5.dp,
+                                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -4673,9 +4815,175 @@ fun CustomizedChatScreen(
                             }
                         }
                     } // end DisableSelection
-                }
-                } else {
-                    // ================= 2. DIRECT CHAT STREAM WITH IME RESIZE =================
+                    }
+                    } // end FRIENDS_LIST branch
+                    "FRIEND_PROFILE" -> {
+                        // ================= 3. DEDICATED FULL-SCREEN FRIEND PROFILE TAB =================
+                        selectedFriend?.let { friendObj ->
+                            val friendClean = friendObj.handle.removePrefix("@").trim().lowercase()
+                            // Strict validation: profData must belong to friendObj!
+                            val profData = selectedFriendProfileData?.takeIf {
+                                it.username.lowercase() == friendClean ||
+                                (it.id.isNotBlank() && it.id == friendObj.id)
+                            } ?: friendProfilesCache[friendClean]
+                            val friendHandleClean = friendObj.handle.removePrefix("@")
+                            val fId = friendObj.id
+                            val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+
+                            FriendProfileScreen(
+                                friend = friendObj,
+                                profData = profData,
+                                isChatLocked = isChatLocked,
+                                isChatMuted = isChatMuted,
+                                chatWallpaperId = chatWallpaperId,
+                                customWallpaperUri = customWallpaperUri,
+                                subPage = friendProfileSubPage,
+                                onNavigateSubPage = { page -> friendProfileSubPage = page },
+                                onBack = {
+                                    if (friendProfileSubPage != null) {
+                                        friendProfileSubPage = null
+                                    } else if (openedProfileFromChatList) {
+                                        isFriendProfileOpen = false
+                                        openedProfileFromChatList = false
+                                        selectedFriend = null
+                                        selectedFriendProfileData = null
+                                        onDirectChatStateChanged(false)
+                                    } else {
+                                        isFriendProfileOpen = false
+                                        selectedFriendProfileData = null
+                                    }
+                                },
+                                onToggleChatLock = { checked ->
+                                    val activity = context.findFragmentActivity()
+                                    val userPrefix = myUser
+                                    if (checked) {
+                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                            BiometricAuthManager.authenticate(
+                                                activity = activity,
+                                                title = "Lock Chat with @$friendHandleClean",
+                                                subtitle = "Verify biometric or device credential to enable chat lock",
+                                                onSuccess = {
+                                                    isChatLocked = true
+                                                    friendPrefs.edit()
+                                                        .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                        .putBoolean("${userPrefix}_chat_locked_$friendHandleClean", true)
+                                                        .apply()
+                                                    if (!unlockedLockedFriends.contains(fId)) {
+                                                        unlockedLockedFriends.add(fId)
+                                                    }
+                                                    Toast.makeText(context, "Chat locked for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onError = { _, err ->
+                                                    Toast.makeText(context, "Authentication required: $err", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        } else {
+                                            isChatLocked = true
+                                            friendPrefs.edit()
+                                                .putBoolean("${userPrefix}_chat_locked_$fId", true)
+                                                .putBoolean("${userPrefix}_chat_locked_$friendHandleClean", true)
+                                                .apply()
+                                            if (!unlockedLockedFriends.contains(fId)) {
+                                                unlockedLockedFriends.add(fId)
+                                            }
+                                            Toast.makeText(context, "Chat locked for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } else {
+                                        if (activity != null && (BiometricAuthManager.isBiometricEnrolled(activity) || BiometricAuthManager.isDeviceSecure(activity))) {
+                                            BiometricAuthManager.authenticate(
+                                                activity = activity,
+                                                title = "Unlock Chat with @$friendHandleClean",
+                                                subtitle = "Verify identity to remove chat lock protection",
+                                                onSuccess = {
+                                                    isChatLocked = false
+                                                    friendPrefs.edit()
+                                                        .remove("${userPrefix}_chat_locked_$fId")
+                                                        .remove("${userPrefix}_chat_locked_$friendHandleClean")
+                                                        .remove("chat_locked_$fId")
+                                                        .apply()
+                                                    Toast.makeText(context, "Chat lock removed for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                                },
+                                                onError = { _, err ->
+                                                    Toast.makeText(context, "Authentication required to disable lock: $err", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        } else {
+                                            isChatLocked = false
+                                            friendPrefs.edit()
+                                                .remove("${userPrefix}_chat_locked_$fId")
+                                                .remove("${userPrefix}_chat_locked_$friendHandleClean")
+                                                .remove("chat_locked_$fId")
+                                                .apply()
+                                            Toast.makeText(context, "Chat lock removed for @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                onToggleChatMute = { checked ->
+                                    isChatMuted = checked
+                                    val currentMuted = notifPrefs.getStringSet("muted_channels", emptySet())?.toMutableSet() ?: mutableSetOf()
+                                    if (checked) {
+                                        currentMuted.add(friendHandleClean.lowercase())
+                                        currentMuted.add(fId.lowercase())
+                                        Toast.makeText(context, "Muted notifications from @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        currentMuted.removeAll { it.lowercase() == friendHandleClean.lowercase() || it.lowercase() == fId.lowercase() }
+                                        Toast.makeText(context, "Unmuted notifications from @$friendHandleClean", Toast.LENGTH_SHORT).show()
+                                    }
+                                    notifPrefs.edit().putStringSet("muted_channels", currentMuted).apply()
+                                },
+                                onSelectWallpaper = { wpId ->
+                                    chatWallpaperId = wpId
+                                    customWallpaperUri = null
+                                    val chatKey = getCanonicalChatId(friendObj)
+                                    val userPrefix = myUser
+                                    val editor = friendPrefs.edit()
+                                    if (chatKey.isNotBlank()) {
+                                        editor.putString("${userPrefix}_chat_wallpaper_$chatKey", wpId)
+                                            .remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                    }
+                                    editor.putString("${userPrefix}_chat_wallpaper_$fId", wpId)
+                                        .remove("${userPrefix}_chat_wallpaper_custom_$fId")
+                                        .remove("chat_wallpaper_custom_$fId")
+                                        .remove("chat_wallpaper_$fId")
+                                        .apply()
+                                },
+                                onPickCustomWallpaper = {
+                                    wallpaperPickerLauncher.launch("image/*")
+                                },
+                                onRemoveCustomWallpaper = {
+                                    chatWallpaperId = "default"
+                                    customWallpaperUri = null
+                                    val chatKey = getCanonicalChatId(friendObj)
+                                    val userPrefix = myUser
+                                    val editor = friendPrefs.edit()
+                                    if (chatKey.isNotBlank()) {
+                                        editor.putString("${userPrefix}_chat_wallpaper_$chatKey", "default")
+                                            .remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                    }
+                                    editor.remove("${userPrefix}_chat_wallpaper_custom_$fId")
+                                        .putString("${userPrefix}_chat_wallpaper_$fId", "default")
+                                        .remove("chat_wallpaper_custom_$fId")
+                                        .remove("chat_wallpaper_$fId")
+                                        .apply()
+                                },
+                                onUnfriend = {
+                                    showUnfriendConfirmDialog = true
+                                },
+                                onInitiateVoiceCall = {
+                                    initiateVoiceCallWithFriend(friendObj)
+                                },
+                                onOpenDirectChat = {
+                                    isFriendProfileOpen = false
+                                    openedProfileFromChatList = false
+                                },
+                                onViewPhoto = {
+                                    showPhotoLightbox = true
+                                }
+                            )
+                        }
+                    }
+                    "DIRECT_CHAT" -> {
+                        // ================= 2. DIRECT CHAT STREAM WITH IME RESIZE =================
                     val canScrollDown by remember {
                         derivedStateOf {
                             listState.canScrollForward
@@ -5830,6 +6138,7 @@ fun CustomizedChatScreen(
                     }
                     } // end Wallpaper Box
                 }
+                } // end when (screenState)
             }
         }
     }

@@ -421,6 +421,7 @@ fun ConnectoApp(
     val incomingCallData by VoiceCallManager.incomingCall.collectAsState()
     val managerCallTitle by VoiceCallManager.activeCallTitle.collectAsState()
     val managerRoomCode by VoiceCallManager.activeCallRoomCode.collectAsState()
+    val managerAvatar by VoiceCallManager.activeCallAvatar.collectAsState()
     var isCallMinimized by remember { mutableStateOf(false) }
 
     // Auto-reset minimization when call finishes
@@ -1003,6 +1004,7 @@ fun ConnectoApp(
         ) {
             FullScreenCallUI(
                 callTitle = if (managerCallTitle.isNotBlank()) managerCallTitle else "Voice Call",
+                avatarUrl = managerAvatar,
                 participantCount = 2,
                 roomCode = managerRoomCode,
                 onMinimize = {

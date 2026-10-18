@@ -46,9 +46,26 @@ class D1SyncManager:
         self.is_running = False
         self._task: Optional[asyncio.Task] = None
         self.last_sync_time = 0
+        self.d1_quota_exhausted = False
+        self.d1_quota_exhausted_until = 0
+
+    def is_quota_limited(self) -> bool:
+        if self.d1_quota_exhausted:
+            if time.time() < self.d1_quota_exhausted_until:
+                return True
+            self.d1_quota_exhausted = False
+        return False
+
+    def mark_quota_exhausted(self, reason: str = "D1 limit"):
+        if not self.d1_quota_exhausted:
+            logger.warning(f"[D1_SYNC] Cloudflare D1 quota exhausted ({reason}). Pausing D1 synchronization for 30 minutes to protect origin resources.")
+        self.d1_quota_exhausted = True
+        self.d1_quota_exhausted_until = time.time() + 1800
 
     def is_cloud_online(self) -> bool:
         """Checks if the Cloudflare D1 edge server is online and responsive."""
+        if self.is_quota_limited():
+            return False
         try:
             req = urllib.request.Request(
                 self.health_endpoint,
@@ -59,12 +76,22 @@ class D1SyncManager:
                     data = json.loads(resp.read().decode("utf-8"))
                     return data.get("status") == "healthy"
             return False
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode("utf-8")
+                if "limit" in body.lower() or "quota" in body.lower() or "d1_error" in body.lower():
+                    self.mark_quota_exhausted(body[:120])
+            except Exception:
+                pass
+            return False
         except Exception as e:
             logger.debug(f"[D1_SYNC] Cloud health probe failed: {e}")
             return False
 
     def query_cloud_d1(self, sql: str, is_exec: bool = False) -> Optional[List[Dict[str, Any]]]:
         """Executes a SQL statement against Cloudflare D1 HTTP Gateway."""
+        if self.is_quota_limited():
+            return None
         try:
             payload = {"exec": sql} if is_exec else {"sql": sql}
             req = urllib.request.Request(
@@ -82,7 +109,21 @@ class D1SyncManager:
                     if data.get("success"):
                         return data.get("results", [])
                     else:
-                        logger.error(f"[D1_SYNC] D1 query returned error: {data.get('error')}")
+                        err = str(data.get("error", ""))
+                        if "limit" in err.lower() or "quota" in err.lower():
+                            self.mark_quota_exhausted(err)
+                        else:
+                            logger.error(f"[D1_SYNC] D1 query returned error: {err}")
+            return None
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode("utf-8")
+                if "limit" in body.lower() or "quota" in body.lower() or "d1_error" in body.lower():
+                    self.mark_quota_exhausted(body[:120])
+                else:
+                    logger.error(f"[D1_SYNC] Failed to execute D1 query: HTTP Error {e.code}")
+            except Exception:
+                logger.error(f"[D1_SYNC] Failed to execute D1 query: HTTP Error {e.code}")
             return None
         except Exception as e:
             logger.error(f"[D1_SYNC] Failed to execute D1 query: {e}")
@@ -92,6 +133,8 @@ class D1SyncManager:
         """Executes a list of SQL statements or param objects via Cloudflare D1 batch API."""
         if not items:
             return True
+        if self.is_quota_limited():
+            return False
         try:
             batch_payload = []
             for item in items:
@@ -117,6 +160,16 @@ class D1SyncManager:
                     return bool(data.get("success"))
                 else:
                     logger.error(f"[D1_SYNC] D1 batch HTTP error: {resp.status}")
+            return False
+        except urllib.error.HTTPError as e:
+            try:
+                body = e.read().decode("utf-8")
+                if "limit" in body.lower() or "quota" in body.lower() or "d1_error" in body.lower():
+                    self.mark_quota_exhausted(body[:120])
+                else:
+                    logger.error(f"[D1_SYNC] Failed to execute D1 batch: HTTP Error {e.code}")
+            except Exception:
+                logger.error(f"[D1_SYNC] Failed to execute D1 batch: HTTP Error {e.code}")
             return False
         except Exception as e:
             logger.error(f"[D1_SYNC] Failed to execute D1 batch: {e}")

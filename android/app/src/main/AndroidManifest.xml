@@ -106,12 +106,13 @@
         <receiver
             android:name=".voice.CallActionReceiver"
             android:enabled="true"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="com.example.connecto.ACTION_END_CALL" />
                 <action android:name="com.example.connecto.ACTION_TOGGLE_MUTE" />
                 <action android:name="com.example.connecto.ACTION_DECLINE_CALL" />
                 <action android:name="com.example.connecto.ACTION_ANSWER_CALL" />
+                <action android:name="com.example.connecto.ACTION_SET_BLUETOOTH_TEST" />
             </intent-filter>
         </receiver>
 

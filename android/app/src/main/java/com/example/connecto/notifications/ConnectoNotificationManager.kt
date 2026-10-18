@@ -256,10 +256,24 @@ object ConnectoNotificationManager {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername) ?: createMonogramBitmap(callerName)
+                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername)
+                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(callerName))
+
+                val callerPerson = Person.Builder()
+                    .setName(callerName)
+                    .setIcon(IconCompat.createWithBitmap(avatarBitmap))
+                    .setImportant(true)
+                    .build()
+
+                val callStyle = NotificationCompat.CallStyle.forIncomingCall(
+                    callerPerson,
+                    declinePendingIntent,
+                    answerPendingIntent
+                )
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)
                     .setSmallIcon(R.mipmap.ic_launcher)
+                    .setStyle(callStyle)
                     .setLargeIcon(avatarBitmap)
                     .setContentTitle("Incoming Voice Call")
                     .setSubText("Connecto • Voice")
@@ -272,8 +286,6 @@ object ConnectoNotificationManager {
                     .setVibrate(longArrayOf(0, 500, 250, 500, 250, 500))
                     .setFullScreenIntent(fullScreenPendingIntent, true)
                     .setContentIntent(fullScreenPendingIntent)
-                    .addAction(android.R.drawable.ic_menu_call, "Answer", answerPendingIntent)
-                    .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Decline", declinePendingIntent)
                     .setColor(0xFF6C5CE7.toInt()) // Connecto Brand Accent Purple
                     .build()
 
@@ -347,6 +359,63 @@ object ConnectoNotificationManager {
         return output
     }
 
+    fun createBadgedAvatarBitmap(context: Context, baseAvatar: Bitmap): Bitmap {
+        val size = 256
+        val output = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(output)
+
+        // 1. Draw base circular profile picture scaled to size x size
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val avatarRect = Rect(0, 0, size, size)
+        canvas.drawBitmap(baseAvatar, null, avatarRect, paint)
+
+        // 2. Decode Connecto app icon
+        val connectoBmp = try {
+            BitmapFactory.decodeResource(context.resources, R.drawable.connecto_app_icon)
+                ?: BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher_round)
+        } catch (_: Exception) {
+            BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
+        }
+
+        if (connectoBmp != null) {
+            val badgeSize = (size * 0.35f).toInt() // ~90px badge
+            val badgeX = size - badgeSize - 4f
+            val badgeY = size - badgeSize - 4f
+            val badgeRadius = badgeSize / 2f
+            val badgeCenterX = badgeX + badgeRadius
+            val badgeCenterY = badgeY + badgeRadius
+
+            // Outer dark circle border
+            val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#0B0E14")
+                style = Paint.Style.FILL
+            }
+            canvas.drawCircle(badgeCenterX, badgeCenterY, badgeRadius + 4f, borderPaint)
+
+            // Subtle glowing accent ring
+            val accentBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#6C5CE7")
+                style = Paint.Style.STROKE
+                strokeWidth = 3f
+            }
+            canvas.drawCircle(badgeCenterX, badgeCenterY, badgeRadius + 2f, accentBorderPaint)
+
+            // Clip Connecto icon into circular badge
+            val badgeCircleBmp = Bitmap.createBitmap(badgeSize, badgeSize, Bitmap.Config.ARGB_8888)
+            val badgeCanvas = Canvas(badgeCircleBmp)
+            val clipPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                color = -0x1
+            }
+            badgeCanvas.drawCircle(badgeRadius, badgeRadius, badgeRadius, clipPaint)
+            clipPaint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+            badgeCanvas.drawBitmap(connectoBmp, null, Rect(0, 0, badgeSize, badgeSize), clipPaint)
+
+            canvas.drawBitmap(badgeCircleBmp, badgeX, badgeY, paint)
+        }
+
+        return output
+    }
+
     private suspend fun fetchAvatarBitmap(
         avatarUrl: String?,
         senderName: String? = null,
@@ -362,18 +431,27 @@ object ConnectoNotificationManager {
         var rawUrl = avatarUrl?.trim()
 
         val isEmojiOnly = rawUrl != null && !rawUrl.contains("/") && !rawUrl.contains(".") && !rawUrl.startsWith("data:")
-        // 1. If avatarUrl is null/blank or emoji, attempt to resolve actual photo from local SQLite cached friends
+        // 1. If avatarUrl is null/blank or emoji, attempt to resolve actual photo from local SQLite cached friends or network profile
         if (rawUrl.isNullOrBlank() || isEmojiOnly) {
-            if (context != null) {
-                val candidateKey = senderUsername?.ifBlank { null } ?: senderName?.ifBlank { null }
-                if (!candidateKey.isNullOrBlank()) {
-                    val friend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
-                        .getFriendByUsernameOrHandle(candidateKey)
-                    val dbAvatar = friend?.avatarUrl?.trim()
-                    if (!dbAvatar.isNullOrBlank() && (dbAvatar.contains("/") || dbAvatar.contains(".") || dbAvatar.startsWith("data:"))) {
-                        rawUrl = dbAvatar
-                    }
+            val candidateKey = (senderUsername?.ifBlank { null } ?: senderName?.ifBlank { null })?.trim()?.removePrefix("@")
+            if (context != null && !candidateKey.isNullOrBlank()) {
+                val friend = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context)
+                    .getFriendByUsernameOrHandle(candidateKey)
+                val dbAvatar = friend?.avatarUrl?.trim()
+                if (!dbAvatar.isNullOrBlank() && (dbAvatar.contains("/") || dbAvatar.contains(".") || dbAvatar.startsWith("data:"))) {
+                    rawUrl = dbAvatar
                 }
+            }
+            if ((rawUrl.isNullOrBlank() || isEmojiOnly) && !candidateKey.isNullOrBlank()) {
+                try {
+                    val profRes = com.example.connecto.network.ConnectoApiClient.getProfile(candidateKey)
+                    if (profRes.isSuccess) {
+                        val prof = profRes.getOrNull()
+                        if (!prof?.avatarUrl.isNullOrBlank()) {
+                            rawUrl = prof?.avatarUrl?.trim()
+                        }
+                    }
+                } catch (_: Exception) {}
             }
         }
 
@@ -390,8 +468,9 @@ object ConnectoNotificationManager {
                         val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                         if (bmp != null) {
                             val circ = getCircularBitmap(bmp)
-                            if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, circ)
-                            return@withContext circ
+                            val badged = if (context != null) createBadgedAvatarBitmap(context, circ) else circ
+                            if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, badged)
+                            return@withContext badged
                         }
                     }
                 }
@@ -408,8 +487,9 @@ object ConnectoNotificationManager {
                 val bmp = BitmapFactory.decodeFile(localFile.absolutePath)
                 if (bmp != null) {
                     val circ = getCircularBitmap(bmp)
-                    if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, circ)
-                    return@withContext circ
+                    val badged = if (context != null) createBadgedAvatarBitmap(context, circ) else circ
+                    if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, badged)
+                    return@withContext badged
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to decode local file avatar: ${e.message}")
@@ -420,13 +500,14 @@ object ConnectoNotificationManager {
         if (!rawUrl.contains("/") && !rawUrl.contains(".") && rawUrl.length <= 4) {
             try {
                 val emojiBmp = createEmojiBitmap(rawUrl)
-                if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, emojiBmp)
-                return@withContext emojiBmp
+                val badged = if (context != null) createBadgedAvatarBitmap(context, emojiBmp) else emojiBmp
+                if (cacheKey.isNotBlank()) avatarMemoryCache.put(cacheKey, badged)
+                return@withContext badged
             } catch (_: Exception) {}
         }
 
-        // 5. Remote HTTP/HTTPS fetch with strict 400ms timeout (never hang notification delivery)
-        val resolvedBitmap = kotlinx.coroutines.withTimeoutOrNull(400L) {
+        // 5. Remote HTTP/HTTPS fetch with reliable 2500ms timeout
+        val resolvedBitmap = kotlinx.coroutines.withTimeoutOrNull(2500L) {
             val candidateUrls = linkedSetOf<String>()
             val activeBase = com.example.connecto.network.ConnectoNetworkConfig.activeBaseUrl.trimEnd('/')
 
@@ -454,7 +535,8 @@ object ConnectoNotificationManager {
                             val drawable = result.drawable
                             val bmp = (drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
                             if (bmp != null) {
-                                return@withTimeoutOrNull getCircularBitmap(bmp)
+                                val circ = getCircularBitmap(bmp)
+                                return@withTimeoutOrNull createBadgedAvatarBitmap(context, circ)
                             }
                         }
                     } catch (_: Exception) {}
@@ -484,7 +566,7 @@ object ConnectoNotificationManager {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val avatarBitmap = fetchAvatarBitmap(senderAvatar, senderName, senderUsername)
-                    ?: createMonogramBitmap(senderName)
+                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(senderName))
 
                 val intent = Intent(context, MainActivity::class.java).apply {
                     action = ACTION_OPEN_CHAT
@@ -707,7 +789,8 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val avatarBitmap = fetchAvatarBitmap(senderAvatar, senderName, senderUsername) ?: createMonogramBitmap(senderName)
+                val avatarBitmap = fetchAvatarBitmap(senderAvatar, senderName, senderUsername)
+                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(senderName))
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_SOCIAL)
                     .setSmallIcon(R.mipmap.ic_launcher)
@@ -752,7 +835,8 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername) ?: createMonogramBitmap(callerName)
+                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername)
+                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(callerName))
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_CALLS)
                     .setSmallIcon(android.R.drawable.stat_notify_missed_call)
@@ -798,7 +882,8 @@ object ConnectoNotificationManager {
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
 
-                val avatarBitmap = fetchAvatarBitmap(avatarUrl, title, username) ?: createMonogramBitmap(title)
+                val avatarBitmap = fetchAvatarBitmap(avatarUrl, title, username)
+                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(title))
 
                 val notification = NotificationCompat.Builder(context, CHANNEL_SOCIAL)
                     .setSmallIcon(R.mipmap.ic_launcher)

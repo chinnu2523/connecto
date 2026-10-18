@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.ui.designsystem.resolveImageModel
 import com.example.connecto.ui.theme.OnlineGreen
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 
@@ -53,6 +62,23 @@ fun IncomingCallDialog(
     onDecline: () -> Unit
 ) {
     val gradientColors = getDynamicAccentGradientColors()
+
+    var resolvedAvatar by remember(callerAvatar) { mutableStateOf(callerAvatar) }
+
+    LaunchedEffect(callerUsername, callerAvatar) {
+        val cleanUser = callerUsername.trim().removePrefix("@")
+        if ((resolvedAvatar.isNullOrBlank() || resolvedAvatar == "👤" || resolvedAvatar == "👾") && cleanUser.isNotBlank()) {
+            try {
+                val res = ConnectoApiClient.getProfile(cleanUser)
+                if (res.isSuccess) {
+                    val p = res.getOrNull()
+                    if (!p?.avatarUrl.isNullOrBlank()) {
+                        resolvedAvatar = p?.avatarUrl
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     // Pulsing animation for the ring
     val infiniteTransition = rememberInfiniteTransition(label = "pulseTransition")
@@ -138,25 +164,60 @@ fun IncomingCallDialog(
                             .background(OnlineGreen.copy(alpha = ringAlpha))
                     )
 
-                    // Avatar Circle
+                    // Avatar Circle with Connecto badge
                     Box(
-                        modifier = Modifier
-                            .size(76.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(gradientColors))
-                            .border(2.dp, OnlineGreen, CircleShape),
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier.size(80.dp)
                     ) {
-                        Text(
-                            text = if (callerAvatar.isNullOrBlank() || callerAvatar.length > 2) {
-                                callerName.take(1).uppercase()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(Brush.linearGradient(gradientColors))
+                                .border(2.5.dp, OnlineGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val imgModel = resolveImageModel(resolvedAvatar)
+                            val isEmoji = resolvedAvatar != null && !resolvedAvatar!!.contains("/") && !resolvedAvatar!!.contains(".") && resolvedAvatar!!.length <= 4
+                            if (!resolvedAvatar.isNullOrBlank() && !isEmoji && imgModel != null) {
+                                AsyncImage(
+                                    model = imgModel,
+                                    contentDescription = callerName,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                )
+                            } else if (isEmoji && resolvedAvatar != null) {
+                                Text(
+                                    text = resolvedAvatar!!,
+                                    fontSize = 36.sp
+                                )
                             } else {
-                                callerAvatar
-                            },
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color.White
-                        )
+                                Text(
+                                    text = callerName.trim().take(1).uppercase().ifEmpty { "C" },
+                                    fontSize = 34.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = Color.White
+                                )
+                            }
+                        }
+
+                        // Connecto app icon badge on bottom-right of profile pic
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .align(Alignment.BottomEnd)
+                                .clip(CircleShape)
+                                .background(Color(0xFF0D0E15))
+                                .border(1.5.dp, OnlineGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            androidx.compose.foundation.Image(
+                                painter = androidx.compose.ui.res.painterResource(id = com.example.connecto.R.drawable.connecto_app_icon),
+                                contentDescription = "Connecto",
+                                modifier = Modifier.size(20.dp).clip(CircleShape)
+                            )
+                        }
                     }
                 }
 

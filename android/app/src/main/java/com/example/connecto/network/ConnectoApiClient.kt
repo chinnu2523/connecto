@@ -1730,6 +1730,10 @@ object ConnectoApiClient {
                             item.optBoolean("is_creator", false) ||
                             gAdmin.lowercase().removePrefix("@") == myUser ||
                             item.optString("owner_id") == currentUserId
+                        val isMember = isCreated || (myUser.isNotBlank() && mList.any { it.trim().lowercase().removePrefix("@") == myUser })
+                        if (myUser.isNotBlank() && !isMember && mList.isNotEmpty()) {
+                            continue
+                        }
                         list.add(
                             GroupDto(
                                 id = gId,
@@ -1764,6 +1768,10 @@ object ConnectoApiClient {
                             item.optBoolean("is_creator", false) ||
                             gAdmin.lowercase().removePrefix("@") == myUser ||
                             item.optString("owner_id") == currentUserId
+                        val isMember = isCreated || (myUser.isNotBlank() && mList.any { it.trim().lowercase().removePrefix("@") == myUser })
+                        if (myUser.isNotBlank() && !isMember && mList.isNotEmpty()) {
+                            continue
+                        }
                         list.add(
                             GroupDto(
                                 id = gId,
@@ -1834,13 +1842,18 @@ object ConnectoApiClient {
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
         try {
             val cleanId = groupId.trim()
-            val response = executeRequest("/api/groups/$cleanId", "DELETE", null, sessionToken)
+            val myUser = (currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val delBody = JSONObject().apply {
+                put("username", myUser)
+                put("admin", myUser)
+            }.toString()
+            val response = executeRequest("/api/groups/$cleanId", "DELETE", delBody, sessionToken)
             if (response.isSuccess) {
                 val raw = response.getOrThrow()
                 Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
             } else {
                 // Also attempt POST /api/groups/$cleanId/delete fallback
-                val fbResponse = executeRequest("/api/groups/$cleanId/delete", "POST", "{}", sessionToken)
+                val fbResponse = executeRequest("/api/groups/$cleanId/delete", "POST", delBody, sessionToken)
                 if (fbResponse.isSuccess) {
                     val raw = fbResponse.getOrThrow()
                     Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
@@ -1858,13 +1871,18 @@ object ConnectoApiClient {
     ): Result<JSONObject> = withContext(Dispatchers.IO) {
         try {
             val cleanId = groupId.trim()
-            val response = executeRequest("/api/groups/$cleanId/leave", "POST", "{}", sessionToken)
+            val myUser = (currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val leaveBody = JSONObject().apply {
+                put("username", myUser)
+                put("member", myUser)
+            }.toString()
+            val response = executeRequest("/api/groups/$cleanId/leave", "POST", leaveBody, sessionToken)
             if (response.isSuccess) {
                 val raw = response.getOrThrow()
                 Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
             } else {
                 // Fallback route POST /api/groups/$cleanId/members/leave
-                val fbResponse = executeRequest("/api/groups/$cleanId/members/leave", "POST", "{}", sessionToken)
+                val fbResponse = executeRequest("/api/groups/$cleanId/members/leave", "POST", leaveBody, sessionToken)
                 if (fbResponse.isSuccess) {
                     val raw = fbResponse.getOrThrow()
                     Result.success(if (raw.isNotBlank()) JSONObject(raw) else JSONObject().put("status", "ok"))
@@ -3675,6 +3693,7 @@ object ConnectoApiClient {
     suspend fun inviteToVoiceCall(
         targetUser: String,
         roomId: String,
+        callerAvatar: String? = null,
         token: String? = null
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
@@ -3682,6 +3701,7 @@ object ConnectoApiClient {
                 put("caller_id", currentUserId ?: "")
                 put("caller_username", currentUsername ?: "")
                 put("caller_name", currentUserDisplayName ?: currentUsername ?: "")
+                put("caller_avatar", callerAvatar ?: currentUserAvatar ?: "")
                 put("target_user", targetUser)
                 put("room_id", roomId)
             }
@@ -3771,8 +3791,24 @@ object ConnectoApiClient {
             )
             if (response.isSuccess) {
                 val obj = JSONObject(response.getOrThrow())
-                if (obj.optBoolean("has_pending", false) || obj.optString("room_id").isNotBlank()) {
-                    Result.success(obj)
+                val callObj = obj.optJSONObject("call")
+                val hasPending = obj.optBoolean("has_pending", false) ||
+                        obj.optString("room_id").isNotBlank() ||
+                        obj.optString("call_id").isNotBlank() ||
+                        (callObj != null && (callObj.optString("room_id").isNotBlank() || callObj.optString("call_id").isNotBlank()))
+                if (hasPending) {
+                    val merged = JSONObject(obj.toString())
+                    if (callObj != null) {
+                        val keys = callObj.keys()
+                        while (keys.hasNext()) {
+                            val k = keys.next()
+                            if (!merged.has(k) || merged.optString(k).isBlank()) {
+                                merged.put(k, callObj.get(k))
+                            }
+                        }
+                    }
+                    merged.put("has_pending", true)
+                    Result.success(merged)
                 } else {
                     Result.success(null)
                 }
@@ -4346,7 +4382,8 @@ object ConnectoApiClient {
                     setRequestProperty("User-Agent", USER_AGENT)
                     setRequestProperty("Accept", "application/json")
                     setRequestProperty("Content-Type", "application/json")
-                    if (ConnectoNetworkConfig.activeServerMode == "cloud_server" || fullUrl.contains("connecto.fun")) {
+                    // Let Cloudflare Gateway route to live origin with automatic failover
+                    if (ConnectoNetworkConfig.activeServerMode == "cloud_only") {
                         setRequestProperty("X-Force-Cloud", "1")
                     }
                     if (!activeToken.isNullOrEmpty()) {

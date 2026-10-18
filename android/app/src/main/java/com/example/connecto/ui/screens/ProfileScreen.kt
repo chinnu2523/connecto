@@ -1,8 +1,10 @@
 package com.example.connecto.ui.screens
 
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -248,6 +250,11 @@ enum class ProfileSubPage(
     val subtitle: String,
     val icon: ImageVector
 ) {
+    SECURITY(
+        title = "Security & Privacy",
+        subtitle = "Two-Factor authentication, biometric app lock, screen privacy & stealth mode",
+        icon = Icons.Default.Shield
+    ),
     PRESENCE_STEALTH(
         title = "Presence & Stealth Mode",
         subtitle = "Control how others see your online status",
@@ -285,7 +292,7 @@ enum class ProfileSubPage(
     ),
     HELP_SUPPORT(
         title = "Help & Support",
-        subtitle = "Frequently asked questions, live edge latency & customer support",
+        subtitle = "Frequently asked questions & customer support",
         icon = Icons.AutoMirrored.Filled.Help
     )
 }
@@ -314,6 +321,12 @@ fun ProfileScreen(
     val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
     val isRecordingActive by com.example.connecto.security.ScreenSecurityManager.isScreenRecordingActive.collectAsState()
     val isCastingActive by com.example.connecto.security.ScreenSecurityManager.isCastingActive.collectAsState()
+
+    // Admin detection
+    val isCurrentUserAdmin by ConnectoApiClient.currentUserIsAdminState.collectAsState()
+    val isUserAdmin = isCurrentUserAdmin ||
+        username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "connecto_admin", "admin", "vance", "madara", "viki") ||
+        username.trim().lowercase().endsWith("_admin")
 
     // ================= USER PROFILE STATE =================
     var displayNameInput by remember(username) {
@@ -426,6 +439,7 @@ fun ProfileScreen(
     }
 
     // User Groups Management State in Profile Tab
+    val dbHelper = remember { com.example.connecto.data.ConnectoDatabaseHelper(context) }
     val profileGroupsList = remember { mutableStateListOf<FriendItem>() }
     var isLoadingProfileGroups by remember { mutableStateOf(false) }
     var selectedGroupForProfileDialog by remember { mutableStateOf<FriendItem?>(null) }
@@ -433,6 +447,30 @@ fun ProfileScreen(
     var isDeletingProfileGroup by remember { mutableStateOf(false) }
     var groupToConfirmLeave by remember { mutableStateOf<FriendItem?>(null) }
     var isLeavingProfileGroup by remember { mutableStateOf(false) }
+
+    // Listen for real-time group removals from Chat Screen or background
+    androidx.compose.runtime.DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, intent: Intent?) {
+                val gid = intent?.getStringExtra("group_id") ?: return
+                profileGroupsList.removeAll { it.id == gid }
+                if (groupToConfirmDelete?.id == gid) groupToConfirmDelete = null
+                if (groupToConfirmLeave?.id == gid) groupToConfirmLeave = null
+            }
+        }
+        val filter = IntentFilter("com.example.connecto.ACTION_GROUP_REMOVED")
+        try {
+            androidx.core.content.ContextCompat.registerReceiver(
+                context,
+                receiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (_: Exception) {}
+        onDispose {
+            try { context.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+    }
 
     // Function to reload groups for profile tab
     fun reloadProfileGroups() {
@@ -445,9 +483,15 @@ fun ProfileScreen(
                     val myUsernameLower = username.trim().lowercase().removePrefix("@")
                     val validGroups = serverGroups.filter { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
+                        val isMember = g.isCreatedByMe || g.members.any { it.trim().lowercase().removePrefix("@") == myUsernameLower }
                         if (count <= 0) {
                             coroutineScope.launch {
                                 try { ConnectoApiClient.deleteGroup(g.id) } catch (_: Exception) {}
+                            }
+                            false
+                        } else if (!isMember) {
+                            coroutineScope.launch(Dispatchers.IO) {
+                                try { dbHelper.deleteCachedGroup(g.id) } catch (_: Exception) {}
                             }
                             false
                         } else {
@@ -479,7 +523,13 @@ fun ProfileScreen(
                         )
                     }
                     val gIds = mappedGroups.map { it.id }.toSet()
+                    val removed = profileGroupsList.filter { it.id !in gIds }
                     profileGroupsList.removeAll { it.id !in gIds }
+                    coroutineScope.launch(Dispatchers.IO) {
+                        for (rem in removed) {
+                            try { dbHelper.deleteCachedGroup(rem.id) } catch (_: Exception) {}
+                        }
+                    }
                     for (item in mappedGroups) {
                         val idx = profileGroupsList.indexOfFirst { it.id == item.id }
                         if (idx == -1) profileGroupsList.add(item) else profileGroupsList[idx] = item
@@ -556,6 +606,7 @@ fun ProfileScreen(
 
     // Active dedicated sub-page (null = main profile menu, non-null = dedicated sub-screen)
     var activeSubPage by rememberSaveable { mutableStateOf<ProfileSubPage?>(null) }
+    var previousSubPage by rememberSaveable { mutableStateOf<ProfileSubPage?>(null) }
 
     // Notification settings states
     var hideNotificationContent by remember {
@@ -867,7 +918,12 @@ fun ProfileScreen(
     val userInitial = if (username.isNotBlank()) username.first().toString().uppercase() else "C"
 
     BackHandler(enabled = activeSubPage != null) {
-        activeSubPage = null
+        if (previousSubPage != null) {
+            activeSubPage = previousSubPage
+            previousSubPage = null
+        } else {
+            activeSubPage = null
+        }
     }
 
     val themeColors = ConnectoTheme.colors
@@ -1571,55 +1627,29 @@ fun ProfileScreen(
                         }
                     }
 
-                                // ================= 2. PRESENCE & STEALTH MODE BUTTON =================
-                item(key = "menu_presence_stealth") {
-                    ProfileNavigationMenuButton(
-                        title = "Presence & Stealth Mode",
-                        subtitle = "Control how others see your online status",
-                        icon = Icons.Default.VisibilityOff,
-                        badgeText = if (stealthModeEnabled) "STEALTH" else "ONLINE",
-                        badgeColor = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.PRESENCE_STEALTH }
-                    )
-                }
-
-                // ================= 3. PERSONAL INFORMATION BUTTON =================
+                // ================= 1. PERSONAL INFORMATION BUTTON (FIRST) =================
                 item(key = "menu_personal_details") {
                     ProfileNavigationMenuButton(
                         title = "Personal Information",
-                        subtitle = "Manage identity, personal info & contact details",
                         icon = Icons.Default.Person,
-                        badgeText = "DETAILS",
-                        badgeColor = MaterialTheme.colorScheme.primary,
                         hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.PERSONAL_INFO }
+                        onClick = {
+                            previousSubPage = null
+                            activeSubPage = ProfileSubPage.PERSONAL_INFO
+                        }
                     )
                 }
 
-                // ================= 4. TWO-FACTOR AUTH & PASSWORD SECURITY BUTTON =================
-                item(key = "menu_two_factor_auth") {
+                // ================= 2. SECURITY BUTTON (SECOND: TWO-FACTOR, BIOMETRICS & SCREEN PRIVACY, PRESENCE & STEALTH) =================
+                item(key = "menu_security_hub") {
                     ProfileNavigationMenuButton(
-                        title = "Two-Factor & Security",
-                        subtitle = "Email 2FA, logged-in sessions & device security",
+                        title = "Security",
                         icon = Icons.Default.Shield,
-                        badgeText = if (twoFactorEnabled) "ENABLED" else "DISABLED",
-                        badgeColor = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error,
                         hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.TWO_FACTOR_SECURITY }
-                    )
-                }
-
-                // ================= 5. BIOMETRIC & APP LOCK BUTTON =================
-                item(key = "menu_biometric_vault") {
-                    ProfileNavigationMenuButton(
-                        title = "Biometric & Screen Privacy",
-                        subtitle = "Biometrics, App Lock & Screen Share Black Screen",
-                        icon = Icons.Default.Shield,
-                        badgeText = if (isScreenSecurityActive && isAppLockEnabled) "MAX SECURED" else if (isScreenSecurityActive) "BLACKSCREEN ON" else if (isAppLockEnabled) "LOCKED" else "OFF",
-                        badgeColor = if (isScreenSecurityActive || isAppLockEnabled) OnlineGreen else TextDisabledColor,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.BIOMETRIC_LOCK }
+                        onClick = {
+                            previousSubPage = null
+                            activeSubPage = ProfileSubPage.SECURITY
+                        }
                     )
                 }
 
@@ -1627,25 +1657,9 @@ fun ProfileScreen(
                 item(key = "menu_appearance_theme") {
                     ProfileNavigationMenuButton(
                         title = "Appearance & Display Theme",
-                        subtitle = "Personalize your visual experience across the entire app",
                         icon = Icons.Default.Tune,
-                        badgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "LIQUID GLASS (${(glassTransparency * 100).toInt()}%)" else currentThemeMode.displayName.uppercase(),
-                        badgeColor = MaterialTheme.colorScheme.primary,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
-                    )
-                }
-
-                // ================= 7. GROUPS & COMMUNITIES BUTTON =================
-                item(key = "menu_groups_management") {
-                    ProfileNavigationMenuButton(
-                        title = "Groups & Communities",
-                        subtitle = "Manage created & joined groups",
-                        icon = Icons.Default.Groups,
-                        badgeText = if (isLoadingProfileGroups) "LOADING" else "${profileGroupsList.size} GROUPS",
-                        badgeColor = MaterialTheme.colorScheme.primary,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.GROUPS_COMMUNITIES }
                     )
                 }
 
@@ -1653,10 +1667,7 @@ fun ProfileScreen(
                 item(key = "menu_notifications") {
                     ProfileNavigationMenuButton(
                         title = "Notification",
-                        subtitle = "Trending sounds, alert chimes & message privacy",
                         icon = Icons.Default.Notifications,
-                        badgeText = if (hideNotificationContent) "CONTENT HIDDEN" else selectedNotificationSoundName.uppercase(),
-                        badgeColor = if (hideNotificationContent) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.NOTIFICATIONS }
                     )
@@ -1666,10 +1677,7 @@ fun ProfileScreen(
                 item(key = "menu_help_support") {
                     ProfileNavigationMenuButton(
                         title = "Help & Support",
-                        subtitle = "FAQs, connectivity diagnostics, bug reports & developer contact",
                         icon = Icons.AutoMirrored.Filled.Help,
-                        badgeText = "24/7 ASSIST",
-                        badgeColor = Color(0xFF10B981),
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
                     )
@@ -1724,7 +1732,14 @@ fun ProfileScreen(
                         subtitle = currentSubPage.subtitle,
                         icon = currentSubPage.icon,
                         hasCoverPhoto = hasCoverPhoto,
-                        onBack = { activeSubPage = null }
+                        onBack = {
+                            if (previousSubPage != null) {
+                                activeSubPage = previousSubPage
+                                previousSubPage = null
+                            } else {
+                                activeSubPage = null
+                            }
+                        }
                     )
 
                     val subpageListState = androidx.compose.foundation.lazy.rememberLazyListState()
@@ -1772,6 +1787,15 @@ fun ProfileScreen(
                         // Sub-Page Hero Summary Banner
                         item(key = "subpage_hero_summary_${currentSubPage.name}") {
                             when (currentSubPage) {
+                                ProfileSubPage.SECURITY -> ProfileSubPageHeroCard(
+                                    categoryLabel = "Account & Device Protection",
+                                    title = "Security & Privacy",
+                                    description = "Manage Two-Factor Authentication, Biometric & Screen Privacy, and Presence & Stealth Mode.",
+                                    icon = Icons.Default.Shield,
+                                    statusBadgeText = if (twoFactorEnabled && isScreenSecurityActive) "MAX PROTECTED" else if (twoFactorEnabled || isScreenSecurityActive) "PROTECTED" else "STANDARD",
+                                    statusBadgeActive = twoFactorEnabled || isScreenSecurityActive,
+                                    hasCoverPhoto = hasCoverPhoto
+                                )
                                 ProfileSubPage.PRESENCE_STEALTH -> ProfileSubPageHeroCard(
                                     categoryLabel = "Privacy & Visibility",
                                     title = "Presence & Stealth",
@@ -1838,7 +1862,7 @@ fun ProfileScreen(
                                 ProfileSubPage.HELP_SUPPORT -> ProfileSubPageHeroCard(
                                     categoryLabel = "Customer Care & Knowledgebase",
                                     title = "Help & Support Center",
-                                    description = "Get answers to frequently asked questions, test live Cloudflare Edge latency, submit bug reports, or contact Connecto engineers.",
+                                    description = if (isUserAdmin) "Get answers to frequently asked questions, test live Cloudflare Edge latency, submit bug reports, or contact Connecto engineers." else "Get answers to frequently asked questions, submit bug reports, or contact Connecto engineers.",
                                     icon = Icons.AutoMirrored.Filled.Help,
                                     statusBadgeText = "ONLINE HELP",
                                     statusBadgeActive = true,
@@ -1848,6 +1872,173 @@ fun ProfileScreen(
                         }
 
                         when (currentSubPage) {
+                            ProfileSubPage.SECURITY -> {
+                                // 1. Shield Overview Card
+                                item(key = "sub_security_overview_card") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                                            )
+                                            .padding(18.dp)
+                                    ) {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(44.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(OnlineGreen.copy(alpha = 0.14f))
+                                                        .border(1.dp, OnlineGreen.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Shield,
+                                                        contentDescription = null,
+                                                        tint = OnlineGreen,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(14.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            text = "Security Shield Status",
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(6.dp))
+                                                                .background(if (twoFactorEnabled && isScreenSecurityActive) OnlineGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = if (twoFactorEnabled && isScreenSecurityActive) "OPTIMAL" else "ACTIVE",
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (twoFactorEnabled && isScreenSecurityActive) OnlineGreen else MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
+                                                    }
+                                                    Spacer(modifier = Modifier.height(2.dp))
+                                                    Text(
+                                                        text = "All account, biometric, and stealth controls are centralized below.",
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.height(14.dp))
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+                                            Spacer(modifier = Modifier.height(14.dp))
+
+                                            // 3 Shield metrics row
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                                    Text(text = "2FA Email", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = if (twoFactorEnabled) "ACTIVE" else "OFF",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                                Box(modifier = Modifier.width(1.dp).height(28.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)))
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                                    Text(text = "Screen Privacy", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = if (isScreenSecurityActive) "SECURED" else "OFF",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isScreenSecurityActive) OnlineGreen else TextDisabledColor
+                                                    )
+                                                }
+                                                Box(modifier = Modifier.width(1.dp).height(28.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)))
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                                                    Text(text = "Presence", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                                    Spacer(modifier = Modifier.height(4.dp))
+                                                    Text(
+                                                        text = if (stealthModeEnabled) "STEALTH" else "ONLINE",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 2. Section Header: SECURITY & PRIVACY CONTROLS
+                                item(key = "sub_sec_controls_header") {
+                                    Text(
+                                        text = "SECURITY & PRIVACY CONTROLS",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        letterSpacing = 1.sp,
+                                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                                    )
+                                }
+
+                                // 3. Two-Factor & Security Button
+                                item(key = "sub_sec_button_two_factor") {
+                                    ProfileNavigationMenuButton(
+                                        title = "Two-Factor & Security",
+                                        icon = Icons.Default.Shield,
+                                        hasCoverPhoto = hasCoverPhoto,
+                                        onClick = {
+                                            previousSubPage = ProfileSubPage.SECURITY
+                                            activeSubPage = ProfileSubPage.TWO_FACTOR_SECURITY
+                                        }
+                                    )
+                                }
+
+                                // 4. Biometric & Screen Privacy Button
+                                item(key = "sub_sec_button_biometric") {
+                                    ProfileNavigationMenuButton(
+                                        title = "Biometric & Screen Privacy",
+                                        icon = Icons.Default.Shield,
+                                        hasCoverPhoto = hasCoverPhoto,
+                                        onClick = {
+                                            previousSubPage = ProfileSubPage.SECURITY
+                                            activeSubPage = ProfileSubPage.BIOMETRIC_LOCK
+                                        }
+                                    )
+                                }
+
+                                // 5. Presence & Stealth Mode Button
+                                item(key = "sub_sec_button_stealth") {
+                                    ProfileNavigationMenuButton(
+                                        title = "Presence & Stealth Mode",
+                                        icon = Icons.Default.VisibilityOff,
+                                        hasCoverPhoto = hasCoverPhoto,
+                                        onClick = {
+                                            previousSubPage = ProfileSubPage.SECURITY
+                                            activeSubPage = ProfileSubPage.PRESENCE_STEALTH
+                                        }
+                                    )
+                                }
+                            }
                             ProfileSubPage.PRESENCE_STEALTH -> {
                                 item(key = "sub_presence_stealth_card") {
                                     Box(
@@ -4138,67 +4329,69 @@ fun ProfileScreen(
                                 }
                             }
 
-                            // 2. Live Edge Latency Diagnostic Card
-                            item(key = "help_edge_latency_card") {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(18.dp))
-                                        .background(
-                                            if (hasCoverPhoto) Color.Black.copy(alpha = 0.38f)
-                                            else MaterialTheme.colorScheme.surface
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
-                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                                            RoundedCornerShape(18.dp)
-                                        )
-                                        .padding(16.dp)
-                                ) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(8.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFF10B981))
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "Cloudflare Edge Diagnostic",
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                            Button(
-                                                onClick = { runEdgePingTest() },
-                                                enabled = !isEdgePingTesting,
-                                                shape = RoundedCornerShape(10.dp),
-                                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                            // 2. Live Edge Latency Diagnostic Card (Admin only)
+                            if (isUserAdmin) {
+                                item(key = "help_edge_latency_card") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(18.dp))
+                                            .background(
+                                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.38f)
+                                                else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                                                RoundedCornerShape(18.dp)
+                                            )
+                                            .padding(16.dp)
+                                    ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
-                                                Text(
-                                                    text = if (isEdgePingTesting) "Testing..." else "Test Latency",
-                                                    fontSize = 11.5.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(8.dp)
+                                                            .clip(CircleShape)
+                                                            .background(Color(0xFF10B981))
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "Cloudflare Edge Diagnostic",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                                Button(
+                                                    onClick = { runEdgePingTest() },
+                                                    enabled = !isEdgePingTesting,
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                                ) {
+                                                    Text(
+                                                        text = if (isEdgePingTesting) "Testing..." else "Test Latency",
+                                                        fontSize = 11.5.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
                                             }
-                                        }
 
-                                        Text(
-                                            text = edgePingResult ?: "Tap 'Test Latency' to measure roundtrip ping to the closest Cloudflare Edge data center.",
-                                            fontSize = 12.5.sp,
-                                            color = if (edgePingResult?.contains("Error") == true) MaterialTheme.colorScheme.error
-                                                else if (edgePingResult != null) Color(0xFF10B981)
-                                                else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                            Text(
+                                                text = edgePingResult ?: "Tap 'Test Latency' to measure roundtrip ping to the closest Cloudflare Edge data center.",
+                                                fontSize = 12.5.sp,
+                                                color = if (edgePingResult?.contains("Error") == true) MaterialTheme.colorScheme.error
+                                                    else if (edgePingResult != null) Color(0xFF10B981)
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -4420,37 +4613,7 @@ fun ProfileScreen(
                                 }
                             }
                         }
-                        }
-
-                        // Bottom Return to Profile Overview Action
-                        item(key = "subpage_bottom_return") {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(48.dp)
-                                    .clickable { activeSubPage = null }
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Back to Profile Overview",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-                        }
+                    }
                     }
                 }
             }
@@ -4599,12 +4762,32 @@ fun ProfileScreen(
                     onClick = {
                         coroutineScope.launch {
                             isDeletingProfileGroup = true
+                            val gId = targetGroup.id
                             try {
-                                val res = ConnectoApiClient.deleteGroup(targetGroup.id)
+                                val res = ConnectoApiClient.deleteGroup(gId)
                                 if (res.isSuccess) {
                                     Toast.makeText(context, "Group #${targetGroup.name} deleted", Toast.LENGTH_SHORT).show()
-                                    profileGroupsList.removeAll { it.id == targetGroup.id }
+                                    profileGroupsList.removeAll { it.id == gId }
                                     groupToConfirmDelete = null
+                                    withContext(Dispatchers.IO) {
+                                        try { dbHelper.deleteCachedGroup(gId) } catch (_: Exception) {}
+                                        try {
+                                            val readPrefs = context.getSharedPreferences("connecto_read_receipts", Context.MODE_PRIVATE)
+                                            readPrefs.edit()
+                                                .remove("last_msg_$gId")
+                                                .remove("last_time_$gId")
+                                                .remove("last_timestamp_$gId")
+                                                .remove("unread_$gId")
+                                                .apply()
+                                        } catch (_: Exception) {}
+                                    }
+                                    try {
+                                        val broadcastIntent = Intent("com.example.connecto.ACTION_GROUP_REMOVED").apply {
+                                            putExtra("group_id", gId)
+                                            `package` = context.packageName
+                                        }
+                                        context.sendBroadcast(broadcastIntent)
+                                    } catch (_: Exception) {}
                                 } else {
                                     Toast.makeText(context, "Delete failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
                                 }
@@ -4663,12 +4846,32 @@ fun ProfileScreen(
                     onClick = {
                         coroutineScope.launch {
                             isLeavingProfileGroup = true
+                            val gId = targetGroup.id
                             try {
-                                val res = ConnectoApiClient.leaveGroup(targetGroup.id)
+                                val res = ConnectoApiClient.leaveGroup(gId)
                                 if (res.isSuccess) {
                                     Toast.makeText(context, "You left #${targetGroup.name}", Toast.LENGTH_SHORT).show()
-                                    profileGroupsList.removeAll { it.id == targetGroup.id }
+                                    profileGroupsList.removeAll { it.id == gId }
                                     groupToConfirmLeave = null
+                                    withContext(Dispatchers.IO) {
+                                        try { dbHelper.deleteCachedGroup(gId) } catch (_: Exception) {}
+                                        try {
+                                            val readPrefs = context.getSharedPreferences("connecto_read_receipts", Context.MODE_PRIVATE)
+                                            readPrefs.edit()
+                                                .remove("last_msg_$gId")
+                                                .remove("last_time_$gId")
+                                                .remove("last_timestamp_$gId")
+                                                .remove("unread_$gId")
+                                                .apply()
+                                        } catch (_: Exception) {}
+                                    }
+                                    try {
+                                        val broadcastIntent = Intent("com.example.connecto.ACTION_GROUP_REMOVED").apply {
+                                            putExtra("group_id", gId)
+                                            `package` = context.packageName
+                                        }
+                                        context.sendBroadcast(broadcastIntent)
+                                    } catch (_: Exception) {}
                                 } else {
                                     Toast.makeText(context, "Failed to exit: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
                                 }
@@ -6387,10 +6590,7 @@ private fun PersonalDetailRow(
 @Composable
 private fun ProfileNavigationMenuButton(
     title: String,
-    subtitle: String,
     icon: ImageVector,
-    badgeText: String? = null,
-    badgeColor: Color? = null,
     hasCoverPhoto: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -6414,7 +6614,7 @@ private fun ProfileNavigationMenuButton(
                         else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
                 )
             )
-            .padding(horizontal = 16.dp, vertical = 15.dp)
+            .padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -6444,53 +6644,16 @@ private fun ProfileNavigationMenuButton(
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = title,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        lineHeight = 20.sp,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (badgeText != null) {
-                        val bColor = if (isLiquidGlass) Color.White else (badgeColor ?: MaterialTheme.colorScheme.primary)
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(bColor.copy(alpha = 0.15f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = badgeText,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = bColor,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
-                    }
-                }
-                Text(
-                    text = subtitle,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 16.sp,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                )
-            }
+            Text(
+                text = title,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+                lineHeight = 20.sp,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
             Spacer(modifier = Modifier.width(10.dp))
             Box(
                 modifier = Modifier

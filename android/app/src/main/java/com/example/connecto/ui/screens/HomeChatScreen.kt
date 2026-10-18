@@ -440,7 +440,12 @@ fun HomeChatScreen(
 
                     val cachedFriends = dbHelper.getCachedFriends()
 
-                    val groupConvos = groupsList.filter { (it.memberCount > 0 || it.members.isNotEmpty()) }.map { g ->
+                    val myU = currentUsername.trim().lowercase().removePrefix("@")
+                    val groupConvos = groupsList.filter { g ->
+                        val count = if (g.memberCount > 0) g.memberCount else g.members.size
+                        val isMember = g.isCreatedByMe || g.members.any { it.trim().lowercase().removePrefix("@") == myU }
+                        count > 0 && isMember
+                    }.map { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
                         RecentConversationItem(
                             id = g.id,

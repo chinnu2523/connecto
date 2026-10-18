@@ -463,15 +463,18 @@ class ConnectionManager:
         callee_identifier: str,
         room_id: str
     ) -> str:
-        callee_id = await self.async_resolve_user_id(callee_identifier)
+        clean_ident = str(callee_identifier).strip().lower().removeprefix("@")
+        callee_id = self.username_to_id.get(clean_ident, callee_identifier)
+        clean_av = caller_avatar if (caller_avatar and not str(caller_avatar).startswith("data:") and len(str(caller_avatar)) < 2000) else ""
+
         self.pending_calls[room_id] = {
             "room_id": room_id,
             "caller_id": caller_id,
             "caller_username": caller_username,
             "caller_name": caller_name,
-            "caller_avatar": caller_avatar,
+            "caller_avatar": clean_av,
             "callee_id": callee_id,
-            "callee_identifier": callee_identifier,
+            "callee_identifier": clean_ident,
             "status": "ringing"
         }
         if room_id not in self.voice_rooms:
@@ -487,16 +490,19 @@ class ConnectionManager:
             "caller_username": caller_username,
             "caller_name": caller_name,
             "caller": caller_username,
-            "caller_avatar": caller_avatar,
-            "avatar": caller_avatar
+            "caller_avatar": clean_av,
+            "avatar": clean_av
         }
         await self.send_personal_event(callee_id, incoming_event)
+        if clean_ident != callee_id:
+            await self.send_personal_event(clean_ident, incoming_event)
+
         try:
             from app.db.session import AsyncSessionLocal
             from app.db.models.user import User
-            from sqlalchemy import select
+            from sqlalchemy import select, or_, func
             async with AsyncSessionLocal() as db:
-                stmt = select(User).where((User.id == callee_id) | (User.username == callee_identifier))
+                stmt = select(User).where(or_(User.id == callee_id, func.lower(User.username) == clean_ident))
                 callee_user = (await db.execute(stmt)).scalar_one_or_none()
                 if callee_user and callee_user.fcm_token:
                     from app.core.push import send_push_notification
@@ -511,8 +517,8 @@ class ConnectionManager:
                             "caller_id": caller_id,
                             "caller_username": caller_username,
                             "caller_name": caller_name,
-                            "caller_avatar": caller_avatar or "",
-                            "avatar": caller_avatar or "",
+                            "caller_avatar": clean_av,
+                            "avatar": clean_av,
                             "sender": caller_name,
                             "sender_username": caller_username,
                             "title": "Incoming Call",
@@ -593,13 +599,15 @@ class ConnectionManager:
             all_participants.add(user_id)
 
         effective_room = room_id or "call"
+        end_evt = {
+            "type": "call_ended",
+            "action": "call:ended",
+            "room_id": effective_room,
+            "call_id": effective_room,
+            "ended_by": user_id
+        }
         for p_id in all_participants:
-            await self.send_personal_event(p_id, {
-                "type": "call_ended",
-                "action": "call:ended",
-                "room_id": effective_room,
-                "call_id": effective_room,
-                "ended_by": user_id
-            })
+            await self.send_personal_event(p_id, end_evt)
+        await self.broadcast_to_channel(f"voice_room:{effective_room}", end_evt)
 
 ws_manager = ConnectionManager()

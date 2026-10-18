@@ -117,11 +117,23 @@ def send_push_notification_sync(
                 elif clean_av.startswith("http://") or clean_av.startswith("https://"):
                     avatar_img = clean_av
 
-        merged_data = {k: str(v) for k, v in (data or {}).items()}
+        # Sanitize data to strictly adhere to FCM 4KB limit and reject base64 data URIs
+        merged_data = {}
+        if data:
+            for k, v in data.items():
+                if v is None:
+                    continue
+                v_str = str(v)
+                if ("avatar" in k.lower() or "image" in k.lower()) and (v_str.startswith("data:") or len(v_str) > 500):
+                    continue
+                if len(v_str) > 512:
+                    v_str = v_str[:512]
+                merged_data[k] = v_str
+
         merged_data["type"] = notification_type
-        merged_data["title"] = title
-        merged_data["body"] = body
-        if avatar_img:
+        merged_data["title"] = title[:128]
+        merged_data["body"] = body[:256]
+        if avatar_img and not avatar_img.startswith("data:"):
             merged_data["sender_avatar"] = avatar_img
             merged_data["avatar"] = avatar_img
         if "extra_notification_action" not in merged_data:
@@ -156,11 +168,6 @@ def send_push_notification_sync(
             notification=android_notification,
         )
 
-        # Dual payload (Notification + Data):
-        # 1. When app is swiped away from Recents / process closed, Google Play Services
-        #    immediately renders the heads-up notification in the system shade (just like WhatsApp).
-        # 2. When user taps the notification or app is in foreground, rich data payload
-        #    is delivered directly to the app client and SQLite cache.
         message = messaging.Message(
             token=fcm_token,
             notification=messaging.Notification(

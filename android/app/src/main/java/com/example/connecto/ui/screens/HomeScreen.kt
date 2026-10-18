@@ -103,7 +103,8 @@ data class GameFriend(
     val name: String,
     val username: String,
     val isOnline: Boolean,
-    val isPending: Boolean = false
+    val isPending: Boolean = false,
+    val avatar: String? = null
 )
 
 data class ChannelMessage(
@@ -137,18 +138,18 @@ fun HomeScreen(
     var activeParticipantCount by remember { mutableStateOf(2) }
 
     val context = LocalContext.current
-    var pendingFriendCall by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var pendingFriendCall by remember { mutableStateOf<Triple<String, String, String?>?>(null) }
     var pendingGroupCall by remember { mutableStateOf<String?>(null) }
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             VoiceCallManager.restartAudioHardwareIfConnected()
-            pendingFriendCall?.let { (user, name) ->
+            pendingFriendCall?.let { (user, name, avatar) ->
                 isInActiveCall = true
                 activeCallTitle = "1:1 Call with $name"
                 activeParticipantCount = 2
-                VoiceCallManager.start1on1Call(user, name)
+                VoiceCallManager.start1on1Call(user, name, avatar)
             }
             pendingGroupCall?.let { title ->
                 isInActiveCall = true
@@ -920,9 +921,9 @@ fun HomeScreen(
                                                         isInActiveCall = true
                                                         activeCallTitle = "1:1 Call with ${friend.name}"
                                                         activeParticipantCount = 2
-                                                        VoiceCallManager.start1on1Call(friendUser, friend.name)
+                                                        VoiceCallManager.start1on1Call(friendUser, friend.name, friend.avatar)
                                                     } else {
-                                                        pendingFriendCall = Pair(friendUser, friend.name)
+                                                        pendingFriendCall = Triple(friendUser, friend.name, friend.avatar)
                                                         micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                                     }
                                                 }
