@@ -81,7 +81,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease && dbRelease.version_code >= 81) {
+      if (dbRelease && dbRelease.version_code >= 82) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -103,14 +103,16 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
-            "Voice Call Profile Photo Accuracy: Calling screen and full-screen call UI accurately resolve and render friend profile photos and display names, eliminating self-avatar fallbacks and Echo self-calls.",
-            "Seamless Call Dismissal (Zero Re-Appearance): Strict state & termination guards on asynchronous WebSocket events prevent dismissed calls from re-appearing on screen.",
-            "Real-Time Voice Isolation Controls: In-call Voice Isolation toggle button ('Isolated') embedded into active call controls for crystal-clear WebRTC communication.",
-            "Smooth Flicker-Free Call History: In-place list synchronization in CallsScreen eliminates list flashing and empty state flickers.",
-            "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents disappearing messages on network sync or edge failover.",
-            "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
-            "Streamlined Profile Navigation: Clean single-row layout without redundant metadata indicators.",
-            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, and diagnostics."
+            "Direct Message Authentication Enforcement: Direct messaging endpoints (/api/dms/{target}/messages) strictly validate JWT bearer tokens and reject unauthenticated queries and forged headers.",
+            "Broken Object Level Authorization (BOLA/IDOR) Fix: Call history (/api/calls/history) and call logs (/api/voice/calls/logs) require authenticated user context and restrict log viewing exclusively to call participants.",
+            "Confidential Thread Protection: Message threads (/api/messages/{id}/thread) enforce user authentication, preventing unauthorized thread leakage and anonymous message injection.",
+            "Cryptographic Reaction Identity Binding: Message reactions (/api/messages/{id}/react) bind strictly to the verified authenticated caller, eliminating reaction impersonation.",
+            "Inbound SMS Webhook HMAC-SHA256 Signatures: Inbound SMS gateway (/api/webhooks/httpsms) enforces HMAC-SHA256 cryptographic signature validation and API secret headers, rejecting tampered payloads.",
+            "WebSocket Malformed Payload Resilience (DoS Prevention): WebSocket connection loop validates incoming frame dictionaries and discards non-dict payloads, eliminating unhandled TypeError disconnect crashes.",
+            "Voice Room Authentication & Capacity Enforcement: Voice rooms (/api/voice/rooms/{name}/join) enforce bearer token authentication and reject joins exceeding MAX_PARTICIPANTS_PER_ROOM (30).",
+            "Call Log Forgery Prevention: Call log creation and deletion enforce authenticated participant checks and prevent arbitrary log forgery.",
+            "Channel Pinned Messages Disclosure Fix: Channel pins (/api/channels/{id}/pins) require channel access validation, blocking unauthenticated snooping.",
+            "Strict Type Input Sanitization: Replaced raw unchecked integer casting with defensive parsing across voice room creation and call logging routes, preventing 500 crashes."
           ]
         });
       }
@@ -119,12 +121,12 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.2",
-        version_name: "v4.5.2",
-        version_code: 81,
-        build: 81,
+        version: "4.5.3",
+        version_name: "v4.5.3",
+        version_code: 82,
+        build: 82,
         sha256: "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
-        md5: "7ff59a726b1c82587e86fe5be0e4b80c",
+        md5: "3c8bc9d5b0deedac81a46efbcddea62c",
         filename: "connecto-fun.apk",
         size_bytes: 57767177,
         size_display: "55.1 MB",
@@ -134,22 +136,16 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Voice Call Profile Photo Accuracy: Calling screen and full-screen call UI accurately resolve and render friend profile photos and display names, eliminating self-avatar fallbacks and Echo self-calls.",
-          "Seamless Call Dismissal (Zero Re-Appearance): Strict state & termination guards on asynchronous WebSocket events prevent dismissed calls from re-appearing on screen.",
-          "Real-Time Voice Isolation Controls: In-call Voice Isolation toggle button ('Isolated') embedded into active call controls for crystal-clear WebRTC communication.",
-          "Smooth Flicker-Free Call History: In-place list synchronization in CallsScreen eliminates list flashing and empty state flickers.",
-          "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents disappearing messages on network sync or edge failover.",
-          "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
-          "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata and unused buttons for a clutter-free interface.",
-          "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, hardware inspector, and automated bug diagnostic bundles.",
-          "Admin-Guarded Cloudflare Edge Latency Diagnostics: Restricted live Edge PoP roundtrip ping testing to verified administrators for an uncluttered member experience.",
-          "Instant Friend Profile Inspector: Dedicated modal view with avatar, status, bio, and quick actions directly from chat.",
-          "Resilient WebRTC Mesh Voice Calls: Floating active call overlay with drag controls, improved call state management, and reliable call action handlers.",
-          "Zero-Latency Instant Chat Loading: SQLite local messages & E2E decryption moved completely to background IO threads with 0ms instantaneous UI render on conversation open.",
-          "Edge Fast-Path API Engine: Cloudflare Worker defaults directly to high-speed Edge D1 execution cutting channel message and profile endpoint latency down to ~200ms.",
-          "Instant Notification Delivery (<50ms): In-memory 64-entry LruCache for avatars with strict 400ms remote fetch timeout, guaranteeing heads-up notifications pop up in under 50ms.",
-          "WhatsApp-Style Background Delivery: High-priority heads-up banners, sound, and vibration even after swiping the app away from recent tasks.",
-          "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens."
+          "Direct Message Authentication Enforcement: Direct messaging endpoints (/api/dms/{target}/messages) strictly validate JWT bearer tokens and reject unauthenticated queries and forged headers.",
+          "Broken Object Level Authorization (BOLA/IDOR) Fix: Call history (/api/calls/history) and call logs (/api/voice/calls/logs) require authenticated user context and restrict log viewing exclusively to call participants.",
+          "Confidential Thread Protection: Message threads (/api/messages/{id}/thread) enforce user authentication, preventing unauthorized thread leakage and anonymous message injection.",
+          "Cryptographic Reaction Identity Binding: Message reactions (/api/messages/{id}/react) bind strictly to the verified authenticated caller, eliminating reaction impersonation.",
+          "Inbound SMS Webhook HMAC-SHA256 Signatures: Inbound SMS gateway (/api/webhooks/httpsms) enforces HMAC-SHA256 cryptographic signature validation and API secret headers, rejecting tampered payloads.",
+          "WebSocket Malformed Payload Resilience (DoS Prevention): WebSocket connection loop validates incoming frame dictionaries and discards non-dict payloads, eliminating unhandled TypeError disconnect crashes.",
+          "Voice Room Authentication & Capacity Enforcement: Voice rooms (/api/voice/rooms/{name}/join) enforce bearer token authentication and reject joins exceeding MAX_PARTICIPANTS_PER_ROOM (30).",
+          "Call Log Forgery Prevention: Call log creation and deletion enforce authenticated participant checks and prevent arbitrary log forgery.",
+          "Channel Pinned Messages Disclosure Fix: Channel pins (/api/channels/{id}/pins) require channel access validation, blocking unauthenticated snooping.",
+          "Strict Type Input Sanitization: Replaced raw unchecked integer casting with defensive parsing across voice room creation and call logging routes, preventing 500 crashes."
         ]
       });
     }
@@ -194,18 +190,20 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-v4.5.3.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-v4.5.2.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.2.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.3.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.2");
-          res.headers.set("X-Connecto-Build", "81");
+          res.headers.set("X-Connecto-Version", "v4.5.3");
+          res.headers.set("X-Connecto-Build", "82");
           return res;
         }
 
@@ -218,7 +216,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.5.2"
+                "User-Agent": "Connecto-Cloud-Worker/4.5.3"
               }
             });
             if (upstreamResp.ok) {
@@ -229,8 +227,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.5.2");
-              downloadHeaders.set("X-Connecto-Build", "81");
+              downloadHeaders.set("X-Connecto-Version", "v4.5.3");
+              downloadHeaders.set("X-Connecto-Build", "82");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -245,7 +243,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -5610,12 +5608,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.2",
-      version_name: "v4.5.2",
-      version_code: 81,
-      build: 81,
+      version: "4.5.3",
+      version_name: "v4.5.3",
+      version_code: 82,
+      build: 82,
       sha256: "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
-      md5: "7ff59a726b1c82587e86fe5be0e4b80c",
+      md5: "3c8bc9d5b0deedac81a46efbcddea62c",
       filename: "connecto-fun.apk",
       size_bytes: 57767177,
       size_display: "55.1 MB",
