@@ -873,10 +873,14 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         db.beginTransaction()
         try {
             for (ch in channels) {
+                val cleanName = ch.name.trim().lowercase().removePrefix("#")
+                if (cleanName.isBlank() || cleanName == "none" || cleanName.startsWith("dm-") || cleanName.startsWith("dm_") || ch.type == "dm" || ch.type == "group") {
+                    continue
+                }
                 val cv = ContentValues().apply {
                     put(COL_CH_ID, ch.id)
                     put(COL_CH_NAME, ch.name)
-                    val effectiveType = if (ch.name.startsWith("dm-") || ch.name.startsWith("dm_")) "dm" else ch.type
+                    val effectiveType = if (ch.type.isNotBlank()) ch.type else "text"
                     put(COL_CH_TYPE, effectiveType)
                 }
                 db.insertWithOnConflict(TABLE_CHANNELS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
@@ -890,7 +894,21 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
     fun getChannels(): List<ChannelDto> {
         val db = readableDatabase
         val list = mutableListOf<ChannelDto>()
-        val cursor = db.query(TABLE_CHANNELS, null, null, null, null, null, null)
+        val selection = "$COL_CH_TYPE NOT IN ('dm', 'group') AND $COL_CH_NAME NOT LIKE 'dm-%' AND $COL_CH_NAME NOT LIKE 'dm_%' AND $COL_CH_NAME != 'none'"
+        val orderBy = """
+            CASE lower($COL_CH_NAME)
+                WHEN 'general' THEN 1
+                WHEN 'announcements' THEN 2
+                WHEN 'dev-chat' THEN 3
+                WHEN 'gaming' THEN 4
+                WHEN 'war-room' THEN 5
+                WHEN 'tournaments' THEN 6
+                WHEN 'clips' THEN 7
+                WHEN 'voice-lounge' THEN 8
+                ELSE 99
+            END ASC, $COL_CH_NAME ASC
+        """.trimIndent()
+        val cursor = db.query(TABLE_CHANNELS, null, selection, null, null, null, orderBy)
         cursor.use {
             while (it.moveToNext()) {
                 list.add(

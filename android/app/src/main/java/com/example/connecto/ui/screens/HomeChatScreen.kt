@@ -152,6 +152,21 @@ data class RecentConversationItem(
  * - Recent Activity Timeline
  * - Global Search
  */
+private val DEFAULT_WORKSPACE_CHANNELS = listOf(
+    ChannelDto("general", "general", "text"),
+    ChannelDto("announcements", "announcements", "text"),
+    ChannelDto("dev-chat", "dev-chat", "text"),
+    ChannelDto("gaming", "gaming", "text"),
+    ChannelDto("war-room", "war-room", "text"),
+    ChannelDto("tournaments", "tournaments", "text"),
+    ChannelDto("clips", "clips", "text"),
+    ChannelDto("voice-lounge", "voice-lounge", "voice")
+)
+
+private val CANONICAL_CHANNEL_ORDER = listOf(
+    "general", "announcements", "dev-chat", "gaming", "war-room", "tournaments", "clips", "voice-lounge"
+)
+
 @Composable
 fun HomeChatScreen(
     currentUsername: String,
@@ -185,7 +200,7 @@ fun HomeChatScreen(
     var isFavouritesDialogOpen by remember { mutableStateOf(false) }
 
     var recentConversations by remember { mutableStateOf<List<RecentConversationItem>>(emptyList()) }
-    var channels by remember { mutableStateOf<List<ChannelDto>>(emptyList()) }
+    var channels by remember { mutableStateOf<List<ChannelDto>>(DEFAULT_WORKSPACE_CHANNELS) }
     var friendRequests by remember { mutableStateOf<List<FriendRequestItemDto>>(emptyList()) }
     var recentNotifications by remember { mutableStateOf<List<NotificationDto>>(emptyList()) }
     var isAddFriendOpen by remember { mutableStateOf(false) }
@@ -516,18 +531,18 @@ fun HomeChatScreen(
 
                     val conversations = (groupConvos + friendConvos).take(8)
 
-                    val finalChannels = channelsList.ifEmpty {
-                        listOf(
-                            ChannelDto("general", "general", "text"),
-                            ChannelDto("dev-talk", "dev-talk", "text"),
-                            ChannelDto("announcements", "announcements", "text"),
-                            ChannelDto("resources", "resources", "text")
-                        )
-                    }
+                    val cleanChannels = channelsList
+                        .filter { it.type != "dm" && it.type != "group" && !it.name.startsWith("dm-") && !it.name.startsWith("dm_") && it.name.trim().lowercase().removePrefix("#") != "none" }
+                        .sortedBy { ch ->
+                            val clean = ch.name.trim().lowercase().removePrefix("#")
+                            val idx = CANONICAL_CHANNEL_ORDER.indexOf(clean)
+                            if (idx >= 0) idx else 99
+                        }
+                    val finalChannels = cleanChannels.ifEmpty { DEFAULT_WORKSPACE_CHANNELS }
 
                     // Save fresh channels and friends to local SQLite database for instant next launch
-                    if (channelsList.isNotEmpty()) {
-                        dbHelper.saveChannels(channelsList)
+                    if (cleanChannels.isNotEmpty()) {
+                        dbHelper.saveChannels(cleanChannels)
                     }
                     if (friendsList.isNotEmpty()) {
                         val myUName = currentUsername.removePrefix("@")
@@ -635,7 +650,16 @@ fun HomeChatScreen(
                         }
                     }
                     if (cachedChannels.isNotEmpty()) {
-                        channels = cachedChannels
+                        val cleanCached = cachedChannels
+                            .filter { it.type != "dm" && it.type != "group" && !it.name.startsWith("dm-") && !it.name.startsWith("dm_") && it.name.trim().lowercase().removePrefix("#") != "none" }
+                            .sortedBy { ch ->
+                                val clean = ch.name.trim().lowercase().removePrefix("#")
+                                val idx = CANONICAL_CHANNEL_ORDER.indexOf(clean)
+                                if (idx >= 0) idx else 99
+                            }
+                        if (cleanCached.isNotEmpty()) {
+                            channels = cleanCached
+                        }
                     }
                     isLoadingDashboard = false
                 }
@@ -1001,10 +1025,15 @@ fun HomeChatScreen(
                                                 color = colors.textPrimary
                                             )
                                             Text(
-                                                text = when (ch.name) {
+                                                text = when (ch.name.trim().lowercase().removePrefix("#")) {
                                                     "general" -> "Team announcements and general chat"
-                                                    "dev-talk" -> "Engineering, architecture and code"
                                                     "announcements" -> "Official updates and releases"
+                                                    "dev-chat", "dev-talk" -> "Engineering, architecture and code"
+                                                    "gaming" -> "Casual discussion, lounge and off-topic"
+                                                    "war-room" -> "Tactical briefings & threat intelligence"
+                                                    "tournaments" -> "Free Fire esports tournaments & matches"
+                                                    "clips" -> "Community gaming highlights & clutches"
+                                                    "voice-lounge" -> "Voice & screen sharing lounge"
                                                     else -> "Discussions and shared resources"
                                                 },
                                                 fontSize = 12.sp,
@@ -1179,82 +1208,6 @@ fun HomeChatScreen(
                                             fontWeight = FontWeight.Medium,
                                             color = colors.primary
                                         )
-                                    }
-                                }
-
-                                // Also show remaining active conversations so user profiles are never hidden
-                                val favCleanSet = favouriteUsernames.map { it.trim().lowercase().removePrefix("@") }.toSet()
-                                val otherConvos = filteredConversations.filter { !favCleanSet.contains(it.username.trim().lowercase().removePrefix("@")) }
-                                if (otherConvos.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
-                                    Text(
-                                        text = "Other Conversations",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = colors.textSecondary,
-                                        modifier = Modifier.padding(vertical = 4.dp, horizontal = ConnectoSpacing.xs)
-                                    )
-                                    Column(modifier = Modifier.fillMaxWidth()) {
-                                        otherConvos.forEachIndexed { index, convo ->
-                                            Row(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                                    .clickable { onOpenConversation(convo) }
-                                                    .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                ConnectoAvatar(
-                                                    name = convo.name,
-                                                    avatarUrl = convo.avatarUrl,
-                                                    size = ConnectoAvatarSize.MD,
-                                                    status = if (convo.isGroup) null else (if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE)
-                                                )
-                                                Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Text(
-                                                            text = convo.name,
-                                                            fontSize = 14.sp,
-                                                            fontWeight = FontWeight.SemiBold,
-                                                            color = colors.textPrimary,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                        Text(
-                                                            text = convo.timestamp,
-                                                            fontSize = 11.sp,
-                                                            color = colors.textDisabled
-                                                        )
-                                                    }
-                                                    Spacer(modifier = Modifier.height(2.dp))
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Text(
-                                                            text = if (convo.isGroup) convo.lastMessage else "@${convo.username} • ${convo.lastMessage}",
-                                                            fontSize = 12.sp,
-                                                            color = colors.textSecondary,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
-                                                            modifier = Modifier.weight(1f)
-                                                        )
-                                                        if (convo.unreadCount > 0) {
-                                                            ConnectoBadge(count = convo.unreadCount)
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            if (index < otherConvos.size - 1) {
-                                                ConnectoDivider(thickness = 0.5.dp)
-                                            }
-                                        }
                                     }
                                 }
                             }
