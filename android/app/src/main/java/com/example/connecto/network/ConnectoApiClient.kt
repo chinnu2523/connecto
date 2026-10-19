@@ -3618,15 +3618,27 @@ object ConnectoApiClient {
     ): Result<Boolean> = withContext(Dispatchers.IO) {
         try {
             val myUsername = currentUsername ?: "Gamer"
+            val nowIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }.format(java.util.Date())
+            val nowMs = System.currentTimeMillis()
+            val cleanCaller = callerName
+                .removePrefix("1:1 Voice Call with ")
+                .removePrefix("Voice Call with ")
+                .removePrefix("Call with ")
+                .removePrefix("@")
+                .trim()
             val payload = JSONObject().apply {
                 put("username", myUsername)
-                put("caller_name", callerName)
+                put("caller_name", cleanCaller)
                 put("call_type", callType)
-                put("room_name", roomName)
+                put("room_name", roomName.ifBlank { cleanCaller })
                 put("room_code", roomCode)
                 put("duration_seconds", durationSeconds)
                 put("is_missed", isMissed)
                 put("is_outgoing", isOutgoing)
+                put("created_at", nowIso)
+                put("client_timestamp", nowMs)
             }
             val response = executeRequest(
                 endpoint = "/api/voice/calls/log",

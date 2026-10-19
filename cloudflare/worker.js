@@ -116,14 +116,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.6",
-        version_name: "v4.5.6",
-        version_code: 85,
-        build: 85,
-        sha256: "e402d8bab235a0079fbfbe669571010073df9f18dd7e55219f8eada0ec59d487",
-        md5: "222eeaef957e8251f35864eb3ebb595b",
+        version: "4.5.7",
+        version_name: "v4.5.7",
+        version_code: 86,
+        build: 86,
+        sha256: "b5c560f59951b87c01677c88aedffd7dabff4b82e0837350e685a2a7fa8f55df",
+        md5: "70354217d1170d41253acea840740fcb",
         filename: "connecto-fun.apk",
-        size_bytes: 57832717,
+        size_bytes: 57832713,
         size_display: "55.2 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -131,12 +131,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Permanent Account Deletion: Dedicated Delete Account Forever button in Profile Danger Zone and Help & Support, purging live records from SQLite and Cloudflare D1 across 23 tables, plus physical database backup scrubbing.",
-          "AI Voice Isolation Studio: Dedicated Voice & Audio Settings sub-page in Profile with real-time 18-bar VU meter mic sensitivity monitor, acoustic echo cancellation, and auto gain control.",
-          "Spectral Speech Bandpass: 280Hz high-pass filter rejecting AC rumble, 3400Hz low-pass cutting coil hiss, adaptive -26dB noise gating, and +1.2dB vocal presence boost.",
-          "In-Call Voice Isolation Chip: Live one-tap Voice Isolation toggle on CallsScreen header and in-call WebRTC overlay.",
-          "Trending Faah Notification Sound: High-fidelity viral 'Faah' punch sound integration with dedicated Android notification channel sonification and maximum loudness.",
-          "Profile UI Overhaul: Modernized typography, rich status badges, descriptive navigation menu subtitles, and refined liquid glass styling."
+          "Calls Tab Multiple Update Fix: Completely resolved multiple tab updating and list flashing during voice calls by eliminating premature call logging and pausing background history polling during active calls.",
+          "Real-Time Timezone Synchronization: All call timestamps now accurately parse UTC database records and synchronize with the user's local device clock (Today, Yesterday, exact AM/PM and call duration).",
+          "Smart Call Session Deduplication: Edge and database engine merges duplicate entries for identical call sessions within 75 seconds, preserving the accurate call duration and connection status.",
+          "Permanent Account Deletion: Dedicated Delete Account Forever button in Profile Danger Zone and Help & Support wiping user records from live databases and backups.",
+          "AI Voice Isolation Studio: Dedicated Voice & Audio Settings sub-page in Profile with live 18-bar VU meter and 280Hz-3400Hz speech bandpass filters."
         ]
       });
     }
@@ -181,19 +180,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.6/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.6/connecto-v4.5.6.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.7/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.7/connecto-v4.5.7.apk",
           "https://connecto.fun/downloads/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.6-b85-verified.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.7-b86-verified.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.6");
-          res.headers.set("X-Connecto-Build", "85");
+          res.headers.set("X-Connecto-Version", "v4.5.7");
+          res.headers.set("X-Connecto-Build", "86");
           return res;
         }
 
@@ -206,7 +205,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.5.6"
+                "User-Agent": "Connecto-Cloud-Worker/4.5.7"
               }
             });
             if (upstreamResp.ok) {
@@ -217,8 +216,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.5.6");
-              downloadHeaders.set("X-Connecto-Build", "85");
+              downloadHeaders.set("X-Connecto-Version", "v4.5.7");
+              downloadHeaders.set("X-Connecto-Build", "86");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -233,7 +232,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.6/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.7/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -5653,20 +5652,53 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     try {
       const body = await request.json().catch(() => ({}));
       const username = (body.username || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
-      const callerName = (body.caller_name || body.caller || username || "Gamer").trim();
+      let callerName = (body.caller_name || body.caller || username || "Gamer").trim();
+      callerName = callerName
+        .replace(/^1:1 Voice Call with /i, "")
+        .replace(/^Voice Call with /i, "")
+        .replace(/^Call with /i, "")
+        .replace(/^@/, "")
+        .trim();
       const callType = body.call_type || "Voice Call";
-      const roomName = body.room_name || "";
-      const roomCode = body.room_code || "";
+      const roomName = (body.room_name || callerName || "").trim();
+      const roomCode = (body.room_code || "").trim();
       const durationSeconds = parseInt(body.duration_seconds || body.duration || 0, 10) || 0;
       const isMissed = (body.is_missed === true || body.is_missed === 1 || body.status === "missed") ? 1 : 0;
       const isOutgoing = (body.is_outgoing === true || body.is_outgoing === 1) ? 1 : 0;
       const logId = "call_log_" + Math.random().toString(36).substring(2, 10);
+      const createdAtIso = body.created_at || (body.client_timestamp ? new Date(body.client_timestamp).toISOString() : new Date().toISOString());
 
       if (env.DB) {
+        // Smart Deduplication: Check if this call session was already logged within the last 75 seconds
+        let existing = null;
+        if (roomCode) {
+          existing = await env.DB.prepare(
+            "SELECT id, duration_seconds, is_missed FROM call_logs WHERE (lower(username) = ? OR lower(caller_name) = ?) AND room_code = ? LIMIT 1"
+          ).bind(username, callerName.toLowerCase(), roomCode).first();
+        }
+        if (!existing) {
+          existing = await env.DB.prepare(
+            "SELECT id, duration_seconds, is_missed FROM call_logs WHERE lower(username) = ? AND lower(caller_name) = ? AND created_at >= datetime('now', '-75 seconds') ORDER BY created_at DESC LIMIT 1"
+          ).bind(username, callerName.toLowerCase()).first();
+        }
+
+        if (existing) {
+          const updatedDur = Math.max(existing.duration_seconds || 0, durationSeconds);
+          await env.DB.prepare(
+            "UPDATE call_logs SET duration_seconds = ?, is_missed = ?, is_outgoing = ?, room_code = COALESCE(NULLIF(?, ''), room_code) WHERE id = ?"
+          ).bind(updatedDur, isMissed, isOutgoing, roomCode, existing.id).run();
+          return jsonResponse({
+            status: "ok",
+            id: existing.id,
+            updated: true,
+            message: "Call log updated successfully"
+          }, 200);
+        }
+
         await env.DB.prepare(`
           INSERT INTO call_logs (id, user_id, username, caller_name, call_type, room_name, room_code, duration_seconds, is_missed, is_outgoing, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
-        `).bind(logId, username, username, callerName, callType, roomName, roomCode, durationSeconds, isMissed, isOutgoing).run();
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(logId, username, username, callerName, callType, roomName, roomCode, durationSeconds, isMissed, isOutgoing, createdAtIso).run();
       }
 
       return jsonResponse({
@@ -5720,22 +5752,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           res = await env.DB.prepare(`
             SELECT * FROM call_logs 
             WHERE lower(username) = ? OR lower(caller_name) = ?
-            ORDER BY created_at DESC LIMIT 50
+            ORDER BY created_at DESC LIMIT 60
           `).bind(targetUser, targetUser).all();
         } else {
-          res = await env.DB.prepare("SELECT * FROM call_logs ORDER BY created_at DESC LIMIT 50").all();
+          res = await env.DB.prepare("SELECT * FROM call_logs ORDER BY created_at DESC LIMIT 60").all();
         }
         callLogs = (res.results || []).map(r => {
           const sec = r.duration_seconds || 0;
           const mins = Math.floor(sec / 60);
           const remSec = sec % 60;
           const durStr = `${mins.toString().padStart(2, '0')}:${remSec.toString().padStart(2, '0')}`;
+          let cName = (r.caller_name || "").replace(/^1:1 Voice Call with /i, "").replace(/^Voice Call with /i, "").trim();
           return {
             id: r.id,
             user_id: r.user_id,
             username: r.username,
-            caller_name: r.caller_name,
-            caller: r.caller_name,
+            caller_name: cName || r.caller_name,
+            caller: cName || r.caller_name,
             call_type: r.call_type || "Voice Call",
             room_name: r.room_name || "",
             room_code: r.room_code || "",
@@ -5780,14 +5813,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.6",
-      version_name: "v4.5.6",
-      version_code: 85,
-      build: 85,
-      sha256: "e402d8bab235a0079fbfbe669571010073df9f18dd7e55219f8eada0ec59d487",
-      md5: "222eeaef957e8251f35864eb3ebb595b",
+      version: "4.5.7",
+      version_name: "v4.5.7",
+      version_code: 86,
+      build: 86,
+      sha256: "b5c560f59951b87c01677c88aedffd7dabff4b82e0837350e685a2a7fa8f55df",
+      md5: "70354217d1170d41253acea840740fcb",
       filename: "connecto-fun.apk",
-      size_bytes: 57832717,
+      size_bytes: 57832713,
       size_display: "55.2 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -5800,6 +5833,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.5.7",
+          date: "Oct 19, 2026",
+          category: "fix",
+          tag: "Latest Release",
+          title: "Connecto v4.5.7: Call Tab Multi-Update Fix, Real-Time Timezone Sync & Call Deduplication",
+          summary: "Connecto v4.5.7 completely resolves multiple tab updating and list flashing during outgoing/incoming voice calls, synchronizes all call timestamps directly to the user's local device clock with formatted durations, and introduces intelligent client and server-side call session deduplication.",
+          highlights: [
+            "Calls Tab Multi-Update Fix: Removed premature call logging in CallsScreen and VoiceCallManager so call records are written exactly once at session completion.",
+            "Real-Time Timezone Sync: Formats call timestamps relative to user's local device timezone ('Today, 6:05 PM', 'Yesterday, 10:20 AM', or absolute date) instead of raw unparsed UTC strings.",
+            "Flicker-Free Animation Engine: Re-anchored StaggeredReveal animations so inserting new call entries does not reset animations or cause the tab to flicker.",
+            "In-Call Polling Pause: Suspends background call history polling while a call is active to eliminate UI interference and battery drain.",
+            "Android Native App v4.5.7 (Build 86 • 55.2 MB): SHA-256 b5c560f59951b87c01677c88aedffd7dabff4b82e0837350e685a2a7fa8f55df • MD5 70354217d1170d41253acea840740fcb."
+          ],
+          author: "Connecto Voice & Telephony Team"
+        },
         {
           version: "v4.5.6",
           date: "Oct 19, 2026",

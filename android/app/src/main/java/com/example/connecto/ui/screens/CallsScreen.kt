@@ -104,12 +104,93 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+fun parseCallLogTimestamp(raw: String?): Long {
+    if (raw.isNullOrBlank() || raw.equals("Recent", ignoreCase = true) || raw.equals("Just now", ignoreCase = true)) {
+        return System.currentTimeMillis()
+    }
+    val clean = raw.trim()
+    val num = clean.toLongOrNull()
+    if (num != null) {
+        return if (num < 100_000_000_000L) num * 1000L else num
+    }
+
+    val formats = listOf(
+        "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+        "yyyy-MM-dd'T'HH:mm:ss.SSS",
+        "yyyy-MM-dd'T'HH:mm:ss",
+        "yyyy-MM-dd HH:mm:ss.SSSSSS",
+        "yyyy-MM-dd HH:mm:ss.SSS",
+        "yyyy-MM-dd HH:mm:ss"
+    )
+    for (fmt in formats) {
+        try {
+            val sdf = java.text.SimpleDateFormat(fmt, java.util.Locale.US).apply {
+                timeZone = java.util.TimeZone.getTimeZone("UTC")
+            }
+            val d = sdf.parse(clean)
+            if (d != null) return d.time
+        } catch (_: Exception) {}
+    }
+    return System.currentTimeMillis()
+}
+
+fun formatCallLogDateTime(rawCreatedAt: String?): String {
+    val epochMs = parseCallLogTimestamp(rawCreatedAt)
+    val callCal = java.util.Calendar.getInstance().apply { timeInMillis = epochMs }
+    val nowCal = java.util.Calendar.getInstance()
+
+    val timeFormatter = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault())
+    val timeStr = timeFormatter.format(callCal.time)
+
+    val isSameDay = callCal.get(java.util.Calendar.YEAR) == nowCal.get(java.util.Calendar.YEAR) &&
+                    callCal.get(java.util.Calendar.DAY_OF_YEAR) == nowCal.get(java.util.Calendar.DAY_OF_YEAR)
+
+    if (isSameDay) {
+        return "Today, $timeStr"
+    }
+
+    val yesterdayCal = java.util.Calendar.getInstance().apply {
+        add(java.util.Calendar.DAY_OF_YEAR, -1)
+    }
+    val isYesterday = callCal.get(java.util.Calendar.YEAR) == yesterdayCal.get(java.util.Calendar.YEAR) &&
+                      callCal.get(java.util.Calendar.DAY_OF_YEAR) == yesterdayCal.get(java.util.Calendar.DAY_OF_YEAR)
+
+    if (isYesterday) {
+        return "Yesterday, $timeStr"
+    }
+
+    val isSameYear = callCal.get(java.util.Calendar.YEAR) == nowCal.get(java.util.Calendar.YEAR)
+    val dateFormatter = if (isSameYear) {
+        java.text.SimpleDateFormat("MMM d, h:mm a", java.util.Locale.getDefault())
+    } else {
+        java.text.SimpleDateFormat("MMM d, yyyy, h:mm a", java.util.Locale.getDefault())
+    }
+    return dateFormatter.format(callCal.time)
+}
+
+fun formatCallDuration(seconds: Int): String {
+    if (seconds <= 0) return ""
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    val secs = seconds % 60
+    return when {
+        hours > 0 -> String.format(java.util.Locale.getDefault(), "%dh %02dm", hours, minutes)
+        minutes > 0 -> String.format(java.util.Locale.getDefault(), "%dm %02ds", minutes, secs)
+        else -> "${secs}s"
+    }
+}
+
 data class CallLogItem(
     val id: String,
     val callerName: String,
     val initial: String,
     val callType: String,
     val timeAgo: String,
+    val durationSeconds: Int = 0,
+    val timestampMillis: Long = 0L,
     val isMissed: Boolean = false,
     val isOutgoing: Boolean = false,
     val friendUsername: String = "",
@@ -161,12 +242,17 @@ private fun mapCallLogDtoToItem(
         if (clean.isNotEmpty()) clean.first().toString().uppercase() else "P"
     } else "P"
 
+    val epochMs = parseCallLogTimestamp(log.createdAt)
+    val formattedTime = formatCallLogDateTime(log.createdAt)
+
     return CallLogItem(
         id = log.id,
         callerName = safeDisplayName,
         initial = init,
         callType = log.callType,
-        timeAgo = log.createdAt,
+        timeAgo = formattedTime,
+        durationSeconds = log.durationSeconds,
+        timestampMillis = epochMs,
         isMissed = log.isMissed,
         isOutgoing = log.isOutgoing,
         friendUsername = friendUsername,
@@ -238,7 +324,37 @@ fun CallsScreen(
                             !log.callerName.contains("Lounge", ignoreCase = true) &&
                             !log.callerName.startsWith("#")
                         }
-                        val mapped = cleanLogs.map { mapCallLogDtoToItem(it, currentUsername, friends) }
+                        // Smart Deduplication: Merge multiple entries for same caller within 75 seconds
+                        val dedupedLogs = mutableListOf<CallLogDto>()
+                        for (log in cleanLogs) {
+                            val logPartner = (if (log.callerName.equals(currentUsername, true) || log.callerName.isBlank()) log.username else log.callerName)
+                                .removePrefix("1:1 Voice Call with ")
+                                .removePrefix("Voice Call with ")
+                                .removePrefix("Call with ")
+                                .removePrefix("@")
+                                .trim().lowercase()
+                            val logEpoch = parseCallLogTimestamp(log.createdAt)
+                            val existingIdx = dedupedLogs.indexOfFirst { existing ->
+                                val existingPartner = (if (existing.callerName.equals(currentUsername, true) || existing.callerName.isBlank()) existing.username else existing.callerName)
+                                    .removePrefix("1:1 Voice Call with ")
+                                    .removePrefix("Voice Call with ")
+                                    .removePrefix("Call with ")
+                                    .removePrefix("@")
+                                    .trim().lowercase()
+                                val existingEpoch = parseCallLogTimestamp(existing.createdAt)
+                                existingPartner == logPartner && Math.abs(existingEpoch - logEpoch) < 75_000L
+                            }
+                            if (existingIdx >= 0) {
+                                val existing = dedupedLogs[existingIdx]
+                                if (log.durationSeconds > existing.durationSeconds || (!log.isMissed && existing.isMissed && log.durationSeconds > 0)) {
+                                    dedupedLogs[existingIdx] = log
+                                }
+                            } else {
+                                dedupedLogs.add(log)
+                            }
+                        }
+
+                        val mapped = dedupedLogs.map { mapCallLogDtoToItem(it, currentUsername, friends) }
                         if (liveCallLogs.toList() != mapped) {
                             val mappedIds = mapped.map { it.id }.toSet()
                             liveCallLogs.removeAll { it.id !in mappedIds }
@@ -283,16 +399,6 @@ fun CallsScreen(
             targetDisplayName = finalDisplayName,
             avatarUrl = avatarUrl
         )
-        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-            try {
-                ConnectoApiClient.recordCallLog(
-                    callerName = targetUser,
-                    callType = "Voice Call",
-                    isMissed = false,
-                    isOutgoing = true
-                )
-            } catch (_: Exception) {}
-        }
     }
 
     fun performVoiceGroupCall(groupTitle: String, selectedFriends: List<FriendshipDto>) {
@@ -318,14 +424,6 @@ fun CallsScreen(
                     // ignore
                 }
             }
-
-            ConnectoApiClient.recordCallLog(
-                callerName = activeCallTitle,
-                callType = "Group Call (${selectedFriends.size + 1} members)",
-                isMissed = false,
-                isOutgoing = true
-            )
-            refreshCallLogs()
         }
     }
 
@@ -410,17 +508,18 @@ fun CallsScreen(
         }
     }
 
+    val callState by VoiceCallManager.callState.collectAsState()
+
     LaunchedEffect(Unit) {
         refreshCallLogs()
         while (isActive) {
-            delay(5000)
-            refreshCallLogs()
+            delay(12000L)
+            // Never re-poll and mutate call history while the user is actively calling
+            if (VoiceCallManager.callState.value == CallState.IDLE) {
+                refreshCallLogs()
+            }
         }
     }
-
-    val callState by VoiceCallManager.callState.collectAsState()
-    val managerCallTitle by VoiceCallManager.activeCallTitle.collectAsState()
-    val managerRoomCode by VoiceCallManager.activeCallRoomCode.collectAsState()
 
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
@@ -843,16 +942,28 @@ fun CallsScreen(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Row(verticalAlignment = Alignment.CenterVertically) {
+                                            val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
                                             Icon(
                                                 imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
                                                 contentDescription = null,
-                                                tint = if (log.isMissed) MaterialTheme.colorScheme.error else OnlineGreen,
+                                                tint = if (log.isMissed) MaterialTheme.colorScheme.error else if (isCancelled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else OnlineGreen,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            val statusText = if (log.isMissed) "Missed" else if (log.isOutgoing) "Outgoing" else "Incoming"
+                                            val statusText = when {
+                                                log.isMissed -> "Missed"
+                                                log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
+                                                log.isOutgoing -> "Cancelled"
+                                                else -> "Incoming"
+                                            }
+                                            val durStr = formatCallDuration(log.durationSeconds)
+                                            val displaySubtext = if (durStr.isNotBlank()) {
+                                                "$statusText • ${log.timeAgo} • $durStr"
+                                            } else {
+                                                "$statusText • ${log.timeAgo}"
+                                            }
                                             Text(
-                                                text = "$statusText • ${log.timeAgo}",
+                                                text = displaySubtext,
                                                 fontSize = 12.sp,
                                                 color = if (log.isMissed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -985,9 +1096,12 @@ fun CallsScreen(
 
         // Active call state handled globally by MainActivity FullScreenCallUI overlay
         LaunchedEffect(callState) {
-            if (callState == CallState.IDLE && isInActiveCall) {
-                isInActiveCall = false
-                activeCallRoomCode = null
+            if (callState == CallState.IDLE) {
+                if (isInActiveCall) {
+                    isInActiveCall = false
+                    activeCallRoomCode = null
+                }
+                delay(400L)
                 refreshCallLogs()
             }
         }

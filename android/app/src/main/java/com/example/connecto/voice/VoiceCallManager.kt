@@ -171,6 +171,7 @@ object VoiceCallManager {
     val callDurationSeconds: StateFlow<Int> = _callDurationSeconds.asStateFlow()
 
     private var isCallCaller = false
+    private val recordedCallSessions = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     // Audio Hardware Instances
     @Volatile
@@ -2388,17 +2389,6 @@ object VoiceCallManager {
 
         startAudioHardware()
         startDurationTimer()
-
-        // Record that we received this call (so it shows in "Incoming" filter)
-        scope.launch {
-            ConnectoApiClient.recordCallLog(
-                callerName = call.callerUsername,
-                callType = "Voice Call",
-                durationSeconds = 0,
-                isMissed = false,
-                isOutgoing = false
-            )
-        }
     }
 
     fun declineIncomingCall() {
@@ -2421,15 +2411,19 @@ object VoiceCallManager {
             ConnectoApiClient.respondToVoiceCall(call.roomId, "decline", call.callerUsername)
         }
 
-        // Record as a missed incoming call
-        scope.launch {
-            ConnectoApiClient.recordCallLog(
-                callerName = call.callerUsername,
-                callType = "Voice Call",
-                durationSeconds = 0,
-                isMissed = true,
-                isOutgoing = false
-            )
+        // Record as a missed incoming call once
+        val callSessionKey = "${call.roomId}_missed"
+        if (!recordedCallSessions.contains(callSessionKey)) {
+            recordedCallSessions.add(callSessionKey)
+            scope.launch {
+                ConnectoApiClient.recordCallLog(
+                    callerName = call.callerUsername,
+                    callType = "Voice Call",
+                    durationSeconds = 0,
+                    isMissed = true,
+                    isOutgoing = false
+                )
+            }
         }
 
         _incomingCall.value = null
@@ -2503,10 +2497,17 @@ object VoiceCallManager {
             .removePrefix("Voice Call with ")
             .removePrefix("Call with ")
             .trim()
-        val partnerTitle = _activeCallPartner.value ?: _activeCallTitle.value
+        val partnerTitle = cleanPartner.ifBlank {
+            (_activeCallPartner.value ?: _activeCallTitle.value)
+                .removePrefix("1:1 Voice Call with ")
+                .removePrefix("Voice Call with ")
+                .removePrefix("Call with ")
+                .removePrefix("@")
+                .trim()
+        }
         val duration = _callDurationSeconds.value
         val isCaller = isCallCaller
-        val roomCode = _activeCallRoomCode.value ?: ""
+        val roomCode = _activeCallRoomCode.value ?: roomId ?: ""
 
         // Instantly switch call state to IDLE so compose overlays dismiss with zero latency
         _callState.value = CallState.IDLE
@@ -2565,17 +2566,21 @@ object VoiceCallManager {
             }
         }
 
-        // Record persistent call log
-        scope.launch {
-            ConnectoApiClient.recordCallLog(
-                callerName = partnerTitle,
-                callType = "Voice Call",
-                durationSeconds = duration,
-                isMissed = false,
-                isOutgoing = isCaller,
-                roomName = partnerTitle,
-                roomCode = roomCode
-            )
+        // Record persistent call log exactly once per call session
+        val callSessionKey = "${roomId}_${cleanPartner}_${isCaller}"
+        if (!partnerTitle.isBlank() && !recordedCallSessions.contains(callSessionKey)) {
+            recordedCallSessions.add(callSessionKey)
+            scope.launch {
+                ConnectoApiClient.recordCallLog(
+                    callerName = partnerTitle,
+                    callType = if (roomCode.startsWith("group_voice")) "Group Call" else "Voice Call",
+                    durationSeconds = duration,
+                    isMissed = false,
+                    isOutgoing = isCaller,
+                    roomName = partnerTitle,
+                    roomCode = roomCode
+                )
+            }
         }
 
         endCallLocally()

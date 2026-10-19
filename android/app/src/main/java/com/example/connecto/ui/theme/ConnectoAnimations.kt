@@ -393,9 +393,12 @@ fun StaggeredReveal(
 ) {
     var visible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(index) {
-        delay(index * staggerMs)
-        visible = true
+    LaunchedEffect(Unit) {
+        if (!visible) {
+            val safeDelay = (index.coerceAtLeast(0) * staggerMs).coerceAtMost(320L)
+            if (safeDelay > 0) delay(safeDelay)
+            visible = true
+        }
     }
 
     val alpha by animateFloatAsState(

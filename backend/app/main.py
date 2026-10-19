@@ -1452,15 +1452,16 @@ async def get_call_logs(
 
     log_list = []
     for l in logs:
-        time_str = l.created_at.strftime("%b %d, %I:%M %p") if l.created_at else "Recent"
+        time_str = l.created_at.strftime("%Y-%m-%dT%H:%M:%SZ") if l.created_at else "Recent"
+        c_name = (l.caller_name or "").replace("1:1 Voice Call with ", "").replace("Voice Call with ", "").replace("Call with ", "").strip()
         is_user_initiator = (l.username.lower() == target_user.lower())
-        display_name = l.caller_name if is_user_initiator else l.username
+        display_name = (c_name or l.caller_name) if is_user_initiator else l.username
         viewer_is_outgoing = l.is_outgoing if is_user_initiator else False
 
         log_list.append({
             "id": l.id,
             "username": l.username,
-            "caller_name": l.caller_name,
+            "caller_name": c_name or l.caller_name,
             "display_name": display_name,
             "call_type": l.call_type,
             "room_name": l.room_name or "",
@@ -1489,10 +1490,13 @@ async def record_call_log(
         pass
 
     username = current_user.username
-    caller_name = body.get("caller_name", "").strip() or body.get("name", "Voice Room")
+    raw_caller = body.get("caller_name", "").strip() or body.get("name", "Voice Room")
+    caller_name = raw_caller.replace("1:1 Voice Call with ", "").replace("Voice Call with ", "").replace("Call with ", "").strip()
+    if caller_name.startswith("@"):
+        caller_name = caller_name[1:].strip()
     call_type = body.get("call_type", "Voice Call")
-    room_name = body.get("room_name", "")
-    room_code = body.get("room_code", "")
+    room_name = body.get("room_name", "").strip() or caller_name
+    room_code = body.get("room_code", "").strip()
     try:
         duration_seconds = int(body.get("duration_seconds", 0))
         if duration_seconds < 0:
@@ -1502,21 +1506,49 @@ async def record_call_log(
     is_missed = bool(body.get("is_missed", False))
     is_outgoing = bool(body.get("is_outgoing", True))
 
-    log = CallLog(
-        username=username,
-        caller_name=caller_name,
-        call_type=call_type,
-        room_name=room_name,
-        room_code=room_code,
-        duration_seconds=duration_seconds,
-        is_missed=is_missed,
-        is_outgoing=is_outgoing
-    )
-    db.add(log)
-    await db.commit()
-    await db.refresh(log)
+    # Smart Deduplication: Check if this call session was already logged within the last 75 seconds
+    cutoff_time = datetime.utcnow() - timedelta(seconds=75)
+    existing = None
+    if room_code:
+        stmt = select(CallLog).where(
+            or_(CallLog.username == username, CallLog.caller_name == caller_name),
+            CallLog.room_code == room_code
+        ).limit(1)
+        existing = (await db.execute(stmt)).scalar_one_or_none()
 
-    time_str = log.created_at.strftime("%b %d, %I:%M %p") if log.created_at else "Recent"
+    if not existing:
+        stmt = select(CallLog).where(
+            CallLog.username == username,
+            CallLog.caller_name == caller_name,
+            CallLog.created_at >= cutoff_time
+        ).order_by(CallLog.created_at.desc()).limit(1)
+        existing = (await db.execute(stmt)).scalar_one_or_none()
+
+    if existing:
+        existing.duration_seconds = max(existing.duration_seconds or 0, duration_seconds)
+        existing.is_missed = is_missed
+        existing.is_outgoing = is_outgoing
+        if room_code and not existing.room_code:
+            existing.room_code = room_code
+        await db.commit()
+        await db.refresh(existing)
+        log = existing
+    else:
+        log = CallLog(
+            username=username,
+            caller_name=caller_name,
+            call_type=call_type,
+            room_name=room_name,
+            room_code=room_code,
+            duration_seconds=duration_seconds,
+            is_missed=is_missed,
+            is_outgoing=is_outgoing
+        )
+        db.add(log)
+        await db.commit()
+        await db.refresh(log)
+
+    time_str = log.created_at.strftime("%Y-%m-%dT%H:%M:%SZ") if log.created_at else "Recent"
     return {
         "status": "ok",
         "log": {
