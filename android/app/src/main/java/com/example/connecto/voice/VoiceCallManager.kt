@@ -195,6 +195,7 @@ object VoiceCallManager {
     private var isWsConnected = false
     private val _isWsConnectedFlow = MutableStateFlow(false)
     val isWsConnectedFlow: StateFlow<Boolean> = _isWsConnectedFlow.asStateFlow()
+    private val pendingWsMessages = java.util.concurrent.ConcurrentLinkedQueue<String>()
 
     // Real-time Channel Subscriptions & Incoming Message Bus
     private val subscribedChannels = java.util.concurrent.CopyOnWriteArraySet<String>()
@@ -1131,6 +1132,17 @@ object VoiceCallManager {
 
                     // Ensure continuous keepalive pinging
                     startPeriodicPing()
+
+                    // Drain and send all queued signaling messages immediately
+                    while (true) {
+                        val queued = pendingWsMessages.poll() ?: break
+                        try {
+                            val sent = ws.send(queued)
+                            Log.d(TAG, "Flushed queued WS message on open (sent=$sent): $queued")
+                        } catch (t: Throwable) {
+                            Log.e(TAG, "Failed to send queued WS message: ${t.message}", t)
+                        }
+                    }
                 }
 
                 override fun onMessage(ws: WebSocket, text: String) {
@@ -1221,11 +1233,15 @@ object VoiceCallManager {
 
     fun sendWsMessage(json: JSONObject) {
         val msg = json.toString()
-        val sent = webSocket?.send(msg) ?: false
-        if (!sent) {
-            Log.w(TAG, "Failed to send WS message, attempting reconnect: $msg")
-            connectWebSocket()
+        if (isWsConnected && webSocket != null) {
+            val sent = try { webSocket?.send(msg) ?: false } catch (_: Throwable) { false }
+            if (sent) return
         }
+        Log.w(TAG, "WS not ready or send failed; queueing message: $msg")
+        if (pendingWsMessages.size < 100) {
+            pendingWsMessages.offer(msg)
+        }
+        connectWebSocket()
     }
 
     fun inviteToVoiceGroup(roomId: String, groupTitle: String, targetUser: String) {
@@ -1648,6 +1664,16 @@ object VoiceCallManager {
                         roomId = roomId,
                         callerUsername = callerUsername,
                         callerAvatar = callerAvatar
+                    )
+                    com.example.connecto.ui.components.InAppNotificationController.show(
+                        com.example.connecto.ui.components.InAppNotificationData(
+                            title = callerName.ifEmpty { callerUsername },
+                            message = "Incoming Voice Call • Tap to answer",
+                            avatarUrl = callerAvatar,
+                            username = callerUsername,
+                            actionType = "call",
+                            referenceId = roomId
+                        )
                     )
                 }
 
@@ -2153,6 +2179,16 @@ object VoiceCallManager {
             callerUsername = callerUsername,
             callerAvatar = callerAvatar
         )
+        com.example.connecto.ui.components.InAppNotificationController.show(
+            com.example.connecto.ui.components.InAppNotificationData(
+                title = callerName.ifEmpty { callerUsername },
+                message = "Incoming Voice Call • Tap to answer",
+                avatarUrl = callerAvatar,
+                username = callerUsername,
+                actionType = "call",
+                referenceId = roomId
+            )
+        )
     }
 
     // ----------------------------------------------------
@@ -2160,6 +2196,7 @@ object VoiceCallManager {
     // ----------------------------------------------------
 
     fun start1on1Call(targetUsername: String, targetDisplayName: String, avatarUrl: String? = null) {
+        val callStartNano = System.nanoTime()
         val cleanTarget = targetUsername.trim()
             .removePrefix("@")
             .removePrefix("1:1 Voice Call with ")
@@ -2176,12 +2213,29 @@ object VoiceCallManager {
         val currentUsername = ConnectoApiClient.currentUsername?.ifEmpty { "User" } ?: "User"
         val roomId = "call_${currentUsername}_${System.currentTimeMillis()}"
 
+        // Instant fast-path avatar resolution from in-memory cache and local SQLite DB (<1ms)
+        val resolvedAvatar = if (!avatarUrl.isNullOrBlank() && avatarUrl != "👤" && avatarUrl != "👾") {
+            avatarUrl
+        } else {
+            val cachedFriend = ConnectoApiClient.cachedFriends.find {
+                it.friendUsername.equals(cleanTarget, ignoreCase = true) ||
+                it.friendDisplayName.equals(cleanTarget, ignoreCase = true) ||
+                it.friendUsername.equals(cleanDisplayName, ignoreCase = true) ||
+                it.friendDisplayName.equals(cleanDisplayName, ignoreCase = true)
+            }
+            cachedFriend?.friendAvatarUrl ?: appContext?.let { ctx ->
+                try {
+                    ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanTarget)?.avatarUrl
+                } catch (_: Exception) { null }
+            }
+        }
+
         isCallCaller = true
         _activeRoomId.value = roomId
         _activeCallPartner.value = cleanDisplayName
         _activeCallPartnerUsername.value = cleanTarget
         _activeCallTitle.value = "1:1 Voice Call with $cleanDisplayName"
-        _activeCallAvatar.value = avatarUrl
+        _activeCallAvatar.value = resolvedAvatar
         _participantCount.value = 2
 
         // If user is calling themselves (Echo / Loopback audio test call)
@@ -2219,7 +2273,20 @@ object VoiceCallManager {
         }
         sendWsMessage(inviteMsg)
 
-        if (avatarUrl.isNullOrBlank()) {
+        // Caller must also join the voice room so the server's in-memory voice_rooms map
+        // includes the caller — otherwise voice_data broadcast won't reach them.
+        val callerJoinMsg = JSONObject().apply {
+            put("type", "voice_join")
+            put("action", "voice:join")
+            put("channel_id", roomId)
+            put("room_id", roomId)
+        }
+        sendWsMessage(callerJoinMsg)
+
+        val latencyMs = (System.nanoTime() - callStartNano) / 1_000_000.0
+        Log.d(TAG, "[CallLatency] start1on1Call dispatched for $cleanTarget in ${String.format(java.util.Locale.US, "%.2f", latencyMs)}ms")
+
+        if (resolvedAvatar.isNullOrBlank()) {
             scope.launch {
                 try {
                     val fRes = ConnectoApiClient.getFriends()
@@ -2247,17 +2314,7 @@ object VoiceCallManager {
             }
         }
 
-        // Caller must also join the voice room so the server's in-memory voice_rooms map
-        // includes the caller — otherwise voice_data broadcast won't reach them.
-        val callerJoinMsg = JSONObject().apply {
-            put("type", "voice_join")
-            put("action", "voice:join")
-            put("channel_id", roomId)
-            put("room_id", roomId)
-        }
-        sendWsMessage(callerJoinMsg)
-
-        // Fallback REST call
+        // Fallback REST call in background
         scope.launch {
             try {
                 ConnectoApiClient.inviteToVoiceCall(cleanTarget, roomId, callerAvatar)
@@ -2267,6 +2324,7 @@ object VoiceCallManager {
 
     fun acceptIncomingCall() {
         val call = _incomingCall.value ?: return
+        com.example.connecto.ui.components.InAppNotificationController.dismiss()
         ConnectoNotificationManager.cancelCallNotification()
         isCallCaller = false
         _activeRoomId.value = call.roomId
@@ -2336,6 +2394,7 @@ object VoiceCallManager {
     fun declineIncomingCall() {
         val call = _incomingCall.value ?: return
         markCallTerminated(call.roomId)
+        com.example.connecto.ui.components.InAppNotificationController.dismiss()
         ConnectoNotificationManager.cancelCallNotification()
         val declineMsg = JSONObject().apply {
             put("action", "call:decline")
@@ -2532,6 +2591,7 @@ object VoiceCallManager {
                 return
             }
             Log.d(TAG, "endCallLocally: Tearing down call session")
+            com.example.connecto.ui.components.InAppNotificationController.dismiss()
             ConnectoNotificationManager.cancelCallNotification()
             appContext?.let {
                 VoiceCallForegroundService.stopService(it)

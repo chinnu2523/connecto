@@ -50,7 +50,6 @@ import com.example.connecto.network.ConnectoNetworkHelper
 import com.example.connecto.security.BiometricAuthManager
 import com.example.connecto.security.BiometricStatus
 import com.example.connecto.ui.auth.AuthHomeScreen
-import com.example.connecto.ui.components.IncomingCallDialog
 import com.example.connecto.ui.components.EmailGracePeriodBanner
 import com.example.connecto.ui.components.EmailVerificationModal
 import com.example.connecto.ui.intro.SplashScreen
@@ -956,49 +955,33 @@ fun ConnectoApp(
             )
         }
 
-        // Global In-App Notification Banner displaying user's circular profile picture
+        // Global In-App Notification Banner displaying user's circular profile picture and incoming call heads-up popup
         com.example.connecto.ui.components.InAppNotificationBanner(
             onNavigate = { actionType, refId ->
                 if (actionType == "chat") {
                     updateCurrentTab(ConnectoTab.MESSAGES)
-                }
-            }
-        )
-
-        // Global incoming call alert dialog
-        if (callState == CallState.INCOMING_RINGING && incomingCallData != null) {
-            IncomingCallDialog(
-                callerName = incomingCallData!!.callerName,
-                callerUsername = incomingCallData!!.callerUsername,
-                callerAvatar = incomingCallData!!.callerAvatar,
-                onAccept = {
+                } else if (actionType == "call") {
                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                         micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                     }
                     VoiceCallManager.acceptIncomingCall()
-                    if (currentTab != ConnectoTab.MESSAGES && currentTab != ConnectoTab.CALLS) {
-                        updateCurrentTab(ConnectoTab.MESSAGES)
-                    }
-                },
-                onDecline = {
-                    VoiceCallManager.declineIncomingCall()
                 }
-            )
-        }
+            }
+        )
 
         // Global Full-Screen Audio Call Overlay (Only when CONNECTED or OUTGOING_RINGING, never during INCOMING_RINGING)
         val isCallActiveGlobal = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
         androidx.compose.animation.AnimatedVisibility(
             visible = isCallActiveGlobal && !isCallMinimized,
-            enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) +
+            enter = androidx.compose.animation.fadeIn(animationSpec = androidx.compose.animation.core.tween(150)) +
                     androidx.compose.animation.slideInVertically(
-                        initialOffsetY = { fullHeight -> fullHeight / 4 },
-                        animationSpec = androidx.compose.animation.core.tween(300)
+                        initialOffsetY = { fullHeight -> fullHeight / 6 },
+                        animationSpec = androidx.compose.animation.core.tween(150)
                     ),
-            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(250)) +
+            exit = androidx.compose.animation.fadeOut(animationSpec = androidx.compose.animation.core.tween(150)) +
                     androidx.compose.animation.slideOutVertically(
-                        targetOffsetY = { fullHeight -> fullHeight / 4 },
-                        animationSpec = androidx.compose.animation.core.tween(250)
+                        targetOffsetY = { fullHeight -> fullHeight / 6 },
+                        animationSpec = androidx.compose.animation.core.tween(150)
                     ),
             modifier = Modifier.fillMaxSize()
         ) {

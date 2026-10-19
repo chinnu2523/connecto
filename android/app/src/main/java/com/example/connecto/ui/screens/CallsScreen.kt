@@ -282,14 +282,15 @@ fun CallsScreen(
             targetDisplayName = finalDisplayName,
             avatarUrl = avatarUrl
         )
-        coroutineScope.launch {
-            ConnectoApiClient.recordCallLog(
-                callerName = targetUser,
-                callType = "Voice Call",
-                isMissed = false,
-                isOutgoing = true
-            )
-            refreshCallLogs()
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                ConnectoApiClient.recordCallLog(
+                    callerName = targetUser,
+                    callType = "Voice Call",
+                    isMissed = false,
+                    isOutgoing = true
+                )
+            } catch (_: Exception) {}
         }
     }
 

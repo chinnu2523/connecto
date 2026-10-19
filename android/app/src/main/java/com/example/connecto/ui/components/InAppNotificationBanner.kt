@@ -30,6 +30,8 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -112,14 +114,26 @@ fun InAppNotificationBanner(
         label = "notifProgress"
     )
 
+    val callState by com.example.connecto.voice.VoiceCallManager.callState.collectAsState()
+
+    LaunchedEffect(callState) {
+        if (callState != com.example.connecto.voice.CallState.INCOMING_RINGING && current?.actionType == "call") {
+            InAppNotificationController.dismiss()
+        }
+    }
+
     LaunchedEffect(current?.id) {
         if (current != null) {
-            val stepDelayMs = DISMISS_DURATION_MS / PROGRESS_STEPS
+            val totalDurationMs = if (current.actionType == "call") 30000L else DISMISS_DURATION_MS
+            val stepDelayMs = totalDurationMs / PROGRESS_STEPS
             for (i in PROGRESS_STEPS downTo 0) {
                 progress = i / PROGRESS_STEPS.toFloat()
                 delay(stepDelayMs)
             }
             if (InAppNotificationController.currentNotification?.id == current.id) {
+                if (current.actionType == "call") {
+                    com.example.connecto.voice.VoiceCallManager.declineIncomingCall()
+                }
                 InAppNotificationController.dismiss()
             }
         }
@@ -255,7 +269,11 @@ fun InAppNotificationBanner(
                                 val action = current.actionType
                                 val ref = current.referenceId
                                 InAppNotificationController.dismiss()
-                                onNavigate(action, ref)
+                                if (action == "call") {
+                                    com.example.connecto.voice.VoiceCallManager.acceptIncomingCall()
+                                } else {
+                                    onNavigate(action, ref)
+                                }
                             }
                     ) {
                     // Main content row
@@ -398,17 +416,65 @@ fun InAppNotificationBanner(
 
                         Spacer(modifier = Modifier.width(4.dp))
 
-                        // Dismiss button
-                        IconButton(
-                            onClick = { InAppNotificationController.dismiss() },
-                            modifier = Modifier.size(30.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = "Dismiss",
-                                tint = Color(0xFF8B8FA8),
-                                modifier = Modifier.size(16.dp)
-                            )
+                        // Action buttons: Accept/Decline for Call, Close button for messages
+                        if (current.actionType == "call") {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Decline Button
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFEF4444))
+                                        .clickable {
+                                            InAppNotificationController.dismiss()
+                                            com.example.connecto.voice.VoiceCallManager.declineIncomingCall()
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CallEnd,
+                                        contentDescription = "Decline Call",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                // Accept Button
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF10B981))
+                                        .clickable {
+                                            InAppNotificationController.dismiss()
+                                            com.example.connecto.voice.VoiceCallManager.acceptIncomingCall()
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Call,
+                                        contentDescription = "Answer Call",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        } else {
+                            // Dismiss button
+                            IconButton(
+                                onClick = { InAppNotificationController.dismiss() },
+                                modifier = Modifier.size(30.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = Color(0xFF8B8FA8),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
 

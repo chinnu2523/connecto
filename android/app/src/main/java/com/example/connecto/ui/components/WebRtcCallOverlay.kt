@@ -422,6 +422,22 @@ fun FullScreenCallUI(
             val queryUser = activePartnerUsername?.trim()?.removePrefix("@")?.ifBlank { null }
                 ?: cleanDisplayName.takeIf { !it.contains(" ") && it != "Friend" }
             if (!queryUser.isNullOrBlank()) {
+                val cached = ConnectoApiClient.cachedFriends.find {
+                    it.friendUsername.equals(queryUser, ignoreCase = true) ||
+                    it.friendDisplayName.equals(queryUser, ignoreCase = true)
+                }
+                if (!cached?.friendAvatarUrl.isNullOrBlank()) {
+                    resolvedAvatar = cached?.friendAvatarUrl
+                    return@LaunchedEffect
+                }
+                val dbAv = try {
+                    com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).getFriendByUsernameOrHandle(queryUser)?.avatarUrl
+                } catch (_: Exception) { null }
+                if (!dbAv.isNullOrBlank()) {
+                    resolvedAvatar = dbAv
+                    return@LaunchedEffect
+                }
+
                 try {
                     val fRes = ConnectoApiClient.getFriends()
                     if (fRes.isSuccess) {
