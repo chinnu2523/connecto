@@ -515,8 +515,67 @@ object ConnectoApiClient {
                               cleanUser == "viki" || cleanUser.endsWith("_admin")
                 updateAdminState(isAdmin)
             }
+            if (cachedCallLogs.isEmpty()) {
+                cachedCallLogs = loadCallLogsCache(context)
+            }
         } catch (e: Exception) {
             // ignore
+        }
+    }
+
+    fun saveCallLogsCache(context: android.content.Context?, list: List<CallLogDto>) {
+        val ctx = context ?: applicationContext ?: return
+        try {
+            val prefs = ctx.getSharedPreferences("connecto_call_logs_cache", android.content.Context.MODE_PRIVATE)
+            val arr = JSONArray()
+            for (item in list.take(60)) {
+                val obj = JSONObject().apply {
+                    put("id", item.id)
+                    put("username", item.username)
+                    put("caller_name", item.callerName)
+                    put("call_type", item.callType)
+                    put("room_name", item.roomName)
+                    put("room_code", item.roomCode)
+                    put("duration_seconds", item.durationSeconds)
+                    put("is_missed", item.isMissed)
+                    put("is_outgoing", item.isOutgoing)
+                    put("created_at", item.createdAt)
+                    put("caller_avatar", item.callerAvatar ?: "")
+                }
+                arr.put(obj)
+            }
+            prefs.edit().putString("call_logs_json", arr.toString()).apply()
+        } catch (_: Exception) {}
+    }
+
+    fun loadCallLogsCache(context: android.content.Context?): List<CallLogDto> {
+        val ctx = context ?: applicationContext ?: return emptyList()
+        try {
+            val prefs = ctx.getSharedPreferences("connecto_call_logs_cache", android.content.Context.MODE_PRIVATE)
+            val raw = prefs.getString("call_logs_json", null) ?: return emptyList()
+            val arr = JSONArray(raw)
+            val list = mutableListOf<CallLogDto>()
+            for (i in 0 until arr.length()) {
+                val item = arr.getJSONObject(i)
+                list.add(
+                    CallLogDto(
+                        id = item.optString("id"),
+                        username = item.optString("username"),
+                        callerName = item.optString("caller_name"),
+                        callType = item.optString("call_type", "Voice Call"),
+                        roomName = item.optString("room_name"),
+                        roomCode = item.optString("room_code"),
+                        durationSeconds = item.optInt("duration_seconds", 0),
+                        isMissed = item.optBoolean("is_missed", false),
+                        isOutgoing = item.optBoolean("is_outgoing", true),
+                        createdAt = item.optString("created_at", "Recent"),
+                        callerAvatar = item.optString("caller_avatar").takeIf { it.isNotBlank() }
+                    )
+                )
+            }
+            return list
+        } catch (_: Exception) {
+            return emptyList()
         }
     }
 
@@ -3597,6 +3656,7 @@ object ConnectoApiClient {
                     )
                 }
                 cachedCallLogs = list
+                saveCallLogsCache(applicationContext, list)
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch call logs"))
@@ -3661,9 +3721,11 @@ object ConnectoApiClient {
                 token = token ?: sessionToken
             )
             cachedCallLogs = cachedCallLogs.filter { it.id != logId }
+            saveCallLogsCache(applicationContext, cachedCallLogs)
             Result.success(response.isSuccess)
         } catch (e: Exception) {
             cachedCallLogs = cachedCallLogs.filter { it.id != logId }
+            saveCallLogsCache(applicationContext, cachedCallLogs)
             Result.failure(e)
         }
     }
@@ -3679,9 +3741,11 @@ object ConnectoApiClient {
                 token = token ?: sessionToken
             )
             cachedCallLogs = emptyList()
+            saveCallLogsCache(applicationContext, emptyList())
             Result.success(response.isSuccess)
         } catch (e: Exception) {
             cachedCallLogs = emptyList()
+            saveCallLogsCache(applicationContext, emptyList())
             Result.failure(e)
         }
     }

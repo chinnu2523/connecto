@@ -116,14 +116,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.8",
-        version_name: "v4.5.8",
-        version_code: 87,
-        build: 87,
-        sha256: "0d0aa0c6a89d07213e16aef51eb6474f701b00fa4dcba8e704f7ab28c8f5af44",
-        md5: "f19ce880cab5d0f7d62140a5ffd49fc1",
+        version: "4.5.9",
+        version_name: "v4.5.9",
+        version_code: 88,
+        build: 88,
+        sha256: "d569b1290367fb966e0e077f07dd9d7277452aa85a639be52a6c352189e6b5ce",
+        md5: "1da7c94ee03991f66e4184d1c791e8fa",
         filename: "connecto-fun.apk",
-        size_bytes: 57832713,
+        size_bytes: 57849101,
         size_display: "55.2 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -131,11 +131,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "High-Priority Data-Only Push Engine: Switched all message deliveries to pure high-priority data-only push, permanently eliminating duplicate generic app-icon notifications from Google Play Services.",
-          "Single Native Android Conversation Notification: All incoming messages strictly display as native MessagingStyle conversations with the sender's avatar, sender name, message bubbles, and direct reply.",
-          "In-App Notification Popup Banner Suppressed: Chat messages no longer trigger in-app floating banner popups while inside the application, keeping focus on the active screen.",
-          "Call Log Synchronization: Localized time & date relative to user device timezone (Today, Yesterday, AM/PM) with formatted duration and intelligent 75s call session deduplication.",
-          "Flicker-Free Calls Tab: Re-anchored StaggeredReveal animations prevent call history flashing during active calls."
+          "Studio-Grade Voice Isolation Engine: Hardware NoiseSuppressor, AcousticEchoCanceler, and AutomaticGainControl bound directly to AudioRecord session ID, eliminating background noise at the SoC silicon layer.",
+          "Multi-Mic Beamforming: Auto-detects dual-mic hardware (API 28+) and activates directional beamforming focused on the user's mouth with MIC_DIRECTION_TOWARDS_USER and narrow field dimension.",
+          "4-Stage DSP Noise Pipeline: 140Hz Butterworth HPF removes rumble; 3400Hz LPF kills hiss; -90dB adaptive expander gate silences room ambiance during speech pauses with 240ms hangover hold.",
+          "Profile Delete Account Button Removed: The 'Delete Account Forever' button has been removed from the Profile tab Danger Zone; deletion is accessible only via Help & Support.",
+          "Calls Tab Speed Fix: Parallel async data fetching, D1 expression indexes, SharedPreferences disk cache, and background pre-fetching eliminate the cold-start loading delay."
         ]
       });
     }
@@ -180,19 +180,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.8/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.8/connecto-v4.5.8.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.9/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.9/connecto-v4.5.9.apk",
           "https://connecto.fun/downloads/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.8-b87-verified.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.9-b88-verified.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.8");
-          res.headers.set("X-Connecto-Build", "87");
+          res.headers.set("X-Connecto-Version", "v4.5.9");
+          res.headers.set("X-Connecto-Build", "88");
           return res;
         }
 
@@ -205,7 +205,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.5.8"
+                "User-Agent": "Connecto-Cloud-Worker/4.5.9"
               }
             });
             if (upstreamResp.ok) {
@@ -216,8 +216,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.5.8");
-              downloadHeaders.set("X-Connecto-Build", "87");
+              downloadHeaders.set("X-Connecto-Version", "v4.5.9");
+              downloadHeaders.set("X-Connecto-Build", "88");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -232,7 +232,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.8/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.9/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -5789,14 +5789,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.8",
-      version_name: "v4.5.8",
-      version_code: 87,
-      build: 87,
-      sha256: "0d0aa0c6a89d07213e16aef51eb6474f701b00fa4dcba8e704f7ab28c8f5af44",
-      md5: "f19ce880cab5d0f7d62140a5ffd49fc1",
+      version: "4.5.9",
+      version_name: "v4.5.9",
+      version_code: 88,
+      build: 88,
+      sha256: "d569b1290367fb966e0e077f07dd9d7277452aa85a639be52a6c352189e6b5ce",
+      md5: "1da7c94ee03991f66e4184d1c791e8fa",
       filename: "connecto-fun.apk",
-      size_bytes: 57832713,
+      size_bytes: 57849101,
       size_display: "55.2 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -5810,10 +5810,28 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.5.9",
+          date: "Oct 19, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.5.9: Hardware Voice Isolation, Multi-Mic Beamforming & Calls Tab Speed Fix",
+          summary: "Connecto v4.5.9 introduces a studio-grade 4-stage DSP voice isolation engine with automatic phone hardware capability detection. The app now binds Android's native NoiseSuppressor, AcousticEchoCanceler, and AutomaticGainControl directly to the AudioRecord hardware session, detects multi-mic beamforming capabilities, and engages directional microphone focus — completely eliminating background fan noise, AC hum, keyboard clicks, and room ambiance from calls. The Calls tab cold-start loading delay is resolved via parallel coroutine execution, D1 expression indexes, and SharedPreferences disk caching. The 'Delete Account Forever' button is removed from the Profile tab Danger Zone.",
+          highlights: [
+            "Hardware NoiseSuppressor, AEC & AGC: Binds Android SoC acoustic hardware effects directly to AudioRecord session ID on supported devices — eliminates background noise at the silicon chip level.",
+            "Multi-Mic Beamforming Detection: Auto-detects dual-microphone hardware (API 28+) and activates directional beamforming using MIC_DIRECTION_TOWARDS_USER with a narrow 0.0f acoustic field dimension.",
+            "4-Stage Studio DSP Pipeline: 140Hz Butterworth HPF (rumble/handling noise) → 3400Hz LPF (hiss/coil whine) → -90dB adaptive expander gate with 240ms hangover → vocal presence normalization with soft limiter.",
+            "HAL Parameter Injection: Pushes voice_isolation=true, noise_suppression=on, dualmic_enabled=true, beamforming=true, clear_voice=on directly to the Android audio HAL.",
+            "Profile Danger Zone Cleanup: 'Delete Account Forever' button removed from Profile tab; account deletion is accessible exclusively through Help & Support.",
+            "Calls Tab Cold-Start Fix: Parallel async getFriends()+getCallLogs() via coroutines, SharedPreferences disk cache, and two D1 expression indexes (lower(username), lower(caller_name)) eliminate the loading delay.",
+            "Android Native App v4.5.9 (Build 88 • 55.2 MB): SHA-256 d569b1290367fb966e0e077f07dd9d7277452aa85a639be52a6c352189e6b5ce • MD5 1da7c94ee03991f66e4184d1c791e8fa."
+          ],
+          author: "Connecto Telephony & DSP Engineering Team"
+        },
+        {
           version: "v4.5.8",
           date: "Oct 19, 2026",
           category: "fix",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.5.8: High-Priority Data-Only Push & Duplicate App Notification Elimination",
           summary: "Connecto v4.5.8 transitions all push notification delivery to pure high-priority data-only payloads, permanently eliminating duplicate generic app-icon notifications and ensuring incoming messages display strictly as native Android MessagingStyle conversation notifications with contact avatars. In-app floating banner popups are suppressed for messages to keep focus on screen.",
           highlights: [

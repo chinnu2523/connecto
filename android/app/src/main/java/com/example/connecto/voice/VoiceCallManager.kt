@@ -12,6 +12,8 @@ import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AutomaticGainControl
 import android.media.audiofx.NoiseSuppressor
 import android.os.Build
 import android.util.Base64
@@ -157,7 +159,23 @@ object VoiceCallManager {
     // Realtime Voice Isolation (Adaptive Noise Cancellation & Vocal EQ)
     private val _isVoiceIsolationEnabled = MutableStateFlow(true)
     val isVoiceIsolationEnabled: StateFlow<Boolean> = _isVoiceIsolationEnabled.asStateFlow()
+
+    data class VoiceIsolationCapabilities(
+        val hasHardwareNoiseSuppressor: Boolean = false,
+        val hasHardwareEchoCanceler: Boolean = false,
+        val hasHardwareGainControl: Boolean = false,
+        val hasHardwareMicBeamforming: Boolean = false,
+        val multiMicCount: Int = 1,
+        val isHardwareSupported: Boolean = false,
+        val statusSummary: String = "AI Studio Noise Filter"
+    )
+
+    private val _voiceIsolationCapabilities = MutableStateFlow(VoiceIsolationCapabilities())
+    val voiceIsolationCapabilities: StateFlow<VoiceIsolationCapabilities> = _voiceIsolationCapabilities.asStateFlow()
+
     private var hardwareNoiseSuppressor: NoiseSuppressor? = null
+    private var hardwareEchoCanceler: AcousticEchoCanceler? = null
+    private var hardwareGainControl: AutomaticGainControl? = null
 
     private var audioDeviceCallback: android.media.AudioDeviceCallback? = null
 
@@ -540,9 +558,17 @@ object VoiceCallManager {
         try {
             val audioConstraints = MediaConstraints().apply {
                 mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation2", "true"))
                 mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl2", "true"))
                 mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
                 mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression2", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("googTypingNoiseDetection", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("googAudioMirroring", "false"))
+                mandatory.add(MediaConstraints.KeyValuePair("echoCancellation", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("noiseSuppression", "true"))
+                mandatory.add(MediaConstraints.KeyValuePair("autoGainControl", "true"))
             }
             val source = factory.createAudioSource(audioConstraints)
             localAudioSource = source
@@ -986,6 +1012,8 @@ object VoiceCallManager {
         val savedVoiceIso = context.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
             .getBoolean("connecto_voice_isolation_enabled", true)
         _isVoiceIsolationEnabled.value = savedVoiceIso
+        detectVoiceIsolationCapabilities(context)
+        applyHardwareVoiceIsolationParams(savedVoiceIso)
         initWebRtcFactory(context)
         initAudioDeviceCallbacks()
         connectWebSocket()
@@ -2637,25 +2665,74 @@ object VoiceCallManager {
         }
     }
 
+    fun detectVoiceIsolationCapabilities(context: Context): VoiceIsolationCapabilities {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val hasNs = try { NoiseSuppressor.isAvailable() } catch (_: Throwable) { false }
+        val hasAec = try { AcousticEchoCanceler.isAvailable() } catch (_: Throwable) { false }
+        val hasAgc = try { AutomaticGainControl.isAvailable() } catch (_: Throwable) { false }
+
+        var micCount = 1
+        var hasBeamforming = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && am != null) {
+            try {
+                val mics = am.microphones
+                micCount = mics.size
+                hasBeamforming = micCount >= 2
+            } catch (_: Throwable) {}
+        }
+
+        val isHwSupported = hasNs || hasAec || hasBeamforming
+        val summary = when {
+            hasBeamforming && hasNs -> "Hardware Dual-Mic Beamforming + AI Studio Isolation"
+            hasNs -> "Hardware Noise Suppressor + AI Studio Isolation"
+            hasAec -> "Hardware Echo Canceler + AI Studio Isolation"
+            else -> "Advanced AI Studio Voice Isolation"
+        }
+
+        val caps = VoiceIsolationCapabilities(
+            hasHardwareNoiseSuppressor = hasNs,
+            hasHardwareEchoCanceler = hasAec,
+            hasHardwareGainControl = hasAgc,
+            hasHardwareMicBeamforming = hasBeamforming,
+            multiMicCount = micCount,
+            isHardwareSupported = isHwSupported,
+            statusSummary = summary
+        )
+        _voiceIsolationCapabilities.value = caps
+        Log.i(TAG, "Voice Isolation Capabilities detected on device: $caps")
+        return caps
+    }
+
+    fun applyHardwareVoiceIsolationParams(enabled: Boolean) {
+        try {
+            val am = audioManager ?: return
+            am.mode = AudioManager.MODE_IN_COMMUNICATION
+            if (enabled) {
+                am.setParameters("voice_isolation=true")
+                am.setParameters("voice_isolation=on")
+                am.setParameters("noise_suppression=on")
+                am.setParameters("noise_suppression=true")
+                am.setParameters("dualmic_enabled=true")
+                am.setParameters("beamforming=true")
+                am.setParameters("clear_voice=on")
+                am.setParameters("call_noise_reduction=true")
+                am.setParameters("ai_noise_reduction=true")
+            } else {
+                am.setParameters("voice_isolation=false")
+                am.setParameters("voice_isolation=off")
+                am.setParameters("noise_suppression=off")
+            }
+        } catch (_: Throwable) {}
+    }
+
     /**
      * Toggles hardware and DSP voice isolation.
      * When enabled, background noise is dynamically suppressed and voice frequencies isolated.
      */
     fun toggleVoiceIsolation(): Boolean {
         val newState = !_isVoiceIsolationEnabled.value
-        _isVoiceIsolationEnabled.value = newState
-        try {
-            hardwareNoiseSuppressor?.enabled = newState
-        } catch (t: Throwable) {
-            Log.w(TAG, "Failed to toggle hardware noise suppressor: ${t.message}")
-        }
-        try {
-            appContext?.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
-                ?.edit()
-                ?.putBoolean("connecto_voice_isolation_enabled", newState)
-                ?.apply()
-        } catch (_: Throwable) {}
-        Log.d(TAG, "Voice Isolation is now: $newState")
+        setVoiceIsolation(newState)
+        Log.d(TAG, "Voice Isolation toggled to: $newState (${_voiceIsolationCapabilities.value.statusSummary})")
         return newState
     }
 
@@ -2667,6 +2744,17 @@ object VoiceCallManager {
             Log.w(TAG, "Failed to set hardware noise suppressor: ${t.message}")
         }
         try {
+            hardwareEchoCanceler?.enabled = enabled
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to set hardware echo canceler: ${t.message}")
+        }
+        try {
+            hardwareGainControl?.enabled = enabled
+        } catch (t: Throwable) {
+            Log.w(TAG, "Failed to set hardware gain control: ${t.message}")
+        }
+        applyHardwareVoiceIsolationParams(enabled)
+        try {
             appContext?.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
                 ?.edit()
                 ?.putBoolean("connecto_voice_isolation_enabled", enabled)
@@ -2674,63 +2762,125 @@ object VoiceCallManager {
         } catch (_: Throwable) {}
     }
 
-    private var dspNoiseFloor = 400.0
-    private var dspSpeechGain = 1.0f
+    // Biquad filter state for 2nd-order Butterworth HPF (140Hz cutoff at 16kHz)
+    private var hpX1 = 0f
+    private var hpX2 = 0f
+    private var hpY1 = 0f
+    private var hpY2 = 0f
+
+    // Biquad filter state for 2nd-order Butterworth LPF (3400Hz cutoff at 16kHz)
+    private var lpX1 = 0f
+    private var lpX2 = 0f
+    private var lpY1 = 0f
+    private var lpY2 = 0f
+
+    // Adaptive noise floor and voice gate state
+    private var dspNoiseFloor = 180.0
+    private var dspSmoothedGain = 0.0f
+    private var voiceHangoverFrames = 0
+
+    // Filter coefficients precomputed for 16kHz audio:
+    // HPF: fc = 140Hz, Q = 0.7071
+    private val hpB0 = 0.961870f
+    private val hpB1 = -1.923740f
+    private val hpB2 = 0.961870f
+    private val hpA1 = -1.922286f
+    private val hpA2 = 0.925195f
+
+    // LPF: fc = 3400Hz, Q = 0.7071
+    private val lpB0 = 0.227117f
+    private val lpB1 = 0.454234f
+    private val lpB2 = 0.227117f
+    private val lpA1 = -0.276664f
+    private val lpA2 = 0.185132f
 
     /**
-     * Real-time DSP Voice Isolation processor for 16-bit PCM mono stream:
-     * 1. 2nd-order High-pass filter (~280Hz) to reject low-end AC rumble, handling noise, wind.
-     * 2. 2nd-order Low-pass filter (~3400Hz) to reject high-frequency hiss, fan whine, and clicking.
-     * 3. Adaptive Spectral Noise Floor tracking & Voice Gate to eliminate ambient background noise.
-     * 4. Vocal presence normalization with soft saturation limiter.
+     * Multi-stage studio Voice Isolation DSP:
+     * 1. 2nd-order Butterworth High-Pass Filter (140Hz) rejecting DC offset, handling noise, desk thumps, AC hum.
+     * 2. 2nd-order Butterworth Low-Pass Filter (3400Hz) rejecting fan turbulence, coil whine, keyboard clicks.
+     * 3. Statistical ambient noise floor estimation with stationary noise isolation.
+     * 4. Downward expander / voice gate: complete black silence (0.00f) during pauses, 250ms hangover hold time.
+     * 5. Vocal presence normalization with soft saturation limiter preventing clipping.
      */
     private fun applyVoiceIsolationDsp(buffer: ByteArray, length: Int) {
         if (length < 2) return
 
         val shortsCount = length / 2
+        val filtered = FloatArray(shortsCount)
         var frameEnergy = 0.0
 
-        val samples = ShortArray(shortsCount)
         for (i in 0 until shortsCount) {
             val low = buffer[i * 2].toInt() and 0xFF
             val high = buffer[i * 2 + 1].toInt()
-            val sample = ((high shl 8) or low).toShort()
-            samples[i] = sample
-            frameEnergy += sample * sample
+            val raw = ((high shl 8) or low).toFloat()
+
+            // 1. High-Pass Filter (140Hz)
+            val hpY = hpB0 * raw + hpB1 * hpX1 + hpB2 * hpX2 - hpA1 * hpY1 - hpA2 * hpY2
+            hpX2 = hpX1
+            hpX1 = raw
+            hpY2 = hpY1
+            hpY1 = hpY
+
+            // 2. Low-Pass Filter (3400Hz)
+            val lpY = lpB0 * hpY + lpB1 * lpX1 + lpB2 * lpX2 - lpA1 * lpY1 - lpA2 * lpY2
+            lpX2 = lpX1
+            lpX1 = hpY
+            lpY2 = lpY1
+            lpY1 = lpY
+
+            filtered[i] = lpY
+            frameEnergy += lpY * lpY
         }
 
         val frameRms = if (shortsCount > 0) Math.sqrt(frameEnergy / shortsCount) else 0.0
 
-        // Slow tracking of ambient noise floor
+        // Adaptive Noise Floor Profiler
         if (frameRms < dspNoiseFloor * 1.5) {
-            dspNoiseFloor = dspNoiseFloor * 0.95 + frameRms * 0.05
+            dspNoiseFloor = dspNoiseFloor * 0.94 + frameRms * 0.06
         } else {
-            dspNoiseFloor = dspNoiseFloor * 0.999 + frameRms * 0.001
+            dspNoiseFloor = dspNoiseFloor * 0.998 + frameRms * 0.002
         }
-        val safeNoiseFloor = maxOf(dspNoiseFloor, 250.0)
-        val speechThreshold = safeNoiseFloor * 2.2
+
+        val safeNoiseFloor = maxOf(dspNoiseFloor, 120.0)
+        val speechThreshold = safeNoiseFloor * 2.3
+        val silenceFloor = safeNoiseFloor * 1.2
 
         val targetGain = when {
-            frameRms < safeNoiseFloor * 1.2 -> 0.05f // Silence background noise (-26dB)
-            frameRms < speechThreshold -> 0.30f     // Transition zone
-            else -> 1.15f                          // Human vocal presence boost (+1.2dB)
+            frameRms > speechThreshold -> {
+                voiceHangoverFrames = 12 // ~240ms hold time prevents dropping word endings
+                1.15f
+            }
+            voiceHangoverFrames > 0 -> {
+                voiceHangoverFrames--
+                1.0f
+            }
+            frameRms < silenceFloor -> {
+                0.0f // Complete studio black silence when user is not speaking
+            }
+            else -> {
+                val ratio = ((frameRms - silenceFloor) / (speechThreshold - silenceFloor)).coerceIn(0.0, 1.0).toFloat()
+                ratio * ratio // Soft-knee expansion curve
+            }
         }
 
-        dspSpeechGain = dspSpeechGain * 0.70f + targetGain * 0.30f
+        // Asymmetric attack / release smoothing
+        if (targetGain > dspSmoothedGain) {
+            dspSmoothedGain = dspSmoothedGain * 0.35f + targetGain * 0.65f // Instant attack (~10ms)
+        } else {
+            dspSmoothedGain = dspSmoothedGain * 0.86f + targetGain * 0.14f // Smooth decay (~150ms)
+        }
 
-        var prevInput = 0f
-        var prevOutput = 0f
-        val alphaHp = 0.88f // ~280Hz cutoff at 16kHz
-
+        // Apply gain, noise floor reduction, and soft saturation limiter
         for (i in 0 until shortsCount) {
-            val raw = samples[i].toFloat()
-            val hp = alphaHp * (prevOutput + raw - prevInput)
-            prevInput = raw
-            prevOutput = hp
+            val sample = filtered[i]
+            var isolated = sample * dspSmoothedGain
 
-            var isolated = hp * dspSpeechGain
-            if (isolated > 32000f) isolated = 32000f
-            if (isolated < -32000f) isolated = -32000f
+            // Soft saturation limiter to preserve vocal warmth without digital clipping
+            if (isolated > 30000f) {
+                isolated = 30000f + (isolated - 30000f) * 0.2f
+            } else if (isolated < -30000f) {
+                isolated = -30000f + (isolated + 30000f) * 0.2f
+            }
 
             val outShort = isolated.toInt().coerceIn(-32768, 32767)
             buffer[i * 2] = (outShort and 0xFF).toByte()
@@ -3019,7 +3169,15 @@ object VoiceCallManager {
             try {
                 hardwareNoiseSuppressor?.release()
             } catch (_: Throwable) {}
+            try {
+                hardwareEchoCanceler?.release()
+            } catch (_: Throwable) {}
+            try {
+                hardwareGainControl?.release()
+            } catch (_: Throwable) {}
             hardwareNoiseSuppressor = null
+            hardwareEchoCanceler = null
+            hardwareGainControl = null
 
             try {
                 if (trackToRelease?.playState == AudioTrack.PLAYSTATE_PLAYING) {
@@ -3143,16 +3301,47 @@ object VoiceCallManager {
             isRecordingActive = true
             Log.d(TAG, "AudioRecord started recording")
 
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    activeRecord.setPreferredMicrophoneDirection(AudioRecord.MIC_DIRECTION_TOWARDS_USER)
+                    activeRecord.setPreferredMicrophoneFieldDimension(0.0f)
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Microphone directionality not supported: ${t.message}")
+                }
+            }
+
+            val sessionId = activeRecord.audioSessionId
             if (NoiseSuppressor.isAvailable()) {
                 try {
-                    hardwareNoiseSuppressor = NoiseSuppressor.create(activeRecord.audioSessionId)?.apply {
-                        enabled = _isVoiceIsolationEnabled.value
+                    hardwareNoiseSuppressor = NoiseSuppressor.create(sessionId)?.apply {
+                        this.enabled = _isVoiceIsolationEnabled.value
                     }
                     Log.d(TAG, "Hardware NoiseSuppressor attached to AudioRecord (enabled=${hardwareNoiseSuppressor?.enabled})")
                 } catch (t: Throwable) {
                     Log.w(TAG, "Could not attach hardware NoiseSuppressor: ${t.message}")
                 }
             }
+            if (AcousticEchoCanceler.isAvailable()) {
+                try {
+                    hardwareEchoCanceler = AcousticEchoCanceler.create(sessionId)?.apply {
+                        this.enabled = _isVoiceIsolationEnabled.value
+                    }
+                    Log.d(TAG, "Hardware AcousticEchoCanceler attached to AudioRecord (enabled=${hardwareEchoCanceler?.enabled})")
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Could not attach hardware AcousticEchoCanceler: ${t.message}")
+                }
+            }
+            if (AutomaticGainControl.isAvailable()) {
+                try {
+                    hardwareGainControl = AutomaticGainControl.create(sessionId)?.apply {
+                        this.enabled = _isVoiceIsolationEnabled.value
+                    }
+                    Log.d(TAG, "Hardware AutomaticGainControl attached to AudioRecord (enabled=${hardwareGainControl?.enabled})")
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Could not attach hardware AutomaticGainControl: ${t.message}")
+                }
+            }
+            applyHardwareVoiceIsolationParams(_isVoiceIsolationEnabled.value)
 
             recordingJob = scope.launch(Dispatchers.IO) {
                 val buffer = ByteArray(CHUNK_SIZE_BYTES)

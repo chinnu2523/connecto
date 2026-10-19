@@ -484,6 +484,9 @@ fun ConnectoApp(
                 )
                 com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
                 com.example.connecto.network.ConnectoApiClient.getProfile(authenticatedUsername)
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    com.example.connecto.network.ConnectoApiClient.getCallLogs(authenticatedUsername)
+                }
             } catch (e: Exception) {
                 // Ignore network error on startup
             }

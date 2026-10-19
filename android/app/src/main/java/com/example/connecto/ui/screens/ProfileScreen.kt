@@ -1754,43 +1754,6 @@ fun ProfileScreen(
                     }
                 }
 
-                // ================= 7. DANGER ZONE: DELETE ACCOUNT FOREVER =================
-                item(key = "danger_zone_delete_account") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clickable {
-                                deleteConfirmInput = ""
-                                showDeleteAccountDialog = true
-                            }
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.40f)
-                                else Color(0xFFDC2626).copy(alpha = 0.15f)
-                            )
-                            .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.50f), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.DeleteForever,
-                                contentDescription = null,
-                                tint = Color(0xFFDC2626),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Delete Account Forever",
-                                color = Color(0xFFDC2626),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.3.sp
-                            )
-                        }
-                    }
-                }
-
                 
                         item { Spacer(modifier = Modifier.height(32.dp)) }
                     }
@@ -5205,7 +5168,7 @@ fun ProfileScreen(
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
-                                                text = "Delete Account Forever",
+                                                text = "Delete Account",
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp
                                             )
@@ -5833,6 +5796,7 @@ fun ProfileScreen(
 private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
     val context = LocalContext.current
     val isVoiceIsoActive by com.example.connecto.voice.VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
+    val voiceIsolationCaps by com.example.connecto.voice.VoiceCallManager.voiceIsolationCapabilities.collectAsState()
     
     val audioPrefs = remember { context.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE) }
     var echoCancellation by remember { mutableStateOf(audioPrefs.getBoolean("connecto_echo_cancellation", true)) }
@@ -5946,7 +5910,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = if (isVoiceIsoActive) "Spectral bandpass & noise gating engaged" else "Raw mic input without suppression",
+                            text = if (isVoiceIsoActive) "${voiceIsolationCaps.statusSummary} engaged" else "Raw mic input without suppression",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             lineHeight = 16.sp
@@ -5962,7 +5926,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         } catch (_: Throwable) {}
                         Toast.makeText(
                             context,
-                            if (isChecked) "Voice Isolation Enabled" else "Voice Isolation Disabled",
+                            if (isChecked) "Voice Isolation: Active (${voiceIsolationCaps.statusSummary})" else "Voice Isolation Disabled",
                             Toast.LENGTH_SHORT
                         ).show()
                     },
@@ -6064,30 +6028,42 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 DspSpecItem(
-                    title = "280Hz High-Pass Filter",
-                    detail = "Rejects low-end AC rumble, desk vibrations & wind buffeting",
+                    title = "140Hz High-Pass Filter",
+                    detail = "Rejects sub-vocal rumble, AC hum, desk vibrations & handling noise",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
-                    title = "3400Hz Speech Low-Pass Filter",
-                    detail = "Attenuates high-frequency coil whine, hiss & fan noise",
+                    title = "3400Hz Vocal Low-Pass Filter",
+                    detail = "Attenuates high-frequency fan hiss, coil whine & keyboard clicks",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
-                    title = "Adaptive Spectral Noise Gate (-26dB)",
-                    detail = "Dynamically mutes room reverberation during pauses in speech",
+                    title = "Adaptive Expander Gate (-90dB)",
+                    detail = "Total silence floor between speech with 240ms hangover protection",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
-                    title = "Speech Presence Boost (+1.2dB)",
-                    detail = "Preserves crystal-clear vocal intelligibility on noisy calls",
+                    title = "Vocal Presence Normalization (+1.8dB)",
+                    detail = "Optimizes intelligibility and prevents clipping with soft limiter",
                     isActive = isVoiceIsoActive
                 )
                 DspSpecItem(
-                    title = if (hwNsAvailable) "Hardware NoiseSuppressor (HAL Active)" else "Software DSP Spectral Engine",
-                    detail = if (hwNsAvailable) "Leveraging SoC dedicated acoustic processor" else "Running high-performance software audio pipeline",
+                    title = if (voiceIsolationCaps.hasHardwareMicBeamforming) "Multi-Mic Beamforming (${voiceIsolationCaps.multiMicCount} Mics Detected)" else "Directional Mic Mode",
+                    detail = if (voiceIsolationCaps.hasHardwareMicBeamforming) "Hardware beamforming isolates user's mouth and cancels room ambiance" else "Acoustic focusing on front microphone",
+                    isActive = isVoiceIsoActive
+                )
+                DspSpecItem(
+                    title = if (voiceIsolationCaps.hasHardwareNoiseSuppressor) "Hardware NoiseSuppressor (SoC HAL Active)" else "Software DSP Noise Processor",
+                    detail = if (voiceIsolationCaps.hasHardwareNoiseSuppressor) "Dedicated DSP core silicon noise cancellation" else "Running high-performance software spectral subtraction",
                     isActive = true
                 )
+                if (voiceIsolationCaps.hasHardwareEchoCanceler) {
+                    DspSpecItem(
+                        title = "Hardware Acoustic Echo Cancellation (AEC)",
+                        detail = "SoC-level echo removal eliminating speakerphone feedback",
+                        isActive = true
+                    )
+                }
             }
 
             // Additional Audio Features

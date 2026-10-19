@@ -102,6 +102,7 @@ fun WebRtcCallOverlay(
     val isMuted by VoiceCallManager.isMuted.collectAsState()
     val isSpeakerOn by VoiceCallManager.isSpeakerOn.collectAsState()
     val isVoiceIsolationEnabled by VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
+    val voiceIsolationCapabilities by VoiceCallManager.voiceIsolationCapabilities.collectAsState()
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
     val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
@@ -328,9 +329,10 @@ fun WebRtcCallOverlay(
                         .border(1.dp, if (isVoiceIsolationEnabled) OnlineGreen else MaterialTheme.colorScheme.outline, CircleShape)
                         .clickable {
                             val active = VoiceCallManager.toggleVoiceIsolation()
+                            val summary = VoiceCallManager.voiceIsolationCapabilities.value.statusSummary
                             android.widget.Toast.makeText(
                                 context,
-                                if (active) "Voice Isolation: Active (Noise Blocked)" else "Voice Isolation: Off",
+                                if (active) "Voice Isolation: Active ($summary)" else "Voice Isolation: Off",
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
                         },
@@ -391,6 +393,7 @@ fun FullScreenCallUI(
     val bluetoothDeviceName by VoiceCallManager.bluetoothDeviceName.collectAsState()
     var showAudioRouteDialog by remember { mutableStateOf(false) }
     val isVoiceIsolationEnabled by VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
+    val voiceIsolationCapabilities by VoiceCallManager.voiceIsolationCapabilities.collectAsState()
 
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
     val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
@@ -665,7 +668,7 @@ fun FullScreenCallUI(
                     Spacer(modifier = Modifier.width(7.dp))
                     Text(
                         text = if (callState == CallState.CONNECTED) {
-                            if (isVoiceIsolationEnabled) "E2E • VOICE ISOLATED" else "E2E ENCRYPTED"
+                            if (isVoiceIsolationEnabled) "E2E • ${voiceIsolationCapabilities.statusSummary.uppercase()}" else "E2E ENCRYPTED"
                         } else "CONNECTING",
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -1056,9 +1059,10 @@ fun FullScreenCallUI(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.clickable {
                                 val active = VoiceCallManager.toggleVoiceIsolation()
+                                val summary = VoiceCallManager.voiceIsolationCapabilities.value.statusSummary
                                 android.widget.Toast.makeText(
                                     context,
-                                    if (active) "Voice Isolation: Active (Noise Blocked)" else "Voice Isolation: Off (Normal Mic)",
+                                    if (active) "Voice Isolation: Active ($summary)" else "Voice Isolation: Off (Normal Mic)",
                                     android.widget.Toast.LENGTH_SHORT
                                 ).show()
                             }

@@ -100,6 +100,7 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 import com.example.connecto.network.CallLogDto
 import com.example.connecto.ui.designsystem.resolveImageModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -294,7 +295,15 @@ fun CallsScreen(
 
     val liveCallLogs = remember {
         mutableStateListOf<CallLogItem>().apply {
-            val cached = ConnectoApiClient.cachedCallLogs
+            val cached = if (ConnectoApiClient.cachedCallLogs.isNotEmpty()) {
+                ConnectoApiClient.cachedCallLogs
+            } else {
+                val diskLogs = ConnectoApiClient.loadCallLogsCache(context)
+                if (diskLogs.isNotEmpty()) {
+                    ConnectoApiClient.cachedCallLogs = diskLogs
+                }
+                diskLogs
+            }
             if (cached.isNotEmpty()) {
                 val cleanLogs = cached.filter { log ->
                     !log.callerName.contains("Tactical", ignoreCase = true) &&
@@ -308,12 +317,24 @@ fun CallsScreen(
         }
     }
 
+    var isInitialLoading by remember { mutableStateOf(liveCallLogs.isEmpty()) }
+
     fun refreshCallLogs() {
         coroutineScope.launch {
             try {
-                val friendsRes = ConnectoApiClient.getFriends(username = currentUsername)
-                val friends = friendsRes.getOrDefault(ConnectoApiClient.cachedFriends)
-                val res = ConnectoApiClient.getCallLogs(username = currentUsername)
+                // Fetch call logs and friends concurrently in parallel to eliminate waterfall latency
+                val friendsDeferred = async {
+                    if (ConnectoApiClient.cachedFriends.isNotEmpty()) {
+                        ConnectoApiClient.cachedFriends
+                    } else {
+                        ConnectoApiClient.getFriends(username = currentUsername).getOrDefault(emptyList())
+                    }
+                }
+                val logsDeferred = async {
+                    ConnectoApiClient.getCallLogs(username = currentUsername)
+                }
+                val friends = friendsDeferred.await()
+                val res = logsDeferred.await()
                 if (res.isSuccess) {
                     val logs = res.getOrThrow()
                     if (logs.isNotEmpty()) {
@@ -379,6 +400,8 @@ fun CallsScreen(
                 }
             } catch (e: Exception) {
                 // ignore
+            } finally {
+                isInitialLoading = false
             }
         }
     }
@@ -588,9 +611,10 @@ fun CallsScreen(
                                 )
                                 .clickable {
                                     val newState = VoiceCallManager.toggleVoiceIsolation()
+                                    val summary = VoiceCallManager.voiceIsolationCapabilities.value.statusSummary
                                     Toast.makeText(
                                         context,
-                                        if (newState) "Voice Isolation: Active (Studio Noise Cancellation)" else "Voice Isolation: Disabled",
+                                        if (newState) "Voice Isolation: Active ($summary)" else "Voice Isolation: Disabled",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                 }
@@ -803,67 +827,86 @@ fun CallsScreen(
                                 .padding(vertical = 56.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(54.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                                    contentAlignment = Alignment.Center
+                            if (isInitialLoading) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Call,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(26.dp)
+                                    androidx.compose.material3.CircularProgressIndicator(
+                                        modifier = Modifier.size(36.dp),
+                                        color = gradientColors.first(),
+                                        strokeWidth = 3.dp
+                                    )
+                                    Text(
+                                        text = "Syncing call history...",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                val emptyTitle = if (callSearchQuery.isNotBlank()) {
-                                    "No calls found"
-                                } else when (selectedFilter) {
-                                    "Incoming" -> "No incoming calls"
-                                    "Outgoing" -> "No outgoing calls yet"
-                                    "Missed" -> "No missed calls"
-                                    else -> "No call history yet"
-                                }
-                                val emptySubtitle = if (callSearchQuery.isNotBlank()) {
-                                    "No call logs match \"$callSearchQuery\""
-                                } else when (selectedFilter) {
-                                    "Incoming" -> "Incoming calls from others will appear here"
-                                    "Outgoing" -> "Calls you place will appear here"
-                                    "Missed" -> "Missed calls will appear here"
-                                    else -> "Outgoing and incoming voice calls will appear here"
-                                }
-                                Text(
-                                    text = emptyTitle,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = emptySubtitle,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Button(
-                                    onClick = { showCreateVoiceGroupDialog = true },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = gradientColors.first(),
-                                        contentColor = contentOnGradient
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
+                            } else {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.GroupAdd,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                    Box(
+                                        modifier = Modifier
+                                            .size(54.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Call,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(26.dp)
+                                        )
+                                    }
+                                    val emptyTitle = if (callSearchQuery.isNotBlank()) {
+                                        "No calls found"
+                                    } else when (selectedFilter) {
+                                        "Incoming" -> "No incoming calls"
+                                        "Outgoing" -> "No outgoing calls yet"
+                                        "Missed" -> "No missed calls"
+                                        else -> "No call history yet"
+                                    }
+                                    val emptySubtitle = if (callSearchQuery.isNotBlank()) {
+                                        "No call logs match \"$callSearchQuery\""
+                                    } else when (selectedFilter) {
+                                        "Incoming" -> "Incoming calls from others will appear here"
+                                        "Outgoing" -> "Calls you place will appear here"
+                                        "Missed" -> "Missed calls will appear here"
+                                        else -> "Outgoing and incoming voice calls will appear here"
+                                    }
+                                    Text(
+                                        text = emptyTitle,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Group Voice Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        text = emptySubtitle,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Button(
+                                        onClick = { showCreateVoiceGroupDialog = true },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = gradientColors.first(),
+                                            contentColor = contentOnGradient
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.GroupAdd,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Group Voice Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
