@@ -254,7 +254,8 @@ data class CallLogDto(
     val durationSeconds: Int = 0,
     val isMissed: Boolean = false,
     val isOutgoing: Boolean = true,
-    val createdAt: String = ""
+    val createdAt: String = "",
+    val callerAvatar: String? = null
 )
 
 data class UsernameCheckResult(
@@ -359,6 +360,9 @@ object ConnectoApiClient {
 
     @Volatile
     var cachedCallLogs: List<CallLogDto> = emptyList()
+
+    @Volatile
+    var cachedFriends: List<FriendshipDto> = emptyList()
 
     @Volatile
     var isStealthMode: Boolean = false
@@ -3147,6 +3151,7 @@ object ConnectoApiClient {
                         )
                     }
                 }
+                cachedFriends = list
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch friends"))
@@ -3551,6 +3556,11 @@ object ConnectoApiClient {
                     val item = arr.getJSONObject(i)
                     val dispName = item.optString("display_name", "")
                     val callerName = if (dispName.isNotBlank()) dispName else item.optString("caller_name")
+                    val av = item.optString("caller_avatar").ifEmpty {
+                        item.optString("avatar").ifEmpty {
+                            item.optString("avatar_url")
+                        }
+                    }.takeIf { it.isNotBlank() }
                     list.add(
                         CallLogDto(
                             id = item.optString("id"),
@@ -3562,7 +3572,8 @@ object ConnectoApiClient {
                             durationSeconds = item.optInt("duration_seconds", 0),
                             isMissed = item.optBoolean("is_missed", false),
                             isOutgoing = item.optBoolean("is_outgoing", true),
-                            createdAt = item.optString("created_at", "Recent")
+                            createdAt = item.optString("created_at", "Recent"),
+                            callerAvatar = av
                         )
                     )
                 }
@@ -4545,7 +4556,8 @@ object ConnectoApiClient {
                     token = token ?: sessionToken
                 )
             }
-            if (!response.isSuccess) {
+            val isSpecificUser = !username.isNullOrBlank() && !username.equals(currentUsername, ignoreCase = true)
+            if (!response.isSuccess && !isSpecificUser) {
                 response = executeRequest(
                     endpoint = "/api/users/me",
                     method = "GET",

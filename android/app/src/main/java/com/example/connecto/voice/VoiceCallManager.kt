@@ -1626,6 +1626,11 @@ object VoiceCallManager {
                     }
                     val callerId = json.optString("caller_id")
                     val callerUsername = json.optString("caller_username").ifEmpty { json.optString("caller") }
+                    val currentU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+                    if (callerUsername.trim().lowercase().removePrefix("@") == currentU && currentU.isNotBlank()) {
+                        Log.d(TAG, "Ignoring incoming call echo from ourselves: $callerUsername")
+                        return
+                    }
                     val callerName = json.optString("caller_name").ifEmpty { json.optString("caller").ifEmpty { callerUsername } }
                     val callerAvatar = json.optString("caller_avatar").ifEmpty { json.optString("avatar") }
 
@@ -1647,12 +1652,21 @@ object VoiceCallManager {
                 }
 
                 "call_ringing", "call:ringing" -> {
+                    val roomId = json.optString("room_id").ifEmpty { json.optString("call_id") }
+                    if (isCallTerminated(roomId) || _callState.value == CallState.IDLE) {
+                        Log.d(TAG, "Ignoring call_ringing for terminated or idle session: $roomId")
+                        return
+                    }
                     Log.d(TAG, "Call ringing on remote party")
                     _callState.value = CallState.OUTGOING_RINGING
                 }
 
                 "call_connected", "call:accepted", "call:connected" -> {
                     val roomId = json.optString("room_id").ifEmpty { json.optString("call_id") }
+                    if (isCallTerminated(roomId) || _callState.value == CallState.IDLE) {
+                        Log.d(TAG, "Ignoring call_connected for terminated or idle session: $roomId")
+                        return
+                    }
                     Log.d(TAG, "Call connected! Room: $roomId")
                     _callState.value = CallState.CONNECTED
                     _incomingCall.value = null
@@ -1715,6 +1729,10 @@ object VoiceCallManager {
 
                 "voice_room_joined", "voice:user_joined" -> {
                     val roomId = json.optString("room_id").ifEmpty { json.optString("channel_id") }
+                    if (isCallTerminated(roomId) || _callState.value == CallState.IDLE) {
+                        Log.d(TAG, "Ignoring voice_room_joined for terminated or idle session: $roomId")
+                        return
+                    }
                     val existingPeers = json.optJSONArray("existing_peer_ids") ?: json.optJSONArray("participants")
                     val count = maxOf((existingPeers?.length() ?: 0) + 1, _participantCount.value + 1)
                     _participantCount.value = count
@@ -2204,11 +2222,25 @@ object VoiceCallManager {
         if (avatarUrl.isNullOrBlank()) {
             scope.launch {
                 try {
+                    val fRes = ConnectoApiClient.getFriends()
+                    if (fRes.isSuccess) {
+                        val friend = fRes.getOrNull()?.find {
+                            it.friendUsername.equals(cleanTarget, ignoreCase = true) ||
+                            it.friendDisplayName.equals(cleanTarget, ignoreCase = true) ||
+                            it.friendUsername.equals(cleanDisplayName, ignoreCase = true) ||
+                            it.friendDisplayName.equals(cleanDisplayName, ignoreCase = true)
+                        }
+                        if (!friend?.friendAvatarUrl.isNullOrBlank()) {
+                            _activeCallAvatar.value = friend?.friendAvatarUrl
+                            return@launch
+                        }
+                    }
+
                     val res = ConnectoApiClient.getProfile(cleanTarget)
                     if (res.isSuccess) {
                         val p = res.getOrNull()
-                        if (!p?.avatarUrl.isNullOrBlank()) {
-                            _activeCallAvatar.value = p?.avatarUrl
+                        if (p != null && !p.username.equals(currentUsername, ignoreCase = true) && !p.avatarUrl.isNullOrBlank()) {
+                            _activeCallAvatar.value = p.avatarUrl
                         }
                     }
                 } catch (_: Exception) {}

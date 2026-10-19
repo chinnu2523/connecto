@@ -95,6 +95,10 @@ import com.example.connecto.ui.designsystem.LocalConnectoColors
 import com.example.connecto.voice.CallState
 import com.example.connecto.voice.VoiceCallManager
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import com.example.connecto.network.CallLogDto
+import com.example.connecto.ui.designsystem.resolveImageModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -106,8 +110,68 @@ data class CallLogItem(
     val callType: String,
     val timeAgo: String,
     val isMissed: Boolean = false,
-    val isOutgoing: Boolean = false
+    val isOutgoing: Boolean = false,
+    val friendUsername: String = "",
+    val avatarUrl: String? = null
 )
+
+private fun mapCallLogDtoToItem(
+    log: CallLogDto,
+    currentUsername: String,
+    friends: List<FriendshipDto>
+): CallLogItem {
+    val rawTarget = if (log.callerName.equals(currentUsername, true) || log.callerName.isBlank()) {
+        log.username
+    } else {
+        log.callerName
+    }
+    val cleanPartner = rawTarget
+        .removePrefix("1:1 Voice Call with ")
+        .removePrefix("Voice Call with ")
+        .removePrefix("Call with ")
+        .removePrefix("@")
+        .trim()
+
+    val matchedFriend = friends.find { f ->
+        f.friendUsername.equals(cleanPartner, ignoreCase = true) ||
+        f.friendDisplayName.equals(cleanPartner, ignoreCase = true) ||
+        f.friendId.equals(cleanPartner, ignoreCase = true)
+    }
+
+    val friendUsername = matchedFriend?.friendUsername?.takeIf { it.isNotBlank() } ?: cleanPartner
+    val displayName = matchedFriend?.friendDisplayName?.takeIf { it.isNotBlank() } ?: cleanPartner
+    val safeDisplayName = if (displayName.equals(currentUsername, ignoreCase = true) && !cleanPartner.equals(currentUsername, ignoreCase = true)) {
+        cleanPartner
+    } else {
+        displayName
+    }
+
+    val avatar = matchedFriend?.friendAvatarUrl?.takeIf { it.isNotBlank() }
+        ?: log.callerAvatar?.takeIf { it.isNotBlank() }
+
+    val safeAvatar = if (safeDisplayName.equals(currentUsername, ignoreCase = true) || friendUsername.equals(currentUsername, ignoreCase = true)) {
+        null
+    } else {
+        avatar
+    }
+
+    val init = if (safeDisplayName.isNotBlank()) {
+        val clean = safeDisplayName.trimStart { c -> !c.isLetterOrDigit() }
+        if (clean.isNotEmpty()) clean.first().toString().uppercase() else "P"
+    } else "P"
+
+    return CallLogItem(
+        id = log.id,
+        callerName = safeDisplayName,
+        initial = init,
+        callType = log.callType,
+        timeAgo = log.createdAt,
+        isMissed = log.isMissed,
+        isOutgoing = log.isOutgoing,
+        friendUsername = friendUsername,
+        avatarUrl = safeAvatar
+    )
+}
 
 @Composable
 fun CallsScreen(
@@ -152,27 +216,7 @@ fun CallsScreen(
                     !log.callerName.contains("Lounge", ignoreCase = true) &&
                     !log.callerName.startsWith("#")
                 }
-                addAll(cleanLogs.map {
-                    val pName = it.callerName
-                        .removePrefix("1:1 Voice Call with ")
-                        .removePrefix("Voice Call with ")
-                        .removePrefix("Call with ")
-                        .removePrefix("@")
-                        .trim()
-                    val init = if (pName.isNotBlank()) {
-                        val clean = pName.trimStart { c -> !c.isLetterOrDigit() }
-                        if (clean.isNotEmpty()) clean.first().toString().uppercase() else "P"
-                    } else "P"
-                    CallLogItem(
-                        id = it.id,
-                        callerName = pName,
-                        initial = init,
-                        callType = it.callType,
-                        timeAgo = it.createdAt,
-                        isMissed = it.isMissed,
-                        isOutgoing = it.isOutgoing
-                    )
-                })
+                addAll(cleanLogs.map { mapCallLogDtoToItem(it, currentUsername, ConnectoApiClient.cachedFriends) })
             }
         }
     }
@@ -180,6 +224,8 @@ fun CallsScreen(
     fun refreshCallLogs() {
         coroutineScope.launch {
             try {
+                val friendsRes = ConnectoApiClient.getFriends(username = currentUsername)
+                val friends = friendsRes.getOrDefault(ConnectoApiClient.cachedFriends)
                 val res = ConnectoApiClient.getCallLogs(username = currentUsername)
                 if (res.isSuccess) {
                     val logs = res.getOrThrow()
@@ -191,30 +237,24 @@ fun CallsScreen(
                             !log.callerName.contains("Lounge", ignoreCase = true) &&
                             !log.callerName.startsWith("#")
                         }
-                        val mapped = cleanLogs.map {
-                            val pName = it.callerName
-                                .removePrefix("1:1 Voice Call with ")
-                                .removePrefix("Voice Call with ")
-                                .removePrefix("Call with ")
-                                .removePrefix("@")
-                                .trim()
-                            val init = if (pName.isNotBlank()) {
-                                val clean = pName.trimStart { c -> !c.isLetterOrDigit() }
-                                if (clean.isNotEmpty()) clean.first().toString().uppercase() else "P"
-                            } else "P"
-                            CallLogItem(
-                                id = it.id,
-                                callerName = pName,
-                                initial = init,
-                                callType = it.callType,
-                                timeAgo = it.createdAt,
-                                isMissed = it.isMissed,
-                                isOutgoing = it.isOutgoing
-                            )
-                        }
-                        if (liveCallLogs != mapped) {
-                            liveCallLogs.clear()
-                            liveCallLogs.addAll(mapped)
+                        val mapped = cleanLogs.map { mapCallLogDtoToItem(it, currentUsername, friends) }
+                        if (liveCallLogs.toList() != mapped) {
+                            val mappedIds = mapped.map { it.id }.toSet()
+                            liveCallLogs.removeAll { it.id !in mappedIds }
+                            mapped.forEachIndexed { index, newItem ->
+                                val existingIndex = liveCallLogs.indexOfFirst { it.id == newItem.id }
+                                if (existingIndex >= 0) {
+                                    if (liveCallLogs[existingIndex] != newItem) {
+                                        liveCallLogs[existingIndex] = newItem
+                                    }
+                                } else {
+                                    if (index <= liveCallLogs.size) {
+                                        liveCallLogs.add(index, newItem)
+                                    } else {
+                                        liveCallLogs.add(newItem)
+                                    }
+                                }
+                            }
                         }
                     } else {
                         liveCallLogs.clear()
@@ -226,15 +266,25 @@ fun CallsScreen(
         }
     }
 
-    fun performDirectCall(sanitized: String) {
-        activeCallTitle = "Voice Call with $sanitized"
+    fun performDirectCall(sanitized: String, displayName: String = sanitized, avatarUrl: String? = null) {
+        val targetUser = sanitized.trim().removePrefix("@")
+        val finalDisplayName = if (displayName.isNotBlank() && !displayName.equals(targetUser, ignoreCase = true)) {
+            displayName
+        } else {
+            targetUser
+        }
+        activeCallTitle = "Voice Call with $finalDisplayName"
         activeCallParticipants = 2
         activeCallRoomCode = null
         isInActiveCall = true
-        VoiceCallManager.start1on1Call(sanitized, sanitized)
+        VoiceCallManager.start1on1Call(
+            targetUsername = targetUser,
+            targetDisplayName = finalDisplayName,
+            avatarUrl = avatarUrl
+        )
         coroutineScope.launch {
             ConnectoApiClient.recordCallLog(
-                callerName = sanitized,
+                callerName = targetUser,
                 callType = "Voice Call",
                 isMissed = false,
                 isOutgoing = true
@@ -278,13 +328,19 @@ fun CallsScreen(
     }
 
     var pendingCallTarget by remember { mutableStateOf<String?>(null) }
+    var pendingCallDisplayName by remember { mutableStateOf<String?>(null) }
+    var pendingCallAvatarUrl by remember { mutableStateOf<String?>(null) }
     val micPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
             VoiceCallManager.restartAudioHardwareIfConnected()
             pendingCallTarget?.let { target ->
-                performDirectCall(target)
+                performDirectCall(
+                    sanitized = target,
+                    displayName = pendingCallDisplayName ?: target,
+                    avatarUrl = pendingCallAvatarUrl
+                )
             }
             pendingVoiceGroupTitle?.let { title ->
                 performVoiceGroupCall(title, pendingVoiceGroupFriends)
@@ -293,6 +349,8 @@ fun CallsScreen(
             showToast("Microphone permission is required for voice calls")
         }
         pendingCallTarget = null
+        pendingCallDisplayName = null
+        pendingCallAvatarUrl = null
         pendingVoiceGroupTitle = null
         pendingVoiceGroupFriends = emptyList()
     }
@@ -311,7 +369,7 @@ fun CallsScreen(
         }
     }
 
-    fun initiateDirectCall(target: String) {
+    fun initiateDirectCall(target: String, displayName: String = target, avatarUrl: String? = null) {
         val sanitized = target.trim()
             .removePrefix("@")
             .removePrefix("1:1 Voice Call with ")
@@ -327,10 +385,25 @@ fun CallsScreen(
             return
         }
 
+        val resolvedAvatar = avatarUrl ?: ConnectoApiClient.cachedFriends.find {
+            it.friendUsername.equals(sanitized, ignoreCase = true) ||
+            it.friendDisplayName.equals(sanitized, ignoreCase = true)
+        }?.friendAvatarUrl
+
+        val resolvedName = if (displayName.isNotBlank() && !displayName.equals(sanitized, ignoreCase = true)) {
+            displayName
+        } else {
+            ConnectoApiClient.cachedFriends.find {
+                it.friendUsername.equals(sanitized, ignoreCase = true)
+            }?.friendDisplayName ?: sanitized
+        }
+
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-            performDirectCall(sanitized)
+            performDirectCall(sanitized, resolvedName, resolvedAvatar)
         } else {
             pendingCallTarget = sanitized
+            pendingCallDisplayName = resolvedName
+            pendingCallAvatarUrl = resolvedAvatar
             micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
@@ -339,52 +412,7 @@ fun CallsScreen(
         refreshCallLogs()
         while (isActive) {
             delay(5000)
-            try {
-                val cRes = ConnectoApiClient.getCallLogs(username = currentUsername)
-                if (cRes.isSuccess) {
-                    val logs = cRes.getOrThrow()
-                    if (logs.isNotEmpty()) {
-                        val cleanLogs = logs.filter { log ->
-                            !log.callerName.contains("Tactical", ignoreCase = true) &&
-                            !log.callerName.contains("War Room", ignoreCase = true) &&
-                            !log.callerName.contains("Cyber Defense", ignoreCase = true) &&
-                            !log.callerName.contains("Lounge", ignoreCase = true) &&
-                            !log.callerName.startsWith("#")
-                        }
-                        val mapped = cleanLogs.map {
-                            val pName = it.callerName
-                                .removePrefix("1:1 Voice Call with ")
-                                .removePrefix("Voice Call with ")
-                                .removePrefix("Call with ")
-                                .removePrefix("@")
-                                .trim()
-                            val init = if (pName.isNotBlank()) {
-                                val clean = pName.trimStart { c -> !c.isLetterOrDigit() }
-                                if (clean.isNotEmpty()) clean.first().toString().uppercase() else "P"
-                            } else "P"
-                            CallLogItem(
-                                id = it.id,
-                                callerName = pName,
-                                initial = init,
-                                callType = it.callType,
-                                timeAgo = it.createdAt,
-                                isMissed = it.isMissed,
-                                isOutgoing = it.isOutgoing
-                            )
-                        }
-                        if (liveCallLogs != mapped) {
-                            liveCallLogs.clear()
-                            liveCallLogs.addAll(mapped)
-                        }
-                    } else {
-                        if (liveCallLogs.isNotEmpty()) {
-                            liveCallLogs.clear()
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                // ignore
-            }
+            refreshCallLogs()
         }
     }
 
@@ -726,7 +754,7 @@ fun CallsScreen(
                                     verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    // Caller Initial Avatar
+                                    // Caller Initial or Profile Avatar
                                     Box(
                                         modifier = Modifier
                                             .size(42.dp)
@@ -737,12 +765,24 @@ fun CallsScreen(
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(
-                                            text = log.initial,
-                                            fontSize = 16.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (log.isMissed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                                        )
+                                        if (!log.avatarUrl.isNullOrBlank()) {
+                                            val imgModel = resolveImageModel(log.avatarUrl)
+                                            AsyncImage(
+                                                model = imgModel,
+                                                contentDescription = log.callerName,
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Text(
+                                                text = log.initial,
+                                                fontSize = 16.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (log.isMissed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
                                     }
 
                                     Spacer(modifier = Modifier.width(12.dp))
@@ -810,7 +850,12 @@ fun CallsScreen(
                                             .background(Brush.linearGradient(gradientColors))
                                             .pressScaleEffect(
                                                 onClick = {
-                                                    initiateDirectCall(log.callerName)
+                                                    val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
+                                                    initiateDirectCall(
+                                                        target = dialTarget,
+                                                        displayName = log.callerName,
+                                                        avatarUrl = log.avatarUrl
+                                                    )
                                                 },
                                                 targetScale = 0.88f
                                             ),

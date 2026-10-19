@@ -423,12 +423,27 @@ fun FullScreenCallUI(
                 ?: cleanDisplayName.takeIf { !it.contains(" ") && it != "Friend" }
             if (!queryUser.isNullOrBlank()) {
                 try {
+                    val fRes = ConnectoApiClient.getFriends()
+                    if (fRes.isSuccess) {
+                        val friend = fRes.getOrNull()?.find {
+                            it.friendUsername.equals(queryUser, ignoreCase = true) ||
+                            it.friendDisplayName.equals(queryUser, ignoreCase = true)
+                        }
+                        if (!friend?.friendAvatarUrl.isNullOrBlank()) {
+                            resolvedAvatar = friend?.friendAvatarUrl
+                            return@LaunchedEffect
+                        }
+                    }
+
                     val res = ConnectoApiClient.getProfile(queryUser)
                     if (res.isSuccess) {
                         val p = res.getOrNull()
-                        val pic = p?.avatarUrl
-                        if (!pic.isNullOrBlank()) {
-                            resolvedAvatar = pic
+                        val myU = (ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+                        if (p != null && p.username.trim().lowercase().removePrefix("@") != myU) {
+                            val pic = p.avatarUrl
+                            if (!pic.isNullOrBlank()) {
+                                resolvedAvatar = pic
+                            }
                         }
                     }
                 } catch (_: Exception) {}
