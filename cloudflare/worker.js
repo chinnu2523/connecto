@@ -81,7 +81,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease && dbRelease.version_code >= 72) {
+      if (dbRelease && dbRelease.version_code >= 80) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -96,18 +96,19 @@ export default {
           md5: dbRelease.md5,
           filename: dbRelease.filename,
           size_bytes: dbRelease.size_bytes,
-          size_display: "55.0 MB",
+          size_display: dbRelease.size_bytes ? (dbRelease.size_bytes / (1024 * 1024)).toFixed(1) + " MB" : "55.1 MB",
           min_android: "Android 7.0 (API 24)",
           target_android: "Android 16+ (API 37 / HyperOS Verified)",
           url: "https://connecto.fun/download/apk",
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
-            "Messages Tab Stabilized Ordering & Instant Float-to-Top: Eliminates card jumping by removing delayed vertical translation animations, introducing smooth Jetpack Compose item transitions. Conversations with recent messages automatically stay at the top and float instantly to index 0 on message arrival.",
-            "Database Recency Persistence: Adds last_message_timestamp to local SQLite cache (DATABASE_VERSION = 8) to preserve chat recency and exact ordering across cold starts and app launches.",
-            "Deterministic Inactive Friend Ordering: Applies secondary alphabetical sort so friends without recent messages never shuffle or bounce during background polling.",
-            "Animated Typing Bubble Indicator: Real-time 3-dot bouncing typing indicator bubble inside chat with automatic smooth scrolling when peer starts typing, paired with live header typing status.",
-            "24/7 High-Availability Sync & Instant Failover: Continuous bidirectional replication between SSH origin server and Cloudflare Edge with zero-loss fallback."
+            "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents disappearing messages on network sync or edge failover.",
+            "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
+            "Streamlined Profile Navigation: Clean single-row layout without redundant metadata indicators.",
+            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, and diagnostics.",
+            "Admin-Guarded Cloudflare Edge Latency Diagnostics: Restricted live Edge PoP roundtrip ping testing to verified administrators.",
+            "Resilient WebRTC Mesh Voice Calls: Floating call overlay with hardware-backed biometric vault lock."
           ]
         });
       }
@@ -131,7 +132,9 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata (standard, true, dark, etc.) and unused buttons for a clutter-free interface.",
+          "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents disappearing messages on network sync or edge failover.",
+          "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
+          "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata and unused buttons for a clutter-free interface.",
           "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, hardware inspector, and automated bug diagnostic bundles.",
           "Admin-Guarded Cloudflare Edge Latency Diagnostics: Restricted live Edge PoP roundtrip ping testing to verified administrators for an uncluttered member experience.",
           "Instant Friend Profile Inspector: Dedicated modal view with avatar, status, bio, and quick actions directly from chat.",
@@ -139,7 +142,6 @@ export default {
           "Zero-Latency Instant Chat Loading: SQLite local messages & E2E decryption moved completely to background IO threads with 0ms instantaneous UI render on conversation open.",
           "Edge Fast-Path API Engine: Cloudflare Worker defaults directly to high-speed Edge D1 execution cutting channel message and profile endpoint latency down to ~200ms.",
           "Instant Notification Delivery (<50ms): In-memory 64-entry LruCache for avatars with strict 400ms remote fetch timeout, guaranteeing heads-up notifications pop up in under 50ms.",
-          "Google FCM OAuth2 Edge Cache: Cached FCM v1 Bearer tokens directly inside Cloudflare Edge Cache across isolates with 50-minute TTL.",
           "WhatsApp-Style Background Delivery: High-priority heads-up banners, sound, and vibration even after swiping the app away from recent tasks.",
           "App-Wide Screen Privacy & Blackscreen Protection: Enforces WindowManager.LayoutParams.FLAG_SECURE at the SurfaceFlinger hardware level across all app screens."
         ]
