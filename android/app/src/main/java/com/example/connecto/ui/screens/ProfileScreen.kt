@@ -247,52 +247,42 @@ private fun Context.findFragmentActivity(): FragmentActivity? {
  */
 enum class ProfileSubPage(
     val title: String,
-    val subtitle: String,
     val icon: ImageVector
 ) {
     SECURITY(
         title = "Security & Privacy",
-        subtitle = "Two-Factor authentication, biometric app lock, screen privacy & stealth mode",
         icon = Icons.Default.Shield
     ),
     PRESENCE_STEALTH(
         title = "Presence & Stealth Mode",
-        subtitle = "Control how others see your online status",
         icon = Icons.Default.VisibilityOff
     ),
     PERSONAL_INFO(
         title = "Personal Information",
-        subtitle = "Manage your identity, personal information, and contact details",
         icon = Icons.Default.Person
     ),
     TWO_FACTOR_SECURITY(
         title = "Two-Factor & Security",
-        subtitle = "Change password & email 2FA verification",
         icon = Icons.Default.Shield
     ),
     BIOMETRIC_LOCK(
         title = "Biometric & App Lock",
-        subtitle = "Biometric (Fingerprint/Face) & Device Screen Lock security",
         icon = Icons.Default.Fingerprint
     ),
     APPEARANCE_THEME(
         title = "Appearance & Display Theme",
-        subtitle = "Personalize your visual experience across the entire app",
         icon = Icons.Default.Tune
     ),
     GROUPS_COMMUNITIES(
         title = "Groups & Communities",
-        subtitle = "Manage created & joined groups",
         icon = Icons.Default.Groups
     ),
     NOTIFICATIONS(
         title = "Notifications",
-        subtitle = "Trending notification sounds, alert preferences & message privacy",
         icon = Icons.Default.Notifications
     ),
     HELP_SUPPORT(
         title = "Help & Support",
-        subtitle = "Frequently asked questions & customer support",
         icon = Icons.AutoMirrored.Filled.Help
     )
 }
@@ -1729,7 +1719,6 @@ fun ProfileScreen(
                 ) {
                     ProfileSubPageHeader(
                         title = currentSubPage.title,
-                        subtitle = currentSubPage.subtitle,
                         icon = currentSubPage.icon,
                         hasCoverPhoto = hasCoverPhoto,
                         onBack = {
@@ -1781,93 +1770,6 @@ fun ProfileScreen(
                                         )
                                     }
                                 }
-                            }
-                        }
-
-                        // Sub-Page Hero Summary Banner
-                        item(key = "subpage_hero_summary_${currentSubPage.name}") {
-                            when (currentSubPage) {
-                                ProfileSubPage.SECURITY -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Account & Device Protection",
-                                    title = "Security & Privacy",
-                                    description = "Manage Two-Factor Authentication, Biometric & Screen Privacy, and Presence & Stealth Mode.",
-                                    icon = Icons.Default.Shield,
-                                    statusBadgeText = if (twoFactorEnabled && isScreenSecurityActive) "MAX PROTECTED" else if (twoFactorEnabled || isScreenSecurityActive) "PROTECTED" else "STANDARD",
-                                    statusBadgeActive = twoFactorEnabled || isScreenSecurityActive,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.PRESENCE_STEALTH -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Privacy & Visibility",
-                                    title = "Presence & Stealth",
-                                    description = "Manage whether your active status dot is visible across channels, direct chats, and friend lists while staying connected.",
-                                    icon = if (stealthModeEnabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    statusBadgeText = if (stealthModeEnabled) "STEALTH ON" else "ONLINE",
-                                    statusBadgeActive = !stealthModeEnabled,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.PERSONAL_INFO -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Account Identity",
-                                    title = fullNameInput.ifBlank { displayNameInput.ifBlank { username } },
-                                    description = "Update your display identity, nickname, verified email address, and public bio across Connecto.",
-                                    icon = Icons.Default.Person,
-                                    statusBadgeText = "@$currentUsernameState",
-                                    statusBadgeActive = true,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.TWO_FACTOR_SECURITY -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Account Protection",
-                                    title = "2FA & Password Security",
-                                    description = "Protect your account with real-time email OTP verification on sign-in and instant password recovery.",
-                                    icon = Icons.Default.Shield,
-                                    statusBadgeText = if (twoFactorEnabled) "2FA ACTIVE" else "2FA OFF",
-                                    statusBadgeActive = twoFactorEnabled,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.BIOMETRIC_LOCK -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Hardware & Screen Security",
-                                    title = "Biometrics & Screen Privacy",
-                                    description = "Enforce biometric app locking and solid blackscreen protection against screenshots, screen share, and screen casting.",
-                                    icon = Icons.Default.Shield,
-                                    statusBadgeText = if (isScreenSecurityActive && isAppLockEnabled) "MAX SECURED" else if (isScreenSecurityActive) "BLACKSCREEN ACTIVE" else if (isAppLockEnabled) "LOCKED" else "OFF",
-                                    statusBadgeActive = isScreenSecurityActive || isAppLockEnabled,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.APPEARANCE_THEME -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Design System",
-                                    title = "${currentThemeMode.iconEmoji} ${currentThemeMode.displayName}",
-                                    description = "Customize your global color palette, contrast, and atmosphere across all screens in real time.",
-                                    icon = Icons.Default.Tune,
-                                    statusBadgeText = if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) "${(glassTransparency * 100).toInt()}% OPACITY" else if (currentThemeMode.isDark) "DARK" else "LIGHT",
-                                    statusBadgeActive = true,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.GROUPS_COMMUNITIES -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Community Hub",
-                                    title = "Groups & Communities",
-                                    description = "View and manage all private groups you have created as Admin or joined as a Member.",
-                                    icon = Icons.Default.Groups,
-                                    statusBadgeText = "${profileGroupsList.size} ACTIVE",
-                                    statusBadgeActive = profileGroupsList.isNotEmpty(),
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.NOTIFICATIONS -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Alerts & Privacy",
-                                    title = "Notification Center",
-                                    description = "Preview and choose from latest trending alert sounds, and toggle privacy to hide message content in notifications.",
-                                    icon = Icons.Default.NotificationsActive,
-                                    statusBadgeText = if (hideNotificationContent) "PRIVACY ACTIVE" else selectedNotificationSoundName.uppercase(),
-                                    statusBadgeActive = true,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
-                                ProfileSubPage.HELP_SUPPORT -> ProfileSubPageHeroCard(
-                                    categoryLabel = "Customer Care & Knowledgebase",
-                                    title = "Help & Support Center",
-                                    description = if (isUserAdmin) "Get answers to frequently asked questions, test live Cloudflare Edge latency, submit bug reports, or contact Connecto engineers." else "Get answers to frequently asked questions, submit bug reports, or contact Connecto engineers.",
-                                    icon = Icons.AutoMirrored.Filled.Help,
-                                    statusBadgeText = "ONLINE HELP",
-                                    statusBadgeActive = true,
-                                    hasCoverPhoto = hasCoverPhoto
-                                )
                             }
                         }
 
@@ -1933,12 +1835,6 @@ fun ProfileScreen(
                                                             )
                                                         }
                                                     }
-                                                    Spacer(modifier = Modifier.height(2.dp))
-                                                    Text(
-                                                        text = "All account, biometric, and stealth controls are centralized below.",
-                                                        fontSize = 12.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
                                                 }
                                             }
 
@@ -2126,40 +2022,6 @@ fun ProfileScreen(
                                     )
                                 }
                             }
-                                }
-                                item(key = "sub_presence_stealth_info") {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(18.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(18.dp))
-                                            .padding(16.dp)
-                                    ) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Info,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Text(
-                                                    text = "How Stealth Mode Works",
-                                                    fontSize = 14.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                            }
-                                            Text(
-                                                text = "When stealth mode is turned on, your presence dot is hidden from all channels, direct messages, and friends lists. You can still read and send messages without broadcasting that you are online.",
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                lineHeight = 18.sp
-                                            )
-                                        }
-                                    }
                                 }
                             }
                             ProfileSubPage.PERSONAL_INFO -> {
@@ -6679,7 +6541,6 @@ private fun ProfileNavigationMenuButton(
 @Composable
 private fun ProfileSubPageHeader(
     title: String,
-    subtitle: String,
     icon: ImageVector,
     hasCoverPhoto: Boolean = false,
     onBack: () -> Unit
@@ -6759,14 +6620,6 @@ private fun ProfileSubPageHeader(
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 11.5.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
                 }
             }
             Box(
@@ -6785,111 +6638,6 @@ private fun ProfileSubPageHeader(
             )
         }
     }
-}
-
-@Composable
-private fun ProfileSubPageHeroCard(
-    categoryLabel: String,
-    title: String,
-    description: String,
-    icon: ImageVector,
-    statusBadgeText: String,
-    statusBadgeActive: Boolean = true,
-    hasCoverPhoto: Boolean = false
-) {
-    val gradientColors = getDynamicAccentGradientColors()
-    val isLiquidGlass = ConnectoTheme.isLiquidGlass
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .liquidGlassCard(
-                shape = RoundedCornerShape(22.dp),
-                backgroundColor = if (isLiquidGlass) Color.Transparent
-                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
-                    else MaterialTheme.colorScheme.surface,
-                borderColor = if (isLiquidGlass) Color.White.copy(alpha = 0.35f)
-                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
-                    else MaterialTheme.colorScheme.primary
-            )
-            .padding(18.dp)
-    ) {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(46.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Brush.linearGradient(gradientColors))
-                                .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(14.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = getContentColorOnAccentGradient(),
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = categoryLabel.uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                letterSpacing = 1.sp,
-                                maxLines = 1
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = title,
-                                fontSize = 15.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-
-                    val badgeColor = if (statusBadgeActive) OnlineGreen else MaterialTheme.colorScheme.primary
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(badgeColor.copy(alpha = 0.14f))
-                            .border(1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = statusBadgeText,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = badgeColor,
-                            letterSpacing = 0.4.sp,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                }
-
-                Text(
-                    text = description,
-                    fontSize = 12.5.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp
-                )
-            }
-        }
 }
 
 // ---------------------------------------------------------------------------
