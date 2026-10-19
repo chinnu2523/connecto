@@ -81,7 +81,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease && dbRelease.version_code >= 80) {
+      if (dbRelease && dbRelease.version_code >= 81) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -103,12 +103,14 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
+            "Voice Call Profile Photo Accuracy: Calling screen and full-screen call UI accurately resolve and render friend profile photos and display names, eliminating self-avatar fallbacks and Echo self-calls.",
+            "Seamless Call Dismissal (Zero Re-Appearance): Strict state & termination guards on asynchronous WebSocket events prevent dismissed calls from re-appearing on screen.",
+            "Real-Time Voice Isolation Controls: In-call Voice Isolation toggle button ('Isolated') embedded into active call controls for crystal-clear WebRTC communication.",
+            "Smooth Flicker-Free Call History: In-place list synchronization in CallsScreen eliminates list flashing and empty state flickers.",
             "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents disappearing messages on network sync or edge failover.",
             "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
             "Streamlined Profile Navigation: Clean single-row layout without redundant metadata indicators.",
-            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, and diagnostics.",
-            "Admin-Guarded Cloudflare Edge Latency Diagnostics: Restricted live Edge PoP roundtrip ping testing to verified administrators.",
-            "Resilient WebRTC Mesh Voice Calls: Floating call overlay with hardware-backed biometric vault lock."
+            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, and diagnostics."
           ]
         });
       }
@@ -117,11 +119,11 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.1",
-        version_name: "v4.5.1",
-        version_code: 80,
-        build: 80,
-        sha256: "7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391",
+        version: "4.5.2",
+        version_name: "v4.5.2",
+        version_code: 81,
+        build: 81,
+        sha256: "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
         md5: "7ff59a726b1c82587e86fe5be0e4b80c",
         filename: "connecto-fun.apk",
         size_bytes: 57767177,
@@ -132,6 +134,10 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Voice Call Profile Photo Accuracy: Calling screen and full-screen call UI accurately resolve and render friend profile photos and display names, eliminating self-avatar fallbacks and Echo self-calls.",
+          "Seamless Call Dismissal (Zero Re-Appearance): Strict state & termination guards on asynchronous WebSocket events prevent dismissed calls from re-appearing on screen.",
+          "Real-Time Voice Isolation Controls: In-call Voice Isolation toggle button ('Isolated') embedded into active call controls for crystal-clear WebRTC communication.",
+          "Smooth Flicker-Free Call History: In-place list synchronization in CallsScreen eliminates list flashing and empty state flickers.",
           "Resilient Channel Cache Engine: Preserves locally cached channel messages and prevents disappearing messages on network sync or edge failover.",
           "HTTP 503 Edge Protection: Cloudflare Worker gracefully reports database limits via 503 instead of false 200 OK empty arrays.",
           "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata and unused buttons for a clutter-free interface.",
@@ -187,52 +193,59 @@ export default {
       cleanPath === "/connecto-fun.apk"
     )) {
       try {
-        const canonicalApkUrl = "https://github.com/chinnu2523/connecto/releases/download/v4.5.1/connecto-fun.apk";
+        const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-v4.5.2.apk"
+        ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.1.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.2.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.1");
-          res.headers.set("X-Connecto-Build", "80");
+          res.headers.set("X-Connecto-Version", "v4.5.2");
+          res.headers.set("X-Connecto-Build", "81");
           return res;
         }
 
-        const upstreamResp = await fetch(canonicalApkUrl, {
-          redirect: "follow",
-          cf: {
-            cacheEverything: true,
-            cacheTtl: 604800
-          },
-          headers: {
-            "User-Agent": "Connecto-Cloud-Worker/4.5.1"
-          }
-        });
-        if (upstreamResp.ok) {
-          const downloadHeaders = new Headers();
-          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
-          downloadHeaders.set("Content-Disposition", 'attachment; filename="connecto-fun.apk"');
-          const cl = upstreamResp.headers.get("content-length");
-          if (cl) downloadHeaders.set("Content-Length", cl);
-          downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
-          downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Version", "v4.5.1");
-          downloadHeaders.set("X-Connecto-Build", "80");
-          downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
+        for (const targetUrl of canonicalApkUrls) {
+          try {
+            const upstreamResp = await fetch(targetUrl, {
+              redirect: "follow",
+              cf: {
+                cacheEverything: true,
+                cacheTtl: 604800
+              },
+              headers: {
+                "User-Agent": "Connecto-Cloud-Worker/4.5.2"
+              }
+            });
+            if (upstreamResp.ok) {
+              const downloadHeaders = new Headers();
+              downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
+              downloadHeaders.set("Content-Disposition", 'attachment; filename="connecto-fun.apk"');
+              const cl = upstreamResp.headers.get("content-length");
+              if (cl) downloadHeaders.set("Content-Length", cl);
+              downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
+              downloadHeaders.set("Access-Control-Allow-Origin", "*");
+              downloadHeaders.set("X-Connecto-Version", "v4.5.2");
+              downloadHeaders.set("X-Connecto-Build", "81");
+              downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
-          const responseToReturn = new Response(upstreamResp.body, {
-            status: 200,
-            headers: downloadHeaders
-          });
-          ctx.waitUntil(cache.put(cacheKey, responseToReturn.clone()));
-          return responseToReturn;
+              const responseToReturn = new Response(upstreamResp.body, {
+                status: 200,
+                headers: downloadHeaders
+              });
+              ctx.waitUntil(cache.put(cacheKey, responseToReturn.clone()));
+              return responseToReturn;
+            }
+          } catch (_) {}
         }
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.1/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -5597,11 +5610,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.1",
-      version_name: "v4.5.1",
-      version_code: 80,
-      build: 80,
-      sha256: "7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391",
+      version: "4.5.2",
+      version_name: "v4.5.2",
+      version_code: 81,
+      build: 81,
+      sha256: "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
       md5: "7ff59a726b1c82587e86fe5be0e4b80c",
       filename: "connecto-fun.apk",
       size_bytes: 57767177,
@@ -5618,10 +5631,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.5.1",
+          version: "v4.5.2",
           date: "Oct 19, 2026",
           category: "patch",
           tag: "Latest Release",
+          title: "Connecto v4.5.2: Voice Call Partner Photo Accuracy, Voice Isolation & Seamless Call Dismissal",
+          summary: "Connecto v4.5.2 resolves partner profile resolution during 1:1 voice calls, eliminates asynchronous call-ringing race conditions that caused call UI to re-appear and disappear upon hangup, and integrates dedicated in-call voice isolation controls with smooth flicker-free call history updates.",
+          highlights: [
+            "Voice Call Profile Photo Accuracy: Caller screen and in-call overlay resolve and render the peer's actual photo and name instead of the logged-in user's photo or Echo self-calls.",
+            "Seamless Call Dismissal: Fixed WebSocket race condition preventing dismissed calls from re-opening upon asynchronous call_ringing / call_connected events.",
+            "Real-Time Voice Isolation Controls: Added dedicated 'Isolated' toggle button in calling controls alongside Mute, Speaker, and Chat.",
+            "Smooth Call History Synchronization: In-place list updates eliminate screen flashing and empty state flicker in Calls tab.",
+            "Android Native App v4.5.2 (Build 81 • 55.1 MB): SHA-256 cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295."
+          ],
+          author: "Connecto Core Team"
+        },
+        {
+          version: "v4.5.1",
+          date: "Oct 19, 2026",
+          category: "patch",
+          tag: "Previous Release",
           title: "Connecto v4.5.1: Resilient Channel Cache Engine & Edge Error Safeguards",
           summary: "Connecto v4.5.1 resolves a transient race condition where channel messages could appear and then disappear. Local SQLite chat history is now fully protected against empty network syncs and Cloudflare D1 quota fallbacks.",
           highlights: [

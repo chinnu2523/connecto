@@ -5771,11 +5771,11 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.5.1",
-        "version_name": "v4.5.1",
-        "version_code": 80,
-        "release_tag": "v4.5.1-stable",
-        "sha256": "7be944e1b4394a62d43511541ba6b35ab843f3c0cdfe7a1c0a0353084eb36391",
+        "version": "4.5.2",
+        "version_name": "v4.5.2",
+        "version_code": 81,
+        "release_tag": "v4.5.2-stable",
+        "sha256": "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
         "md5": "7ff59a726b1c82587e86fe5be0e4b80c",
         "size_bytes": size_bytes,
         "size_display": size_mb,
@@ -5786,13 +5786,14 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Resilient Channel Cache Engine: Fixed transient message disappearance in Channels workspace. The in-memory feed now safeguards locally persisted SQLite history and never purges messages if the server returns an empty sync or encounters temporary edge database limits.",
+            "Voice Call Profile Photo Accuracy: Calling screen and full-screen call UI accurately resolve and render friend profile photos and display names, eliminating self-avatar fallbacks and Echo self-calls.",
+            "Seamless Call Dismissal (Zero Re-Appearance): Strict state & termination guards on asynchronous WebSocket events prevent dismissed calls from re-appearing on screen.",
+            "Real-Time Voice Isolation Controls: In-call Voice Isolation toggle button ('Isolated') embedded into active call controls for crystal-clear WebRTC communication.",
+            "Smooth Flicker-Free Call History: In-place list synchronization in CallsScreen eliminates list flashing and empty state flickers.",
+            "Resilient Channel Cache Engine: Fixed transient message disappearance in Channels workspace. The in-memory feed now safeguards locally persisted SQLite history.",
             "HTTP 503 Edge Protection: Cloudflare Worker now signals edge database unavailability with HTTP 503 instead of masking errors with empty message arrays.",
-            "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata (standard, true, dark, etc.) and unused buttons for a clutter-free interface.",
-            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, hardware inspector, and automated bug diagnostic bundles.",
-            "Admin-Guarded Cloudflare Edge Latency Diagnostics: Restricted live Edge PoP roundtrip ping testing to verified administrators for an uncluttered member experience.",
-            "Instant Friend Profile Inspector: Dedicated modal view with avatar, status, bio, and quick actions directly from chat.",
-            "Resilient WebRTC Mesh Voice Calls: Floating active call overlay with drag controls, improved call state management, and reliable call action handlers."
+            "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata for a clutter-free interface.",
+            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, hardware inspector, and automated bug diagnostic bundles."
         ]
     }
 
@@ -5804,10 +5805,26 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.5.1",
+                "version": "v4.5.2",
                 "date": "Oct 19, 2026",
                 "category": "patch",
                 "tag": "Latest Release",
+                "title": "Connecto v4.5.2: Voice Call Partner Photo Accuracy, Voice Isolation & Seamless Call Dismissal",
+                "summary": "Connecto v4.5.2 resolves partner profile resolution during 1:1 voice calls, eliminates asynchronous call-ringing race conditions that caused call UI to re-appear and disappear upon hangup, and integrates dedicated in-call voice isolation controls with smooth flicker-free call history updates.",
+                "highlights": [
+                    "Voice Call Profile Photo Accuracy: Caller screen and in-call overlay resolve and render the peer's actual photo and name instead of the logged-in user's photo or Echo self-calls.",
+                    "Seamless Call Dismissal: Fixed WebSocket race condition preventing dismissed calls from re-opening upon asynchronous call_ringing / call_connected events.",
+                    "Real-Time Voice Isolation Controls: Added dedicated 'Isolated' toggle button in calling controls alongside Mute, Speaker, and Chat.",
+                    "Smooth Call History Synchronization: In-place list updates eliminate screen flashing and empty state flicker in Calls tab.",
+                    "Android Native App v4.5.2 (Build 81 • 55.1 MB): SHA-256 cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295."
+                ],
+                "author": "Connecto Core Team"
+            },
+            {
+                "version": "v4.5.1",
+                "date": "Oct 19, 2026",
+                "category": "patch",
+                "tag": "Previous Release",
                 "title": "Connecto v4.5.1: Resilient Channel Cache Engine & Edge Error Safeguards",
                 "summary": "Connecto v4.5.1 resolves a transient race condition where channel messages could appear and then disappear. Local SQLite chat history is now fully protected against empty network syncs and Cloudflare D1 quota fallbacks.",
                 "highlights": [
