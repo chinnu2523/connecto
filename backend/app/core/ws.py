@@ -236,26 +236,57 @@ class ConnectionManager:
         current_token_hash: Optional[str] = None,
         terminated_hashes: Optional[Union[list, set]] = None
     ):
-        """Immediately closes WebSockets belonging to terminated sessions."""
-        term_set = set(terminated_hashes or [])
+        """Immediately notifies and closes WebSockets belonging to terminated sessions."""
+        term_set = {str(h).strip().lower() for h in (terminated_hashes or []) if h}
         candidate_sockets = set()
         if user_id in self.active_connections:
             candidate_sockets.update(self.active_connections[user_id])
-        clean_u = self.id_to_username.get(user_id)
-        if clean_u and clean_u in self.active_connections:
+        clean_u = str(user_id).strip().lower().removeprefix("@")
+        if clean_u in self.active_connections:
             candidate_sockets.update(self.active_connections[clean_u])
+
+        clean_from_id = self.id_to_username.get(user_id)
+        if clean_from_id and clean_from_id in self.active_connections:
+            candidate_sockets.update(self.active_connections[clean_from_id])
+
+        id_from_clean = self.username_to_id.get(clean_u)
+        if id_from_clean and id_from_clean in self.active_connections:
+            candidate_sockets.update(self.active_connections[id_from_clean])
+
+        # Also search active connections for any socket matching terminated session token hash
+        if term_set:
+            for uid, ws_set in list(self.active_connections.items()):
+                for ws in ws_set:
+                    h = ws.scope.get("session_token_hash")
+                    if h and str(h).strip().lower() in term_set:
+                        candidate_sockets.add(ws)
+
+        curr_h = str(current_token_hash).strip().lower() if current_token_hash else None
 
         for ws in list(candidate_sockets):
             ws_token_hash = ws.scope.get("session_token_hash")
-            if current_token_hash and ws_token_hash == current_token_hash:
+            ws_h_clean = str(ws_token_hash).strip().lower() if ws_token_hash else None
+            if curr_h and ws_h_clean == curr_h:
                 continue
             should_close = False
-            if term_set and ws_token_hash in term_set:
+            if term_set and ws_h_clean and ws_h_clean in term_set:
                 should_close = True
-            elif current_token_hash and ws_token_hash != current_token_hash:
+            elif curr_h and ws_h_clean != curr_h:
                 should_close = True
 
             if should_close:
+                try:
+                    term_payload = fast_dumps({
+                        "type": "session_terminated",
+                        "reason": "session_terminated",
+                        "message": "Your session was logged out from another device.",
+                        "session_token_hash": ws_token_hash,
+                        "terminated_hashes": list(term_set),
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    })
+                    await _send_safe(ws, term_payload)
+                except Exception:
+                    pass
                 try:
                     await ws.close(code=4001, reason="Session terminated")
                 except Exception:
@@ -609,5 +640,26 @@ class ConnectionManager:
         for p_id in all_participants:
             await self.send_personal_event(p_id, end_evt)
         await self.broadcast_to_channel(f"voice_room:{effective_room}", end_evt)
+
+        try:
+            from app.db.session import AsyncSessionLocal
+            from app.db.models.user import User
+            from sqlalchemy import select, or_, func
+            from app.core.push import send_push_notification
+            async with AsyncSessionLocal() as db:
+                for p_id in all_participants:
+                    if p_id and p_id != user_id:
+                        stmt = select(User.fcm_token).where(or_(User.id == p_id, func.lower(User.username) == str(p_id).lower()))
+                        tok = (await db.execute(stmt)).scalar_one_or_none()
+                        if tok:
+                            asyncio.create_task(send_push_notification(
+                                fcm_token=tok,
+                                title="Call Ended",
+                                body="Voice call ended",
+                                data={"type": "call_ended", "room_id": effective_room, "call_id": effective_room, "reference_id": effective_room},
+                                notification_type="call_ended"
+                            ))
+        except Exception:
+            pass
 
 ws_manager = ConnectionManager()

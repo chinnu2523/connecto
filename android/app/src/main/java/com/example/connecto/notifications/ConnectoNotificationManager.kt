@@ -256,8 +256,9 @@ object ConnectoNotificationManager {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val avatarBitmap = fetchAvatarBitmap(callerAvatar, callerName, callerUsername)
-                    ?: createBadgedAvatarBitmap(context, createMonogramBitmap(callerName))
+                val avatarBitmap = withTimeoutOrNull(400L) {
+                    fetchAvatarBitmap(callerAvatar, callerName, callerUsername)
+                } ?: createBadgedAvatarBitmap(context, createMonogramBitmap(callerName))
 
                 val callerPerson = Person.Builder()
                     .setName(callerName)

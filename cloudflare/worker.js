@@ -81,7 +81,7 @@ export default {
         } catch (_) {}
       }
 
-      if (dbRelease && dbRelease.version_code >= 82) {
+      if (dbRelease && dbRelease.version_code >= 83) {
         let features = [];
         try { features = JSON.parse(dbRelease.features_json); } catch (_) {}
         return jsonResponse({
@@ -103,16 +103,11 @@ export default {
           download_url: "/download/apk",
           direct_download_url: "https://connecto.fun/downloads/" + dbRelease.filename,
           features: features.length ? features : [
-            "Direct Message Authentication Enforcement: Direct messaging endpoints (/api/dms/{target}/messages) strictly validate JWT bearer tokens and reject unauthenticated queries and forged headers.",
-            "Broken Object Level Authorization (BOLA/IDOR) Fix: Call history (/api/calls/history) and call logs (/api/voice/calls/logs) require authenticated user context and restrict log viewing exclusively to call participants.",
-            "Confidential Thread Protection: Message threads (/api/messages/{id}/thread) enforce user authentication, preventing unauthorized thread leakage and anonymous message injection.",
-            "Cryptographic Reaction Identity Binding: Message reactions (/api/messages/{id}/react) bind strictly to the verified authenticated caller, eliminating reaction impersonation.",
-            "Inbound SMS Webhook HMAC-SHA256 Signatures: Inbound SMS gateway (/api/webhooks/httpsms) enforces HMAC-SHA256 cryptographic signature validation and API secret headers, rejecting tampered payloads.",
-            "WebSocket Malformed Payload Resilience (DoS Prevention): WebSocket connection loop validates incoming frame dictionaries and discards non-dict payloads, eliminating unhandled TypeError disconnect crashes.",
-            "Voice Room Authentication & Capacity Enforcement: Voice rooms (/api/voice/rooms/{name}/join) enforce bearer token authentication and reject joins exceeding MAX_PARTICIPANTS_PER_ROOM (30).",
-            "Call Log Forgery Prevention: Call log creation and deletion enforce authenticated participant checks and prevent arbitrary log forgery.",
-            "Channel Pinned Messages Disclosure Fix: Channel pins (/api/channels/{id}/pins) require channel access validation, blocking unauthenticated snooping.",
-            "Strict Type Input Sanitization: Replaced raw unchecked integer casting with defensive parsing across voice room creation and call logging routes, preventing 500 crashes."
+            "VoIP Background Call Delivery: High-priority data-only push notifications wake up backgrounded and killed devices immediately, displaying full-screen incoming call UI and heads-up banners.",
+            "Continuous Looping Ringtone & Rhythmic Vibration: Incoming calls play a continuous system ringtone and vibration pattern until accepted, declined, or cancelled by caller.",
+            "Instant Call Cancellation Sync: Immediate remote call_ended push notification dismisses the incoming call notification and stops ringing if the caller hangs up before answer.",
+            "Strict Email-Only 2FA OTP Delivery: Sealed 2FA verification pipeline to deliver OTP codes strictly via verified email with zero client-side or API exposure.",
+            "Removal of 7-Day Email Verification Limit: Unrestricted app access removing all 7-day expiration barriers from email verification and authentication flows."
           ]
         });
       }
@@ -121,14 +116,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.3",
-        version_name: "v4.5.3",
-        version_code: 82,
-        build: 82,
-        sha256: "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
-        md5: "3c8bc9d5b0deedac81a46efbcddea62c",
+        version: "4.5.4",
+        version_name: "v4.5.4",
+        version_code: 83,
+        build: 83,
+        sha256: "d54057f4049af924c18767197128903dc49999c8aa6e7e819621ee14587bfce3",
+        md5: "7b0fbbde309169d56659d84fc5b16fc3",
         filename: "connecto-fun.apk",
-        size_bytes: 57767177,
+        size_bytes: 57799945,
         size_display: "55.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -136,16 +131,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Direct Message Authentication Enforcement: Direct messaging endpoints (/api/dms/{target}/messages) strictly validate JWT bearer tokens and reject unauthenticated queries and forged headers.",
-          "Broken Object Level Authorization (BOLA/IDOR) Fix: Call history (/api/calls/history) and call logs (/api/voice/calls/logs) require authenticated user context and restrict log viewing exclusively to call participants.",
-          "Confidential Thread Protection: Message threads (/api/messages/{id}/thread) enforce user authentication, preventing unauthorized thread leakage and anonymous message injection.",
-          "Cryptographic Reaction Identity Binding: Message reactions (/api/messages/{id}/react) bind strictly to the verified authenticated caller, eliminating reaction impersonation.",
-          "Inbound SMS Webhook HMAC-SHA256 Signatures: Inbound SMS gateway (/api/webhooks/httpsms) enforces HMAC-SHA256 cryptographic signature validation and API secret headers, rejecting tampered payloads.",
-          "WebSocket Malformed Payload Resilience (DoS Prevention): WebSocket connection loop validates incoming frame dictionaries and discards non-dict payloads, eliminating unhandled TypeError disconnect crashes.",
-          "Voice Room Authentication & Capacity Enforcement: Voice rooms (/api/voice/rooms/{name}/join) enforce bearer token authentication and reject joins exceeding MAX_PARTICIPANTS_PER_ROOM (30).",
-          "Call Log Forgery Prevention: Call log creation and deletion enforce authenticated participant checks and prevent arbitrary log forgery.",
-          "Channel Pinned Messages Disclosure Fix: Channel pins (/api/channels/{id}/pins) require channel access validation, blocking unauthenticated snooping.",
-          "Strict Type Input Sanitization: Replaced raw unchecked integer casting with defensive parsing across voice room creation and call logging routes, preventing 500 crashes."
+          "VoIP Background Call Delivery: High-priority data-only push notifications wake up backgrounded and killed devices immediately, displaying full-screen incoming call UI and heads-up banners.",
+          "Continuous Looping Ringtone & Rhythmic Vibration: Incoming calls play a continuous system ringtone and vibration pattern until accepted, declined, or cancelled by caller.",
+          "Instant Call Cancellation Sync: Immediate remote call_ended push notification dismisses the incoming call notification and stops ringing if the caller hangs up before answer.",
+          "Strict Email-Only 2FA OTP Delivery: Sealed 2FA verification pipeline to deliver OTP codes strictly via verified email with zero client-side or API exposure.",
+          "Removal of 7-Day Email Verification Limit: Unrestricted app access removing all 7-day expiration barriers from email verification and authentication flows."
         ]
       });
     }
@@ -190,20 +180,20 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.4/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.4/connecto-v4.5.4.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-v4.5.3.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.2/connecto-v4.5.2.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-v4.5.3.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.3.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.4.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.3");
-          res.headers.set("X-Connecto-Build", "82");
+          res.headers.set("X-Connecto-Version", "v4.5.4");
+          res.headers.set("X-Connecto-Build", "83");
           return res;
         }
 
@@ -216,7 +206,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.5.3"
+                "User-Agent": "Connecto-Cloud-Worker/4.5.4"
               }
             });
             if (upstreamResp.ok) {
@@ -227,8 +217,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.5.3");
-              downloadHeaders.set("X-Connecto-Build", "82");
+              downloadHeaders.set("X-Connecto-Version", "v4.5.4");
+              downloadHeaders.set("X-Connecto-Build", "83");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -243,7 +233,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.4/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -519,45 +509,62 @@ async function sendFcmNotification(env, fcmToken, payload) {
       }
     }
 
+    const isCall = payload.type === "call_invite" || payload.type === "call" || payload.type === "incoming_call" || payload.type === "call_ended" || payload.type === "call_cancelled" || payload.type === "call_declined";
+
     const fcmMessage = {
       message: {
         token: fcmToken,
-        notification: {
-          title: title,
-          body: body,
-          ...(avatarUrl && avatarUrl.startsWith("https://") ? { image: avatarUrl } : {})
-        },
         data: {
           type: String(payload.type || "message"),
           title: String(title),
           body: String(body),
-          channel_id: String(payload.channel_id || ""),
-          sender_username: String(payload.sender_username || payload.sender || ""),
-          sender_name: String(payload.sender_name || payload.sender_display_name || payload.sender || ""),
+          channel_id: isCall ? "connecto_voice_calls_v2" : String(payload.channel_id || "connecto_messages_v4"),
+          room_id: String(payload.room_id || payload.call_id || payload.reference_id || ""),
+          call_id: String(payload.call_id || payload.room_id || payload.reference_id || ""),
+          reference_id: String(payload.reference_id || payload.room_id || payload.call_id || ""),
+          caller_username: String(payload.caller_username || payload.caller || ""),
+          caller_name: String(payload.caller_name || payload.caller_display_name || payload.caller || ""),
+          caller_id: String(payload.caller_id || payload.caller_username || payload.caller || ""),
+          caller_avatar: String(avatarUrl || ""),
+          avatar: String(avatarUrl || ""),
+          sender_username: String(payload.sender_username || payload.caller_username || payload.caller || ""),
+          sender_name: String(payload.sender_name || payload.caller_name || payload.sender || ""),
+          sender: String(payload.sender || payload.caller_name || payload.caller || ""),
           sender_avatar: String(avatarUrl || ""),
           message_id: String(payload.message_id || payload.id || ""),
           content: String(payload.content || body),
-          extra_notification_action: "com.example.connecto.ACTION_OPEN_CHAT"
+          extra_notification_action: isCall ? "com.example.connecto.ACTION_ANSWER_CALL" : "com.example.connecto.ACTION_OPEN_CHAT"
         },
         android: {
-          priority: "high",
-          notification: {
-            title: title,
-            body: body,
-            channel_id: "connecto_messages_v4",
-            tag: String(payload.channel_id || payload.sender_username || "connecto"),
-            icon: "ic_launcher",
-            color: "#6C5CE7",
-            sound: "default",
-            click_action: "com.example.connecto.ACTION_OPEN_CHAT",
-            notification_priority: "PRIORITY_MAX",
-            visibility: "PUBLIC",
-            default_sound: true,
-            default_vibrate_timings: true
-          }
+          priority: "high"
         }
       }
     };
+
+    // For standard messages (non-VoIP), provide system tray notification fallback
+    if (!isCall) {
+      fcmMessage.message.notification = {
+        title: title,
+        body: body,
+        ...(avatarUrl && avatarUrl.startsWith("https://") ? { image: avatarUrl } : {})
+      };
+      fcmMessage.message.android.notification = {
+        title: title,
+        body: body,
+        channel_id: "connecto_messages_v4",
+        tag: String(payload.channel_id || payload.sender_username || "connecto"),
+        icon: "ic_launcher",
+        color: "#6C5CE7",
+        sound: "default",
+        click_action: "com.example.connecto.ACTION_OPEN_CHAT",
+        notification_priority: "PRIORITY_MAX",
+        visibility: "PUBLIC",
+        default_sound: true,
+        default_vibrate_timings: true
+      };
+    } else {
+      fcmMessage.message.android.ttl = "60s";
+    }
 
     const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
       method: "POST",
@@ -1464,12 +1471,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           await env.DB.prepare(
             "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'two_factor_login', 'email', 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
           ).bind(otpId, user.id, dest, otpCode).run();
-
-          // In-app notification center backup
-          const notifId = "notif_" + crypto.randomUUID();
-          await env.DB.prepare(
-            "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', '🔐 2FA Sign-In Code', ?, 0, datetime('now'))"
-          ).bind(notifId, user.id, `Your 6-digit Two-Factor sign-in code is: ${otpCode}. Valid for 10 minutes.`).run().catch(() => {});
         }
         if (ctx) {
           ctx.waitUntil(dispatchOtpNotification({ email: dest, username: user.username, otpCode, purpose: "2FA Login", env, ctx }));
@@ -1486,7 +1487,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           masked_phone: maskEmail(dest),
           masked_destination: maskEmail(dest),
           masked_email: maskEmail(dest),
-          dev_otp: otpCode,
           message: `Two-factor authentication required. A verification code has been sent to ${maskEmail(dest)}.`,
           user: {
             id: user.id,
@@ -1495,8 +1495,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             two_factor_required: true,
             two_factor_enabled: true,
             two_factor_method: "email",
-            masked_destination: maskEmail(dest),
-            dev_otp: otpCode
+            masked_destination: maskEmail(dest)
           }
         });
       }
@@ -1690,8 +1689,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         status: "ok",
         message: `Verification code sent to ${maskEmail(rawEmail)}`,
         masked_destination: maskEmail(rawEmail),
-        identifier: rawEmail,
-        dev_otp: otpCode
+        identifier: rawEmail
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -1809,13 +1807,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const otpId = "otp_" + crypto.randomUUID();
         await env.DB.prepare(
           "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, ?, ?, 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
-        ).bind(otpId, user.id, dest, otpCode, dbPurpose, body.method || "email").run();
-
-        // Also add security notification in in-app notification center
-        const notifId = "notif_" + crypto.randomUUID();
-        await env.DB.prepare(
-          "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', ?, ?, 0, datetime('now'))"
-        ).bind(notifId, user.id, `🔐 ${purposeLabel} Code`, `Your 6-digit ${purposeLabel} verification code is: ${otpCode}. Valid for 10 minutes.`).run().catch(() => {});
+        ).bind(otpId, user.id, dest, otpCode, dbPurpose, "email").run();
       }
       if (ctx) {
         ctx.waitUntil(dispatchOtpNotification({ email: dest, username: user.username, otpCode, purpose: purposeLabel, env, ctx }));
@@ -1823,10 +1815,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       return jsonResponse({
         status: "ok",
         message: `${purposeLabel} verification code sent to ${maskEmail(dest)}`,
-        method: body.method || "email",
+        method: "email",
         masked_destination: maskEmail(dest),
-        identifier: dest,
-        dev_otp: otpCode
+        identifier: dest
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -2023,11 +2014,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'forgot_password', 'email', 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
         ).bind(otpId, user.id, dest, otpCode).run();
 
-        // Also add security notification in in-app notification center
-        const notifId = "notif_" + crypto.randomUUID();
-        await env.DB.prepare(
-          "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', '🔐 Password Reset Code', ?, 0, datetime('now'))"
-        ).bind(notifId, user.id, `Your 6-digit password reset recovery code is: ${otpCode}. Valid for 10 minutes.`).run().catch(() => {});
+        // Password reset OTP is dispatched strictly via email
       }
 
       if (ctx) {
@@ -2419,8 +2406,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         ).bind(user.id, currentHash).all();
 
         let terminatedCount = 0;
+        const termHashes = [];
         if (otherSessions.results && otherSessions.results.length > 0) {
           for (const s of otherSessions.results) {
+            termHashes.push(s.session_token_hash);
             await env.DB.prepare(
               "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
             ).bind(s.session_token_hash).run().catch(() => {});
@@ -2430,6 +2419,31 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             terminatedCount++;
           }
         }
+
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO terminated_sessions (session_token_hash) VALUES (?)"
+        ).bind(`all_before_${user.id}`).run().catch(() => {});
+
+        await broadcastRealtime(env, {
+          type: "session_terminated",
+          user_id: user.id,
+          username: user.username,
+          initiator_token_hash: currentHash,
+          terminated_hashes: termHashes,
+          reason: "other_sessions_terminated",
+          message: "Your session was logged out from another device."
+        }).catch(() => {});
+
+        if (user.fcm_token && ctx) {
+          ctx.waitUntil(sendFcmNotification(env, user.fcm_token, {
+            type: "session_terminated",
+            title: "Session Terminated",
+            body: "Your session was logged out from another device.",
+            initiator_token_hash: currentHash,
+            terminated_hashes: termHashes.join(",")
+          }).catch(() => {}));
+        }
+
         return jsonResponse({
           status: "ok",
           message: "All other sessions have been terminated",
@@ -2469,6 +2483,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         reason: "session_terminated",
         message: "Your session was logged out."
       }).catch(() => {});
+
+      if (user.fcm_token && ctx) {
+        ctx.waitUntil(sendFcmNotification(env, user.fcm_token, {
+          type: "session_terminated",
+          title: "Session Terminated",
+          body: "Your session was logged out from another device.",
+          session_id: sessionId,
+          session_token_hash: target.session_token_hash,
+          terminated_hashes: target.session_token_hash
+        }).catch(() => {}));
+      }
 
       return jsonResponse({
         status: "ok",
@@ -2529,6 +2554,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         message: "Your session was logged out from another device."
       }).catch(() => {});
 
+      if (user.fcm_token && ctx) {
+        ctx.waitUntil(sendFcmNotification(env, user.fcm_token, {
+          type: "session_terminated",
+          title: "Session Terminated",
+          body: "Your session was logged out from another device.",
+          initiator_token_hash: currentHash,
+          terminated_hashes: termHashes.join(",")
+        }).catch(() => {}));
+      }
+
       return jsonResponse({
         status: "ok",
         message: "All other sessions have been terminated",
@@ -2580,10 +2615,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "INSERT INTO otp_verifications (id, user_id, identifier, otp_code, purpose, method, attempts, expires_at, is_verified, created_at) VALUES (?, ?, ?, ?, 'login_2fa', 'email', 0, datetime('now', '+10 minutes'), 0, datetime('now'))"
         ).bind(otpId, user.id, dest, otpCode).run();
 
-        const notifId = "notif_" + crypto.randomUUID();
-        await env.DB.prepare(
-          "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', ?, ?, 0, datetime('now'))"
-        ).bind(notifId, user.id, "🔐 New Verification Code", `Your new 6-digit verification code is: ${otpCode}. Valid for 10 minutes.`).run().catch(() => {});
       }
       if (ctx) {
         ctx.waitUntil(dispatchOtpNotification({ email: dest, username: user.username, otpCode, purpose: "Two-Factor Verification", env, ctx }));
@@ -2592,8 +2623,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         status: "ok",
         message: `New verification code sent to ${maskEmail(dest)}`,
         masked_destination: maskEmail(dest),
-        identifier: dest,
-        dev_otp: otpCode
+        identifier: dest
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -2686,8 +2716,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         status: "ok",
         message: `Verification code sent to ${maskEmail(newContact)}`,
         masked_destination: maskEmail(newContact),
-        identifier: newContact,
-        dev_otp: otpCode
+        identifier: newContact
       });
     } catch (err) {
       return jsonResponse({ error: err.message }, 500);
@@ -5399,6 +5428,34 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         room_id: roomId,
         caller_avatar: avatar
       }));
+
+      // High-priority FCM push to wake background/closed Android devices for incoming calls
+      if (env.DB) {
+        ctx.waitUntil((async () => {
+          try {
+            const uRow = await env.DB.prepare(
+              "SELECT id, username, display_name, fcm_token FROM users WHERE lower(username) = ? OR id = ? LIMIT 1"
+            ).bind(target.toLowerCase(), target).first();
+            if (uRow && uRow.fcm_token) {
+              await sendFcmNotification(env, uRow.fcm_token, {
+                type: "call_invite",
+                title: "Incoming Voice Call",
+                body: `${callerName} is calling you on Connecto`,
+                room_id: roomId,
+                call_id: roomId,
+                reference_id: roomId,
+                caller: caller,
+                caller_username: caller,
+                caller_name: callerName,
+                caller_avatar: avatar,
+                avatar: avatar
+              });
+            }
+          } catch (err) {
+            console.error("[REST_CALL_FCM] Error dispatching push:", err.message);
+          }
+        })());
+      }
     }
 
     return jsonResponse({
@@ -5438,6 +5495,24 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         responder: responder,
         call_id: callId
       }));
+
+      if (action !== "accept" && env.DB && target) {
+        ctx.waitUntil((async () => {
+          try {
+            const uRow = await env.DB.prepare(
+              "SELECT fcm_token FROM users WHERE lower(username) = ? OR id = ? LIMIT 1"
+            ).bind(target.toLowerCase(), target).first();
+            if (uRow && uRow.fcm_token) {
+              await sendFcmNotification(env, uRow.fcm_token, {
+                type: "call_declined",
+                room_id: callId,
+                call_id: callId,
+                reference_id: callId
+              });
+            }
+          } catch (_) {}
+        })());
+      }
     }
 
     return jsonResponse({ status: "ok", action: action });
@@ -5471,6 +5546,24 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         sender: sender,
         call_id: callId
       }));
+
+      if (env.DB && target) {
+        ctx.waitUntil((async () => {
+          try {
+            const uRow = await env.DB.prepare(
+              "SELECT fcm_token FROM users WHERE lower(username) = ? OR id = ? LIMIT 1"
+            ).bind(target.toLowerCase(), target).first();
+            if (uRow && uRow.fcm_token) {
+              await sendFcmNotification(env, uRow.fcm_token, {
+                type: "call_ended",
+                room_id: callId,
+                call_id: callId,
+                reference_id: callId
+              });
+            }
+          } catch (_) {}
+        })());
+      }
     }
 
     return jsonResponse({ status: "ok" });
@@ -5608,14 +5701,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.3",
-      version_name: "v4.5.3",
-      version_code: 82,
-      build: 82,
-      sha256: "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
-      md5: "3c8bc9d5b0deedac81a46efbcddea62c",
+      version: "4.5.4",
+      version_name: "v4.5.4",
+      version_code: 83,
+      build: 83,
+      sha256: "d54057f4049af924c18767197128903dc49999c8aa6e7e819621ee14587bfce3",
+      md5: "7b0fbbde309169d56659d84fc5b16fc3",
       filename: "connecto-fun.apk",
-      size_bytes: 57767177,
+      size_bytes: 57799945,
       size_display: "55.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -5629,10 +5722,28 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.5.4",
+          date: "Oct 19, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.5.4: Background VoIP Call Wake-Up, High-Priority Ringing & 2FA Email-Only Verification",
+          summary: "Connecto v4.5.4 brings native VoIP push wake-up delivering incoming call rings and full-screen alerts even when the app is completely closed or killed in the background, adds continuous looping ringtones and vibration, automatically cancels notifications on remote caller hangup, enforces strict email-only 2FA OTP delivery, and removes the 7-day email verification restriction app-wide.",
+          highlights: [
+            "Background VoIP Call Wake-Up: High-priority data-only push notifications wake the device immediately from background or killed state, ensuring no incoming calls are missed.",
+            "Continuous Looping Ringtone & Vibration: Full-screen IncomingCallActivity and heads-up banner play uninterrupted ringtone and vibration until accepted, declined, or cancelled.",
+            "Remote Hangup Dismissal: Automatically cancels incoming call notifications and stops ringing when the caller hangs up before the call is answered.",
+            "Instant 400ms Call Notification Posting: Optimized caller avatar resolution timeout guarantees immediate heads-up call banner display.",
+            "Strict Email-Only 2FA Verification: 2FA one-time passwords (OTP) are dispatched strictly via verified email with zero client-side or API exposure.",
+            "Removed 7-Day Email Verification Limit: Completely removed the 7-day account restriction across frontend and backend systems.",
+            "Android Native App v4.5.4 (Build 83 • 55.1 MB): SHA-256 d54057f4049af924c18767197128903dc49999c8aa6e7e819621ee14587bfce3 • MD5 7b0fbbde309169d56659d84fc5b16fc3."
+          ],
+          author: "Connecto Core & VoIP Team"
+        },
+        {
           version: "v4.5.3",
           date: "Oct 19, 2026",
           category: "security",
-          tag: "Latest Security Release",
+          tag: "Previous Release",
           title: "Connecto v4.5.3: Critical Security Hardening, Cryptographic Webhook Signatures & Real-Time DoS Protection",
           summary: "Connecto v4.5.3 delivers a comprehensive defensive security hardening update across real-time voice, messaging, webhooks, and session controls. Eliminates authentication bypasses, prevents unauthorized direct-message exfiltration, mitigates WebSocket non-dict Denial-of-Service, enforces HMAC-SHA256 signatures on inbound SMS webhooks, and protects voice rooms with strict caller identity binding and capacity limits.",
           highlights: [
@@ -7041,12 +7152,21 @@ export class ConnectoRealtimeRoom {
       "test1": "/uploads/avatars/e0f32b345cd345349f86a73eead1257e.webp"
     };
 
+    const rawToken = url.searchParams.get("token") || "";
+    let sessionTokenHash = "";
+    if (rawToken) {
+      try {
+        sessionTokenHash = await sha256Hex(rawToken);
+      } catch (_) {}
+    }
+
     const meta = {
       username: cleanUser,
       displayName: cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1),
       avatar: knownAvatars[cleanUser] || "👾",
       channels: new Set(["general", cleanUser]),
       currentVoiceRoom: null,
+      sessionTokenHash: sessionTokenHash,
       connectedAt: Date.now()
     };
     if (cleanChan) meta.channels.add(cleanChan);
@@ -7056,6 +7176,12 @@ export class ConnectoRealtimeRoom {
 
     if (!this.userSockets.has(cleanUser)) this.userSockets.set(cleanUser, new Set());
     this.userSockets.get(cleanUser).add(server);
+
+    const rawUserId = (url.searchParams.get("user_id") || "").trim().toLowerCase();
+    if (rawUserId && rawUserId !== cleanUser) {
+      if (!this.userSockets.has(rawUserId)) this.userSockets.set(rawUserId, new Set());
+      this.userSockets.get(rawUserId).add(server);
+    }
 
     for (const ch of meta.channels) {
       if (!this.channelSockets.has(ch)) this.channelSockets.set(ch, new Set());
@@ -7251,6 +7377,29 @@ export class ConnectoRealtimeRoom {
             sender_avatar: callerAvatar,
             reference_id: callId
           });
+
+          // Dispatch high-priority FCM VoIP push notification to wake background/closed Android devices
+          if (this.env && this.env.DB) {
+            this.env.DB.prepare(
+              "SELECT id, username, display_name, fcm_token FROM users WHERE lower(username) = ? OR id = ? LIMIT 1"
+            ).bind(target.toLowerCase(), target).first().then(uRow => {
+              if (uRow && uRow.fcm_token) {
+                sendFcmNotification(this.env, uRow.fcm_token, {
+                  type: "call_invite",
+                  title: "Incoming Voice Call",
+                  body: `${meta.displayName || meta.username} is calling you on Connecto`,
+                  room_id: callId,
+                  call_id: callId,
+                  reference_id: callId,
+                  caller: meta.username,
+                  caller_username: meta.username,
+                  caller_name: meta.displayName || meta.username,
+                  caller_avatar: callerAvatar,
+                  avatar: callerAvatar
+                }).catch(err => console.error("[WS_CALL_FCM] Error dispatching push:", err.message));
+              }
+            }).catch(err => console.error("[WS_CALL_FCM] Error querying recipient:", err.message));
+          }
 
           server.send(JSON.stringify({
             type: "call:ringing",
@@ -7848,6 +7997,60 @@ export class ConnectoRealtimeRoom {
         is_online: payload.is_online,
         status: payload.status
       });
+    } else if (payload.type === "session_terminated" || payload.type === "session_revoked" || payload.type === "force_logout") {
+      const u = (payload.username || payload.user_id || "").toLowerCase().trim().replace(/^@/, "");
+      const rawUserId = (payload.user_id || "").toLowerCase().trim();
+      const termHashes = Array.isArray(payload.terminated_hashes) ? payload.terminated_hashes :
+        (payload.session_token_hash ? [payload.session_token_hash] : []);
+      const targetSessionId = payload.session_id || "";
+      const initiatorHash = payload.initiator_token_hash || "";
+
+      const eventPayload = {
+        type: "session_terminated",
+        reason: payload.reason || "session_terminated",
+        message: payload.message || "Your session was logged out.",
+        session_id: targetSessionId,
+        session_token_hash: payload.session_token_hash || (termHashes.length > 0 ? termHashes[0] : ""),
+        initiator_token_hash: initiatorHash,
+        terminated_hashes: termHashes,
+        timestamp: new Date().toISOString()
+      };
+      const eventMsg = JSON.stringify(eventPayload);
+
+      // Collect all candidate sockets registered under username or user_id
+      const candidateSockets = new Set();
+      if (u && this.userSockets.has(u)) {
+        for (const s of this.userSockets.get(u)) candidateSockets.add(s);
+      }
+      if (rawUserId && this.userSockets.has(rawUserId)) {
+        for (const s of this.userSockets.get(rawUserId)) candidateSockets.add(s);
+      }
+
+      for (const ws of candidateSockets) {
+        const sMeta = this.socketMeta.get(ws);
+        const wsHash = sMeta ? (sMeta.sessionTokenHash || "") : "";
+
+        // Send explicit real-time termination message frame
+        try { ws.send(eventMsg); } catch (_) {}
+
+        // Determine if this socket should be severed
+        let shouldSever = false;
+        if (wsHash) {
+          if (termHashes.some(h => h && h.toLowerCase() === wsHash.toLowerCase())) {
+            shouldSever = true;
+          } else if (initiatorHash && wsHash.toLowerCase() !== initiatorHash.toLowerCase()) {
+            shouldSever = true;
+          }
+        } else if (termHashes.length > 0 || targetSessionId) {
+          // If socket has no hash recorded, still send frame and if all other sessions revoked, sever
+          if (initiatorHash) shouldSever = true;
+        }
+
+        if (shouldSever) {
+          try { ws.close(4001, "Session terminated"); } catch (_) {}
+          this.removeSocket(ws);
+        }
+      }
     }
   }
 

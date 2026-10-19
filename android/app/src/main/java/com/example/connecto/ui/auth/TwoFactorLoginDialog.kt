@@ -59,7 +59,6 @@ fun TwoFactorLoginDialog(
     loginIdentifier: String,
     maskedDestination: String?,
     twoFactorMethod: String = "email",
-    devOtp: String? = null,
     onDismiss: () -> Unit,
     onSuccess: (AuthResult) -> Unit
 ) {

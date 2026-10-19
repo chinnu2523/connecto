@@ -235,8 +235,7 @@ async def signup_request_otp(
     return {
         "status": "ok",
         "message": f"Verification code sent to {res.get('masked_destination', clean_e)}",
-        "masked_destination": res.get("masked_destination", mask_email(clean_e)),
-        "dev_otp": res.get("dev_otp")
+        "masked_destination": res.get("masked_destination", mask_email(clean_e))
     }
 
 @router.post("/signup/verify-otp")
@@ -287,8 +286,7 @@ async def verify_email_request_otp(
     return {
         "status": "ok",
         "message": f"Verification code sent to {res.get('masked_destination', clean_e)}",
-        "masked_destination": res.get("masked_destination", mask_email(clean_e)),
-        "dev_otp": res.get("dev_otp")
+        "masked_destination": res.get("masked_destination", mask_email(clean_e))
     }
 
 @router.post("/verify-email/confirm")
@@ -616,21 +614,14 @@ async def login(
 
     # Check if Two-Factor Authentication (2FA) is enabled for this account
     if getattr(user, "two_factor_enabled", False):
-        two_fa_method = (getattr(user, "two_factor_method", "sms") or "sms").lower()
-        destination = user.phone_number if two_fa_method == "sms" else user.email
-
-        # Fallback to email if sms selected but no phone attached
-        if two_fa_method == "sms" and not destination:
-            two_fa_method = "email"
-            destination = user.email
-
-        if not destination:
-            destination = user.email or user.username
+        # 2FA is delivered strictly via email only
+        two_fa_method = "email"
+        destination = user.email or f"{user.username}@connecto.fun"
 
         otp_result = await send_unified_otp(
             db=db,
             identifier=destination,
-            method=two_fa_method,
+            method="email",
             purpose="two_factor_login",
             user_id=user.id
         )
@@ -642,14 +633,14 @@ async def login(
             email=user.email,
             phone_number=user.phone_number,
             two_factor_enabled=True,
-            two_factor_method=two_fa_method,
+            two_factor_method="email",
             requires_2fa=True,
             masked_destination=otp_result["masked_destination"],
             is_admin=is_adm,
             username_changed=user.username_changed,
             created_at=user.created_at,
             token=None,
-            dev_otp=otp_result.get("dev_otp")
+            dev_otp=None
         )
 
     # Standard Login (No 2FA Required)
@@ -755,9 +746,7 @@ async def verify_login_2fa(
             detail="User account not found."
         )
 
-    destination = user.phone_number if getattr(user, "two_factor_method", "sms") == "sms" else user.email
-    if not destination:
-        destination = user.email or user.username
+    destination = user.email or f"{user.username}@connecto.fun"
 
     await verify_unified_otp(
         db=db,
@@ -1037,21 +1026,12 @@ async def two_factor_request_otp(
     """
     Sends an OTP to setup or verify 2FA on the authenticated account.
     """
-    method = (req.method or "sms").lower()
-    phone = req.phone_number.strip() if req.phone_number else current_user.phone_number
-
-    if method == "sms" and not phone:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A valid phone number is required to enable SMS 2FA."
-        )
-
-    target = clean_phone_number(phone) if method == "sms" else current_user.email.lower()
+    target = current_user.email.lower() if current_user.email else f"{current_user.username}@connecto.fun"
 
     return await send_unified_otp(
         db=db,
         identifier=target,
-        method=method,
+        method="email",
         purpose="two_factor_setup",
         user_id=current_user.id
     )
@@ -1064,11 +1044,9 @@ async def two_factor_verify(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Verifies OTP and enables Two-Factor Authentication for the account.
+    Verifies OTP and enables Two-Factor Authentication for the account via Email.
     """
-    method = (req.method or "sms").lower()
-    phone = req.phone_number.strip() if req.phone_number else current_user.phone_number
-    target = clean_phone_number(phone) if method == "sms" else current_user.email.lower()
+    target = current_user.email.lower() if current_user.email else f"{current_user.username}@connecto.fun"
 
     await verify_unified_otp(
         db=db,
@@ -1078,9 +1056,7 @@ async def two_factor_verify(
     )
 
     current_user.two_factor_enabled = True
-    current_user.two_factor_method = method
-    if phone:
-        current_user.phone_number = clean_phone_number(phone)
+    current_user.two_factor_method = "email"
 
     await db.commit()
     await db.refresh(current_user)
@@ -1088,9 +1064,9 @@ async def two_factor_verify(
     return {
         "status": "ok",
         "two_factor_enabled": True,
-        "two_factor_method": current_user.two_factor_method,
+        "two_factor_method": "email",
         "phone_number": current_user.phone_number,
-        "message": f"Two-Factor Authentication successfully activated via {method.upper()}!"
+        "message": "Two-Factor Authentication successfully activated via EMAIL!"
     }
 
 
@@ -1333,9 +1309,8 @@ async def legacy_resend_otp(req: LegacyResendOtpRequest, db: AsyncSession = Depe
     user = await find_user_by_identifier(db, req.username)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
-    method = (getattr(user, "two_factor_method", "email") or "email").lower()
-    dest = user.phone_number if method == "sms" and user.phone_number else user.email
-    return await send_unified_otp(db=db, identifier=dest, method=method, purpose="two_factor_login", user_id=user.id)
+    dest = user.email or f"{user.username}@connecto.fun"
+    return await send_unified_otp(db=db, identifier=dest, method="email", purpose="two_factor_login", user_id=user.id)
 
 
 class VerifyOldPasswordPayload(BaseModel):
@@ -1612,6 +1587,25 @@ async def terminate_session_endpoint(
         except Exception as e:
             logger.warning(f"Error terminating WebSocket sessions: {e}")
 
+        try:
+            if getattr(target_user, "fcm_token", None):
+                from app.core.push import send_push_notification
+                asyncio.create_task(
+                    asyncio.to_thread(
+                        send_push_notification,
+                        target_user.fcm_token,
+                        title="Session Terminated",
+                        body="Your session was logged out from another device.",
+                        notification_type="session_terminated",
+                        data={
+                            "initiator_token_hash": current_token_hash or "",
+                            "terminated_hashes": ",".join(terminated_hashes)
+                        }
+                    )
+                )
+        except Exception as ex:
+            logger.debug(f"Failed to send session termination push: {ex}")
+
         asyncio.create_task(_sync_terminated_to_d1(terminated_hashes, target_user.id))
 
         return {
@@ -1658,6 +1652,26 @@ async def terminate_session_endpoint(
                 )
             except Exception as e:
                 logger.warning(f"Error terminating WebSocket session: {e}")
+
+            try:
+                if getattr(target_user, "fcm_token", None):
+                    from app.core.push import send_push_notification
+                    asyncio.create_task(
+                        asyncio.to_thread(
+                            send_push_notification,
+                            target_user.fcm_token,
+                            title="Session Terminated",
+                            body="Your session was logged out from another device.",
+                            notification_type="session_terminated",
+                            data={
+                                "session_id": req.session_id or "",
+                                "session_token_hash": th,
+                                "terminated_hashes": th
+                            }
+                        )
+                    )
+            except Exception as ex:
+                logger.debug(f"Failed to send session termination push: {ex}")
 
             asyncio.create_task(_sync_terminated_to_d1([th], target_user.id))
 

@@ -64,16 +64,24 @@ import com.example.connecto.ui.theme.ConnectoTheme
 import com.example.connecto.ui.theme.OnlineGreen
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import android.media.Ringtone
+import android.media.RingtoneManager
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.os.VibrationEffect
 
 class IncomingCallActivity : ComponentActivity() {
 
     private var wakeLock: PowerManager.WakeLock? = null
+    private var ringtone: Ringtone? = null
+    private var vibrator: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setupLockscreenFlags()
         acquireWakeLock()
+        startRingtoneAndVibration()
 
         // Auto-dismiss if caller hangs up, cancels, declines, or call ends
         lifecycleScope.launch {
@@ -101,6 +109,7 @@ class IncomingCallActivity : ComponentActivity() {
                         callerUsername = callerUsername,
                         callerAvatar = callerAvatar,
                         onAccept = {
+                            stopRingtoneAndVibration()
                             VoiceCallManager.acceptIncomingCall()
                             ConnectoNotificationManager.cancelCallNotification()
                             val mainIntent = Intent(this@IncomingCallActivity, MainActivity::class.java).apply {
@@ -112,6 +121,7 @@ class IncomingCallActivity : ComponentActivity() {
                             finish()
                         },
                         onDecline = {
+                            stopRingtoneAndVibration()
                             VoiceCallManager.declineIncomingCall()
                             ConnectoNotificationManager.cancelCallNotification()
                             finish()
@@ -120,6 +130,48 @@ class IncomingCallActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun startRingtoneAndVibration() {
+        try {
+            val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            ringtone = RingtoneManager.getRingtone(applicationContext, soundUri)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                ringtone?.isLooping = true
+            }
+            ringtone?.play()
+        } catch (_: Throwable) {}
+
+        try {
+            vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vm?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+            val pattern = longArrayOf(0, 800, 800, 800, 800)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(pattern, 0)
+            }
+        } catch (_: Throwable) {}
+    }
+
+    private fun stopRingtoneAndVibration() {
+        try {
+            if (ringtone?.isPlaying == true) {
+                ringtone?.stop()
+            }
+            ringtone = null
+        } catch (_: Throwable) {}
+
+        try {
+            vibrator?.cancel()
+            vibrator = null
+        } catch (_: Throwable) {}
     }
 
     private fun setupLockscreenFlags() {
@@ -155,6 +207,7 @@ class IncomingCallActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        stopRingtoneAndVibration()
         try {
             if (wakeLock?.isHeld == true) {
                 wakeLock?.release()

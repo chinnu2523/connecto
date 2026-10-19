@@ -4783,25 +4783,8 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
     can_view_pii = is_self or (session_user is not None and bool(getattr(session_user, "is_admin", False)))
 
     is_verified = bool(getattr(user, "is_email_verified", False))
-    v_deadline = getattr(user, "verification_deadline", None)
     is_blocked = False
     days_left = None
-
-    if not is_verified:
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
-        if v_deadline:
-            dl = v_deadline if v_deadline.tzinfo else v_deadline.replace(tzinfo=timezone.utc)
-            diff = dl - now
-            if diff.total_seconds() <= 0:
-                is_blocked = True
-                days_left = 0
-            else:
-                is_blocked = False
-                days_left = max(1, int(diff.total_seconds() // 86400) + 1)
-        else:
-            is_blocked = False
-            days_left = 7
 
     user_dict = {
         "id": user.id,
@@ -4825,9 +4808,9 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
         "is_stealth": is_stealth if is_self else False,
         "is_online": is_online,
         "is_email_verified": is_verified,
-        "verification_deadline": v_deadline.isoformat() if v_deadline else None,
-        "is_temporarily_blocked": is_blocked,
-        "verification_days_left": days_left,
+        "verification_deadline": None,
+        "is_temporarily_blocked": False,
+        "verification_days_left": None,
         "status": presence_status
     }
 
@@ -5912,12 +5895,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.5.2",
-        "version_name": "v4.5.2",
-        "version_code": 81,
-        "release_tag": "v4.5.2-stable",
-        "sha256": "cd38d209daa2f29a5f302eff37e94fd3ea6d469b8f83f652edab07ee4f319295",
-        "md5": "7ff59a726b1c82587e86fe5be0e4b80c",
+        "version": "4.5.4",
+        "version_name": "v4.5.4",
+        "version_code": 83,
+        "release_tag": "v4.5.4-stable",
+        "sha256": "d54057f4049af924c18767197128903dc49999c8aa6e7e819621ee14587bfce3",
+        "md5": "7b0fbbde309169d56659d84fc5b16fc3",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5927,14 +5910,11 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Voice Call Profile Photo Accuracy: Calling screen and full-screen call UI accurately resolve and render friend profile photos and display names, eliminating self-avatar fallbacks and Echo self-calls.",
-            "Seamless Call Dismissal (Zero Re-Appearance): Strict state & termination guards on asynchronous WebSocket events prevent dismissed calls from re-appearing on screen.",
-            "Real-Time Voice Isolation Controls: In-call Voice Isolation toggle button ('Isolated') embedded into active call controls for crystal-clear WebRTC communication.",
-            "Smooth Flicker-Free Call History: In-place list synchronization in CallsScreen eliminates list flashing and empty state flickers.",
-            "Resilient Channel Cache Engine: Fixed transient message disappearance in Channels workspace. The in-memory feed now safeguards locally persisted SQLite history.",
-            "HTTP 503 Edge Protection: Cloudflare Worker now signals edge database unavailability with HTTP 503 instead of masking errors with empty message arrays.",
-            "Streamlined Profile Navigation: Clean single-row action items removing redundant side info metadata for a clutter-free interface.",
-            "Dedicated Help & Support Center: In-app customer care with direct contact channels (support@connecto.fun), interactive FAQ accordion, hardware inspector, and automated bug diagnostic bundles."
+            "VoIP Background Call Delivery: High-priority data-only push notifications wake up backgrounded and killed devices immediately, displaying full-screen incoming call UI and heads-up banners.",
+            "Continuous Looping Ringtone & Rhythmic Vibration: Incoming calls play a continuous system ringtone and vibration pattern until accepted, declined, or cancelled by caller.",
+            "Instant Call Cancellation Sync: Immediate remote call_ended push notification dismisses the incoming call notification and stops ringing if the caller hangs up before answer.",
+            "Strict Email-Only 2FA OTP Delivery: Sealed 2FA verification pipeline to deliver OTP codes strictly via verified email with zero client-side or API exposure.",
+            "Removal of 7-Day Email Verification Limit: Unrestricted app access removing all 7-day expiration barriers from email verification and authentication flows."
         ]
     }
 
@@ -5946,10 +5926,28 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.5.4",
+                "date": "Oct 19, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.5.4: Background VoIP Call Wake-Up, High-Priority Ringing & 2FA Email-Only Verification",
+                "summary": "Connecto v4.5.4 brings native VoIP push wake-up delivering incoming call rings and full-screen alerts even when the app is completely closed or killed in the background, adds continuous looping ringtones and vibration, automatically cancels notifications on remote caller hangup, enforces strict email-only 2FA OTP delivery, and removes the 7-day email verification restriction app-wide.",
+                "highlights": [
+                    "Background VoIP Call Wake-Up: High-priority data-only push notifications wake the device immediately from background or killed state, ensuring no incoming calls are missed.",
+                    "Continuous Looping Ringtone & Vibration: Full-screen IncomingCallActivity and heads-up banner play uninterrupted ringtone and vibration until accepted, declined, or cancelled.",
+                    "Remote Hangup Dismissal: Automatically cancels incoming call notifications and stops ringing when the caller hangs up before the call is answered.",
+                    "Instant 400ms Call Notification Posting: Optimized caller avatar resolution timeout guarantees immediate heads-up call banner display.",
+                    "Strict Email-Only 2FA Verification: 2FA one-time passwords (OTP) are dispatched strictly via verified email with zero client-side or API exposure.",
+                    "Removed 7-Day Email Verification Limit: Completely removed the 7-day account restriction across frontend and backend systems.",
+                    "Android Native App v4.5.4 (Build 83 • 55.1 MB): SHA-256 d54057f4049af924c18767197128903dc49999c8aa6e7e819621ee14587bfce3 • MD5 7b0fbbde309169d56659d84fc5b16fc3."
+                ],
+                "author": "Connecto Core & VoIP Team"
+            },
+            {
                 "version": "v4.5.3",
                 "date": "Oct 19, 2026",
                 "category": "security",
-                "tag": "Latest Security Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.5.3: Critical Security Hardening, Cryptographic Webhook Signatures & Real-Time DoS Protection",
                 "summary": "Connecto v4.5.3 delivers a comprehensive defensive security hardening update across real-time voice, messaging, webhooks, and session controls. Eliminates authentication bypasses, prevents unauthorized direct-message exfiltration, mitigates WebSocket non-dict Denial-of-Service, enforces HMAC-SHA256 signatures on inbound SMS webhooks, and protects voice rooms with strict caller identity binding and capacity limits.",
                 "highlights": [

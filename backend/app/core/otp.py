@@ -548,17 +548,6 @@ async def send_unified_otp(
             logger.warning(f"[OTP Dual Dispatch] Backup email delivery skipped: {sync_err}")
 
     if not delivery_success:
-        if getattr(settings, "ENABLE_DEV_OTP_FALLBACK", False):
-            resp_data = {
-                "status": "ok",
-                "message": f"Carrier unavailable; dev OTP issued for testing: {plain_otp}",
-                "method": clean_method,
-                "masked_destination": masked_dest,
-                "identifier": clean_id,
-                "dev_otp": plain_otp
-            }
-            return resp_data
-
         err_msg = (
             f"Unable to send SMS: No live SMS gateway configured on the server. Please choose Email verification."
             if clean_method == "sms"
@@ -576,8 +565,6 @@ async def send_unified_otp(
         "masked_destination": masked_dest,
         "identifier": clean_id
     }
-    if getattr(settings, "ENABLE_DEV_OTP_FALLBACK", False):
-        resp_data["dev_otp"] = plain_otp
     return resp_data
 
 # -------------------------------------------------------------------------

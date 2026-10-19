@@ -47,6 +47,10 @@ import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Wallpaper
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.graphics.graphicsLayer
+import com.example.connecto.data.WallpaperTransform
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -226,6 +230,8 @@ fun FriendProfileScreen(
     onSelectWallpaper: (String) -> Unit,
     onPickCustomWallpaper: () -> Unit,
     onRemoveCustomWallpaper: () -> Unit,
+    wallpaperTransform: WallpaperTransform = WallpaperTransform(),
+    onOpenWallpaperCustomizer: (() -> Unit)? = null,
     onUnfriend: () -> Unit,
     onInitiateVoiceCall: () -> Unit,
     onInitiateVideoCall: (() -> Unit)? = null,
@@ -619,21 +625,58 @@ fun FriendProfileScreen(
                                         .height(140.dp)
                                         .clip(RoundedCornerShape(18.dp))
                                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
+                                        .then(
+                                            if (onOpenWallpaperCustomizer != null) Modifier.clickable { onOpenWallpaperCustomizer() }
+                                            else Modifier
+                                        )
                                 ) {
                                     if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) {
+                                        val contentScale = when (wallpaperTransform.contentScaleMode) {
+                                            "fit" -> ContentScale.Fit
+                                            "fill_bounds" -> ContentScale.FillBounds
+                                            "inside" -> ContentScale.Inside
+                                            else -> ContentScale.Crop
+                                        }
                                         AsyncImage(
                                             model = Uri.parse(customWallpaperUri),
                                             contentDescription = "Custom Wallpaper",
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.Crop
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .graphicsLayer {
+                                                    scaleX = wallpaperTransform.scale
+                                                    scaleY = wallpaperTransform.scale
+                                                    translationX = wallpaperTransform.offsetX * 0.4f
+                                                    translationY = wallpaperTransform.offsetY * 0.4f
+                                                }
+                                                .then(
+                                                    if (wallpaperTransform.blur > 0f) Modifier.blur(wallpaperTransform.blur.dp) else Modifier
+                                                ),
+                                            contentScale = contentScale
                                         )
                                     } else {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
+                                                .graphicsLayer {
+                                                    scaleX = wallpaperTransform.scale
+                                                    scaleY = wallpaperTransform.scale
+                                                    translationX = wallpaperTransform.offsetX * 0.4f
+                                                    translationY = wallpaperTransform.offsetY * 0.4f
+                                                }
                                                 .background(if (isLight) activeWp.lightBrush else activeWp.darkBrush)
                                         )
                                     }
+
+                                    // Scrim Overlay
+                                    val scrimAlpha = wallpaperTransform.dim
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                if (isLight) Color.White.copy(alpha = scrimAlpha * 0.75f)
+                                                else Color.Black.copy(alpha = scrimAlpha)
+                                            )
+                                    )
 
                                     // Mock Chat Bubbles
                                     Column(
@@ -689,7 +732,7 @@ fun FriendProfileScreen(
 
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Button(
                                         onClick = onPickCustomWallpaper,
@@ -704,12 +747,36 @@ fun FriendProfileScreen(
                                             contentDescription = null,
                                             modifier = Modifier.size(18.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = if (customWallpaperUri != null) "Change Photo" else "Pick From Gallery",
-                                            fontSize = 12.5.sp,
+                                            fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
+                                    }
+
+                                    if (onOpenWallpaperCustomizer != null && (customWallpaperUri != null || chatWallpaperId != "default")) {
+                                        Button(
+                                            onClick = onOpenWallpaperCustomizer,
+                                            modifier = Modifier.height(46.dp),
+                                            shape = RoundedCornerShape(14.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Tune,
+                                                contentDescription = "Adjust Size & Position",
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Layout",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     }
 
                                     if (customWallpaperUri != null) {

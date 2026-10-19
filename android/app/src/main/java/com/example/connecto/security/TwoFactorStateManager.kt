@@ -18,7 +18,6 @@ object TwoFactorStateManager {
     private const val KEY_METHOD = "setup_method"
     private const val KEY_DESTINATION = "setup_destination"
     private const val KEY_MASKED_DEST = "setup_masked_destination"
-    private const val KEY_DEV_OTP = "setup_dev_otp"
     private const val KEY_OTP_DRAFT = "setup_otp_draft"
     private const val KEY_TIMESTAMP = "setup_timestamp"
 
@@ -29,7 +28,6 @@ object TwoFactorStateManager {
     var setupMethod by mutableStateOf("email")
     var setupDestination by mutableStateOf("")
     var setupMaskedDestination by mutableStateOf<String?>(null)
-    var setupDevOtp by mutableStateOf<String?>(null)
     var setupOtpCode by mutableStateOf("")
     var setupErrorMessage by mutableStateOf<String?>(null)
     var isVerifying by mutableStateOf(false)
@@ -43,13 +41,12 @@ object TwoFactorStateManager {
         method: String,
         destination: String,
         maskedDest: String?,
-        devOtp: String?
+        devOtp: String? = null
     ) {
         val now = System.currentTimeMillis()
         setupMethod = method
         setupDestination = destination
         setupMaskedDestination = maskedDest
-        setupDevOtp = devOtp
         setupOtpCode = ""
         setupErrorMessage = null
         isVerifying = false
@@ -66,7 +63,6 @@ object TwoFactorStateManager {
                 .putString(KEY_METHOD, method)
                 .putString(KEY_DESTINATION, destination)
                 .putString(KEY_MASKED_DEST, maskedDest)
-                .putString(KEY_DEV_OTP, devOtp)
                 .putString(KEY_OTP_DRAFT, "")
                 .putLong(KEY_TIMESTAMP, now)
                 .apply()
@@ -82,11 +78,7 @@ object TwoFactorStateManager {
     }
 
     fun updateDevOtp(context: Context, devOtp: String?) {
-        setupDevOtp = devOtp
-        try {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            prefs.edit().putString(KEY_DEV_OTP, devOtp).apply()
-        } catch (_: Exception) {}
+        // No-op: dev OTP display permanently removed
     }
 
     fun restoreIfPending(context: Context): Boolean {
@@ -105,7 +97,6 @@ object TwoFactorStateManager {
             setupMethod = prefs.getString(KEY_METHOD, "email") ?: "email"
             setupDestination = prefs.getString(KEY_DESTINATION, "") ?: ""
             setupMaskedDestination = prefs.getString(KEY_MASKED_DEST, null)
-            setupDevOtp = prefs.getString(KEY_DEV_OTP, null)
             setupOtpCode = prefs.getString(KEY_OTP_DRAFT, "") ?: ""
             setupTimestamp = ts
             isSetupDialogOpen = true
@@ -120,7 +111,6 @@ object TwoFactorStateManager {
         setupMethod = "email"
         setupDestination = ""
         setupMaskedDestination = null
-        setupDevOtp = null
         setupOtpCode = ""
         setupErrorMessage = null
         isVerifying = false

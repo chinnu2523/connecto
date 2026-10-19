@@ -62,11 +62,10 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun EmailGracePeriodBanner(
-    daysLeft: Int?,
+    daysLeft: Int? = null,
     onVerifyClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val displayDays = daysLeft ?: 7
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -99,13 +98,13 @@ fun EmailGracePeriodBanner(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "Verify Email Address ($displayDays day${if (displayDays == 1) "" else "s"} left)",
+                        text = "Verify Email Address",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFFFEF08A)
                     )
                     Text(
-                        text = "Old accounts require email verification within 7 days.",
+                        text = "Verify your email address to ensure account security and recovery.",
                         fontSize = 11.sp,
                         color = Color.White.copy(alpha = 0.85f),
                         lineHeight = 14.sp
@@ -132,13 +131,12 @@ fun EmailGracePeriodBanner(
 }
 
 /**
- * Fullscreen non-dismissible modal when account is temporarily blocked
- * due to expiration of 7-day grace period, OR opened manually via banner.
+ * Modal to verify registered email with OTP sent to user's inbox.
  */
 @Composable
 fun EmailVerificationModal(
-    isBlocked: Boolean,
-    daysLeft: Int?,
+    isBlocked: Boolean = false,
+    daysLeft: Int? = null,
     onDismiss: () -> Unit = {}
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -152,11 +150,11 @@ fun EmailVerificationModal(
 
     Dialog(
         onDismissRequest = {
-            if (!isBlocked) onDismiss()
+            onDismiss()
         },
         properties = DialogProperties(
-            dismissOnBackPress = !isBlocked,
-            dismissOnClickOutside = !isBlocked,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
             usePlatformDefaultWidth = false
         )
     ) {
@@ -179,13 +177,12 @@ fun EmailVerificationModal(
                         .size(60.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isBlocked) Brush.linearGradient(listOf(Color(0xFFEF4444), Color(0xFFB91C1C)))
-                            else Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF3B82F6)))
+                            Brush.linearGradient(listOf(Color(0xFF6366F1), Color(0xFF3B82F6)))
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = if (isBlocked) Icons.Filled.Lock else Icons.Filled.MarkEmailRead,
+                        imageVector = Icons.Filled.MarkEmailRead,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(32.dp)
@@ -195,7 +192,7 @@ fun EmailVerificationModal(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = if (isBlocked) "Account Temporarily Blocked" else "Verify Your Email",
+                    text = "Verify Your Email",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black,
                     color = Color.White,
@@ -205,10 +202,7 @@ fun EmailVerificationModal(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = if (isBlocked)
-                        "Your 7-day grace period has expired. Please verify your registered email address with an OTP code to unlock your account."
-                    else
-                        "You have ${daysLeft ?: 7} day${if ((daysLeft ?: 7) == 1) "" else "s"} remaining to verify your registered email address. Verify now to prevent your account from being temporarily blocked.",
+                    text = "Please verify your registered email address with the 6-digit verification code sent to your email inbox.",
                     fontSize = 13.sp,
                     color = Color.White.copy(alpha = 0.75f),
                     textAlign = TextAlign.Center,

@@ -112,27 +112,11 @@ class UserResponse(BaseModel):
 
     @model_validator(mode="after")
     def compute_verification_flags(self):
-        from datetime import timezone
-        now = datetime.now(timezone.utc)
-        if self.is_email_verified:
-            self.is_temporarily_blocked = False
-            self.verification_days_left = None
-        else:
-            if self.verification_deadline:
-                # Ensure timezone aware
-                deadline = self.verification_deadline
-                if deadline.tzinfo is None:
-                    deadline = deadline.replace(tzinfo=timezone.utc)
-                diff = deadline - now
-                if diff.total_seconds() <= 0:
-                    self.is_temporarily_blocked = True
-                    self.verification_days_left = 0
-                else:
-                    self.is_temporarily_blocked = False
-                    self.verification_days_left = max(1, int(diff.total_seconds() // 86400) + 1)
-            else:
-                self.is_temporarily_blocked = False
-                self.verification_days_left = 7
+        # 7-day verification deadline and account blocking permanently removed
+        self.is_temporarily_blocked = False
+        self.verification_days_left = None
+        self.verification_deadline = None
+        self.dev_otp = None
         return self
 
     model_config = ConfigDict(from_attributes=True)

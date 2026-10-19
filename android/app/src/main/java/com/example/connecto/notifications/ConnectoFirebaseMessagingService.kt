@@ -55,20 +55,60 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
         val title = data["title"] ?: remoteMessage.notification?.title ?: "Connecto"
         val body = data["body"] ?: remoteMessage.notification?.body ?: ""
         val sender = data["sender"] ?: data["sender_username"] ?: ""
-        val referenceId = data["reference_id"] ?: data["room_id"] ?: ""
+        val referenceId = data["reference_id"] ?: data["room_id"] ?: data["call_id"] ?: ""
         ConnectoNotificationManager.init(applicationContext)
         when (type) {
+            "session_terminated", "session_revoked", "force_logout" -> {
+                Log.w(TAG, "Received session termination push notification: ${remoteMessage.data}")
+                ConnectoApiClient.initSessionFromPrefs(applicationContext)
+                val myHash = ConnectoApiClient.getSessionTokenHash()
+                val targetSessionId = data["target_session_id"]
+                val targetHash = data["session_token_hash"]
+                val initiatorHash = data["initiator_token_hash"]
+                val terminateOthers = data["terminate_others"]?.toBoolean() == true || data["terminate_all"]?.toBoolean() == true
+
+                var isTargeted = false
+                if (!myHash.isBlank() && !initiatorHash.isNullOrBlank() && myHash.equals(initiatorHash, ignoreCase = true)) {
+                    // This device is the initiator that requested logout of other devices; do not terminate itself
+                    isTargeted = false
+                } else if (terminateOthers) {
+                    isTargeted = true
+                } else if (!targetHash.isNullOrBlank() && !myHash.isBlank() && myHash.equals(targetHash, ignoreCase = true)) {
+                    isTargeted = true
+                } else if (!targetSessionId.isNullOrBlank() && !ConnectoApiClient.currentSessionId.isNullOrBlank() && targetSessionId == ConnectoApiClient.currentSessionId) {
+                    isTargeted = true
+                } else if (targetHash.isNullOrBlank() && targetSessionId.isNullOrBlank() && !terminateOthers) {
+                    // Broadcast revocation with no specific target filters
+                    isTargeted = true
+                }
+
+                if (isTargeted) {
+                    Log.w(TAG, "FCM session_terminated matched this device! Logging out immediately.")
+                    val reason = body.ifBlank { "Your session has ended or was terminated from another device." }
+                    VoiceCallManager.disconnectWebSocket()
+                    ConnectoApiClient.triggerSessionExpired(reason)
+                }
+            }
             "call_invite", "call", "incoming_call" -> {
+                val callRoomId = referenceId.ifBlank { data["call_id"] ?: data["room_id"] ?: "" }
                 val callerAvatar = data["caller_avatar"] ?: data["avatar"]
-                val callerUser = data["caller_username"] ?: sender.ifBlank { title }
+                val callerUser = data["caller_username"] ?: data["caller"] ?: data["caller_id"] ?: sender.ifBlank { title }
+                val callerDisplayName = data["caller_name"] ?: data["sender_name"] ?: sender.ifBlank { callerUser.ifBlank { title } }
+                Log.d(TAG, "VoIP FCM incoming call received: room=$callRoomId, caller=$callerUser ($callerDisplayName)")
                 VoiceCallManager.init(applicationContext)
                 VoiceCallManager.triggerIncomingCallFromPushOrBackground(
-                    roomId = referenceId,
+                    roomId = callRoomId,
                     callerId = callerUser,
                     callerUsername = callerUser,
-                    callerName = sender.ifBlank { title },
+                    callerName = callerDisplayName,
                     callerAvatar = callerAvatar
                 )
+            }
+            "call_ended", "call_cancelled", "call_declined", "call_hung_up" -> {
+                val callRoomId = referenceId.ifBlank { data["call_id"] ?: data["room_id"] ?: "" }
+                Log.d(TAG, "VoIP FCM call ended/cancelled received: room=$callRoomId")
+                ConnectoNotificationManager.cancelCallNotification()
+                VoiceCallManager.handleRemoteCallEnded(callRoomId)
             }
             "dm", "message", "new_dm_alert" -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]

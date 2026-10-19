@@ -499,24 +499,17 @@ fun ConnectoApp(
                 if (!savedToken.isNullOrBlank()) {
                     // Token already cached — register directly (already in a coroutine context)
                     com.example.connecto.network.ConnectoApiClient.registerFcmToken(savedToken)
-                } else {
-                    // Fetch token from Firebase asynchronously, then register with backend
-                    suspendCancellableCoroutine<Unit> { cont ->
-                        com.google.firebase.messaging.FirebaseMessaging.getInstance().token
-                            .addOnSuccessListener { token ->
-                                if (token.isNotBlank()) {
-                                    fcmPrefs.edit().putString("fcm_token", token).apply()
-                                    CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
-                                        com.example.connecto.network.ConnectoApiClient.registerFcmToken(token)
-                                    }
-                                }
-                                if (cont.isActive) cont.resume(Unit) {}
-                            }
-                            .addOnFailureListener {
-                                if (cont.isActive) cont.resume(Unit) {}
-                            }
-                    }
                 }
+                // Also verify/refresh with Firebase to guarantee backend holds the latest valid token
+                com.google.firebase.messaging.FirebaseMessaging.getInstance().token
+                    .addOnSuccessListener { token ->
+                        if (token.isNotBlank() && token != savedToken) {
+                            fcmPrefs.edit().putString("fcm_token", token).apply()
+                            CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+                                com.example.connecto.network.ConnectoApiClient.registerFcmToken(token)
+                            }
+                        }
+                    }
             } catch (e: Exception) {
                 // FCM not configured (no google-services.json) — push skipped gracefully
             }
@@ -802,19 +795,6 @@ fun ConnectoApp(
                                 .fillMaxSize()
                                 .padding(bottom = innerPadding.calculateBottomPadding())
                         ) {
-                            // Top Grace Period Banner if email is not verified and account is not blocked
-                            if (!emailVerification.isEmailVerified && !emailVerification.isTemporarilyBlocked) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 6.dp)
-                                ) {
-                                    EmailGracePeriodBanner(
-                                        daysLeft = emailVerification.verificationDaysLeft,
-                                        onVerifyClick = { showManualVerifyModal = true }
-                                    )
-                                }
-                            }
 
                             Box(
                                 modifier = Modifier
@@ -930,11 +910,11 @@ fun ConnectoApp(
                             }
                         }
 
-                        // Modal for manual verification or account blocked
-                        if (emailVerification.isTemporarilyBlocked || showManualVerifyModal) {
+                        // Modal for manual verification
+                        if (showManualVerifyModal) {
                             EmailVerificationModal(
-                                isBlocked = emailVerification.isTemporarilyBlocked,
-                                daysLeft = emailVerification.verificationDaysLeft,
+                                isBlocked = false,
+                                daysLeft = null,
                                 onDismiss = { showManualVerifyModal = false }
                             )
                         }

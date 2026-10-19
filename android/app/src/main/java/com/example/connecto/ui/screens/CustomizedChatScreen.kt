@@ -140,6 +140,12 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import com.example.connecto.data.ConnectoDatabaseHelper
+import com.example.connecto.data.WallpaperResolver
+import com.example.connecto.data.WallpaperTransform
+import com.example.connecto.ui.components.WallpaperCustomizerDialog
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.blur
+import androidx.compose.material.icons.filled.Tune
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
@@ -763,28 +769,17 @@ fun CustomizedChatScreen(
     var chatThemeId by remember { mutableStateOf("default") }
     var chatWallpaperId by remember { mutableStateOf("default") }
     var customWallpaperUri by remember { mutableStateOf<String?>(null) }
+    var wallpaperTransform by remember { mutableStateOf(WallpaperTransform()) }
+    var showWallpaperCustomizerDialog by remember { mutableStateOf(false) }
 
-    // Synchronous wallpaper resolution helper (0ms latency, zero cross-chat overlap)
+    // Synchronous wallpaper resolution helper (0ms latency, zero cross-chat overlap, backwards-compatible & auto-healing)
     fun resolveChatWallpaper(friend: FriendItem?): Pair<String, String?> {
-        if (friend == null) return Pair("default", null)
-        val userPrefix = myUsername.lowercase()
-        val chatKey = getCanonicalChatId(friend)
-        val friendId = friend.id
-
-        // Strictly check userPrefix + chatKey first (canonical DM or group ID)
-        val wp = if (chatKey.isNotBlank()) friendPrefs.getString("${userPrefix}_chat_wallpaper_$chatKey", null) else null
-        val customUri = if (chatKey.isNotBlank()) friendPrefs.getString("${userPrefix}_chat_wallpaper_custom_$chatKey", null) else null
-
-        if (wp != null || customUri != null) {
-            val resolvedWp = wp ?: "default"
-            val resolvedUri = if (resolvedWp == "custom") customUri else null
-            return Pair(resolvedWp, resolvedUri)
-        }
-
-        // Fallback to friendId strictly scoped with userPrefix
-        val fallbackWp = friendPrefs.getString("${userPrefix}_chat_wallpaper_$friendId", null) ?: "default"
-        val fallbackUri = if (fallbackWp == "custom") friendPrefs.getString("${userPrefix}_chat_wallpaper_custom_$friendId", null) else null
-        return Pair(fallbackWp, fallbackUri)
+        return WallpaperResolver.resolve(
+            friend = friend,
+            myUsername = myUsername,
+            prefs = friendPrefs,
+            filesDir = context.filesDir
+        )
     }
 
     // Custom Wallpaper Photo Picker Launcher
@@ -841,6 +836,7 @@ fun CustomizedChatScreen(
             val (resolvedWp, resolvedUri) = resolveChatWallpaper(friend)
             chatWallpaperId = resolvedWp
             customWallpaperUri = resolvedUri
+            wallpaperTransform = WallpaperResolver.resolveTransform(friend, myUsername, friendPrefs)
             val friendId = friend.id
             val cleanHandle = friend.handle.trim().lowercase().removePrefix("@")
             val userPrefix = myUsername.lowercase()
@@ -851,6 +847,7 @@ fun CustomizedChatScreen(
         } else {
             chatWallpaperId = "default"
             customWallpaperUri = null
+            wallpaperTransform = WallpaperResolver.resolveTransform(null, myUsername, friendPrefs)
         }
     }
 
@@ -3120,6 +3117,32 @@ fun CustomizedChatScreen(
                                             if (!customWallpaperUri.isNullOrBlank()) {
                                                 Box(
                                                     modifier = Modifier
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                        .clickable {
+                                                            showWallpaperCustomizerDialog = true
+                                                        }
+                                                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Tune,
+                                                            contentDescription = "Adjust Size & Position",
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(13.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(3.dp))
+                                                        Text(
+                                                            text = "Layout",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+
+                                                Box(
+                                                    modifier = Modifier
                                                         .size(30.dp)
                                                         .clip(CircleShape)
                                                         .background(Color(0xFFDC2626).copy(alpha = 0.15f))
@@ -3290,6 +3313,28 @@ fun CustomizedChatScreen(
             placeholderInitial = friendObj.initial,
             isBanner = false,
             onDismiss = { showPhotoLightbox = false }
+        )
+    }
+
+    // Chat Wallpaper Size, Position & Legibility Customizer Dialog
+    if (showWallpaperCustomizerDialog) {
+        WallpaperCustomizerDialog(
+            wallpaperId = chatWallpaperId,
+            customWallpaperUri = customWallpaperUri,
+            initialTransform = wallpaperTransform,
+            isDarkTheme = !isLight,
+            onDismissRequest = { showWallpaperCustomizerDialog = false },
+            onSave = { newTransform ->
+                wallpaperTransform = newTransform
+                val friend = selectedFriend
+                WallpaperResolver.saveTransform(
+                    friend = friend,
+                    myUsername = myUsername,
+                    prefs = friendPrefs,
+                    transform = newTransform
+                )
+                Toast.makeText(context, "Wallpaper layout updated!", Toast.LENGTH_SHORT).show()
+            }
         )
     }
 
@@ -3606,6 +3651,10 @@ fun CustomizedChatScreen(
                 editor.remove("chat_wallpaper_custom_$fId")
                     .remove("chat_wallpaper_$fId")
                     .apply()
+            },
+            onOpenWallpaperCustomizer = {
+                showGroupProfileDialog = false
+                showWallpaperCustomizerDialog = true
             },
             onGroupUpdated = { updatedGroup ->
                 selectedFriend = updatedGroup
@@ -4219,6 +4268,25 @@ fun CustomizedChatScreen(
                                         modifier = Modifier.size(18.dp)
                                     )
                                 }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                        .clickable {
+                                            showWallpaperCustomizerDialog = true
+                                        },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Tune,
+                                        contentDescription = "Wallpaper Size & Position",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
                             } else {
                                 // Group Header Actions: Info, Group Voice Call, and Admin/Member Tag
                                 Row(
@@ -4261,6 +4329,26 @@ fun CustomizedChatScreen(
                                             imageVector = Icons.Default.Call,
                                             contentDescription = "Group Voice Call",
                                             tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+
+                                    // Group Wallpaper Layout Button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                            .clickable {
+                                                showWallpaperCustomizerDialog = true
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Tune,
+                                            contentDescription = "Group Wallpaper Layout",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -4837,6 +4925,8 @@ fun CustomizedChatScreen(
                                 isChatMuted = isChatMuted,
                                 chatWallpaperId = chatWallpaperId,
                                 customWallpaperUri = customWallpaperUri,
+                                wallpaperTransform = wallpaperTransform,
+                                onOpenWallpaperCustomizer = { showWallpaperCustomizerDialog = true },
                                 subPage = friendProfileSubPage,
                                 onNavigateSubPage = { page -> friendProfileSubPage = page },
                                 onBack = {
@@ -4998,49 +5088,99 @@ fun CustomizedChatScreen(
                     ) {
                         // Wallpaper Background Layer: Custom Photo or Preset Gradient Brush
                         if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) {
-                            AsyncImage(
-                                model = customWallpaperUri,
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                            // Legibility Scrim Overlay so chat bubbles and text remain crisp
+                            val resolvedContentScale = when (wallpaperTransform.contentScaleMode) {
+                                "fit" -> ContentScale.Fit
+                                "fill_bounds" -> ContentScale.FillBounds
+                                "inside" -> ContentScale.Inside
+                                else -> ContentScale.Crop
+                            }
+
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .background(
-                                        if (isLight) Color.White.copy(alpha = 0.40f)
-                                        else Color.Black.copy(alpha = 0.55f)
-                                    )
-                            )
+                                    .clipToBounds()
+                            ) {
+                                AsyncImage(
+                                    model = customWallpaperUri,
+                                    contentDescription = null,
+                                    contentScale = resolvedContentScale,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = wallpaperTransform.scale
+                                            scaleY = wallpaperTransform.scale
+                                            translationX = wallpaperTransform.offsetX
+                                            translationY = wallpaperTransform.offsetY
+                                        }
+                                        .then(
+                                            if (wallpaperTransform.blur > 0f) Modifier.blur(wallpaperTransform.blur.dp) else Modifier
+                                        )
+                                )
+                                // Legibility Scrim Overlay so chat bubbles and text remain crisp
+                                val scrimAlpha = wallpaperTransform.dim
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(
+                                            if (isLight) Color.White.copy(alpha = scrimAlpha * 0.85f)
+                                            else Color.Black.copy(alpha = scrimAlpha)
+                                        )
+                                )
+                            }
                         } else {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .then(
-                                        if (chatWallpaperId != "default") {
-                                            if (chatWallpaperId == "oled") {
-                                                Modifier.background(Color(0xFF000000))
-                                            } else {
-                                                Modifier.background(
-                                                    brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
-                                                )
-                                            }
-                                        } else {
-                                            if (isLiquidGlassTheme) {
-                                                Modifier.liquidGlassCanvasMesh()
-                                            } else if (isGlassTheme) {
-                                                Modifier.glassCanvasMesh()
-                                            } else if (isPureBlack) {
-                                                Modifier.background(Color(0xFF000000))
-                                            } else {
-                                                Modifier.background(
-                                                    brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
-                                                )
-                                            }
+                                    .clipToBounds()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .graphicsLayer {
+                                            scaleX = wallpaperTransform.scale
+                                            scaleY = wallpaperTransform.scale
+                                            translationX = wallpaperTransform.offsetX
+                                            translationY = wallpaperTransform.offsetY
                                         }
+                                        .then(
+                                            if (wallpaperTransform.blur > 0f) Modifier.blur(wallpaperTransform.blur.dp) else Modifier
+                                        )
+                                        .then(
+                                            if (chatWallpaperId != "default") {
+                                                if (chatWallpaperId == "oled") {
+                                                    Modifier.background(Color(0xFF000000))
+                                                } else {
+                                                    Modifier.background(
+                                                        brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
+                                                    )
+                                                }
+                                            } else {
+                                                if (isLiquidGlassTheme) {
+                                                    Modifier.liquidGlassCanvasMesh()
+                                                } else if (isGlassTheme) {
+                                                    Modifier.glassCanvasMesh()
+                                                } else if (isPureBlack) {
+                                                    Modifier.background(Color(0xFF000000))
+                                                } else {
+                                                    Modifier.background(
+                                                        brush = if (isLight) activeChatWallpaper.lightBrush else activeChatWallpaper.darkBrush
+                                                    )
+                                                }
+                                            }
+                                        )
+                                )
+                                if (chatWallpaperId != "default" && chatWallpaperId != "oled") {
+                                    val scrimAlpha = wallpaperTransform.dim
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                if (isLight) Color.White.copy(alpha = scrimAlpha * 0.5f)
+                                                else Color.Black.copy(alpha = scrimAlpha * 0.6f)
+                                            )
                                     )
-                            )
+                                }
+                            }
                         }
 
                         Column(

@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -117,6 +118,7 @@ fun FullScreenGroupProfileDialog(
     chatWallpaperId: String,
     customWallpaperUri: String?,
     onWallpaperSelected: (wallpaperId: String, customUri: String?) -> Unit,
+    onOpenWallpaperCustomizer: (() -> Unit)? = null,
     onGroupUpdated: (updatedGroup: FriendItem) -> Unit,
     onDeleteGroup: (() -> Unit)? = null,
     onLeaveGroup: (() -> Unit)? = null,
@@ -604,18 +606,39 @@ fun FullScreenGroupProfileDialog(
                                         }
                                     }
 
-                                    Button(
-                                        onClick = { showWallpaperSelectorModal = true },
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Wallpaper,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Wallpapers", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        if (onOpenWallpaperCustomizer != null) {
+                                            androidx.compose.material3.OutlinedButton(
+                                                onClick = onOpenWallpaperCustomizer,
+                                                shape = RoundedCornerShape(10.dp),
+                                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Tune,
+                                                    contentDescription = "Customize Wallpaper Layout",
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("Layout", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                            }
+                                        }
+
+                                        Button(
+                                            onClick = { showWallpaperSelectorModal = true },
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Wallpaper,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Wallpapers", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
@@ -1118,6 +1141,35 @@ fun FullScreenGroupProfileDialog(
                                 }
 
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    if (onOpenWallpaperCustomizer != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f))
+                                                .clickable {
+                                                    showWallpaperSelectorModal = false
+                                                    onOpenWallpaperCustomizer()
+                                                }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Tune,
+                                                    contentDescription = "Customize Wallpaper Layout",
+                                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text(
+                                                    text = "Layout",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                                )
+                                            }
+                                        }
+                                    }
+
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))

@@ -415,7 +415,6 @@ fun ProfileScreen(
     var showForgotPasswordDialog by rememberSaveable { mutableStateOf(false) }
     var show2FaSetupDialog by rememberSaveable { mutableStateOf(false) }
     var twoFaSetupMaskedDest by rememberSaveable { mutableStateOf<String?>(null) }
-    var twoFaSetupDevOtp by rememberSaveable { mutableStateOf<String?>(null) }
     var show2FaDisableDialog by rememberSaveable { mutableStateOf(false) }
     var twoFaDisableMaskedDest by rememberSaveable { mutableStateOf<String?>(null) }
     var twoFaErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
@@ -424,7 +423,6 @@ fun ProfileScreen(
         if (com.example.connecto.security.TwoFactorStateManager.restoreIfPending(context)) {
             show2FaSetupDialog = true
             twoFaSetupMaskedDest = com.example.connecto.security.TwoFactorStateManager.setupMaskedDestination
-            twoFaSetupDevOtp = com.example.connecto.security.TwoFactorStateManager.setupDevOtp
         }
     }
 
@@ -2329,13 +2327,11 @@ fun ProfileScreen(
                                                         val data = res.getOrNull()
                                                         val targetDest = emailInput.trim()
                                                         twoFaSetupMaskedDest = data?.maskedDestination
-                                                        twoFaSetupDevOtp = data?.devOtp
                                                         com.example.connecto.security.TwoFactorStateManager.startSetup(
                                                             context = context,
                                                             method = "email",
                                                             destination = targetDest,
-                                                            maskedDest = data?.maskedDestination,
-                                                            devOtp = data?.devOtp
+                                                            maskedDest = data?.maskedDestination
                                                         )
                                                         show2FaSetupDialog = true
                                                     } else {
@@ -4836,12 +4832,10 @@ fun ProfileScreen(
     if (show2FaSetupDialog || com.example.connecto.security.TwoFactorStateManager.isSetupDialogOpen) {
         val activeDest = if (emailInput.isNotBlank()) emailInput.trim() else com.example.connecto.security.TwoFactorStateManager.setupDestination
         val activeMasked = twoFaSetupMaskedDest ?: com.example.connecto.security.TwoFactorStateManager.setupMaskedDestination
-        val activeDevOtp = twoFaSetupDevOtp ?: com.example.connecto.security.TwoFactorStateManager.setupDevOtp
         TwoFactorSetupDialog(
             method = "email",
             destination = activeDest,
             maskedDestination = activeMasked,
-            devOtp = activeDevOtp,
             onDismiss = {
                 show2FaSetupDialog = false
                 com.example.connecto.security.TwoFactorStateManager.clear(context)
@@ -4895,12 +4889,10 @@ private fun TwoFactorSetupDialog(
     method: String,
     destination: String,
     maskedDestination: String?,
-    devOtp: String? = null,
     onDismiss: () -> Unit,
     onSuccess: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-    var currentDevOtp by remember(devOtp) { mutableStateOf(devOtp ?: com.example.connecto.security.TwoFactorStateManager.setupDevOtp) }
     var otpCode by rememberSaveable { mutableStateOf(com.example.connecto.security.TwoFactorStateManager.setupOtpCode) }
     var isVerifying by remember { mutableStateOf(false) }
     var isResending by remember { mutableStateOf(false) }
@@ -5005,40 +4997,6 @@ private fun TwoFactorSetupDialog(
                 )
 
                 Spacer(modifier = Modifier.height(14.dp))
-
-                // Dev OTP Auto-Fill Banner (if dev code returned by server)
-                if (!currentDevOtp.isNullOrBlank()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF6366F1).copy(alpha = 0.15f))
-                            .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-                            .clickable {
-                                otpCode = currentDevOtp ?: ""
-                                com.example.connecto.security.TwoFactorStateManager.updateDraftCode(context, otpCode)
-                                errorMessage = null
-                            }
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Security,
-                            contentDescription = null,
-                            tint = Color(0xFF818CF8),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "🔑 Verification Code: $currentDevOtp (Tap to Fill)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF818CF8)
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(14.dp))
-                }
 
                 if (errorMessage != null) {
                     val errorBg = if (isLight) Color(0xFFFEE2E2) else Color(0xFF7F1D1D).copy(alpha = 0.35f)
@@ -5189,11 +5147,6 @@ private fun TwoFactorSetupDialog(
                                 )
                                 isResending = false
                                 if (res.isSuccess) {
-                                    val data = res.getOrNull()
-                                    if (!data?.devOtp.isNullOrBlank()) {
-                                        currentDevOtp = data?.devOtp
-                                        com.example.connecto.security.TwoFactorStateManager.updateDevOtp(context, data?.devOtp)
-                                    }
                                     resendFeedback = "New verification code sent!"
                                     resendCooldown = 60
                                 } else {
@@ -5974,7 +5927,6 @@ private fun ChangeContactDialog(
     var newContact by remember { mutableStateOf("") }
     var otpSent by remember { mutableStateOf(false) }
     var otpCode by remember { mutableStateOf("") }
-    var devOtp by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
@@ -6117,12 +6069,6 @@ private fun ChangeContactDialog(
                                 val res = ConnectoApiClient.requestContactChangeOtp(target, method)
                                 isLoading = false
                                 if (res.isSuccess) {
-                                    val obj = res.getOrThrow()
-                                    val devCode = obj.optString("dev_otp").takeIf { it.isNotEmpty() }
-                                    devOtp = devCode
-                                    if (devCode != null) {
-                                        otpCode = devCode
-                                    }
                                     otpSent = true
                                 } else {
                                     errorMessage = res.exceptionOrNull()?.message ?: "Failed to request verification code."
@@ -6153,23 +6099,6 @@ private fun ChangeContactDialog(
                         color = subtitleColor,
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    if (devOtp != null) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(ConnectoTheme.colors.success.copy(alpha = 0.15f))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "Dev OTP Auto-detected: $devOtp",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = ConnectoTheme.colors.success
-                            )
-                        }
-                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 

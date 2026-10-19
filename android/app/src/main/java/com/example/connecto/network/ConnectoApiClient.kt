@@ -319,8 +319,25 @@ object ConnectoApiClient {
     @Volatile
     var onSessionExpired: ((String) -> Unit)? = null
 
+    @Volatile
+    var currentSessionId: String? = null
+
     fun triggerSessionExpired(reason: String) {
         android.util.Log.w("ConnectoApiClient", "Session expired triggered: $reason")
+        sessionToken = null
+        currentUserId = null
+        currentSessionId = null
+        val ctx = applicationContext
+        if (ctx != null) {
+            try {
+                val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                prefs.edit()
+                    .putBoolean("is_logged_in", false)
+                    .remove("token")
+                    .remove("current_session_id")
+                    .apply()
+            } catch (_: Exception) {}
+        }
         onSessionExpired?.invoke(reason)
     }
 
@@ -378,12 +395,12 @@ object ConnectoApiClient {
     private val _emailVerificationState = MutableStateFlow<EmailVerificationStatus>(EmailVerificationStatus())
     val emailVerificationState: StateFlow<EmailVerificationStatus> = _emailVerificationState.asStateFlow()
 
-    fun updateVerificationState(isVerified: Boolean, isBlocked: Boolean, daysLeft: Int?, deadline: String? = null) {
+    fun updateVerificationState(isVerified: Boolean, isBlocked: Boolean = false, daysLeft: Int? = null, deadline: String? = null) {
         _emailVerificationState.value = EmailVerificationStatus(
             isEmailVerified = isVerified,
-            isTemporarilyBlocked = isBlocked,
-            verificationDaysLeft = daysLeft,
-            verificationDeadline = deadline
+            isTemporarilyBlocked = false,
+            verificationDaysLeft = null,
+            verificationDeadline = null
         )
     }
 
@@ -481,6 +498,7 @@ object ConnectoApiClient {
             if (isLoggedIn && !savedUsername.isNullOrEmpty()) {
                 sessionToken = savedToken
                 currentUserId = prefs.getString("user_id", null)
+                currentSessionId = prefs.getString("current_session_id", null)
                 currentUsername = savedUsername
                 currentUserEmail = prefs.getString("email", null)
                 currentUserDisplayName = prefs.getString("display_name", null)
@@ -1023,13 +1041,7 @@ object ConnectoApiClient {
                     ?: jsonObj.optString("masked_destination").takeIf { it.isNotEmpty() }
                     ?: jsonObj.optString("masked_phone").takeIf { it.isNotEmpty() }
                 val phone = userObj.optString("phone_number").takeIf { it.isNotEmpty() }
-                val devOtpStr = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() }
-                    ?: userObj.optString("dev_otp").takeIf { it.isNotEmpty() }
                 val isEmailVerified = jsonObj.optBoolean("is_email_verified", false) || userObj.optBoolean("is_email_verified", false)
-                val isBlocked = jsonObj.optBoolean("is_temporarily_blocked", false) || userObj.optBoolean("is_temporarily_blocked", false)
-                val daysLeft = if (jsonObj.has("verification_days_left")) jsonObj.optInt("verification_days_left")
-                               else if (userObj.has("verification_days_left")) userObj.optInt("verification_days_left") else null
-
                 val authResult = AuthResult(
                     id = userObj.optString("id").ifEmpty { userObj.optString("uid", UUID.randomUUID().toString()) },
                     username = userObj.optString("username", cleanIdentifier),
@@ -1042,10 +1054,10 @@ object ConnectoApiClient {
                     twoFactorMethod = twoFaMethod,
                     requires2Fa = req2Fa,
                     maskedDestination = maskedDest,
-                    devOtp = devOtpStr,
+                    devOtp = null,
                     isEmailVerified = isEmailVerified,
-                    isTemporarilyBlocked = isBlocked,
-                    verificationDaysLeft = daysLeft
+                    isTemporarilyBlocked = false,
+                    verificationDaysLeft = null
                 )
 
                 if (!req2Fa) {
@@ -1059,9 +1071,7 @@ object ConnectoApiClient {
                     currentUserDisplayName = authResult.displayName
                     updateAvatarState(parsedAvatar)
                     updateVerificationState(
-                        isVerified = isEmailVerified,
-                        isBlocked = isBlocked,
-                        daysLeft = daysLeft
+                        isVerified = isEmailVerified
                     )
                 }
                 Result.success(authResult)
@@ -1167,7 +1177,7 @@ object ConnectoApiClient {
                         method = jsonObj.optString("method", method),
                         maskedDestination = jsonObj.optString("masked_destination").takeIf { it.isNotEmpty() },
                         identifier = jsonObj.optString("identifier", identifier),
-                        devOtp = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() } ?: jsonObj.optString("otp").takeIf { it.isNotEmpty() }
+                        devOtp = null
                     )
                 )
             } else {
@@ -1363,9 +1373,18 @@ object ConnectoApiClient {
                 val list = mutableListOf<UserSessionDto>()
                 for (i in 0 until sessionsArray.length()) {
                     val item = sessionsArray.getJSONObject(i)
+                    val isCurr = item.optBoolean("is_current", false)
+                    val sId = item.optString("id", "")
+                    if (isCurr && sId.isNotBlank()) {
+                        currentSessionId = sId
+                        try {
+                            applicationContext?.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                                ?.edit()?.putString("current_session_id", sId)?.apply()
+                        } catch (_: Exception) {}
+                    }
                     list.add(
                         UserSessionDto(
-                            id = item.optString("id", ""),
+                            id = sId,
                             deviceName = item.optString("device_name", "Connected Device"),
                             location = item.optString("location", "Unknown Location"),
                             ipAddress = item.optString("ip_address", "Unknown IP"),
@@ -1487,7 +1506,7 @@ object ConnectoApiClient {
                         method = jsonObj.optString("method", method),
                         maskedDestination = jsonObj.optString("masked_destination").takeIf { it.isNotEmpty() },
                         identifier = jsonObj.optString("identifier").takeIf { it.isNotEmpty() } ?: phoneNumber,
-                        devOtp = jsonObj.optString("dev_otp").takeIf { it.isNotEmpty() } ?: jsonObj.optString("otp").takeIf { it.isNotEmpty() }
+                        devOtp = null
                     )
                 )
             } else {
@@ -4611,9 +4630,9 @@ object ConnectoApiClient {
                     isStealth = isStealth,
                     isOnline = isOnline,
                     isEmailVerified = isVerified,
-                    isTemporarilyBlocked = isBlocked,
-                    verificationDaysLeft = daysLeft,
-                    verificationDeadline = deadlineStr
+                    isTemporarilyBlocked = false,
+                    verificationDaysLeft = null,
+                    verificationDeadline = null
                 )
                 val isSelf = u.equals(currentUsername, ignoreCase = true)
                 if (isSelf) {

@@ -1161,7 +1161,7 @@ object VoiceCallManager {
                     isWsConnecting = false
                     isWsConnected = false
                     _isWsConnectedFlow.value = false
-                    if ((code == 4001 || reason.contains("Session terminated", ignoreCase = true) || reason.contains("Unauthorized", ignoreCase = true)) &&
+                    if ((code == 4001 || code == 1008 || reason.contains("Session terminated", ignoreCase = true) || reason.contains("Unauthorized", ignoreCase = true)) &&
                         !token.isNullOrBlank() && !ConnectoApiClient.sessionToken.isNullOrBlank()) {
                         Log.w(TAG, "Voice WebSocket permanently closed due to session revocation (code=$code, reason=$reason)")
                         ConnectoApiClient.triggerSessionExpired("Your session was logged out.")
@@ -1178,7 +1178,7 @@ object VoiceCallManager {
                     isWsConnected = false
                     _isWsConnectedFlow.value = false
                     val respCode = response?.code
-                    if ((respCode == 401 || respCode == 4001) &&
+                    if ((respCode == 401 || respCode == 4001 || respCode == 1008 || (response?.message?.contains("Session terminated", ignoreCase = true) == true)) &&
                         !token.isNullOrBlank() && !ConnectoApiClient.sessionToken.isNullOrBlank()) {
                         Log.w(TAG, "Voice WebSocket handshake rejected: HTTP $respCode Unauthorized")
                         ConnectoApiClient.triggerSessionExpired("Your session has expired or was terminated.")
@@ -1283,18 +1283,25 @@ object VoiceCallManager {
                 "session_terminated", "session_revoked", "force_logout" -> {
                     val initiatorHash = json.optString("initiator_token_hash").ifEmpty { json.optString("current_hash") }
                     val myHash = ConnectoApiClient.getSessionTokenHash()
+                    val mySessionId = ConnectoApiClient.currentSessionId ?: ""
+                    val targetSessionId = json.optString("session_id")
                     val termHashes = mutableListOf<String>()
                     val arr = json.optJSONArray("terminated_hashes")
                     if (arr != null) {
                         for (i in 0 until arr.length()) {
-                            termHashes.add(arr.optString(i))
+                            val h = arr.optString(i)
+                            if (h.isNotBlank()) termHashes.add(h)
                         }
                     }
                     val singleHash = json.optString("session_token_hash")
                     if (singleHash.isNotBlank()) termHashes.add(singleHash)
 
-                    val isTerminated = (myHash.isNotBlank() && termHashes.contains(myHash)) ||
-                            (initiatorHash.isNotBlank() && myHash.isNotBlank() && initiatorHash != myHash)
+                    val isTargetedByHash = myHash.isNotBlank() && termHashes.any { it.equals(myHash, ignoreCase = true) }
+                    val isTargetedBySessionId = mySessionId.isNotBlank() && targetSessionId.isNotBlank() && mySessionId.equals(targetSessionId, ignoreCase = true)
+                    val isTargetedByOtherSessionsRevocation = initiatorHash.isNotBlank() && myHash.isNotBlank() && !initiatorHash.equals(myHash, ignoreCase = true)
+                    val isBroadcastLogout = initiatorHash.isBlank() && termHashes.isEmpty() && targetSessionId.isBlank()
+
+                    val isTerminated = isTargetedByHash || isTargetedBySessionId || isTargetedByOtherSessionsRevocation || isBroadcastLogout
 
                     if (isTerminated) {
                         Log.w(TAG, "This session has been terminated by another device/session! Initiating sign out.")
@@ -2580,6 +2587,14 @@ object VoiceCallManager {
                 startAudioHardware()
             }
         }
+    }
+
+    fun handleRemoteCallEnded(roomId: String) {
+        Log.d(TAG, "handleRemoteCallEnded for room: $roomId")
+        if (roomId.isNotBlank()) {
+            markCallTerminated(roomId)
+        }
+        endCallLocally()
     }
 
     private fun endCallLocally() {

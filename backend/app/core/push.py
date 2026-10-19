@@ -147,37 +147,50 @@ def send_push_notification_sync(
 
         tag = merged_data.get("channel_id") or merged_data.get("sender_id") or merged_data.get("sender_username") or "connecto"
 
-        android_notification = messaging.AndroidNotification(
-            title=title,
-            body=body,
-            icon="ic_launcher",
-            color="#6C5CE7",
-            sound="default",
-            tag=str(tag),
-            channel_id=channel_id,
-            priority="max",
-            visibility="public",
-            click_action="com.example.connecto.ACTION_OPEN_CHAT",
-            default_sound=True,
-            default_vibrate_timings=True,
-        )
-
-        android_config = messaging.AndroidConfig(
-            priority="high",  # Always high priority for immediate background and Doze delivery
-            ttl=86400,
-            notification=android_notification,
-        )
-
-        message = messaging.Message(
-            token=fcm_token,
-            notification=messaging.Notification(
+        is_call = notification_type in ("call", "call_invite", "incoming_call", "call_ended", "call_cancelled", "call_declined")
+        if is_call:
+            merged_data["extra_notification_action"] = "com.example.connecto.ACTION_ANSWER_CALL"
+            android_config = messaging.AndroidConfig(
+                priority="high",
+                ttl=60
+            )
+            message = messaging.Message(
+                token=fcm_token,
+                android=android_config,
+                data=merged_data
+            )
+        else:
+            android_notification = messaging.AndroidNotification(
                 title=title,
                 body=body,
-                image=avatar_img if (avatar_img and avatar_img.startswith("https://")) else None
-            ),
-            android=android_config,
-            data=merged_data
-        )
+                icon="ic_launcher",
+                color="#6C5CE7",
+                sound="default",
+                tag=str(tag),
+                channel_id=channel_id,
+                priority="max",
+                visibility="public",
+                click_action="com.example.connecto.ACTION_OPEN_CHAT",
+                default_sound=True,
+                default_vibrate_timings=True,
+            )
+
+            android_config = messaging.AndroidConfig(
+                priority="high",  # Always high priority for immediate background and Doze delivery
+                ttl=86400,
+                notification=android_notification,
+            )
+
+            message = messaging.Message(
+                token=fcm_token,
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                    image=avatar_img if (avatar_img and avatar_img.startswith("https://")) else None
+                ),
+                android=android_config,
+                data=merged_data
+            )
 
         response = messaging.send(message)
         logger.info(f"[FCM] WhatsApp-grade push sent. MessageID={response} channel={channel_id} token={fcm_token[:20]}...")
