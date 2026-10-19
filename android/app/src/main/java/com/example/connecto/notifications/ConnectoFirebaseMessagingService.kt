@@ -189,7 +189,7 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 ConnectoNotificationManager.showMessageNotification(
                     senderName = sender.ifBlank { title },
                     messageText = body.ifBlank { "New message" },
-                    channelOrDmId = referenceId.ifBlank { senderUser },
+                    channelOrDmId = channelId,
                     senderAvatar = senderAvatar,
                     senderUsername = senderUser
                 )

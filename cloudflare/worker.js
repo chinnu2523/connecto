@@ -116,12 +116,12 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.7",
-        version_name: "v4.5.7",
-        version_code: 86,
-        build: 86,
-        sha256: "b5c560f59951b87c01677c88aedffd7dabff4b82e0837350e685a2a7fa8f55df",
-        md5: "70354217d1170d41253acea840740fcb",
+        version: "4.5.8",
+        version_name: "v4.5.8",
+        version_code: 87,
+        build: 87,
+        sha256: "0d0aa0c6a89d07213e16aef51eb6474f701b00fa4dcba8e704f7ab28c8f5af44",
+        md5: "f19ce880cab5d0f7d62140a5ffd49fc1",
         filename: "connecto-fun.apk",
         size_bytes: 57832713,
         size_display: "55.2 MB",
@@ -131,11 +131,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Calls Tab Multiple Update Fix: Completely resolved multiple tab updating and list flashing during voice calls by eliminating premature call logging and pausing background history polling during active calls.",
-          "Real-Time Timezone Synchronization: All call timestamps now accurately parse UTC database records and synchronize with the user's local device clock (Today, Yesterday, exact AM/PM and call duration).",
-          "Smart Call Session Deduplication: Edge and database engine merges duplicate entries for identical call sessions within 75 seconds, preserving the accurate call duration and connection status.",
-          "Permanent Account Deletion: Dedicated Delete Account Forever button in Profile Danger Zone and Help & Support wiping user records from live databases and backups.",
-          "AI Voice Isolation Studio: Dedicated Voice & Audio Settings sub-page in Profile with live 18-bar VU meter and 280Hz-3400Hz speech bandpass filters."
+          "High-Priority Data-Only Push Engine: Switched all message deliveries to pure high-priority data-only push, permanently eliminating duplicate generic app-icon notifications from Google Play Services.",
+          "Single Native Android Conversation Notification: All incoming messages strictly display as native MessagingStyle conversations with the sender's avatar, sender name, message bubbles, and direct reply.",
+          "In-App Notification Popup Banner Suppressed: Chat messages no longer trigger in-app floating banner popups while inside the application, keeping focus on the active screen.",
+          "Call Log Synchronization: Localized time & date relative to user device timezone (Today, Yesterday, AM/PM) with formatted duration and intelligent 75s call session deduplication.",
+          "Flicker-Free Calls Tab: Re-anchored StaggeredReveal animations prevent call history flashing during active calls."
         ]
       });
     }
@@ -180,19 +180,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.7/connecto-v4.5.7.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.8/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.5.8/connecto-v4.5.8.apk",
           "https://connecto.fun/downloads/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.7-b86-verified.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.8-b87-verified.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.7");
-          res.headers.set("X-Connecto-Build", "86");
+          res.headers.set("X-Connecto-Version", "v4.5.8");
+          res.headers.set("X-Connecto-Build", "87");
           return res;
         }
 
@@ -205,7 +205,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.5.7"
+                "User-Agent": "Connecto-Cloud-Worker/4.5.8"
               }
             });
             if (upstreamResp.ok) {
@@ -216,8 +216,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.5.7");
-              downloadHeaders.set("X-Connecto-Build", "86");
+              downloadHeaders.set("X-Connecto-Version", "v4.5.8");
+              downloadHeaders.set("X-Connecto-Build", "87");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -232,7 +232,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.7/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.8/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -535,35 +535,11 @@ async function sendFcmNotification(env, fcmToken, payload) {
           extra_notification_action: isCall ? "com.example.connecto.ACTION_ANSWER_CALL" : "com.example.connecto.ACTION_OPEN_CHAT"
         },
         android: {
-          priority: "high"
+          priority: "high",
+          ttl: isCall ? "60s" : "86400s"
         }
       }
     };
-
-    // For standard messages (non-VoIP), provide system tray notification fallback
-    if (!isCall) {
-      fcmMessage.message.notification = {
-        title: title,
-        body: body,
-        ...(avatarUrl && avatarUrl.startsWith("https://") ? { image: avatarUrl } : {})
-      };
-      fcmMessage.message.android.notification = {
-        title: title,
-        body: body,
-        channel_id: "connecto_messages_v4",
-        tag: String(payload.channel_id || payload.sender_username || "connecto"),
-        icon: "ic_launcher",
-        color: "#6C5CE7",
-        sound: "default",
-        click_action: "com.example.connecto.ACTION_OPEN_CHAT",
-        notification_priority: "PRIORITY_MAX",
-        visibility: "PUBLIC",
-        default_sound: true,
-        default_vibrate_timings: true
-      };
-    } else {
-      fcmMessage.message.android.ttl = "60s";
-    }
 
     const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
       method: "POST",
@@ -5813,12 +5789,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.7",
-      version_name: "v4.5.7",
-      version_code: 86,
-      build: 86,
-      sha256: "b5c560f59951b87c01677c88aedffd7dabff4b82e0837350e685a2a7fa8f55df",
-      md5: "70354217d1170d41253acea840740fcb",
+      version: "4.5.8",
+      version_name: "v4.5.8",
+      version_code: 87,
+      build: 87,
+      sha256: "0d0aa0c6a89d07213e16aef51eb6474f701b00fa4dcba8e704f7ab28c8f5af44",
+      md5: "f19ce880cab5d0f7d62140a5ffd49fc1",
       filename: "connecto-fun.apk",
       size_bytes: 57832713,
       size_display: "55.2 MB",
@@ -5833,6 +5809,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.5.8",
+          date: "Oct 19, 2026",
+          category: "fix",
+          tag: "Latest Release",
+          title: "Connecto v4.5.8: High-Priority Data-Only Push & Duplicate App Notification Elimination",
+          summary: "Connecto v4.5.8 transitions all push notification delivery to pure high-priority data-only payloads, permanently eliminating duplicate generic app-icon notifications and ensuring incoming messages display strictly as native Android MessagingStyle conversation notifications with contact avatars. In-app floating banner popups are suppressed for messages to keep focus on screen.",
+          highlights: [
+            "Data-Only FCM Push Engine: Removed Google Play Services notification blocks from FCM payloads, eliminating duplicate system notifications and preventing the generic Connecto app-icon notification from appearing.",
+            "Single Android Conversation Notification: All messages render strictly as native Android MessagingStyle conversation notifications with contact avatars, multi-line chat bubbles, inline reply, and mark-as-read.",
+            "In-App Notification Popup Suppressed: Chat messages no longer trigger in-app floating banner popups while inside the application.",
+            "Android Native App v4.5.8 (Build 87 • 55.2 MB): SHA-256 0d0aa0c6a89d07213e16aef51eb6474f701b00fa4dcba8e704f7ab28c8f5af44 • MD5 f19ce880cab5d0f7d62140a5ffd49fc1."
+          ],
+          author: "Connecto Telephony & Push Notification Team"
+        },
         {
           version: "v4.5.7",
           date: "Oct 19, 2026",

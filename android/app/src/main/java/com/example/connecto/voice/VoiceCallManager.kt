@@ -1482,18 +1482,8 @@ object VoiceCallManager {
                                 senderUsername = senderUsername
                             )
 
-                            // Show In-app notification banner when user is on another screen
+                            // In-app notification popup banner suppressed: only native Android system notification is posted
                             if (!isCurrentlyViewingThisChat) {
-                                com.example.connecto.ui.components.InAppNotificationController.show(
-                                    com.example.connecto.ui.components.InAppNotificationData(
-                                        title = displayTitle,
-                                        message = content,
-                                        avatarUrl = authorAvatar,
-                                        username = senderUsername,
-                                        actionType = "chat",
-                                        referenceId = navRef
-                                    )
-                                )
                                 appContext?.let { ctx ->
                                     try {
                                         val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())

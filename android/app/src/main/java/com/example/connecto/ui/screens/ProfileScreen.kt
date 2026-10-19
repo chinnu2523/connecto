@@ -4685,15 +4685,6 @@ fun ProfileScreen(
                                                             senderAvatar = testAvatar,
                                                             senderUsername = testSender
                                                         )
-                                                        com.example.connecto.ui.components.InAppNotificationController.show(
-                                                            com.example.connecto.ui.components.InAppNotificationData(
-                                                                title = testSender,
-                                                                message = testMessage,
-                                                                avatarUrl = testAvatar,
-                                                                username = testSender,
-                                                                actionType = "chat"
-                                                            )
-                                                        )
                                                         Toast.makeText(
                                                             context,
                                                             "Test notification sent! (Sound: $selectedNotificationSoundName)",
