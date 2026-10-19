@@ -5946,10 +5946,27 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
+                "version": "v4.5.3",
+                "date": "Oct 19, 2026",
+                "category": "security",
+                "tag": "Latest Security Release",
+                "title": "Connecto v4.5.3: Critical Security Hardening, Cryptographic Webhook Signatures & Real-Time DoS Protection",
+                "summary": "Connecto v4.5.3 delivers a comprehensive defensive security hardening update across real-time voice, messaging, webhooks, and session controls. Eliminates authentication bypasses, prevents unauthorized direct-message exfiltration, mitigates WebSocket non-dict Denial-of-Service, enforces HMAC-SHA256 signatures on inbound SMS webhooks, and protects voice rooms with strict caller identity binding and capacity limits.",
+                "highlights": [
+                    "Direct Messaging Authentication & BOLA Remediation: Enforced strict session token authentication across direct message endpoints (/api/dms/{target}/messages) and call history exfiltration routes.",
+                    "Thread & Reaction Integrity Protection: Thread messages (/api/messages/{id}/thread) and reactions verify conversation participation and lock actions to authenticated caller identities.",
+                    "Inbound SMS Gateway Cryptographic Verification: Enforced HMAC-SHA256 signatures and API secret token validation on SMS webhooks (/api/webhooks/httpsms), blocking forged OTP injections.",
+                    "WebSocket DoS & Crash Resilience: Hardened WebSocket frame parsing to validate dict payload types and safely handle malformed frames without dropping persistent connections.",
+                    "Voice Room Join & Capacity Enforcement: Added strict caller identity binding and enforced max_participants capacity limits on voice room joins and leaves, preventing room flooding.",
+                    "Channel Pinned Message Access Control: Secured channel pin endpoints (/api/channels/{id}/pins) with user authentication and private conversation checks."
+                ],
+                "author": "Connecto Security & Core Team"
+            },
+            {
                 "version": "v4.5.2",
                 "date": "Oct 19, 2026",
                 "category": "patch",
-                "tag": "Latest Release",
+                "tag": "Previous Release",
                 "title": "Connecto v4.5.2: Voice Call Partner Photo Accuracy, Voice Isolation & Seamless Call Dismissal",
                 "summary": "Connecto v4.5.2 resolves partner profile resolution during 1:1 voice calls, eliminates asynchronous call-ringing race conditions that caused call UI to re-appear and disappear upon hangup, and integrates dedicated in-call voice isolation controls with smooth flicker-free call history updates.",
                 "highlights": [
