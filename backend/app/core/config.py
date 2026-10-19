@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     HTTPSMS_API_KEY: str = ""
     HTTPSMS_FROM_NUMBER: str = ""
     HTTPSMS_BASE_URL: str = "https://api.httpsms.com"
+    HTTPSMS_WEBHOOK_SECRET: str = os.getenv("HTTPSMS_WEBHOOK_SECRET", "")
 
     # SMTP / Email Configuration for OTP delivery
     SMTP_HOST: str = ""

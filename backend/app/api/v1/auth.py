@@ -1145,6 +1145,83 @@ async def two_factor_toggle(
         }
 
 
+def verify_httpsms_webhook_authenticity(request: Request, raw_body: bytes) -> bool:
+    """
+    Verifies that incoming webhook requests originate from an authorized httpSMS gateway.
+    Validates:
+    1. Secret / API key headers (x-webhook-secret, x-api-key, Authorization: Bearer).
+    2. HMAC-SHA256 signature headers (x-httpsms-signature, x-signature-sha256).
+    3. Query parameter secret token fallback (?secret=... or ?api_key=...).
+    """
+    import hmac
+    import hashlib
+
+    secrets_to_check = []
+    if getattr(settings, "HTTPSMS_WEBHOOK_SECRET", None) and settings.HTTPSMS_WEBHOOK_SECRET.strip():
+        secrets_to_check.append(settings.HTTPSMS_WEBHOOK_SECRET.strip())
+    if getattr(settings, "HTTPSMS_API_KEY", None) and settings.HTTPSMS_API_KEY.strip():
+        secrets_to_check.append(settings.HTTPSMS_API_KEY.strip())
+    if getattr(settings, "SECRET_KEY", None) and settings.SECRET_KEY.strip():
+        secrets_to_check.append(settings.SECRET_KEY.strip())
+
+    if not secrets_to_check:
+        return False
+
+    # 1. Check API Key / Secret headers
+    req_secret = (
+        request.headers.get("x-webhook-secret") or
+        request.headers.get("x-api-key") or
+        request.headers.get("x-httpsms-key") or
+        request.headers.get("x-httpsms-secret") or
+        ""
+    ).strip()
+
+    auth_header = request.headers.get("authorization", "").strip()
+    if auth_header.startswith("Bearer "):
+        req_secret = req_secret or auth_header.removeprefix("Bearer ").strip()
+
+    # Query param fallback
+    if not req_secret:
+        req_secret = (
+            request.query_params.get("secret") or
+            request.query_params.get("api_key") or
+            request.query_params.get("token") or
+            ""
+        ).strip()
+
+    if req_secret:
+        for sec in secrets_to_check:
+            if hmac.compare_digest(req_secret.encode("utf-8"), sec.encode("utf-8")):
+                return True
+
+    # 2. Check HMAC signature headers (x-httpsms-signature, x-signature-sha256, x-hub-signature-256)
+    sig_header = (
+        request.headers.get("x-httpsms-signature") or
+        request.headers.get("x-signature-sha256") or
+        request.headers.get("x-hub-signature-256") or
+        ""
+    ).strip()
+
+    if sig_header:
+        candidate_sigs = []
+        if sig_header.startswith("sha256="):
+            candidate_sigs.append(sig_header[7:].strip())
+        elif "v1=" in sig_header:
+            for part in sig_header.split(","):
+                if part.strip().startswith("v1="):
+                    candidate_sigs.append(part.strip()[3:].strip())
+        else:
+            candidate_sigs.append(sig_header)
+
+        for sec in secrets_to_check:
+            expected_hmac = hmac.new(sec.encode("utf-8"), raw_body, hashlib.sha256).hexdigest()
+            for cand in candidate_sigs:
+                if hmac.compare_digest(cand.lower(), expected_hmac.lower()):
+                    return True
+
+    return False
+
+
 @router.post("/httpsms-webhook", status_code=status.HTTP_200_OK)
 async def httpsms_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     """
@@ -1153,13 +1230,30 @@ async def httpsms_webhook(request: Request, db: AsyncSession = Depends(get_db)):
     - message.phone.received: An incoming SMS received on user's phone / SIM
     - message.send.delivered / message.send.failed
     """
+    import json
     try:
-        payload = await request.json()
+        raw_body = await request.body()
     except Exception:
-        return {"status": "error", "message": "Invalid JSON payload"}
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unable to read request body")
+
+    if not verify_httpsms_webhook_authenticity(request, raw_body):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorized: Missing or invalid webhook signature/API secret"
+        )
+
+    try:
+        payload = json.loads(raw_body)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload")
+
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid payload: Expected JSON object")
 
     event_type = payload.get("event")
-    data = payload.get("data", {})
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        data = {}
 
     print(f"[httpSMS Webhook] Event: {event_type} | Data: {data}")
 
@@ -1186,6 +1280,7 @@ async def httpsms_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                     break
 
     return {"status": "ok", "event": event_type}
+
 
 
 # =========================================================================

@@ -218,7 +218,15 @@ async def websocket_endpoint(websocket: WebSocket):
                     break
             try:
                 payload = json.loads(raw_text)
+                if not isinstance(payload, dict):
+                    # Gracefully ignore non-dict JSON payloads (numbers, arrays, strings, booleans, null)
+                    # to prevent DoS disconnects from unhandled AttributeErrors
+                    continue
+
                 msg_type = payload.get("type") or payload.get("action")
+                if not msg_type or not isinstance(msg_type, str):
+                    continue
+
 
                 if msg_type in ("subscribe", "channel:subscribe"):
                     channels = payload.get("channels", [])
@@ -563,9 +571,13 @@ async def websocket_endpoint(websocket: WebSocket):
                             if dead_sockets and resolved_target in ws_manager.active_connections:
                                 ws_manager.active_connections[resolved_target].difference_update(dead_sockets)
 
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, AttributeError, TypeError, ValueError, KeyError):
+                pass
+            except Exception:
                 pass
 
+    except WebSocketDisconnect:
+        pass
     except Exception as _ws_err:
         pass
     finally:
