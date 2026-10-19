@@ -253,6 +253,10 @@ enum class ProfileSubPage(
         title = "Security & Privacy",
         icon = Icons.Default.Shield
     ),
+    SESSION_MANAGEMENT(
+        title = "Session Management",
+        icon = Icons.Default.Devices
+    ),
     PRESENCE_STEALTH(
         title = "Presence & Stealth Mode",
         icon = Icons.Default.VisibilityOff
@@ -730,7 +734,7 @@ fun ProfileScreen(
     }
 
     LaunchedEffect(activeSubPage) {
-        if (activeSubPage == ProfileSubPage.TWO_FACTOR_SECURITY) {
+        if (activeSubPage == ProfileSubPage.SESSION_MANAGEMENT || activeSubPage == ProfileSubPage.TWO_FACTOR_SECURITY) {
             refreshUserSessions()
         }
     }
@@ -1615,10 +1619,11 @@ fun ProfileScreen(
                         }
                     }
 
-                // ================= 1. PERSONAL INFORMATION BUTTON (FIRST) =================
+                // ================= 1. PERSONAL INFORMATION BUTTON =================
                 item(key = "menu_personal_details") {
                     ProfileNavigationMenuButton(
                         title = "Personal Information",
+                        subtitle = "Name, username, email & profile photo",
                         icon = Icons.Default.Person,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = {
@@ -1628,10 +1633,12 @@ fun ProfileScreen(
                     )
                 }
 
-                // ================= 2. SECURITY BUTTON (SECOND: TWO-FACTOR, BIOMETRICS & SCREEN PRIVACY, PRESENCE & STEALTH) =================
+                // ================= 2. SECURITY & PRIVACY BUTTON =================
                 item(key = "menu_security_hub") {
                     ProfileNavigationMenuButton(
-                        title = "Security",
+                        title = "Security & Privacy",
+                        subtitle = "Two-factor, biometrics, screen privacy & stealth",
+                        badge = if (twoFactorEnabled && isScreenSecurityActive) "OPTIMAL" else "ACTIVE",
                         icon = Icons.Default.Shield,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = {
@@ -1641,30 +1648,49 @@ fun ProfileScreen(
                     )
                 }
 
-                // ================= 6. APPEARANCE & DISPLAY THEME BUTTON =================
+                // ================= 3. SESSION MANAGEMENT BUTTON =================
+                item(key = "menu_session_management") {
+                    ProfileNavigationMenuButton(
+                        title = "Session Management",
+                        subtitle = "Review logged-in devices & terminate sessions",
+                        badge = if (activeSessions.isNotEmpty()) "${activeSessions.size} Active" else null,
+                        icon = Icons.Default.Devices,
+                        hasCoverPhoto = hasCoverPhoto,
+                        onClick = {
+                            previousSubPage = null
+                            activeSubPage = ProfileSubPage.SESSION_MANAGEMENT
+                        }
+                    )
+                }
+
+                // ================= 4. APPEARANCE & DISPLAY THEME BUTTON =================
                 item(key = "menu_appearance_theme") {
                     ProfileNavigationMenuButton(
                         title = "Appearance & Display Theme",
+                        subtitle = "Dark, light, OLED black & liquid glass",
                         icon = Icons.Default.Tune,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
                     )
                 }
 
-                // ================= 8. NOTIFICATION BUTTON =================
+                // ================= 5. NOTIFICATION BUTTON =================
                 item(key = "menu_notifications") {
                     ProfileNavigationMenuButton(
                         title = "Notification",
+                        subtitle = "Sound alerts ($selectedNotificationSoundName) & privacy",
+                        badge = selectedNotificationSoundName,
                         icon = Icons.Default.Notifications,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.NOTIFICATIONS }
                     )
                 }
 
-                // ================= 9. HELP & SUPPORT BUTTON =================
+                // ================= 6. HELP & SUPPORT BUTTON =================
                 item(key = "menu_help_support") {
                     ProfileNavigationMenuButton(
                         title = "Help & Support",
+                        subtitle = "FAQs, report issues, terms & privacy policy",
                         icon = Icons.AutoMirrored.Filled.Help,
                         hasCoverPhoto = hasCoverPhoto,
                         onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
@@ -1773,8 +1799,767 @@ fun ProfileScreen(
 
                         when (currentSubPage) {
                             ProfileSubPage.SECURITY -> {
-                                // 1. Shield Overview Card
-                                item(key = "sub_security_overview_card") {
+                                // 1. TWO-FACTOR & PASSWORD SECURITY CARD
+                                item(key = "sub_security_two_factor_section") {
+                                    val onToggle2Fa: (Boolean) -> Unit = { isChecked ->
+                                        val activeSessionToken = ConnectoApiClient.sessionToken
+                                            ?: context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE).getString("token", null)
+
+                                        if (!isChecked) {
+                                            // USER WANTS TO TURN OFF 2FA: Enforce OTP sent to registered email!
+                                            if (emailInput.isBlank()) {
+                                                twoFaErrorMessage = "Please ensure your registered email address is set in profile first."
+                                            } else {
+                                                twoFaErrorMessage = null
+                                                coroutineScope.launch {
+                                                    val res = ConnectoApiClient.request2FaSetupOtp(
+                                                        method = "email",
+                                                        phoneNumber = emailInput.trim(),
+                                                        purpose = "two_factor_disable",
+                                                        token = activeSessionToken
+                                                    )
+                                                    if (res.isSuccess) {
+                                                        val data = res.getOrNull()
+                                                        twoFaDisableMaskedDest = data?.maskedDestination
+                                                        show2FaDisableDialog = true
+                                                    } else {
+                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch verification code to email."
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            // USER WANTS TO TURN ON 2FA: Send OTP to registered email
+                                            if (emailInput.isBlank()) {
+                                                twoFaErrorMessage = "Please ensure your email address is set in your profile first."
+                                            } else {
+                                                twoFaErrorMessage = null
+                                                coroutineScope.launch {
+                                                    val res = ConnectoApiClient.request2FaSetupOtp(
+                                                        method = "email",
+                                                        phoneNumber = emailInput.trim(),
+                                                        purpose = "two_factor_setup",
+                                                        token = activeSessionToken
+                                                    )
+                                                    if (res.isSuccess) {
+                                                        val data = res.getOrNull()
+                                                        val targetDest = emailInput.trim()
+                                                        twoFaSetupMaskedDest = data?.maskedDestination
+                                                        com.example.connecto.security.TwoFactorStateManager.startSetup(
+                                                            context = context,
+                                                            method = "email",
+                                                            destination = targetDest,
+                                                            maskedDest = data?.maskedDestination
+                                                        )
+                                                        show2FaSetupDialog = true
+                                                    } else {
+                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch setup OTP."
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            // Card Header
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(38.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Shield,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Two-Factor & Security",
+                                                        fontSize = 15.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Account credentials and OTP login protection",
+                                                        fontSize = 11.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                            // Change Password Feature
+                                            PersonalDetailsChangePasswordSection(
+                                                username = currentUsernameState,
+                                                context = context
+                                            )
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                            // Password Reset Action
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Lock,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Text(
+                                                            text = "Reset / Change Password",
+                                                            fontSize = 14.5.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = "Send real-time OTP to registered email",
+                                                            fontSize = 11.5.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clickable { showForgotPasswordDialog = true }
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                                                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "RESET",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                            // 2FA Toggle Row
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable { onToggle2Fa(!twoFactorEnabled) },
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Shield,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "Two-Factor Auth",
+                                                                fontSize = 14.5.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(if (twoFactorEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = if (twoFactorEnabled) "ACTIVE" else "OFF",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = if (twoFactorEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+                                                        Spacer(modifier = Modifier.height(2.dp))
+                                                        Text(
+                                                            text = if (twoFactorEnabled) "Email OTP verification enabled" else "Require 6-digit code on login",
+                                                            fontSize = 11.5.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                Switch(
+                                                    checked = twoFactorEnabled,
+                                                    onCheckedChange = { isChecked -> onToggle2Fa(isChecked) },
+                                                    colors = getMonochromeSwitchColors()
+                                                )
+                                            }
+
+                                            if (twoFaErrorMessage != null) {
+                                                val isSessionExpired = twoFaErrorMessage?.contains("expired", ignoreCase = true) == true ||
+                                                                        twoFaErrorMessage?.contains("log in again", ignoreCase = true) == true
+                                                Column(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(Color(0xFFEF4444).copy(alpha = 0.12f))
+                                                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                                        .padding(10.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Text(
+                                                        text = twoFaErrorMessage ?: "",
+                                                        fontSize = 12.sp,
+                                                        color = Color(0xFFEF4444)
+                                                    )
+                                                    if (isSessionExpired) {
+                                                        Button(
+                                                            onClick = { onSignOut() },
+                                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                                            shape = RoundedCornerShape(6.dp),
+                                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                                            modifier = Modifier.align(Alignment.End)
+                                                        ) {
+                                                            Text("LOG IN AGAIN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                            // 2FA Verification Channel (Email)
+                                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text(
+                                                    text = "2FA VERIFICATION CHANNEL",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    letterSpacing = 0.8.sp
+                                                )
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.08f))
+                                                        .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                                                        .padding(14.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(40.dp)
+                                                                .clip(RoundedCornerShape(10.dp))
+                                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Icon(
+                                                                Icons.Default.Email,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.primary,
+                                                                modifier = Modifier.size(22.dp)
+                                                            )
+                                                        }
+                                                        Spacer(modifier = Modifier.width(12.dp))
+                                                        Column(modifier = Modifier.weight(1f)) {
+                                                            Text(
+                                                                text = "Email OTP Verification",
+                                                                fontSize = 13.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Text(
+                                                                text = if (emailInput.isNotBlank()) "Security codes are delivered to ${emailInput.trim()}"
+                                                                       else "⚠️ No email found in profile. Set your email in Personal Information to receive 2FA codes.",
+                                                                fontSize = 11.sp,
+                                                                color = if (emailInput.isNotBlank()) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFFF59E0B)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 2. BIOMETRIC & SCREEN PRIVACY CARD
+                                item(key = "sub_security_biometric_section") {
+                                    val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
+                                    val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
+                                    val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                                        ) {
+                                            // Master App Lock Switch
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Fingerprint,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(22.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(
+                                                                text = "Biometric & App Lock",
+                                                                fontSize = 15.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = if (isAppLockEnabled) "ON" else "OFF",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = if (isAppLockEnabled) "Require biometric scan or device screen lock to open" else "Unlock app without biometric prompt",
+                                                            fontSize = 12.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                Switch(
+                                                    checked = isAppLockEnabled,
+                                                    onCheckedChange = { isChecked ->
+                                                        if (isChecked) {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Biometric App Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        }
+                                                        isAppLockEnabled = isChecked
+                                                        prefs.edit().putBoolean("biometric_lock_$username", isChecked).apply()
+                                                    },
+                                                    colors = getMonochromeSwitchColors()
+                                                )
+                                            }
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                            // Hardware Status Card
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(
+                                                        if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                    )
+                                                    .border(
+                                                        1.dp,
+                                                        if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                                        RoundedCornerShape(12.dp)
+                                                    )
+                                                    .padding(12.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(36.dp)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(
+                                                                if (isAppLockEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                                else MaterialTheme.colorScheme.surfaceVariant
+                                                            ),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (isAppLockEnabled) Icons.Default.Shield else Icons.Default.Lock,
+                                                            contentDescription = null,
+                                                            tint = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = "Device Hardware Security",
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = statusDescription,
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                            // Screen Privacy & Black Screen Protection Switch
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(36.dp)
+                                                            .clip(RoundedCornerShape(8.dp))
+                                                            .background(
+                                                                if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                                else MaterialTheme.colorScheme.surfaceVariant
+                                                            ),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = if (isScreenSecurityActive) Icons.Default.Shield else Icons.Default.VisibilityOff,
+                                                            contentDescription = null,
+                                                            tint = if (isScreenSecurityActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(
+                                                                text = "Screen Privacy (Black Screen)",
+                                                                fontSize = 14.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(if (isScreenSecurityActive) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = if (isScreenSecurityActive) "PROTECTED" else "OFF",
+                                                                    fontSize = 9.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = if (isScreenSecurityActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = "Shows a black screen for others during screenshot, screen share, and screen cast.",
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                Switch(
+                                                    checked = isScreenSecurityActive,
+                                                    onCheckedChange = { isChecked ->
+                                                        com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
+                                                        Toast.makeText(
+                                                            context,
+                                                            if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
+                                                            else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible.",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    },
+                                                    colors = getMonochromeSwitchColors()
+                                                )
+                                            }
+
+                                            // Real-time Screen Share & Cast Hardware Protection Status Card
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(
+                                                        if (isRecordingActive || isCastingActive) Color(0xFFEF4444).copy(alpha = 0.08f)
+                                                        else if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                                    )
+                                                    .border(
+                                                        1.dp,
+                                                        if (isRecordingActive || isCastingActive) Color(0xFFEF4444).copy(alpha = 0.35f)
+                                                        else if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                                        RoundedCornerShape(12.dp)
+                                                    )
+                                                    .padding(12.dp)
+                                            ) {
+                                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(8.dp)
+                                                                .clip(CircleShape)
+                                                                .background(
+                                                                    if (isRecordingActive || isCastingActive) Color(0xFFEF4444)
+                                                                    else if (isScreenSecurityActive) Color(0xFF10B981)
+                                                                    else Color(0xFF9CA3AF)
+                                                                )
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        Text(
+                                                            text = if (isRecordingActive) "Screen Recording / Share Active (Black Screen Enforced)"
+                                                                   else if (isCastingActive) "Wireless Screen Cast Active (Black Screen Enforced)"
+                                                                   else if (isScreenSecurityActive) "SurfaceFlinger Hardware Privacy Active"
+                                                                   else "Screen Capture Unrestricted",
+                                                            fontSize = 11.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isRecordingActive || isCastingActive) Color(0xFFEF4444)
+                                                                    else if (isScreenSecurityActive) MaterialTheme.colorScheme.primary
+                                                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = if (isScreenSecurityActive)
+                                                            "All screenshots, video captures, screen sharing (Discord, Zoom, Meet, Teams), and external display mirrors render as solid pitch black (#000000) for others."
+                                                        else
+                                                            "Screenshots, recordings, and screen sharing can see all screen contents. Turn ON for blackscreen protection.",
+                                                        fontSize = 11.sp,
+                                                        lineHeight = 15.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            // Auto-Lock on Background
+                                            if (isAppLockEnabled) {
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = "Auto-Lock on Background",
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Text(
+                                                            text = "Lock app immediately when leaving Connecto",
+                                                            fontSize = 11.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+
+                                                    Switch(
+                                                        checked = autoLockOnBackground,
+                                                        onCheckedChange = { isChecked ->
+                                                            autoLockOnBackground = isChecked
+                                                            prefs.edit().putBoolean("auto_lock_background_$username", isChecked).apply()
+                                                        },
+                                                        colors = getMonochromeSwitchColors()
+                                                    )
+                                                }
+
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
+
+                                                Button(
+                                                    onClick = onLockApp,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(44.dp),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                                        contentColor = MaterialTheme.colorScheme.onSurface
+                                                    ),
+                                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Lock,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = "Lock App & Test Authentication Now",
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // 3. PRESENCE & STEALTH MODE CARD
+                                item(key = "sub_security_stealth_section") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .liquidGlassCard(
+                                                shape = RoundedCornerShape(20.dp),
+                                                backgroundColor = if (themeColors.isLiquidGlass) Color.Transparent
+                                                    else if (hasCoverPhoto) Color.Black.copy(alpha = 0.32f)
+                                                    else if (stealthModeEnabled) ConnectoTheme.colors.info.copy(alpha = 0.08f)
+                                                    else MaterialTheme.colorScheme.surface,
+                                                borderColor = if (themeColors.isLiquidGlass) Color.White.copy(alpha = 0.35f)
+                                                    else if (hasCoverPhoto) Color.White.copy(alpha = 0.22f)
+                                                    else if (stealthModeEnabled) ConnectoTheme.colors.info
+                                                    else MaterialTheme.colorScheme.primary
+                                            )
+                                            .padding(16.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (stealthModeEnabled) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                    contentDescription = null,
+                                                    tint = if (stealthModeEnabled) ConnectoTheme.colors.info else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(22.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Text(
+                                                            text = "Presence & Stealth Mode",
+                                                            fontSize = 15.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        Spacer(modifier = Modifier.width(8.dp))
+                                                        if (stealthModeEnabled) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(ConnectoTheme.colors.info.copy(alpha = 0.2f))
+                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = "ACTIVE",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = ConnectoTheme.colors.info
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                    Text(
+                                                        text = if (stealthModeEnabled)
+                                                            "You appear offline to everyone (server-enforced)"
+                                                        else
+                                                            "Appear offline to others while staying connected",
+                                                        fontSize = 12.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                            Switch(
+                                                checked = stealthModeEnabled,
+                                                onCheckedChange = { isChecked ->
+                                                    stealthModeEnabled = isChecked
+                                                    prefs.edit().putBoolean("stealth_mode_$username", isChecked).apply()
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            ConnectoApiClient.setStealthMode(enabled = isChecked)
+                                                        } catch (e: Exception) {
+                                                            // Non-fatal — preference is persisted locally
+                                                        }
+                                                    }
+                                                    triggerAutoSave()
+                                                },
+                                                colors = getMonochromeSwitchColors()
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            ProfileSubPage.SESSION_MANAGEMENT -> {
+                                item(key = "sub_session_management_header") {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1789,147 +2574,73 @@ fun ProfileScreen(
                                             )
                                             .padding(18.dp)
                                     ) {
-                                        Column(modifier = Modifier.fillMaxWidth()) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(44.dp)
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f))
+                                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                                                contentAlignment = Alignment.Center
                                             ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(44.dp)
-                                                        .clip(RoundedCornerShape(12.dp))
-                                                        .background(OnlineGreen.copy(alpha = 0.14f))
-                                                        .border(1.dp, OnlineGreen.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Shield,
-                                                        contentDescription = null,
-                                                        tint = OnlineGreen,
-                                                        modifier = Modifier.size(24.dp)
+                                                Icon(
+                                                    imageVector = Icons.Default.Devices,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(14.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(
+                                                        text = "Active Logged-In Sessions",
+                                                        fontSize = 15.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
                                                     )
-                                                }
-                                                Spacer(modifier = Modifier.width(14.dp))
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(OnlineGreen.copy(alpha = 0.15f))
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    ) {
                                                         Text(
-                                                            text = "Security Shield Status",
-                                                            fontSize = 15.sp,
+                                                            text = if (activeSessions.isNotEmpty()) "${activeSessions.size} ACTIVE" else "ONLINE",
+                                                            fontSize = 9.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.onSurface
+                                                            color = OnlineGreen
                                                         )
-                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .clip(RoundedCornerShape(6.dp))
-                                                                .background(if (twoFactorEnabled && isScreenSecurityActive) OnlineGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                                                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                        ) {
-                                                            Text(
-                                                                text = if (twoFactorEnabled && isScreenSecurityActive) "OPTIMAL" else "ACTIVE",
-                                                                fontSize = 9.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = if (twoFactorEnabled && isScreenSecurityActive) OnlineGreen else MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
                                                     }
                                                 }
-                                            }
-
-                                            Spacer(modifier = Modifier.height(14.dp))
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
-                                            Spacer(modifier = Modifier.height(14.dp))
-
-                                            // 3 Shield metrics row
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween
-                                            ) {
-                                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                                                    Text(text = "2FA Email", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = if (twoFactorEnabled) "ACTIVE" else "OFF",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = if (twoFactorEnabled) OnlineGreen else MaterialTheme.colorScheme.error
-                                                    )
-                                                }
-                                                Box(modifier = Modifier.width(1.dp).height(28.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)))
-                                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                                                    Text(text = "Screen Privacy", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = if (isScreenSecurityActive) "SECURED" else "OFF",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = if (isScreenSecurityActive) OnlineGreen else TextDisabledColor
-                                                    )
-                                                }
-                                                Box(modifier = Modifier.width(1.dp).height(28.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)))
-                                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                                                    Text(text = "Presence", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = if (stealthModeEnabled) "STEALTH" else "ONLINE",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = if (stealthModeEnabled) ConnectoTheme.colors.info else OnlineGreen
-                                                    )
-                                                }
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(
+                                                    text = "Review all devices, browsers, and mobile apps logged into your account. Terminate any unrecognized activity instantly.",
+                                                    fontSize = 11.5.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    lineHeight = 16.sp
+                                                )
                                             }
                                         }
                                     }
                                 }
 
-                                // 2. Section Header: SECURITY & PRIVACY CONTROLS
-                                item(key = "sub_sec_controls_header") {
-                                    Text(
-                                        text = "SECURITY & PRIVACY CONTROLS",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        letterSpacing = 1.sp,
-                                        modifier = Modifier.padding(start = 4.dp, top = 4.dp)
-                                    )
-                                }
-
-                                // 3. Two-Factor & Security Button
-                                item(key = "sub_sec_button_two_factor") {
-                                    ProfileNavigationMenuButton(
-                                        title = "Two-Factor & Security",
-                                        icon = Icons.Default.Shield,
-                                        hasCoverPhoto = hasCoverPhoto,
-                                        onClick = {
-                                            previousSubPage = ProfileSubPage.SECURITY
-                                            activeSubPage = ProfileSubPage.TWO_FACTOR_SECURITY
-                                        }
-                                    )
-                                }
-
-                                // 4. Biometric & Screen Privacy Button
-                                item(key = "sub_sec_button_biometric") {
-                                    ProfileNavigationMenuButton(
-                                        title = "Biometric & Screen Privacy",
-                                        icon = Icons.Default.Shield,
-                                        hasCoverPhoto = hasCoverPhoto,
-                                        onClick = {
-                                            previousSubPage = ProfileSubPage.SECURITY
-                                            activeSubPage = ProfileSubPage.BIOMETRIC_LOCK
-                                        }
-                                    )
-                                }
-
-                                // 5. Presence & Stealth Mode Button
-                                item(key = "sub_sec_button_stealth") {
-                                    ProfileNavigationMenuButton(
-                                        title = "Presence & Stealth Mode",
-                                        icon = Icons.Default.VisibilityOff,
-                                        hasCoverPhoto = hasCoverPhoto,
-                                        onClick = {
-                                            previousSubPage = ProfileSubPage.SECURITY
-                                            activeSubPage = ProfileSubPage.PRESENCE_STEALTH
-                                        }
+                                item(key = "sub_logged_in_sessions") {
+                                    Spacer(modifier = Modifier.height(14.dp))
+                                    LoggedInSessionsCard(
+                                        sessions = activeSessions,
+                                        isLoading = isLoadingSessions,
+                                        errorMessage = sessionErrorMessage,
+                                        terminatingSessionId = terminatingSessionId,
+                                        isTerminatingAllOthers = isTerminatingOtherSessions,
+                                        onRefresh = { refreshUserSessions() },
+                                        onTerminateSession = onTerminateSession,
+                                        onTerminateAllOthers = onTerminateOtherSessions,
+                                        hasCoverPhoto = hasCoverPhoto
                                     )
                                 }
                             }
@@ -2491,21 +3202,6 @@ fun ProfileScreen(
                                     }
                                 }
                             }
-                                }
-
-                                item(key = "sub_logged_in_sessions") {
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    LoggedInSessionsCard(
-                                        sessions = activeSessions,
-                                        isLoading = isLoadingSessions,
-                                        errorMessage = sessionErrorMessage,
-                                        terminatingSessionId = terminatingSessionId,
-                                        isTerminatingAllOthers = isTerminatingOtherSessions,
-                                        onRefresh = { refreshUserSessions() },
-                                        onTerminateSession = onTerminateSession,
-                                        onTerminateAllOthers = onTerminateOtherSessions,
-                                        hasCoverPhoto = hasCoverPhoto
-                                    )
                                 }
                             }
                             ProfileSubPage.BIOMETRIC_LOCK -> {
@@ -3741,6 +4437,7 @@ fun ProfileScreen(
                                                                     selectedNotificationSoundId = sound.id
                                                                     selectedNotificationSoundName = sound.name
                                                                     NotificationPreferences.setSelectedSound(context, sound.id, sound.name)
+                                                                    ConnectoNotificationManager.getOrCreateMessageChannelForSound(context, sound.id)
                                                                     NotificationSoundManager.playPreview(context, sound.id)
                                                                     Toast.makeText(context, "Notification sound set to ${sound.name}", Toast.LENGTH_SHORT).show()
                                                                 }
@@ -6290,6 +6987,8 @@ private fun PersonalDetailRow(
 private fun ProfileNavigationMenuButton(
     title: String,
     icon: ImageVector,
+    subtitle: String? = null,
+    badge: String? = null,
     hasCoverPhoto: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -6343,16 +7042,44 @@ private fun ProfileNavigationMenuButton(
                 )
             }
             Spacer(modifier = Modifier.width(14.dp))
-            Text(
-                text = title,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                lineHeight = 20.sp,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                    if (badge != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = badge,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+                if (subtitle != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                }
+            }
             Spacer(modifier = Modifier.width(10.dp))
             Box(
                 modifier = Modifier

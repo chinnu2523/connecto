@@ -129,9 +129,82 @@ object ConnectoNotificationManager {
                 setShowBadge(true)
             }
 
-            notificationManager.createNotificationChannels(listOf(callsChannel, messagesChannel, socialChannel))
-            Log.d(TAG, "Notification channels registered successfully (v4 messages channel active)")
+            val channelsToRegister = mutableListOf(callsChannel, messagesChannel, socialChannel)
+
+            // Register dedicated channels for custom trending notification sounds (especially Faah)
+            NotificationSoundManager.TRENDING_SOUNDS.forEach { sound ->
+                if (sound.id != "system_default") {
+                    val sChannelId = "connecto_msg_channel_${sound.id}"
+                    val sUri = NotificationSoundManager.getSoundUri(context, sound.id)
+                    if (sUri != null) {
+                        val sChannel = NotificationChannel(
+                            sChannelId,
+                            "Chat Messages (${sound.name})",
+                            NotificationManager.IMPORTANCE_HIGH
+                        ).apply {
+                            description = "Chat messages with ${sound.name} sound alert"
+                            enableVibration(true)
+                            vibrationPattern = longArrayOf(0, 250, 200, 250)
+                            setSound(sUri, notifAudioAttributes)
+                            enableLights(true)
+                            lightColor = 0xFF6C5CE7.toInt()
+                            lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                            setShowBadge(true)
+                        }
+                        channelsToRegister.add(sChannel)
+                    }
+                }
+            }
+
+            notificationManager.createNotificationChannels(channelsToRegister)
+            Log.d(TAG, "Notification channels registered successfully (including trending sound channels)")
         }
+    }
+
+    fun getOrCreateMessageChannelForSound(context: Context, soundId: String): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+                ?: return CHANNEL_MESSAGES
+
+            if (soundId == "system_default") {
+                return CHANNEL_MESSAGES
+            }
+
+            val channelId = "connecto_msg_channel_$soundId"
+            val existingChannel = notificationManager.getNotificationChannel(channelId)
+            if (existingChannel != null) {
+                return channelId
+            }
+
+            val sound = NotificationSoundManager.TRENDING_SOUNDS.find { it.id == soundId }
+            val soundName = sound?.name ?: "Faah"
+            val soundUri = NotificationSoundManager.getSoundUri(context, soundId)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+            val audioAttributes = AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION_COMMUNICATION_INSTANT)
+                .build()
+
+            val channel = NotificationChannel(
+                channelId,
+                "Chat Messages ($soundName)",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Chat messages with $soundName sound alert"
+                enableVibration(true)
+                vibrationPattern = longArrayOf(0, 250, 200, 250)
+                setSound(soundUri, audioAttributes)
+                enableLights(true)
+                lightColor = 0xFF6C5CE7.toInt()
+                lockscreenVisibility = NotificationCompat.VISIBILITY_PUBLIC
+                setShowBadge(true)
+            }
+
+            notificationManager.createNotificationChannel(channel)
+            return channelId
+        }
+        return CHANNEL_MESSAGES
     }
 
     private fun hasNotificationPermission(): Boolean {
@@ -697,11 +770,12 @@ object ConnectoNotificationManager {
                 ).build()
 
                 val selectedSoundId = NotificationPreferences.getSelectedSoundId(context)
+                val targetChannelId = getOrCreateMessageChannelForSound(context, selectedSoundId)
                 val soundUri = NotificationSoundManager.getSoundUri(context, selectedSoundId)
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 val vibrationPattern = longArrayOf(0, 250, 200, 250)
 
-                val builder = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
+                val builder = NotificationCompat.Builder(context, targetChannelId)
                     .setSmallIcon(R.mipmap.ic_launcher)
                     .setLargeIcon(avatarBitmap)
                     .setContentTitle(displayTitle)
@@ -713,7 +787,7 @@ object ConnectoNotificationManager {
                     .setContentIntent(pendingIntent)
                     .setColor(0xFF6C5CE7.toInt()) // Connecto Brand Accent Purple
                     .setVisibility(if (isContentHidden) NotificationCompat.VISIBILITY_PRIVATE else NotificationCompat.VISIBILITY_PUBLIC)
-                    .setDefaults(NotificationCompat.DEFAULT_ALL)
+                    .setDefaults(NotificationCompat.DEFAULT_LIGHTS)
                     .setSound(soundUri)
                     .setVibrate(vibrationPattern)
                     .addAction(replyAction)
@@ -746,7 +820,7 @@ object ConnectoNotificationManager {
                 if (!isContentHidden) {
                     builder.setStyle(messagingStyle)
                 } else {
-                    val publicNotif = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
+                    val publicNotif = NotificationCompat.Builder(context, targetChannelId)
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle("Connecto")
                         .setContentText("New message received")

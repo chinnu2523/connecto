@@ -5895,12 +5895,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.5.4",
-        "version_name": "v4.5.4",
-        "version_code": 83,
-        "release_tag": "v4.5.4-stable",
-        "sha256": "d54057f4049af924c18767197128903dc49999c8aa6e7e819621ee14587bfce3",
-        "md5": "7b0fbbde309169d56659d84fc5b16fc3",
+        "version": "4.5.5",
+        "version_name": "v4.5.5",
+        "version_code": 84,
+        "release_tag": "v4.5.5-stable",
+        "sha256": "20108dd520c2675fdfcbec6e42cfcb2cec46d78519890d439de018249934240e",
+        "md5": "53d17e3cbd07ee4d30e63321ca44fa05",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5910,11 +5910,10 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "VoIP Background Call Delivery: High-priority data-only push notifications wake up backgrounded and killed devices immediately, displaying full-screen incoming call UI and heads-up banners.",
-            "Continuous Looping Ringtone & Rhythmic Vibration: Incoming calls play a continuous system ringtone and vibration pattern until accepted, declined, or cancelled by caller.",
-            "Instant Call Cancellation Sync: Immediate remote call_ended push notification dismisses the incoming call notification and stops ringing if the caller hangs up before answer.",
-            "Strict Email-Only 2FA OTP Delivery: Sealed 2FA verification pipeline to deliver OTP codes strictly via verified email with zero client-side or API exposure.",
-            "Removal of 7-Day Email Verification Limit: Unrestricted app access removing all 7-day expiration barriers from email verification and authentication flows."
+            "Dedicated Session Management: Dedicated navigation hub in Profile to audit all active logged-in mobile, desktop, and web sessions and terminate sessions on demand.",
+            "Inline Security & Privacy Controls: Streamlined security sub-page with direct inline two-factor authentication, biometric app lock, SurfaceFlinger black screen privacy, and stealth mode controls.",
+            "Trending Faah Notification Sound: High-fidelity viral 'Faah' punch sound integration with dedicated Android notification channel sonification and maximum loudness.",
+            "Profile UI Overhaul: Modernized typography, rich status badges, descriptive navigation menu subtitles, and refined liquid glass styling."
         ]
     }
 
@@ -5926,10 +5925,26 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.5.4",
+                "version": "v4.5.5",
                 "date": "Oct 19, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.5.5: Dedicated Session Management, Inline Security & Privacy, and Faah Notification Sound",
+                "summary": "Connecto v4.5.5 introduces a dedicated Session Management hub in the Profile tab for complete control over active logins, removes intermediate buttons to provide direct inline Two-Factor, Biometric App Lock, Screen Privacy, and Stealth Mode controls, integrates the trending viral 'Faah' notification sound with dedicated Android channels, and polishes the Profile UI.",
+                "highlights": [
+                    "Dedicated Session Management: View and terminate all active logged-in devices directly from the new Session Management button in the Profile tab.",
+                    "Direct Inline Security Controls: Two-Factor & Security, Biometric & Screen Privacy, and Presence & Stealth Mode are directly available inside Security & Privacy without extra nested navigation.",
+                    "Faah Sound Integration: Viral trending 'Faah' sound selectable with dedicated notification channel synchronization on Android O+ and maximum loudness.",
+                    "Profile UI Polish: Sleek typography, subtitles for every navigation section, active session counter badges, and liquid glass card borders.",
+                    "Android Native App v4.5.5 (Build 84 • 55.1 MB): SHA-256 20108dd520c2675fdfcbec6e42cfcb2cec46d78519890d439de018249934240e • MD5 53d17e3cbd07ee4d30e63321ca44fa05."
+                ],
+                "author": "Connecto Core & Security Team"
+            },
+            {
+                "version": "v4.5.4",
+                "date": "Oct 19, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.5.4: Background VoIP Call Wake-Up, High-Priority Ringing & 2FA Email-Only Verification",
                 "summary": "Connecto v4.5.4 brings native VoIP push wake-up delivering incoming call rings and full-screen alerts even when the app is completely closed or killed in the background, adds continuous looping ringtones and vibration, automatically cancels notifications on remote caller hangup, enforces strict email-only 2FA OTP delivery, and removes the 7-day email verification restriction app-wide.",
                 "highlights": [

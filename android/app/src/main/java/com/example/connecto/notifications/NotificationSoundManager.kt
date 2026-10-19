@@ -216,6 +216,7 @@ object NotificationSoundManager {
                 .build()
 
             val player = MediaPlayer.create(context.applicationContext, resId, audioAttributes, 0) ?: return
+            player.setVolume(1.0f, 1.0f)
             activeMediaPlayer = player
             player.setOnCompletionListener { mp ->
                 try {
