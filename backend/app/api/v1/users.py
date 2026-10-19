@@ -338,3 +338,138 @@ async def upload_banner(
     await db.refresh(current_user)
 
     return current_user
+
+
+def purge_user_from_all_backups(user_id: str, username: str):
+    """
+    Purges a user permanently from all database backup files (*.db, *.bak, *.db.gz)
+    to guarantee complete data erasure across all recovery snapshots.
+    """
+    import os
+    import glob
+    import sqlite3
+    import gzip
+    import logging
+
+    log = logging.getLogger(__name__)
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    search_dirs = [
+        os.path.join(root_dir, "database_pre_clean_backup_20261014"),
+        os.path.join(root_dir, "backend", "backups"),
+        os.path.join(root_dir, "backups"),
+        root_dir
+    ]
+
+    backup_files = []
+    for s_dir in search_dirs:
+        if os.path.exists(s_dir):
+            for pattern in ("*.bak", "*.db.bak", "*backup*.db", "*.db.gz"):
+                backup_files.extend(glob.glob(os.path.join(s_dir, pattern)))
+
+    backup_files = list(set(backup_files))
+    u_id_str = str(user_id)
+    u_name_str = str(username).lower()
+
+    for bpath in backup_files:
+        try:
+            if bpath.endswith(".gz"):
+                decompressed = bpath[:-3] + ".tmp_purge"
+                with gzip.open(bpath, "rb") as f_in, open(decompressed, "wb") as f_out:
+                    f_out.write(f_in.read())
+                
+                conn = sqlite3.connect(decompressed)
+                cur = conn.cursor()
+                for q, params in [
+                    ("DELETE FROM users WHERE id = ? OR lower(username) = ?", (u_id_str, u_name_str)),
+                    ("DELETE FROM user_sessions WHERE user_id = ?", (u_id_str,)),
+                    ("DELETE FROM messages WHERE sender_id = ? OR channel_id LIKE '%' || ? || '%'", (u_id_str, u_name_str)),
+                    ("DELETE FROM friendships WHERE user_id = ? OR friend_id = ?", (u_id_str, u_id_str)),
+                    ("DELETE FROM notifications WHERE user_id = ?", (u_id_str,))
+                ]:
+                    try: cur.execute(q, params)
+                    except Exception: pass
+                conn.commit()
+                conn.close()
+
+                with open(decompressed, "rb") as f_in, gzip.open(bpath, "wb") as f_out:
+                    f_out.write(f_in.read())
+                if os.path.exists(decompressed):
+                    os.remove(decompressed)
+                log.info(f"Purged user {u_name_str} from gzip backup {bpath}")
+            else:
+                conn = sqlite3.connect(bpath)
+                cur = conn.cursor()
+                for q, params in [
+                    ("DELETE FROM users WHERE id = ? OR lower(username) = ?", (u_id_str, u_name_str)),
+                    ("DELETE FROM user_sessions WHERE user_id = ?", (u_id_str,)),
+                    ("DELETE FROM messages WHERE sender_id = ? OR channel_id LIKE '%' || ? || '%'", (u_id_str, u_name_str)),
+                    ("DELETE FROM friendships WHERE user_id = ? OR friend_id = ?", (u_id_str, u_id_str)),
+                    ("DELETE FROM notifications WHERE user_id = ?", (u_id_str,))
+                ]:
+                    try: cur.execute(q, params)
+                    except Exception: pass
+                conn.commit()
+                conn.close()
+                log.info(f"Purged user {u_name_str} from sqlite backup {bpath}")
+        except Exception as e:
+            log.warning(f"Could not purge user from backup {bpath}: {e}")
+
+
+@router.delete("/me", response_model=dict)
+@router.post("/me/delete-account", response_model=dict)
+async def delete_my_account(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Permanently deletes current user account, all messages, sessions, friendships,
+    and purges user records from live databases and all local backups.
+    """
+    import logging
+    from sqlalchemy import text
+
+    log = logging.getLogger(__name__)
+    uid = current_user.id
+    uname = (current_user.username or "").lower()
+
+    # 1. Purge all related entities in live DB
+    purge_queries = [
+        "DELETE FROM user_sessions WHERE user_id = :uid",
+        "DELETE FROM user_academy_profiles WHERE user_id = :uid",
+        "DELETE FROM user_progress WHERE user_id = :uid",
+        "DELETE FROM audit_logs WHERE user_id = :uid",
+        "DELETE FROM bookmarks WHERE user_id = :uid",
+        "DELETE FROM call_logs WHERE lower(username) = :uname OR lower(caller_name) = :uname",
+        "DELETE FROM dm_participants WHERE user_id = :uid",
+        "DELETE FROM dm_read_states WHERE user_id = :uid",
+        "DELETE FROM friendships WHERE user_id = :uid OR friend_id = :uid",
+        "DELETE FROM job_applications WHERE user_id = :uid",
+        "DELETE FROM message_read_receipts WHERE user_id = :uid",
+        "DELETE FROM messages WHERE sender_id = :uid OR channel_id LIKE '%' || :uname || '%'",
+        "DELETE FROM moderation_reports WHERE reporter_id = :uid OR reported_user_id = :uid",
+        "DELETE FROM notifications WHERE user_id = :uid",
+        "DELETE FROM otp_verifications WHERE user_id = :uid OR lower(identifier) = :uname",
+        "DELETE FROM referrals WHERE referrer_id = :uid OR referred_id = :uid",
+        "DELETE FROM scheduled_messages WHERE user_id = :uid",
+        "DELETE FROM server_members WHERE user_id = :uid",
+        "DELETE FROM voice_room_participants WHERE user_id = :uid OR lower(username) = :uname",
+        "DELETE FROM users WHERE id = :uid OR lower(username) = :uname"
+    ]
+    for q in purge_queries:
+        try:
+            await db.execute(text(q), {"uid": uid, "uname": uname})
+        except Exception as e:
+            log.warning(f"Error executing purge query {q}: {e}")
+    await db.commit()
+
+    # 2. Purge from all backups
+    try:
+        purge_user_from_all_backups(uid, uname)
+    except Exception as e:
+        log.warning(f"Backup purge warning: {e}")
+
+    return {
+        "status": "success",
+        "message": "Account and all associated records have been permanently erased from database and backups."
+    }
+

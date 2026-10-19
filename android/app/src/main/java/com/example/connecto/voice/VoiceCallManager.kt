@@ -982,6 +982,9 @@ object VoiceCallManager {
     fun init(context: Context) {
         appContext = context.applicationContext
         audioManager = appContext?.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        val savedVoiceIso = context.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
+            .getBoolean("connecto_voice_isolation_enabled", true)
+        _isVoiceIsolationEnabled.value = savedVoiceIso
         initWebRtcFactory(context)
         initAudioDeviceCallbacks()
         connectWebSocket()
@@ -2651,6 +2654,12 @@ object VoiceCallManager {
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to toggle hardware noise suppressor: ${t.message}")
         }
+        try {
+            appContext?.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
+                ?.edit()
+                ?.putBoolean("connecto_voice_isolation_enabled", newState)
+                ?.apply()
+        } catch (_: Throwable) {}
         Log.d(TAG, "Voice Isolation is now: $newState")
         return newState
     }
@@ -2662,6 +2671,12 @@ object VoiceCallManager {
         } catch (t: Throwable) {
             Log.w(TAG, "Failed to set hardware noise suppressor: ${t.message}")
         }
+        try {
+            appContext?.getSharedPreferences("connecto_audio_prefs", Context.MODE_PRIVATE)
+                ?.edit()
+                ?.putBoolean("connecto_voice_isolation_enabled", enabled)
+                ?.apply()
+        } catch (_: Throwable) {}
     }
 
     private var dspNoiseFloor = 400.0

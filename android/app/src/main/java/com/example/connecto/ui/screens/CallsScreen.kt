@@ -39,6 +39,7 @@ import androidx.compose.material.icons.automirrored.filled.CallMissed
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.ui.text.input.ImeAction
@@ -470,27 +471,71 @@ fun CallsScreen(
                 onNotificationClick = null,
                 unreadNotificationsCount = 0,
                 customAction = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Brush.linearGradient(gradientColors))
-                            .clickable { showCreateVoiceGroupDialog = true }
-                            .padding(horizontal = 12.dp, vertical = 7.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.GroupAdd,
-                            contentDescription = "Group Voice Call",
-                            tint = contentOnGradient,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Group Call",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = contentOnGradient
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val isVoiceIsoActive by VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isVoiceIsoActive) Color(0xFF10B981).copy(alpha = 0.15f)
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                )
+                                .border(
+                                    1.dp,
+                                    if (isVoiceIsoActive) Color(0xFF10B981).copy(alpha = 0.5f)
+                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    RoundedCornerShape(12.dp)
+                                )
+                                .clickable {
+                                    val newState = VoiceCallManager.toggleVoiceIsolation()
+                                    Toast.makeText(
+                                        context,
+                                        if (newState) "Voice Isolation: Active (Studio Noise Cancellation)" else "Voice Isolation: Disabled",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                                .padding(horizontal = 9.dp, vertical = 7.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "Voice Isolation",
+                                tint = if (isVoiceIsoActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isVoiceIsoActive) "Isolated" else "Standard",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isVoiceIsoActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(gradientColors))
+                                .clickable { showCreateVoiceGroupDialog = true }
+                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GroupAdd,
+                                contentDescription = "Group Voice Call",
+                                tint = contentOnGradient,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Group Call",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = contentOnGradient
+                            )
+                        }
                     }
                 }
             )

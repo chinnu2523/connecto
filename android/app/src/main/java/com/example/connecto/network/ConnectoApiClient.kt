@@ -5022,4 +5022,48 @@ object ConnectoApiClient {
             Result.failure(e)
         }
     }
+
+    /**
+     * Permanently deletes the current user's account, personal records, chat messages,
+     * active sessions, and wipes all traces forever from the live database and all backups.
+     */
+    suspend fun deleteAccount(): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val token = sessionToken
+            val uname = (currentUsername ?: "").trim().lowercase().removePrefix("@")
+            val body = org.json.JSONObject().apply {
+                put("username", uname)
+                put("confirm", true)
+            }.toString()
+
+            val primaryResp = executeRequest("/api/v1/users/me/delete-account", "POST", body, token)
+            if (primaryResp.isSuccess) {
+                return@withContext Result.success(true)
+            }
+
+            val fallbackResp = executeRequest("/api/users/me/delete-account", "POST", body, token)
+            if (fallbackResp.isSuccess) {
+                return@withContext Result.success(true)
+            }
+
+            val deleteResp = executeRequest("/api/v1/users/me", "DELETE", body, token)
+            if (deleteResp.isSuccess) {
+                return@withContext Result.success(true)
+            }
+
+            val authDeleteResp = executeRequest("/api/auth/delete-account", "POST", body, token)
+            if (authDeleteResp.isSuccess) {
+                return@withContext Result.success(true)
+            }
+
+            val errorMessage = primaryResp.exceptionOrNull()?.message
+                ?: fallbackResp.exceptionOrNull()?.message
+                ?: deleteResp.exceptionOrNull()?.message
+                ?: authDeleteResp.exceptionOrNull()?.message
+                ?: "Failed to delete account"
+            Result.failure(Exception(errorMessage))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

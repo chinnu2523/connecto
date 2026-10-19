@@ -703,6 +703,7 @@ async def redirect_web_to_root(request: Request):
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(users_router, prefix="/api/v1")
+app.include_router(users_router, prefix="/api")
 app.include_router(chat_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="/api/v1")
 app.include_router(ws_router, prefix="")
@@ -5895,12 +5896,12 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.5.5",
-        "version_name": "v4.5.5",
-        "version_code": 84,
-        "release_tag": "v4.5.5-stable",
-        "sha256": "20108dd520c2675fdfcbec6e42cfcb2cec46d78519890d439de018249934240e",
-        "md5": "53d17e3cbd07ee4d30e63321ca44fa05",
+        "version": "4.5.6",
+        "version_name": "v4.5.6",
+        "version_code": 85,
+        "release_tag": "v4.5.6-stable",
+        "sha256": "e402d8bab235a0079fbfbe669571010073df9f18dd7e55219f8eada0ec59d487",
+        "md5": "222eeaef957e8251f35864eb3ebb595b",
         "size_bytes": size_bytes,
         "size_display": size_mb,
         "min_android": "Android 7.0 (API 24)",
@@ -5910,10 +5911,10 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Dedicated Session Management: Dedicated navigation hub in Profile to audit all active logged-in mobile, desktop, and web sessions and terminate sessions on demand.",
-            "Inline Security & Privacy Controls: Streamlined security sub-page with direct inline two-factor authentication, biometric app lock, SurfaceFlinger black screen privacy, and stealth mode controls.",
-            "Trending Faah Notification Sound: High-fidelity viral 'Faah' punch sound integration with dedicated Android notification channel sonification and maximum loudness.",
-            "Profile UI Overhaul: Modernized typography, rich status badges, descriptive navigation menu subtitles, and refined liquid glass styling."
+            "Permanent Account Deletion: Dedicated Delete Account Forever button in Profile Danger Zone and Help & Support, purging live records from SQLite and Cloudflare D1 across 23 tables, plus physical database backup scrubbing.",
+            "AI Voice Isolation Studio: Dedicated Voice & Audio Settings sub-page in Profile with real-time 18-bar VU meter mic sensitivity monitor, acoustic echo cancellation, and auto gain control.",
+            "Spectral Speech Bandpass: 280Hz high-pass filter rejecting AC rumble, 3400Hz low-pass cutting coil hiss, adaptive -26dB noise gating, and +1.2dB vocal presence boost.",
+            "In-Call Voice Isolation Chip: Live one-tap Voice Isolation toggle on CallsScreen header and in-call WebRTC overlay."
         ]
     }
 
@@ -5925,10 +5926,26 @@ async def get_platform_changelog():
         "status": "success",
         "releases": [
             {
-                "version": "v4.5.5",
+                "version": "v4.5.6",
                 "date": "Oct 19, 2026",
                 "category": "feature",
                 "tag": "Latest Release",
+                "title": "Connecto v4.5.6: Permanent Account Deletion Engine & AI Voice Isolation Studio",
+                "summary": "Connecto v4.5.6 introduces comprehensive GDPR-compliant permanent account deletion across live databases and all physical database backups, accessible via Profile and Help & Support, and debuts the AI Voice Isolation audio engine with real-time mic sensitivity monitoring, 280Hz-3400Hz speech bandpass filtering, and hardware NoiseSuppressor integration.",
+                "highlights": [
+                    "Permanent Account Deletion: Delete Account Forever button in Profile Danger Zone and Help & Support with strict typed DELETE confirmation, wiping user records from live SQLite, Cloudflare D1 across 23 tables, and scrubbing all physical database backups.",
+                    "AI Voice Isolation Studio: Dedicated Voice & Audio Settings sub-page in Profile featuring live 18-bar VU meter mic sensitivity monitor, acoustic echo cancellation, auto gain, and HD 48kHz Opus audio.",
+                    "Spectral Speech Bandpass: 280Hz high-pass filter rejecting AC rumble and wind, 3400Hz low-pass cutting coil hiss, adaptive -26dB noise gating, and +1.2dB vocal presence boost.",
+                    "Live In-Call Voice Isolation Chip: Instant one-tap Voice Isolation toggle on CallsScreen header and in-call WebRTC overlay.",
+                    "Android Native App v4.5.6 (Build 85 • 55.2 MB): SHA-256 e402d8bab235a0079fbfbe669571010073df9f18dd7e55219f8eada0ec59d487 • MD5 222eeaef957e8251f35864eb3ebb595b."
+                ],
+                "author": "Connecto Core & Security Team"
+            },
+            {
+                "version": "v4.5.5",
+                "date": "Oct 19, 2026",
+                "category": "feature",
+                "tag": "Previous Release",
                 "title": "Connecto v4.5.5: Dedicated Session Management, Inline Security & Privacy, and Faah Notification Sound",
                 "summary": "Connecto v4.5.5 introduces a dedicated Session Management hub in the Profile tab for complete control over active logins, removes intermediate buttons to provide direct inline Two-Factor, Biometric App Lock, Screen Privacy, and Stealth Mode controls, integrates the trending viral 'Faah' notification sound with dedicated Android channels, and polishes the Profile UI.",
                 "highlights": [

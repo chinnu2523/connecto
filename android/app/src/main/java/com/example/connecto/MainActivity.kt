@@ -903,6 +903,15 @@ fun ConnectoApp(
                                             onSignOut = {
                                                 performCompleteSignOut(context, authenticatedUsername)
                                                 flowState = AppFlowState.AUTH_HOME
+                                            },
+                                            onDeleteAccount = {
+                                                performCompleteSignOut(context, authenticatedUsername)
+                                                flowState = AppFlowState.AUTH_HOME
+                                                android.widget.Toast.makeText(
+                                                    context,
+                                                    "Your account and all associated data have been permanently erased from live database and all backups.",
+                                                    android.widget.Toast.LENGTH_LONG
+                                                ).show()
                                             }
                                         )
                                     }
