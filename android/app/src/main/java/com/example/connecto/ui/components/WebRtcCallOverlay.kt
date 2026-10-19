@@ -28,7 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.Headset
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -101,6 +101,7 @@ fun WebRtcCallOverlay(
     // Bind real hardware state from VoiceCallManager
     val isMuted by VoiceCallManager.isMuted.collectAsState()
     val isSpeakerOn by VoiceCallManager.isSpeakerOn.collectAsState()
+    val isVoiceIsolationEnabled by VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
     val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
@@ -318,6 +319,31 @@ fun WebRtcCallOverlay(
                     )
                 }
 
+                // Voice Isolation Toggle Button
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(if (isVoiceIsolationEnabled) OnlineGreen.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant)
+                        .border(1.dp, if (isVoiceIsolationEnabled) OnlineGreen else MaterialTheme.colorScheme.outline, CircleShape)
+                        .clickable {
+                            val active = VoiceCallManager.toggleVoiceIsolation()
+                            android.widget.Toast.makeText(
+                                context,
+                                if (active) "Voice Isolation: Active (Noise Blocked)" else "Voice Isolation: Off",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.GraphicEq,
+                        contentDescription = "Voice Isolation",
+                        tint = if (isVoiceIsolationEnabled) OnlineGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
                 // End Call Button
                 Box(
                     modifier = Modifier
@@ -364,7 +390,7 @@ fun FullScreenCallUI(
     val isBluetoothConnected by VoiceCallManager.isBluetoothConnected.collectAsState()
     val bluetoothDeviceName by VoiceCallManager.bluetoothDeviceName.collectAsState()
     var showAudioRouteDialog by remember { mutableStateOf(false) }
-    var showKeypadDialog by remember { mutableStateOf(false) }
+    val isVoiceIsolationEnabled by VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
 
     val callDuration by VoiceCallManager.callDurationSeconds.collectAsState()
     val liveAmplitude by VoiceCallManager.liveAudioAmplitude.collectAsState()
@@ -607,7 +633,9 @@ fun FullScreenCallUI(
                     )
                     Spacer(modifier = Modifier.width(7.dp))
                     Text(
-                        text = if (callState == CallState.CONNECTED) "E2E ENCRYPTED" else "CONNECTING",
+                        text = if (callState == CallState.CONNECTED) {
+                            if (isVoiceIsolationEnabled) "E2E • VOICE ISOLATED" else "E2E ENCRYPTED"
+                        } else "CONNECTING",
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.2.sp,
@@ -865,7 +893,11 @@ fun FullScreenCallUI(
                         }
 
                         Text(
-                            text = if (isMuted) "Microphone Muted" else if (callState == CallState.CONNECTED) "Connected • Encrypted Audio" else "Establishing secure connection...",
+                            text = if (isMuted) "Microphone Muted"
+                                   else if (callState == CallState.CONNECTED) {
+                                       if (isVoiceIsolationEnabled) "Connected • Voice Isolation Active"
+                                       else "Connected • Encrypted Audio"
+                                   } else "Establishing secure connection...",
                             fontSize = 12.sp,
                             color = if (isMuted) Color(0xFFEF4444) else Color.White.copy(alpha = 0.90f),
                             fontWeight = FontWeight.Medium
@@ -987,30 +1019,46 @@ fun FullScreenCallUI(
                             )
                         }
 
-                        // 3. Dialpad / Keypad
+                        // 3. Voice Isolation Toggle
+                        val isIsoActive = isVoiceIsolationEnabled
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { showKeypadDialog = true }
+                            modifier = Modifier.clickable {
+                                val active = VoiceCallManager.toggleVoiceIsolation()
+                                android.widget.Toast.makeText(
+                                    context,
+                                    if (active) "Voice Isolation: Active (Noise Blocked)" else "Voice Isolation: Off (Normal Mic)",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
+                            }
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(54.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.10f))
-                                    .border(1.5.dp, Color.White.copy(alpha = 0.20f), CircleShape),
+                                    .background(
+                                        if (isIsoActive) OnlineGreen.copy(alpha = 0.22f)
+                                        else Color.White.copy(alpha = 0.10f)
+                                    )
+                                    .border(
+                                        1.5.dp,
+                                        if (isIsoActive) OnlineGreen.copy(alpha = 0.80f)
+                                        else Color.White.copy(alpha = 0.20f),
+                                        CircleShape
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Dialpad,
-                                    contentDescription = "Keypad",
-                                    tint = Color.White,
+                                    imageVector = Icons.Default.GraphicEq,
+                                    contentDescription = "Voice Isolation",
+                                    tint = if (isIsoActive) OnlineGreen else Color.White,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Keypad",
-                                color = Color(0xFF94A3B8),
+                                text = if (isIsoActive) "Isolated" else "Isolation",
+                                color = if (isIsoActive) OnlineGreen else Color(0xFF94A3B8),
                                 fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -1097,10 +1145,7 @@ fun FullScreenCallUI(
             AudioRouteSelectionDialog(onDismiss = { showAudioRouteDialog = false })
         }
 
-        // In-Call Keypad Dialog
-        if (showKeypadDialog) {
-            InCallKeypadDialog(onDismiss = { showKeypadDialog = false })
-        }
+
     }
 }
 
@@ -1275,103 +1320,7 @@ private fun AudioRouteSelectionItem(
     }
 }
 
-/**
- * In-Call DTMF Keypad Dialog
- */
-@Composable
-fun InCallKeypadDialog(
-    onDismiss: () -> Unit
-) {
-    var keypadInput by remember { mutableStateOf("") }
-    val keys = listOf(
-        listOf("1", "2", "3"),
-        listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf("*", "0", "#")
-    )
 
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = Color(0xFF1E293B),
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
-            tonalElevation = 8.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Keypad",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = keypadInput.ifEmpty { " " },
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = OnlineGreen,
-                    letterSpacing = 2.sp
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                keys.forEach { row ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        row.forEach { key ->
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.08f))
-                                    .border(1.dp, Color.White.copy(alpha = 0.12f), CircleShape)
-                                    .clickable {
-                                        keypadInput += key
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = key,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .clickable { onDismiss() }
-                        .padding(vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Hide Keypad",
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-    }
-}
 
 /**
  * Minimized Call Capsule Dock
