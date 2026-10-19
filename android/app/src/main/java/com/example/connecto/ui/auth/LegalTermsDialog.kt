@@ -221,13 +221,13 @@ fun LegalTermsDialog(
                     ) {
                         if (selectedTab == 0) {
                             // TERMS OF USE CONTENT
-                            LegalBadge(text = "Official Legal Agreement • Effective 2026")
+                            LegalBadge(text = "Official Legal Agreement • Public Beta Testing • 2026")
                             Spacer(modifier = Modifier.height(8.dp))
 
                             LegalSection(
                                 number = "01",
-                                title = "Agreement to Terms",
-                                content = "These Terms of Use constitute a legally binding agreement between you and Connecto Network (\"Connecto\"). By creating an account, accessing connecto.fun, or using the Connecto Android client, you agree to comply with all terms herein. If you disagree, you are explicitly prohibited from accessing the platform."
+                                title = "Agreement to Terms & Public Beta Testing Stage",
+                                content = "These Terms of Use constitute a legally binding agreement between you and Connecto Network (\"Connecto\"). Connecto is currently in an active Public Beta Testing Stage. By accessing connecto.fun, creating an account, or downloading the Connecto Android client, you agree to comply with all terms herein and acknowledge that features, edge sync mechanisms, and audio mesh protocols are actively tested and optimized."
                             )
 
                             LegalSection(
@@ -238,26 +238,26 @@ fun LegalTermsDialog(
 
                             LegalSection(
                                 number = "03",
+                                title = "Beta Testing Disclaimer & Service Availability",
+                                content = "Connecto is provided on an \"AS-IS\" and \"AS-AVAILABLE\" basis during the Public Beta Testing phase without commercial advertisements or paywalls. While we maintain 99.9% uptime, edge database quotas, background updates, or protocol iterations may occur. Connecto disclaims liability for indirect, incidental, or consequential damages resulting from beta service updates."
+                            )
+
+                            LegalSection(
+                                number = "04",
                                 title = "User Conduct & Community Safety",
                                 content = "You agree not to deploy automated denial-of-service bots, transmit malware or exploit payloads, harass or intimidate other members, harvest personal data, or attempt unauthorized access to other users' private rooms, messages, or vaults. Ethical security testing is only permitted through authorized channels."
                             )
 
                             LegalSection(
-                                number = "04",
+                                number = "05",
                                 title = "Account Security & Authentication",
                                 content = "You are solely responsible for maintaining the confidentiality of your account credentials, sessions, and hardware biometric keys. Multi-factor authentication via Resend email OTP and Connecto Vault device biometrics are strongly encouraged to safeguard access."
                             )
 
                             LegalSection(
-                                number = "05",
+                                number = "06",
                                 title = "Ownership & Intellectual Property",
                                 content = "You retain 100% intellectual property rights to all messages, code, artifacts, and media you share on Connecto. By posting in public channels, you grant Connecto only the technical license needed to distribute and render your content to participants."
-                            )
-
-                            LegalSection(
-                                number = "06",
-                                title = "Service Availability & Disclaimers",
-                                content = "Connecto is provided on an \"AS-IS\" and \"AS-AVAILABLE\" basis without commercial advertisements, telemetry trackers, or paywalls. Connecto disclaims liability for indirect, incidental, or consequential damages resulting from service interruptions."
                             )
 
                             LegalSection(
@@ -267,19 +267,19 @@ fun LegalTermsDialog(
                             )
                         } else {
                             // PRIVACY POLICY CONTENT
-                            LegalBadge(text = "GDPR & CCPA Compliant • Privacy Standard")
+                            LegalBadge(text = "GDPR & CCPA Compliant • Public Beta Privacy Standard")
                             Spacer(modifier = Modifier.height(8.dp))
 
                             LegalSection(
                                 number = "01",
-                                title = "Zero Data Selling Guarantee",
-                                content = "Connecto Network does not sell, rent, monetize, or trade your personal data, messages, voice audio, or browsing habits to advertisers, data brokers, or third parties. We have zero advertising trackers or behavioral pixels."
+                                title = "Zero Data Selling Guarantee & Beta Privacy",
+                                content = "Connecto Network does not sell, rent, monetize, or trade your personal data, messages, voice audio, or browsing habits to advertisers, data brokers, or third parties. We have zero advertising trackers or behavioral pixels. In this Public Beta Testing Stage, data processing is strictly limited to essential core service delivery and crash debugging."
                             )
 
                             LegalSection(
                                 number = "02",
                                 title = "Data Minimization & What We Collect",
-                                content = "We practice strict data minimization. We only collect the minimal credentials necessary to operate your account: chosen username, display name, public bio, email address for 2FA / OTP verification, and hashed passwords salted via modern cryptographic algorithms."
+                                content = "We practice strict data minimization. We only collect the minimal credentials necessary to operate your account: chosen username, display name, public bio, email address for 2FA / OTP verification, and hashed passwords salted via modern cryptographic algorithms (Argon2id)."
                             )
 
                             LegalSection(
@@ -308,8 +308,8 @@ fun LegalTermsDialog(
 
                             LegalSection(
                                 number = "07",
-                                title = "Data Protection Inquiries",
-                                content = "For privacy requests, audit reports, or data deletion inquiries, contact our data protection team directly at legal@connecto.fun or security@connecto.fun."
+                                title = "Data Protection & Beta Feedback Inquiries",
+                                content = "For privacy requests, audit reports, beta feedback, or data deletion inquiries, contact our data protection team directly at legal@connecto.fun, privacy@connecto.fun, or support@connecto.fun."
                             )
                         }
 

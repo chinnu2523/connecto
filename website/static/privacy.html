@@ -249,17 +249,27 @@
   </header>
 
   <main class="page-container">
-    <div class="doc-badge">Security & Privacy Standard</div>
+    <div class="doc-badge">Security & Privacy Standard • Public Beta Program</div>
     <h1>Privacy Policy</h1>
-    <div class="last-updated">Last Updated: September 29, 2026 • GDPR & CCPA Compliant</div>
+    <div class="last-updated">Last Updated: October 2026 • Public Beta Testing Stage • GDPR & CCPA Compliant</div>
+
+    <div class="legal-card" style="border-left: 3px solid #f59e0b; background: rgba(245, 158, 11, 0.04);">
+      <h2 style="color: #fbbf24;"><span class="num" style="border-color: #f59e0b; color: #fbbf24;">β</span> Public Beta Testing Stage Notice</h2>
+      <p>
+        <strong>Notice:</strong> Connecto (including the connecto.fun web portal and official Android application) is actively operating in a <strong>Public Beta Testing Stage</strong>.
+      </p>
+      <p>
+        The platform is made publicly available for developer evaluation, performance profiling, and community feedback. While features, user interfaces, and network protocols undergo active optimization, our commitment to zero data selling, end-to-end cryptographic integrity, and data minimization remains non-negotiable.
+      </p>
+    </div>
 
     <div class="legal-card">
-      <h2><span class="num">01</span> Commitment to Privacy</h2>
+      <h2><span class="num">01</span> Commitment to Privacy & Zero Data Selling</h2>
       <p>
-        At Connecto Network ("Connecto"), privacy and cryptographic defense are fundamental engineering principles. We believe that real-time developer communication, audio streams, and collaborative workspaces should remain strictly confidential.
+        At Connecto Network ("Connecto"), privacy and cryptographic defense are fundamental engineering principles. We believe that real-time developer communication, audio streams, and collaborative workspaces must remain strictly confidential.
       </p>
       <div class="highlight-box">
-        <strong>Core Promise:</strong> Connecto does not sell, monetize, rent, or trade your personal data, messages, or communication habits to advertisers or data brokers.
+        <strong>Core Guarantee:</strong> Connecto does NOT sell, rent, monetize, or trade your personal information, messages, profile data, or communication patterns to advertising networks, data brokers, or third parties under any circumstances.
       </div>
     </div>
 
@@ -269,10 +279,10 @@
         We practice aggressive data minimization. The only data processed includes:
       </p>
       <ul>
-        <li><strong>Account Information:</strong> Desired username, display name, public bio, and hashed password credentials (salted via Argon2id).</li>
-        <li><strong>Channel Messages & Artifacts:</strong> Text messages, shared code files, and reactions sent in public or private guild channels.</li>
-        <li><strong>Direct Messages:</strong> End-to-end encrypted mesh transmissions between participants.</li>
-        <li><strong>Transient Telemetry:</strong> Ephemeral WebSocket ping metrics, packet latency (e.g., 12ms RTT), and crash logs required for network stability.</li>
+        <li><strong>Account Credentials:</strong> Chosen username, display nickname, optional bio/status, and securely hashed passwords (salted via Argon2id / bcrypt).</li>
+        <li><strong>Channel Messages & Artifacts:</strong> Collaborative messages, code snippets, and emoji reactions sent in workspace channels.</li>
+        <li><strong>Direct Communications:</strong> Encrypted message transmissions between authenticated participants.</li>
+        <li><strong>Diagnostic Beta Telemetry:</strong> Ephemeral WebSocket ping metrics, packet round-trip time (RTT), and crash logs strictly utilized for network stabilization and bug remediation during the beta period.</li>
       </ul>
       <p>
         We do NOT collect phone numbers, real-world physical addresses, or tracking identifiers.
@@ -285,7 +295,7 @@
         Voice lounges and audio stages are powered by peer-to-peer WebRTC and high-throughput Coturn media relays:
       </p>
       <ul>
-        <li>Voice packets (96kHz Opus) are transmitted in real time and are <strong>ephemeral</strong>.</li>
+        <li>Voice packets (96kHz Opus) are transmitted in real time and are <strong>strictly ephemeral in memory</strong>.</li>
         <li>Connecto does not record, transcribe, store, or train machine learning models on voice stage conversations.</li>
       </ul>
     </div>
@@ -299,20 +309,27 @@
         We strictly use secure, first-party browser local storage and essential session cookies for:
       </p>
       <ul>
-        <li>Keeping you securely logged into your account session.</li>
-        <li>Saving your UI preferences (dark mode theme, audio volume levels, sidebar collapse state).</li>
+        <li>Keeping you securely logged into your authenticated account session.</li>
+        <li>Saving your UI preferences (dark mode OLED theme, audio volume levels, sidebar collapse state).</li>
       </ul>
     </div>
 
     <div class="legal-card">
       <h2><span class="num">05</span> Infrastructure & Cryptographic Protection</h2>
       <p>
-        All platform traffic is secured using TLS 1.3 encryption in transit with HTTP/2 and modern cipher suites (ChaCha20-Poly1305 and AES-256-GCM). Data at rest in SQLite write-ahead log (WAL) engines is stored on encrypted NVMe partitions.
+        All platform traffic is secured using TLS 1.3 encryption in transit with HTTP/2 and modern cipher suites (ChaCha20-Poly1305 and AES-256-GCM). Data at rest in SQLite write-ahead log (WAL) engines and Cloudflare D1 distributed edge nodes is stored on encrypted NVMe partitions.
       </p>
     </div>
 
     <div class="legal-card">
-      <h2><span class="num">06</span> Your Rights (GDPR & CCPA)</h2>
+      <h2><span class="num">06</span> Strict Age Requirement (18+)</h2>
+      <p>
+        Connecto and the Public Beta Testing Program are strictly designed for individuals aged <strong>18 and older</strong> (or the legal age of majority in your jurisdiction). We do not knowingly permit minors to register or collect data from individuals under 18 years of age. Accounts identified as belonging to underage individuals are terminated immediately.
+      </p>
+    </div>
+
+    <div class="legal-card">
+      <h2><span class="num">07</span> Your Rights (GDPR & CCPA)</h2>
       <p>
         Under European GDPR and California CCPA regulations, you have full ownership of your data:
       </p>
@@ -324,12 +341,12 @@
     </div>
 
     <div class="legal-card">
-      <h2><span class="num">07</span> Contact Our Data Protection Team</h2>
+      <h2><span class="num">08</span> Contact Our Data Protection & Beta Team</h2>
       <p>
-        If you have inquiries regarding our data practices or wish to submit an erasure request, contact our security officer:
+        If you have inquiries regarding our privacy practices, wish to submit an erasure request, or want to report a beta security finding, contact our team:
       </p>
       <p style="font-family:var(--font-mono); color:var(--accent-green); font-size:13px; margin-top:8px;">
-        privacy@connecto.fun • dpo@connecto.fun
+        privacy@connecto.fun • dpo@connecto.fun • support@connecto.fun
       </p>
     </div>
   </main>
