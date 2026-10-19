@@ -1160,7 +1160,12 @@ async def create_voice_room(request: Request, db: AsyncSession = Depends(get_db)
     topic = body.get("topic", "").strip() or "Tactical voice & squad comms"
     icon = body.get("icon", "").strip() or "⚔️"
     creator = body.get("creator", "").strip() or body.get("creator_username", "").strip() or "Gamer"
-    max_participants = int(body.get("max_participants", 8))
+    try:
+        max_participants = int(body.get("max_participants", 8))
+        if max_participants <= 0 or max_participants > 100:
+            max_participants = 8
+    except (ValueError, TypeError):
+        max_participants = 8
 
     room_code = await generate_unique_room_code(db)
     room_id = f"room_{room_code.lower().replace('-', '_')}_{int(datetime.now().timestamp())}"
@@ -1374,22 +1379,21 @@ async def get_call_logs(
     request: Request,
     username: Optional[str] = Query(None),
     limit: int = Query(50),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Returns persistent call logs isolated strictly to the requesting user.
     Only returns records where the user is either the initiator (username) or receiver (caller_name).
-    Unauthenticated requests without explicit target or mismatched access return empty logs.
     """
-    target_user = None
-    if current_user:
-        target_user = current_user.username
-    elif username and username.strip():
+    target_user = current_user.username
+    if username and username.strip().lower() != current_user.username.lower():
+        if not getattr(current_user, "is_admin", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Cannot view call logs for other users."
+            )
         target_user = username.strip()
-
-    if not target_user:
-        return {"status": "ok", "logs": []}
 
     stmt = select(CallLog).where(
         or_(
@@ -1428,7 +1432,7 @@ async def get_call_logs(
 @app.post("/api/calls")
 async def record_call_log(
     request: Request,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Inserts a new call log entry into SQLite database."""
@@ -1438,13 +1442,17 @@ async def record_call_log(
     except Exception:
         pass
 
-    username = (body.get("username", "").strip() or 
-                (current_user.username if current_user else "Shinobi"))
+    username = current_user.username
     caller_name = body.get("caller_name", "").strip() or body.get("name", "Voice Room")
     call_type = body.get("call_type", "Voice Call")
     room_name = body.get("room_name", "")
     room_code = body.get("room_code", "")
-    duration_seconds = int(body.get("duration_seconds", 0))
+    try:
+        duration_seconds = int(body.get("duration_seconds", 0))
+        if duration_seconds < 0:
+            duration_seconds = 0
+    except (ValueError, TypeError):
+        duration_seconds = 0
     is_missed = bool(body.get("is_missed", False))
     is_outgoing = bool(body.get("is_outgoing", True))
 
@@ -3315,7 +3323,7 @@ async def react_to_message_endpoint(
     message_id: str,
     req: ReactionRequest,
     channel_id: str = Query("general"),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Message).where(Message.id == message_id)
@@ -3323,11 +3331,11 @@ async def react_to_message_endpoint(
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    u_clean = (current_user.username if current_user else (req.username or "user")).lower().strip()
+    emoji = req.emoji.strip()
+    if not emoji:
+        raise HTTPException(status_code=400, detail="Emoji cannot be empty")
 
-    att = dict(msg.attachments) if isinstance(msg.attachments, dict) else {}
-    reactions = dict(att.get("reactions", {}))
-    emoji = req.emoji
+    u_clean = current_user.username.lower().strip()
     user_list = list(reactions.get(emoji, []))
     if u_clean in user_list:
         user_list.remove(u_clean)
@@ -3369,6 +3377,7 @@ class ThreadReplyRequest(BaseModel):
 async def get_message_thread_endpoint(
     message_id: str,
     channel_id: str = Query("general"),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Message, User).join(User, Message.sender_id == User.id, isouter=True).where(Message.id == message_id)
@@ -3376,6 +3385,21 @@ async def get_message_thread_endpoint(
     if not result:
         raise HTTPException(status_code=404, detail="Message not found")
     parent_msg, parent_user = result
+
+    ch_clean = (parent_msg.channel_id or "").lower()
+    if ch_clean.startswith("dm-") or ch_clean.startswith("dm_"):
+        parts = ch_clean.replace("dm_", "dm-").split("-")
+        is_dm_participant = False
+        if len(parts) >= 3 and current_user.username.lower() in (parts[1].lower(), parts[2].lower()):
+            is_dm_participant = True
+        else:
+            p_stmt = select(DMParticipant.user_id).where(DMParticipant.channel_id == parent_msg.channel_id)
+            p_ids = set((await db.execute(p_stmt)).scalars().all())
+            if current_user.id in p_ids:
+                is_dm_participant = True
+        if not is_dm_participant and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Access denied. You cannot view thread messages in this private conversation.")
+
     parent_att = parent_msg.attachments if isinstance(parent_msg.attachments, dict) else {}
 
     replies_stmt = select(Message, User).join(User, Message.sender_id == User.id, isouter=True).where(
@@ -3422,7 +3446,7 @@ async def post_message_thread_reply_endpoint(
     message_id: str,
     req: ThreadReplyRequest,
     channel_id: str = Query("general"),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Message).where(Message.id == message_id)
@@ -3430,10 +3454,28 @@ async def post_message_thread_reply_endpoint(
     if not parent:
         raise HTTPException(status_code=404, detail="Parent message not found")
 
-    sender_id = current_user.id if current_user else (req.username or "usr_anonymous")
-    uname = current_user.username if current_user else (req.username or "user")
-    disp_name = current_user.display_name if current_user else uname
-    av = req.avatar or (current_user.avatar_url if current_user else "👤")
+    content = req.content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail="Reply content cannot be empty")
+
+    ch_clean = (parent.channel_id or "").lower()
+    if ch_clean.startswith("dm-") or ch_clean.startswith("dm_"):
+        parts = ch_clean.replace("dm_", "dm-").split("-")
+        is_dm_participant = False
+        if len(parts) >= 3 and current_user.username.lower() in (parts[1].lower(), parts[2].lower()):
+            is_dm_participant = True
+        else:
+            p_stmt = select(DMParticipant.user_id).where(DMParticipant.channel_id == parent.channel_id)
+            p_ids = set((await db.execute(p_stmt)).scalars().all())
+            if current_user.id in p_ids:
+                is_dm_participant = True
+        if not is_dm_participant and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Access denied. You cannot post in this private conversation.")
+
+    sender_id = current_user.id
+    uname = current_user.username
+    disp_name = current_user.display_name or current_user.username
+    av = current_user.avatar_url or "👤"
 
     import uuid
     reply_id = f"reply_{uuid.uuid4().hex[:10]}"
@@ -3441,7 +3483,7 @@ async def post_message_thread_reply_endpoint(
         id=reply_id,
         channel_id=parent.channel_id,
         sender_id=sender_id,
-        content=req.content,
+        content=content,
         nonce=f"thread_{message_id}",
         attachments={"parent_id": message_id, "username": uname, "avatar": av}
     )
@@ -4295,19 +4337,10 @@ async def get_dm_messages_compat(
     request: Request,
     limit: int = Query(50, ge=1, le=100),
     before: Optional[str] = Query(None),
-    username: Optional[str] = Query(None),
-    user: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     sender_u = current_user
-    if not sender_u:
-        candidate = (username or user or (request.headers.get("X-User-Username") if request else None) or "").strip().lower().removeprefix("@")
-        if candidate:
-            sender_u = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalars().first()
-    if not sender_u:
-        raise HTTPException(status_code=401, detail="Authentication required to view direct messages.")
-
     clean_sender = sender_u.username.strip().lower()
     clean_target = target_user.strip().lower().removeprefix("@")
     if clean_sender == clean_target:
@@ -4336,24 +4369,15 @@ async def get_dm_messages_compat(
 
     if not channel:
         return {"status": "ok", "messages": []}
-    return await get_channel_messages_compat(channel.id, request, limit, before, username or clean_sender, user, db)
+    return await get_channel_messages_compat(channel.id, request, limit, before, clean_sender, clean_sender, db)
 
 @app.post("/api/dms/{target_user}/messages")
 async def post_dm_messages_compat(
     target_user: str,
     request: Request,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    sender_u = current_user
-    if not sender_u:
-        candidate = (request.headers.get("X-User-Username") or request.query_params.get("username") or "").strip().lower().removeprefix("@")
-        if candidate:
-            sender_u = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalars().first()
-    if not sender_u:
-        raise HTTPException(status_code=401, detail="Authentication required to send direct messages.")
-    current_user = sender_u
-
     enforce_rate_limit(request, "send_dm", max_requests=60, window_seconds=60, identifier=current_user.id)
     clean_sender = current_user.username.strip().lower()
     clean_target = target_user.strip().lower()
