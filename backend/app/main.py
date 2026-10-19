@@ -1148,7 +1148,11 @@ async def get_voice_rooms_compat(db: AsyncSession = Depends(get_db)):
 
 @app.post("/api/voice/rooms/create")
 @app.post("/api/voice/rooms")
-async def create_voice_room(request: Request, db: AsyncSession = Depends(get_db)):
+async def create_voice_room(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     """Creates a custom voice room stored persistently in SQLite database."""
     body = {}
     try:
@@ -1159,7 +1163,8 @@ async def create_voice_room(request: Request, db: AsyncSession = Depends(get_db)
     raw_name = body.get("name", "").strip() or "Shinobi Squad Hub"
     topic = body.get("topic", "").strip() or "Tactical voice & squad comms"
     icon = body.get("icon", "").strip() or "⚔️"
-    creator = body.get("creator", "").strip() or body.get("creator_username", "").strip() or "Gamer"
+    creator = current_user.username
+    creator_id = current_user.id
     try:
         max_participants = int(body.get("max_participants", 8))
         if max_participants <= 0 or max_participants > 100:
@@ -1177,6 +1182,7 @@ async def create_voice_room(request: Request, db: AsyncSession = Depends(get_db)
         name=display_name,
         topic=topic,
         icon=icon,
+        creator_id=creator_id,
         creator_username=creator,
         max_participants=max_participants,
         is_active=True
@@ -1188,8 +1194,10 @@ async def create_voice_room(request: Request, db: AsyncSession = Depends(get_db)
     # Insert host participant
     part = VoiceRoomParticipant(
         room_id=room.id,
+        user_id=creator_id,
         username=creator,
-        nickname=creator,
+        nickname=current_user.display_name or creator,
+        avatar=current_user.avatar_url,
         rank="Host",
         muted=False,
         speaking=True
@@ -1244,17 +1252,23 @@ async def get_voice_room_by_code(code: str, db: AsyncSession = Depends(get_db)):
     }
 
 @app.post("/api/voice/rooms/{room_id}/join")
-async def join_voice_room(room_id: str, request: Request, db: AsyncSession = Depends(get_db)):
-    """Adds a participant to a voice room in SQLite."""
+async def join_voice_room(
+    room_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Adds an authenticated participant to a voice room with capacity enforcement in SQLite."""
     body = {}
     try:
         body = await request.json()
     except Exception:
         pass
 
-    username = body.get("username", "").strip() or "Shinobi"
-    nickname = body.get("nickname", username).strip() or username
-    avatar = body.get("avatar", None)
+    # Strictly bind identity to authenticated caller
+    username = current_user.username
+    nickname = body.get("nickname", "").strip() or current_user.display_name or username
+    avatar = body.get("avatar", None) or current_user.avatar_url
 
     stmt = select(VoiceRoom).where(
         or_(
@@ -1269,12 +1283,25 @@ async def join_voice_room(room_id: str, request: Request, db: AsyncSession = Dep
     # Check if participant already exists in room
     p_stmt = select(VoiceRoomParticipant).where(
         VoiceRoomParticipant.room_id == room.id,
-        VoiceRoomParticipant.username == username
+        or_(
+            VoiceRoomParticipant.username == username,
+            VoiceRoomParticipant.user_id == current_user.id
+        )
     )
     part = (await db.execute(p_stmt)).scalars().first()
     if not part:
+        # Enforce room capacity limits
+        count_stmt = select(func.count(VoiceRoomParticipant.id)).where(VoiceRoomParticipant.room_id == room.id)
+        current_count = (await db.execute(count_stmt)).scalar() or 0
+        if room.max_participants and current_count >= room.max_participants:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Voice room '{room.name}' has reached its maximum capacity ({room.max_participants} participants)."
+            )
+
         part = VoiceRoomParticipant(
             room_id=room.id,
+            user_id=current_user.id,
             username=username,
             nickname=nickname,
             avatar=avatar,
@@ -1283,6 +1310,12 @@ async def join_voice_room(room_id: str, request: Request, db: AsyncSession = Dep
             speaking=False
         )
         db.add(part)
+        await db.commit()
+    else:
+        part.nickname = nickname
+        part.avatar = avatar
+        if not part.user_id:
+            part.user_id = current_user.id
         await db.commit()
 
     await app_cache.delete(CACHE_KEY_VOICE_ROOMS)
@@ -1317,7 +1350,12 @@ async def join_voice_room(room_id: str, request: Request, db: AsyncSession = Dep
     }
 
 @app.post("/api/voice/rooms/{room_id}/leave")
-async def leave_voice_room(room_id: str, request: Request, db: AsyncSession = Depends(get_db)):
+async def leave_voice_room(
+    room_id: str,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     """Removes a participant from a voice room in SQLite."""
     body = {}
     try:
@@ -1325,9 +1363,13 @@ async def leave_voice_room(room_id: str, request: Request, db: AsyncSession = De
     except Exception:
         pass
 
-    username = body.get("username", "").strip()
-    if not username:
-        return {"status": "ok", "message": "No username provided"}
+    target_username = current_user.username
+    requested_username = body.get("username", "").strip()
+    if requested_username and requested_username.lower() != current_user.username.lower():
+        if getattr(current_user, "is_admin", False):
+            target_username = requested_username
+        else:
+            raise HTTPException(status_code=403, detail="Access denied. Cannot remove other participants from the room.")
 
     stmt = select(VoiceRoom).where(
         or_(
@@ -1339,7 +1381,10 @@ async def leave_voice_room(room_id: str, request: Request, db: AsyncSession = De
     if room:
         p_stmt = select(VoiceRoomParticipant).where(
             VoiceRoomParticipant.room_id == room.id,
-            VoiceRoomParticipant.username == username
+            or_(
+                VoiceRoomParticipant.username == target_username,
+                VoiceRoomParticipant.user_id == current_user.id
+            )
         )
         part = (await db.execute(p_stmt)).scalars().first()
         if part:
@@ -1355,7 +1400,7 @@ async def leave_voice_room(room_id: str, request: Request, db: AsyncSession = De
             await ws_manager.broadcast_to_all({
                 "type": "voice:user_left",
                 "room_id": room.id,
-                "username": username,
+                "username": target_username,
                 "participants": part_dicts
             })
             await ws_manager.broadcast_to_all({
@@ -1369,7 +1414,7 @@ async def leave_voice_room(room_id: str, request: Request, db: AsyncSession = De
         except Exception as e:
             print(f"[WS_LEAVE_BROADCAST_ERROR] {e}")
 
-    return {"status": "ok", "message": f"{username} left room"}
+    return {"status": "ok", "message": f"{target_username} left room"}
 
 @app.get("/api/voice/calls/logs")
 @app.get("/api/voice/call-logs")
