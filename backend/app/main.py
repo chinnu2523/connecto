@@ -1493,14 +1493,22 @@ async def record_call_log(
 @app.delete("/api/calls/{log_id}")
 async def delete_call_log_endpoint(
     log_id: str,
-    username: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(CallLog).where(CallLog.id == log_id)
     log = (await db.execute(stmt)).scalar_one_or_none()
     if not log:
         return {"status": "ok", "message": "Call log not found or already deleted"}
+    
+    is_owner = (
+        log.username.lower() == current_user.username.lower() or
+        log.caller_name.lower() == current_user.username.lower() or
+        getattr(current_user, "is_admin", False)
+    )
+    if not is_owner:
+        raise HTTPException(status_code=403, detail="Access denied. Cannot delete call logs belonging to other users.")
+
     await db.delete(log)
     await db.commit()
     return {"status": "ok", "message": "Call log deleted"}
@@ -1510,25 +1518,25 @@ async def delete_call_log_endpoint(
 @app.delete("/api/calls")
 async def clear_all_call_logs_endpoint(
     username: Optional[str] = Query(None),
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    target_user = None
-    if current_user:
-        target_user = current_user.username
-    elif username and username.strip():
+    target_user = current_user.username
+    if username and username.strip().lower() != current_user.username.lower():
+        if not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Access denied. Cannot clear call logs for other users.")
         target_user = username.strip()
-    if target_user:
-        from sqlalchemy import delete
-        stmt = delete(CallLog).where(
-            or_(
-                CallLog.username == target_user,
-                CallLog.caller_name == target_user,
-                CallLog.caller_name.like(f"%{target_user}%")
-            )
+
+    from sqlalchemy import delete
+    stmt = delete(CallLog).where(
+        or_(
+            CallLog.username == target_user,
+            CallLog.caller_name == target_user,
+            CallLog.caller_name.like(f"%{target_user}%")
         )
-        await db.execute(stmt)
-        await db.commit()
+    )
+    await db.execute(stmt)
+    await db.commit()
     return {"status": "ok", "message": "Call logs cleared"}
 
 @app.post("/api/voice/rooms/invite")
@@ -3509,11 +3517,32 @@ async def post_message_thread_reply_endpoint(
 
 
 @app.get("/api/channels/{channel_id}/pins")
-async def get_channel_pins_endpoint(channel_id: str, db: AsyncSession = Depends(get_db)):
+async def get_channel_pins_endpoint(
+    channel_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     clean_id = channel_id.strip().lower().removeprefix("#")
     ch_stmt = select(Channel).where(or_(Channel.id == clean_id, Channel.name == clean_id))
     ch = (await db.execute(ch_stmt)).scalars().first()
     target_ch_id = ch.id if ch else clean_id
+
+    # Enforce authorization for private/DM channels
+    ch_clean = (clean_id or "").lower()
+    if ch_clean.startswith("dm-") or ch_clean.startswith("dm_"):
+        parts = ch_clean.replace("dm_", "dm-").split("-")
+        is_dm_participant = False
+        if len(parts) >= 3 and current_user.username.lower() in (parts[1].lower(), parts[2].lower()):
+            is_dm_participant = True
+        else:
+            p_stmt = select(DMParticipant.user_id).where(
+                or_(DMParticipant.channel_id == clean_id, DMParticipant.channel_id == target_ch_id)
+            )
+            p_ids = set((await db.execute(p_stmt)).scalars().all())
+            if current_user.id in p_ids:
+                is_dm_participant = True
+        if not is_dm_participant and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Access denied. You cannot view pinned messages in this private conversation.")
 
     stmt = select(Message, User).join(User, Message.sender_id == User.id, isouter=True).where(
         or_(Message.channel_id == target_ch_id, Message.channel_id == clean_id)
@@ -3535,11 +3564,32 @@ async def get_channel_pins_endpoint(channel_id: str, db: AsyncSession = Depends(
     return pinned
 
 @app.post("/api/channels/{channel_id}/pins/{message_id}")
-async def toggle_channel_pin_endpoint(channel_id: str, message_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def toggle_channel_pin_endpoint(
+    channel_id: str,
+    message_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     stmt = select(Message).where(Message.id == message_id)
     msg = (await db.execute(stmt)).scalar_one_or_none()
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
+
+    ch_clean = (msg.channel_id or channel_id or "").lower()
+    if ch_clean.startswith("dm-") or ch_clean.startswith("dm_"):
+        parts = ch_clean.replace("dm_", "dm-").split("-")
+        is_dm_participant = False
+        if len(parts) >= 3 and current_user.username.lower() in (parts[1].lower(), parts[2].lower()):
+            is_dm_participant = True
+        else:
+            p_stmt = select(DMParticipant.user_id).where(
+                or_(DMParticipant.channel_id == msg.channel_id, DMParticipant.channel_id == channel_id)
+            )
+            p_ids = set((await db.execute(p_stmt)).scalars().all())
+            if current_user.id in p_ids:
+                is_dm_participant = True
+        if not is_dm_participant and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Access denied. You cannot modify pinned messages in this private conversation.")
 
     att = dict(msg.attachments) if isinstance(msg.attachments, dict) else {}
     was_pinned = bool(att.get("pinned", False))
@@ -3563,11 +3613,32 @@ async def toggle_channel_pin_endpoint(channel_id: str, message_id: str, current_
     return {"status": "ok", "pinned": not was_pinned}
 
 @app.delete("/api/channels/{channel_id}/pins/{message_id}")
-async def unpin_channel_message_endpoint(channel_id: str, message_id: str, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def unpin_channel_message_endpoint(
+    channel_id: str,
+    message_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     stmt = select(Message).where(Message.id == message_id)
     msg = (await db.execute(stmt)).scalar_one_or_none()
     if not msg:
         raise HTTPException(status_code=404, detail="Message not found")
+
+    ch_clean = (msg.channel_id or channel_id or "").lower()
+    if ch_clean.startswith("dm-") or ch_clean.startswith("dm_"):
+        parts = ch_clean.replace("dm_", "dm-").split("-")
+        is_dm_participant = False
+        if len(parts) >= 3 and current_user.username.lower() in (parts[1].lower(), parts[2].lower()):
+            is_dm_participant = True
+        else:
+            p_stmt = select(DMParticipant.user_id).where(
+                or_(DMParticipant.channel_id == msg.channel_id, DMParticipant.channel_id == channel_id)
+            )
+            p_ids = set((await db.execute(p_stmt)).scalars().all())
+            if current_user.id in p_ids:
+                is_dm_participant = True
+        if not is_dm_participant and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Access denied. You cannot modify pinned messages in this private conversation.")
 
     att = dict(msg.attachments) if isinstance(msg.attachments, dict) else {}
     att["pinned"] = False
@@ -3588,6 +3659,7 @@ async def unpin_channel_message_endpoint(channel_id: str, message_id: str, curre
         "pinned": False
     })
     return {"status": "ok", "pinned": False}
+
 
 # Canvas & Slowmode storage
 _channel_slowmodes = {}
