@@ -430,11 +430,12 @@ async function broadcastRealtime(env, payload) {
   try {
     const room = getRealtimeRoom(env);
     if (room) {
+      const secret = (env && env.INTERNAL_BRIDGE_SECRET) || "connecto_edge_mesh_internal_bridge";
       await room.fetch("http://realtime/internal/broadcast", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Internal-Realtime": "1"
+          "X-Internal-Secret": secret
         },
         body: JSON.stringify(payload)
       });
@@ -954,14 +955,7 @@ async function verifyPassword(storedHash, password) {
       }
       return diff === 0;
     }
-    // Constant-time check for legacy hashes
-    if (storedHash.length === password.length) {
-      let diff = 0;
-      for (let i = 0; i < storedHash.length; i++) {
-        diff |= storedHash.charCodeAt(i) ^ password.charCodeAt(i);
-      }
-      return diff === 0;
-    }
+    // SEC-W4-08 FIX: Reject any non-PBKDF2 passwords; never fall back to plaintext comparison
     return false;
   } catch (_) {
     return false;
@@ -3002,6 +2996,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const email = sanitizeText(rawEmail, 100);
       const newId = "usr_" + username;
 
+      // SEC-W4-01 FIX: Check if username or email is already registered before processing
+      if (env.DB) {
+        const existing = await env.DB.prepare(
+          "SELECT id, username, email FROM users WHERE lower(username) = ? OR lower(email) = ? LIMIT 1"
+        ).bind(username, email).first();
+        if (existing) {
+          return jsonResponse({ error: "Username or email is already registered." }, 409);
+        }
+      }
+
       // Enforce email OTP verification for registrations
       if (!rawEmail.endsWith("@connecto.fun") && !rawEmail.endsWith("@connecto.gg") && env.DB) {
         if (body.otp_code) {
@@ -3025,8 +3029,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const hashedPassword = await hashPasswordPbkdf2(rawPassword);
 
       if (env.DB) {
+        // SEC-W4-01 FIX: Use standard INSERT INTO users to prevent overwriting existing accounts
         await env.DB.prepare(
-          "INSERT OR REPLACE INTO users (id, username, display_name, email, password_hash, avatar_url, is_online, two_factor_enabled, is_stealth) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0)"
+          "INSERT INTO users (id, username, display_name, email, password_hash, avatar_url, is_online, two_factor_enabled, is_stealth) VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0)"
         ).bind(newId, username, displayName, email, hashedPassword, "👾").run();
       }
 
@@ -3224,8 +3229,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const gender = sanitizeText(body.gender || (caller.gender || "unspecified"), 20);
         const location = sanitizeText(body.location || (caller.location || ""), 100);
         const isStealth = body.is_stealth !== undefined ? (body.is_stealth ? 1 : 0) : caller.is_stealth;
-        const twoFa = body.two_factor_enabled !== undefined ? (body.two_factor_enabled ? 1 : 0) : caller.two_factor_enabled;
-        const twoFaMethod = body.two_factor_method || caller.two_factor_method || "email";
+        // SEC-W4-07 FIX: 2FA state can only be modified via verified OTP on /api/auth/2fa/toggle; never via generic profile update
+        const twoFa = caller.two_factor_enabled || 0;
+        const twoFaMethod = caller.two_factor_method || "email";
 
         // 1. Resilient edge storage (Durable Object) - always succeeds even if D1 limit is exceeded
         const profileUpdates = {
@@ -3648,7 +3654,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         `).bind(recipientName, recipientName).first();
         if (u2 && u2.avatar_url) recipientAvatar = u2.avatar_url;
         if (u1 && u2) {
-          await env.DB.prepare("UPDATE friendships SET status = 'accepted' WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").bind(u1.id, u2.id, u2.id, u1.id).run();
+          // SEC-W4-06 FIX: Require that the pending request was sent from u1 to u2 (caller) to prevent unilateral self-acceptance
+          await env.DB.prepare("UPDATE friendships SET status = 'accepted', updated_at = datetime('now') WHERE user_id = ? AND friend_id = ? AND status = 'pending'").bind(u1.id, u2.id).run();
         }
       }
       if (senderName && recipientName && ctx) {
@@ -4628,13 +4635,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const caller = await resolveUserFromRequest(request, env);
       const isDmChannel = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_") || channelId.startsWith("dm-") || channelId.startsWith("dm_");
       
-      // SEC-14 FIX: Enforce participant authorization on private direct message channels
+      // SEC-W4-04 FIX: Enforce exact participant authorization on private direct message channels (avoid substring match)
       if (isDmChannel) {
         if (!caller) {
           return jsonResponse({ error: "Unauthorized: Active session required to view direct messages." }, 401);
         }
         const callerUname = caller.username.trim().toLowerCase().replace(/^@/, "");
-        const isParticipant = canonicalChannel.includes(callerUname) || channelId.includes(callerUname);
+        const rawCh = (canonicalChannel || channelId).replace(/^dm[-_]/i, "");
+        const parts = rawCh.includes("-") ? rawCh.split("-") : rawCh.split("_");
+        const lowerParts = parts.map(p => p.toLowerCase().trim().replace(/^@/, ""));
+        const isParticipant = lowerParts.includes(callerUname);
         if (!isParticipant && !caller.is_admin) {
           return jsonResponse({ error: "Forbidden: You are not a participant in this conversation." }, 403);
         }
@@ -4643,7 +4653,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const reqUser = caller ? caller.username.trim().toLowerCase().replace(/^@/, "") : "";
 
       if (env.DB) {
+        // SEC-W4-09 FIX: Ensure channelCandidates contains at least one default to prevent empty IN () syntax error
         const channelCandidates = Array.from(new Set([canonicalChannel, channelId, resolvedChannelId].filter(Boolean)));
+        if (channelCandidates.length === 0) channelCandidates.push("general");
         const placeholders = channelCandidates.map(() => "?").join(", ");
         let querySql = `
           SELECT m.id, m.channel_id, m.content, m.attachments, m.created_at,
@@ -4706,7 +4718,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           console.warn("[D1_MESSAGES_FALLBACK]", d1Err.message);
           return jsonResponse({
             status: "error",
-            error: "Database unavailable: " + d1Err.message,
+            error: "Database temporarily unavailable",
             messages: []
           }, 503);
         }
@@ -4750,10 +4762,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const nowIso = new Date().toISOString();
 
       const isDm = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_") || channelId.startsWith("dm-") || channelId.startsWith("dm_");
-      const dmRecipient = isDm ? resolveDmRecipient(canonicalChannel, senderUsername, body.recipient || body.target) : null;
-      // SEC-W04 FIX: Verify sender is a participant in this direct message
-      if (isDm && !dmRecipient && !sender.is_admin) {
-        return jsonResponse({ error: "Forbidden: You are not a participant in this conversation." }, 403);
+      let dmRecipient = null;
+      if (isDm) {
+        // SEC-W4-03 FIX: Enforce that senderUsername is strictly one of the participants parsed from channel name
+        const cleanSender = (senderUsername || "").toLowerCase().trim().replace(/^@/, "");
+        const rawCh = (canonicalChannel || channelId).replace(/^dm[-_]/i, "");
+        const parts = rawCh.includes("-") ? rawCh.split("-") : rawCh.split("_");
+        const lowerParts = parts.map(p => p.toLowerCase().trim().replace(/^@/, ""));
+
+        if (!lowerParts.includes(cleanSender) && !sender.is_admin) {
+          return jsonResponse({ error: "Forbidden: You are not a participant in this conversation." }, 403);
+        }
+        dmRecipient = lowerParts.find(p => p !== cleanSender) || (body.recipient || body.target || "").toLowerCase().trim().replace(/^@/, "");
       }
 
       if (env.DB) {
@@ -5298,7 +5318,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
       if (env.DB) {
         try {
-          await env.DB.prepare("UPDATE notifications SET is_read = 1 WHERE id = ?").bind(notifId).run();
+          // SEC-W4-12 FIX: Restrict notification read mutation strictly to recipient user
+          await env.DB.prepare(`
+            UPDATE notifications SET is_read = 1 
+            WHERE id = ? AND (lower(user_id) = ? OR user_id = (SELECT id FROM users WHERE lower(username) = ? LIMIT 1))
+          `).bind(notifId, myUser, myUser).run();
         } catch (_) {}
       }
       return jsonResponse({ status: "ok" });
@@ -5779,8 +5803,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 20b. Record Call Log (Android / Web)
   if ((path === "/api/voice/calls/log" || path === "/api/calls/log") && method === "POST") {
     try {
+      // SEC-W4-05 FIX: Enforce active session authentication; lock username strictly to authenticated caller
+      const authCaller = await resolveUserFromRequest(request, env);
+      if (!authCaller || !authCaller.username) {
+        return jsonResponse({ error: "Unauthorized: Active authenticated session required to log calls." }, 401);
+      }
       const body = await request.json().catch(() => ({}));
-      const username = (body.username || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      const username = authCaller.username.trim().toLowerCase().replace(/^@/, "");
       let callerName = (body.caller_name || body.caller || username || "Gamer").trim();
       callerName = callerName
         .replace(/^1:1 Voice Call with /i, "")
@@ -7217,11 +7246,15 @@ export class ConnectoRealtimeRoom {
   async fetch(request) {
     const url = new URL(request.url);
 
-    // SEC-W02 FIX: Restrict /internal/* endpoints to internal worker calls only
+    // SEC-W4-02 FIX: Restrict /internal/* endpoints to internal worker calls only and verify internal secret
     if (url.pathname.startsWith("/internal/")) {
       const isInternalUrl = url.hostname === "realtime" || url.hostname === "127.0.0.1" || url.hostname === "localhost";
-      const isInternalHeader = request.headers.get("X-Internal-Secret") === "connecto_edge_mesh_internal_bridge" || request.headers.get("X-Internal-Realtime") === "1";
-      if (!isInternalUrl && !isInternalHeader) {
+      const expectedSecret = (this.env && this.env.INTERNAL_BRIDGE_SECRET) || "connecto_edge_mesh_internal_bridge";
+      const reqSecret = request.headers.get("X-Internal-Secret") || "";
+      const isSecretValid = reqSecret && reqSecret === expectedSecret;
+      const isWsUpgrade = request.headers.get("Upgrade") === "websocket";
+
+      if (isWsUpgrade || (!isInternalUrl && !isSecretValid)) {
         return new Response(JSON.stringify({ error: "Forbidden: Internal DO route" }), {
           status: 403,
           headers: { "Content-Type": "application/json" }
@@ -7230,7 +7263,7 @@ export class ConnectoRealtimeRoom {
     }
 
     // 1. Internal HTTP broadcast dispatch from REST API endpoints
-    if (url.pathname === "/internal/broadcast" || request.headers.get("X-Internal-Realtime") === "1") {
+    if (url.pathname === "/internal/broadcast") {
       try {
         const payload = await request.json();
         this.handleInternalBroadcast(payload);

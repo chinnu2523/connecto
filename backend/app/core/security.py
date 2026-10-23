@@ -58,7 +58,8 @@ def _verify_raw(password_hash: str, password: str) -> bool:
                 return ph.verify(f"$argon2id$v{password_hash}", password)
             except Exception:
                 pass
-        return hmac.compare_digest(password_hash, password)
+        # SEC-B4-10 FIX: Reject any non-PBKDF2 / non-Argon2 hash formats; never fall back to plaintext comparison
+        return False
     except Exception:
         return False
 

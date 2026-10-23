@@ -687,8 +687,8 @@ class LoginRequest(BaseModel):
 class CartItem(BaseModel):
     product_id: str
     title: str
-    price: float
-    quantity: int = 1
+    price: Optional[float] = None
+    quantity: int = Field(1, ge=1, le=100)
     custom_letter: Optional[str] = None
     custom_finish: Optional[str] = None
     custom_inclusions: Optional[str] = None
@@ -1117,7 +1117,22 @@ async def create_order(req: OrderCreateRequest, current_user: Optional[Dict[str,
     order_id = f"res_ord_{uuid.uuid4().hex[:10]}"
     now_iso = datetime.now(timezone.utc).isoformat()
     
-    subtotal = sum(item.price * item.quantity for item in req.items)
+    # SEC-B4-03 FIX: Lookup authoritative prices strictly from DEFAULT_PRODUCTS catalog
+    catalog_map = {p["id"]: p for p in DEFAULT_PRODUCTS}
+    validated_items = []
+    subtotal = 0.0
+    for item in req.items:
+        catalog_item = catalog_map.get(item.product_id)
+        if not catalog_item:
+            catalog_item = next((p for p in db.get("products", []) if p.get("id") == item.product_id), None)
+        authoritative_price = float(catalog_item["price"]) if catalog_item and "price" in catalog_item else 299.0
+        qty = max(1, min(int(item.quantity), 100))
+        item_dict = item.dict()
+        item_dict["price"] = authoritative_price
+        item_dict["quantity"] = qty
+        validated_items.append(item_dict)
+        subtotal += authoritative_price * qty
+
     shipping_fee = 0.0 if subtotal >= 799.0 else 49.0 # Free handcrafted insured delivery on orders >= ₹799
     total = round(subtotal + shipping_fee, 2)
     
@@ -1148,7 +1163,7 @@ async def create_order(req: OrderCreateRequest, current_user: Optional[Dict[str,
         "customer_email": current_user["email"] if current_user else "guest@resinora.art",
         "shipping_address": f"{req.shipping_address}, {req.shipping_city}, {req.shipping_country}",
         "phone": req.contact_phone.strip() if req.contact_phone else "",
-        "items": [item.dict() for item in req.items],
+        "items": validated_items,
         "subtotal": subtotal,
         "shipping_fee": shipping_fee,
         "total_amount": total,
@@ -1593,6 +1608,16 @@ async def verify_payment(req: PaymentVerifyRequest):
     if not req.razorpay_payment_id or not req.razorpay_order_id:
         raise HTTPException(status_code=400, detail="Incomplete payment credentials.")
     
+    # SEC-B4-04 FIX: Enforce Razorpay HMAC-SHA256 payment signature verification
+    rzp_secret = os.getenv("RAZORPAY_KEY_SECRET", getattr(settings, "RAZORPAY_KEY_SECRET", ""))
+    if rzp_secret:
+        if not req.razorpay_signature:
+            raise HTTPException(status_code=400, detail="Missing payment signature for verification.")
+        data_to_sign = f"{req.razorpay_order_id}|{req.razorpay_payment_id}".encode("utf-8")
+        expected_sig = hmac.new(rzp_secret.encode("utf-8"), data_to_sign, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(req.razorpay_signature, expected_sig):
+            raise HTTPException(status_code=400, detail="Invalid Razorpay payment signature.")
+
     token = f"tok_rzp_{req.razorpay_payment_id}_{secrets.token_hex(4)}"
     return {
         "status": "ok",

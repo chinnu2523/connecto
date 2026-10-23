@@ -1161,17 +1161,17 @@
 
         return `
           <tr>
-            <td style="font-size:18px;">${u.avatar || '👤'}</td>
+            <td style="font-size:18px;">${escapeHTML(u.avatar || '👤')}</td>
             <td><strong>@${escapeHTML(u.username)}</strong><br><span style="font-size:11px; color:var(--text-muted);">${escapeHTML(u.nickname || '')}</span></td>
             <td><span style="font-family:'JetBrains Mono'; font-size:12px;">${escapeHTML(u.email || 'None')}</span></td>
             <td><span class="role-badge ${roleClass}">${roleLabel}</span></td>
             <td><span style="color:var(--text-main); font-weight:600;">${escapeHTML(u.clan || 'Primary Team')}</span></td>
-            <td style="font-family:'JetBrains Mono'; font-weight:700;">${u.xp || 50}</td>
-            <td style="font-size:12px; color:var(--text-muted);">${u.created_at || 'Recent'}</td>
+            <td style="font-family:'JetBrains Mono'; font-weight:700;">${parseInt(u.xp, 10) || 50}</td>
+            <td style="font-size:12px; color:var(--text-muted);">${escapeHTML(u.created_at || 'Recent')}</td>
             <td>
               <div style="display:flex; gap:6px;">
-                <button class="btn btn-secondary btn-sm" onclick="openEditUserModal('${u.username}')">Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteUserAccount('${u.username}')">Delete</button>
+                <button class="btn btn-secondary btn-sm" onclick="openEditUserModal('${escapeHTML(u.username)}')">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteUserAccount('${escapeHTML(u.username)}')">Delete</button>
               </div>
             </td>
           </tr>

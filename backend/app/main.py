@@ -730,7 +730,7 @@ async def get_sync_status():
 
 @app.post("/api/v1/sync/now")
 @app.post("/api/sync/now")
-async def trigger_sync_now():
+async def trigger_sync_now(current_user: User = Depends(get_current_admin_user)):
     from app.db.d1_sync import d1_sync_manager
     res = await asyncio.to_thread(d1_sync_manager.sync_all_to_cloud)
     return {
@@ -741,7 +741,7 @@ async def trigger_sync_now():
 
 @app.post("/api/v1/sync/pull")
 @app.post("/api/sync/pull")
-async def trigger_pull_now():
+async def trigger_pull_now(current_user: User = Depends(get_current_admin_user)):
     from app.db.d1_sync import d1_sync_manager
     res = await asyncio.to_thread(d1_sync_manager.pull_from_cloud)
     return {
@@ -2599,22 +2599,22 @@ async def get_channel_messages_compat(
         await db.commit()
         await db.refresh(channel)
 
-    # Security: Strict BOLA / Authorization enforcement for Direct Messages
+    # Security: Strict BOLA / Authorization enforcement for Direct & Group Messages
     target_clean_name = (channel.name or clean_id).lower()
-    if channel.type == "dm" or target_clean_name.startswith("dm-") or target_clean_name.startswith("dm_"):
-        # SEC-B01 FIX: Enforce session authentication; remove untrusted header/query fallbacks
+    if channel.type in ("dm", "group") or target_clean_name.startswith("dm-") or target_clean_name.startswith("dm_"):
+        # SEC-B01 & SEC-B4-05 FIX: Enforce session authentication for private direct and group conversations
         caller_user = await get_current_user(request, db)
         if not caller_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication required to view direct messages."
+                detail="Authentication required to view private conversations."
             )
         is_participant = False
         p_stmt = select(DMParticipant.user_id).where(DMParticipant.channel_id == channel.id)
         participant_ids = set((await db.execute(p_stmt)).scalars().all())
         if caller_user.id in participant_ids:
             is_participant = True
-        else:
+        elif channel.type != "group":
             parts = target_clean_name.replace("dm_", "dm-").split("-")
             if len(parts) >= 3:
                 u1_name, u2_name = parts[1].lower(), parts[2].lower()
@@ -2628,7 +2628,7 @@ async def get_channel_messages_compat(
         if not is_participant and not getattr(caller_user, "is_admin", False):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied. You are not a participant in this direct conversation."
+                detail="Access denied. You are not a participant in this conversation."
             )
 
     # Permanent message history retention across channel UUID and canonical/alt aliases
@@ -2851,6 +2851,16 @@ async def post_channel_message_compat(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Direct messaging is restricted to accepted friends. You cannot send messages until friendship is accepted."
                 )
+
+    # SEC-B4-05 FIX: Enforce Private Group Permission (Group Members only)
+    if channel.type == "group":
+        p_stmt = select(DMParticipant.user_id).where(DMParticipant.channel_id == channel.id)
+        participant_ids = set((await db.execute(p_stmt)).scalars().all())
+        if user.id not in participant_ids and not getattr(user, "is_admin", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. You are not a member of this private group."
+            )
 
     # Enforce Announcement Channel Permission (Strictly Server / connecto_admin only)
     target_clean_name = (channel.name or target_channel).lower()
@@ -4982,9 +4992,8 @@ async def update_user_profile_compat(
             user.banner_url = None
         else:
             user.banner_url = clean_ban[:1000000] if clean_ban.startswith("data:image/") else clean_ban[:2048]
-    two_factor_enabled = body.get("two_factor_enabled")
-    if two_factor_enabled is not None:
-        user.two_factor_enabled = bool(two_factor_enabled)
+    # SEC-B4-09 FIX: 2FA can only be modified via OTP verification on /api/v1/auth/2fa/toggle; never via generic profile update
+    # two_factor_enabled is strictly ignored here
 
     if avatar_url is not None:
         clean_av = str(avatar_url).strip()
@@ -6926,9 +6935,17 @@ class ScheduledMessageCreateRequest(BaseModel):
     delivery_time_str: Optional[str] = ""
 
 @app.get("/api/channels/{channel_id}/scheduled-messages")
-async def get_scheduled_messages_compat(channel_id: str, author: Optional[str] = None, db: AsyncSession = Depends(get_db)):
+async def get_scheduled_messages_compat(
+    channel_id: str,
+    author: Optional[str] = None,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     stmt = select(ScheduledMessage).where(ScheduledMessage.channel_id == channel_id, ScheduledMessage.status == "pending")
-    if author:
+    # SEC-B4-06 FIX: Restrict non-admin users to viewing only their own scheduled transmissions
+    if not getattr(current_user, "is_admin", False):
+        stmt = stmt.where(ScheduledMessage.author == current_user.username)
+    elif author:
         stmt = stmt.where(ScheduledMessage.author == author)
     rows = (await db.execute(stmt.order_by(ScheduledMessage.delivery_time_epoch.asc()))).scalars().all()
     res = []

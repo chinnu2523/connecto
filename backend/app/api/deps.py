@@ -66,65 +66,81 @@ async def get_current_user(
                 import os
                 from sqlalchemy import func, or_
                 dot_idx = raw_token.rfind(".")
-                payload_part = raw_token[8:dot_idx] if dot_idx != -1 else raw_token[8:]
-                sig_part = raw_token[dot_idx + 1:] if dot_idx != -1 else ""
+                # SEC-B4-01 FIX: Require valid dot delimiter and non-empty signature part
+                if dot_idx == -1:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid edge token format: missing signature."
+                    )
+                payload_part = raw_token[8:dot_idx]
+                sig_part = raw_token[dot_idx + 1:]
+                if not sig_part:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid edge token format: empty signature."
+                    )
                 last_us = payload_part.rfind("_")
                 if last_us != -1:
                     edge_uid = payload_part[:last_us]
                     ts_part = payload_part[last_us + 1:]
                     token_ts_ms = int(ts_part) if ts_part.isdigit() else 0
-                    valid_sig = (dot_idx == -1)
+                    
+                    # SEC-B4-01 FIX: Enforce cryptographic HMAC verification; remove insecure hardcoded fallback
+                    valid_sig = False
+                    for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", "")]:
+                        if not sec:
+                            continue
+                        expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+                        if hmac.compare_digest(sig_part, expected):
+                            valid_sig = True
+                            break
                     if not valid_sig:
-                        for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
-                            if not sec:
-                                continue
-                            expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
-                            if hmac.compare_digest(sig_part, expected):
-                                valid_sig = True
-                                break
-                    if valid_sig:
-                        clean_uname = edge_uid.lower().removeprefix("usr_")
-                        u_stmt = select(User).where(
-                            or_(
-                                User.id == edge_uid,
-                                func.lower(User.username) == edge_uid.lower(),
-                                func.lower(User.username) == clean_uname
-                            )
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid edge token signature."
                         )
-                        edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
-                        if edge_user:
-                            # Check all_before revocation
-                            rev_check = select(TerminatedSession).where(
-                                TerminatedSession.session_token_hash == f"all_before_{edge_user.id}"
-                            )
-                            rev_row = (await db.execute(rev_check)).scalar_one_or_none()
-                            if rev_row and rev_row.terminated_at:
-                                rev_epoch_ms = int(rev_row.terminated_at.timestamp() * 1000)
-                                if token_ts_ms > 0 and token_ts_ms <= rev_epoch_ms:
-                                    raise HTTPException(
-                                        status_code=status.HTTP_401_UNAUTHORIZED,
-                                        detail="Session has been terminated from another device. Please log in again."
-                                    )
-
-                            # Verify that session is active in user_sessions if present
-                            sess_stmt = select(UserSession).where(
-                                (UserSession.session_token_hash == token_hash) &
-                                (UserSession.expires_at > now)
-                            )
-                            active_sess = (await db.execute(sess_stmt)).scalar_one_or_none()
-                            if active_sess:
-                                return edge_user
-
-                            # If user has other sessions in user_sessions, but this specific token_hash is NOT among them,
-                            # it was explicitly terminated/deleted!
-                            user_has_sessions = (await db.execute(select(UserSession).where(UserSession.user_id == edge_user.id))).scalars().first()
-                            if user_has_sessions:
+                    clean_uname = edge_uid.lower().removeprefix("usr_")
+                    u_stmt = select(User).where(
+                        or_(
+                            User.id == edge_uid,
+                            func.lower(User.username) == edge_uid.lower(),
+                            func.lower(User.username) == clean_uname
+                        )
+                    )
+                    edge_user = (await db.execute(u_stmt)).scalar_one_or_none()
+                    if edge_user:
+                        # Check all_before revocation
+                        rev_check = select(TerminatedSession).where(
+                            TerminatedSession.session_token_hash == f"all_before_{edge_user.id}"
+                        )
+                        rev_row = (await db.execute(rev_check)).scalar_one_or_none()
+                        if rev_row and rev_row.terminated_at:
+                            rev_epoch_ms = int(rev_row.terminated_at.timestamp() * 1000)
+                            if token_ts_ms > 0 and token_ts_ms <= rev_epoch_ms:
                                 raise HTTPException(
                                     status_code=status.HTTP_401_UNAUTHORIZED,
                                     detail="Session has been terminated from another device. Please log in again."
                                 )
 
+                        # Verify that session is active in user_sessions if present
+                        sess_stmt = select(UserSession).where(
+                            (UserSession.session_token_hash == token_hash) &
+                            (UserSession.expires_at > now)
+                        )
+                        active_sess = (await db.execute(sess_stmt)).scalar_one_or_none()
+                        if active_sess:
                             return edge_user
+
+                        # If user has other sessions in user_sessions, but this specific token_hash is NOT among them,
+                        # it was explicitly terminated/deleted!
+                        user_has_sessions = (await db.execute(select(UserSession).where(UserSession.user_id == edge_user.id))).scalars().first()
+                        if user_has_sessions:
+                            raise HTTPException(
+                                status_code=status.HTTP_401_UNAUTHORIZED,
+                                detail="Session has been terminated from another device. Please log in again."
+                            )
+
+                        return edge_user
             except HTTPException:
                 raise
             except Exception:

@@ -1669,7 +1669,7 @@ async def terminate_session_endpoint(
 async def terminate_others_session_endpoint(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
     return await terminate_session_endpoint(TerminateSessionPayload(terminate_others=True), request, db, current_user)
 

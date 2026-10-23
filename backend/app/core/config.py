@@ -7,7 +7,16 @@ DEFAULT_DB_PATH = os.path.join(BACKEND_DIR, "connecto_staging.db")
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Connecto Real-Time Community Platform"
     ENV: str = os.getenv("CONNECTO_ENV", os.getenv("ENV", "production"))
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-connecto-key-change-in-production-32bytes!")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        if not self.SECRET_KEY or self.SECRET_KEY == "super-secret-connecto-key-change-in-production-32bytes!":
+            import secrets
+            import logging
+            logging.getLogger("uvicorn.error").warning("[SECURITY NOTICE] SECRET_KEY missing or insecure default. Generating cryptographically strong ephemeral key.")
+            self.SECRET_KEY = secrets.token_hex(32)
+
     DATABASE_URL: str = f"sqlite+aiosqlite:///{DEFAULT_DB_PATH}"
 
     COOKIE_NAME: str = "connecto_session"
