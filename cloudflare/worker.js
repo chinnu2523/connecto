@@ -144,8 +144,8 @@ export default {
         version_name: "v4.5.9",
         version_code: 88,
         build: 88,
-        sha256: "d569b1290367fb966e0e077f07dd9d7277452aa85a639be52a6c352189e6b5ce",
-        md5: "1da7c94ee03991f66e4184d1c791e8fa",
+        sha256: "3b5ece3483d328d26fc4868227bc2d3ea07f13f12618d39804ab8e1212fde09c",
+        md5: "7a11ee9600c36289d04f356c897c5119",
         filename: "connecto-fun.apk",
         size_bytes: 57849101,
         size_display: "55.2 MB",
@@ -209,7 +209,7 @@ export default {
           "https://connecto.fun/downloads/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.9-b88-verified.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.9-b88-secpatch.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -5890,8 +5890,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       version_name: "v4.5.9",
       version_code: 88,
       build: 88,
-      sha256: "d569b1290367fb966e0e077f07dd9d7277452aa85a639be52a6c352189e6b5ce",
-      md5: "1da7c94ee03991f66e4184d1c791e8fa",
+      sha256: "3b5ece3483d328d26fc4868227bc2d3ea07f13f12618d39804ab8e1212fde09c",
+      md5: "7a11ee9600c36289d04f356c897c5119",
       filename: "connecto-fun.apk",
       size_bytes: 57849101,
       size_display: "55.2 MB",
@@ -5920,7 +5920,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "HAL Parameter Injection: Pushes voice_isolation=true, noise_suppression=on, dualmic_enabled=true, beamforming=true, clear_voice=on directly to the Android audio HAL.",
             "Profile Danger Zone Cleanup: 'Delete Account Forever' button removed from Profile tab; account deletion is accessible exclusively through Help & Support.",
             "Calls Tab Cold-Start Fix: Parallel async getFriends()+getCallLogs() via coroutines, SharedPreferences disk cache, and two D1 expression indexes (lower(username), lower(caller_name)) eliminate the loading delay.",
-            "Android Native App v4.5.9 (Build 88 • 55.2 MB): SHA-256 d569b1290367fb966e0e077f07dd9d7277452aa85a639be52a6c352189e6b5ce • MD5 1da7c94ee03991f66e4184d1c791e8fa."
+            "Android Native App v4.5.9 (Build 88 • 55.2 MB • Security Hardened): SHA-256 3b5ece3483d328d26fc4868227bc2d3ea07f13f12618d39804ab8e1212fde09c • MD5 7a11ee9600c36289d04f356c897c5119."
           ],
           author: "Connecto Telephony & DSP Engineering Team"
         },
