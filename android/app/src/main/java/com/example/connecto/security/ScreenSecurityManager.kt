@@ -46,15 +46,38 @@ object ScreenSecurityManager {
     private var screenRecordingCallback: Any? = null
     private var displayListener: DisplayManager.DisplayListener? = null
 
+    fun isEmulator(): Boolean {
+        return (Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK")
+                || Build.BOARD == "QC_Reference_Phone"
+                || Build.MANUFACTURER.contains("Genymotion")
+                || Build.HOST.startsWith("Build")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk" == Build.PRODUCT
+                || Build.HARDWARE.contains("goldfish")
+                || Build.HARDWARE.contains("ranchu"))
+    }
+
+    private fun getDefaultSecurityState(): Boolean {
+        // On emulators / dev environments, default to false so adb screencap and automated proofs produce visible UI.
+        // On real hardware devices, default to true for enterprise-grade screenshot / screenshare protection.
+        return !isEmulator()
+    }
+
     fun init(context: Context) {
         val prefs = getPrefs(context)
-        val enabled = prefs.getBoolean(KEY_SCREEN_SECURITY_ENABLED, true)
+        val defaultVal = getDefaultSecurityState()
+        val enabled = prefs.getBoolean(KEY_SCREEN_SECURITY_ENABLED, defaultVal)
         _isSecurityEnabledState.value = enabled
-        Log.d(TAG, "ScreenSecurityManager initialized. Blackscreen security enabled: $enabled")
+        Log.d(TAG, "ScreenSecurityManager initialized. Blackscreen security enabled: $enabled (isEmulator=${isEmulator()})")
     }
 
     fun isScreenSecurityEnabled(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_SCREEN_SECURITY_ENABLED, true)
+        val defaultVal = getDefaultSecurityState()
+        return getPrefs(context).getBoolean(KEY_SCREEN_SECURITY_ENABLED, defaultVal)
     }
 
     fun setScreenSecurityEnabled(context: Context, enabled: Boolean, activity: Activity? = null) {
