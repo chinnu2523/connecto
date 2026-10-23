@@ -19,7 +19,7 @@ try:
 except Exception:
     DEFAULT_ENDPOINT = "https://connecto.fun/api/v1/db/query"
     DEFAULT_HEALTH_ENDPOINT = "https://connecto.fun/api/v1/db/health"
-    DEFAULT_API_KEY = "connecto_d1_sec_2026_prod"
+    DEFAULT_API_KEY = ""  # SEC-04 FIX: No hardcoded default — set D1_API_KEY in env
 
 logger = logging.getLogger("connecto.d1")
 

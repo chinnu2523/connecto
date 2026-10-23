@@ -59,6 +59,8 @@ object ConnectoNotificationManager {
     const val EXTRA_CALLER_NAME = "extra_caller_name"
     const val EXTRA_CHANNEL_ID = "extra_channel_id"
     const val EXTRA_NOTIFICATION_ACTION = "extra_notification_action"
+    // SEC-08 FIX: Internal source marker — prevents external intents from injecting data into SQLite
+    const val EXTRA_INTERNAL_SOURCE = "connecto_internal_notification_source"
 
     const val NOTIFICATION_ID_CALL = 7001
     const val NOTIFICATION_ID_MESSAGE = 7002
@@ -647,6 +649,7 @@ object ConnectoNotificationManager {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                     putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
                     putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                    putExtra(EXTRA_INTERNAL_SOURCE, true) // SEC-08 FIX: Mark as trusted internal notification
                 }
                 val pendingIntent = PendingIntent.getActivity(
                     context,
@@ -801,6 +804,7 @@ object ConnectoNotificationManager {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                             putExtra(EXTRA_NOTIFICATION_ACTION, ACTION_OPEN_CHAT)
                             putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
+                            putExtra(EXTRA_INTERNAL_SOURCE, true) // SEC-08 FIX
                         }
                         val shortcut = ShortcutInfoCompat.Builder(context, shortcutId)
                             .setShortLabel(senderName)

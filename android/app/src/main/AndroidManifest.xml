@@ -106,7 +106,7 @@
         <receiver
             android:name=".voice.CallActionReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.example.connecto.ACTION_END_CALL" />
                 <action android:name="com.example.connecto.ACTION_TOGGLE_MUTE" />

@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     D1_DATABASE_ID: str = "c95366cb-6dde-4bfe-8a3e-f466969f1a16"
     D1_ENDPOINT: str = "https://connecto.fun/api/v1/db/query"
     D1_HEALTH_ENDPOINT: str = "https://connecto.fun/api/v1/db/health"
-    D1_API_KEY: str = "connecto_d1_sec_2026_prod"
+    D1_API_KEY: str  # SEC-04 FIX: Required env var — no hardcoded fallback. Set D1_API_KEY in .env
 
     model_config = SettingsConfigDict(env_file=os.path.join(BACKEND_DIR, ".env"), extra="ignore")
 

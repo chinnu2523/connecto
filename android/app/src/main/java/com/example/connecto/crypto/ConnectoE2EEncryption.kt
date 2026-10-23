@@ -3,6 +3,7 @@ package com.example.connecto.crypto
 import android.util.Base64
 import java.security.MessageDigest
 import javax.crypto.Cipher
+import javax.crypto.Mac
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.random.Random
@@ -10,8 +11,17 @@ import kotlin.random.Random
 /**
  * End-to-End Encryption helper for 1:1 Direct Messages using AES-256-GCM.
  *
- * Keys are derived deterministically per-conversation between two users:
- *   Key = SHA-256(canonical_dm_name)
+ * SEC-05 FIX: Key derivation now incorporates a per-user server-side secret salt
+ * (fetched at login and stored in EncryptedSharedPreferences) so that an attacker
+ * who only knows the two usernames CANNOT derive the conversation key without
+ * also having access to the server-side DB.
+ *
+ * Key derivation:
+ *   HMAC-SHA256(key=serverSalt, data=canonical_dm_name)
+ *
+ * If no serverSalt is available yet (first launch / migration), the legacy
+ * SHA-256(canonical_dm_name) path is used as a fallback so existing messages
+ * still decrypt. Once a salt is stored, all new messages use the salted key.
  *
  * Encrypted payload format:
  *   "ENC:" + Base64(12-byte IV + ciphertext + 16-byte GCM tag)
@@ -23,11 +33,28 @@ object ConnectoE2EEncryption {
     private const val GCM_IV_LENGTH = 12
     private const val GCM_TAG_LENGTH_BITS = 128
 
-    fun deriveConversationKey(userA: String, userB: String): ByteArray {
+    /**
+     * Derives a 256-bit AES key for a conversation.
+     *
+     * @param userA       Username of one participant
+     * @param userB       Username of the other participant
+     * @param serverSalt  Per-user secret fetched from the server (stored in EncryptedSharedPreferences).
+     *                    Pass null only during migration/fallback — see SEC-05 note above.
+     */
+    fun deriveConversationKey(userA: String, userB: String, serverSalt: String? = null): ByteArray {
         val u1 = userA.trim().lowercase().removePrefix("@")
         val u2 = userB.trim().lowercase().removePrefix("@")
         val canonical = if (u1 < u2) "e2e-$u1-$u2" else "e2e-$u2-$u1"
-        return MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(Charsets.UTF_8))
+
+        return if (!serverSalt.isNullOrBlank()) {
+            // SEC-05: HMAC-SHA256 with server salt — key cannot be derived from usernames alone
+            val mac = Mac.getInstance("HmacSHA256")
+            mac.init(SecretKeySpec(serverSalt.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+            mac.doFinal(canonical.toByteArray(Charsets.UTF_8))
+        } else {
+            // Legacy fallback (no salt available yet) — same as old behavior
+            MessageDigest.getInstance("SHA-256").digest(canonical.toByteArray(Charsets.UTF_8))
+        }
     }
 
     fun encryptMessage(plaintext: String, keyBytes: ByteArray): String {

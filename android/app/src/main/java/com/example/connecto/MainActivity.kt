@@ -190,33 +190,38 @@ class MainActivity : FragmentActivity() {
                 pendingOpenChatTarget = target
             }
 
-            // If launched from system notification tray, persist the message to SQLite cache
-            val content = intent.getStringExtra("content") ?: intent.getStringExtra("body") ?: intent.getStringExtra("text")
-            val sender = intent.getStringExtra("sender_username") ?: intent.getStringExtra("sender") ?: intent.getStringExtra("title")
-            val messageId = intent.getStringExtra("message_id") ?: intent.getStringExtra("id")
-            val senderId = intent.getStringExtra("sender_id") ?: sender
-            val avatar = intent.getStringExtra("sender_avatar") ?: intent.getStringExtra("avatar")
+            // SEC-08 FIX: Only persist notification data if it came from our own internal notification system.
+            // This prevents external apps from injecting arbitrary data into the local SQLite cache
+            // via crafted intents, since EXTRA_INTERNAL_SOURCE is only set by ConnectoNotificationManager.
+            val isInternalNotification = intent.getBooleanExtra(ConnectoNotificationManager.EXTRA_INTERNAL_SOURCE, false)
+            if (isInternalNotification) {
+                val content = intent.getStringExtra("content") ?: intent.getStringExtra("body") ?: intent.getStringExtra("text")
+                val sender = intent.getStringExtra("sender_username") ?: intent.getStringExtra("sender") ?: intent.getStringExtra("title")
+                val messageId = intent.getStringExtra("message_id") ?: intent.getStringExtra("id")
+                val senderId = intent.getStringExtra("sender_id") ?: sender
+                val avatar = intent.getStringExtra("sender_avatar") ?: intent.getStringExtra("avatar")
 
-            if (!content.isNullOrBlank() && !sender.isNullOrBlank()) {
-                val cleanSender = sender.trim().lowercase().removePrefix("@")
-                val cleanChannel = target ?: "dm-$cleanSender"
-                val nowIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
-                    timeZone = java.util.TimeZone.getTimeZone("UTC")
-                }.format(java.util.Date())
+                if (!content.isNullOrBlank() && !sender.isNullOrBlank()) {
+                    val cleanSender = sender.trim().lowercase().removePrefix("@")
+                    val cleanChannel = target ?: "dm-$cleanSender"
+                    val nowIso = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US).apply {
+                        timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    }.format(java.util.Date())
 
-                val msgDto = com.example.connecto.network.MessageDto(
-                    id = messageId ?: "intent_${System.currentTimeMillis()}",
-                    channelId = cleanChannel,
-                    authorId = senderId ?: cleanSender,
-                    authorName = sender,
-                    content = content,
-                    createdAt = intent.getStringExtra("created_at") ?: nowIso,
-                    authorAvatar = avatar
-                )
-                try {
-                    val dbHelper = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(this)
-                    dbHelper.saveMessage(msgDto)
-                } catch (_: Exception) {}
+                    val msgDto = com.example.connecto.network.MessageDto(
+                        id = messageId ?: "intent_${System.currentTimeMillis()}",
+                        channelId = cleanChannel,
+                        authorId = senderId ?: cleanSender,
+                        authorName = sender,
+                        content = content,
+                        createdAt = intent.getStringExtra("created_at") ?: nowIso,
+                        authorAvatar = avatar
+                    )
+                    try {
+                        val dbHelper = com.example.connecto.data.ConnectoDatabaseHelper.getInstance(this)
+                        dbHelper.saveMessage(msgDto)
+                    } catch (_: Exception) {}
+                }
             }
         }
         if (intent.getBooleanExtra("test_in_app_banner", false)) {

@@ -508,11 +508,8 @@ object ConnectoApiClient {
                 val savedBanner = prefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
                 updateBannerState(savedBanner)
                 val cleanUser = savedUsername.trim().lowercase().removePrefix("@")
-                val isAdmin = prefs.getBoolean("is_admin", false) ||
-                              cleanUser == "chinnu14754x" || cleanUser == "chinnu" ||
-                              cleanUser == "connecto_admin" || cleanUser == "admin" ||
-                              cleanUser == "vance" || cleanUser == "madara" ||
-                              cleanUser == "viki" || cleanUser.endsWith("_admin")
+                // SEC-10 FIX: Use only server-returned is_admin flag — no username-based admin matching
+                val isAdmin = prefs.getBoolean("is_admin", false)
                 updateAdminState(isAdmin)
             }
             if (cachedCallLogs.isEmpty()) {
@@ -4721,12 +4718,8 @@ object ConnectoApiClient {
                     updateBannerState(prof.bannerUrl)
                     updateStealthModeState(prof.isStealth)
                     updateVerificationState(isVerified, isBlocked, daysLeft, deadlineStr)
-                    val cleanSelf = u.trim().lowercase().removePrefix("@")
-                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) ||
-                                  cleanSelf == "chinnu14754x" || cleanSelf == "chinnu" ||
-                                  cleanSelf == "connecto_admin" || cleanSelf == "admin" ||
-                                  cleanSelf == "vance" || cleanSelf == "madara" ||
-                                  cleanSelf == "viki" || cleanSelf.endsWith("_admin")
+                    // SEC-10 FIX: Use only server-returned is_admin flag — never derive admin from username
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1)
                     updateAdminState(isAdmin)
                     try {
                         applicationContext?.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)

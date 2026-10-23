@@ -64,6 +64,29 @@ export default {
       return handleSyncNow(request, env);
     }
 
+    // SEC-05 FIX: E2E secret endpoint — returns (or auto-generates) a per-user server-side salt
+    // used as HMAC key in ConnectoE2EEncryption.deriveConversationKey().
+    // Requires authenticated session; secret is stored in DB and never changes once set.
+    if ((url.pathname === "/api/v1/e2e/secret" || url.pathname === "/api/e2e/secret") && method === "GET") {
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller) return jsonResponse({ error: "Authentication required" }, 401);
+      try {
+        // Try to get existing secret
+        let row = await env.DB.prepare("SELECT e2e_secret FROM users WHERE id = ? LIMIT 1").bind(caller.id).first().catch(() => null);
+        let secret = row && row.e2e_secret;
+        if (!secret) {
+          // Auto-generate a random 32-byte hex secret and persist it
+          const randBytes = new Uint8Array(32);
+          crypto.getRandomValues(randBytes);
+          secret = Array.from(randBytes).map(b => b.toString(16).padStart(2, "0")).join("");
+          await env.DB.prepare("UPDATE users SET e2e_secret = ? WHERE id = ?").bind(secret, caller.id).run().catch(() => {});
+        }
+        return jsonResponse({ e2e_secret: secret });
+      } catch (err) {
+        return jsonResponse({ error: "Could not fetch E2E secret" }, 500);
+      }
+    }
+
     // 2. Edge Workers AI APIs
     if (url.pathname === "/api/v1/ai/generate" || url.pathname === "/api/v1/ai/chat") {
       return handleAiGenerate(request, env);
@@ -442,7 +465,8 @@ async function getFcmAccessToken(env) {
   } catch (_) {}
 
   const clientId = (env && env.GCP_CLIENT_ID) || "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com";
-  const clientSecret = (env && env.GCP_CLIENT_SECRET) || "d-FL95Q19q7MQmFpd7hHD0Ty";
+  // SEC-12 FIX: No hardcoded secret fallback — must be set via wrangler secret put GCP_CLIENT_SECRET
+  const clientSecret = (env && env.GCP_CLIENT_SECRET);
   const refreshToken = (env && env.GCP_REFRESH_TOKEN) || "";
 
   try {
@@ -960,13 +984,8 @@ async function verifyEdgeToken(token, env) {
   if (!token || !token.startsWith("cf_edge_")) return null;
   const dotIdx = token.lastIndexOf(".");
   if (dotIdx === -1) {
-    const rest = token.substring(8);
-    const lastUnderscore = rest.lastIndexOf("_");
-    if (lastUnderscore === -1) return null;
-    const userId = rest.substring(0, lastUnderscore);
-    const ts = parseInt(rest.substring(lastUnderscore + 1), 10);
-    if (isNaN(ts) || Date.now() - ts > 30 * 86400 * 1000) return null;
-    return userId;
+    // Strictly reject unsigned tokens to prevent signature bypass
+    return null;
   }
   const payload = token.substring(8, dotIdx);
   const providedSig = token.substring(dotIdx + 1);
@@ -987,7 +1006,14 @@ async function verifyEdgeToken(token, env) {
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
   const expectedSigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).slice(0, 16).join('');
-  if (providedSig !== expectedSigHex) return null;
+  
+  // Constant-time signature verification preventing timing side-channel attacks
+  if (providedSig.length !== expectedSigHex.length) return null;
+  let diff = 0;
+  for (let i = 0; i < providedSig.length; i++) {
+    diff |= providedSig.charCodeAt(i) ^ expectedSigHex.charCodeAt(i);
+  }
+  if (diff !== 0) return null;
   return userId;
 }
 
@@ -1285,18 +1311,6 @@ async function resolveUserFromRequest(request, env) {
     }
   }
 
-  // 3. Fallback to client-provided X-User-Username or X-Username header
-  if (!user) {
-    const uHeader = (
-      request.headers.get("X-User-Username") ||
-      request.headers.get("X-Username") ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
-    if (uHeader) {
-      user = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(uHeader).first();
-    }
-  }
-
   return user;
 }
 
@@ -1546,6 +1560,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       let validOtp = false;
       let matchedRecord = null;
+      let otpRecords = [];
       if (env.DB) {
         const records = await env.DB.prepare(`
           SELECT * FROM otp_verifications 
@@ -1554,8 +1569,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             AND datetime(expires_at) >= datetime('now')
           ORDER BY created_at DESC LIMIT 5
         `).bind(ident, (user.email || "").toLowerCase(), user.id).all();
+        otpRecords = records.results || [];
 
-        for (const r of (records.results || [])) {
+        for (const r of otpRecords) {
           if (r.otp_code === otp) {
             validOtp = true;
             matchedRecord = r;
@@ -1565,6 +1581,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       if (!validOtp) {
+        // SEC-09 FIX: Increment attempt counter; lock after 5 failures to prevent brute force
+        if (env.DB && otpRecords.length > 0) {
+          const latestRecord = otpRecords[0];
+          await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+          const newAttempts = (latestRecord.attempts || 0) + 1;
+          if (newAttempts >= 5) {
+            await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+            return jsonResponse({ error: "Too many incorrect attempts. Please request a new code.", detail: "Locked after 5 failed OTP attempts." }, 429);
+          }
+          return jsonResponse({ error: "Invalid or expired OTP code", detail: `Invalid code. ${5 - newAttempts} attempt(s) remaining.` }, 400);
+        }
         return jsonResponse({ error: "Invalid or expired OTP code", detail: "The code entered is invalid or has expired." }, 400);
       }
 
@@ -2966,6 +2993,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       let dataUrl = "";
       let caller = await resolveUserFromRequest(request, env);
 
+      // SEC-06 FIX: Reject unauthenticated upload requests — never trust body-supplied username for identity
+      if (!caller) {
+        return jsonResponse({ error: "Authentication required to upload files" }, 401);
+      }
+
       let uploadPurpose = (url.searchParams.get("purpose") || "").toLowerCase().trim();
 
       if (contentType.includes("multipart/form-data")) {
@@ -2975,15 +3007,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         }
         // Look for file in standard field names
         const fileEntry = formData.get("file") || formData.get("avatar") || formData.get("image") || formData.get("banner");
-        
-        // Also check if username was passed in form data
-        const formUsername = (formData.get("username") || "").toString().toLowerCase().trim();
-        if (!caller && formUsername && env.DB) {
-          caller = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(formUsername).first();
-        }
-        if (!caller && formUsername) {
-          caller = { id: "usr_" + formUsername, username: formUsername };
-        }
 
         if (fileEntry && typeof fileEntry === "object" && typeof fileEntry.arrayBuffer === "function") {
           const mimeType = fileEntry.type || "image/webp";
@@ -3004,13 +3027,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           uploadPurpose = (body.purpose || "").toLowerCase().trim();
         }
         dataUrl = body.avatar_url || body.url || body.data || body.image || "";
-        const reqUser = (body.username || "").toLowerCase().trim();
-        if (!caller && reqUser && env.DB) {
-          caller = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(reqUser).first();
-        }
-        if (!caller && reqUser) {
-          caller = { id: "usr_" + reqUser, username: reqUser };
-        }
       }
 
       if (!dataUrl) {
@@ -6634,7 +6650,11 @@ async function handleDbQuery(request, env) {
 
   const authHeader = request.headers.get("Authorization") || "";
   const customKey = request.headers.get("X-D1-Key") || "";
-  const expectedKey = env.DB_API_KEY || "connecto_d1_sec_2026_prod";
+  // SEC-04 FIX: No hardcoded fallback — key must be set as a Wrangler secret
+  const expectedKey = env.DB_API_KEY;
+  if (!expectedKey) {
+    return jsonResponse({ error: "DB gateway not configured" }, 503);
+  }
   const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
   const callerKey = token || customKey;
 
@@ -7327,6 +7347,28 @@ export class ConnectoRealtimeRoom {
       try {
         sessionTokenHash = await sha256Hex(rawToken);
       } catch (_) {}
+    }
+
+    // SEC-03 FIX: Authenticate WebSocket connection — reject if no valid token
+    if (!rawToken) {
+      server.close(1008, "Authentication required");
+      return;
+    }
+    let wsAuthUser = null;
+    // Try edge token first
+    try { wsAuthUser = await verifyEdgeToken(rawToken, this.env); } catch (_) {}
+    // Fallback: check session DB
+    if (!wsAuthUser && this.env && this.env.DB && sessionTokenHash) {
+      try {
+        const sess = await this.env.DB.prepare(
+          "SELECT user_id, username FROM user_sessions WHERE session_token_hash=? AND expires_at>datetime('now') LIMIT 1"
+        ).bind(sessionTokenHash).first();
+        if (sess) wsAuthUser = sess.user_id || sess.username;
+      } catch (_) {}
+    }
+    if (!wsAuthUser) {
+      server.close(1008, "Unauthorized");
+      return;
     }
 
     const meta = {

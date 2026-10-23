@@ -40,7 +40,7 @@ class D1SyncManager:
     def __init__(self):
         self.endpoint = getattr(settings, "D1_ENDPOINT", "https://connecto.fun/api/v1/db/query")
         self.health_endpoint = getattr(settings, "D1_HEALTH_ENDPOINT", "https://connecto.fun/api/v1/db/health")
-        self.api_key = getattr(settings, "D1_API_KEY", "connecto_d1_sec_2026_prod")
+        self.api_key = getattr(settings, "D1_API_KEY", "")  # SEC-04 FIX: No hardcoded fallback
         self.local_db_path = DEFAULT_DB_PATH
         self.user_agent = "Mozilla/5.0 (Connecto-Sync-Daemon/2.0)"
         self.is_running = False
