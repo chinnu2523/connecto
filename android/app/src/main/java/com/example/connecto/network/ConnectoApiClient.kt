@@ -322,11 +322,61 @@ object ConnectoApiClient {
     @Volatile
     var currentSessionId: String? = null
 
+    @Volatile
+    var cachedE2ESecret: String? = null
+
+    fun getE2ESecret(): String? {
+        val memory = cachedE2ESecret
+        if (!memory.isNullOrBlank()) return memory
+        val ctx = applicationContext ?: return null
+        return try {
+            val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+            val s = prefs.getString("e2e_secret", null)?.takeIf { it.isNotBlank() }
+            if (s != null) {
+                cachedE2ESecret = s
+            }
+            s
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    suspend fun fetchE2ESecret(): String? = withContext(Dispatchers.IO) {
+        try {
+            val response = executeRequest(
+                endpoint = "/api/v1/e2e/secret",
+                method = "GET",
+                body = null,
+                token = sessionToken ?: getPersistedToken()
+            )
+            if (response.isSuccess) {
+                val json = JSONObject(response.getOrThrow())
+                val secret = json.optString("e2e_secret").takeIf { it.isNotBlank() }
+                if (secret != null) {
+                    cachedE2ESecret = secret
+                    val ctx = applicationContext
+                    if (ctx != null) {
+                        try {
+                            val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                            prefs.edit().putString("e2e_secret", secret).apply()
+                        } catch (_: Exception) {}
+                    }
+                }
+                secret
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     fun triggerSessionExpired(reason: String) {
         android.util.Log.w("ConnectoApiClient", "Session expired triggered: $reason")
         sessionToken = null
         currentUserId = null
         currentSessionId = null
+        cachedE2ESecret = null
         val ctx = applicationContext
         if (ctx != null) {
             try {
@@ -335,6 +385,7 @@ object ConnectoApiClient {
                     .putBoolean("is_logged_in", false)
                     .remove("token")
                     .remove("current_session_id")
+                    .remove("e2e_secret")
                     .apply()
             } catch (_: Exception) {}
         }
@@ -511,6 +562,7 @@ object ConnectoApiClient {
                 // SEC-10 FIX: Use only server-returned is_admin flag — no username-based admin matching
                 val isAdmin = prefs.getBoolean("is_admin", false)
                 updateAdminState(isAdmin)
+                cachedE2ESecret = prefs.getString("e2e_secret", null)
             }
             if (cachedCallLogs.isEmpty()) {
                 cachedCallLogs = loadCallLogsCache(context)
@@ -4725,6 +4777,11 @@ object ConnectoApiClient {
                         applicationContext?.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
                             ?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
                     } catch (_: Exception) {}
+                    if (cachedE2ESecret.isNullOrBlank()) {
+                        try {
+                            fetchE2ESecret()
+                        } catch (_: Exception) {}
+                    }
                 }
                 Result.success(prof)
             } else {

@@ -966,7 +966,8 @@ async function verifyPassword(storedHash, password) {
 async function generateEdgeToken(userId, env) {
   const ts = Date.now();
   const raw = `${userId}_${ts}`;
-  const secret = (env && env.SECRET_KEY) ? env.SECRET_KEY : "connecto_edge_sec_32bytes_random_salt!";
+  // SEC-23 FIX: Use secure environment secret exclusively
+  const secret = (env && env.SECRET_KEY);
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -995,7 +996,8 @@ async function verifyEdgeToken(token, env) {
   const ts = parseInt(payload.substring(lastUnderscore + 1), 10);
   if (isNaN(ts) || Date.now() - ts > 30 * 86400 * 1000) return null;
 
-  const secret = (env && env.SECRET_KEY) ? env.SECRET_KEY : "connecto_edge_sec_32bytes_random_salt!";
+  // SEC-23 FIX: Use secure environment secret exclusively
+  const secret = (env && env.SECRET_KEY);
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -1745,6 +1747,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       if (!valid) {
+        // SEC-20 FIX: Track failed attempts; lock after 5 failures to prevent OTP brute force
+        if (env.DB) {
+          const otpRecords = records ? (records.results || []) : [];
+          if (otpRecords.length > 0) {
+            const latestRecord = otpRecords[0];
+            await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+            const newAttempts = (latestRecord.attempts || 0) + 1;
+            if (newAttempts >= 5) {
+              await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+              return jsonResponse({ error: "Too many incorrect attempts. Please request a new verification code.", detail: "Verification locked." }, 429);
+            }
+            return jsonResponse({ error: `Invalid code. ${5 - newAttempts} attempt(s) remaining.`, detail: "Verification failed" }, 400);
+          }
+        }
         return jsonResponse({
           error: "Invalid or expired verification code. Please check your email or request a new one.",
           detail: "Verification failed"
@@ -1861,6 +1877,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       if (!validOtp) {
+        // SEC-20 FIX: Track failed attempts; lock after 5 failures
+        if (env.DB) {
+          const otpRecords = records ? (records.results || []) : [];
+          if (otpRecords.length > 0) {
+            const latestRecord = otpRecords[0];
+            await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+            const newAttempts = (latestRecord.attempts || 0) + 1;
+            if (newAttempts >= 5) {
+              await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+              return jsonResponse({ error: "Too many incorrect attempts. Please request a new code.", detail: "Locked after 5 failed attempts." }, 429);
+            }
+            return jsonResponse({ error: `Invalid verification code. ${5 - newAttempts} attempt(s) remaining.`, detail: "Invalid code" }, 400);
+          }
+        }
         return jsonResponse({ error: "Invalid verification code. Please check your email and try again.", detail: "Invalid code" }, 400);
       }
 
@@ -2079,6 +2109,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       if (!validOtp) {
+        // SEC-20 FIX: Track failed attempts; lock after 5 failures
+        if (env.DB) {
+          const otpRecords = records ? (records.results || []) : [];
+          if (otpRecords.length > 0) {
+            const latestRecord = otpRecords[0];
+            await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+            const newAttempts = (latestRecord.attempts || 0) + 1;
+            if (newAttempts >= 5) {
+              await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+              return jsonResponse({ error: "Too many incorrect attempts. Please request a new code.", detail: "Locked after 5 failed attempts." }, 429);
+            }
+            return jsonResponse({ error: `Invalid OTP code. ${5 - newAttempts} attempt(s) remaining.`, detail: "Invalid code" }, 400);
+          }
+        }
         return jsonResponse({ error: "Invalid or expired OTP code", detail: "The code entered is invalid or has expired." }, 400);
       }
 
@@ -2156,6 +2200,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       if (!validOtp) {
+        // SEC-20 FIX: Track failed attempts; lock after 5 failures
+        if (env.DB) {
+          const otpRecords = records ? (records.results || []) : [];
+          if (otpRecords.length > 0) {
+            const latestRecord = otpRecords[0];
+            await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+            const newAttempts = (latestRecord.attempts || 0) + 1;
+            if (newAttempts >= 5) {
+              await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+              return jsonResponse({ error: "Too many incorrect attempts. Please request a new code.", detail: "Locked after 5 failed attempts." }, 429);
+            }
+            return jsonResponse({ error: `Invalid OTP code. ${5 - newAttempts} attempt(s) remaining.`, detail: "Invalid code" }, 400);
+          }
+        }
         return jsonResponse({ error: "Invalid or expired OTP code", detail: "The OTP verification code is invalid or has expired." }, 400);
       }
 
@@ -3290,6 +3348,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
     const effectiveAvatar = user.avatar_url || "👾";
 
+    // SEC-21 FIX: Protect PII — phone, date of birth, and email are strictly restricted to the account owner (isSelf)
     const userDict = {
       id: user.id,
       username: user.username,
@@ -3297,18 +3356,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       nickname: user.display_name || user.username,
       full_name: user.display_name || user.username,
       location: user.location || "Leaf Village",
-      phone_number: user.phone_number || "",
-      phone: user.phone_number || "",
-      date_of_birth: user.date_of_birth || "",
-      gender: user.gender || "unspecified",
+      phone_number: isSelf ? (user.phone_number || "") : "",
+      phone: isSelf ? (user.phone_number || "") : "",
+      date_of_birth: isSelf ? (user.date_of_birth || "") : "",
+      gender: isSelf ? (user.gender || "unspecified") : "unspecified",
       username_changed: false,
       bio: user.bio || "Connecto Member",
       avatar: effectiveAvatar,
       avatar_url: effectiveAvatar,
       picture: effectiveAvatar,
       banner_url: user.banner_url || "",
-      email: user.email || `${user.username}@connecto.fun`,
-      two_factor_enabled: Boolean(user.two_factor_enabled),
+      email: isSelf ? (user.email || `${user.username}@connecto.fun`) : "",
+      two_factor_enabled: isSelf ? Boolean(user.two_factor_enabled) : false,
       two_factor_method: user.two_factor_method || "email",
       is_stealth: effectiveStealth,
       is_online: isSelf ? !effectiveStealth : effectiveOnline,
@@ -3334,22 +3393,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 8. Friends List & Management (Web & Android)
   if (path === "/api/friends" || path === "/api/v1/chat/friends" || path === "/api/chat/friends" || path === "/api/v1/friends" || path === "/api/chat/friends/requests/received") {
     if (method === "GET") {
-      let myUsername = (
-        url.searchParams.get("username") ||
-        url.searchParams.get("user") ||
-        request.headers.get("X-User-Username") ||
-        ""
-      ).trim().toLowerCase().replace(/^@/, "");
-
-      if (!myUsername) {
-        const authUser = await resolveUserFromRequest(request, env);
-        if (authUser && authUser.username) {
-          myUsername = authUser.username.trim().toLowerCase().replace(/^@/, "");
-        }
+      // SEC-15 FIX: Authenticate caller strictly via session token
+      const authUser = await resolveUserFromRequest(request, env);
+      if (!authUser || !authUser.username) {
+        return jsonResponse({ error: "Unauthorized: Active session required to view friends list." }, 401);
       }
-      if (!myUsername) {
-        return jsonResponse({ friends: [], incoming_requests: [], outgoing_requests: [] }, 200);
-      }
+      let myUsername = authUser.username.trim().toLowerCase().replace(/^@/, "");
       if (myUsername === "chinnu") myUsername = "chinnu14754x";
 
       let friendsList = [];
@@ -3477,8 +3526,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 9. Friends Request / Accept / Decline / Remove
   if (path === "/api/friends/request" || path === "/api/v1/friends/request") {
     try {
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller || !caller.username) {
+        return jsonResponse({ error: "Unauthorized: Active session required to send friend requests." }, 401);
+      }
       const body = await request.json().catch(() => ({}));
-      let senderName = (body.sender || body.sender_username || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      // SEC-15 FIX: Lock sender to authenticated user
+      let senderName = caller.username.trim().toLowerCase().replace(/^@/, "");
       let recipientName = (body.recipient || body.friend_username || body.target_username || body.username || "").trim().toLowerCase().replace(/^@/, "");
       if (senderName === "chinnu") senderName = "chinnu14754x";
       if (recipientName === "chinnu") recipientName = "chinnu14754x";
@@ -3521,9 +3575,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   if (path === "/api/friends/accept" || path === "/api/v1/friends/accept") {
     try {
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller || !caller.username) {
+        return jsonResponse({ error: "Unauthorized: Active session required to accept friend requests." }, 401);
+      }
       const body = await request.json().catch(() => ({}));
       let senderName = (body.sender || body.friend_username || "").trim().toLowerCase().replace(/^@/, "");
-      let recipientName = (body.recipient || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+      // SEC-15 FIX: Lock recipient to authenticated caller
+      let recipientName = caller.username.trim().toLowerCase().replace(/^@/, "");
       if (senderName === "chinnu") senderName = "chinnu14754x";
       if (recipientName === "chinnu") recipientName = "chinnu14754x";
       let recipientAvatar = "👾";
@@ -3557,27 +3616,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   if (path === "/api/friends/decline" || path === "/api/friends/remove" || path === "/api/friends/unfriend") {
     try {
-      const body = await request.json().catch(() => ({}));
-      // Target user being unfriended
-      let targetName = (body.friend_username || body.target_username || "").trim().toLowerCase().replace(/^@/, "");
-      // Current user initiating the unfriend
-      let myName = (body.current_user || body.sender || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
-
-      if (!targetName && body.recipient) {
-        targetName = (body.recipient || "").trim().toLowerCase().replace(/^@/, "");
+      // SEC-15 FIX: Require authenticated caller; lock unfriend action to the caller
+      const authUser = await resolveUserFromRequest(request, env);
+      if (!authUser || !authUser.username) {
+        return jsonResponse({ error: "Unauthorized: Active session required to remove friends." }, 401);
       }
+      const body = await request.json().catch(() => ({}));
+      let myName = authUser.username.trim().toLowerCase().replace(/^@/, "");
+      let targetName = (body.friend_username || body.target_username || body.recipient || "").trim().toLowerCase().replace(/^@/, "");
       if (!targetName && body.username && body.username.trim().toLowerCase().replace(/^@/, "") !== myName) {
         targetName = body.username.trim().toLowerCase().replace(/^@/, "");
-      }
-
-      if (!myName) {
-        const authUser = await resolveUserFromRequest(request, env);
-        if (authUser && authUser.username) {
-          myName = authUser.username.trim().toLowerCase().replace(/^@/, "");
-        }
-      }
-      if (!myName && body.username && body.username.trim().toLowerCase().replace(/^@/, "") !== targetName) {
-        myName = body.username.trim().toLowerCase().replace(/^@/, "");
       }
 
       if (targetName === "chinnu") targetName = "chinnu14754x";
@@ -3887,23 +3935,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const dmMatch = path.match(/^\/api\/dms\/([^\/]+)\/messages/);
   if (dmMatch) {
     const targetUser = decodeURIComponent(dmMatch[1]).trim().toLowerCase().replace(/^@/, "");
-    let currentUser = (
-      request.headers.get("X-User-Username") ||
-      url.searchParams.get("username") ||
-      url.searchParams.get("sender") ||
-      url.searchParams.get("user") ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
-
-    if (!currentUser) {
-      const authUser = await resolveUserFromRequest(request, env);
-      if (authUser && authUser.username) {
-        currentUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-      }
+    // SEC-14 FIX: Authenticate caller strictly via session token — never trust query param or header
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ detail: "Authentication required to access direct messages." }, 401);
     }
-    if (!currentUser) {
-      return jsonResponse({ detail: "Authentication required to view direct messages." }, 401);
-    }
+    let currentUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (currentUser === "chinnu") currentUser = "chinnu14754x";
     const normalizedTarget = targetUser === "chinnu" ? "chinnu14754x" : targetUser;
 
@@ -3983,15 +4020,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     if (method === "POST") {
       try {
         const body = await request.json().catch(() => ({}));
-        if (!currentUser && (body.sender || body.sender_username)) {
-          currentUser = (body.sender || body.sender_username).trim().toLowerCase().replace(/^@/, "");
-        }
-        if (!currentUser) {
-          const authUser = await resolveUserFromRequest(request, env);
-          if (authUser && authUser.username) {
-            currentUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-          }
-        }
+        // SEC-13 FIX: Identity is locked to authUser; body-supplied sender is strictly ignored
         if (!currentUser || currentUser === "guest") {
           return jsonResponse({ status: "error", message: "Authentication required" }, 401);
         }
@@ -4143,10 +4172,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 13b. Group Management Endpoints (Cloudflare D1 & Edge Mesh)
   if (path === "/api/groups/create" && method === "POST") {
     try {
+      // SEC-17 FIX: Enforce authentication on group creation
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller || !caller.username) {
+        return jsonResponse({ error: "Unauthorized: Active session required to create groups." }, 401);
+      }
       const body = await request.json().catch(() => ({}));
       const rawName = (body.name || "New Group").trim();
       const rawMembers = Array.isArray(body.members) ? body.members : [];
-      const reqUser = (request.headers.get("X-User-Username") || body.creator || body.admin || "").trim().toLowerCase().replace(/^@/, "");
+      const reqUser = caller.username.trim().toLowerCase().replace(/^@/, "");
       const groupId = "grp-" + rawName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).substring(2, 6);
       const allMembers = [];
       if (reqUser) allMembers.push(reqUser);
@@ -4213,15 +4247,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   if (path === "/api/groups" && method === "GET") {
     let groups = [];
-    let reqUser = (request.headers.get("X-User-Username") || url.searchParams.get("username") || "").trim().toLowerCase().replace(/^@/, "");
-    if (!reqUser) {
-      try {
-        const authUser = await resolveUser(request, env);
-        if (authUser && authUser.username) {
-          reqUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-        }
-      } catch (_) {}
+    // SEC-17 FIX: Fix resolveUser bug and enforce session authentication
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to view groups." }, 401);
     }
+    let reqUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (env.DB) {
       try {
         const rows = await env.DB.prepare("SELECT id, name, type, created_at FROM channels WHERE type = 'group'").all();
@@ -4351,6 +4382,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const groupDeleteMatch = path.match(/^\/api\/groups\/([^\/]+)(?:\/delete)?$/);
   if (groupDeleteMatch && (method === "DELETE" || (method === "POST" && path.endsWith("/delete")))) {
     const groupId = groupDeleteMatch[1];
+    // SEC-17 FIX: Enforce caller authentication & admin/creator ownership check
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to delete group." }, 401);
+    }
+    let isAllowed = caller.is_admin;
+    if (!isAllowed && env.DB) {
+      const firstPart = await env.DB.prepare(
+        "SELECT u.username FROM dm_participants p JOIN users u ON p.user_id = u.id WHERE p.channel_id = ? ORDER BY p.rowid ASC LIMIT 1"
+      ).bind(groupId).first();
+      if (firstPart && firstPart.username.toLowerCase() === caller.username.toLowerCase()) {
+        isAllowed = true;
+      }
+    }
+    if (!isAllowed) {
+      return jsonResponse({ error: "Forbidden: Only the group creator or administrator can delete this group." }, 403);
+    }
     if (env.DB) {
       try {
         await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(groupId).run();
@@ -4373,8 +4421,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const groupRemoveMemberMatch = path.match(/^\/api\/groups\/([^\/]+)\/members\/remove$/);
   if (groupRemoveMemberMatch && method === "POST") {
     const groupId = groupRemoveMemberMatch[1];
+    // SEC-17 FIX: Authenticate caller and ensure caller is admin/creator or self
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
+    }
     const body = await request.json().catch(() => ({}));
     const targetUsername = String(body.username || body.member || "").trim().toLowerCase().replace(/^@/, "");
+    let isAllowed = caller.is_admin || (caller.username.toLowerCase() === targetUsername);
+    if (!isAllowed && env.DB) {
+      const firstPart = await env.DB.prepare(
+        "SELECT u.username FROM dm_participants p JOIN users u ON p.user_id = u.id WHERE p.channel_id = ? ORDER BY p.rowid ASC LIMIT 1"
+      ).bind(groupId).first();
+      if (firstPart && firstPart.username.toLowerCase() === caller.username.toLowerCase()) {
+        isAllowed = true;
+      }
+    }
+    if (!isAllowed) {
+      return jsonResponse({ error: "Forbidden: You do not have permission to remove members from this group." }, 403);
+    }
     if (env.DB && targetUsername) {
       try {
         const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUsername).first();
@@ -4517,12 +4582,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
     if (method === "GET") {
       let messages = [];
-      const reqUser = (
-        url.searchParams.get("username") ||
-        url.searchParams.get("user") ||
-        request.headers.get("X-User-Username") ||
-        ""
-      ).trim().toLowerCase().replace(/^@/, "");
+      const caller = await resolveUserFromRequest(request, env);
+      const isDmChannel = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_") || channelId.startsWith("dm-") || channelId.startsWith("dm_");
+      
+      // SEC-14 FIX: Enforce participant authorization on private direct message channels
+      if (isDmChannel) {
+        if (!caller) {
+          return jsonResponse({ error: "Unauthorized: Active session required to view direct messages." }, 401);
+        }
+        const callerUname = caller.username.trim().toLowerCase().replace(/^@/, "");
+        const isParticipant = canonicalChannel.includes(callerUname) || channelId.includes(callerUname);
+        if (!isParticipant && !caller.is_admin) {
+          return jsonResponse({ error: "Forbidden: You are not a participant in this conversation." }, 403);
+        }
+      }
+
+      const reqUser = caller ? caller.username.trim().toLowerCase().replace(/^@/, "") : "";
 
       if (env.DB) {
         const channelCandidates = Array.from(new Set([canonicalChannel, channelId, resolvedChannelId].filter(Boolean)));
@@ -4608,14 +4683,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         return jsonResponse({ error: "Rate limit exceeded. Please wait a moment before sending more messages.", retry_after: rateCheck.retryAfter }, 429);
       }
 
+      // SEC-13 FIX: Require cryptographic session token; never fall back to body-supplied username
       let sender = await resolveUserFromRequest(request, env);
-      if (!sender && postBody && (postBody.username || postBody.author || postBody.sender)) {
-        const u = (postBody.username || postBody.author || postBody.sender).trim().toLowerCase().replace(/^@/, "");
-        if (env.DB && u) {
-          sender = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(u).first();
-        }
-      }
-
       if (!sender) {
         return jsonResponse({ error: "Unauthorized: Active authenticated session required to post messages." }, 401);
       }
@@ -4803,12 +4872,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const uClean = (u.username || "").toLowerCase().trim().replace(/^@/, "");
         const isSocketActive = onlineSet ? onlineSet.has(uClean) : (u.is_online === 1 || u.is_online === true);
         const isOnline = isStealth ? false : isSocketActive;
+        // SEC-21 FIX: Never expose user email addresses in public user listing
         return {
           id: u.id,
           username: u.username,
           displayName: u.display_name || u.username,
           display_name: u.display_name || u.username,
-          email: u.email,
+          email: "",
           avatarUrl: u.avatar_url || "👾",
           avatar_url: u.avatar_url || "👾",
           is_online: isOnline,
@@ -5098,6 +5168,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({ status: "ok" });
   }
   if (path === "/api/test-fcm") {
+    // SEC-24 FIX: Restrict test push endpoint strictly to administrators
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.is_admin) {
+      return jsonResponse({ error: "Forbidden: Admin access required." }, 403);
+    }
     const targetUser = url.searchParams.get("user") || "srinu";
     const uRow = await env.DB.prepare("SELECT id, username, fcm_token FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser.toLowerCase()).first();
     if (!uRow || !uRow.fcm_token) return jsonResponse({ error: "no user or token", uRow });
@@ -5113,18 +5188,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // 19b. FCM Push Token Registration (/api/push/register-token, /api/v1/push/register-token)
   if ((path === "/api/push/register-token" || path === "/api/v1/push/register-token") && method === "POST") {
+    // SEC-16 FIX: Register FCM token strictly for authenticated session user; never trust body username
     let authUser = await resolveUserFromRequest(request, env);
-    const body = await request.json().catch(() => ({}));
-    const fcmToken = (body.fcm_token || "").trim();
-    const reqUsername = (url.searchParams.get("username") || body.username || "").trim().toLowerCase().replace(/^@/, "");
-
-    if (!authUser && reqUsername && env.DB) {
-      authUser = await env.DB.prepare("SELECT * FROM users WHERE lower(username) = ? LIMIT 1").bind(reqUsername).first();
-    }
-
     if (!authUser) {
       return jsonResponse({ error: "Unauthorized: Active authenticated session required to register push token." }, 401);
     }
+    const body = await request.json().catch(() => ({}));
+    const fcmToken = (body.fcm_token || "").trim();
     if (!fcmToken) {
       return jsonResponse({ error: "fcm_token is required." }, 400);
     }
@@ -5137,19 +5207,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   if (path.startsWith("/api/notifications") || path.startsWith("/api/v1/notifications")) {
-    let myUser = (
-      url.searchParams.get("username") ||
-      url.searchParams.get("user") ||
-      request.headers.get("X-User-Username") ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
-    if (!myUser) {
-      const authUser = await resolveUserFromRequest(request, env);
-      if (authUser && authUser.username) myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
+    // SEC-14 & SEC-16 FIX: Authenticate caller strictly via session token
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to access notifications." }, 401);
     }
-    if (!myUser) {
-      return jsonResponse({ total_unread: 0, notifications: [] }, 200);
-    }
+    let myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (myUser === "chinnu") myUser = "chinnu14754x";
 
     const room = getRealtimeRoom(env);
@@ -5472,9 +5535,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // Voice Call Invite (REST Fallback for Push Notifications & Cross-Device Alerting)
   if (path === "/api/voice/call/invite") {
+    // SEC-19 FIX: Authenticate caller session; identity cannot be spoofed
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to initiate calls." }, 401);
+    }
     const body = await request.json().catch(() => ({}));
-    const caller = (body.caller_username || body.caller || request.headers.get("X-User-Username") || "").trim().replace(/^@/, "");
-    const callerName = body.caller_name || caller;
+    const caller = authCaller.username.trim().replace(/^@/, "");
+    const callerName = authCaller.display_name || caller;
     const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
     const roomId = body.room_id || body.call_id || "call_" + Date.now();
     let avatar = body.caller_avatar;
@@ -5538,10 +5606,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // Voice Call Respond (Accept / Decline)
   if (path === "/api/voice/call/respond") {
+    // SEC-19 FIX: Authenticate responder session
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to respond to calls." }, 401);
+    }
     const body = await request.json().catch(() => ({}));
     const action = body.action || "accept";
     const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
-    const responder = (body.username || body.user_id || request.headers.get("X-User-Username") || "").toLowerCase().trim().replace(/^@/, "");
+    const responder = authCaller.username.toLowerCase().trim().replace(/^@/, "");
     const callId = body.call_id || body.room_id;
 
     if (callId && action !== "accept") {
@@ -5590,9 +5663,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // Voice Call End
   if (path === "/api/voice/call/end") {
+    // SEC-19 FIX: Authenticate caller session
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to end calls." }, 401);
+    }
     const body = await request.json().catch(() => ({}));
     const target = (body.target_user || body.target || "").toLowerCase().trim().replace(/^@/, "");
-    const sender = (body.username || body.user_id || request.headers.get("X-User-Username") || "").toLowerCase().trim().replace(/^@/, "");
+    const sender = authCaller.username.toLowerCase().trim().replace(/^@/, "");
     const callId = body.call_id || body.room_id;
 
     if (callId) {
@@ -5716,17 +5794,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   if ((path === "/api/voice/calls/logs" || path === "/api/calls") && method === "DELETE") {
+    // SEC-18 FIX: Authenticate caller; strictly prevent global table wipe; restrict delete to caller logs
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to delete call logs." }, 401);
+    }
     const logId = (url.searchParams.get("id") || url.searchParams.get("log_id") || "").trim();
-    const u = (url.searchParams.get("username") || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
-    const clearAll = url.searchParams.get("all") === "true" || url.searchParams.get("clear_all") === "true";
+    const u = authCaller.username.trim().toLowerCase().replace(/^@/, "");
     if (env.DB) {
       try {
         if (logId) {
-          await env.DB.prepare("DELETE FROM call_logs WHERE id = ?").bind(logId).run();
-        } else if (u) {
-          await env.DB.prepare("DELETE FROM call_logs WHERE lower(username) = ? OR lower(caller_name) = ?").bind(u, u).run();
-        } else if (clearAll) {
-          await env.DB.prepare("DELETE FROM call_logs").run();
+          await env.DB.prepare("DELETE FROM call_logs WHERE id = ? AND (lower(username) = ? OR lower(caller_name) = ? OR user_id = ?)").bind(logId, u, u, authCaller.id).run();
+        } else {
+          await env.DB.prepare("DELETE FROM call_logs WHERE lower(username) = ? OR lower(caller_name) = ? OR user_id = ?").bind(u, u, authCaller.id).run();
         }
       } catch (_) {}
     }
@@ -5736,19 +5816,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // Call Logs & History (/api/calls and /api/voice/calls/logs)
   if (path === "/api/calls" || path === "/api/voice/calls/logs") {
     let callLogs = [];
-    const targetUser = (url.searchParams.get("username") || request.headers.get("X-User-Username") || "").trim().toLowerCase().replace(/^@/, "");
+    // SEC-18 FIX: Authenticate caller; only return caller's own logs
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to view call logs." }, 401);
+    }
+    const targetUser = authCaller.username.trim().toLowerCase().replace(/^@/, "");
     if (env.DB) {
       try {
-        let res;
-        if (targetUser) {
-          res = await env.DB.prepare(`
-            SELECT * FROM call_logs 
-            WHERE lower(username) = ? OR lower(caller_name) = ?
-            ORDER BY created_at DESC LIMIT 60
-          `).bind(targetUser, targetUser).all();
-        } else {
-          res = await env.DB.prepare("SELECT * FROM call_logs ORDER BY created_at DESC LIMIT 60").all();
-        }
+        let res = await env.DB.prepare(`
+          SELECT * FROM call_logs 
+          WHERE lower(username) = ? OR lower(caller_name) = ? OR user_id = ?
+          ORDER BY created_at DESC LIMIT 60
+        `).bind(targetUser, targetUser, authCaller.id).all();
         callLogs = (res.results || []).map(r => {
           const sec = r.duration_seconds || 0;
           const mins = Math.floor(sec / 60);
@@ -6805,6 +6885,16 @@ async function handleSyncNow(request, env) {
 
 async function handleAiGenerate(request, env) {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+  // SEC-22 FIX: Rate limiting and authentication on Workers AI LLM endpoint
+  const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+  const rateCheck = checkRateLimit(clientIp, "ai_generate", 12, 60);
+  if (!rateCheck.allowed) {
+    return jsonResponse({ error: "Rate limit exceeded for AI generation.", retry_after: rateCheck.retryAfter }, 429);
+  }
+  const caller = await resolveUserFromRequest(request, env);
+  if (!caller) {
+    return jsonResponse({ error: "Unauthorized: Active session required to generate AI responses." }, 401);
+  }
   try {
     if (!env.AI) return jsonResponse({ error: "Workers AI binding not available" }, 500);
     const aiBody = await request.json().catch(() => ({}));
@@ -6832,6 +6922,12 @@ async function handleAiGenerate(request, env) {
 
 async function handleAiModerate(request, env) {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+  // SEC-22 FIX: Rate limiting on content moderation endpoint
+  const clientIp = request.headers.get("cf-connecting-ip") || "unknown";
+  const rateCheck = checkRateLimit(clientIp, "ai_moderate", 25, 60);
+  if (!rateCheck.allowed) {
+    return jsonResponse({ error: "Rate limit exceeded for content moderation.", retry_after: rateCheck.retryAfter }, 429);
+  }
   try {
     if (!env.AI) return jsonResponse({ error: "Workers AI binding not available" }, 500);
     const { text } = await request.json().catch(() => ({}));

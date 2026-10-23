@@ -383,8 +383,10 @@ fun HomeChatScreen(
             if (!isMe) {
                 val decContent = try {
                     if (ConnectoE2EEncryption.isEncrypted(dto.content)) {
-                        val senderKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean)
-                        ConnectoE2EEncryption.decryptMessage(dto.content, senderKey)
+                        val salt = ConnectoApiClient.getE2ESecret()
+                        val senderKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean, salt)
+                        val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean, null)
+                        ConnectoE2EEncryption.decryptMessage(dto.content, senderKey, fallbackKey)
                     } else dto.content
                 } catch (_: Exception) { dto.content }
 
@@ -498,14 +500,18 @@ fun HomeChatScreen(
                         val lastMsgText = when {
                             lastDm != null && lastDm.content.isNotBlank() -> {
                                 if (ConnectoE2EEncryption.isEncrypted(lastDm.content)) {
-                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle)
-                                    ConnectoE2EEncryption.decryptMessage(lastDm.content, key)
+                                    val salt = ConnectoApiClient.getE2ESecret()
+                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle, salt)
+                                    val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle, null)
+                                    ConnectoE2EEncryption.decryptMessage(lastDm.content, key, fallbackKey)
                                 } else lastDm.content
                             }
                             !friend.lastMessage.isNullOrBlank() && friend.lastMessage != "Connected via Cloudflare D1" -> {
                                 if (ConnectoE2EEncryption.isEncrypted(friend.lastMessage)) {
-                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle)
-                                    ConnectoE2EEncryption.decryptMessage(friend.lastMessage, key)
+                                    val salt = ConnectoApiClient.getE2ESecret()
+                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle, salt)
+                                    val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle, null)
+                                    ConnectoE2EEncryption.decryptMessage(friend.lastMessage, key, fallbackKey)
                                 } else friend.lastMessage
                             }
                             else -> "Tap to open chat"
@@ -554,8 +560,10 @@ fun HomeChatScreen(
                             val lastMsgText = when {
                                 lastDm != null && lastDm.content.isNotBlank() -> {
                                     if (ConnectoE2EEncryption.isEncrypted(lastDm.content)) {
-                                        val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle)
-                                        ConnectoE2EEncryption.decryptMessage(lastDm.content, key)
+                                        val salt = ConnectoApiClient.getE2ESecret()
+                                        val key = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle, salt)
+                                        val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUName, cleanHandle, null)
+                                        ConnectoE2EEncryption.decryptMessage(lastDm.content, key, fallbackKey)
                                     } else lastDm.content
                                 }
                                 else -> "Tap to open chat"

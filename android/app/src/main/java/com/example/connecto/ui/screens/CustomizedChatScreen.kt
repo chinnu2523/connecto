@@ -678,7 +678,9 @@ fun CustomizedChatScreen(
         val myDisplayName = ConnectoApiClient.currentUserDisplayName ?: ""
         val myUserId = ConnectoApiClient.currentUserId
         val otherUser = friend.handle.removePrefix("@")
-        val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUName, otherUser)
+        val e2eSecret = ConnectoApiClient.getE2ESecret()
+        val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUName, otherUser, e2eSecret)
+        val fallbackConversationKey = ConnectoE2EEncryption.deriveConversationKey(myUName, otherUser, null)
         val isRecipientOnline = friend.isOnline
 
         val mappedCached = cachedMessages.map { dto ->
@@ -710,9 +712,9 @@ fun CustomizedChatScreen(
                 Triple(dto.content, dto.replyToContent, false)
             } else {
                 val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
-                val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey, fallbackConversationKey) else dto.content
                 val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
-                    ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                    ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey, fallbackConversationKey)
                 } else dto.replyToContent
                 Triple(decMsg, decReply, enc)
             }
@@ -1757,11 +1759,13 @@ fun CustomizedChatScreen(
                     Triple(dto.content, dto.replyToContent, false)
                 } else {
                     val otherUser = currentFriend.handle.removePrefix("@")
-                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+                    val e2eSecret = ConnectoApiClient.getE2ESecret()
+                    val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser, e2eSecret)
+                    val fallbackConversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser, null)
                     val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
-                    val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                    val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey, fallbackConversationKey) else dto.content
                     val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
-                        ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                        ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey, fallbackConversationKey)
                     } else dto.replyToContent
                     Triple(decMsg, decReply, enc)
                 }
@@ -1872,8 +1876,10 @@ fun CustomizedChatScreen(
 
                 val decContent = try {
                     if (ConnectoE2EEncryption.isEncrypted(dto.content)) {
-                        val senderKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean)
-                        ConnectoE2EEncryption.decryptMessage(dto.content, senderKey)
+                        val salt = ConnectoApiClient.getE2ESecret()
+                        val senderKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean, salt)
+                        val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, authorClean, null)
+                        ConnectoE2EEncryption.decryptMessage(dto.content, senderKey, fallbackKey)
                     } else dto.content
                 } catch (_: Exception) { dto.content }
 
@@ -2228,11 +2234,13 @@ fun CustomizedChatScreen(
                                         Triple(dto.content, dto.replyToContent, false)
                                     } else {
                                         val otherUser = friend.handle.removePrefix("@")
-                                        val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser)
+                                        val e2eSecret = ConnectoApiClient.getE2ESecret()
+                                        val conversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser, e2eSecret)
+                                        val fallbackConversationKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, otherUser, null)
                                         val enc = ConnectoE2EEncryption.isEncrypted(dto.content)
-                                        val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey) else dto.content
+                                        val decMsg = if (enc) ConnectoE2EEncryption.decryptMessage(dto.content, conversationKey, fallbackConversationKey) else dto.content
                                         val decReply = if (dto.replyToContent != null && ConnectoE2EEncryption.isEncrypted(dto.replyToContent)) {
-                                            ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey)
+                                            ConnectoE2EEncryption.decryptMessage(dto.replyToContent, conversationKey, fallbackConversationKey)
                                         } else dto.replyToContent
                                         Triple(decMsg, decReply, enc)
                                     }

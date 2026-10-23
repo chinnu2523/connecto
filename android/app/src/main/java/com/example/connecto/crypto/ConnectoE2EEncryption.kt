@@ -78,7 +78,7 @@ object ConnectoE2EEncryption {
         }
     }
 
-    fun decryptMessage(content: String, keyBytes: ByteArray): String {
+    fun decryptMessage(content: String, keyBytes: ByteArray, fallbackKeyBytes: ByteArray? = null): String {
         if (!isEncrypted(content)) return content
         return try {
             val raw = content.removePrefix(PREFIX)
@@ -91,14 +91,29 @@ object ConnectoE2EEncryption {
             val cipherText = ByteArray(cipherTextSize)
             System.arraycopy(combined, GCM_IV_LENGTH, cipherText, 0, cipherTextSize)
 
-            val secretKey = SecretKeySpec(keyBytes, "AES")
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-            val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
-            val decrypted = cipher.doFinal(cipherText)
-            String(decrypted, Charsets.UTF_8)
+            fun tryWithKey(kBytes: ByteArray): String? {
+                return try {
+                    val secretKey = SecretKeySpec(kBytes, "AES")
+                    val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+                    val spec = GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv)
+                    cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+                    val decrypted = cipher.doFinal(cipherText)
+                    String(decrypted, Charsets.UTF_8)
+                } catch (_: Exception) {
+                    null
+                }
+            }
+
+            val primary = tryWithKey(keyBytes)
+            if (primary != null) return primary
+
+            if (fallbackKeyBytes != null) {
+                val fallback = tryWithKey(fallbackKeyBytes)
+                if (fallback != null) return fallback
+            }
+
+            content
         } catch (e: Exception) {
-            // If decryption fails (e.g. wrong key, corrupted), show original or placeholder
             content
         }
     }
