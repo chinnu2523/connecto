@@ -78,7 +78,12 @@ class DirectReplyReceiver : BroadcastReceiver() {
                     return
                 }
 
-                Log.d(TAG, "Processing direct reply: \"$replyText\" to $senderUsername ($channelOrDmId)")
+                // SEC-A06 FIX: Suppress plaintext chat content in release logs
+                if (com.example.connecto.BuildConfig.DEBUG) {
+                    Log.d(TAG, "Processing direct reply: \"$replyText\" to $senderUsername ($channelOrDmId)")
+                } else {
+                    Log.d(TAG, "Processing direct reply to $senderUsername ($channelOrDmId)")
+                }
 
                 // Update notification immediately to show "Sending..." feedback like WhatsApp
                 val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager

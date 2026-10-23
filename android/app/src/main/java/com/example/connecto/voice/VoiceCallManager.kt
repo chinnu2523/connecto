@@ -1120,8 +1120,13 @@ object VoiceCallManager {
         val wsPath = "/api/v1/ws?user_id=$encodedId&username=$encodedUser&token=$encodedToken"
         val url = ConnectoNetworkConfig.getWsUrl(wsPath)
 
-        Log.d(TAG, "Connecting voice signaling WebSocket to: $url")
-        val request = Request.Builder().url(url).build()
+        // SEC-A04 FIX: Do not log bearer tokens to Logcat in cleartext; supply Authorization header
+        val sanitizedLogUrl = ConnectoNetworkConfig.getWsUrl("/api/v1/ws?user_id=$encodedId&username=$encodedUser")
+        Log.d(TAG, "Connecting voice signaling WebSocket to: $sanitizedLogUrl")
+        val request = Request.Builder()
+            .url(url)
+            .addHeader("Authorization", "Bearer $token")
+            .build()
 
             webSocket = okHttpClient.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(ws: WebSocket, response: Response) {

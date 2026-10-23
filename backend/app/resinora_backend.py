@@ -1659,7 +1659,7 @@ async def submit_customer_review(
 # ==================== CARRIER TRACKING & TIMELINE API ====================
 
 @router.get("/orders/{order_id}/tracking")
-async def get_order_tracking(order_id: str):
+async def get_order_tracking(order_id: str, user: Dict[str, Any] = Depends(get_current_user_required)):
     db = load_resinora_db()
     target_order = None
     for o in db.get("orders", []):
@@ -1669,6 +1669,12 @@ async def get_order_tracking(order_id: str):
             
     if not target_order:
         raise HTTPException(status_code=404, detail="Order not found.")
+
+    # SEC-B05 FIX: Enforce customer ownership or admin clearance
+    is_owner = (user.get("email") and user.get("email").lower() == target_order.get("customer_email", "").lower())
+    is_admin = bool(user.get("is_admin"))
+    if not (is_owner or is_admin):
+        raise HTTPException(status_code=403, detail="Forbidden: You do not have permission to view tracking for this order.")
         
     status = target_order.get("current_status", "CONFIRMED")
     carrier = target_order.get("tracking_carrier") or "BlueDart Express Fragile"
@@ -1698,7 +1704,7 @@ async def get_order_tracking(order_id: str):
 # ==================== TRANSACTIONAL EMAIL PREVIEW API ====================
 
 @router.get("/orders/{order_id}/email-preview")
-async def preview_order_email(order_id: str, type: str = "confirmation"):
+async def preview_order_email(order_id: str, type: str = "confirmation", admin_user: Dict[str, Any] = Depends(get_current_admin_required)):
     db = load_resinora_db()
     target_order = None
     for o in db.get("orders", []):

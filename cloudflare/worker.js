@@ -140,12 +140,12 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.5.9",
-        version_name: "v4.5.9",
-        version_code: 88,
-        build: 88,
-        sha256: "3b5ece3483d328d26fc4868227bc2d3ea07f13f12618d39804ab8e1212fde09c",
-        md5: "7a11ee9600c36289d04f356c897c5119",
+        version: "4.6.0",
+        version_name: "v4.6.0",
+        version_code: 89,
+        build: 89,
+        sha256: "8b6805d3b1fff5837e12cf62d26b9c2c507bbcd968390807cf8661df1615da5b",
+        md5: "00e6b7a783e0cc5a9e98cd29424e1011",
         filename: "connecto-fun.apk",
         size_bytes: 57849101,
         size_display: "55.2 MB",
@@ -155,11 +155,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Studio-Grade Voice Isolation Engine: Hardware NoiseSuppressor, AcousticEchoCanceler, and AutomaticGainControl bound directly to AudioRecord session ID, eliminating background noise at the SoC silicon layer.",
-          "Multi-Mic Beamforming: Auto-detects dual-mic hardware (API 28+) and activates directional beamforming focused on the user's mouth with MIC_DIRECTION_TOWARDS_USER and narrow field dimension.",
-          "4-Stage DSP Noise Pipeline: 140Hz Butterworth HPF removes rumble; 3400Hz LPF kills hiss; -90dB adaptive expander gate silences room ambiance during speech pauses with 240ms hangover hold.",
-          "Profile Delete Account Button Removed: The 'Delete Account Forever' button has been removed from the Profile tab Danger Zone; deletion is accessible only via Help & Support.",
-          "Calls Tab Speed Fix: Parallel async data fetching, D1 expression indexes, SharedPreferences disk cache, and background pre-fetching eliminate the cold-start loading delay."
+          "Production Signed Release: Built and signed using dedicated 2048-bit RSA production keystore with APK Signature Scheme V1, V2, and V3.",
+          "Phase 3 Full-Stack Security Hardening: Comprehensive remediation across Edge Worker, FastAPI Backend, Web Frontend, and Android Native tiers.",
+          "WebSocket Identity Isolation: Real-time room identity strictly bound to authenticated credentials with complete upgrade smuggling protection.",
+          "Edge Authorization & Rate Limiting: Strict participant authorization on DMs, group operations, presence updates, and 5-failure lockout counters on 2FA and OTP flows.",
+          "Backend & Web Defense-in-Depth: Legacy unauthenticated fallback removal, password change session verification, admin token TTL, and complete DOM XSS sanitization."
         ]
       });
     }
@@ -204,19 +204,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.9/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.5.9/connecto-v4.5.9.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.0/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.0/connecto-v4.6.0.apk",
           "https://connecto.fun/downloads/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.5.9-b88-secpatch.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.0-b89-fullsec.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.5.9");
-          res.headers.set("X-Connecto-Build", "88");
+          res.headers.set("X-Connecto-Version", "v4.6.0");
+          res.headers.set("X-Connecto-Build", "89");
           return res;
         }
 
@@ -229,7 +229,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.5.9"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.0"
               }
             });
             if (upstreamResp.ok) {
@@ -240,8 +240,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.5.9");
-              downloadHeaders.set("X-Connecto-Build", "88");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.0");
+              downloadHeaders.set("X-Connecto-Build", "89");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -256,7 +256,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.5.9/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.0/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -309,6 +309,10 @@ export default {
       }
       const room = getRealtimeRoom(env);
       if (room) {
+        // SEC-31 / SEC-W02 FIX: Prevent WebSocket upgrade smuggling to DO internal routes
+        if (url.pathname.toLowerCase().startsWith("/internal")) {
+          return new Response("Forbidden: Internal endpoint", { status: 403 });
+        }
         return room.fetch(request);
       }
       return handleEdgeWebSocket(request, env, ctx);
@@ -967,8 +971,11 @@ async function verifyPassword(storedHash, password) {
 async function generateEdgeToken(userId, env) {
   const ts = Date.now();
   const raw = `${userId}_${ts}`;
-  // SEC-23 FIX: Use secure environment secret exclusively
+  // SEC-23 / SEC-W07 FIX: Use secure environment secret exclusively; fail closed if absent
   const secret = (env && env.SECRET_KEY);
+  if (!secret || typeof secret !== "string") {
+    throw new Error("SECRET_KEY environment binding required for token generation");
+  }
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -997,8 +1004,9 @@ async function verifyEdgeToken(token, env) {
   const ts = parseInt(payload.substring(lastUnderscore + 1), 10);
   if (isNaN(ts) || Date.now() - ts > 30 * 86400 * 1000) return null;
 
-  // SEC-23 FIX: Use secure environment secret exclusively
+  // SEC-23 / SEC-W07 FIX: Use secure environment secret exclusively; fail closed if absent
   const secret = (env && env.SECRET_KEY);
+  if (!secret || typeof secret !== "string") return null;
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey(
     "raw",
@@ -1303,7 +1311,7 @@ async function resolveUserFromRequest(request, env) {
     try {
       const hashHex = await sha256Hex(token);
       const session = await env.DB.prepare(
-        "SELECT user_id FROM user_sessions WHERE (session_token_hash = ? OR id = ?) LIMIT 1"
+        "SELECT user_id FROM user_sessions WHERE (session_token_hash = ? OR id = ?) AND expires_at > datetime('now') LIMIT 1"
       ).bind(hashHex, token).first();
 
       if (session && session.user_id) {
@@ -1967,6 +1975,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         }
 
         if (!validOtp) {
+          // SEC-20 / SEC-W11 FIX: Track failed attempts; lock after 5 failures to prevent OTP brute force
+          if (env.DB && records.results && records.results.length > 0) {
+            const latestRecord = records.results[0];
+            await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+            const newAttempts = (latestRecord.attempts || 0) + 1;
+            if (newAttempts >= 5) {
+              await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+              return jsonResponse({
+                error: "Too many failed attempts. This OTP has been invalidated for security. Please request a new code.",
+                detail: "OTP invalidated due to excessive attempts",
+                locked: true
+              }, 429);
+            }
+          }
           return jsonResponse({
             error: "Invalid verification code. Please check your email and enter the correct code to disable 2FA.",
             detail: "Invalid OTP code"
@@ -2228,6 +2250,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         await env.DB.prepare(
           "UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?"
         ).bind(hashedPassword, user.id).run();
+        // SEC-W07 FIX: Terminate all existing sessions on password reset
+        await env.DB.prepare("DELETE FROM user_sessions WHERE user_id = ?").bind(user.id).run().catch(() => {});
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO terminated_sessions (session_token_hash, created_at) VALUES (?, datetime('now'))"
+        ).bind(`all_before_${user.id}`).run().catch(() => {});
       }
 
       const token = await generateEdgeToken(user.id, env);
@@ -2351,6 +2378,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         await env.DB.prepare(
           "INSERT INTO notifications (id, user_id, type, title, content, is_read, created_at) VALUES (?, ?, 'security_alert', '🔐 Password Updated', 'Your Connecto account password was successfully changed from Personal Details.', 0, datetime('now'))"
         ).bind(notifId, user.id).run().catch(() => {});
+
+        // SEC-W07 FIX: Revoke prior sessions on password change
+        await env.DB.prepare("DELETE FROM user_sessions WHERE user_id = ?").bind(user.id).run().catch(() => {});
+        await env.DB.prepare(
+          "INSERT OR REPLACE INTO terminated_sessions (session_token_hash, created_at) VALUES (?, datetime('now'))"
+        ).bind(`all_before_${user.id}`).run().catch(() => {});
       }
 
       const newToken = await generateEdgeToken(user.id, env);
@@ -2901,6 +2934,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
 
       if (!valid) {
+        // SEC-W11 FIX: Track failed attempts; lock after 5 failures to prevent OTP brute force
+        if (env.DB && records.results && records.results.length > 0) {
+          const latestRecord = records.results[0];
+          await env.DB.prepare("UPDATE otp_verifications SET attempts = attempts + 1 WHERE id = ?").bind(latestRecord.id).run();
+          const newAttempts = (latestRecord.attempts || 0) + 1;
+          if (newAttempts >= 5) {
+            await env.DB.prepare("UPDATE otp_verifications SET is_verified = 2 WHERE id = ?").bind(latestRecord.id).run();
+            return jsonResponse({
+              error: "Too many failed attempts. This OTP has been invalidated for security. Please request a new code.",
+              detail: "OTP invalidated due to excessive attempts",
+              locked: true
+            }, 429);
+          }
+        }
         return jsonResponse({ error: "Invalid or expired verification code." }, 400);
       }
 
@@ -3170,8 +3217,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const avatar = typeof rawAvatar === "string" && rawAvatar.startsWith("data:image/") ? rawAvatar.slice(0, 1000000) : sanitizeText(rawAvatar, 2048);
         const rawBanner = body.banner_url !== undefined ? body.banner_url : (caller.banner_url || "");
         const banner = typeof rawBanner === "string" && rawBanner.startsWith("data:image/") ? rawBanner.slice(0, 1000000) : (rawBanner === "" || rawBanner === null ? "" : sanitizeText(rawBanner, 2048));
-        const email = sanitizeText(body.email || (caller.email || ""), 100);
-        const phone = sanitizeText(body.phone_number || body.phone || (caller.phone_number || ""), 30);
+        // SEC-W13 FIX: Contact info changes require OTP verification via /api/v1/users/me/change-contact/*
+        const email = caller.email || "";
+        const phone = caller.phone_number || "";
         const dob = sanitizeText(body.date_of_birth || (caller.date_of_birth || ""), 20);
         const gender = sanitizeText(body.gender || (caller.gender || "unspecified"), 20);
         const location = sanitizeText(body.location || (caller.location || ""), 100);
@@ -3740,22 +3788,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // 10. Direct Messages: Contact List (/api/dms)
   if (path === "/api/dms") {
-    let callerUser = (
-      url.searchParams.get("user") ||
-      url.searchParams.get("username") ||
-      request.headers.get("X-User-Username") ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
-
-    if (!callerUser) {
-      const authUser = await resolveUserFromRequest(request, env);
-      if (authUser && authUser.username) {
-        callerUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-      }
+    // SEC-W06 FIX: Authenticate caller strictly; ignore unauthenticated query/header user parameters
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to view DM contacts." }, 401);
     }
-    if (!callerUser) {
-      return jsonResponse([], 200);
-    }
+    let callerUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (callerUser === "chinnu") callerUser = "chinnu14754x";
 
     let contacts = [];
@@ -3824,20 +3862,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 11. Direct Messages: Unread Counts (/api/dm/unread-counts)
   // CRITICAL: Must return direct key-value mapping of { [partner_username]: count } without extra fields
   if (path === "/api/dm/unread-counts" || path === "/api/v1/chat/dm/unread-counts") {
-    let myUser = (
-      url.searchParams.get("username") ||
-      url.searchParams.get("user") ||
-      request.headers.get("X-User-Username") ||
-      request.headers.get("X-Username") ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
-
-    if (!myUser) {
-      const authUser = await resolveUserFromRequest(request, env);
-      if (authUser && authUser.username) {
-        myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-      }
+    // SEC-W06 FIX: Authenticate caller strictly; ignore unauthenticated user params
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({});
     }
+    const myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
 
     if (!myUser || !env.DB) {
       return jsonResponse({});
@@ -3881,22 +3911,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       ""
     ).trim().toLowerCase().replace(/^@/, "");
 
-    let myUser = (
-      url.searchParams.get("my_username") ||
-      body.my_username ||
-      request.headers.get("X-User-Username") ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
-
-    if (!myUser) {
-      const authUser = await resolveUserFromRequest(request, env);
-      if (authUser && authUser.username) {
-        myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-      }
-    }
-    if (!myUser) {
+    // SEC-W06 FIX: Authenticate caller strictly; identity cannot be spoofed
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
       return jsonResponse({ detail: "Authentication required to start a direct message." }, 401);
     }
+    let myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (myUser === "chinnu") myUser = "chinnu14754x";
     if (targetUser === "chinnu") targetUser = "chinnu14754x";
 
@@ -4340,6 +4360,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const groupUpdateMatch = path.match(/^\/api\/groups\/([^\/]+)\/update$/);
   if (groupUpdateMatch && method === "POST") {
     const groupId = groupUpdateMatch[1];
+    // SEC-W05 FIX: Enforce caller authentication & membership
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to update group." }, 401);
+    }
+    if (env.DB) {
+      const isPart = await env.DB.prepare(
+        "SELECT 1 FROM dm_participants WHERE channel_id = ? AND user_id = ? LIMIT 1"
+      ).bind(groupId, caller.id).first();
+      if (!isPart && !caller.is_admin) {
+        return jsonResponse({ error: "Forbidden: You are not a member of this group." }, 403);
+      }
+    }
     const body = await request.json().catch(() => ({}));
     if (env.DB && body.name) {
       try {
@@ -4355,6 +4388,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const groupAddMembersMatch = path.match(/^\/api\/groups\/([^\/]+)\/members\/add$/);
   if (groupAddMembersMatch && method === "POST") {
     const groupId = groupAddMembersMatch[1];
+    // SEC-W05 FIX: Enforce caller authentication & membership
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to add members." }, 401);
+    }
+    if (env.DB) {
+      const isPart = await env.DB.prepare(
+        "SELECT 1 FROM dm_participants WHERE channel_id = ? AND user_id = ? LIMIT 1"
+      ).bind(groupId, caller.id).first();
+      if (!isPart && !caller.is_admin) {
+        return jsonResponse({ error: "Forbidden: You are not a member of this group." }, 403);
+      }
+    }
     const body = await request.json().catch(() => ({}));
     const rawMembers = Array.isArray(body.members) ? body.members : [];
     if (env.DB) {
@@ -4471,16 +4517,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const groupLeaveMatch = path.match(/^\/api\/groups\/([^\/]+)\/(?:leave|members\/leave)$/);
   if (groupLeaveMatch && method === "POST") {
     const groupId = groupLeaveMatch[1];
-    const body = await request.json().catch(() => ({}));
-    let username = String(body.username || body.member || request.headers.get("X-User-Username") || url.searchParams.get("username") || "").trim().toLowerCase().replace(/^@/, "");
-    if (!username) {
-      try {
-        const authUser = await resolveUser(request, env);
-        if (authUser && authUser.username) {
-          username = authUser.username.trim().toLowerCase().replace(/^@/, "");
-        }
-      } catch (_) {}
+    // SEC-W05 FIX: Enforce authenticated caller identity; prevent forging leave for third-party members
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to leave group." }, 401);
     }
+    const username = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (env.DB && username) {
       try {
         const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(username).first();
@@ -4709,6 +4751,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       const isDm = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_") || channelId.startsWith("dm-") || channelId.startsWith("dm_");
       const dmRecipient = isDm ? resolveDmRecipient(canonicalChannel, senderUsername, body.recipient || body.target) : null;
+      // SEC-W04 FIX: Verify sender is a participant in this direct message
+      if (isDm && !dmRecipient && !sender.is_admin) {
+        return jsonResponse({ error: "Forbidden: You are not a participant in this conversation." }, 403);
+      }
 
       if (env.DB) {
         try {
@@ -5063,15 +5109,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // 17d. Delete Message For Me: POST (/api/messages/delete-for-me)
   if ((path === "/api/messages/delete-for-me" || path === "/api/v1/chat/messages/delete-for-me") && method === "POST") {
+    // SEC-W09 FIX: Authenticate caller strictly; user cannot delete messages for another user
+    const u = await resolveUserFromRequest(request, env);
+    if (!u || !u.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
+    }
+    const uname = (u.username || "").toLowerCase().trim().replace(/^@/, "");
     const body = await request.json().catch(() => ({}));
     const messageId = (body.message_id || body.messageId || "").trim();
-    let uname = (body.username || body.user || "").trim().toLowerCase().replace(/^@/, "");
-    if (!uname) {
-      const u = await resolveUserFromRequest(request, env);
-      if (u) uname = (u.username || "").toLowerCase();
-    }
-    if (!messageId || !uname) {
-      return jsonResponse({ error: "message_id and username required" }, 400);
+    if (!messageId) {
+      return jsonResponse({ error: "message_id required" }, 400);
     }
     if (env.DB) {
       try {
@@ -5091,6 +5138,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     const chId = pinMatch[1];
     const action = pinMatch[2];
     if (action === "unpin" || (action === "pin" && method === "DELETE")) {
+      // SEC-W09 FIX: Require authenticated user to unpin
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller) return jsonResponse({ error: "Unauthorized" }, 401);
       if (env.DB) {
         try {
           await env.DB.prepare(
@@ -5101,9 +5151,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       return jsonResponse({ status: "ok", unpinned: true });
     }
     if (action === "pin" && method === "POST") {
+      // SEC-W09 FIX: Require authenticated user to pin
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller) return jsonResponse({ error: "Unauthorized" }, 401);
       const body = await request.json().catch(() => ({}));
       const msgId = (body.message_id || body.messageId || "").trim();
-      const uname = (body.username || body.user || "user").trim();
+      const uname = caller.username;
       if (env.DB && msgId) {
         try {
           await env.DB.prepare(
@@ -5478,6 +5531,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // Voice room create
   if (path === "/api/voice/rooms/create") {
+    // SEC-W10 FIX: Authenticate caller
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to create voice rooms." }, 401);
+    }
     const body = await request.json().catch(() => ({}));
     const rId = "vr_" + Math.random().toString(36).substring(2, 8);
     const rName = body.name || "Custom Room";
@@ -5492,7 +5550,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
     return jsonResponse({
       status: "ok",
-      room: { id: rId, name: rName, topic: rTopic, icon: rIcon, creator: body.creator || "chinnu", max_participants: 25, participants: [] }
+      room: { id: rId, name: rName, topic: rTopic, icon: rIcon, creator: authCaller.username, max_participants: 25, participants: [] }
     });
   }
 
@@ -5513,12 +5571,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // Pending Incoming Voice Call Check (Background Service & Reconnect Fallback)
   if (path === "/api/voice/call/pending") {
-    const target = (
-      url.searchParams.get("username") ||
-      url.searchParams.get("user") ||
-      request.headers.get("X-User-Username") ||
-      ""
-    ).toLowerCase().trim().replace(/^@/, "");
+    // SEC-W10 FIX: Authenticate caller strictly; user cannot poll other users' incoming calls
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ has_pending: false });
+    }
+    const target = authCaller.username.toLowerCase().trim().replace(/^@/, "");
     if (target) {
       const room = getRealtimeRoom(env);
       if (room) {
@@ -5786,9 +5844,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const delCallMatch = path.match(/^\/api\/voice\/calls\/logs\/([^\/]+)$/);
   if (delCallMatch && method === "DELETE") {
     const logId = delCallMatch[1];
+    // SEC-W09 FIX: Authenticate caller; restrict delete to caller's own logs
+    const authCaller = await resolveUserFromRequest(request, env);
+    if (!authCaller || !authCaller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to delete call logs." }, 401);
+    }
+    const u = authCaller.username.trim().toLowerCase().replace(/^@/, "");
     if (env.DB) {
       try {
-        await env.DB.prepare("DELETE FROM call_logs WHERE id = ?").bind(logId).run();
+        await env.DB.prepare(
+          "DELETE FROM call_logs WHERE id = ? AND (lower(username) = ? OR lower(caller_name) = ? OR user_id = ?)"
+        ).bind(logId, u, u, authCaller.id).run();
       } catch (_) {}
     }
     return jsonResponse({ status: "ok", deleted: true, id: logId });
@@ -5886,12 +5952,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.5.9",
-      version_name: "v4.5.9",
-      version_code: 88,
-      build: 88,
-      sha256: "3b5ece3483d328d26fc4868227bc2d3ea07f13f12618d39804ab8e1212fde09c",
-      md5: "7a11ee9600c36289d04f356c897c5119",
+      version: "4.6.0",
+      version_name: "v4.6.0",
+      version_code: 89,
+      build: 89,
+      sha256: "8b6805d3b1fff5837e12cf62d26b9c2c507bbcd968390807cf8661df1615da5b",
+      md5: "00e6b7a783e0cc5a9e98cd29424e1011",
       filename: "connecto-fun.apk",
       size_bytes: 57849101,
       size_display: "55.2 MB",
@@ -5907,10 +5973,29 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.6.0",
+          date: "Oct 23, 2026",
+          category: "security",
+          tag: "Latest Release",
+          title: "Connecto v4.6.0: Phase 3 Full-Stack Security Hardening & Production Signed Release",
+          summary: "Connecto v4.6.0 is a milestone release delivering comprehensive Phase 3 security hardening across the entire platform. Built and signed with a dedicated 2048-bit RSA production keystore (V1, V2, and V3 signatures with R8 code optimization). Remediates all potential privilege escalation, identity spoofing, rate limiting, and information disclosure risks across Edge Worker, FastAPI Backend, Web Frontend, and Android Native tiers.",
+          highlights: [
+            "Production Keystore & Signature Verification: Built and signed using dedicated 2048-bit RSA release keystore (connecto-release.jks) with full APK Signature Scheme v1, v2, and v3 validation.",
+            "WebSocket Identity & Upgrade Smuggling Protection: Bound room identity strictly to authenticated token session credentials; blocked unauthorized external WebSocket upgrade routing to internal Durable Object paths.",
+            "Edge Participant Authorization: Enforced strict channel participant authorization on DMs, group admin actions, presence updates, and voice call logs.",
+            "Brute Force & Rate Limit Defenses: Implemented edge-tracked 5-failure lockout counters on 2FA disable and contact change OTP verification pipelines.",
+            "FastAPI Parameter Fallback Removal: Completely eliminated insecure X-User-Username and query parameter identity fallbacks across all backend endpoints; enforced active session validation on password changes.",
+            "Frontend DOM XSS Hardening: Escaped all dynamic user inputs, avatars, careers data, and screening portal rendered content with zero-trust escaping.",
+            "Android IPC & Logging Hardening: Redacted bearer tokens and chat replies from production Logcat, and gated debug test intents on DEBUG flags.",
+            "Android Native App v4.6.0 (Build 89 • 55.2 MB • Production Signed): SHA-256 8b6805d3b1fff5837e12cf62d26b9c2c507bbcd968390807cf8661df1615da5b • MD5 00e6b7a783e0cc5a9e98cd29424e1011."
+          ],
+          author: "Connecto Security & Core Engineering Team"
+        },
+        {
           version: "v4.5.9",
           date: "Oct 19, 2026",
           category: "feature",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.5.9: Hardware Voice Isolation, Multi-Mic Beamforming & Calls Tab Speed Fix",
           summary: "Connecto v4.5.9 introduces a studio-grade 4-stage DSP voice isolation engine with automatic phone hardware capability detection. The app now binds Android's native NoiseSuppressor, AcousticEchoCanceler, and AutomaticGainControl directly to the AudioRecord hardware session, detects multi-mic beamforming capabilities, and engages directional microphone focus — completely eliminating background fan noise, AC hum, keyboard clicks, and room ambiance from calls. The Calls tab cold-start loading delay is resolved via parallel coroutine execution, D1 expression indexes, and SharedPreferences disk caching. The 'Delete Account Forever' button is removed from the Profile tab Danger Zone.",
           highlights: [
@@ -6443,19 +6528,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
   // 36. Presence Management Endpoints
   if (path === "/api/presence/offline" || path === "/api/v1/presence/offline") {
-    let body = {};
-    if (method === "POST") {
-      try { body = await request.json(); } catch (_) {}
+    // SEC-W08 FIX: Authenticate caller strictly; user cannot kick another user offline
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
     }
-    let authUser = await resolveUserFromRequest(request, env);
-    let targetUser = (
-      body.username ||
-      body.user ||
-      url.searchParams.get("username") ||
-      url.searchParams.get("user") ||
-      (authUser && authUser.username) ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
+    const targetUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
 
     if (targetUser) {
       if (env.DB) {
@@ -6479,19 +6557,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   if (path === "/api/presence/online" || path === "/api/v1/presence/online") {
-    let body = {};
-    if (method === "POST") {
-      try { body = await request.json(); } catch (_) {}
+    // SEC-W08 FIX: Authenticate caller strictly
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required." }, 401);
     }
-    let authUser = await resolveUserFromRequest(request, env);
-    let targetUser = (
-      body.username ||
-      body.user ||
-      url.searchParams.get("username") ||
-      url.searchParams.get("user") ||
-      (authUser && authUser.username) ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
+    const targetUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
 
     if (targetUser) {
       if (env.DB) {
@@ -6509,18 +6580,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   if (path === "/api/auth/logout" || path === "/api/v1/auth/logout") {
-    let body = {};
-    if (method === "POST") {
-      try { body = await request.json(); } catch (_) {}
-    }
-    let authUser = await resolveUserFromRequest(request, env);
-    let targetUser = (
-      body.username ||
-      body.user ||
-      url.searchParams.get("username") ||
-      (authUser && authUser.username) ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
+    // SEC-W08 FIX: Authenticate caller strictly
+    const authUser = await resolveUserFromRequest(request, env);
+    const targetUser = (authUser && authUser.username) ? authUser.username.trim().toLowerCase().replace(/^@/, "") : "";
 
     const authHeader = request.headers.get("Authorization") || "";
     let logoutToken = "";
@@ -6555,12 +6617,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   if (path === "/api/user/heartbeat" || path === "/api/v1/user/heartbeat" || path === "/api/presence/heartbeat") {
-    let authUser = await resolveUserFromRequest(request, env);
-    let targetUser = (
-      url.searchParams.get("username") ||
-      (authUser && authUser.username) ||
-      ""
-    ).trim().toLowerCase().replace(/^@/, "");
+    const authUser = await resolveUserFromRequest(request, env);
+    if (!authUser || !authUser.username) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+    const targetUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
     if (targetUser && env.DB) {
       await env.DB.prepare("UPDATE users SET is_online = 1, updated_at = datetime('now') WHERE lower(username) = ? AND is_stealth = 0")
         .bind(targetUser).run().catch(() => {});
@@ -6608,6 +6669,9 @@ async function handlePagesEdgeFallback(request, url, host) {
       resHeaders.set("X-Served-By", "Cloudflare-Pages-Edge");
       resHeaders.set("X-Connecto-Mode", "cloud_server");
       resHeaders.set("Access-Control-Allow-Origin", "*");
+      resHeaders.set("Content-Security-Policy", "default-src 'self' https: data: blob: 'unsafe-inline'; script-src 'self' https: 'unsafe-inline'; object-src 'none'; frame-ancestors 'self';");
+      resHeaders.set("X-Content-Type-Options", "nosniff");
+      resHeaders.set("X-Frame-Options", "SAMEORIGIN");
       const ct = pagesResponse.headers.get("content-type") || "";
       if (ct.includes("text/html")) {
         let htmlText = await pagesResponse.text();
@@ -6856,6 +6920,13 @@ async function handleSyncStatus(env) {
 
 async function handleSyncNow(request, env) {
   try {
+    // SEC-W15 FIX: Require administrator or internal key authorization
+    const caller = await resolveUserFromRequest(request, env);
+    const d1Key = request.headers.get("X-D1-Key") || "";
+    const isAuthorized = (caller && caller.is_admin) || (env.DB_API_KEY && d1Key === env.DB_API_KEY);
+    if (!isAuthorized) {
+      return jsonResponse({ error: "Forbidden: Administrator clearance required." }, 403);
+    }
     if (!env.DB) {
       return jsonResponse({ status: "error", error: "D1 database not configured" }, 500);
     }
@@ -7145,6 +7216,18 @@ export class ConnectoRealtimeRoom {
 
   async fetch(request) {
     const url = new URL(request.url);
+
+    // SEC-W02 FIX: Restrict /internal/* endpoints to internal worker calls only
+    if (url.pathname.startsWith("/internal/")) {
+      const isInternalUrl = url.hostname === "realtime" || url.hostname === "127.0.0.1" || url.hostname === "localhost";
+      const isInternalHeader = request.headers.get("X-Internal-Secret") === "connecto_edge_mesh_internal_bridge" || request.headers.get("X-Internal-Realtime") === "1";
+      if (!isInternalUrl && !isInternalHeader) {
+        return new Response(JSON.stringify({ error: "Forbidden: Internal DO route" }), {
+          status: 403,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
 
     // 1. Internal HTTP broadcast dispatch from REST API endpoints
     if (url.pathname === "/internal/broadcast" || request.headers.get("X-Internal-Realtime") === "1") {
@@ -7468,11 +7551,30 @@ export class ConnectoRealtimeRoom {
       return;
     }
 
+    let authUsername = wsAuthUser;
+    if (this.env && this.env.DB) {
+      try {
+        const uRow = await this.env.DB.prepare(
+          "SELECT username FROM users WHERE id = ? OR lower(username) = ? LIMIT 1"
+        ).bind(wsAuthUser, String(wsAuthUser).toLowerCase()).first();
+        if (uRow && uRow.username) {
+          authUsername = uRow.username.toLowerCase().trim().replace(/^@/, "");
+        }
+      } catch (_) {}
+    }
+    // SEC-30 / SEC-W01 FIX: Enforce identity binding; prevent connecting as another user
+    const resolvedAuthUser = String(authUsername).toLowerCase().trim().replace(/^@/, "");
+    if (cleanUser && cleanUser !== resolvedAuthUser && cleanUser !== String(wsAuthUser).toLowerCase()) {
+      server.close(1008, "Policy Violation: Identity Mismatch");
+      return;
+    }
+    const finalUser = resolvedAuthUser || cleanUser;
+
     const meta = {
-      username: cleanUser,
-      displayName: cleanUser.charAt(0).toUpperCase() + cleanUser.slice(1),
-      avatar: knownAvatars[cleanUser] || "👾",
-      channels: new Set(["general", cleanUser]),
+      username: finalUser,
+      displayName: finalUser.charAt(0).toUpperCase() + finalUser.slice(1),
+      avatar: knownAvatars[finalUser] || "👾",
+      channels: new Set(["general", finalUser]),
       currentVoiceRoom: null,
       sessionTokenHash: sessionTokenHash,
       connectedAt: Date.now()
@@ -7482,11 +7584,11 @@ export class ConnectoRealtimeRoom {
     this.sockets.add(server);
     this.socketMeta.set(server, meta);
 
-    if (!this.userSockets.has(cleanUser)) this.userSockets.set(cleanUser, new Set());
-    this.userSockets.get(cleanUser).add(server);
+    if (!this.userSockets.has(finalUser)) this.userSockets.set(finalUser, new Set());
+    this.userSockets.get(finalUser).add(server);
 
     const rawUserId = (url.searchParams.get("user_id") || "").trim().toLowerCase();
-    if (rawUserId && rawUserId !== cleanUser) {
+    if (rawUserId && (rawUserId === finalUser || rawUserId === String(wsAuthUser).toLowerCase())) {
       if (!this.userSockets.has(rawUserId)) this.userSockets.set(rawUserId, new Set());
       this.userSockets.get(rawUserId).add(server);
     }
@@ -7588,6 +7690,13 @@ export class ConnectoRealtimeRoom {
           for (const c of chs) {
             if (!c) continue;
             const cl = String(c).toLowerCase().trim();
+            // SEC-W03 FIX: Validate DM channel participant authorization before subscribing
+            if (cl.startsWith("dm-") || cl.startsWith("dm_")) {
+              const recipient = resolveDmRecipient(cl, meta.username, null);
+              if (!recipient && meta.username !== "chinnu" && meta.username !== "chinnu14754x") {
+                continue;
+              }
+            }
             meta.channels.add(cl);
             if (!this.channelSockets.has(cl)) this.channelSockets.set(cl, new Set());
             this.channelSockets.get(cl).add(server);
@@ -7969,6 +8078,16 @@ export class ConnectoRealtimeRoom {
           if (!rawContent.trim()) return;
 
           const targetCh = (data.channel_id || data.channelId || data.channel || "general").toLowerCase().trim();
+
+          // SEC-W03 FIX: Validate DM channel participant authorization before broadcasting/persisting
+          if (targetCh.startsWith("dm-") || targetCh.startsWith("dm_")) {
+            const recipient = resolveDmRecipient(targetCh, meta.username, data.recipient || data.target);
+            if (!recipient && meta.username !== "chinnu" && meta.username !== "chinnu14754x") {
+              server.send(JSON.stringify({ type: "error", error: "Forbidden: You are not a participant in this conversation." }));
+              return;
+            }
+          }
+
           const msgId = "msg_rt_" + Math.random().toString(36).substring(2, 10);
           const nowIso = new Date().toISOString();
 

@@ -1761,13 +1761,13 @@ async def api_voice_call_respond(
 @app.get("/api/voice/call/pending")
 async def api_voice_call_pending(
     request: Request,
-    username: Optional[str] = None,
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
     """Checks if there is an active ringing call for the user (by session or username parameter)."""
     from app.core.ws import ws_manager
-    uname = (username or (current_user.username if current_user else "") or request.headers.get("X-User-Username") or "").strip().lower().lstrip("@")
-    uid = (current_user.id if current_user else "").strip().lower()
+    # SEC-B01 FIX: Enforce session authentication; remove untrusted query and header fallbacks
+    uname = current_user.username.strip().lower().lstrip("@")
+    uid = current_user.id.strip().lower()
 
     if not uname and not uid:
         return {"status": "ok", "has_pending": False, "call": None}
@@ -1911,13 +1911,8 @@ async def create_group_chat_endpoint(
 ):
     """Creates a persistent group chat channel and registers members."""
     from app.core.ws import ws_manager
-    current_u = await get_current_user_optional(request, db)
-    if not current_u:
-        x_user = request.headers.get("X-User-Username") or request.query_params.get("username")
-        if x_user:
-            clean_u = x_user.strip().lower().removeprefix("@")
-            u_stmt = select(User).where(or_(func.lower(User.username) == clean_u, User.id == clean_u))
-            current_u = (await db.execute(u_stmt)).scalar_one_or_none()
+    # SEC-B01 FIX: Enforce session authentication; remove untrusted header/query fallbacks
+    current_u = await get_current_user(request, db)
     if not current_u:
         raise HTTPException(status_code=401, detail="Authentication required to create a group chat.")
 
@@ -2028,13 +2023,8 @@ async def get_user_groups_endpoint(
     db: AsyncSession = Depends(get_db)
 ):
     """Returns all group chats the authenticated user is a participant of."""
-    current_u = await get_current_user_optional(request, db)
-    if not current_u:
-        x_user = request.headers.get("X-User-Username") or request.query_params.get("username")
-        if x_user:
-            clean_u = x_user.strip().lower().removeprefix("@")
-            u_stmt = select(User).where(or_(func.lower(User.username) == clean_u, User.id == clean_u))
-            current_u = (await db.execute(u_stmt)).scalar_one_or_none()
+    # SEC-B01 FIX: Enforce session authentication; remove untrusted header/query fallbacks
+    current_u = await get_current_user(request, db)
     if not current_u:
         return {"status": "ok", "groups": []}
 
@@ -2290,23 +2280,8 @@ async def delete_group_endpoint(
 ):
     """Allows group admin or owner to delete a group permanently."""
     from app.core.ws import ws_manager
-    current_u = await get_current_user_optional(request, db)
-    if not current_u:
-        x_user = request.headers.get("X-User-Username") or request.query_params.get("username")
-        if x_user:
-            clean_u = x_user.strip().lower().removeprefix("@")
-            u_stmt = select(User).where(or_(func.lower(User.username) == clean_u, User.id == clean_u))
-            current_u = (await db.execute(u_stmt)).scalar_one_or_none()
-    if not current_u:
-        try:
-            b = await request.json()
-            b_u = b.get("username") or b.get("admin")
-            if b_u:
-                clean_u = str(b_u).strip().lower().removeprefix("@")
-                u_stmt = select(User).where(or_(func.lower(User.username) == clean_u, User.id == clean_u))
-                current_u = (await db.execute(u_stmt)).scalar_one_or_none()
-        except Exception:
-            pass
+    # SEC-B01 FIX: Enforce session authentication; remove untrusted fallbacks
+    current_u = await get_current_user(request, db)
     if not current_u:
         raise HTTPException(status_code=401, detail="Authentication required.")
 
@@ -2364,23 +2339,8 @@ async def leave_group_endpoint(
 ):
     """Allows a member to exit from a group."""
     from app.core.ws import ws_manager
-    current_u = await get_current_user_optional(request, db)
-    if not current_u:
-        x_user = request.headers.get("X-User-Username") or request.query_params.get("username")
-        if x_user:
-            clean_u = x_user.strip().lower().removeprefix("@")
-            u_stmt = select(User).where(or_(func.lower(User.username) == clean_u, User.id == clean_u))
-            current_u = (await db.execute(u_stmt)).scalar_one_or_none()
-    if not current_u:
-        try:
-            b = await request.json()
-            b_u = b.get("username") or b.get("member")
-            if b_u:
-                clean_u = str(b_u).strip().lower().removeprefix("@")
-                u_stmt = select(User).where(or_(func.lower(User.username) == clean_u, User.id == clean_u))
-                current_u = (await db.execute(u_stmt)).scalar_one_or_none()
-        except Exception:
-            pass
+    # SEC-B01 FIX: Enforce session authentication; remove untrusted fallbacks
+    current_u = await get_current_user(request, db)
     if not current_u:
         raise HTTPException(status_code=401, detail="Authentication required.")
 
@@ -2642,11 +2602,8 @@ async def get_channel_messages_compat(
     # Security: Strict BOLA / Authorization enforcement for Direct Messages
     target_clean_name = (channel.name or clean_id).lower()
     if channel.type == "dm" or target_clean_name.startswith("dm-") or target_clean_name.startswith("dm_"):
-        caller_user = await get_current_user_optional(request, db)
-        if not caller_user:
-            candidate = (username or user or (request.headers.get("X-User-Username") if request else None) or "").strip().lower().removeprefix("@")
-            if candidate:
-                caller_user = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalars().first()
+        # SEC-B01 FIX: Enforce session authentication; remove untrusted header/query fallbacks
+        caller_user = await get_current_user(request, db)
         if not caller_user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -4211,10 +4168,6 @@ async def get_dm_unread_counts_compat(
     # Resolve caller
     caller = current_user
     if not caller:
-        candidate = (username or user or (request.headers.get("X-User-Username") if request else None) or "").strip().lower().removeprefix("@")
-        if candidate:
-            caller = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalar_one_or_none()
-    if not caller:
         return {}
 
     clean_caller = caller.username.strip().lower().removeprefix("@")
@@ -4356,10 +4309,6 @@ async def mark_dm_read(
     from datetime import datetime, timezone as tz
     from app.db.models.dm_read_state import DMReadState
     caller = current_user
-    if not caller:
-        candidate = (username or user or (request.headers.get("X-User-Username") if request else None) or "").strip().lower().removeprefix("@")
-        if candidate:
-            caller = (await db.execute(select(User).where(func.lower(User.username) == candidate))).scalar_one_or_none()
     if not caller:
         return {"status": "ok", "detail": "anonymous"}
 
@@ -7054,7 +7003,7 @@ async def create_scheduled_message_compat(
 @app.delete("/api/scheduled-messages/{msg_id}")
 async def cancel_scheduled_message_compat(
     msg_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(ScheduledMessage).where(ScheduledMessage.id == msg_id)
@@ -7062,7 +7011,8 @@ async def cancel_scheduled_message_compat(
     if not msg:
         raise HTTPException(status_code=404, detail="Scheduled message not found.")
     
-    if current_user and not (current_user.is_admin or current_user.username == msg.author):
+    # SEC-B02 FIX: Strictly require author or admin; prevent unauthenticated deletion
+    if not (current_user.is_admin or current_user.username == msg.author):
         raise HTTPException(status_code=403, detail="Forbidden: You can only cancel your own scheduled messages.")
 
     msg.status = "cancelled"
@@ -7091,13 +7041,21 @@ class AdminAuthRequest(BaseModel):
 class AdminPasskeyAuthRequest(BaseModel):
     passkey: str
 
-ACTIVE_ADMIN_TOKENS: set = set()
+ACTIVE_ADMIN_TOKENS: dict = {}
 
-# Configurable admin passcodes from environment with fallback
+def is_admin_token_valid(token: str) -> bool:
+    if not token or token not in ACTIVE_ADMIN_TOKENS:
+        return False
+    if time.time() > ACTIVE_ADMIN_TOKENS[token]:
+        del ACTIVE_ADMIN_TOKENS[token]
+        return False
+    return True
+
+# Configurable admin passcodes strictly from environment (no hardcoded credentials)
 ADMIN_PASSCODES = [
     p.strip() for p in [
-        os.getenv("ADMIN_PASSCODE", "connecto_admin_2026_x7k"),
-        os.getenv("CONNECTO_HARDWARE_KEY", "chinnu*viki"),
+        os.getenv("ADMIN_PASSCODE"),
+        os.getenv("CONNECTO_HARDWARE_KEY"),
     ] if p and p.strip()
 ]
 
@@ -7110,7 +7068,7 @@ async def require_admin_clearance(request: Request, db: AsyncSession) -> None:
     if not token:
         token = request.cookies.get("vconnect_admin_token", "").strip()
 
-    if token and token in ACTIVE_ADMIN_TOKENS:
+    if token and is_admin_token_valid(token):
         return
 
     try:
@@ -7214,10 +7172,13 @@ async def create_moderation_report(
 
 @app.get("/api/moderation/reports")
 async def list_moderation_reports(
+    request: Request,
     status: Optional[str] = "pending",
     limit: int = 50,
     db: AsyncSession = Depends(get_db)
 ):
+    # SEC-B02 FIX: Enforce admin clearance to view moderation reports
+    await require_admin_clearance(request, db)
     stmt = select(ModerationReport)
     if status and status.lower() != "all":
         stmt = stmt.where(ModerationReport.status == status.lower())
@@ -7300,7 +7261,7 @@ async def admin_auth_endpoint(request: Request, req: AdminAuthRequest):
     matched = any(hmac.compare_digest(code.encode(), p.encode()) for p in ADMIN_PASSCODES)
     if matched:
         token = "adm_tok_" + uuid.uuid4().hex
-        ACTIVE_ADMIN_TOKENS.add(token)
+        ACTIVE_ADMIN_TOKENS[token] = time.time() + 86400 * 7
         is_secure = (request.url.scheme == "https")
         resp = JSONResponse({"status": "ok", "token": token, "role": "admin"})
         resp.set_cookie("vconnect_admin_token", token, max_age=86400*7, httponly=True, samesite="lax", secure=is_secure)
@@ -7325,7 +7286,7 @@ async def admin_passkey_auth(request: Request, req: AdminPasskeyAuthRequest):
     matched = any(hmac.compare_digest(pk.encode(), p.encode()) for p in ADMIN_PASSCODES)
     if matched:
         token = "adm_tok_" + uuid.uuid4().hex
-        ACTIVE_ADMIN_TOKENS.add(token)
+        ACTIVE_ADMIN_TOKENS[token] = time.time() + 86400 * 7
         is_secure = (request.url.scheme == "https")
         resp = JSONResponse({
             "status": "ok",

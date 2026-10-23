@@ -14,13 +14,22 @@ android {
         applicationId = "com.connecto.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 88
-        versionName = "4.5.9"
+        versionCode = 89
+        versionName = "4.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BASE_URL", "\"https://connecto.fun\"")
         buildConfigField("String", "WS_BASE_URL", "\"wss://connecto.fun\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("connecto-release.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "connecto2026"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "connecto"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "connecto2026"
+        }
     }
 
     buildTypes {
@@ -31,7 +40,7 @@ android {
         }
         release {
             isDebuggable = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             // Release: public production server
             buildConfigField("String", "BASE_URL", "\"https://connecto.fun\"")
             buildConfigField("String", "WS_BASE_URL", "\"wss://connecto.fun\"")

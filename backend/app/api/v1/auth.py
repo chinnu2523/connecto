@@ -1137,8 +1137,6 @@ def verify_httpsms_webhook_authenticity(request: Request, raw_body: bytes) -> bo
         secrets_to_check.append(settings.HTTPSMS_WEBHOOK_SECRET.strip())
     if getattr(settings, "HTTPSMS_API_KEY", None) and settings.HTTPSMS_API_KEY.strip():
         secrets_to_check.append(settings.HTTPSMS_API_KEY.strip())
-    if getattr(settings, "SECRET_KEY", None) and settings.SECRET_KEY.strip():
-        secrets_to_check.append(settings.SECRET_KEY.strip())
 
     if not secrets_to_check:
         return False
@@ -1326,13 +1324,10 @@ class ChangePasswordPayload(BaseModel):
 async def verify_old_password_endpoint(
     req: VerifyOldPasswordPayload,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
+    # SEC-B06 FIX: Require authenticated session; verify caller's own password
     target_user = current_user
-    if not target_user and req.username:
-        target_user = await find_user_by_identifier(db, req.username)
-    if not target_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
     
     clean_pwd = (req.old_password or "").strip()
     is_valid = verify_password(target_user.password_hash, req.old_password)
@@ -1403,15 +1398,10 @@ class TerminateSessionPayload(BaseModel):
 async def get_active_sessions_endpoint(
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
+    # SEC-B01 FIX: Enforce session authentication; remove untrusted header fallbacks
     target_user = current_user
-    if not target_user:
-        header_username = request.headers.get("X-Username") or request.headers.get("X-User-Username")
-        if header_username:
-            target_user = await find_user_by_identifier(db, header_username)
-    if not target_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required to view active sessions.")
 
     # Find raw token to check current session
     auth_header = request.headers.get("Authorization", "")
@@ -1518,17 +1508,10 @@ async def terminate_session_endpoint(
     req: TerminateSessionPayload,
     request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
+    # SEC-B01 FIX: Enforce session authentication; lock target user strictly to current user
     target_user = current_user
-    if not target_user and req.username:
-        target_user = await find_user_by_identifier(db, req.username)
-    if not target_user:
-        header_username = request.headers.get("X-Username") or request.headers.get("X-User-Username")
-        if header_username:
-            target_user = await find_user_by_identifier(db, header_username)
-    if not target_user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
 
     auth_header = request.headers.get("Authorization", "")
     raw_token = ""

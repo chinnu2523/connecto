@@ -224,7 +224,8 @@ class MainActivity : FragmentActivity() {
                 }
             }
         }
-        if (intent.getBooleanExtra("test_in_app_banner", false)) {
+        // SEC-A05 FIX: Restrict test in-app banners to debug builds and verified internal notification intents
+        if (BuildConfig.DEBUG && intent.getBooleanExtra(ConnectoNotificationManager.EXTRA_INTERNAL_SOURCE, false) && intent.getBooleanExtra("test_in_app_banner", false)) {
             val sender = intent.getStringExtra("sender") ?: "CyberValkyrie"
             val avatar = intent.getStringExtra("avatar") ?: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150"
             val msg = intent.getStringExtra("message") ?: "Ready for the championship match!"
