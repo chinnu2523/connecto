@@ -193,6 +193,10 @@ class MainActivity : FragmentActivity() {
             pendingIntentAction = action
         }
         if (action == ConnectoNotificationManager.ACTION_OPEN_CHAT || type in listOf("dm", "message", "new_dm_alert")) {
+            // SEC-A6-01 FIX: Enforce trusted internal notification origin for chat navigation
+            if (!isInternal) {
+                return
+            }
             pendingIntentAction = ConnectoNotificationManager.ACTION_OPEN_CHAT
             if (!target.isNullOrBlank()) {
                 pendingOpenChatTarget = target

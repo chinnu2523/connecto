@@ -909,7 +909,7 @@
     }
 
     
-    let detectedDefaultPasskey = 'connecto_admin_2026';
+    let detectedDefaultPasskey = '';
 
     document.addEventListener('DOMContentLoaded', async () => {
       lucide.createIcons();
@@ -957,7 +957,10 @@
         btn.disabled = true;
       }
       try {
-        const pk = localStorage.getItem('vconnect_passkey') || detectedDefaultPasskey || 'PASSKEY-CORE-ADMIN';
+        const pk = localStorage.getItem('vconnect_passkey') || detectedDefaultPasskey || '';
+        if (!pk) {
+          throw new Error('No registered passkey detected. Please authenticate using your admin credentials.');
+        }
         const res = await fetch('/api/admin/passkey-auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1457,18 +1460,40 @@
     async function triggerNewsRefresh() {
       try {
         showToast('⏳ Synchronizing RSS feeds & clearing translation memory...');
-        const res = await fetch('/api/news/refresh', { method: 'POST' });
+        const res = await fetch('/api/news/refresh', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
         if (res.ok) {
           showToast('✓ News Wire feeds re-synchronized.');
+        } else {
+          showToast('⚠️ News Refresh Failed: HTTP ' + res.status);
         }
       } catch (err) {
         showToast('⚠️ Error: ' + err.message);
       }
     }
 
-    function downloadDatabaseBackup() {
-      window.open('/api/admin/backup?token=' + encodeURIComponent(ADMIN_TOKEN), '_blank');
-      showToast('📥 Initiated Database Snapshot Download');
+    async function downloadDatabaseBackup() {
+      try {
+        showToast('⏳ Generating Database Snapshot...');
+        const res = await fetch('/api/admin/backup', {
+          headers: { 'Authorization': `Bearer ${ADMIN_TOKEN}` }
+        });
+        if (!res.ok) throw new Error('Backup failed with HTTP ' + res.status);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'connecto_backup_' + new Date().toISOString().slice(0, 10) + '.db';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        showToast('📥 Initiated Database Snapshot Download');
+      } catch (err) {
+        showToast('⚠️ Backup Download Error: ' + err.message);
+      }
     }
 
     async function toggleMaintenanceMode() {

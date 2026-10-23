@@ -733,6 +733,7 @@ object ConnectoNotificationManager {
                     .build()
 
                 val replyIntent = Intent(context, DirectReplyReceiver::class.java).apply {
+                    setPackage(context.packageName)
                     action = DirectReplyReceiver.ACTION_DIRECT_REPLY
                     putExtra(EXTRA_CHANNEL_ID, channelOrDmId)
                     putExtra("extra_sender_name", senderName)

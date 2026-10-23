@@ -7,21 +7,21 @@
         </trust-anchors>
     </base-config>
 
-    <!-- Strict HTTPS for production Connecto domain -->
+    <!-- Strict HTTPS for production & Tailscale Connecto domains -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">connecto.fun</domain>
+        <domain includeSubdomains="true">box-1.taile07dd1.ts.net</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </domain-config>
 
-    <!-- Local development & emulator loopbacks (Development only) -->
+    <!-- Local development & emulator loopbacks only -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">100.87.184.30</domain>
-        <domain includeSubdomains="true">box-1.taile07dd1.ts.net</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

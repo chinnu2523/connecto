@@ -786,7 +786,7 @@ async def structured_error_logging_middleware(request: Request, call_next):
             content={"status": "error", "message": "An internal server error occurred.", "request_id": req_id}
         )
         origin = request.headers.get("origin")
-        if origin:
+        if origin and (origin in ALLOWED_ORIGINS or re.match(r"^(https?://.*\.taile07dd1\.ts\.net(:\d+)?|http://100\.\d+\.\d+\.\d+(:\d+)?|https?://(news|ats|n8n|www)\.connecto\.fun|http://(localhost|127\.0\.0\.1)(:\d+)?)$", origin)):
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Access-Control-Allow-Credentials"] = "true"
         return resp
@@ -933,7 +933,7 @@ from sqlalchemy import select, or_, and_, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_current_user, get_current_user_optional
 from app.db.models.user import User
-from app.db.models.chat import Friendship, Channel, DMParticipant, Message
+from app.db.models.chat import Friendship, Channel, DMParticipant, Message, ServerMember
 from app.db.models.voice import VoiceRoom, VoiceRoomParticipant, CallLog
 from fastapi import HTTPException
 from app.core.cache import (
@@ -2431,6 +2431,16 @@ async def remove_group_member_endpoint(
     if not target_u:
         raise HTTPException(status_code=404, detail="Target user not found.")
 
+    # SEC-B6-01 FIX: Enforce authorization to remove group members
+    is_owner = bool(channel.owner_id and channel.owner_id == current_u.id)
+    is_admin = bool(getattr(current_u, "is_admin", False))
+    is_self_removal = (target_u.id == current_u.id)
+    if not (is_owner or is_admin or is_self_removal):
+        raise HTTPException(
+            status_code=403,
+            detail="Forbidden: You do not have permission to remove members from this group."
+        )
+
     part_stmt = select(DMParticipant).where(
         DMParticipant.channel_id == channel.id,
         DMParticipant.user_id == target_u.id
@@ -3847,7 +3857,7 @@ async def delete_channel_canvas_task_endpoint(channel_id: str, task_id: str, cur
 async def create_channel_poll(
     request: Request,
     channel_id: str,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     from app.core.ws import ws_manager
@@ -3877,20 +3887,22 @@ async def create_channel_poll(
         await db.commit()
         await db.refresh(channel)
 
+    # SEC-B6-04 FIX: Authorize poll creation within channel
+    if channel.type in ("dm", "group") or channel.name.startswith("dm-") or channel.name.startswith("dm_"):
+        p_check = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == channel.id, DMParticipant.user_id == current_user.id))).scalar_one_or_none()
+        if not p_check and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Forbidden: You are not authorized to post in this private channel.")
+    elif channel.server_id:
+        sm_check = (await db.execute(select(ServerMember).where(ServerMember.server_id == channel.server_id, ServerMember.user_id == current_user.id))).scalar_one_or_none()
+        if not sm_check and not getattr(current_user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Forbidden: You are not a member of this server.")
+
     poll_id = f"poll_{uuid.uuid4().hex[:12]}"
     now_ts = datetime.now(timezone.utc)
-    author_username = (current_user.username if current_user else body.get("author", "Gamer")).strip()
-    u_stmt = select(User).where(User.username == author_username)
-    u_res = (await db.execute(u_stmt)).scalar_one_or_none()
-    if not u_res and current_user:
-        u_res = current_user
-    if not u_res:
-        u_stmt2 = select(User).limit(1)
-        u_res = (await db.execute(u_stmt2)).scalar_one_or_none()
-
-    author_id = u_res.id if u_res else "77dac189-d653-44c4-80b2-29dc2d1b35f6"
-    author_display = (current_user.display_name if current_user and current_user.display_name else (u_res.display_name if u_res and u_res.display_name else author_username))
-    author_avatar = (current_user.avatar_url if current_user else (u_res.avatar_url if u_res else None))
+    author_username = current_user.username.strip()
+    author_id = current_user.id
+    author_display = current_user.display_name or current_user.username
+    author_avatar = current_user.avatar_url
 
     poll_obj = {
         "id": poll_id,
@@ -3977,7 +3989,7 @@ async def vote_on_poll(
     option_index = int(body.get("option_index", -1))
     voter = current_user.username.strip().lower()
 
-    res = await db.execute(select(Message).order_by(Message.created_at.desc()).limit(200))
+    res = await db.execute(select(Message).where(Message.attachments.isnot(None)).order_by(Message.created_at.desc()).limit(1000))
     target_msg = None
     target_poll = None
     for msg in res.scalars().all():
@@ -3990,6 +4002,19 @@ async def vote_on_poll(
 
     if not target_msg or not target_poll:
         raise HTTPException(status_code=404, detail="Poll not found")
+
+    # SEC-B6-06 FIX: Authorize poll vote within channel
+    ch_res = await db.execute(select(Channel).where(Channel.id == target_msg.channel_id))
+    ch_obj = ch_res.scalar_one_or_none()
+    if ch_obj:
+        if ch_obj.type in ("dm", "group") or ch_obj.name.startswith("dm-") or ch_obj.name.startswith("dm_"):
+            p_check = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == ch_obj.id, DMParticipant.user_id == current_user.id))).scalar_one_or_none()
+            if not p_check and not getattr(current_user, "is_admin", False):
+                raise HTTPException(status_code=403, detail="Forbidden: You are not authorized to vote on polls in this private conversation.")
+        elif ch_obj.server_id:
+            sm_check = (await db.execute(select(ServerMember).where(ServerMember.server_id == ch_obj.server_id, ServerMember.user_id == current_user.id))).scalar_one_or_none()
+            if not sm_check and not getattr(current_user, "is_admin", False):
+                raise HTTPException(status_code=403, detail="Forbidden: You are not a member of this server.")
 
     if target_poll.get("closed"):
         raise HTTPException(status_code=400, detail="This poll is closed")
@@ -4052,7 +4077,7 @@ async def close_poll_endpoint(
     db: AsyncSession = Depends(get_db)
 ):
     from app.core.ws import ws_manager
-    res = await db.execute(select(Message).order_by(Message.created_at.desc()).limit(200))
+    res = await db.execute(select(Message).where(Message.attachments.isnot(None)).order_by(Message.created_at.desc()).limit(1000))
     target_msg = None
     target_poll = None
     for msg in res.scalars().all():
@@ -4065,6 +4090,19 @@ async def close_poll_endpoint(
 
     if not target_msg or not target_poll:
         raise HTTPException(status_code=404, detail="Poll not found")
+
+    # SEC-B6-06 FIX: Authorize poll vote within channel
+    ch_res = await db.execute(select(Channel).where(Channel.id == target_msg.channel_id))
+    ch_obj = ch_res.scalar_one_or_none()
+    if ch_obj:
+        if ch_obj.type in ("dm", "group") or ch_obj.name.startswith("dm-") or ch_obj.name.startswith("dm_"):
+            p_check = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == ch_obj.id, DMParticipant.user_id == current_user.id))).scalar_one_or_none()
+            if not p_check and not getattr(current_user, "is_admin", False):
+                raise HTTPException(status_code=403, detail="Forbidden: You are not authorized to vote on polls in this private conversation.")
+        elif ch_obj.server_id:
+            sm_check = (await db.execute(select(ServerMember).where(ServerMember.server_id == ch_obj.server_id, ServerMember.user_id == current_user.id))).scalar_one_or_none()
+            if not sm_check and not getattr(current_user, "is_admin", False):
+                raise HTTPException(status_code=403, detail="Forbidden: You are not a member of this server.")
 
     if not current_user:
         raise HTTPException(status_code=401, detail="Authentication required to close a poll.")
@@ -5004,8 +5042,14 @@ async def update_user_profile_compat(
         clean_ban = str(banner_url).strip()
         if clean_ban.lower() in ("null", "none", "undefined", "nil", "false", ""):
             user.banner_url = None
+        elif clean_ban.lower().startswith("javascript:") or clean_ban.lower().startswith("data:text/html"):
+            pass
+        elif clean_ban.startswith("data:image/"):
+            # SEC-B6-08 FIX: Prevent database bloat; restrict data URIs to maximum 64KB thumbnail or require static/upload paths
+            if len(clean_ban) <= 65536:
+                user.banner_url = clean_ban
         else:
-            user.banner_url = clean_ban[:1000000] if clean_ban.startswith("data:image/") else clean_ban[:2048]
+            user.banner_url = clean_ban[:2048]
     # SEC-B4-09 FIX: 2FA can only be modified via OTP verification on /api/v1/auth/2fa/toggle; never via generic profile update
     # two_factor_enabled is strictly ignored here
 
@@ -5013,8 +5057,14 @@ async def update_user_profile_compat(
         clean_av = str(avatar_url).strip()
         if clean_av.lower() in ("null", "none", "undefined", "nil", "false", ""):
             user.avatar_url = None
-        elif not clean_av.lower().startswith("javascript:") and not clean_av.lower().startswith("data:text/html"):
-            user.avatar_url = clean_av[:1000000] if clean_av.startswith("data:image/") else clean_av[:2048]
+        elif clean_av.lower().startswith("javascript:") or clean_av.lower().startswith("data:text/html"):
+            pass
+        elif clean_av.startswith("data:image/"):
+            # SEC-B6-08 FIX: Restrict data URIs to maximum 64KB or require static/upload paths
+            if len(clean_av) <= 65536:
+                user.avatar_url = clean_av
+        else:
+            user.avatar_url = clean_av[:2048]
     if is_stealth is not None:
         user.is_stealth = bool(is_stealth)
     if is_online is not None:

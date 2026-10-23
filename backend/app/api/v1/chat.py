@@ -293,6 +293,23 @@ async def list_channel_messages(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied. You are not a participant in this direct conversation."
             )
+    elif ch and ch.server_id:
+        caller_user = current_user
+        if not caller_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required to view server messages."
+            )
+        sm_stmt = select(ServerMember).where(
+            ServerMember.server_id == ch.server_id,
+            ServerMember.user_id == caller_user.id
+        )
+        is_member = (await db.execute(sm_stmt)).scalar_one_or_none()
+        if not is_member and not getattr(caller_user, "is_admin", False):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. You are not a member of this server."
+            )
 
     # Permanent message history retention across channel UUID and all canonical/alt/reverse aliases
     possible_channel_ids = [target_id, clean_ch, ch_name]
@@ -466,6 +483,17 @@ async def search_messages(
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Access denied. You cannot search private direct messages you are not part of."
+                )
+        elif ch and ch.server_id:
+            sm_stmt = select(ServerMember).where(
+                ServerMember.server_id == ch.server_id,
+                ServerMember.user_id == current_user.id
+            )
+            is_member = (await db.execute(sm_stmt)).scalar_one_or_none()
+            if not is_member and not getattr(current_user, "is_admin", False):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Access denied. You cannot search private server channels you are not a member of."
                 )
         stmt = stmt.where(
             or_(Message.channel_id == clean_ch, Message.channel_id == channel_id, Message.channel_id == ch_name)

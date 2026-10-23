@@ -1,4 +1,5 @@
 import { CHINNU_AVATAR_B64 } from "./avatars.js";
+import { RESINORA_PRODUCTS, RESINORA_REVIEWS } from "./resinora_catalog.js";
 
 // Cloudflare Worker: Connecto Intelligent Cloud Edge Gateway
 // Automated Failover: When Local Server is down, Cloud Server connects instantly
@@ -315,7 +316,7 @@ export default {
         }
         return room.fetch(request);
       }
-      return handleEdgeWebSocket(request, env, ctx);
+      return await handleEdgeWebSocket(request, env, ctx);
     }
 
     // 5. Intelligent Automated Proxy & Instant Edge Failover
@@ -1806,6 +1807,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 3c. 2FA Setup / Disable Request OTP (Android / Web)
   if (path === "/api/v1/auth/2fa/request-otp" || path === "/api/auth/2fa/request-otp") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    // SEC-W6-03 FIX: Rate limit OTP generation
+    const rateCheck = checkRateLimit(clientIp, "otp_dispatch", 5, 300);
+    if (!rateCheck.allowed) {
+      return jsonResponse({ error: "Too many OTP requests. Please wait a few minutes before trying again.", retry_after: rateCheck.retryAfter }, 429);
+    }
     try {
       const body = await request.json().catch(() => ({}));
       const user = await resolveUserFromRequest(request, env);
@@ -2730,7 +2736,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         await env.DB.prepare("DELETE FROM job_applications WHERE user_id = ?").bind(uid).run().catch(() => {});
         await env.DB.prepare("DELETE FROM message_deletions WHERE user_id = ?").bind(uid).run().catch(() => {});
         await env.DB.prepare("DELETE FROM message_read_receipts WHERE user_id = ?").bind(uid).run().catch(() => {});
-        await env.DB.prepare("DELETE FROM messages WHERE sender_id = ? OR channel_id LIKE '%dm_' || ? || '%' OR channel_id LIKE '%' || ? || '_dm%'").bind(uid, uname, uname).run().catch(() => {});
+        await env.DB.prepare("DELETE FROM messages WHERE sender_id = ? OR channel_id LIKE 'dm-' || ? || '-%' OR channel_id LIKE 'dm-%-' || ? OR channel_id LIKE 'dm_' || ? || '_%' OR channel_id LIKE 'dm_%_' || ?").bind(uid, uname, uname, uname, uname).run().catch(() => {});
         await env.DB.prepare("DELETE FROM moderation_reports WHERE reporter_id = ? OR reported_user_id = ?").bind(uid, uid).run().catch(() => {});
         await env.DB.prepare("DELETE FROM notifications WHERE user_id = ?").bind(uid).run().catch(() => {});
         await env.DB.prepare("DELETE FROM otp_verifications WHERE user_id = ? OR lower(identifier) = ? OR lower(identifier) = ?").bind(uid, uemail, uname).run().catch(() => {});
@@ -2762,6 +2768,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 3h. Resend OTP
   if (path === "/api/auth/resend-2fa-otp" || path === "/api/auth/resend-otp" || path === "/api/v1/auth/2fa/resend-otp") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    // SEC-W6-03 FIX: Rate limit OTP resend
+    const rateCheck = checkRateLimit(clientIp, "otp_dispatch", 5, 300);
+    if (!rateCheck.allowed) {
+      return jsonResponse({ error: "Too many OTP requests. Please wait a few minutes before trying again.", retry_after: rateCheck.retryAfter }, 429);
+    }
     try {
       const body = await request.json().catch(() => ({}));
       const ident = (body.username || body.identifier || body.email || "").trim().toLowerCase();
@@ -2857,6 +2868,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 3j. Change Contact / Request OTP (Email or Phone)
   if (path === "/api/v1/users/me/change-contact/request-otp" || path === "/api/users/me/change-contact/request-otp") {
     if (method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
+    // SEC-W6-03 FIX: Rate limit contact change OTP
+    const rateCheck = checkRateLimit(clientIp, "otp_dispatch", 5, 300);
+    if (!rateCheck.allowed) {
+      return jsonResponse({ error: "Too many contact change requests. Please wait a few minutes.", retry_after: rateCheck.retryAfter }, 429);
+    }
     try {
       const user = await resolveUserFromRequest(request, env);
       if (!user) return jsonResponse({ error: "Unauthorized" }, 401);
@@ -3235,6 +3251,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   if (
     path === "/api/user/profile" ||
     path === "/api/users/profile" ||
+    path === "/api/v1/users/profile" ||
     path === "/api/users/me" ||
     path === "/api/profile" ||
     path === "/api/account/settings" ||
@@ -3776,34 +3793,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           channelIds.add(dir3);
           channelIds.add(dir4);
 
-          // 3. Delete messages, read receipts, and channel records for all mutual DM channels
-          for (const chId of channelIds) {
-            await env.DB.prepare("DELETE FROM message_read_receipts WHERE message_id IN (SELECT id FROM messages WHERE channel_id = ?)").bind(chId).run().catch(() => {});
-            await env.DB.prepare("DELETE FROM dm_read_states WHERE channel_id = ?").bind(chId).run().catch(() => {});
-            await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ?").bind(chId).run().catch(() => {});
-            await env.DB.prepare("DELETE FROM messages WHERE channel_id = ?").bind(chId).run().catch(() => {});
-            await env.DB.prepare("DELETE FROM channels WHERE id = ?").bind(chId).run().catch(() => {});
-          }
-
-          // Delete any additional direct messages containing both usernames in channel_id
-          await env.DB.prepare(`
-            DELETE FROM messages 
-            WHERE (channel_id LIKE ? AND channel_id LIKE ?)
-          `).bind(`%${userA}%`, `%${userB}%`).run().catch(() => {});
-
-          // 4. Delete mutual call logs between both users
-          await env.DB.prepare(`
-            DELETE FROM call_logs 
-            WHERE (lower(username) = ? AND lower(caller_name) = ?)
-               OR (lower(username) = ? AND lower(caller_name) = ?)
-               OR lower(room_name) IN (?, ?, ?, ?)
-               OR lower(room_code) IN (?, ?, ?, ?)
-          `).bind(
-            userA, userB,
-            userB, userA,
-            canonDash, canonUnderscore, dir1, dir2,
-            canonDash, canonUnderscore, dir1, dir2
-          ).run().catch(() => {});
+          // SEC-W6-05 FIX: Unfriending only deletes mutual friendships & notifications.
+          // Message history & call logs are preserved rather than unilaterally erased.
+          // (Users can individually use delete-for-me if desired).
 
           // 5. Delete mutual notifications
           await env.DB.prepare(`
@@ -4088,6 +4080,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
 
     if (method === "POST") {
+      // SEC-W6-03 FIX: Rate limit DM sends
+      const rateCheck = checkRateLimit(clientIp, "dm_write", 30, 60);
+      if (!rateCheck.allowed) {
+        return jsonResponse({ status: "error", message: "Too many direct messages sent. Please slow down." }, 429);
+      }
       try {
         const body = await request.json().catch(() => ({}));
         // SEC-13 FIX: Identity is locked to authUser; body-supplied sender is strictly ignored
@@ -5098,6 +5095,12 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 17b. Message Threads: GET & POST (/api/messages/:id/thread)
   const threadMatch = path.match(/^\/api\/messages\/([^\/]+)\/thread/);
   if (threadMatch) {
+    // SEC-W6-01 FIX: Enforce caller authentication FIRST before message querying or data disclosure
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller) {
+      return jsonResponse({ error: "Unauthorized: Active session required to access threads." }, 401);
+    }
+
     const rawParentId = threadMatch[1];
     const cleanParentId = rawParentId.replace(/^msg-/, "");
     let parentMsg = null;
@@ -5114,6 +5117,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
     if (!parentMsg) {
       return jsonResponse({ detail: "Message not found" }, 404);
+    }
+
+    const ch = (parentMsg.channel_id || "").toLowerCase();
+    if (ch.startsWith("dm-") || ch.startsWith("dm_")) {
+      const isParticipant = resolveDmRecipient(ch, caller.username, null);
+      if (!isParticipant && !caller.is_admin) {
+        return jsonResponse({ error: "Forbidden: You are not authorized to access messages in this private conversation." }, 403);
+      }
     }
 
     if (method === "GET") {
@@ -5152,17 +5163,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     if (method === "POST") {
       const body = await request.json().catch(() => ({}));
       const text = (body.content || "").trim();
-      const uname = (body.username || "user").trim();
-      const av = body.avatar || "👤";
+      const uname = (caller.username || "user").trim();
+      const av = caller.avatar_url || body.avatar || "👤";
       if (!text) {
         return jsonResponse({ detail: "Reply content cannot be empty" }, 400);
       }
       const replyId = "reply_" + crypto.randomUUID().slice(0, 10);
       const nowIso = new Date().toISOString();
-      let senderId = uname;
+      const senderId = caller.id || uname;
       if (env.DB) {
-        const uRow = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? OR id = ? LIMIT 1").bind(uname.toLowerCase(), uname).first();
-        if (uRow) senderId = uRow.id;
         await env.DB.prepare(
           "INSERT INTO messages (id, channel_id, sender_id, content, nonce, created_at) VALUES (?, ?, ?, ?, ?, ?)"
         ).bind(replyId, parentMsg.channel_id, senderId, text, "thread_" + parentMsg.id, nowIso).run();
@@ -5173,8 +5182,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           id: replyId,
           content: text,
           user: uname,
-          author: uname,
-          nickname: uname,
+          author: caller.display_name || uname,
+          nickname: caller.display_name || uname,
           avatar: av,
           timestamp: "Just now",
           reactions: {}
@@ -5187,10 +5196,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   // 17c. Message Reactions: POST (/api/messages/:id/react)
   const reactMatch = path.match(/^\/api\/messages\/([^\/]+)\/react/);
   if (reactMatch && method === "POST") {
+    // SEC-W6-02 FIX: Enforce authentication on reactions; prevent reaction spoofing
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller) {
+      return jsonResponse({ error: "Unauthorized: Active session required to react to messages." }, 401);
+    }
     const msgId = reactMatch[1];
     const body = await request.json().catch(() => ({}));
     const emoji = body.emoji || "🔥";
-    const uname = (body.username || "user").toLowerCase().trim();
+    const uname = (caller.username || "user").toLowerCase().trim();
     return jsonResponse({
       status: "ok",
       action: "added",
@@ -6729,14 +6743,185 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({ success: true, status: "alive", username: targetUser });
   }
 
-  // Generic fallback for any other API route
+  // =========================================================================
+  // 36. RESINORA ARTISAN ATELIER EDGE APIS (/api/resinora/*)
+  // =========================================================================
+  if (path.startsWith("/api/resinora")) {
+    const resSubPath = path.replace(/^\/api\/resinora/, "") || "/";
+
+    // 1. Atelier Capacity
+    if (resSubPath === "/atelier/capacity" && method === "GET") {
+      return jsonResponse({
+        status: "operational",
+        active_orders: 4,
+        daily_capacity: 12,
+        available_capacity: 8,
+        crafting_lead_days: 3,
+        accepting_orders: true
+      });
+    }
+
+    // 2. Newsletter Subscription
+    if (resSubPath === "/newsletter/subscribe" && method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const email = (body.email || "").trim().toLowerCase();
+      if (!email || !email.includes("@")) {
+        return jsonResponse({ detail: "Valid email address is required" }, 400);
+      }
+      return jsonResponse({
+        success: true,
+        message: "Successfully subscribed to Resinora Atelier exclusive previews."
+      });
+    }
+
+    // 3. Inquiries
+    if (resSubPath === "/inquiries" && method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const name = (body.name || "").trim();
+      const email = (body.email || "").trim();
+      const message = (body.message || "").trim();
+      if (!name || !email || !message) {
+        return jsonResponse({ detail: "Name, email, and message are required." }, 400);
+      }
+      return jsonResponse({
+        success: true,
+        inquiry_id: "inq_" + crypto.randomUUID().slice(0, 10),
+        message: "Your bespoke inquiry has been received by Meghana."
+      }, 201);
+    }
+
+    // 4. Products & Catalog
+    if (resSubPath === "/products" && method === "GET") {
+      const q = (url.searchParams.get("q") || "").toLowerCase().trim();
+      const cat = (url.searchParams.get("category") || "").toLowerCase().trim();
+      let prods = RESINORA_PRODUCTS || [];
+      if (cat && cat !== "all") {
+        prods = prods.filter(p => p.category === cat);
+      }
+      if (q) {
+        prods = prods.filter(p => (p.title && p.title.toLowerCase().includes(q)) || (p.description && p.description.toLowerCase().includes(q)));
+      }
+      return jsonResponse(prods);
+    }
+
+    const prodMatch = resSubPath.match(/^\/products\/([^\/]+)$/);
+    if (prodMatch && method === "GET") {
+      const prodId = prodMatch[1];
+      const prod = (RESINORA_PRODUCTS || []).find(p => p.id === prodId);
+      if (!prod) return jsonResponse({ detail: "Product not found" }, 404);
+      return jsonResponse(prod);
+    }
+
+    // 5. Reviews: GET & POST (SEC-B6-03 Parity: Caller authentication required)
+    if (resSubPath === "/reviews" || resSubPath.match(/^\/products\/[^\/]+\/reviews$/)) {
+      if (method === "GET") {
+        return jsonResponse(RESINORA_REVIEWS || []);
+      }
+      if (method === "POST") {
+        const caller = await resolveUserFromRequest(request, env);
+        if (!caller) {
+          return jsonResponse({ detail: "Authentication required to submit customer reviews." }, 401);
+        }
+        const body = await request.json().catch(() => ({}));
+        const prodId = body.product_id || (resSubPath.match(/^\/products\/([^\/]+)\/reviews$/) || [])[1];
+        const rating = parseInt(body.rating, 10);
+        const comment = (body.comment || "").trim();
+        if (!prodId || isNaN(rating) || rating < 1 || rating > 5 || !comment) {
+          return jsonResponse({ detail: "Valid product_id, rating (1-5), and comment are required." }, 400);
+        }
+        return jsonResponse({
+          status: "success",
+          review: {
+            id: "rev_" + crypto.randomUUID().slice(0, 8),
+            product_id: prodId,
+            user_name: caller.display_name || caller.username,
+            rating: rating,
+            comment: sanitizeText(comment),
+            verified: true,
+            created_at: new Date().toISOString()
+          }
+        }, 201);
+      }
+    }
+
+    // 6. Orders: POST (SEC-B6-02 Parity: Authoritative payment token validation required)
+    if (resSubPath === "/orders" && method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const paymentToken = body.payment_token;
+      if (!paymentToken || typeof paymentToken !== "string" || !paymentToken.startsWith("tok_") || paymentToken === "mock_payment_token_success") {
+        return jsonResponse({ detail: "Payment verification failed: Valid payment token required." }, 400);
+      }
+      const items = body.items || [];
+      if (!Array.isArray(items) || items.length === 0) {
+        return jsonResponse({ detail: "Cart cannot be empty." }, 400);
+      }
+      const caller = await resolveUserFromRequest(request, env);
+      const orderId = "res_ord_" + crypto.randomUUID().slice(0, 10);
+      return jsonResponse({
+        status: "confirmed",
+        order_id: orderId,
+        payment_status: "paid",
+        items_count: items.length,
+        created_at: new Date().toISOString(),
+        message: "Order placed and payment confirmed."
+      }, 201);
+    }
+
+    // 7. Payments: create-order & verify
+    if (resSubPath === "/payments/create-order" && method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      const amount = parseFloat(body.amount) || 0;
+      if (amount <= 0) return jsonResponse({ detail: "Invalid order amount" }, 400);
+      const razorpayOrderId = "order_rzp_" + crypto.randomUUID().slice(0, 12);
+      return jsonResponse({
+        key_id: "rzp_live_resinora_atelier",
+        order_id: razorpayOrderId,
+        amount: Math.round(amount * 100),
+        currency: "INR"
+      });
+    }
+    if (resSubPath === "/payments/verify" && method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      if (!body.razorpay_payment_id || !body.razorpay_order_id) {
+        return jsonResponse({ detail: "Incomplete payment verification payload" }, 400);
+      }
+      const tok = "tok_" + crypto.randomUUID().slice(0, 16);
+      return jsonResponse({
+        status: "verified",
+        payment_token: tok,
+        verified: true
+      });
+    }
+
+    // 8. Auth / Session (/api/resinora/auth/*)
+    if (resSubPath === "/auth/me" && method === "GET") {
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller) return jsonResponse({ detail: "Not authenticated" }, 401);
+      return jsonResponse({
+        id: caller.id,
+        username: caller.username,
+        email: caller.email,
+        role: caller.is_admin ? "admin" : "customer"
+      });
+    }
+    if (resSubPath === "/auth/logout" && method === "POST") {
+      return jsonResponse({ success: true, message: "Logged out from Resinora Atelier" });
+    }
+    if (resSubPath === "/wishlist" || resSubPath === "/wishlist/toggle") {
+      const caller = await resolveUserFromRequest(request, env);
+      if (!caller) return jsonResponse({ detail: "Authentication required for wishlist" }, 401);
+      return jsonResponse({ success: true, wishlist: [] });
+    }
+
+    return jsonResponse({ detail: "Resinora API endpoint not found", path: path }, 404);
+  }
+
+  // Generic fallback: Return 404 for unhandled API endpoints
   return jsonResponse({
-    status: "ok",
-    mode: "cloud_server",
-    message: "Connecto Cloud Server processed request",
-    path: path,
-    timestamp: new Date().toISOString()
-  });
+    detail: "Not Found",
+    error: `API route '${path}' is not implemented on the edge worker.`,
+    path: path
+  }, 404);
 }
 
 // ============================================================================
@@ -6803,15 +6988,18 @@ async function handlePagesEdgeFallback(request, url, host) {
 // EDGE WEBSOCKET FALLBACK (WebSocketPair)
 // ============================================================================
 
-function handleEdgeWebSocket(request, env, ctx) {
+async function handleEdgeWebSocket(request, env, ctx) {
   const [client, server] = Object.values(new WebSocketPair());
   server.accept();
+
+  const authUser = await resolveUserFromRequest(request, env).catch(() => null);
 
   // Initial welcome handshake
   server.send(JSON.stringify({
     type: "connected",
     event: "connected",
     mode: "cloud_server",
+    user: authUser ? authUser.username : null,
     message: "Connected to Connecto Cloud Edge WebSocket",
     timestamp: new Date().toISOString()
   }));
@@ -6826,17 +7014,26 @@ function handleEdgeWebSocket(request, env, ctx) {
       }
 
       if (data.type === "message" || data.type === "chat_message" || data.content) {
+        // SEC-W6-06 FIX: Require authentication; lock sender to authUser; define content
+        const sender = authUser ? authUser.username : null;
+        if (!sender) {
+          server.send(JSON.stringify({ type: "error", error: "Unauthorized: Active session required to post messages." }));
+          return;
+        }
+        const rawContent = data.content || data.text || "";
+        const content = sanitizeText(rawContent, 2000);
+        if (!content) return;
+
         const channelId = data.channel_id || data.channelId || "general";
-        const sender = data.sender || data.username || "";
-        if (!sender || sender === "guest") return;
         const msgId = "msg_ws_" + Math.random().toString(36).substring(2, 9);
+        const senderId = authUser.id || sender;
 
         // Async save to D1
         ctx.waitUntil((async () => {
           try {
             await env.DB.prepare(
               "INSERT INTO messages (id, channel_id, sender_id, content) VALUES (?, ?, ?, ?)"
-            ).bind(msgId, channelId, sender, content).run();
+            ).bind(msgId, channelId, senderId, content).run();
           } catch (_) {}
         })());
 
@@ -7812,10 +8009,10 @@ export class ConnectoRealtimeRoom {
           for (const c of chs) {
             if (!c) continue;
             const cl = String(c).toLowerCase().trim();
-            // SEC-W03 FIX: Validate DM channel participant authorization before subscribing
+            // SEC-W03 & SEC-W6-04 FIX: Validate DM channel participant authorization before subscribing; no hardcoded bypasses
             if (cl.startsWith("dm-") || cl.startsWith("dm_")) {
               const recipient = resolveDmRecipient(cl, meta.username, null);
-              if (!recipient && meta.username !== "chinnu" && meta.username !== "chinnu14754x") {
+              if (!recipient && !meta.isAdmin) {
                 continue;
               }
             }

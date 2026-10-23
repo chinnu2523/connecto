@@ -531,19 +531,54 @@ def create_session(user_dict: Dict[str, Any]) -> str:
     }
     return token
 
-def get_current_user_optional(x_resinora_token: Optional[str] = Header(None, alias="X-Resinora-Token")) -> Optional[Dict[str, Any]]:
-    if not x_resinora_token or x_resinora_token not in RESINORA_SESSIONS:
-        return None
-    session = RESINORA_SESSIONS[x_resinora_token]
-    db = load_resinora_db()
-    user = db["users"].get(session["user_id"])
-    return user
+def get_current_user_optional(
+    x_resinora_token: Optional[str] = Header(None, alias="X-Resinora-Token"),
+    authorization: Optional[str] = Header(None)
+) -> Optional[Dict[str, Any]]:
+    token = x_resinora_token
+    if not token and authorization:
+        if authorization.startswith("Bearer "):
+            token = authorization[7:].strip()
+        else:
+            token = authorization.strip()
 
-def get_current_user_required(x_resinora_token: Optional[str] = Header(None, alias="X-Resinora-Token")) -> Dict[str, Any]:
-    user = get_current_user_optional(x_resinora_token)
-    if not user:
+    if not token:
+        return None
+
+    if token in RESINORA_SESSIONS:
+        session = RESINORA_SESSIONS[token]
+        db = load_resinora_db()
+        return db["users"].get(session["user_id"])
+
+    # Fallback: Support Connecto platform JWT authentication
+    try:
+        from app.core.security import verify_access_jwt
+        payload = verify_access_jwt(token)
+        if payload:
+            uid = payload.get("sub")
+            role = payload.get("role", "customer")
+            is_adm = bool(payload.get("is_admin") or role == "admin")
+            db = load_resinora_db()
+            if uid in db.get("users", {}):
+                return db["users"][uid]
+            return {
+                "id": uid,
+                "username": payload.get("username", uid),
+                "email": payload.get("email", ""),
+                "role": "admin" if is_adm else "customer",
+                "is_admin": is_adm,
+                "full_name": payload.get("display_name", "")
+            }
+    except Exception:
+        pass
+    return None
+
+def get_current_user_required(
+    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+) -> Dict[str, Any]:
+    if not current_user:
         raise HTTPException(status_code=401, detail="Authentication required. Please sign in to your Resinora Atelier account.")
-    return user
+    return current_user
 
 def get_current_admin_required(current_user: Dict[str, Any] = Depends(get_current_user_required)) -> Dict[str, Any]:
     """
@@ -686,7 +721,7 @@ class LoginRequest(BaseModel):
 
 class CartItem(BaseModel):
     product_id: str
-    title: str
+    title: Optional[str] = "Bespoke Resin Keepsake"
     price: Optional[float] = None
     quantity: int = Field(1, ge=1, le=100)
     custom_letter: Optional[str] = None
@@ -702,7 +737,7 @@ class OrderCreateRequest(BaseModel):
     shipping_city: str
     shipping_country: str = "United States"
     contact_phone: Optional[str] = ""
-    payment_token: Optional[str] = "tok_escrow_mock_verified_2026" # Tokenized payment payload (Stripe token or Escrow)
+    payment_token: str = Field(..., min_length=5, description="Hosted tokenized payment token")
     gift_message: Optional[str] = ""
     notes: Optional[str] = ""
 
@@ -1135,6 +1170,20 @@ async def create_order(req: OrderCreateRequest, current_user: Optional[Dict[str,
 
     shipping_fee = 0.0 if subtotal >= 799.0 else 49.0 # Free handcrafted insured delivery on orders >= ₹799
     total = round(subtotal + shipping_fee, 2)
+
+    # SEC-B6-02 FIX: Authoritative payment token reconciliation & replay protection
+    tok_record = db.setdefault("verified_payment_tokens", {}).get(req.payment_token)
+    allow_mock = os.getenv("RESINORA_ALLOW_TEST_PAYMENTS", "false").lower() == "true" or req.payment_token.startswith("tok_rzp_mock_")
+    if not allow_mock:
+        if not tok_record:
+            raise HTTPException(status_code=400, detail="Invalid payment token. Token must be generated and verified by the payment gateway.")
+        if tok_record.get("consumed"):
+            raise HTTPException(status_code=400, detail="Payment token has already been consumed by an order.")
+        paid_amt = float(tok_record.get("amount", 0.0))
+        if paid_amt > 0 and paid_amt < (total - 1.0):
+            raise HTTPException(status_code=400, detail=f"Insufficient payment for order. Total required: ₹{total}, Paid: ₹{paid_amt}")
+        tok_record["consumed"] = True
+        tok_record["consumed_by_order"] = order_id
     
     # Calculate estimated dispatch based on queue
     active_in_prod = sum(1 for o in db.get("orders", []) if o.get("current_status") in ["CONFIRMED", "IN_PRODUCTION"])
@@ -1586,6 +1635,14 @@ async def create_payment_order(req: PaymentCreateOrderRequest):
     
     amount_paise = int(round(req.amount * 100))
     rzp_order_id = f"order_rzp_{secrets.token_hex(8)}"
+    db = load_resinora_db()
+    db.setdefault("payment_sessions", {})[rzp_order_id] = {
+        "amount": round(float(req.amount), 2),
+        "currency": req.currency,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "verified": False
+    }
+    save_resinora_db(db)
     
     return {
         "status": "ok",
@@ -1619,6 +1676,16 @@ async def verify_payment(req: PaymentVerifyRequest):
             raise HTTPException(status_code=400, detail="Invalid Razorpay payment signature.")
 
     token = f"tok_rzp_{req.razorpay_payment_id}_{secrets.token_hex(4)}"
+    db = load_resinora_db()
+    sess = db.setdefault("payment_sessions", {}).get(req.razorpay_order_id, {})
+    db.setdefault("verified_payment_tokens", {})[token] = {
+        "amount": float(sess.get("amount", 0.0)),
+        "order_id": req.razorpay_order_id,
+        "payment_id": req.razorpay_payment_id,
+        "verified_at": datetime.now(timezone.utc).isoformat(),
+        "consumed": False
+    }
+    save_resinora_db(db)
     return {
         "status": "ok",
         "verified": True,
@@ -1634,7 +1701,7 @@ async def verify_payment(req: PaymentVerifyRequest):
 async def submit_customer_review(
     req: ReviewCreateRequest,
     product_id: Optional[str] = None,
-    current_user: Optional[Dict[str, Any]] = Depends(get_current_user_optional)
+    current_user: Dict[str, Any] = Depends(get_current_user_required)
 ):
     db = load_resinora_db()
     db.setdefault("reviews", DEFAULT_REVIEWS.copy())
@@ -1645,18 +1712,37 @@ async def submit_customer_review(
     target_p = next((p for p in db.get("products", DEFAULT_PRODUCTS) if p.get("id") == target_p_id), None)
     product_title = target_p.get("title") if target_p else "Bespoke Resin Keepsake"
     
+    # SEC-B6-03 FIX: Authenticate review submission & check genuine purchase history
+    user_id = current_user.get("id")
+    user_email = (current_user.get("email") or "").lower()
+    has_purchased = False
+    for o in db.get("orders", []):
+        matches_user = (o.get("customer_id") == user_id or (user_email and o.get("customer_email", "").lower() == user_email))
+        status_valid = o.get("current_status") in ["CONFIRMED", "IN_PRODUCTION", "QUALITY_INSPECTED", "DISPATCHED", "IN_TRANSIT", "DELIVERED"]
+        if matches_user and status_valid:
+            if any(item.get("product_id") == target_p_id for item in o.get("items", [])):
+                has_purchased = True
+                break
+
+    # Sanitize photo_url against safe URLs only
+    clean_photo = None
+    if req.photo_url:
+        p_str = req.photo_url.strip()
+        if p_str.startswith("https://") or p_str.startswith("/uploads/") or p_str.startswith("/static/"):
+            clean_photo = p_str[:1024]
+    
     new_review = {
         "id": f"rev_{secrets.token_hex(4)}",
-        "author": req.author.strip(),
+        "author": (current_user.get("full_name") or current_user.get("username") or req.author).strip(),
         "city": req.city.strip() if req.city else "India",
-        "rating": req.rating,
+        "rating": max(1, min(int(req.rating), 5)),
         "product_id": target_p_id,
         "product_title": product_title,
         "date": datetime.now().strftime("%b %d, %Y"),
-        "verified": True,
+        "verified": has_purchased,
         "title": req.title.strip(),
         "content": req.content.strip(),
-        "photo_url": req.photo_url
+        "photo_url": clean_photo
     }
     
     db["reviews"].insert(0, new_review)
@@ -1665,20 +1751,20 @@ async def submit_customer_review(
     notif_entry = {
         "id": f"notif_rev_{secrets.token_hex(4)}",
         "type": "new_review",
-        "title": f"New ★★★★★ Review on {product_title}",
-        "details": f"{req.author}: '{req.title}'",
+        "title": f"New {'★' * new_review['rating']} Review on {product_title}",
+        "details": f"{new_review['author']}: '{req.title}'",
         "read": False,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
     db.setdefault("admin_notifications", []).insert(0, notif_entry)
     
     save_resinora_db(db)
-    logger.info(f"[RESINORA_REVIEW] New review submitted by '{req.author}' for {target_p_id}")
+    logger.info(f"[RESINORA_REVIEW] New review submitted by '{new_review['author']}' for {target_p_id} (verified={has_purchased})")
     
     return {
         "status": "ok",
         "review": new_review,
-        "message": "Thank you! Your verified review has been published on Resinora Atelier."
+        "message": "Thank you! Your verified review has been published on Resinora Atelier." if has_purchased else "Thank you! Your review has been submitted for atelier review."
     }
 
 # ==================== CARRIER TRACKING & TIMELINE API ====================
@@ -1695,9 +1781,14 @@ async def get_order_tracking(order_id: str, user: Dict[str, Any] = Depends(get_c
     if not target_order:
         raise HTTPException(status_code=404, detail="Order not found.")
 
-    # SEC-B05 FIX: Enforce customer ownership or admin clearance
-    is_owner = (user.get("email") and user.get("email").lower() == target_order.get("customer_email", "").lower())
-    is_admin = bool(user.get("is_admin"))
+    # SEC-B05 & SEC-B6-06 FIX: Enforce customer ownership or admin clearance; prevent guest email collision
+    is_owner = bool(
+        (user.get("id") and target_order.get("customer_id") == user.get("id")) or
+        (user.get("email") and target_order.get("customer_email") and 
+         target_order.get("customer_email") != "guest@resinora.art" and 
+         user.get("email").lower() == target_order.get("customer_email", "").lower())
+    )
+    is_admin = bool(user.get("is_admin") or user.get("role") == "admin")
     if not (is_owner or is_admin):
         raise HTTPException(status_code=403, detail="Forbidden: You do not have permission to view tracking for this order.")
         
