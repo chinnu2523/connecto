@@ -129,6 +129,8 @@ async def get_current_user(
                         )
                         active_sess = (await db.execute(sess_stmt)).scalar_one_or_none()
                         if active_sess:
+                            if getattr(edge_user, 'is_banned', False) or getattr(edge_user, 'status', '') == 'banned' or not getattr(edge_user, 'is_active', True):
+                                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been suspended or deactivated.")
                             return edge_user
 
                         # If user has other sessions in user_sessions, but this specific token_hash is NOT among them,
@@ -140,6 +142,8 @@ async def get_current_user(
                                 detail="Session has been terminated from another device. Please log in again."
                             )
 
+                        if getattr(edge_user, 'is_banned', False) or getattr(edge_user, 'status', '') == 'banned' or not getattr(edge_user, 'is_active', True):
+                            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been suspended or deactivated.")
                         return edge_user
             except HTTPException:
                 raise
@@ -191,6 +195,12 @@ async def get_current_user(
         pass
 
     # Presence is managed strictly via real-time WebSocket connection state, not HTTP polling.
+
+    if getattr(user, 'is_banned', False) or getattr(user, 'status', '') == 'banned' or not getattr(user, 'is_active', True):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account has been suspended or deactivated."
+        )
 
     return user
 

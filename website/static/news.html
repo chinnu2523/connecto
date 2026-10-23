@@ -1719,15 +1719,26 @@ html, body {
       }
     }
 
+    function sanitizeLinkUrl(url) {
+      if (!url || typeof url !== 'string') return '#';
+      const clean = url.trim();
+      if (clean.startsWith('https://') || clean.startsWith('http://') || clean.startsWith('/')) {
+        return clean;
+      }
+      return '#';
+    }
+
     function loadBreakingTicker(articles) {
       if (!articles || articles.length === 0) return;
       const track = document.getElementById('breakingTickerTrack');
       const topItems = articles.slice(0, 8);
-      track.innerHTML = topItems.map(item => `
-        <span class="ticker-item" onclick="openStoryById('${item.id}')">⚡ ${escapeHTML(item.title)}</span>
-      `).join('') + topItems.map(item => `
-        <span class="ticker-item" onclick="openStoryById('${item.id}')">⚡ ${escapeHTML(item.title)}</span>
-      `).join('');
+      track.innerHTML = topItems.map(item => {
+        const safeId = encodeURIComponent(String(item.id || ''));
+        return `<span class="ticker-item" onclick="openStoryById('${safeId}')">⚡ ${escapeHTML(item.title)}</span>`;
+      }).join('') + topItems.map(item => {
+        const safeId = encodeURIComponent(String(item.id || ''));
+        return `<span class="ticker-item" onclick="openStoryById('${safeId}')">⚡ ${escapeHTML(item.title)}</span>`;
+      }).join('');
     }
 
     // RENDER EDITORIAL NEWSROOM
@@ -1784,21 +1795,23 @@ html, body {
       const grid = document.getElementById('newsGrid');
       grid.innerHTML = gridItems.map(item => {
         const itemCat = CATEGORY_MAP[item.category] || { badgeClass: 'cat-badge-general', label: item.category_label || 'వార్తలు', labelEn: 'News' };
+        const safeId = encodeURIComponent(String(item.id || ''));
+        const safeUrl = sanitizeLinkUrl(item.url);
         return `
-          <div class="news-card" id="card-${item.id}">
+          <div class="news-card" id="card-${safeId}">
             <div>
               <div class="card-top">
                 <span class="cat-badge ${itemCat.badgeClass}">${currentLangMode === 'english_only' ? itemCat.labelEn : itemCat.label}</span>
                 <span class="card-time">${escapeHTML(item.published_time || 'Live')}</span>
               </div>
-              <h3 class="card-title" onclick="openStoryById('${item.id}')">${escapeHTML(item.title)}</h3>
+              <h3 class="card-title" onclick="openStoryById('${safeId}')">${escapeHTML(item.title)}</h3>
               <p class="card-snippet">${escapeHTML(item.summary || '')}</p>
             </div>
             <div class="card-footer">
               <span class="source-label">📰 ${escapeHTML(item.author || item.source_name || 'Verified Wire')}</span>
               <div style="display:flex; align-items:center; gap:10px;">
-                <button class="btn-preview-modal" style="padding:3px 8px; font-size:11.5px;" onclick="openStoryById('${item.id}')">👁️ ${currentLangMode === 'english_only' ? 'Preview' : 'సారాంశం'}</button>
-                <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="card-btn-linkout">
+                <button class="btn-preview-modal" style="padding:3px 8px; font-size:11.5px;" onclick="openStoryById('${safeId}')">👁️ ${currentLangMode === 'english_only' ? 'Preview' : 'సారాంశం'}</button>
+                <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="card-btn-linkout">
                   ${currentLangMode === 'english_only' ? 'Read Full ↗' : 'పూర్తి వార్త ↗'}
                 </a>
               </div>
@@ -1814,7 +1827,8 @@ html, body {
 
     // ARTICLE PREVIEW MODAL
     function openStoryById(id) {
-      const story = allArticles.find(a => a.id === id);
+      const decodedId = decodeURIComponent(String(id || ''));
+      const story = allArticles.find(a => a.id === id || a.id === decodedId || encodeURIComponent(String(a.id || '')) === id);
       if (!story) return;
 
       currentOpenStory = story;
@@ -1856,7 +1870,7 @@ html, body {
 
       // Linkout Direct
       const pubName = story.source_name || story.author || 'Original Source';
-      document.getElementById('modalDirectLinkBtn').href = story.url || '#';
+      document.getElementById('modalDirectLinkBtn').href = sanitizeLinkUrl(story.url);
       document.getElementById('modalDirectLinkText').innerText = isTranslated ? 
         `🔗 Read Full Story on ${pubName} ↗` : 
         `🔗 పూర్తి కథనం చదవండి (${pubName}) ↗`;

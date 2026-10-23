@@ -73,8 +73,8 @@ object ConnectoE2EEncryption {
 
             PREFIX + Base64.encodeToString(combined, Base64.NO_WRAP)
         } catch (e: Exception) {
-            // Fallback to original text if encryption fails
-            plaintext
+            // SEC-A5-01 FIX: Fail closed on encryption failure; do NOT transmit cleartext
+            throw SecurityException("End-to-end encryption failed: ${e.message}", e)
         }
     }
 
@@ -83,7 +83,7 @@ object ConnectoE2EEncryption {
         return try {
             val raw = content.removePrefix(PREFIX)
             val combined = Base64.decode(raw, Base64.DEFAULT)
-            if (combined.size < GCM_IV_LENGTH) return content
+            if (combined.size < GCM_IV_LENGTH) return "[🔒 Corrupted Encrypted Message]"
 
             val iv = ByteArray(GCM_IV_LENGTH)
             System.arraycopy(combined, 0, iv, 0, GCM_IV_LENGTH)
@@ -112,9 +112,10 @@ object ConnectoE2EEncryption {
                 if (fallback != null) return fallback
             }
 
-            content
+            // SEC-A5-02 FIX: Fail closed on decryption failure; do not leak raw ciphertext string
+            "[🔒 Encrypted Message — Authentication/Decryption Failed]"
         } catch (e: Exception) {
-            content
+            "[🔒 Encrypted Message — Decryption Error]"
         }
     }
 

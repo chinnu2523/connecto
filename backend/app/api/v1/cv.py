@@ -9,6 +9,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Request, Response, UploadFile, File, Form, Header, HTTPException, Query, Cookie, Depends, BackgroundTasks
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from pypdf import PdfReader
 from io import BytesIO
@@ -17,9 +18,12 @@ logger = logging.getLogger("cv.api")
 from app.core.security import verify_access_jwt
 router = APIRouter(tags=["ATS CV Screening"])
 
-DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "app_database.json")
-SECURE_CV_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "secure_vault", "cvs")
+APP_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+DATA_FILE = os.path.join(APP_ROOT, "data", "app_database.json")
+SECURE_CV_DIR = os.path.join(APP_ROOT, "data", "secure_vault", "cvs")
+UPLOADS_DIR = os.path.join(APP_ROOT, "uploads")
 os.makedirs(SECURE_CV_DIR, exist_ok=True)
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 CV_SCREEN_RATE_STORE = {}
 CV_SCREEN_WINDOW = 600.0
@@ -689,7 +693,7 @@ class CreateJobRoleRequest(BaseModel):
 async def create_custom_job_role(req: CreateJobRoleRequest, authorization: Optional[str] = Header(None)):
     auth_jwt = authorization[7:] if authorization and authorization.startswith("Bearer ") else req.admin_key
     user_payload = verify_access_jwt(auth_jwt) if (auth_jwt and auth_jwt not in ("admin", "kiki", "recruiter_session")) else None
-    is_recruiter = (user_payload and (user_payload.get("role") in ("admin", "recruiter") or user_payload.get("rank") in ("Grandmaster", "Jonin"))) or (False)
+    is_recruiter = bool(user_payload and user_payload.get("role") in ("admin", "recruiter"))
     
     if not is_recruiter:
         raise HTTPException(status_code=403, detail="Recruiter or Admin authorization required to create open positions.")
@@ -743,7 +747,7 @@ async def get_cv_workflow_json(
     key = admin_key or admin_key_dash
     auth_jwt = token or (authorization[7:] if authorization and authorization.startswith("Bearer ") else None) or key
     user_payload = verify_access_jwt(auth_jwt) if (auth_jwt and auth_jwt not in ("admin", "kiki", "recruiter_session")) else None
-    is_recruiter = (user_payload and (user_payload.get("role") in ("admin", "recruiter") or user_payload.get("rank") in ("Grandmaster", "Jonin"))) or (False)
+    is_recruiter = bool(user_payload and user_payload.get("role") in ("admin", "recruiter"))
     
     if not is_recruiter:
         raise HTTPException(status_code=403, detail="Access Denied: Recruiter or Administrator authorization required to view workflow definitions.")
@@ -799,18 +803,29 @@ async def screen_cv(
 
     if not file.filename:
         raise HTTPException(status_code=400, detail="CV file is required")
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    ALLOWED_CV_EXTS = {".pdf", ".txt", ".md"}
+    if ext not in ALLOWED_CV_EXTS:
+        raise HTTPException(
+            status_code=400, 
+            detail="Invalid file format. Only PDF, TXT, and MD resume documents are accepted."
+        )
         
     content = await file.read()
-    if len(content) > MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=413, detail="CV file exceeds 25 MB limit")
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="CV file exceeds 10 MB limit.")
+
+    if ext == ".pdf" and not content.startswith(b"%PDF-"):
+        raise HTTPException(status_code=400, detail="Invalid or corrupted PDF document.")
         
     cv_text = extract_text_from_pdf_or_bytes(content, file.filename)
     if not cv_text.strip():
         cv_text = f"Candidate Name: {name}\nEmail: {email}\nRole: {role}\nResume submitted."
         
-    # Save file into isolated, non-public SECURE_CV_DIR
-    clean_filename = re.sub(r'[^a-zA-Z0-9_.-]', '_', os.path.basename(file.filename))
-    saved_filename = f"cv_{int(time.time())}_{uuid.uuid4().hex[:8]}_{clean_filename}"
+    # Save file into isolated, non-public SECURE_CV_DIR with safe sanitized name
+    safe_ext = ".pdf" if ext == ".pdf" else ".txt"
+    saved_filename = f"cv_{int(time.time())}_{uuid.uuid4().hex}{safe_ext}"
     saved_path = os.path.join(SECURE_CV_DIR, saved_filename)
     with open(saved_path, "wb") as f:
         f.write(content)
@@ -917,22 +932,20 @@ async def download_candidate_cv(
     is_authorized = False
     if user_payload:
         user_role = user_payload.get("role", "")
-        user_rank = user_payload.get("rank", "")
-        if user_role in ("admin", "recruiter") or user_rank in ("Grandmaster", "Jonin"):
+        if user_role in ("admin", "recruiter"):
             is_authorized = True
-            
-    if not is_authorized:
-        # Check if caller provided valid candidate tracking token or recruiter passkey
-        if token and (token == candidate.get("tracking_id") or False):
-            is_authorized = True
-            
+
     if not is_authorized:
         raise HTTPException(
             status_code=403, 
             detail="Access Denied: Recruiter authorization required to download applicant CVs."
         )
         
-    storage_key = candidate.get("cv_storage_key") or os.path.basename(candidate.get("cv_url", ""))
+    raw_key = candidate.get("cv_storage_key") or candidate.get("cv_url", "")
+    storage_key = os.path.basename(raw_key.strip())
+    if not storage_key or storage_key in (".", ".."):
+        raise HTTPException(status_code=400, detail="Invalid CV storage reference.")
+
     file_path = os.path.join(SECURE_CV_DIR, storage_key)
     if not os.path.exists(file_path):
         legacy_path = os.path.join(UPLOADS_DIR, storage_key)
@@ -993,8 +1006,7 @@ async def update_candidate_status(
     is_authorized = False
     if user_payload:
         user_role = user_payload.get("role", "")
-        user_rank = user_payload.get("rank", "")
-        if user_role in ("admin", "recruiter") or user_rank in ("Grandmaster", "Jonin"):
+        if user_role in ("admin", "recruiter"):
             is_authorized = True
             
     if not is_authorized:
@@ -1251,6 +1263,51 @@ async def get_candidates(authorization: Optional[str] = Header(None)):
         "candidates": data_store.get("candidates", [])
     }
 
+async def _execute_purge_candidate(matched: dict, actor: str = "Recruiter") -> dict:
+    clean_id = matched.get("id", "").lower()
+    clean_track = matched.get("tracking_id", "").lower()
+    
+    # 1. Shred CV document from Secure Vault & legacy uploads
+    storage_keys = [matched.get("cv_storage_key"), os.path.basename(matched.get("cv_url", ""))]
+    for skey in storage_keys:
+        if not skey:
+            continue
+        safe_skey = os.path.basename(skey.strip())
+        vault_path = os.path.join(SECURE_CV_DIR, safe_skey)
+        if os.path.exists(vault_path):
+            try:
+                with open(vault_path, "wb") as f:
+                    f.write(b"\x00" * 4096)
+                os.remove(vault_path)
+            except Exception as e:
+                logger.warning(f"[PURGE_SHRED_ERROR] Could not shred {vault_path}: {e}")
+                
+        legacy_path = os.path.join(UPLOADS_DIR, safe_skey)
+        if os.path.exists(legacy_path):
+            try:
+                os.remove(legacy_path)
+            except Exception:
+                pass
+    
+    cand_name = matched.get("name", "Unknown")
+    cand_track = matched.get("tracking_id", clean_id)
+    
+    # 2. Remove from database
+    candidates = data_store.get("candidates", [])
+    data_store["candidates"] = [c for c in candidates if c.get("id", "").lower() != clean_id and c.get("tracking_id", "").lower() != clean_track]
+    TTL_CACHE.invalidate("cv_candidates")
+    
+    # 3. Log compliance audit event
+    log_audit_event(
+        action="CANDIDATE_DATA_PURGED",
+        actor=actor,
+        target=f"{cand_name} ({cand_track})",
+        details="GDPR/Privacy data deletion executed. CV document shredded and database record erased."
+    )
+    
+    logger.info(f"[PRIVACY_PURGE] Candidate '{cand_name}' [{cand_track}] permanently erased by {actor}.")
+    return {"status": "ok", "message": f"Candidate record and CV document for '{cand_track}' permanently erased and shredded."}
+
 @router.delete("/api/cv/candidates/{cid}")
 @router.delete("/api/cv/candidates/{cid}/purge")
 async def delete_candidate(
@@ -1267,7 +1324,7 @@ async def delete_candidate(
     key = admin_key or admin_key_dash
     auth_jwt = token or (authorization[7:] if authorization and authorization.startswith("Bearer ") else None) or key
     user_payload = verify_access_jwt(auth_jwt) if (auth_jwt and auth_jwt not in ("admin", "kiki", "recruiter_session")) else None
-    is_recruiter = (user_payload and (user_payload.get("role") in ("admin", "recruiter") or user_payload.get("rank") in ("Grandmaster", "Jonin"))) or (False)
+    is_recruiter = bool(user_payload and user_payload.get("role") in ("admin", "recruiter"))
     
     if not is_recruiter:
         raise HTTPException(status_code=403, detail="Access Denied: Recruiter or Administrator authorization required to purge candidate records.")
@@ -1277,45 +1334,8 @@ async def delete_candidate(
         candidates = data_store.get("candidates", [])
         matched = next((c for c in candidates if c.get("id", "").lower() == clean_id or c.get("tracking_id", "").lower() == clean_id), None)
         if matched:
-            # 1. Shred CV document from Secure Vault & legacy uploads
-            storage_keys = [matched.get("cv_storage_key"), os.path.basename(matched.get("cv_url", ""))]
-            for skey in storage_keys:
-                if not skey:
-                    continue
-                vault_path = os.path.join(SECURE_CV_DIR, skey)
-                if os.path.exists(vault_path):
-                    try:
-                        # Overwrite with zeros before deletion (secure shredding)
-                        with open(vault_path, "wb") as f:
-                            f.write(b"\x00" * 4096)
-                        os.remove(vault_path)
-                    except Exception as e:
-                        logger.warning(f"[PURGE_SHRED_ERROR] Could not shred {vault_path}: {e}")
-                        
-                legacy_path = os.path.join(UPLOADS_DIR, skey)
-                if os.path.exists(legacy_path):
-                    try:
-                        os.remove(legacy_path)
-                    except Exception:
-                        pass
-            
-            cand_name = matched.get("name", "Unknown")
-            cand_track = matched.get("tracking_id", cid)
-            
-            # 2. Remove from database
-            data_store["candidates"] = [c for c in candidates if c.get("id", "").lower() != clean_id and c.get("tracking_id", "").lower() != clean_id]
-            TTL_CACHE.invalidate("cv_candidates")
-            
-            # 3. Log compliance audit event
-            log_audit_event(
-                action="CANDIDATE_DATA_PURGED",
-                actor=(user_payload.get("username") if user_payload else "Recruiter"),
-                target=f"{cand_name} ({cand_track})",
-                details=f"GDPR/Privacy data deletion executed. CV document shredded and database record erased."
-            )
-            
-            logger.info(f"[PRIVACY_PURGE] Candidate '{cand_name}' [{cand_track}] permanently erased on request.")
-            return {"status": "ok", "message": f"Candidate record and CV document for '{cid}' permanently erased and shredded."}
+            actor = user_payload.get("username", "Recruiter") if user_payload else "Recruiter"
+            return await _execute_purge_candidate(matched, actor=actor)
             
     return {"status": "error", "message": "Candidate not found"}
 
@@ -1326,10 +1346,7 @@ class PrivacyPurgeRequest(BaseModel):
 
 @router.post("/api/cv/privacy/purge-request")
 async def submit_privacy_purge_request(
-    req: PrivacyPurgeRequest,
-    authorization: Optional[str] = Header(None),
-    admin_key: Optional[str] = Header(None, alias="admin_key"),
-    admin_key_dash: Optional[str] = Header(None, alias="admin-key")
+    req: PrivacyPurgeRequest
 ):
     """Candidate Self-Service Privacy Purge: Allows applicant to request permanent deletion using their tracking ID and email."""
     candidates = data_store.get("candidates", [])
@@ -1337,7 +1354,8 @@ async def submit_privacy_purge_request(
     if not matched:
         raise HTTPException(status_code=404, detail="No matching candidate found with the specified Tracking ID and email address.")
     
-    return await delete_candidate(cid=matched["id"], admin_key=None)
+    async with db_transaction():
+        return await _execute_purge_candidate(matched, actor=f"Candidate-Self-Service ({req.candidate_email})")
 
 @router.get("/api/system/logs")
 async def get_system_diagnostic_logs(
@@ -1351,7 +1369,7 @@ async def get_system_diagnostic_logs(
     key = admin_key or admin_key_dash
     auth_jwt = token or (authorization[7:] if authorization and authorization.startswith("Bearer ") else None) or key
     user_payload = verify_access_jwt(auth_jwt) if (auth_jwt and auth_jwt not in ("admin", "kiki")) else None
-    is_admin = (user_payload and (user_payload.get("role") == "admin" or user_payload.get("rank") == "Grandmaster")) or (False)
+    is_admin = bool(user_payload and user_payload.get("role") == "admin")
     
     if not is_admin:
         raise HTTPException(status_code=403, detail="Access Denied: Administrator authorization required to view system diagnostic logs.")
@@ -1442,7 +1460,7 @@ async def create_interview_slot(
     """Recruiter/Admin: create a new available interview slot."""
     auth_jwt = token or (authorization[7:] if authorization and authorization.startswith("Bearer ") else None) or admin_key
     user_payload = verify_access_jwt(auth_jwt) if (auth_jwt and auth_jwt not in ("admin", "kiki", "recruiter_session")) else None
-    is_recruiter = (user_payload and (user_payload.get("role") in ("admin", "recruiter") or user_payload.get("rank") in ("Grandmaster", "Jonin"))) or (False)
+    is_recruiter = bool(user_payload and user_payload.get("role") in ("admin", "recruiter"))
     
     if not is_recruiter:
         raise HTTPException(status_code=403, detail="Access Denied: Recruiter authorization required to create interview slots.")

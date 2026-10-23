@@ -877,6 +877,18 @@ function checkRateLimit(ip, category = "auth", maxRequests = 30, windowSeconds =
   return { allowed: true, remaining: maxRequests - rec.count, retryAfter: 0 };
 }
 
+function timingSafeEqualString(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  let mismatch = a.length === b.length ? 0 : 1;
+  const maxLen = Math.max(a.length, b.length);
+  for (let i = 0; i < maxLen; i++) {
+    const charA = i < a.length ? a.charCodeAt(i) : 0;
+    const charB = i < b.length ? b.charCodeAt(i) : 0;
+    mismatch |= (charA ^ charB);
+  }
+  return mismatch === 0;
+}
+
 function sanitizeHtml(str) {
   if (!str || typeof str !== "string") return "";
   return str
@@ -1314,6 +1326,10 @@ async function resolveUserFromRequest(request, env) {
     } catch (e) {
       console.warn("[resolveUser] Session hash lookup failed:", e.message);
     }
+  }
+
+  if (user && (user.is_banned === 1 || user.is_banned === true || user.status === "banned" || user.is_active === 0)) {
+    return null;
   }
 
   return user;
@@ -2106,8 +2122,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       let validOtp = false;
       let matchedRecord = null;
+      let records = null;
       if (env.DB) {
-        const records = await env.DB.prepare(`
+        records = await env.DB.prepare(`
           SELECT * FROM otp_verifications 
           WHERE (lower(identifier) = ? OR lower(identifier) = ? OR (user_id IS NOT NULL AND user_id = ?))
             AND purpose = 'forgot_password'
@@ -2117,7 +2134,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         `).bind(ident, user ? (user.email || "").toLowerCase() : ident, user ? user.id : "").all();
 
         for (const r of (records.results || [])) {
-          if (r.otp_code === otp) {
+          if (timingSafeEqualString(r.otp_code, otp)) {
             validOtp = true;
             matchedRecord = r;
             break;
@@ -2197,8 +2214,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       let validOtp = false;
       let matchedRecord = null;
+      let records = null;
       if (env.DB) {
-        const records = await env.DB.prepare(`
+        records = await env.DB.prepare(`
           SELECT * FROM otp_verifications 
           WHERE (lower(identifier) = ? OR lower(identifier) = ? OR user_id = ?)
             AND purpose = 'forgot_password'
@@ -2208,7 +2226,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         `).bind(ident, (user.email || "").toLowerCase(), user.id).all();
 
         for (const r of (records.results || [])) {
-          if (r.otp_code === otp) {
+          if (timingSafeEqualString(r.otp_code, otp)) {
             validOtp = true;
             matchedRecord = r;
             break;
@@ -2908,8 +2926,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       let valid = false;
       let matched = null;
+      let records = null;
       if (env.DB) {
-        const records = await env.DB.prepare(`
+        records = await env.DB.prepare(`
           SELECT * FROM otp_verifications 
           WHERE (user_id = ? OR lower(identifier) = ?) 
             AND purpose = 'change_contact' 
@@ -2919,7 +2938,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         `).bind(user.id, newContact).all();
 
         for (const r of (records.results || [])) {
-          if (r.otp_code === otp) {
+          if (timingSafeEqualString(r.otp_code, otp)) {
             valid = true;
             matched = r;
             break;
@@ -3111,7 +3130,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
       let uploadPurpose = (url.searchParams.get("purpose") || "").toLowerCase().trim();
 
+      const ALLOWED_UPLOAD_MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
       if (contentType.includes("multipart/form-data")) {
+        // Enforce Content-Length if present
+        const clHeader = parseInt(request.headers.get("content-length") || "0", 10);
+        if (clHeader > 5 * 1024 * 1024) {
+          return jsonResponse({ error: "Payload too large. Uploads are strictly limited to 5MB." }, 413);
+        }
+
         const formData = await request.formData();
         if (!uploadPurpose) {
           uploadPurpose = (formData.get("purpose") || "").toString().toLowerCase().trim();
@@ -3120,17 +3147,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         const fileEntry = formData.get("file") || formData.get("avatar") || formData.get("image") || formData.get("banner");
 
         if (fileEntry && typeof fileEntry === "object" && typeof fileEntry.arrayBuffer === "function") {
-          const mimeType = fileEntry.type || "image/webp";
+          const rawMime = (fileEntry.type || "image/webp").toLowerCase().trim();
+          if (!ALLOWED_UPLOAD_MIMES.includes(rawMime)) {
+            return jsonResponse({ error: "Invalid file type. Only JPEG, PNG, WEBP, and GIF images are allowed." }, 400);
+          }
           const buffer = await fileEntry.arrayBuffer();
-          // Convert arrayBuffer to base64
+          if (buffer.byteLength > 5 * 1024 * 1024) {
+            return jsonResponse({ error: "File exceeds 5MB size limit." }, 400);
+          }
+          // Convert arrayBuffer to base64 in 8KB chunks to prevent isolate memory exhaustion
           let binary = "";
           const bytes = new Uint8Array(buffer);
-          const len = bytes.byteLength;
-          for (let i = 0; i < len; i++) {
-            binary += String.fromCharCode(bytes[i]);
+          const chunkSize = 8192;
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
           }
           const base64 = btoa(binary);
-          dataUrl = `data:${mimeType};base64,${base64}`;
+          dataUrl = `data:${rawMime};base64,${base64}`;
         }
       } else if (contentType.includes("application/json")) {
         const body = await request.json().catch(() => ({}));
@@ -3138,6 +3171,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           uploadPurpose = (body.purpose || "").toLowerCase().trim();
         }
         dataUrl = body.avatar_url || body.url || body.data || body.image || "";
+        if (dataUrl && dataUrl.startsWith("data:")) {
+          const match = dataUrl.match(/^data:([^;]+);base64,/i);
+          if (match) {
+            const mType = match[1].toLowerCase().trim();
+            if (!ALLOWED_UPLOAD_MIMES.includes(mType)) {
+              return jsonResponse({ error: "Invalid image format. Allowed formats: JPEG, PNG, WEBP, GIF." }, 400);
+            }
+          }
+        }
       }
 
       if (!dataUrl) {
@@ -4650,6 +4692,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         }
       }
 
+      // SEC-W5-06 FIX: Enforce membership checks on group channels (grp-*)
+      const isGrpChannel = canonicalChannel.startsWith("grp-") || channelId.startsWith("grp-");
+      if (isGrpChannel) {
+        if (!caller) {
+          return jsonResponse({ error: "Unauthorized: Active session required to view group messages." }, 401);
+        }
+        if (!caller.is_admin && env.DB) {
+          const isMember = await env.DB.prepare(
+            "SELECT 1 FROM dm_participants WHERE (channel_id = ? OR channel_id = ?) AND user_id = ? LIMIT 1"
+          ).bind(canonicalChannel, channelId, caller.id).first().catch(() => null);
+          if (!isMember) {
+            return jsonResponse({ error: "Forbidden: You are not a member of this group." }, 403);
+          }
+        }
+      }
+
       const reqUser = caller ? caller.username.trim().toLowerCase().replace(/^@/, "") : "";
 
       if (env.DB) {
@@ -4774,6 +4832,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           return jsonResponse({ error: "Forbidden: You are not a participant in this conversation." }, 403);
         }
         dmRecipient = lowerParts.find(p => p !== cleanSender) || (body.recipient || body.target || "").toLowerCase().trim().replace(/^@/, "");
+      }
+
+      // SEC-W5-06 FIX: Enforce membership checks on group message posting (grp-*)
+      const isGrp = canonicalChannel.startsWith("grp-") || channelId.startsWith("grp-");
+      if (isGrp) {
+        if (!sender.is_admin && env.DB) {
+          const isMember = await env.DB.prepare(
+            "SELECT 1 FROM dm_participants WHERE (channel_id = ? OR channel_id = ?) AND user_id = ? LIMIT 1"
+          ).bind(canonicalChannel, channelId, sender.id).first().catch(() => null);
+          if (!isMember) {
+            return jsonResponse({ error: "Forbidden: You are not a member of this group." }, 403);
+          }
+        }
       }
 
       if (env.DB) {
@@ -7029,6 +7100,10 @@ async function handleAiModerate(request, env) {
   if (!rateCheck.allowed) {
     return jsonResponse({ error: "Rate limit exceeded for content moderation.", retry_after: rateCheck.retryAfter }, 429);
   }
+  const caller = await resolveUserFromRequest(request, env);
+  if (!caller) {
+    return jsonResponse({ error: "Unauthorized: Active session required for content moderation." }, 401);
+  }
   try {
     if (!env.AI) return jsonResponse({ error: "Workers AI binding not available" }, 500);
     const { text } = await request.json().catch(() => ({}));
@@ -7230,15 +7305,23 @@ export class ConnectoRealtimeRoom {
   }
 
   resolveCallPeer(callId, senderUsername, explicitTarget) {
-    if (explicitTarget) {
-      return String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
-    }
+    const cleanSender = String(senderUsername || "").toLowerCase().trim().replace(/^@/, "");
     if (callId && this.pendingCalls.has(callId)) {
       const info = this.pendingCalls.get(callId);
-      const cleanSender = String(senderUsername || "").toLowerCase().trim().replace(/^@/, "");
-      if (cleanSender && info.caller === cleanSender) return info.target;
-      if (cleanSender && info.target === cleanSender) return info.caller;
-      return info.caller || info.target || "";
+      const isParticipant = cleanSender && (info.caller === cleanSender || info.target === cleanSender);
+      if (!isParticipant) {
+        return "";
+      }
+      if (explicitTarget) {
+        const cleanTarget = String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
+        if (cleanTarget === info.caller || cleanTarget === info.target) {
+          return cleanTarget;
+        }
+      }
+      return info.caller === cleanSender ? info.target : info.caller;
+    }
+    if (explicitTarget) {
+      return String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
     }
     return "";
   }
@@ -7588,10 +7671,16 @@ export class ConnectoRealtimeRoom {
     if (this.env && this.env.DB) {
       try {
         const uRow = await this.env.DB.prepare(
-          "SELECT username FROM users WHERE id = ? OR lower(username) = ? LIMIT 1"
+          "SELECT username, is_banned, is_active FROM users WHERE id = ? OR lower(username) = ? LIMIT 1"
         ).bind(wsAuthUser, String(wsAuthUser).toLowerCase()).first();
-        if (uRow && uRow.username) {
-          authUsername = uRow.username.toLowerCase().trim().replace(/^@/, "");
+        if (uRow) {
+          if (uRow.is_banned === 1 || uRow.is_banned === true || uRow.is_active === 0) {
+            server.close(1008, "Account suspended");
+            return;
+          }
+          if (uRow.username) {
+            authUsername = uRow.username.toLowerCase().trim().replace(/^@/, "");
+          }
         }
       } catch (_) {}
     }
@@ -7789,6 +7878,16 @@ export class ConnectoRealtimeRoom {
         // 4. WebRTC 1:1 Voice Call Signaling & Voice Room Audio Relay
         const action = data.action || data.type;
         if (action === "call:initiate" || action === "call_invite") {
+          // SEC-W5-05 FIX: Rate limit call initiation to prevent notification flooding / FCM exhaustion
+          if (!meta.lastCallInitiations) meta.lastCallInitiations = [];
+          const now = Date.now();
+          meta.lastCallInitiations = meta.lastCallInitiations.filter(t => now - t < 60000);
+          if (meta.lastCallInitiations.length >= 10) {
+            server.send(JSON.stringify({ type: "error", error: "Rate limit exceeded for initiating calls. Please wait a moment." }));
+            return;
+          }
+          meta.lastCallInitiations.push(now);
+
           const target = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
           const callId = data.call_id || data.room_id || "call_" + Math.random().toString(36).substring(2, 9);
           const callerAvatar = data.avatar || meta.avatar || "👾";
@@ -7973,7 +8072,12 @@ export class ConnectoRealtimeRoom {
           const callId = data.call_id || data.room_id;
           const explicitTarget = (data.target || data.target_user || data.target_user_id || "").toLowerCase().trim().replace(/^@/, "");
           const target = this.resolveCallPeer(callId, meta.username, explicitTarget);
-          if (callId) {
+          if (callId && this.pendingCalls.has(callId)) {
+            const cInfo = this.pendingCalls.get(callId);
+            const cleanUser = meta.username.toLowerCase().trim().replace(/^@/, "");
+            if (cInfo.caller !== cleanUser && cInfo.target !== cleanUser) {
+              return; // SEC-W5-03: Forbidden to terminate another user's call
+            }
             this.pendingCalls.delete(callId);
             this.clearCallNotifications(callId, meta.username, target || explicitTarget);
           }
@@ -8012,6 +8116,15 @@ export class ConnectoRealtimeRoom {
         if (action === "voice_join" || action === "voice:join") {
           const rId = String(data.room_id || data.channel_id || "").trim();
           if (rId) {
+            // SEC-W5-04 FIX: Authorize participant access for DM and private voice channels
+            if (rId.startsWith("dm-") || rId.startsWith("dm_")) {
+              const participants = rId.replace(/^dm[-_]/, "").split(/[-_]/).map(p => p.toLowerCase().trim().replace(/^@/, ""));
+              if (!participants.includes(meta.username.toLowerCase().trim().replace(/^@/, ""))) {
+                server.send(JSON.stringify({ type: "error", error: "Unauthorized: You are not a participant in this voice room." }));
+                return;
+              }
+            }
+
             meta.currentVoiceRoom = rId;
             const roomChan = `voice_room:${rId}`;
             meta.channels.add(roomChan);

@@ -172,6 +172,7 @@ class MainActivity : FragmentActivity() {
 
     private fun handleIncomingIntent(intent: Intent?) {
         if (intent == null) return
+        val isInternal = intent.getBooleanExtra(ConnectoNotificationManager.EXTRA_INTERNAL_SOURCE, false)
         val action = intent.getStringExtra(ConnectoNotificationManager.EXTRA_NOTIFICATION_ACTION)
         val type = intent.getStringExtra("type")
         val target = intent.getStringExtra(ConnectoNotificationManager.EXTRA_CHANNEL_ID)
@@ -180,6 +181,13 @@ class MainActivity : FragmentActivity() {
             ?: intent.getStringExtra("room_id")
             ?: intent.getStringExtra("sender_username")
             ?: intent.getStringExtra("sender")
+
+        // SEC-A5-03 FIX: Call control actions (answering/declining calls) strictly require trusted internal notification origin
+        if (action == ConnectoNotificationManager.ACTION_ANSWER_CALL || action == ConnectoNotificationManager.ACTION_DECLINE_CALL) {
+            if (!isInternal) {
+                return
+            }
+        }
 
         if (!action.isNullOrBlank()) {
             pendingIntentAction = action

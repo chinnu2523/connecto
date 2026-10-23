@@ -391,7 +391,7 @@ ALLOWED_ORIGINS = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^(https?://.*\.ts\.net(:\d+)?|http://100\.\d+\.\d+\.\d+(:\d+)?|https?://(news|ats|n8n|www)\.connecto\.fun|http://(localhost|127\.0\.0\.1)(:\d+)?)$",
+    allow_origin_regex=r"^(https?://.*\.taile07dd1\.ts\.net(:\d+)?|http://100\.\d+\.\d+\.\d+(:\d+)?|https?://(news|ats|n8n|www)\.connecto\.fun|http://(localhost|127\.0\.0\.1)(:\d+)?)$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
     allow_headers=["Authorization", "Content-Type", "X-Requested-With", "X-Admin-Secret", "X-CSRF-Token", "Accept"],
@@ -3745,8 +3745,18 @@ async def set_channel_automod_endpoint(channel_id: str, request: Request, curren
     clean_id = channel_id.strip().lower().removeprefix("#")
     return {"status": "ok", "channel_id": clean_id}
 
+def _verify_canvas_access(channel_id: str, user: User):
+    clean = channel_id.strip().lower().removeprefix("#")
+    if clean.startswith("dm-") or clean.startswith("dm_"):
+        raw = clean.removeprefix("dm-").removeprefix("dm_")
+        parts = raw.split("-") if "-" in raw else raw.split("_")
+        u = user.username.lower().strip()
+        if u not in [p.lower().strip() for p in parts] and not getattr(user, "is_admin", False):
+            raise HTTPException(status_code=403, detail="Forbidden: You are not a participant in this conversation.")
+
 @app.get("/api/channels/{channel_id}/canvas")
-async def get_channel_canvas_endpoint(channel_id: str):
+async def get_channel_canvas_endpoint(channel_id: str, current_user: User = Depends(get_current_user)):
+    _verify_canvas_access(channel_id, current_user)
     clean_id = channel_id.strip().lower().removeprefix("#")
     if clean_id not in _channel_canvases:
         _channel_canvases[clean_id] = {
@@ -3759,6 +3769,7 @@ async def get_channel_canvas_endpoint(channel_id: str):
 
 @app.post("/api/channels/{channel_id}/canvas/notes")
 async def update_channel_canvas_notes_endpoint(channel_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    _verify_canvas_access(channel_id, current_user)
     clean_id = channel_id.strip().lower().removeprefix("#")
     body = await request.json()
     notes = body.get("notes", "")
@@ -3778,6 +3789,7 @@ async def update_channel_canvas_notes_endpoint(channel_id: str, request: Request
 
 @app.post("/api/channels/{channel_id}/canvas/tasks")
 async def add_channel_canvas_task_endpoint(channel_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    _verify_canvas_access(channel_id, current_user)
     clean_id = channel_id.strip().lower().removeprefix("#")
     body = await request.json()
     task = {
@@ -3800,6 +3812,7 @@ async def add_channel_canvas_task_endpoint(channel_id: str, request: Request, cu
 
 @app.patch("/api/channels/{channel_id}/canvas/tasks/{task_id}")
 async def update_channel_canvas_task_endpoint(channel_id: str, task_id: str, request: Request, current_user: User = Depends(get_current_user)):
+    _verify_canvas_access(channel_id, current_user)
     clean_id = channel_id.strip().lower().removeprefix("#")
     body = await request.json()
     tasks = _channel_canvases.get(clean_id, {}).get("tasks", [])
@@ -3818,6 +3831,7 @@ async def update_channel_canvas_task_endpoint(channel_id: str, task_id: str, req
 
 @app.delete("/api/channels/{channel_id}/canvas/tasks/{task_id}")
 async def delete_channel_canvas_task_endpoint(channel_id: str, task_id: str, current_user: User = Depends(get_current_user)):
+    _verify_canvas_access(channel_id, current_user)
     clean_id = channel_id.strip().lower().removeprefix("#")
     tasks = _channel_canvases.get(clean_id, {}).get("tasks", [])
     _channel_canvases.get(clean_id, {})["tasks"] = [t for t in tasks if t.get("id") != task_id]
@@ -5451,7 +5465,7 @@ async def accept_friend_request_compat(
     request: Request,
     request_id: Optional[str] = None,
     payload: dict = None,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Accepts a friend request with real-time websocket sync."""
@@ -5464,48 +5478,36 @@ async def accept_friend_request_compat(
 
     req_id = str(request_id or payload.get("request_id") or payload.get("id") or "").strip()
     sender_name = str(payload.get("sender") or payload.get("sender_username") or payload.get("username") or "").strip().lower().removeprefix("@")
-    recipient_name = ""
-    if current_user:
-        recipient_name = current_user.username.strip().lower()
-    if not recipient_name:
-        recipient_name = str(payload.get("recipient") or payload.get("recipient_username") or "").strip().lower().removeprefix("@")
+    recipient_name = current_user.username.strip().lower()
 
     friendship = None
     if req_id:
         friendship = (await db.execute(select(Friendship).where(Friendship.id == req_id))).scalar_one_or_none()
 
-    if not friendship and sender_name and recipient_name:
+    if not friendship and sender_name:
         sender = (await db.execute(select(User).where(func.lower(User.username) == sender_name))).scalar_one_or_none()
-        recipient = (await db.execute(select(User).where(func.lower(User.username) == recipient_name))).scalar_one_or_none()
-        if sender and recipient:
+        if sender:
             stmt = select(Friendship).where(
-                or_(
-                    and_(Friendship.user_id == sender.id, Friendship.friend_id == recipient.id),
-                    and_(Friendship.user_id == recipient.id, Friendship.friend_id == sender.id)
-                )
+                Friendship.user_id == sender.id,
+                Friendship.friend_id == current_user.id
             )
             friendship = (await db.execute(stmt)).scalars().first()
 
     if not friendship and req_id:
         sender_by_id = (await db.execute(select(User).where(func.lower(User.username) == req_id.lower()))).scalar_one_or_none()
         if sender_by_id:
-            if recipient_name:
-                recipient = (await db.execute(select(User).where(func.lower(User.username) == recipient_name))).scalar_one_or_none()
-            elif current_user:
-                recipient = current_user
-            else:
-                recipient = None
-            if recipient:
-                stmt = select(Friendship).where(
-                    or_(
-                        and_(Friendship.user_id == sender_by_id.id, Friendship.friend_id == recipient.id),
-                        and_(Friendship.user_id == recipient.id, Friendship.friend_id == sender_by_id.id)
-                    )
-                )
-                friendship = (await db.execute(stmt)).scalars().first()
+            stmt = select(Friendship).where(
+                Friendship.user_id == sender_by_id.id,
+                Friendship.friend_id == current_user.id
+            )
+            friendship = (await db.execute(stmt)).scalars().first()
 
     if not friendship:
         raise HTTPException(status_code=404, detail="Friend request not found")
+
+    # SEC-B5-03: Ensure caller is the intended recipient of this friend request
+    if friendship.friend_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Forbidden: You can only accept friend requests addressed to you.")
 
     friendship.status = "accepted"
     await db.commit()
@@ -5605,7 +5607,7 @@ async def decline_friend_request_compat(
     request: Request,
     request_id: Optional[str] = None,
     payload: dict = None,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Declines a friend request."""
@@ -5617,24 +5619,18 @@ async def decline_friend_request_compat(
 
     req_id = str(request_id or payload.get("request_id") or payload.get("id") or "").strip()
     sender_name = str(payload.get("sender") or payload.get("sender_username") or payload.get("username") or "").strip().lower().removeprefix("@")
-    recipient_name = ""
-    if current_user:
-        recipient_name = current_user.username.strip().lower()
-    if not recipient_name:
-        recipient_name = str(payload.get("recipient") or payload.get("recipient_username") or "").strip().lower().removeprefix("@")
 
     friendship = None
     if req_id:
         friendship = (await db.execute(select(Friendship).where(Friendship.id == req_id))).scalar_one_or_none()
 
-    if not friendship and sender_name and recipient_name:
+    if not friendship and sender_name:
         sender = (await db.execute(select(User).where(func.lower(User.username) == sender_name))).scalar_one_or_none()
-        recipient = (await db.execute(select(User).where(func.lower(User.username) == recipient_name))).scalar_one_or_none()
-        if sender and recipient:
+        if sender:
             stmt = select(Friendship).where(
                 or_(
-                    and_(Friendship.user_id == sender.id, Friendship.friend_id == recipient.id),
-                    and_(Friendship.user_id == recipient.id, Friendship.friend_id == sender.id)
+                    and_(Friendship.user_id == sender.id, Friendship.friend_id == current_user.id),
+                    and_(Friendship.user_id == current_user.id, Friendship.friend_id == sender.id)
                 )
             )
             friendship = (await db.execute(stmt)).scalars().first()
@@ -5642,23 +5638,20 @@ async def decline_friend_request_compat(
     if not friendship and req_id:
         sender_by_id = (await db.execute(select(User).where(func.lower(User.username) == req_id.lower()))).scalar_one_or_none()
         if sender_by_id:
-            if recipient_name:
-                recipient = (await db.execute(select(User).where(func.lower(User.username) == recipient_name))).scalar_one_or_none()
-            elif current_user:
-                recipient = current_user
-            else:
-                recipient = None
-            if recipient:
-                stmt = select(Friendship).where(
-                    or_(
-                        and_(Friendship.user_id == sender_by_id.id, Friendship.friend_id == recipient.id),
-                        and_(Friendship.user_id == recipient.id, Friendship.friend_id == sender_by_id.id)
-                    )
+            stmt = select(Friendship).where(
+                or_(
+                    and_(Friendship.user_id == sender_by_id.id, Friendship.friend_id == current_user.id),
+                    and_(Friendship.user_id == current_user.id, Friendship.friend_id == sender_by_id.id)
                 )
-                friendship = (await db.execute(stmt)).scalars().first()
+            )
+            friendship = (await db.execute(stmt)).scalars().first()
 
     if not friendship:
         raise HTTPException(status_code=404, detail="Friend request not found")
+
+    # SEC-B5-03: Verify caller is a party to this friend request
+    if current_user.id not in (friendship.user_id, friendship.friend_id):
+        raise HTTPException(status_code=403, detail="Forbidden: You are not authorized to decline this friend request.")
 
     await db.delete(friendship)
     await db.commit()
@@ -5674,7 +5667,7 @@ async def unfriend_user_compat(
     payload: dict = None,
     friend_id: str = None,
     request: Request = None,
-    current_user: Optional[User] = Depends(get_current_user_optional),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Removes a friendship between authenticated user and target friend."""
@@ -5687,17 +5680,6 @@ async def unfriend_user_compat(
     if payload is None:
         payload = {}
 
-    sender_name = ""
-    if current_user:
-        sender_name = current_user.username.strip().lower()
-    if not sender_name:
-        sender_name = str(
-            payload.get("current_user") or 
-            payload.get("sender") or 
-            (request.query_params.get("current_user") if request else "") or 
-            ""
-        ).strip().lower()
-
     recipient_name = (
         payload.get("friend_username") or
         payload.get("target_username") or
@@ -5707,7 +5689,7 @@ async def unfriend_user_compat(
         payload.get("friend") or
         friend_id or
         ""
-    ).strip().lower()
+    ).strip().lower().removeprefix("@")
 
     req_id = str(payload.get("request_id") or payload.get("id") or "").strip()
 
@@ -5715,11 +5697,8 @@ async def unfriend_user_compat(
     u1 = current_user
     u2 = None
 
-    if not u1 and sender_name:
-        u1 = (await db.execute(select(User).where(or_(User.username == sender_name, User.id == sender_name)))).scalar_one_or_none()
-
     if recipient_name:
-        u2 = (await db.execute(select(User).where(or_(User.username == recipient_name, User.id == recipient_name)))).scalar_one_or_none()
+        u2 = (await db.execute(select(User).where(or_(func.lower(User.username) == recipient_name, User.id == recipient_name)))).scalar_one_or_none()
 
     if u1 and u2:
         stmt = select(Friendship).where(
@@ -5731,7 +5710,9 @@ async def unfriend_user_compat(
         friendship = (await db.execute(stmt)).scalars().first()
 
     if not friendship and req_id:
-        friendship = (await db.execute(select(Friendship).where(Friendship.id == req_id))).scalar_one_or_none()
+        cand_friendship = (await db.execute(select(Friendship).where(Friendship.id == req_id))).scalar_one_or_none()
+        if cand_friendship and (cand_friendship.user_id == current_user.id or cand_friendship.friend_id == current_user.id):
+            friendship = cand_friendship
 
     if friendship:
         if not u1:
@@ -7279,15 +7260,15 @@ async def admin_auth_endpoint(request: Request, req: AdminAuthRequest):
     if matched:
         token = "adm_tok_" + uuid.uuid4().hex
         ACTIVE_ADMIN_TOKENS[token] = time.time() + 86400 * 7
-        is_secure = (request.url.scheme == "https")
+        is_secure = (request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https" or not getattr(settings, "DEBUG", False))
         resp = JSONResponse({"status": "ok", "token": token, "role": "admin"})
         resp.set_cookie("vconnect_admin_token", token, max_age=86400*7, httponly=True, samesite="lax", secure=is_secure)
-        resp.set_cookie("vconnect_server_key", code, max_age=86400*7, httponly=True, samesite="lax", secure=is_secure)
         return resp
     raise HTTPException(status_code=401, detail="Invalid admin security passcode.")
 
 @app.get("/api/admin/device-info")
-async def admin_device_info(request: Request):
+async def admin_device_info(request: Request, db: AsyncSession = Depends(get_db)):
+    await require_admin_clearance(request, db)
     client_ip = request.client.host if request.client else "127.0.0.1"
     return {
         "status": "ok",
@@ -7304,7 +7285,7 @@ async def admin_passkey_auth(request: Request, req: AdminPasskeyAuthRequest):
     if matched:
         token = "adm_tok_" + uuid.uuid4().hex
         ACTIVE_ADMIN_TOKENS[token] = time.time() + 86400 * 7
-        is_secure = (request.url.scheme == "https")
+        is_secure = (request.headers.get("x-forwarded-proto") == "https" or request.url.scheme == "https" or not getattr(settings, "DEBUG", False))
         resp = JSONResponse({
             "status": "ok",
             "recognized": True,
@@ -7313,8 +7294,6 @@ async def admin_passkey_auth(request: Request, req: AdminPasskeyAuthRequest):
             "role": "admin",
             "message": f"Hardware Passkey Verified: Clearance Granted."
         })
-        resp.set_cookie("vconnect_server_key", pk, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
-        resp.set_cookie("vconnect_passkey", pk, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
         resp.set_cookie("vconnect_admin_token", token, max_age=86400*30, httponly=True, samesite="lax", secure=is_secure)
         return resp
     raise HTTPException(status_code=401, detail="Invalid hardware passkey.")

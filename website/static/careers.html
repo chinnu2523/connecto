@@ -2590,14 +2590,14 @@
       if (citations.length > 0) {
         citContainer.innerHTML = citations.map(c => `
           <div class="citation-item">
-            <span class="citation-quote">"${c.quote}"</span>
-            <div><span class="citation-tag">${c.category} • ${c.criterion}</span></div>
+            <span class="citation-quote">"${escapeHTML(c.quote || '')}"</span>
+            <div><span class="citation-tag">${escapeHTML(c.category || '')} • ${escapeHTML(c.criterion || '')}</span></div>
           </div>
         `).join('');
       } else {
         citContainer.innerHTML = `
           <div class="citation-item">
-            <span class="citation-quote">"Demonstrated project delivery in ${cand.role} core stack requirements."</span>
+            <span class="citation-quote">"Demonstrated project delivery in ${escapeHTML(cand.role || '')} core stack requirements."</span>
             <div><span class="citation-tag">Resume Synthesis • Verified Attributes</span></div>
           </div>
         `;
@@ -2606,11 +2606,11 @@
       // Strengths & Growth Lists
       const strList = document.getElementById('scStrengthsList');
       const strengths = cand.strengths || ["Core technology stack competency verified", "Solid experience in production architecture"];
-      strList.innerHTML = strengths.map(s => `<li><i data-lucide="check" class="lucide-sm" style="color:#16a34a; flex-shrink:0;"></i> <span>${s}</span></li>`).join('');
+      strList.innerHTML = strengths.map(s => `<li><i data-lucide="check" class="lucide-sm" style="color:#16a34a; flex-shrink:0;"></i> <span>${escapeHTML(s)}</span></li>`).join('');
 
       const groList = document.getElementById('scGrowthList');
       const growth = cand.growth_areas || ["Demonstrates balanced profile meeting all non-negotiable targets"];
-      groList.innerHTML = growth.map(g => `<li><i data-lucide="arrow-right" class="lucide-sm" style="color:#ea580c; flex-shrink:0;"></i> <span>${g}</span></li>`).join('');
+      groList.innerHTML = growth.map(g => `<li><i data-lucide="arrow-right" class="lucide-sm" style="color:#ea580c; flex-shrink:0;"></i> <span>${escapeHTML(g)}</span></li>`).join('');
 
       if (window.lucide) lucide.createIcons();
     }
@@ -2632,30 +2632,30 @@
           resContainer.innerHTML = `
             <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:20px;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <h4 style="color:#fff; font-size:16px; font-weight:800;">${c.name}</h4>
-                <span class="table-badge" style="background:var(--accent-blue-tint); color:var(--accent-blue); border:1px solid var(--accent-blue-border);">${c.current_stage.toUpperCase()}</span>
+                <h4 style="color:#fff; font-size:16px; font-weight:800;">${escapeHTML(c.name || '')}</h4>
+                <span class="table-badge" style="background:var(--accent-blue-tint); color:var(--accent-blue); border:1px solid var(--accent-blue-border);">${escapeHTML((c.current_stage || '').toUpperCase())}</span>
               </div>
               <div style="font-size:13px; color:var(--text-light-muted); line-height:1.6; margin-bottom:16px;">
-                <div><strong>Role:</strong> ${c.role}</div>
-                <div><strong>Email:</strong> ${c.email}</div>
-                <div><strong>Submitted:</strong> ${c.submitted_at}</div>
+                <div><strong>Role:</strong> ${escapeHTML(c.role || '')}</div>
+                <div><strong>Email:</strong> ${escapeHTML(c.email || '')}</div>
+                <div><strong>Submitted:</strong> ${escapeHTML(c.submitted_at || '')}</div>
               </div>
               <div style="display:flex; flex-direction:column; gap:8px;">
                 ${(data.timeline || []).map(t => `
                   <div style="display:flex; align-items:center; gap:10px; font-size:12.5px;">
                     <span style="width:18px; height:18px; border-radius:50%; background:${t.status === 'completed' ? 'var(--emerald)' : 'rgba(255,255,255,0.15)'}; display:flex; align-items:center; justify-content:center; font-size:10px; color:#fff;">✓</span>
-                    <strong style="color:#fff;">${t.title}</strong>
-                    <span style="color:var(--text-light-muted);">— ${t.description}</span>
+                    <strong style="color:#fff;">${escapeHTML(t.title || '')}</strong>
+                    <span style="color:var(--text-light-muted);">— ${escapeHTML(t.description || '')}</span>
                   </div>
                 `).join('')}
               </div>
             </div>
           `;
         } else {
-          resContainer.innerHTML = `<div style="color:var(--rose); padding:12px; text-align:center;">No application record found for '${id}'. Please verify your Tracking ID.</div>`;
+          resContainer.innerHTML = `<div style="color:var(--rose); padding:12px; text-align:center;">No application record found for '${escapeHTML(id)}'. Please verify your Tracking ID.</div>`;
         }
       } catch (err) {
-        resContainer.innerHTML = `<div style="color:var(--rose); padding:12px; text-align:center;">Error: ${err.message}</div>`;
+        resContainer.innerHTML = `<div style="color:var(--rose); padding:12px; text-align:center;">Error: ${escapeHTML(err.message)}</div>`;
       }
     }
 
@@ -2872,17 +2872,17 @@
       const pct = cand.matchPercentage || Math.round((cand.qualificationRate || 0.75) * 100);
       container.innerHTML = `
         <div style="color:var(--text-light-primary);">
-          <div style="font-size:18px; font-weight:800; color:#fff; margin-bottom:4px;">${cand.name}</div>
-          <div style="font-size:13px; color:var(--text-light-muted); margin-bottom:16px;">${cand.email} • ${cand.role} • ${cand.tracking_id}</div>
+          <div style="font-size:18px; font-weight:800; color:#fff; margin-bottom:4px;">${escapeHTML(cand.name || '')}</div>
+          <div style="font-size:13px; color:var(--text-light-muted); margin-bottom:16px;">${escapeHTML(cand.email || '')} • ${escapeHTML(cand.role || '')} • ${escapeHTML(cand.tracking_id || '')}</div>
           <div style="background:rgba(0,0,0,0.3); padding:14px; border-radius:10px; margin-bottom:14px;">
             <div style="font-size:12px; font-weight:700; color:var(--accent-blue);">Executive Verdict (${pct}% Match)</div>
-            <p style="font-size:12.5px; color:var(--text-light-secondary); margin-top:4px; line-height:1.5;">${cand.verdict || "Candidate evaluated against target requirements."}</p>
+            <p style="font-size:12.5px; color:var(--text-light-secondary); margin-top:4px; line-height:1.5;">${escapeHTML(cand.verdict || "Candidate evaluated against target requirements.")}</p>
           </div>
           <div style="margin-bottom:14px;">
             <div style="font-size:12px; font-weight:700; color:var(--text-light-muted); text-transform:uppercase; margin-bottom:6px;">Evidence Citations</div>
             ${(cand.citations || []).map(c => `
               <div style="background:rgba(255,255,255,0.04); padding:8px 10px; border-radius:6px; font-size:11.5px; margin-bottom:4px;">
-                "${c.quote}" <span style="color:var(--accent-blue); font-size:10px;">— ${c.criterion}</span>
+                "${escapeHTML(c.quote || '')}" <span style="color:var(--accent-blue); font-size:10px;">— ${escapeHTML(c.criterion || '')}</span>
               </div>
             `).join('')}
           </div>

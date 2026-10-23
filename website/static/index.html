@@ -24061,9 +24061,11 @@ pre, .code-block, .chat-code-snippet {
           const editedHTML = msg.edited ? '<span style="font-size:10px; opacity:0.7; margin-left:4px; font-style:italic;">(edited)</span>' : '';
           const automodBadgeHTML = msg.automod_flagged ? `<span class="msg-automod-badge" title="${escapeHTML(msg.flagged_reason || 'Filtered by Auto-Mod')}">⚠️ AUTO-MOD</span>` : '';
           const scheduledPillHTML = msg.scheduled_origin ? '<span class="msg-scheduled-pill">🕒 Scheduled</span>' : '';
-          const safeAttachment = escapeHTML(msg.attachment || '');
-          const safeAttachmentUrl = encodeURI(msg.attachment || '');
-          const attachmentHTML = msg.attachment ? `<img src="${safeAttachment}" style="margin-top:6px; max-width:260px; max-height:180px; border-radius:6px; display:block; cursor:pointer;" alt="Attachment" onclick="window.open('${safeAttachmentUrl}', '_blank', 'noopener,noreferrer')">` : '';
+          const rawAtt = (msg.attachment || '').trim();
+          const isSafeAttScheme = rawAtt.startsWith('https://') || rawAtt.startsWith('http://') || rawAtt.startsWith('/uploads/') || rawAtt.startsWith('data:image/');
+          const safeAttachment = isSafeAttScheme ? escapeHTML(rawAtt) : '';
+          const safeAttachmentUrl = isSafeAttScheme ? encodeURI(rawAtt) : '#';
+          const attachmentHTML = (msg.attachment && isSafeAttScheme) ? `<img src="${safeAttachment}" style="margin-top:6px; max-width:260px; max-height:180px; border-radius:6px; display:block; cursor:pointer;" alt="Attachment" onclick="window.open('${safeAttachmentUrl}', '_blank', 'noopener,noreferrer')">` : '';
 
           let replyHTML = '';
           if (msg.reply_to) {

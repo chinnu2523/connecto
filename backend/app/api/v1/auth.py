@@ -1347,13 +1347,9 @@ async def verify_old_password_endpoint(
 async def change_password_endpoint(
     req: ChangePasswordPayload,
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[User] = Depends(get_current_user_optional)
+    current_user: User = Depends(get_current_user)
 ):
     target_user = current_user
-    if not target_user and req.username:
-        target_user = await find_user_by_identifier(db, req.username)
-    if not target_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User account not found.")
 
     if not req.old_password or not req.new_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Both old and new passwords are required.")
