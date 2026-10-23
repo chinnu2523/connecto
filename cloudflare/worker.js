@@ -7882,10 +7882,11 @@ export class ConnectoRealtimeRoom {
     }
 
     let authUsername = wsAuthUser;
+    let authUserId = wsAuthUser;
     if (this.env && this.env.DB) {
       try {
         const uRow = await this.env.DB.prepare(
-          "SELECT username, is_banned, is_active FROM users WHERE id = ? OR lower(username) = ? LIMIT 1"
+          "SELECT id, username, is_banned, is_active FROM users WHERE id = ? OR lower(username) = ? LIMIT 1"
         ).bind(wsAuthUser, String(wsAuthUser).toLowerCase()).first();
         if (uRow) {
           if (uRow.is_banned === 1 || uRow.is_banned === true || uRow.is_active === 0) {
@@ -7895,12 +7896,23 @@ export class ConnectoRealtimeRoom {
           if (uRow.username) {
             authUsername = uRow.username.toLowerCase().trim().replace(/^@/, "");
           }
+          if (uRow.id) {
+            authUserId = uRow.id;
+          }
         }
-      } catch (_) {}
+      } catch (err) {
+        console.warn("[DO_WS] User identity verification warning:", err.message);
+      }
     }
     // SEC-30 / SEC-W01 FIX: Enforce identity binding; prevent connecting as another user
     const resolvedAuthUser = String(authUsername).toLowerCase().trim().replace(/^@/, "");
-    if (cleanUser && cleanUser !== resolvedAuthUser && cleanUser !== String(wsAuthUser).toLowerCase()) {
+    const resolvedAuthId = String(authUserId).toLowerCase().trim();
+    const reqUserId = (url.searchParams.get("user_id") || "").trim().toLowerCase();
+
+    const isUserMatch = (cleanUser === resolvedAuthUser) || (cleanUser === String(wsAuthUser).toLowerCase());
+    const isIdMatch = reqUserId && (reqUserId === resolvedAuthId || reqUserId === String(wsAuthUser).toLowerCase());
+
+    if (!isUserMatch && !isIdMatch) {
       server.close(1008, "Policy Violation: Identity Mismatch");
       return;
     }

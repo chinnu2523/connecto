@@ -13,9 +13,9 @@ android {
     defaultConfig {
         applicationId = "com.connecto.app"
         minSdk = 24
-        targetSdk = 37
-        versionCode = 90
-        versionName = "4.6.1"
+        targetSdk = 34
+        versionCode = 91
+        versionName = "4.6.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -57,6 +57,11 @@ android {
         compose = true
         buildConfig = true
     }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
 }
 
 dependencies {
@@ -64,7 +69,7 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:33.3.0"))
     implementation("com.google.firebase:firebase-messaging-ktx")
 
-    implementation("io.getstream:stream-webrtc-android:1.1.1")
+    implementation("io.getstream:stream-webrtc-android:1.3.8")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
     implementation("androidx.biometric:biometric:1.2.0-alpha05")

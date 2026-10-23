@@ -466,9 +466,12 @@ fun ConnectoApp(
                 val displayName = com.example.connecto.network.ConnectoApiClient.currentUserDisplayName
                     ?: prefs.getString("display_name", authenticatedUsername)
                     ?: authenticatedUsername
+                val savedToken = com.example.connecto.network.ConnectoApiClient.sessionToken
+                    ?: prefs.getString("token", null)
                 VoiceCallManager.updateCredentialsAndConnect(
-                    userId = userId,
                     username = authenticatedUsername,
+                    userId = userId,
+                    token = savedToken,
                     displayName = displayName
                 )
                 com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
