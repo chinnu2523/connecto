@@ -21,6 +21,7 @@ export default {
     const url = new URL(request.url);
     const method = request.method;
     const host = url.hostname.toLowerCase();
+    const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
 
     // Direct High-Performance Edge Avatar Serving for verified user avatars
     if (url.pathname === "/uploads/avatars/chinnu_avatar_verified.webp" || url.pathname.endsWith("/chinnu_avatar_verified.webp")) {
@@ -1367,6 +1368,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
 async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const path = url.pathname;
   const method = request.method;
+  const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
 
   // 1. Health checks for Android APK, Web, and Monitoring
   if (path === "/api/health" || path === "/api/v1/health") {
