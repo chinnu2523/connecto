@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -143,30 +144,37 @@ fun Modifier.connectoAmbientShader(
         val runtimeShader = remember {
             try {
                 android.graphics.RuntimeShader(AGSL_AURORA_SHADER)
-            } catch (_: Exception) {
+            } catch (_: Throwable) {
                 null
             }
         }
 
         if (runtimeShader != null) {
-            this.graphicsLayer {
+            val shaderBrush = remember(runtimeShader) {
+                ShaderBrush(runtimeShader)
+            }
+            this.drawBehind {
                 val w = size.width
                 val h = size.height
-                if (w > 0 && h > 0) {
-                    runtimeShader.setFloatUniform("iResolution", w, h)
-                    runtimeShader.setFloatUniform("iTime", time)
-                    val a1 = (color1.alpha * intensity).coerceIn(0f, 1f)
-                    val a2 = (color2.alpha * intensity).coerceIn(0f, 1f)
-                    val a3 = (color3.alpha * intensity).coerceIn(0f, 1f)
-                    runtimeShader.setFloatUniform("color1", color1.red, color1.green, color1.blue, a1)
-                    runtimeShader.setFloatUniform("color2", color2.red, color2.green, color2.blue, a2)
-                    runtimeShader.setFloatUniform("color3", color3.red, color3.green, color3.blue, a3)
-                    runtimeShader.setFloatUniform("bg", bgColor.red, bgColor.green, bgColor.blue, bgColor.alpha)
-                    
-                    val renderEffect = android.graphics.RenderEffect.createShaderEffect(runtimeShader)
-                    this.renderEffect = renderEffect.asComposeRenderEffect()
+                if (w > 0f && h > 0f) {
+                    try {
+                        runtimeShader.setFloatUniform("iResolution", w, h)
+                        runtimeShader.setFloatUniform("iTime", time)
+                        val a1 = (color1.alpha * intensity).coerceIn(0f, 1f)
+                        val a2 = (color2.alpha * intensity).coerceIn(0f, 1f)
+                        val a3 = (color3.alpha * intensity).coerceIn(0f, 1f)
+                        runtimeShader.setFloatUniform("color1", color1.red, color1.green, color1.blue, a1)
+                        runtimeShader.setFloatUniform("color2", color2.red, color2.green, color2.blue, a2)
+                        runtimeShader.setFloatUniform("color3", color3.red, color3.green, color3.blue, a3)
+                        runtimeShader.setFloatUniform("bg", bgColor.red, bgColor.green, bgColor.blue, bgColor.alpha)
+                        drawRect(brush = shaderBrush)
+                    } catch (_: Throwable) {
+                        drawVolumetricMeshFallback(time, color1, color2, color3, bgColor, intensity)
+                    }
+                } else {
+                    drawRect(color = bgColor)
                 }
-            }.background(bgColor)
+            }
         } else {
             // Smooth Hardware-Accelerated Fallback
             this.drawBehind {
