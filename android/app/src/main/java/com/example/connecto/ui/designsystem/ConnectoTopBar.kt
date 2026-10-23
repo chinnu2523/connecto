@@ -58,7 +58,13 @@ fun ConnectoTopBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surface)
+            .then(
+                if (colors.isGlass) {
+                    Modifier.background(colors.surface.copy(alpha = if (colors.isDark) 0.65f else 0.85f))
+                } else {
+                    Modifier.background(colors.surface)
+                }
+            )
             .statusBarsPadding()
     ) {
         Row(
@@ -144,12 +150,22 @@ fun ConnectoTopBar(
             }
         }
 
-        // Crisp 1dp Bottom Border
+        // Crisp 1dp Specular Bottom Border
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(colors.borderSubtle)
+                .background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(
+                            androidx.compose.ui.graphics.Color.Transparent,
+                            colors.borderSubtle.copy(alpha = if (colors.isDark) 0.60f else 0.40f),
+                            colors.border.copy(alpha = if (colors.isDark) 0.85f else 0.50f),
+                            colors.borderSubtle.copy(alpha = if (colors.isDark) 0.60f else 0.40f),
+                            androidx.compose.ui.graphics.Color.Transparent
+                        )
+                    )
+                )
         )
     }
 }

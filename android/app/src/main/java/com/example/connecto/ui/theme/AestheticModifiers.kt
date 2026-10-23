@@ -1,5 +1,8 @@
 package com.example.connecto.ui.theme
 
+import com.example.connecto.ui.designsystem.ThemeMode
+import com.example.connecto.ui.designsystem.connectoAmbientShader
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -466,8 +469,8 @@ fun Modifier.glassCard(
 }
 
 /**
- * Ultra-Clear Liquid Glass Canvas Mesh.
- * Fluid optical gradients, caustic water orb refractions, and theme-adaptive liquid reflections.
+ * Ultra-Clear Liquid Glass Canvas Mesh with GPU-accelerated volumetric lighting.
+ * Fluid optical gradients, caustic refractions, and theme-adaptive liquid reflections.
  */
 @Composable
 fun Modifier.liquidGlassCanvasMesh(
@@ -476,12 +479,9 @@ fun Modifier.liquidGlassCanvasMesh(
     if (!enabled) return this
     val colors = ConnectoTheme.colors
 
-    if (!colors.isLiquidGlass) {
-        return this.background(colors.background)
-    }
-
-    // Pure Transparent Liquid Glass canvas: clean neutral canvas with zero artificial color casting
-    return this.background(colors.background)
+    return this.connectoAmbientShader(
+        themeMode = if (colors.isLiquidGlass) ThemeMode.LIQUID_GLASS else ThemeMode.NOIR
+    )
 }
 
 /**

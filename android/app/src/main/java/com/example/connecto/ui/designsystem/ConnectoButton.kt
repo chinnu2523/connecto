@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,23 +27,29 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.graphicsLayer
 
 enum class ConnectoButtonVariant {
     PRIMARY,
@@ -150,25 +158,90 @@ fun ConnectoButton(
         }
     }
 
+    val haptic = LocalHapticFeedback.current
+    LaunchedEffect(isPressed) {
+        if (isPressed && enabled && !isLoading) {
+            try {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            } catch (_: Exception) {}
+        }
+    }
+
+    val shadowElevation by animateDpAsState(
+        targetValue = when {
+            !enabled -> 0.dp
+            isPressed -> 2.dp
+            variant == ConnectoButtonVariant.PRIMARY -> 8.dp
+            variant == ConnectoButtonVariant.DESTRUCTIVE -> 6.dp
+            variant == ConnectoButtonVariant.SECONDARY -> 4.dp
+            else -> 0.dp
+        },
+        animationSpec = spring(stiffness = 450f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "buttonShadowElevation"
+    )
+
+    val shadowAmbientColor = when {
+        !enabled -> Color.Transparent
+        colors.isDark -> Color.Black.copy(alpha = if (isPressed) 0.65f else 0.45f)
+        else -> Color.Black.copy(alpha = if (isPressed) 0.25f else 0.12f)
+    }
+
+    val shadowSpotColor = when {
+        !enabled -> Color.Transparent
+        variant == ConnectoButtonVariant.PRIMARY -> colors.primary.copy(alpha = if (isPressed) 0.50f else (if (colors.isDark) 0.42f else 0.22f))
+        variant == ConnectoButtonVariant.DESTRUCTIVE -> colors.error.copy(alpha = if (isPressed) 0.50f else 0.38f)
+        colors.isDark -> Color(0xFF38BDF8).copy(alpha = if (isPressed) 0.25f else 0.12f)
+        else -> Color.Black.copy(alpha = 0.10f)
+    }
+
     val border = when {
         colors.isGlass -> when (variant) {
-            ConnectoButtonVariant.PRIMARY -> BorderStroke(1.2.dp, Color(0xFFE0F2FE)) // Specular White Rim
-            ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, Color(0x6638BDF8)) // Cyan Hairline
+            ConnectoButtonVariant.PRIMARY -> BorderStroke(
+                1.2.dp,
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFFFFFF),
+                        Color(0xFFE0F2FE),
+                        colors.primary.copy(alpha = 0.60f)
+                    )
+                )
+            )
+            ConnectoButtonVariant.SECONDARY -> BorderStroke(
+                1.dp,
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.60f),
+                        Color(0x6638BDF8),
+                        Color(0x1A38BDF8)
+                    )
+                )
+            )
             ConnectoButtonVariant.OUTLINED -> BorderStroke(1.2.dp, if (enabled) colors.primary.copy(alpha = 0.8f) else colors.border.copy(alpha = 0.3f))
             else -> null
         }
         else -> when (variant) {
-            ConnectoButtonVariant.PRIMARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFFD4D4D8) else Color(0xFF1E1E24))
-            ConnectoButtonVariant.SECONDARY -> BorderStroke(1.dp, if (colors.isDark) Color(0xFF3F3F46) else Color(0xFFE4E4E7))
+            ConnectoButtonVariant.PRIMARY -> BorderStroke(
+                1.dp,
+                Brush.verticalGradient(
+                    colors = listOf(
+                        if (colors.isDark) Color(0xFFFFFFFF) else Color(0xFF3F3F46),
+                        if (colors.isDark) Color(0xFFD4D4D8) else Color(0xFF1E1E24),
+                        if (colors.isDark) Color(0xFF71717A) else Color(0xFF09090B)
+                    )
+                )
+            )
+            ConnectoButtonVariant.SECONDARY -> BorderStroke(
+                1.dp,
+                Brush.verticalGradient(
+                    colors = listOf(
+                        if (colors.isDark) Color(0xFF71717A) else Color(0xFFFFFFFF),
+                        if (colors.isDark) Color(0xFF3F3F46) else Color(0xFFE4E4E7)
+                    )
+                )
+            )
             ConnectoButtonVariant.OUTLINED -> BorderStroke(1.dp, if (enabled) colors.border else colors.border.copy(alpha = 0.5f))
             else -> null
         }
-    }
-
-    val elevation = if (variant == ConnectoButtonVariant.PRIMARY && enabled) {
-        ButtonDefaults.buttonElevation(defaultElevation = 2.dp, pressedElevation = 1.dp)
-    } else {
-        ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
     }
 
     val buttonModifier = modifier
@@ -179,6 +252,13 @@ fun ConnectoButton(
             scaleY = scale
             this.translationY = translateY.toPx()
         }
+        .shadow(
+            elevation = shadowElevation,
+            shape = shape,
+            ambientColor = shadowAmbientColor,
+            spotColor = shadowSpotColor,
+            clip = false
+        )
 
     Button(
         onClick = { if (!isLoading && enabled) onClick() },
@@ -186,7 +266,7 @@ fun ConnectoButton(
         enabled = enabled && !isLoading,
         shape = shape,
         border = border,
-        elevation = elevation,
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
         interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,

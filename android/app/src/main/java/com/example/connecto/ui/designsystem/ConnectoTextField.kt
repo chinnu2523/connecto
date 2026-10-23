@@ -35,6 +35,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
@@ -82,6 +85,26 @@ fun ConnectoTextField(
 
     val borderWidth = if (isFocused || isError) 1.5.dp else 1.dp
 
+    val shadowElevation by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (isFocused) 4.dp else 0.dp,
+        animationSpec = androidx.compose.animation.core.spring(stiffness = 500f, dampingRatio = 0.8f),
+        label = "inputElevation"
+    )
+
+    val inputBorderBrush = if (isError) {
+        SolidColor(colors.error)
+    } else if (isFocused) {
+        Brush.verticalGradient(
+            colors = listOf(
+                Color.White.copy(alpha = 0.80f),
+                colors.primary,
+                colors.primary.copy(alpha = 0.60f)
+            )
+        )
+    } else {
+        SolidColor(colors.border)
+    }
+
     Column(modifier = modifier.fillMaxWidth()) {
         if (!label.isNullOrBlank()) {
             Text(
@@ -96,11 +119,18 @@ fun ConnectoTextField(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .shadow(
+                    elevation = shadowElevation,
+                    shape = RoundedCornerShape(ConnectoRadius.sm),
+                    ambientColor = Color.Black.copy(alpha = 0.40f),
+                    spotColor = colors.primary.copy(alpha = if (isFocused) 0.35f else 0.0f),
+                    clip = false
+                )
                 .clip(RoundedCornerShape(ConnectoRadius.sm))
                 .background(if (enabled) colors.surface else colors.surfaceVariant)
                 .border(
                     width = borderWidth,
-                    color = borderColor,
+                    brush = inputBorderBrush,
                     shape = RoundedCornerShape(ConnectoRadius.sm)
                 )
                 .padding(

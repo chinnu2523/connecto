@@ -64,6 +64,8 @@ import com.example.connecto.ui.security.BiometricLockScreen
 import com.example.connecto.ui.theme.ConnectoTheme
 import com.example.connecto.ui.theme.glassCanvasMesh
 import com.example.connecto.ui.theme.liquidGlassCanvasMesh
+import com.example.connecto.ui.designsystem.ThemeMode
+import com.example.connecto.ui.designsystem.connectoAmbientShader
 import com.example.connecto.ui.components.FullScreenCallUI
 import com.example.connecto.ui.components.MinimizedCallPill
 import com.example.connecto.voice.CallState
@@ -620,9 +622,13 @@ fun ConnectoApp(
         modifier = Modifier
             .fillMaxSize()
             .then(
-                if (currentThemeMode.isLiquidGlass) Modifier.liquidGlassCanvasMesh()
-                else if (currentThemeMode.isGlass) Modifier.glassCanvasMesh()
-                else Modifier.background(MaterialTheme.colorScheme.background)
+                if (currentThemeMode.isLiquidGlass || currentThemeMode.isGlass) {
+                    Modifier.connectoAmbientShader(themeMode = currentThemeMode)
+                } else if (currentThemeMode == ThemeMode.NOIR) {
+                    Modifier.connectoAmbientShader(themeMode = currentThemeMode, intensity = 0.45f)
+                } else {
+                    Modifier.background(MaterialTheme.colorScheme.background)
+                }
             )
     ) {
 

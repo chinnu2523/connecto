@@ -120,46 +120,71 @@ fun ConnectoCard(
         return
     }
 
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
+    val scale by animateFloatAsState(
+        targetValue = if (onClick != null && isPressed) 0.97f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "cardScale"
+    )
+
     val containerColor = when (variant) {
         ConnectoCardVariant.SURFACE -> colors.surface
-        ConnectoCardVariant.ELEVATED -> colors.surface
+        ConnectoCardVariant.ELEVATED -> colors.surfaceVariant
         ConnectoCardVariant.OUTLINED -> colors.surface
     }
 
-    val elevation = when (variant) {
-        ConnectoCardVariant.ELEVATED -> ConnectoElevation.low
-        ConnectoCardVariant.SURFACE,
-        ConnectoCardVariant.OUTLINED -> ConnectoElevation.none
+    val shadowElevation = when {
+        isPressed -> 2.dp
+        variant == ConnectoCardVariant.ELEVATED -> 8.dp
+        variant == ConnectoCardVariant.SURFACE -> 4.dp
+        else -> 0.dp
     }
 
-    val effectiveBorder = border ?: when (variant) {
-        ConnectoCardVariant.OUTLINED -> BorderStroke(1.dp, colors.border)
-        ConnectoCardVariant.SURFACE,
-        ConnectoCardVariant.ELEVATED -> BorderStroke(1.dp, colors.borderSubtle)
-    }
+    val effectiveBorderBrush = border?.brush ?: Brush.verticalGradient(
+        colors = listOf(
+            if (colors.isDark) Color.White.copy(alpha = if (variant == ConnectoCardVariant.ELEVATED) 0.22f else 0.14f) else Color.White.copy(alpha = 0.85f),
+            if (colors.isDark) colors.border.copy(alpha = 0.60f) else colors.borderSubtle,
+            if (colors.isDark) colors.borderSubtle.copy(alpha = 0.20f) else colors.borderSubtle.copy(alpha = 0.05f)
+        )
+    )
 
-    Card(
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .shadow(
+                elevation = shadowElevation,
+                shape = shape,
+                ambientColor = Color.Black.copy(alpha = if (colors.isDark) 0.50f else 0.15f),
+                spotColor = colors.primary.copy(alpha = if (colors.isDark) 0.18f else 0.06f),
+                clip = false
+            )
+            .clip(shape)
+            .background(containerColor)
+            .border(
+                width = border?.width ?: 1.dp,
+                brush = effectiveBorderBrush,
+                shape = shape
+            )
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(onClick = onClick)
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                        try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                        onClick()
+                    }
                 } else Modifier
-            ),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor,
-            contentColor = colors.textPrimary
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-        border = effectiveBorder
+            )
+            .padding(contentPadding)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(contentPadding)
-        ) {
-            content()
-        }
+        content()
     }
 }

@@ -1,11 +1,15 @@
 package com.example.connecto.ui.designsystem
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -39,7 +43,8 @@ object ConnectoTheme {
 
 /**
  * Master Connecto Theme provider.
- * Sets up both the custom Connecto tokens and Material 3 color schemes.
+ * Sets up both the custom Connecto tokens, Material 3 color schemes,
+ * and buttery animated theme transitions.
  */
 @Composable
 fun ConnectoDesignTheme(
@@ -48,8 +53,30 @@ fun ConnectoDesignTheme(
     glassTransparency: Float = 0.0f,
     content: @Composable () -> Unit
 ) {
-    val connectoColors = getColorsForTheme(themeMode, glassTransparency)
+    val rawColors = getColorsForTheme(themeMode, glassTransparency)
     val connectoTypography = ConnectoTypography()
+
+    val animSpec = tween<Color>(durationMillis = 260, easing = FastOutSlowInEasing)
+
+    val animatedPrimary by animateColorAsState(rawColors.primary, animSpec, label = "primaryColor")
+    val animatedBackground by animateColorAsState(rawColors.background, animSpec, label = "backgroundColor")
+    val animatedSurface by animateColorAsState(rawColors.surface, animSpec, label = "surfaceColor")
+    val animatedSurfaceVariant by animateColorAsState(rawColors.surfaceVariant, animSpec, label = "surfaceVariantColor")
+    val animatedTextPrimary by animateColorAsState(rawColors.textPrimary, animSpec, label = "textPrimaryColor")
+    val animatedTextSecondary by animateColorAsState(rawColors.textSecondary, animSpec, label = "textSecondaryColor")
+    val animatedBorder by animateColorAsState(rawColors.border, animSpec, label = "borderColor")
+    val animatedBorderSubtle by animateColorAsState(rawColors.borderSubtle, animSpec, label = "borderSubtleColor")
+
+    val connectoColors = rawColors.copy(
+        primary = animatedPrimary,
+        background = animatedBackground,
+        surface = animatedSurface,
+        surfaceVariant = animatedSurfaceVariant,
+        textPrimary = animatedTextPrimary,
+        textSecondary = animatedTextSecondary,
+        border = animatedBorder,
+        borderSubtle = animatedBorderSubtle
+    )
 
     val m3ColorScheme = if (connectoColors.isDark) {
         darkColorScheme(
