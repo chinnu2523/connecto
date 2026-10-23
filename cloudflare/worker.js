@@ -18,6 +18,7 @@ export default {
   // 2. HTTP & WebSocket Fetch Handler
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const method = request.method;
     const host = url.hostname.toLowerCase();
 
     // Direct High-Performance Edge Avatar Serving for verified user avatars
