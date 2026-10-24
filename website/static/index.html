@@ -12975,32 +12975,13 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       pointer-events: none;
       z-index: 2;
     }
-    /* Trailing thought bubble tail dots: bottom-left for incoming messages */
-    .connecto-message-card:not(.mine)::before {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: 22px;
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: inherit;
-      border: inherit;
-      pointer-events: none;
-      z-index: 2;
-    }
-    .connecto-message-card:not(.mine)::after {
-      content: '';
-      position: absolute;
-      bottom: -9px;
-      left: 14px;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: inherit;
-      border: inherit;
-      pointer-events: none;
-      z-index: 2;
+    /* Trailing thought bubble tail dots: cleanly hidden to eliminate detached artifacts */
+    .connecto-message-card:not(.mine)::before,
+    .connecto-message-card:not(.mine)::after,
+    .connecto-message-card.mine::before,
+    .connecto-message-card.mine::after {
+      display: none !important;
+      content: none !important;
     }
     /* Incoming message bouncy spring transition */
     @keyframes incomingBubbleSpring {
@@ -18216,6 +18197,490 @@ pre, .code-block, .chat-code-snippet {
   }
 }
 </style>
+<style id="connecto-v500-dual-theme-perfection">
+/* ==========================================================================
+   CONNECTO V500: PRO MAX DUAL-THEME POLISH, BUTTON ERGONOMICS & MOTION DESIGN
+   Pure Black OLED ("noir") and Ivory Paper ("parchment")
+   ========================================================================== */
+
+/* Universal tactile button feedback & smooth spring transitions */
+button, .btn, .btn-icon, .dock-btn, .landing-link-btn, .guild-icon, .channel-item, .search-filter-chip, .quick-chip-btn, .btn-create-room-promax {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+button:active, .btn:active, .btn-icon:active, .dock-btn:active, .quick-chip-btn:active, .search-filter-chip:active, .btn-create-room-promax:active {
+  transform: scale(0.96) translateY(1px) !important;
+}
+
+/* User Profile Status text ergonomics and truncation */
+.username-col {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+.user-status-text {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 110px !important;
+  display: inline-block !important;
+}
+
+/* Universal .btn-outline ergonomics */
+html[data-theme="noir"] .btn-outline {
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  color: #e4e4e7 !important;
+  background: transparent !important;
+}
+html[data-theme="noir"] .btn-outline:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
+}
+html[data-theme="parchment"] .btn-outline {
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  color: #141312 !important;
+  background: transparent !important;
+}
+html[data-theme="parchment"] .btn-outline:hover {
+  background: rgba(68, 64, 60, 0.08) !important;
+  border-color: rgba(68, 64, 60, 0.4) !important;
+  color: #141312 !important;
+}
+
+/* 1. EMAIL GRACE PERIOD BANNER: Sleek floating non-colliding toast */
+.connecto-grace-banner {
+  position: fixed !important;
+  top: 76px !important;
+  right: 24px !important;
+  z-index: 9998 !important;
+  max-width: 520px !important;
+  width: calc(100% - 48px) !important;
+  border-radius: 14px !important;
+  padding: 12px 18px !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4) !important;
+  animation: modalFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+html[data-theme="noir"] .connecto-grace-banner {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.16), rgba(249, 115, 22, 0.2)) !important;
+  border: 1px solid rgba(234, 179, 8, 0.45) !important;
+  color: #ffffff !important;
+}
+html[data-theme="noir"] .connecto-grace-banner .grace-title {
+  color: #fef08a !important;
+}
+html[data-theme="noir"] .connecto-grace-banner .grace-desc {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+html[data-theme="parchment"] .connecto-grace-banner {
+  background: #fef3c7 !important;
+  border: 1.5px solid #f59e0b !important;
+  color: #78350f !important;
+  box-shadow: 0 12px 32px rgba(120, 53, 15, 0.12) !important;
+}
+html[data-theme="parchment"] .connecto-grace-banner .grace-title {
+  color: #92400e !important;
+}
+html[data-theme="parchment"] .connecto-grace-banner .grace-desc {
+  color: #78350f !important;
+}
+.connecto-grace-banner .grace-verify-btn {
+  background: #f59e0b !important;
+  color: #0f172a !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  padding: 6px 14px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+.connecto-grace-banner .grace-dismiss-btn {
+  background: transparent !important;
+  border: none !important;
+  color: inherit !important;
+  opacity: 0.75 !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.connecto-grace-banner .grace-dismiss-btn:hover {
+  opacity: 1 !important;
+  background: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* 2. VOICE LOUNGE PARCHMENT PERFECTION */
+html[data-theme="parchment"] .voice-lounge-header {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+  box-shadow: 0 4px 20px rgba(68, 64, 60, 0.06) !important;
+}
+html[data-theme="parchment"] .voice-lounge-title {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .voice-lounge-desc {
+  color: #78716c !important;
+}
+html[data-theme="parchment"] .btn-create-room-promax {
+  background: #141312 !important;
+  color: #ffffff !important;
+  border: 1px solid #141312 !important;
+  box-shadow: 0 4px 14px rgba(20, 19, 18, 0.15) !important;
+}
+html[data-theme="parchment"] .btn-create-room-promax:hover {
+  background: #292524 !important;
+  border-color: #292524 !important;
+}
+html[data-theme="parchment"] .voice-room-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: 0 4px 18px rgba(68, 64, 60, 0.06) !important;
+}
+html[data-theme="parchment"] .voice-room-card:hover {
+  border-color: #06b6d4 !important;
+  box-shadow: 0 12px 32px rgba(68, 64, 60, 0.12) !important;
+}
+html[data-theme="parchment"] .voice-room-title {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .voice-room-creator {
+  color: #78716c !important;
+}
+html[data-theme="parchment"] .voice-room-icon-squircle {
+  background: #f7f3ea !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .voice-participant-chip {
+  background: #ede8df !important;
+  color: #141312 !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+}
+html[data-theme="parchment"] .voice-room-topic-badge {
+  background: #f5f0e6 !important;
+  color: #44403c !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+}
+html[data-theme="parchment"] .btn-voice-join {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+html[data-theme="parchment"] .active-room-stage {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: 0 8px 30px rgba(68, 64, 60, 0.08) !important;
+}
+html[data-theme="parchment"] .stage-room-name {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .stage-controls-dock {
+  background: #f7f3ea !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(68, 64, 60, 0.12) !important;
+}
+html[data-theme="parchment"] .dock-btn-outline {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  color: #141312 !important;
+}
+
+/* 3. LEARNING HUB / CYBER ACADEMY PARCHMENT PERFECTION */
+html[data-theme="parchment"] .w3-workspace {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: 0 4px 20px rgba(68, 64, 60, 0.06) !important;
+}
+html[data-theme="parchment"] .w3-sidebar {
+  background: #fbf8f2 !important;
+  border-right: 1px solid rgba(68, 64, 60, 0.16) !important;
+}
+html[data-theme="parchment"] .w3-content-area {
+  background: #ffffff !important;
+}
+html[data-theme="parchment"] .w3-lesson-nav-item {
+  color: #44403c !important;
+}
+html[data-theme="parchment"] .w3-lesson-nav-item:hover {
+  background: rgba(68, 64, 60, 0.08) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .w3-lesson-nav-item.active {
+  background: #ede8df !important;
+  color: #141312 !important;
+  font-weight: 800 !important;
+  border-left: 3px solid #06b6d4 !important;
+}
+html[data-theme="parchment"] .academy-track-tabs {
+  background: #ede8df !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+}
+html[data-theme="parchment"] .academy-track-btn {
+  color: #78716c !important;
+  background: transparent !important;
+  border: none !important;
+}
+html[data-theme="parchment"] .academy-track-btn.active {
+  background: #141312 !important;
+  color: #ffffff !important;
+}
+html[data-theme="parchment"] .academy-mastery-card {
+  background: #f7f3ea !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+}
+html[data-theme="parchment"] .academy-mastery-rank {
+  color: #141312 !important;
+  background: #ebe6dc !important;
+}
+html[data-theme="parchment"] .quiz-container-box {
+  background: #fbf8f2 !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+}
+html[data-theme="parchment"] .quiz-choice-option {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .quiz-choice-option:hover {
+  background: #f7f3ea !important;
+  border-color: #06b6d4 !important;
+}
+html[data-theme="parchment"] .quiz-choice-option.selected {
+  background: rgba(6, 182, 212, 0.12) !important;
+  border-color: #06b6d4 !important;
+  color: #0e7490 !important;
+}
+html[data-theme="parchment"] #w3TrackTitle,
+html[data-theme="parchment"] #w3LessonTitle {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] #w3LessonBody pre {
+  background: #f7f3ea !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #0369a1 !important;
+}
+
+/* 4. HELP & SUPPORT AI CHAT & SETTINGS MODAL PARCHMENT PERFECTION */
+html[data-theme="parchment"] .web-support-chat-container {
+  background: #fbf8f2 !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+}
+html[data-theme="parchment"] #webSupportChatMessages,
+html[data-theme="parchment"] #modalSupportChatMessages {
+  background: #f7f3ea !important;
+}
+html[data-theme="parchment"] .web-ai-bot-bubble {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+  box-shadow: 0 2px 10px rgba(68, 64, 60, 0.05) !important;
+}
+html[data-theme="parchment"] .web-ai-user-bubble {
+  background: #10b981 !important;
+  color: #ffffff !important;
+}
+html[data-theme="parchment"] .quick-chip-btn {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #44403c !important;
+}
+html[data-theme="parchment"] .quick-chip-btn:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important;
+}
+html[data-theme="parchment"] #webSupportQuickChips {
+  background: #ede8df !important;
+  border-top: 1px solid rgba(68, 64, 60, 0.15) !important;
+}
+html[data-theme="parchment"] #webSupportChatInput,
+html[data-theme="parchment"] #modalSupportChatInput {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] #webSupportChatInput::placeholder,
+html[data-theme="parchment"] #modalSupportChatInput::placeholder {
+  color: #a8a29e !important;
+}
+html[data-theme="parchment"] #profTabContentHelp .profile-card-section {
+  background: #ffffff !important;
+  border-color: rgba(68, 64, 60, 0.18) !important;
+}
+html[data-theme="parchment"] #profTabContentHelp div[style*="color:#ffffff"],
+html[data-theme="parchment"] #profTabContentHelp span[style*="color:#fff"] {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] #profTabContentHelp div[style*="background:rgba(255,255,255,0.03)"] {
+  background: #fbf8f2 !important;
+  border-color: rgba(68, 64, 60, 0.18) !important;
+}
+
+/* 5. GLOBAL SEARCH MODAL DUAL THEME */
+html[data-theme="parchment"] #globalSearchModal .modal-card {
+  background: #fbf8f2 !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  box-shadow: 0 24px 60px rgba(68, 64, 60, 0.18) !important;
+}
+html[data-theme="parchment"] #globalSearchModal h3 {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] #globalSearchInput {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(68, 64, 60, 0.25) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] #globalSearchInput::placeholder {
+  color: #a8a29e !important;
+}
+html[data-theme="parchment"] .search-filter-chip {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #78716c !important;
+}
+html[data-theme="parchment"] .search-filter-chip:hover {
+  background: #ebe6dc !important;
+  color: #141312 !important;
+  border-color: rgba(68, 64, 60, 0.35) !important;
+}
+html[data-theme="parchment"] .search-filter-chip.active {
+  background: #141312 !important;
+  color: #ffffff !important;
+  border-color: #141312 !important;
+}
+html[data-theme="parchment"] .search-result-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .search-result-card:hover {
+  background: #f7f3ea !important;
+  border-color: rgba(68, 64, 60, 0.35) !important;
+}
+html[data-theme="parchment"] #searchEmptyPlaceholder div[style*="color:#fff"] {
+  color: #141312 !important;
+}
+
+/* 6. AUTH MODAL DUAL THEME */
+html[data-theme="parchment"] #authModal .modal-box-scroll {
+  background: #fbf8f2 !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  box-shadow: 0 24px 60px rgba(68, 64, 60, 0.18) !important;
+}
+html[data-theme="parchment"] .auth-segmented-nav {
+  background: #ede8df !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  box-shadow: inset 0 2px 4px rgba(68, 64, 60, 0.08) !important;
+}
+html[data-theme="parchment"] .auth-segmented-slider {
+  background: #141312 !important;
+  box-shadow: 0 4px 14px rgba(20, 19, 18, 0.2) !important;
+}
+html[data-theme="parchment"] .auth-tab-btn {
+  color: #78716c !important;
+}
+html[data-theme="parchment"] .auth-tab-btn:hover {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .auth-tab-btn.active {
+  color: #ffffff !important;
+}
+html[data-theme="parchment"] .auth-input-wrap {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+}
+html[data-theme="parchment"] .auth-input-field {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .auth-input-field::placeholder {
+  color: #a8a29e !important;
+}
+html[data-theme="parchment"] .auth-ambient-orb-1,
+html[data-theme="parchment"] .auth-ambient-orb-2 {
+  opacity: 0.15 !important;
+}
+
+/* 7. CONNECTO VAULT MODAL DUAL THEME & CLOSE BUTTON */
+.vault-modal-close-icon {
+  position: absolute !important;
+  top: 18px !important;
+  right: 18px !important;
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  font-size: 15px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+  z-index: 10 !important;
+}
+html[data-theme="noir"] .vault-modal-close-icon {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #cbd5e1 !important;
+}
+html[data-theme="noir"] .vault-modal-close-icon:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+html[data-theme="parchment"] .connecto-vault-modal-overlay {
+  background: rgba(251, 248, 242, 0.92) !important;
+  backdrop-filter: blur(25px) !important;
+}
+html[data-theme="parchment"] .connecto-vault-card {
+  background: #fbf8f2 !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  border-radius: 24px !important;
+  padding: 36px 32px !important;
+  box-shadow: 0 24px 60px rgba(68, 64, 60, 0.18) !important;
+  position: relative !important;
+}
+html[data-theme="parchment"] .vault-modal-close-icon {
+  background: #ede8df !important;
+  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .vault-modal-close-icon:hover {
+  background: #ebe6dc !important;
+  color: #000000 !important;
+}
+html[data-theme="parchment"] .connecto-vault-badge {
+  background: #ede8df !important;
+  border-color: rgba(68, 64, 60, 0.2) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .connecto-vault-title {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .connecto-vault-user {
+  color: #78716c !important;
+}
+html[data-theme="parchment"] .connecto-vault-status-pill {
+  background: #ede8df !important;
+  border-color: rgba(68, 64, 60, 0.2) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .connecto-vault-secondary-btn {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .connecto-vault-secondary-btn div {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .connecto-vault-link {
+  color: #78716c !important;
+}
+html[data-theme="parchment"] .connecto-vault-link:hover {
+  color: #141312 !important;
+}
+</style>
+
 </head>
 <body class="in-hero-view">
 
@@ -22425,16 +22890,19 @@ pre, .code-block, .chat-code-snippet {
     </div>
   </div>
   <!-- ==================== EMAIL VERIFICATION GRACE BANNER & MODAL ==================== -->
-  <div id="emailGracePeriodBanner" style="display:none; position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:9998; width:calc(100% - 32px); max-width:960px; background:linear-gradient(90deg, rgba(234,179,8,0.2), rgba(249,115,22,0.25)); backdrop-filter:blur(16px); border:1px solid rgba(234,179,8,0.45); border-radius:12px; padding:10px 16px; color:#fff; box-shadow:0 8px 30px rgba(0,0,0,0.5);">
+  <div id="emailGracePeriodBanner" class="connecto-grace-banner" style="display:none;">
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:20px;">⚠️</span>
+      <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:240px;">
+        <span style="font-size:20px; flex-shrink:0;">⚠️</span>
         <div>
-          <div style="font-weight:800; font-size:13px; color:#fef08a;" id="emailGraceDaysTitle">Email Verification Notice (7 days remaining)</div>
-          <div style="font-size:11.5px; color:rgba(255,255,255,0.85);">For existing accounts, please verify your email address to prevent account suspension.</div>
+          <div class="grace-title" style="font-weight:800; font-size:13px;" id="emailGraceDaysTitle">Email Verification Notice (7 days remaining)</div>
+          <div class="grace-desc" style="font-size:11.5px;">For existing accounts, please verify your email address to prevent account suspension.</div>
         </div>
       </div>
-      <button type="button" class="btn" onclick="openEmailVerificationModal(false)" style="background:#f59e0b; color:#0f172a; font-weight:800; font-size:11.5px; padding:6px 14px; border-radius:8px; border:none; cursor:pointer;">Verify Email ⚡</button>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button type="button" class="btn grace-verify-btn" onclick="openEmailVerificationModal(false)">Verify Email ⚡</button>
+        <button type="button" class="grace-dismiss-btn" onclick="dismissEmailGraceBanner()" aria-label="Dismiss banner">✕</button>
+      </div>
     </div>
   </div>
 
@@ -22739,8 +23207,20 @@ pre, .code-block, .chat-code-snippet {
       verificationDaysLeft: null
     };
 
+    function dismissEmailGraceBanner() {
+      try {
+        sessionStorage.setItem('connecto_dismiss_grace_banner', 'true');
+      } catch (e) {}
+      const banner = document.getElementById('emailGracePeriodBanner');
+      if (banner) banner.style.display = 'none';
+    }
+
     async function checkEmailVerificationStatus() {
       const graceBanner = document.getElementById('emailGracePeriodBanner');
+      if (sessionStorage.getItem('connecto_dismiss_grace_banner') === 'true') {
+        if (graceBanner) graceBanner.style.display = 'none';
+        return;
+      }
       const authModalEl = document.getElementById('authModal');
       const isAuthModalOpen = authModalEl && (authModalEl.style.display === 'flex' || authModalEl.style.display === 'block');
       const isLandingView = !inAppInitialized || (typeof activeMainView !== 'undefined' && activeMainView === 'hero');
@@ -23612,7 +24092,10 @@ pre, .code-block, .chat-code-snippet {
           document.getElementById('learnRankBadge').innerText = 'Guest Member • 0 XP';
         } else {
           if (guestBanner) guestBanner.style.display = 'none';
-          document.getElementById('learnRankBadge').innerText = `${progData.rank} • ${progData.xp} XP (${progData.completion_percentage}% Completed)`;
+          const rk = (progData && (progData.rank || progData.user_rank)) || 'Novice Genin';
+          const xpVal = (progData && typeof progData.xp === 'number') ? progData.xp : ((progData && progData.total_xp) || 0);
+          const compPct = (progData && typeof progData.completion_percentage === 'number') ? progData.completion_percentage : 0;
+          document.getElementById('learnRankBadge').innerText = `${rk} • ${xpVal} XP (${compPct}% Completed)`;
         }
 
         document.getElementById('w3TrackTitle').innerText = `${trackData.track.icon} ${trackData.track.title}`;
@@ -23627,28 +24110,13 @@ pre, .code-block, .chat-code-snippet {
 
     function renderW3LessonsSidebar() {
       const container = document.getElementById('w3LessonsNavList');
+      if (!container) return;
       if (!currentTrackData || !currentTrackData.lessons) {
         container.innerHTML = '';
         return;
       }
 
       const fragment = document.createDocumentFragment();
-
-      // Prepend Stitch Pro Max Channel Welcome Card
-      const welcomeCard = document.createElement('div');
-      welcomeCard.className = 'channel-welcome-card';
-      const isAnnounce = (currentChannel === 'announcements');
-      welcomeCard.innerHTML = `
-        <div class="welcome-icon-box">${isAnnounce ? '📢' : '🛰️'}</div>
-        <div class="welcome-content">
-          <div class="welcome-title-row">
-            <h2 class="welcome-title">Welcome to the #${escapeHTML(currentChannel)} ${isAnnounce ? 'Broadcast' : 'Relay'}</h2>
-            <span class="welcome-badge">${isAnnounce ? 'SERVER BROADCAST' : 'CORE GUILD'}</span>
-          </div>
-          <p class="welcome-desc">${isAnnounce ? 'Official channel for verified platform releases, system telemetry, and mission announcements. Only server administrators can transmit in this frequency.' : 'This is the genesis channel of connecto.fun. Neural stream integration is operational. Lossless 96kHz voice links and interactive code blocks can be dropped right into the buffer.'}</p>
-        </div>
-      `;
-      fragment.appendChild(welcomeCard);
 
       currentTrackData.lessons.forEach((l, idx) => {
         const div = document.createElement('div');
@@ -23660,39 +24128,6 @@ pre, .code-block, .chat-code-snippet {
         `;
         fragment.appendChild(div);
       });
-      if (currentMode === 'dm' && currentDMTarget) {
-        const isFriend = Array.isArray(cachedFriendsList) && cachedFriendsList.some(
-          f => (f.username || '').toLowerCase() === currentDMTarget.toLowerCase()
-        );
-        const friendObj = (cachedFriendsList || []).find(f => (f.username || '').toLowerCase() === currentDMTarget.toLowerCase());
-        const avatarUrl = friendObj ? (friendObj.avatar || friendObj.avatar_url) : null;
-
-        const introEl = document.createElement('div');
-        introEl.className = 'dm-intro-banner';
-        introEl.style.cssText = 'padding:16px 20px; margin:14px 10px 24px 10px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;';
-        introEl.innerHTML = `
-          <div style="display:flex; align-items:center; gap:12px;">
-            <div>${renderAvatarHTML(avatarUrl, currentDMTarget, 42)}</div>
-            <div>
-              <div style="font-weight:800; font-size:15px; color:var(--text-header, #fff);">@${escapeHTML(currentDMTarget)}</div>
-              <div style="font-size:12px; color:var(--text-muted, #94a3b8);">This is the beginning of your direct message history with @${escapeHTML(currentDMTarget)}.</div>
-            </div>
-          </div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-outline" style="padding:4px 10px; font-size:11.5px;" onclick="startDMCall()">📞 Call</button>
-            ${isFriend ? `
-              <button class="btn btn-outline" style="padding:4px 10px; font-size:11.5px; color:#ef4444; border-color:rgba(239, 68, 68, 0.4);" onclick="confirmUnfriendUser('${escapeHTML(currentDMTarget)}')">
-                <i data-lucide="user-minus" class="lucide-xs"></i> Unfriend
-              </button>
-            ` : `
-              <button class="btn btn-outline" style="padding:4px 10px; font-size:11.5px; color:var(--chakra-cyan, #06b6d4); border-color:rgba(6, 182, 212, 0.4);" onclick="sendFriendRequestFromDM('${escapeHTML(currentDMTarget)}')">
-                <i data-lucide="user-plus" class="lucide-xs"></i> Add Friend
-              </button>
-            `}
-          </div>
-        `;
-        fragment.insertBefore(introEl, fragment.firstChild);
-      }
 
       container.replaceChildren(fragment);
     }
@@ -36207,6 +36642,7 @@ function hangupVoiceLounge() {
   <!-- ==================== SCREEN 1: CONNECTO HARDWARE VAULT MODAL ==================== -->
   <div class="connecto-vault-modal-overlay" id="vaultModal" onclick="closeConnectoVault(event)">
     <div class="connecto-vault-card" onclick="event.stopPropagation()">
+      <button type="button" class="vault-modal-close-icon" onclick="closeConnectoVault()" aria-label="Close Vault">✕</button>
       <div class="connecto-vault-badge">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <span>CONNECTO HARDWARE VAULT</span>
