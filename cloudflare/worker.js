@@ -5557,14 +5557,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         participants: []
       }));
     }
-    if (rooms.length === 0) {
-      rooms = [
-        { id: "vr_lounge", name: "Main Shinobi Lounge", topic: "Casual voice chat and hangout", icon: "⛩️", creator: "system", max_participants: 25, participant_count: 0, participants: [] },
-        { id: "vr_war_room", name: "Tactical War Room 774", topic: "Clan tournament communications & high-speed tactics", icon: "⚔️", creator: "system", max_participants: 12, participant_count: 0, participants: [] },
-        { id: "vr_dev", name: "Devs Audio Stage", topic: "Architecture sync and low-latency audio debugging", icon: "💻", creator: "system", max_participants: 20, participant_count: 0, participants: [] },
-        { id: "vr_tournament", name: "Tournament Battle Arena", topic: "Free Fire and CS competitive stage", icon: "🏆", creator: "system", max_participants: 50, participant_count: 0, participants: [] }
-      ];
-    }
     return jsonResponse({
       status: "ok",
       rooms: rooms
@@ -5678,6 +5670,35 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       iceServers: iceServers,
       ice_servers: iceServers
     });
+  }
+
+  // Analytics & Client Event Telemetry
+  if (path === "/api/analytics/event") {
+    return jsonResponse({ status: "ok", tracked: true });
+  }
+
+  // User Notification Preferences & DND State
+  if (path === "/api/user/notification-preferences") {
+    if (request.method === "GET") {
+      const url = new URL(request.url);
+      const username = (url.searchParams.get("username") || "").trim().toLowerCase();
+      let prefs = { dnd_enabled: false, sound_enabled: true, email_notifs: false, direct_mentions_only: false };
+      return jsonResponse({
+        status: "ok",
+        username: username,
+        preferences: prefs,
+        is_dnd_active: false,
+        is_snoozed: false
+      });
+    }
+    if (request.method === "POST") {
+      const body = await request.json().catch(() => ({}));
+      return jsonResponse({
+        status: "ok",
+        message: "Preferences updated",
+        preferences: body.preferences || body
+      });
+    }
   }
 
   // Pending Incoming Voice Call Check (Background Service & Reconnect Fallback)

@@ -8,7 +8,7 @@
         var queryTheme = urlParams.get('theme');
         var storedTheme = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_chakra_theme');
         var theme = (queryTheme || storedTheme || 'noir').toLowerCase();
-        var validThemes = ['noir', 'parchment', 'cyberpunk', 'midnight', 'emerald', 'glass'];
+        var validThemes = ['parchment', 'noir'];
         var canonical = validThemes.indexOf(theme) !== -1 ? theme : (['ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'].indexOf(theme) !== -1 ? 'parchment' : 'noir');
         document.documentElement.setAttribute('data-theme', canonical);
       } catch (_) {}
@@ -5408,16 +5408,14 @@
       animation: fadeIn 0.15s ease;
     }
     .user-popover-banner {
-      height: 55px;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--chakra-cyan) 100%);
-      opacity: 0.8;
+      display: none !important;
     }
     .user-popover-avatar-wrap {
       position: relative;
-      margin-top: -24px;
-      margin-left: 16px;
-      width: 48px;
-      height: 48px;
+      margin-top: 18px !important;
+      margin-left: 18px !important;
+      width: 52px;
+      height: 52px;
       background: var(--bg-darkest);
       border-radius: 50%;
       display: flex;
@@ -18958,10 +18956,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
           </span>
         </button>
 
-        <div style="position:relative;">
-          <button class="btn-icon" id="scheduledToggleBtn" onclick="toggleScheduledDrawer()" title="Scheduled Messages Queue"><i data-lucide="clock" class="lucide-sm"></i></button>
-          <div class="notif-badge" id="scheduledBadge" style="display:none; background:#a855f7; color:#fff;">0</div>
-        </div>
+
         <div style="position:relative;">
           <button class="btn-icon" id="bookmarksToggleBtn" onclick="toggleBookmarksDrawer()" title="Personal Saved Bookmarks"><i data-lucide="bookmark" class="lucide-sm"></i></button>
           <div class="notif-badge" id="bookmarksBadge" style="display:none; background:var(--chakra-cyan); color:#000;">0</div>
@@ -19033,28 +19028,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
 
           <!-- Stitch Pro Max Elevated Input Container -->
           <div class="stitch-input-card">
-            <!-- Top Utility Bar -->
-            <div class="stitch-input-toolbar">
-              <div class="stitch-toolbar-left">
-                <button type="button" class="stitch-tool-btn" title="Insert Code Snippet" onclick="insertCodeSnippet()">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                </button>
-                <button type="button" class="stitch-tool-btn" title="Join Cyber-Stage Voice" onclick="switchMainView('voice')">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-                </button>
-                <button type="button" class="stitch-tool-btn" title="Create Interactive Poll" onclick="openCreatePollModal()">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                </button>
-                <button type="button" class="stitch-tool-btn" id="msgTimerBtn" title="Message Timer" onclick="cycleMsgTimer()">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                  <span id="msgTimerBadge" style="display:none; font-size:9px; background:var(--chakra-cyan); color:#000; padding:1px 4px; border-radius:3px; margin-left:2px; font-weight:800;"></span>
-                </button>
-                <span class="stitch-commands-hint">/ commands</span>
-              </div>
-              <div class="stitch-toolbar-right">
-                <span class="markdown-latex-hint">Markdown &amp; LaTeX ready</span>
-              </div>
-            </div>
+
 
             <!-- Main Input Row: Clean, Aesthetic Unified Capsule -->
             <div class="connecto-enhanced-input-row stitch-input-row" id="connectoInputRow">
@@ -19301,22 +19275,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
         </div>
       </div>
 
-      <!-- Slide-Out Scheduled Messages Queue Drawer -->
-      <div class="pins-drawer" id="scheduledMessagesDrawer" style="display:none;">
-        <div class="pins-drawer-header">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span>🕒</span>
-            <span style="font-weight:800; font-size:14px;">Scheduled Messages</span>
-            <span class="category-count" id="scheduledDrawerCountBadge" style="margin-left:4px;">0</span>
-          </div>
-          <button class="pins-close-btn" onclick="toggleScheduledDrawer()">✕</button>
-        </div>
-        <div style="padding:10px 14px; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:11.5px; color:var(--text-muted);">Queued scrolls awaiting delivery</span>
-          <button class="btn btn-primary" style="padding:3px 10px; font-size:11px; background:linear-gradient(135deg,#a855f7,#6366f1);" onclick="openScheduleMessageModal()">+ Schedule New</button>
-        </div>
-        <div class="pins-list-scroll" id="scheduledMessagesListScroll"></div>
-      </div>
+
 
       <!-- Slide-Out Message Thread & Reply Chain Sidebar -->
       <div class="pins-drawer thread-drawer" id="threadDrawer" style="display:none; width:400px;">
@@ -19350,7 +19309,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
 
       <!-- User Profile Popover Card -->
       <div class="user-popover-card" id="userPopoverCard" style="display:none;">
-        <div class="user-popover-banner" id="popoverBanner"></div>
+        <!-- Friend profile banner removed per user request: display strictly user profile data without background cover photo -->
         <div class="user-popover-avatar-wrap">
           <span class="user-popover-avatar" id="popoverAvatar">👤</span>
           <div class="user-popover-status" id="popoverStatus"></div>
@@ -20895,12 +20854,9 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
         <!-- Interactive Theme Customizer -->
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         <div class="mobile-drawer-label">Theme</div>
-        <div class="chakra-palette-row" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-          <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('parchment')" title="☀️ Ivory Paper">☀️</button>
-          <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('noir')" title="🌙 Pure Black OLED">🌙</button>
-          <button class="chakra-theme-dot" data-theme="cyberpunk" style="background:#15102a; border:2px solid #ff007f; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('cyberpunk')" title="⚡ Cyberpunk Neon">⚡</button>
-          <button class="chakra-theme-dot" data-theme="midnight" style="background:#0a1526; border:2px solid #38bdf8; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('midnight')" title="🌌 Midnight Navy">🌌</button>
-          <button class="chakra-theme-dot" data-theme="emerald" style="background:#081812; border:2px solid #10b981; width:34px; height:34px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:14px;" onclick="setHomepageTheme('emerald')" title="💎 Emerald Matrix">💎</button>
+        <div class="chakra-palette-row" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:36px; height:36px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:15px;" onclick="setHomepageTheme('parchment')" title="☀️ Light Theme (Ivory Paper)">☀️</button>
+          <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:36px; height:36px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:15px;" onclick="setHomepageTheme('noir')" title="🌙 Dark Theme (Pure Black OLED)">🌙</button>
         </div>
         <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
         
@@ -21634,75 +21590,33 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
               <div class="profile-card-title"><span>🎨</span> Appearance & Theme</div>
               <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Select your signature theme edition for the entire Connecto workspace and chat interface.</p>
               
-              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:14px;">
-                <div class="theme-selection-card" id="themeCardParchment" onclick="setHomepageTheme('parchment')" style="padding:16px; border-radius:14px; border:2px solid rgba(68,64,60,0.2); background:#fbf8f2; color:#141312; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
+                <div class="theme-selection-card" id="themeCardParchment" onclick="setHomepageTheme('parchment')" style="padding:18px; border-radius:16px; border:2px solid rgba(68,64,60,0.2); background:#fbf8f2; color:#141312; cursor:pointer; display:flex; flex-direction:column; gap:12px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
                   <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                      <span style="width:30px; height:30px; border-radius:50%; background:#f5f1e8; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">☀️</span>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <span style="width:34px; height:34px; border-radius:50%; background:#f5f1e8; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:15px;">☀️</span>
                       <div>
-                        <div style="font-weight:800; font-size:14px; color:#141312;">Ivory Paper</div>
-                        <div style="font-size:11px; color:#78716c;">Archival light parchment</div>
+                        <div style="font-weight:800; font-size:15px; color:#141312;">Ivory Paper (Light)</div>
+                        <div style="font-size:11.5px; color:#78716c;">Archival daylight parchment</div>
                       </div>
                     </div>
-                    <span class="theme-active-pill" id="themePillParchment" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#141312; color:#ffffff;">ACTIVE</span>
+                    <span class="theme-active-pill" id="themePillParchment" style="display:none; font-size:10px; font-weight:800; padding:3px 10px; border-radius:12px; background:#141312; color:#ffffff;">ACTIVE</span>
                   </div>
-                  <div style="font-size:11.5px; color:#57534e; line-height:1.4;">Crisp high-contrast sumi ink on warm paper. Optimized for daytime reading.</div>
+                  <div style="font-size:12px; color:#57534e; line-height:1.45;">Crisp high-contrast sumi ink on warm paper. Optimized for clarity and daytime focus.</div>
                 </div>
 
-                <div class="theme-selection-card" id="themeCardNoir" onclick="setHomepageTheme('noir')" style="padding:16px; border-radius:14px; border:2px solid rgba(255,255,255,0.15); background:#000000; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                <div class="theme-selection-card" id="themeCardNoir" onclick="setHomepageTheme('noir')" style="padding:18px; border-radius:16px; border:2px solid rgba(255,255,255,0.15); background:#000000; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:12px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
                   <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                      <span style="width:30px; height:30px; border-radius:50%; background:#000000; border:2px solid #ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">🌙</span>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <span style="width:34px; height:34px; border-radius:50%; background:#000000; border:2px solid #ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:15px;">🌙</span>
                       <div>
-                        <div style="font-weight:800; font-size:14px; color:#ffffff;">Pure Black OLED</div>
-                        <div style="font-size:11px; color:#a1a1aa;">#000000 pitch-black luxury</div>
+                        <div style="font-weight:800; font-size:15px; color:#ffffff;">Pure Black OLED (Dark)</div>
+                        <div style="font-size:11.5px; color:#a1a1aa;">#000000 pitch-black luxury</div>
                       </div>
                     </div>
-                    <span class="theme-active-pill" id="themePillNoir" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ffffff; color:#000000;">ACTIVE</span>
+                    <span class="theme-active-pill" id="themePillNoir" style="display:none; font-size:10px; font-weight:800; padding:3px 10px; border-radius:12px; background:#ffffff; color:#000000;">ACTIVE</span>
                   </div>
-                  <div style="font-size:11.5px; color:#a1a1aa; line-height:1.4;">Zero pixel emission, true pure black OLED contrast for maximum focus.</div>
-                </div>
-
-                <div class="theme-selection-card" id="themeCardCyberpunk" onclick="setHomepageTheme('cyberpunk')" style="padding:16px; border-radius:14px; border:2px solid rgba(255,0,127,0.25); background:#0c0d1c; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
-                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                      <span style="width:30px; height:30px; border-radius:50%; background:#15102a; border:2px solid #ff007f; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">⚡</span>
-                      <div>
-                        <div style="font-weight:800; font-size:14px; color:#ff007f;">Cyberpunk Neon</div>
-                        <div style="font-size:11px; color:#c084fc;">High-voltage neon magenta & cyan</div>
-                      </div>
-                    </div>
-                    <span class="theme-active-pill" id="themePillCyberpunk" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#ff007f; color:#ffffff;">ACTIVE</span>
-                  </div>
-                  <div style="font-size:11.5px; color:#e2e8f0; line-height:1.4;">Night city high-energy aesthetic with glowing cyan & purple elements.</div>
-                </div>
-
-                <div class="theme-selection-card" id="themeCardMidnight" onclick="setHomepageTheme('midnight')" style="padding:16px; border-radius:14px; border:2px solid rgba(56,189,248,0.25); background:#0a1526; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
-                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                      <span style="width:30px; height:30px; border-radius:50%; background:#0e1e36; border:2px solid #38bdf8; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">🌌</span>
-                      <div>
-                        <div style="font-weight:800; font-size:14px; color:#38bdf8;">Midnight Navy</div>
-                        <div style="font-size:11px; color:#93c5fd;">Deep oceanic navy with electric azure</div>
-                      </div>
-                    </div>
-                    <span class="theme-active-pill" id="themePillMidnight" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#38bdf8; color:#082f49;">ACTIVE</span>
-                  </div>
-                  <div style="font-size:11.5px; color:#bae6fd; line-height:1.4;">Deep tactical blue hues and starlight accents for calm evening work.</div>
-                </div>
-
-                <div class="theme-selection-card" id="themeCardEmerald" onclick="setHomepageTheme('emerald')" style="padding:16px; border-radius:14px; border:2px solid rgba(16,185,129,0.25); background:#081812; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
-                  <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                      <span style="width:30px; height:30px; border-radius:50%; background:#0d251c; border:2px solid #10b981; display:inline-flex; align-items:center; justify-content:center; font-size:13px;">💎</span>
-                      <div>
-                        <div style="font-weight:800; font-size:14px; color:#10b981;">Emerald Matrix</div>
-                        <div style="font-size:11px; color:#6ee7b7;">Tactical obsidian & matrix emerald</div>
-                      </div>
-                    </div>
-                    <span class="theme-active-pill" id="themePillEmerald" style="display:none; font-size:10px; font-weight:800; padding:2px 8px; border-radius:12px; background:#10b981; color:#022c22;">ACTIVE</span>
-                  </div>
-                  <div style="font-size:11.5px; color:#a7f3d0; line-height:1.4;">Cyber-terminal aesthetic inspired by matrix consoles and jade minerals.</div>
+                  <div style="font-size:12px; color:#a1a1aa; line-height:1.45;">Zero pixel emission, true pure black OLED contrast for night sessions and tactical focus.</div>
                 </div>
               </div>
             </div>
@@ -22398,55 +22312,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
     </div>
   </div>
 
-  <!-- Schedule Message Modal -->
-  <div class="modal-overlay" id="scheduleMessageModal" style="display:none;" onclick="closeScheduleMessageModal(event)">
-    <div class="modal-card border-beam-card" style="width:460px; padding:22px; border-radius:18px;" onclick="event.stopPropagation()">
-      <div class="border-beam"></div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="font-size:18px;">🕒</span>
-          <h3 style="margin:0; font-size:15px; font-weight:800; color:#fff;">Schedule Delayed Message</h3>
-        </div>
-        <button class="pins-close-btn" onclick="closeScheduleMessageModal()">✕</button>
-      </div>
 
-      <!-- Message Content -->
-      <div style="margin-bottom:14px;">
-        <label style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;" for="scheduledMsgInput">MESSAGE CONTENT</label>
-        <textarea id="scheduledMsgInput" class="auth-input-field" rows="3" style="width:100%; padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; resize:none;" placeholder="Type your message to be delivered at a specific time..."></textarea>
-      </div>
-
-      <!-- Quick Timing Presets -->
-      <div style="margin-bottom:14px;">
-        <label style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:6px; display:block;">QUICK DELIVERY PRESETS</label>
-        <div style="display:flex; flex-wrap:wrap; gap:6px;">
-          <button type="button" class="scheduled-preset-btn" onclick="applySchedulePreset(5)">⏱️ In 5 Mins</button>
-          <button type="button" class="scheduled-preset-btn" onclick="applySchedulePreset(15)">⏱️ In 15 Mins</button>
-          <button type="button" class="scheduled-preset-btn" onclick="applySchedulePreset(60)">⏱️ In 1 Hour</button>
-          <button type="button" class="scheduled-preset-btn" onclick="applySchedulePreset(180)">⏱️ In 3 Hours</button>
-          <button type="button" class="scheduled-preset-btn" onclick="applySchedulePreset('tomorrow_9am')">🌅 Tomorrow 9 AM</button>
-        </div>
-      </div>
-
-      <!-- Custom Date & Time Picker -->
-      <div style="margin-bottom:14px;">
-        <label style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px; display:block;" for="customScheduleDatetime">OR CUSTOM DELIVERY TIME</label>
-        <input type="datetime-local" id="customScheduleDatetime" class="auth-input-field" style="width:100%; padding:8px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:10px; color:#fff; color-scheme:dark;" onchange="handleScheduleDatetimeChange()">
-      </div>
-
-      <!-- Selected Summary Badge -->
-      <div style="margin-bottom:16px; font-size:11.5px; color:var(--text-muted); background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:8px; padding:8px 12px; display:flex; align-items:center; gap:8px;">
-        <span>🎯 Target Delivery:</span>
-        <span id="scheduledSummaryTarget" style="font-weight:700; color:#c084fc;">Select a preset or custom time above</span>
-      </div>
-
-      <!-- Actions -->
-      <div style="display:flex; justify-content:flex-end; gap:8px;">
-        <button type="button" class="btn btn-outline" style="font-size:12.5px; padding:6px 14px;" onclick="closeScheduleMessageModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" style="font-size:12.5px; padding:6px 16px; border-radius:8px; background:linear-gradient(135deg, #a855f7, #6366f1);" onclick="submitScheduleMessage()">🕒 Schedule Message</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Notification Preferences & DND Modal -->
   <div class="modal-overlay" id="notifPreferencesModal" style="display:none;" onclick="closeNotifPreferencesModal(event)">
@@ -23749,6 +23615,10 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
     }
 
     function switchChannel(channelId, topic) {
+  if (channelId === 'voice-lounge') {
+    switchMainView('voice');
+    return;
+  }
       document.querySelectorAll('.channel-chip-btn').forEach(btn => {
         if (btn.getAttribute('data-channel') === channelId) {
           btn.classList.add('active');
@@ -25562,20 +25432,9 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
       const nextXp = member.next_rank_xp || 250;
       const progress = member.progress_percent !== undefined ? member.progress_percent : Math.min(100, Math.max(10, Math.floor((xp % 250) / 2.5)));
 
+      // Per specification: friend profile shows only the profile, no background cover photo
       const pBanner = document.getElementById('popoverBanner');
-      if (pBanner) {
-        const mBan = member.banner_url || (isSelf ? currentUserBanner : null) || BANNER_PRESETS.preset_aurora;
-        if (mBan.startsWith('http') || mBan.startsWith('/') || mBan.startsWith('data:')) {
-          const fullBan = (mBan.startsWith('http') || mBan.startsWith('data:')) ? mBan : (window.location.origin + (mBan.startsWith('/') ? mBan : '/' + mBan));
-          pBanner.style.background = `url('${fullBan}') center/cover no-repeat`;
-          pBanner.style.backgroundSize = 'cover';
-          pBanner.style.backgroundPosition = 'center';
-        } else {
-          pBanner.style.background = mBan;
-          pBanner.style.backgroundSize = 'cover';
-          pBanner.style.backgroundPosition = 'center';
-        }
-      }
+      if (pBanner) { pBanner.style.display = 'none'; }
       const av = member.picture || member.avatar || member.avatar_url || '🥷';
       const dispName = member.nickname || member.display_name || member.username;
       document.getElementById('popoverAvatar').innerHTML = renderAvatarHTML(av, dispName, 42);
@@ -27228,43 +27087,12 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
         }
       },
       {
-        name: '/schedule',
-        syntax: '/schedule [mins] [message]',
-        icon: '🕒',
-        desc: 'Schedule a message for future delayed delivery (e.g. /schedule 5 Standup starts now)',
-        handler: async (args) => {
-          if (!args) {
-            openScheduleMessageModal();
-            return null;
-          }
-          const tokens = args.split(' ');
-          const mins = parseInt(tokens[0]);
-          if (isNaN(mins) || mins <= 0) {
-            openScheduleMessageModal();
-            return null;
-          }
-          const content = tokens.slice(1).join(' ').trim();
-          if (!content) {
-            showNotificationToast('Message Content Required', 'Please provide message text to schedule.');
-            return null;
-          }
-          const targetEpoch = (Date.now() / 1000) + (mins * 60);
-          try {
-            await fetch(`/api/channels/${encodeURIComponent(currentChannel)}/scheduled-messages`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                channel_id: currentChannel,
-                content: content,
-                author: currentUser,
-                delivery_time_epoch: targetEpoch,
-                delivery_time_str: `in ${mins} min${mins === 1 ? '' : 's'}`
-              })
-            });
-            showNotificationToast('Message Scheduled', `Queued for delivery in ${mins}m`);
-            loadScheduledMessages();
-          } catch (e) { console.error(e); }
-          return null;
+        name: '/help-schedule',
+        syntax: '/help-schedule',
+        icon: 'ℹ️',
+        desc: 'Information about direct real-time delivery',
+        handler: async () => {
+          return '⚡ Connecto messages are delivered with instant real-time WebSockets.';
         }
       },
       {
@@ -27575,7 +27403,17 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
       }
     }
 
-    async function loadScheduledMessages() {
+    
+    // Scheduled message feature safe no-ops
+    function toggleScheduledDrawer() {}
+    function openScheduleMessageModal() {}
+    function closeScheduleMessageModal() {}
+    function applySchedulePreset() {}
+    function handleScheduleDatetimeChange() {}
+    async function submitScheduleMessage() {}
+    async function loadScheduledMessages() {}
+
+    async function _deprecated_loadScheduledMessages() {
       try {
         const res = await fetch(`/api/channels/${encodeURIComponent(currentChannel)}/scheduled-messages?author=${encodeURIComponent(currentUser)}`);
         const data = await res.json();
@@ -29558,7 +29396,19 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
       const grid = document.getElementById('voiceRoomsGrid');
       if (!grid) return;
       if (rooms.length === 0) {
-        grid.innerHTML = '<div style="color:var(--text-muted); font-size:14px; grid-column:1/-1; padding:32px 0; text-align:center; background:rgba(255,255,255,0.02); border-radius:16px; border:1px dashed rgba(255,255,255,0.1);">⛩️ No active voice rooms yet. Click <strong>+ Create Voice Room</strong> above to start one!</div>';
+        grid.innerHTML = `
+          <div class="voice-rooms-empty-container" style="grid-column:1/-1; padding:52px 24px; text-align:center; background:var(--card-bg); border-radius:20px; border:1px dashed var(--card-border); box-shadow:var(--shadow-card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; margin:20px 0;">
+            <div style="width:72px; height:72px; border-radius:50%; background:rgba(0,206,201,0.1); border:1px solid rgba(0,206,201,0.25); display:inline-flex; align-items:center; justify-content:center; font-size:34px; box-shadow:0 8px 24px rgba(0,0,0,0.18);">🎙️</div>
+            <h3 style="margin:0; font-family:var(--font-display); font-size:20px; font-weight:800; color:var(--text-header);">No Active Voice Lounges</h3>
+            <p style="margin:0; max-width:460px; font-size:13.5px; color:var(--text-muted); line-height:1.55;">There are no voice lounges active right now. Start a new voice lounge to talk, screen share, and collaborate with your teammates in real-time WebRTC audio.</p>
+            <div style="margin-top:6px;">
+              <button class="btn btn-primary" onclick="openCreateVoiceRoomModal()" style="padding:11px 26px; font-size:13.5px; font-weight:800; border-radius:12px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 8px 24px rgba(0,206,201,0.25);">
+                <span>➕</span>
+                <span>Create Voice Lounge</span>
+              </button>
+            </div>
+          </div>
+        `;
         return;
       }
 
@@ -33445,21 +33295,17 @@ function selectSettingsAvatar(emoji, el) {
           obsidian: 'noir',
           slate: 'noir',
 
-          // Cyberpunk Neon
-          cyberpunk: 'cyberpunk',
-          neon: 'cyberpunk',
-          synthwave: 'cyberpunk',
-
-          // Midnight Navy
-          midnight: 'midnight',
-          navy: 'midnight',
-          ocean: 'midnight',
-          indigo: 'midnight',
-
-          // Emerald Matrix
-          emerald: 'emerald',
-          matrix: 'emerald',
-          jade: 'emerald'
+          // All other themes map strictly to OLED noir
+          cyberpunk: 'noir',
+          neon: 'noir',
+          synthwave: 'noir',
+          midnight: 'noir',
+          navy: 'noir',
+          ocean: 'noir',
+          indigo: 'noir',
+          emerald: 'noir',
+          matrix: 'noir',
+          jade: 'noir'
         };
         const canonicalTheme = aliasMap[themeId] || 'parchment';
 
@@ -33511,10 +33357,7 @@ function selectSettingsAvatar(emoji, el) {
         // Synchronize Settings Modal Appearance Tab Cards & Active Pills
         const allThemes = [
           { id: 'parchment', pillId: 'themePillParchment', cardId: 'themeCardParchment', activeBorder: '#141312', shadow: '0 0 0 1px #141312, 0 8px 24px rgba(20,19,18,0.12)', inactiveBorder: 'rgba(68,64,60,0.15)' },
-          { id: 'noir', pillId: 'themePillNoir', cardId: 'themeCardNoir', activeBorder: '#ffffff', shadow: '0 0 0 1px #ffffff, 0 8px 24px rgba(255,255,255,0.12)', inactiveBorder: 'rgba(255,255,255,0.12)' },
-          { id: 'cyberpunk', pillId: 'themePillCyberpunk', cardId: 'themeCardCyberpunk', activeBorder: '#ff007f', shadow: '0 0 0 1px #ff007f, 0 8px 24px rgba(255,0,127,0.25)', inactiveBorder: 'rgba(255,0,127,0.2)' },
-          { id: 'midnight', pillId: 'themePillMidnight', cardId: 'themeCardMidnight', activeBorder: '#38bdf8', shadow: '0 0 0 1px #38bdf8, 0 8px 24px rgba(56,189,248,0.25)', inactiveBorder: 'rgba(56,189,248,0.2)' },
-          { id: 'emerald', pillId: 'themePillEmerald', cardId: 'themeCardEmerald', activeBorder: '#10b981', shadow: '0 0 0 1px #10b981, 0 8px 24px rgba(16,185,129,0.25)', inactiveBorder: 'rgba(16,185,129,0.2)' }
+          { id: 'noir', pillId: 'themePillNoir', cardId: 'themeCardNoir', activeBorder: '#ffffff', shadow: '0 0 0 1px #ffffff, 0 8px 24px rgba(255,255,255,0.12)', inactiveBorder: 'rgba(255,255,255,0.12)' }
         ];
 
         allThemes.forEach(t => {

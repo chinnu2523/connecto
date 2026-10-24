@@ -43,60 +43,8 @@ from app.core.config import settings
 from app.db.session import init_db
 
 async def seed_voice_rooms():
-    from app.db.session import AsyncSessionLocal
-    from app.db.models.voice import VoiceRoom
-    from sqlalchemy import select
-    try:
-        async with AsyncSessionLocal() as session:
-            stmt = select(VoiceRoom).limit(1)
-            existing = (await session.execute(stmt)).scalars().first()
-            if not existing:
-                default_rooms = [
-                    VoiceRoom(
-                        id="room_general",
-                        code="WAR-774",
-                        name="⛩️ Tactical War Room",
-                        topic="All-Clan Strategic Briefing & General Voice",
-                        icon="⛩️",
-                        creator_username="system",
-                        max_participants=12,
-                        is_active=True
-                    ),
-                    VoiceRoom(
-                        id="room_cyber",
-                        code="CYB-101",
-                        name="🛡️ Cyber Defense Lab",
-                        topic="Packet Inspection, Live CTF & Code Reviews",
-                        icon="🛡️",
-                        creator_username="system",
-                        max_participants=8,
-                        is_active=True
-                    ),
-                    VoiceRoom(
-                        id="room_gaming",
-                        code="GAME-404",
-                        name="🎮 Gaming & Casual Lounge",
-                        topic="Casual voice chat, music & screenshare",
-                        icon="🎮",
-                        creator_username="system",
-                        max_participants=16,
-                        is_active=True
-                    ),
-                    VoiceRoom(
-                        id="room_bb5a171b",
-                        code="SHIN-909",
-                        name="⚔️ Akatsuki Tactical Hub",
-                        topic="High-level shinobi stealth & tactical audio",
-                        icon="⚔️",
-                        creator_username="system",
-                        max_participants=8,
-                        is_active=True
-                    ),
-                ]
-                session.add_all(default_rooms)
-                await session.commit()
-    except Exception as e:
-        print(f"Error seeding default voice rooms: {e}")
+    # User requirement: All pre-created voice lounges removed; start with zero rooms.
+    pass
 
 async def seed_channels():
     from app.db.session import AsyncSessionLocal
