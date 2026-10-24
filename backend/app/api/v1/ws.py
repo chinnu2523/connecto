@@ -46,22 +46,26 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
                     import os
                     from sqlalchemy import or_
                     dot_idx = session_token.rfind(".")
-                    payload_part = session_token[8:dot_idx] if dot_idx != -1 else session_token[8:]
-                    sig_part = session_token[dot_idx + 1:] if dot_idx != -1 else ""
+                    # SEC-WS-01 FIX: Reject unsigned tokens; require valid dot delimiter and signature
+                    if dot_idx == -1:
+                        return None
+                    payload_part = session_token[8:dot_idx]
+                    sig_part = session_token[dot_idx + 1:]
+                    if not sig_part:
+                        return None
                     last_us = payload_part.rfind("_")
                     if last_us != -1:
                         edge_uid = payload_part[:last_us]
                         ts_part = payload_part[last_us + 1:]
                         token_ts_ms = int(ts_part) if ts_part.isdigit() else 0
-                        valid_sig = (dot_idx == -1)
-                        if not valid_sig:
-                            for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", ""), "connecto_edge_sec_32bytes_random_salt!"]:
-                                if not sec:
-                                    continue
-                                expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
-                                if hmac.compare_digest(sig_part, expected):
-                                    valid_sig = True
-                                    break
+                        valid_sig = False
+                        for sec in [os.getenv("SECRET_KEY", ""), getattr(settings, "SECRET_KEY", "")]:
+                            if not sec:
+                                continue
+                            expected = hmac.new(sec.encode("utf-8"), payload_part.encode("utf-8"), hashlib.sha256).hexdigest()[:32]
+                            if hmac.compare_digest(sig_part, expected):
+                                valid_sig = True
+                                break
                         if valid_sig:
                             clean_uname = edge_uid.lower().removeprefix("usr_")
                             u_stmt = select(User).where(
