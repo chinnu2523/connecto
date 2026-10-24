@@ -256,6 +256,7 @@ fun performCompleteSignOut(context: Context, userToSignOut: String?) {
     com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
     val prefsList = listOf(
         "connecto_session_prefs",
+        "connecto_secure_session_prefs",
         "connecto_user_profile_prefs",
         "connecto_chat_read_prefs",
         "connecto_friend_prefs",

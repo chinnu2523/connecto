@@ -146,22 +146,22 @@ export default {
         version_name: "v4.6.5",
         version_code: 94,
         build: 94,
-        sha256: "83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861",
-        md5: "bc6f3ab6224361cff94fea3bbc60c659",
+        sha256: "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b",
+        md5: "3a71efb4e37f906cc8281810808958c3",
         filename: "connecto-fun.apk",
-        size_bytes: 37015606,
-        size_display: "35.3 MB",
+        size_bytes: 37747916,
+        size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Hardware-Backed Android KeyStore: Integrated EncryptedSharedPreferences (AES-256-GCM) with master key protection for session tokens and cryptographic credentials.",
           "Interactive 24/7 AI Customer Support: Integrated conversational AI assistant in Help & Support for instant answers on app topics, voice & audio configurations, chat wallpapers, 2FA, and troubleshooting.",
           "In-App Legal Center: Comprehensive viewable Privacy Policy and Terms of Service with zero-telemetry encryption disclosures placed at the bottom of Help & Support.",
-          "Reordered Help & Support Architecture: Moved Delete Account & Purge Data button to the top of Help & Support for immediate transparency.",
-          "Streamlined Call Tab & Theme-Aware DSP: Clean call action bar with group calls and dynamic switch styling across all active themes.",
-          "Production Keystore Signed: Signed with APK Signature Scheme V1, V2, and V3 on API 24–37 (Build 93 • 35.3 MB • Production Signed)."
+          "Reordered Help & Support Architecture: Moved Delete Account & Purge Data button to the bottom of Help & Support with typed-confirmation safeguards.",
+          "Hardened CSP & Edge Security: Full Content Security Policy, zero-trust WebSocket HMAC verification, and strict origin sanitization."
         ]
       });
     }
@@ -6072,11 +6072,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       version_name: "v4.6.5",
       version_code: 94,
       build: 94,
-      sha256: "83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861",
-      md5: "bc6f3ab6224361cff94fea3bbc60c659",
+      sha256: "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b",
+      md5: "3a71efb4e37f906cc8281810808958c3",
       filename: "connecto-fun.apk",
-      size_bytes: 37015606,
-      size_display: "35.3 MB",
+      size_bytes: 37747916,
+      size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -7033,19 +7033,24 @@ async function handlePagesEdgeFallback(request, url, host) {
       resHeaders.set("X-Served-By", "Cloudflare-Pages-Edge");
       resHeaders.set("X-Connecto-Mode", "cloud_server");
       resHeaders.set("Access-Control-Allow-Origin", "*");
-      resHeaders.set("Content-Security-Policy", "default-src 'self' https: data: blob: 'unsafe-inline'; script-src 'self' https: 'unsafe-inline'; object-src 'none'; frame-ancestors 'self';");
+      resHeaders.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
       resHeaders.set("X-Content-Type-Options", "nosniff");
       resHeaders.set("X-Frame-Options", "SAMEORIGIN");
+      resHeaders.set("X-XSS-Protection", "1; mode=block");
+      resHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
+      resHeaders.set("Permissions-Policy", "camera=(), geolocation=(), microphone=(self)");
       const ct = pagesResponse.headers.get("content-type") || "";
       if (ct.includes("text/html")) {
         let htmlText = await pagesResponse.text();
         htmlText = htmlText
-          .replace(/2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
-          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
-          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
-          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
-          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2")
-          .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2");
+          .replace(/83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
+          .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b");
         return new Response(htmlText, {
           status: pagesResponse.status,
           headers: resHeaders

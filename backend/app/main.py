@@ -424,6 +424,9 @@ async def security_headers_middleware(request: Request, call_next):
         "img-src 'self' data: blob: https: http:; "
         "media-src 'self' data: blob: https:; "
         "connect-src 'self' wss: ws: https: http: https://cloudflareinsights.com; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
         "frame-ancestors 'self';"
     )
     response.headers["Content-Security-Policy"] = csp
@@ -5921,10 +5924,10 @@ async def get_app_version_endpoint(response: Response = None):
         "version_name": "v4.6.5",
         "version_code": 94,
         "release_tag": "v4.6.5",
-        "sha256": "83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861",
-        "md5": "bc6f3ab6224361cff94fea3bbc60c659",
-        "size_bytes": size_bytes if size_bytes else 37015606,
-        "size_display": size_mb if size_mb else "35.3 MB",
+        "sha256": "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b",
+        "md5": "3a71efb4e37f906cc8281810808958c3",
+        "size_bytes": size_bytes if size_bytes else 37747916,
+        "size_display": size_mb if size_mb else "36.0 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 37 / HyperOS Verified)",
         "download_url": "/download/apk",

@@ -297,6 +297,10 @@ data class ProfileDataDto(
 )
 
 object ConnectoApiClient {
+    fun getSessionPrefs(ctx: android.content.Context): android.content.SharedPreferences {
+        return com.example.connecto.security.SecureStorageManager.getEncryptedPrefs(ctx)
+    }
+
 
     @Volatile
     var sessionToken: String? = null
@@ -330,7 +334,7 @@ object ConnectoApiClient {
         if (!memory.isNullOrBlank()) return memory
         val ctx = applicationContext ?: return null
         return try {
-            val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+            val prefs = getSessionPrefs(ctx)
             val s = prefs.getString("e2e_secret", null)?.takeIf { it.isNotBlank() }
             if (s != null) {
                 cachedE2ESecret = s
@@ -357,7 +361,7 @@ object ConnectoApiClient {
                     val ctx = applicationContext
                     if (ctx != null) {
                         try {
-                            val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                            val prefs = getSessionPrefs(ctx)
                             prefs.edit().putString("e2e_secret", secret).apply()
                         } catch (_: Exception) {}
                     }
@@ -380,7 +384,7 @@ object ConnectoApiClient {
         val ctx = applicationContext
         if (ctx != null) {
             try {
-                val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                val prefs = getSessionPrefs(ctx)
                 prefs.edit()
                     .putBoolean("is_logged_in", false)
                     .remove("token")
@@ -502,7 +506,7 @@ object ConnectoApiClient {
         val ctx = context ?: applicationContext
         if (ctx != null && !avatarUrl.isNullOrBlank()) {
             try {
-                val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                val prefs = getSessionPrefs(ctx)
                 prefs.edit().putString("avatar_url", avatarUrl).apply()
                 val user = currentUsername
                 if (!user.isNullOrBlank()) {
@@ -520,7 +524,7 @@ object ConnectoApiClient {
         val ctx = context ?: applicationContext
         if (ctx != null) {
             try {
-                val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                val prefs = getSessionPrefs(ctx)
                 if (cleanBanner == null) {
                     prefs.edit().remove("banner_url").apply()
                 } else {
@@ -542,7 +546,7 @@ object ConnectoApiClient {
     fun initSessionFromPrefs(context: android.content.Context) {
         applicationContext = context.applicationContext
         try {
-            val prefs = context.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+            val prefs = getSessionPrefs(context)
             val isLoggedIn = prefs.getBoolean("is_logged_in", false)
             val savedUsername = prefs.getString("username", null)
             val savedToken = prefs.getString("token", null)
@@ -633,7 +637,7 @@ object ConnectoApiClient {
         if (!inMemory.isNullOrBlank()) return inMemory
         val ctx = applicationContext ?: return null
         return try {
-            val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+            val prefs = getSessionPrefs(ctx)
             val t = prefs.getString("token", null)?.takeIf { it.isNotBlank() }
             if (t != null) {
                 sessionToken = t
@@ -1486,7 +1490,7 @@ object ConnectoApiClient {
                     if (isCurr && sId.isNotBlank()) {
                         currentSessionId = sId
                         try {
-                            applicationContext?.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                            applicationContext?.let { getSessionPrefs(it) }
                                 ?.edit()?.putString("current_session_id", sId)?.apply()
                         } catch (_: Exception) {}
                     }
@@ -4116,7 +4120,7 @@ object ConnectoApiClient {
                         // Update local reactive avatar state and prefs
                         updateAvatarState(fullAvatarUrl)
                         try {
-                            context.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                            getSessionPrefs(context)
                                 .edit()
                                 .putString("avatar_url", fullAvatarUrl)
                                 .apply()
@@ -4774,7 +4778,7 @@ object ConnectoApiClient {
                     val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1)
                     updateAdminState(isAdmin)
                     try {
-                        applicationContext?.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                        applicationContext?.let { getSessionPrefs(it) }
                             ?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
                     } catch (_: Exception) {}
                     if (cachedE2ESecret.isNullOrBlank()) {

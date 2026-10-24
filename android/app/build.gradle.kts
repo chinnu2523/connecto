@@ -72,6 +72,7 @@ dependencies {
     implementation("io.getstream:stream-webrtc-android:1.3.8")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation("androidx.biometric:biometric:1.2.0-alpha05")
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
