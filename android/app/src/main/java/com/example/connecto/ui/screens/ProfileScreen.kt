@@ -18,6 +18,7 @@ import com.example.connecto.ui.auth.ForgotPasswordDialog
 import com.example.connecto.ui.theme.isAppInLightTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -40,6 +41,12 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.AlertDialog
+import com.example.connecto.ui.components.CustomerSupportAiDialog
+import com.example.connecto.ui.components.PrivacyPolicyDialog
+import com.example.connecto.ui.components.TermsOfServiceDialog
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.Policy
+import androidx.compose.material.icons.filled.Description
 import com.example.connecto.ui.components.FullScreenGroupProfileDialog
 import com.example.connecto.ui.designsystem.ConnectoAvatar
 import androidx.compose.ui.text.font.FontFamily
@@ -433,6 +440,10 @@ fun ProfileScreen(
     var showDeleteAccountDialog by rememberSaveable { mutableStateOf(false) }
     var isDeletingAccount by remember { mutableStateOf(false) }
     var deleteConfirmInput by rememberSaveable { mutableStateOf("") }
+
+    var showCustomerSupportAiDialog by rememberSaveable { mutableStateOf(false) }
+    var showPrivacyPolicyDialog by rememberSaveable { mutableStateOf(false) }
+    var showTermsOfServiceDialog by rememberSaveable { mutableStateOf(false) }
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         if (com.example.connecto.security.TwoFactorStateManager.restoreIfPending(context)) {
@@ -4686,7 +4697,107 @@ fun ProfileScreen(
                             }
 
                             ProfileSubPage.HELP_SUPPORT -> {
-                            // 1. Quick Support Channels Bento
+                            // 1. Chat with Customer Support (AI)
+                            item(key = "help_ai_support_card") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(18.dp))
+                                        .background(
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.22f),
+                                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.18f),
+                                                    MaterialTheme.colorScheme.surface
+                                                )
+                                            )
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            Brush.linearGradient(
+                                                colors = listOf(
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)
+                                                )
+                                            ),
+                                            RoundedCornerShape(18.dp)
+                                        )
+                                        .clickable { showCustomerSupportAiDialog = true }
+                                        .padding(16.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(42.dp)
+                                                        .clip(RoundedCornerShape(12.dp))
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.SmartToy,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(24.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Text(
+                                                        text = "Chat with Customer Support",
+                                                        fontSize = 15.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(7.dp)
+                                                                .clip(CircleShape)
+                                                                .background(Color(0xFF10B981))
+                                                        )
+                                                        Spacer(modifier = Modifier.width(5.dp))
+                                                        Text(
+                                                            text = "24/7 AI Support Online",
+                                                            fontSize = 11.5.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = Color(0xFF10B981)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        Text(
+                                            text = "Instant answers for troubleshooting, call & audio settings, wallpapers, E2EE encryption, 2FA, notifications, and application features.",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            lineHeight = 16.sp
+                                        )
+
+                                        Button(
+                                            onClick = { showCustomerSupportAiDialog = true },
+                                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                        ) {
+                                            Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Start AI Support Chat", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 3. Quick Support Channels Bento
                             item(key = "help_quick_actions") {
                                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text(
@@ -5055,50 +5166,199 @@ fun ProfileScreen(
                             }
 
 
-                            // 5. Platform Legal & Community Guidelines
-                            item(key = "help_legal_links") {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
+                            // 6. Platform Legal: Privacy Policy & Terms of Service (Last Section)
+                            item(key = "help_legal_last_section") {
+                                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Text(
+                                        text = "PRIVACY POLICY & TERMS OF SERVICES",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        letterSpacing = 1.sp
+                                    )
+
+                                    // Privacy Policy Card
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                                            .clickable { openWebUrl("https://connecto.fun/privacy") },
-                                        contentAlignment = Alignment.Center
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                RoundedCornerShape(16.dp)
+                                            )
+                                            .padding(14.dp)
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(text = "Privacy Policy", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFF3B82F6).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Policy,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF3B82F6),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Privacy Policy",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Zero-telemetry & AES-256 encrypted storage",
+                                                        fontSize = 11.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            Text(
+                                                text = "Learn how Connecto protects your messages with cryptographic keys, avoids cloud backups of cleartext data, and never sells your personal metadata.",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 16.sp
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = { showPrivacyPolicyDialog = true },
+                                                    modifier = Modifier.weight(1f).height(38.dp),
+                                                    shape = RoundedCornerShape(9.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                                    )
+                                                ) {
+                                                    Text("View Policy", fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+                                                }
+
+                                                OutlinedButton(
+                                                    onClick = { openWebUrl("https://connecto.fun/privacy") },
+                                                    modifier = Modifier.height(38.dp),
+                                                    shape = RoundedCornerShape(9.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.AutoMirrored.Filled.OpenInNew,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("Web", fontSize = 12.sp)
+                                                }
+                                            }
                                         }
                                     }
 
+                                    // Terms of Service Card
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(44.dp)
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                                            .clickable { openWebUrl("https://connecto.fun/terms") },
-                                        contentAlignment = Alignment.Center
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                RoundedCornerShape(16.dp)
+                                            )
+                                            .padding(14.dp)
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(text = "Terms of Service", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        Icons.Default.Description,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF8B5CF6),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(10.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "Terms of Service",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Acceptable use, E2EE agreement & community rules",
+                                                        fontSize = 11.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+
+                                            Text(
+                                                text = "Understand your rights, account ownership, community safety standards, end-to-end encryption guidelines, and service limitations.",
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                lineHeight = 16.sp
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Button(
+                                                    onClick = { showTermsOfServiceDialog = true },
+                                                    modifier = Modifier.weight(1f).height(38.dp),
+                                                    shape = RoundedCornerShape(9.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                                                    )
+                                                ) {
+                                                    Text("View Terms", fontWeight = FontWeight.SemiBold, fontSize = 12.5.sp)
+                                                }
+
+                                                OutlinedButton(
+                                                    onClick = { openWebUrl("https://connecto.fun/terms") },
+                                                    modifier = Modifier.height(38.dp),
+                                                    shape = RoundedCornerShape(9.dp)
+                                                ) {
+                                                    Icon(
+                                                        Icons.AutoMirrored.Filled.OpenInNew,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("Web", fontSize = 12.sp)
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
 
-                            // 6. Danger Zone: Delete Account Forever
-                            item(key = "help_delete_account_section") {
+                            // 7. Last Section: Delete Account Forever & Data Purge
+                            item(key = "help_delete_account_last_section") {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -5785,6 +6045,25 @@ fun ProfileScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (showCustomerSupportAiDialog) {
+        CustomerSupportAiDialog(
+            username = username,
+            onDismiss = { showCustomerSupportAiDialog = false }
+        )
+    }
+
+    if (showPrivacyPolicyDialog) {
+        PrivacyPolicyDialog(
+            onDismiss = { showPrivacyPolicyDialog = false }
+        )
+    }
+
+    if (showTermsOfServiceDialog) {
+        TermsOfServiceDialog(
+            onDismiss = { showTermsOfServiceDialog = false }
         )
     }
 

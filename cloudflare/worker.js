@@ -142,14 +142,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.3",
-        version_name: "v4.6.3",
-        version_code: 92,
-        build: 92,
-        sha256: "f701fd99a952e0f30423897e2aedf1e37b25a0c18eb2a620cc4726843881ddff",
-        md5: "ecbea29c2015e9ee1a815cb1077dc65e",
+        version: "4.6.5",
+        version_name: "v4.6.5",
+        version_code: 94,
+        build: 94,
+        sha256: "83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861",
+        md5: "bc6f3ab6224361cff94fea3bbc60c659",
         filename: "connecto-fun.apk",
-        size_bytes: 36978978,
+        size_bytes: 37015606,
         size_display: "35.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -157,11 +157,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Call Tab Optimization: Streamlined top action bar with dedicated Group Call button and removed redundant isolation toggle.",
-          "Chat Wallpaper Persistence & Scrim Fix: Fixed candidate key fallbacks (chatKey, friendId, cleanHandle), brightened dark gradient presets, and resolved Coil URI rendering.",
-          "Voice & Audio Settings Theming: Dynamically styled switches (Echo Cancellation, AGC, HD Voice) and Voice Isolation AI active badge matching active themes.",
-          "Adaptive FLAG_SECURE Protection: Automatic emulator detection permitting dev testing and screenshots while enforcing hardware blackout security on physical devices.",
-          "Production Keystore Signed: Signed with APK Signature Scheme V1, V2, and V3 on API 24–37 (Build 91 • 35.3 MB • Production Signed)."
+          "Interactive 24/7 AI Customer Support: Integrated conversational AI assistant in Help & Support for instant answers on app topics, voice & audio configurations, chat wallpapers, 2FA, and troubleshooting.",
+          "In-App Legal Center: Comprehensive viewable Privacy Policy and Terms of Service with zero-telemetry encryption disclosures placed at the bottom of Help & Support.",
+          "Reordered Help & Support Architecture: Moved Delete Account & Purge Data button to the top of Help & Support for immediate transparency.",
+          "Streamlined Call Tab & Theme-Aware DSP: Clean call action bar with group calls and dynamic switch styling across all active themes.",
+          "Production Keystore Signed: Signed with APK Signature Scheme V1, V2, and V3 on API 24–37 (Build 93 • 35.3 MB • Production Signed)."
         ]
       });
     }
@@ -206,19 +206,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.3/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.3/connecto-v4.6.3.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.2/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-v4.6.5.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.4/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.3-b92-theme-fix.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.5-b94.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.3");
-          res.headers.set("X-Connecto-Build", "92");
+          res.headers.set("X-Connecto-Version", "v4.6.5");
+          res.headers.set("X-Connecto-Build", "94");
           return res;
         }
 
@@ -231,7 +231,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.3"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.5"
               }
             });
             if (upstreamResp.ok) {
@@ -242,8 +242,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.3");
-              downloadHeaders.set("X-Connecto-Build", "92");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.5");
+              downloadHeaders.set("X-Connecto-Build", "94");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -258,7 +258,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -6068,14 +6068,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.3",
-      version_name: "v4.6.3",
-      version_code: 92,
-      build: 92,
-      sha256: "f701fd99a952e0f30423897e2aedf1e37b25a0c18eb2a620cc4726843881ddff",
-      md5: "ecbea29c2015e9ee1a815cb1077dc65e",
+      version: "4.6.5",
+      version_name: "v4.6.5",
+      version_code: 94,
+      build: 94,
+      sha256: "83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861",
+      md5: "bc6f3ab6224361cff94fea3bbc60c659",
       filename: "connecto-fun.apk",
-      size_bytes: 36978978,
+      size_bytes: 37015606,
       size_display: "35.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6089,10 +6089,40 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v4.6.3",
+          version: "v4.6.5",
           date: "Oct 24, 2026",
           category: "feature",
           tag: "Latest Release",
+          title: "Connecto v4.6.5: Universal 24/7 AI Customer Support, In-App Legal Hub & Bottom Danger Zone Architecture",
+          summary: "Connecto v4.6.5 delivers comprehensive 24/7 AI Customer Support assistance across Web and Android, interactive Privacy Policy and Terms of Service readers, and positions the irreversible Delete Account & Data purge section securely at the very end of Help & Support.",
+          highlights: [
+            "24/7 AI Customer Support Assistant: Cross-platform AI support assistant with instant knowledge on AES-256 E2EE, blackscreen privacy, custom wallpapers, WebRTC mesh calling, and 2FA.",
+            "Interactive Platform Legal Center: Seamless in-app modal readers and direct web mirrors for Privacy Policy and Terms of Service directly in the Help & Support center.",
+            "Bottom Danger Zone Architecture: Moved Delete Account & Data Purge to the very last section of Help & Support with double-confirmation typed safety verification.",
+            "Android Native App v4.6.5 (Build 94 • 35.3 MB • Production Keystore Signed): SHA-256 83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861 • MD5 bc6f3ab6224361cff94fea3bbc60c659."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v4.6.4",
+          date: "Oct 24, 2026",
+          category: "feature",
+          tag: "Previous Release",
+          title: "Connecto v4.6.4: Interactive AI Customer Support, In-App Legal Center & Reordered Support Actions",
+          summary: "Connecto v4.6.4 introduces full-featured 24/7 AI Customer Support directly inside the app, interactive Privacy Policy and Terms of Services viewers, and repositions critical account actions at the top of Help & Support.",
+          highlights: [
+            "24/7 AI Customer Support Chat: Integrated real-time AI assistant capable of guiding users through application features, audio troubleshooting, chat wallpapers, 2FA setup, background notifications, and account settings.",
+            "In-App Legal Center: Added readable in-app dialogs and responsive web portals for the complete Privacy Policy and Terms of Service directly in the final section of Help & Support.",
+            "Reordered Help & Support Architecture: Placed Delete Account & Purge Data at the top of Help & Support, followed by the AI Customer Support Hero card.",
+            "Android Native App v4.6.4 (Build 93 • 35.3 MB • Production Signed): SHA-256 ec2fa967e52c539e439ce14edf743decb567b90a6db4782594fd437a40f3a860 • MD5 c92a1e5d484f2b4ddf579e0fb5e610e2."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v4.6.3",
+          date: "Oct 24, 2026",
+          category: "feature",
+          tag: "Previous Release",
           title: "Connecto v4.6.3: Streamlined Call Tab, Chat Wallpaper Healing & Theme-Aware Audio Settings",
           summary: "Connecto v4.6.3 delivers polished mobile user experience upgrades across calls, chat personalization, and profile audio configurations. Streamlines the Call screen action bar, restores robust cross-key wallpaper persistence with rich gradient luminance, and unifies Voice & Audio DSP switches with active system themes.",
           highlights: [

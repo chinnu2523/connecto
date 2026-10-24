@@ -373,6 +373,13 @@
   ],
   "orders": [
     {
+      "id": "test_ord_876880",
+      "order_number": "RN-test_ord_876880",
+      "customer_email": "buyer@example.com",
+      "customer_name": "Real Buyer",
+      "current_status": "CONFIRMED"
+    },
+    {
       "id": "test_ord_0648e4",
       "order_number": "RN-test_ord_0648e4",
       "customer_email": "buyer@example.com",
