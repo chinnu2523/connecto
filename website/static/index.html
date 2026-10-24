@@ -18723,6 +18723,174 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
 }
 </style>
 
+<style>
+/* ==================== ELEVATED CHAT UI FOR CHANNELS & PERSONAL DMs ==================== */
+/* Channel Welcome Card - Noir (Dark) */
+html[data-theme="noir"] .channel-welcome-card {
+  margin: 16px 20px 24px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(20, 20, 28, 0.9) 0%, rgba(12, 12, 16, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+html[data-theme="noir"] .welcome-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(0, 206, 201, 0.12);
+  border: 1px solid rgba(0, 206, 201, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 206, 201, 0.15);
+}
+html[data-theme="noir"] .welcome-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+html[data-theme="noir"] .welcome-badge {
+  background: rgba(124, 92, 252, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(124, 92, 252, 0.4);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+html[data-theme="noir"] .welcome-desc {
+  color: #a1a1aa;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Channel Welcome Card - Parchment (Light) */
+html[data-theme="parchment"] .channel-welcome-card {
+  margin: 16px 20px 24px;
+  padding: 22px 24px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(68, 64, 60, 0.16);
+  box-shadow: 0 8px 24px rgba(68, 64, 60, 0.08), 0 1px 2px rgba(68, 64, 60, 0.04);
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+html[data-theme="parchment"] .welcome-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #f5f1e8;
+  border: 1.5px solid #141312;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(20, 19, 18, 0.08);
+}
+html[data-theme="parchment"] .welcome-title {
+  color: #141312;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+html[data-theme="parchment"] .welcome-badge {
+  background: #141312;
+  color: #ffffff;
+  border: 1px solid #141312;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+html[data-theme="parchment"] .welcome-desc {
+  color: #57534e;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* Personal DM Intro Banner - Noir (Dark) */
+html[data-theme="noir"] .dm-intro-banner {
+  padding: 20px 24px;
+  margin: 14px 16px 24px 16px;
+  background: linear-gradient(135deg, rgba(20, 20, 30, 0.85) 0%, rgba(12, 12, 18, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Personal DM Intro Banner - Parchment (Light) */
+html[data-theme="parchment"] .dm-intro-banner {
+  padding: 20px 24px;
+  margin: 14px 16px 24px 16px;
+  background: #ffffff;
+  border: 1px solid rgba(68, 64, 60, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(68, 64, 60, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+html[data-theme="parchment"] .dm-intro-banner strong,
+html[data-theme="parchment"] .dm-intro-banner div[style*="font-weight:800"] {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .dm-intro-banner div[style*="font-size:12px"] {
+  color: #78716c !important;
+}
+
+/* Personal DM Empty Card - Noir & Parchment */
+html[data-theme="noir"] .dm-empty-card {
+  padding: 40px 28px;
+  text-align: center;
+  max-width: 480px;
+  margin: 40px auto;
+  background: rgba(18, 18, 24, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+}
+html[data-theme="parchment"] .dm-empty-card {
+  padding: 40px 28px;
+  text-align: center;
+  max-width: 480px;
+  margin: 40px auto;
+  background: #ffffff;
+  border: 1px solid rgba(68, 64, 60, 0.16);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(68, 64, 60, 0.08);
+}
+html[data-theme="parchment"] .dm-empty-card .chat-empty-title {
+  color: #141312 !important;
+}
+html[data-theme="parchment"] .dm-empty-card .chat-empty-desc {
+  color: #57534e !important;
+}
+
+/* Channel Empty State Card in Parchment */
+html[data-theme="parchment"] .channel-empty-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+  box-shadow: 0 8px 24px rgba(68, 64, 60, 0.08) !important;
+}
+</style>
 </head>
 <body class="in-hero-view">
 
@@ -18801,7 +18969,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
     <div class="sidebar-search-box">
       <div class="sidebar-search-wrap">
         <span class="sidebar-search-icon">🔍</span>
-        <input type="text" class="sidebar-search-input" id="sidebarSearchInput" aria-label="Find or start a direct message" placeholder="Find or start a DM..." oninput="handleSidebarUserSearch(this.value)" onfocus="handleSidebarUserSearch(this.value)">
+        <input type="text" class="sidebar-search-input" id="sidebarSearchInput" aria-label="Find or start a direct message" placeholder="Find or start a DM..." oninput="handleSidebarUserSearch(this.value)" onfocus="handleSidebarUserSearch(this.value)" onkeydown="if(event.key==='Enter'){const v=this.value.trim().replace(/^@/,'');if(v)selectSearchResultUser(v);}">
       </div>
       <div class="sidebar-search-dropdown" id="sidebarSearchDropdown"></div>
     </div>
@@ -23629,6 +23797,8 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
       currentMode = 'channel';
       currentDMTarget = null;
       currentChannel = channelId;
+      messageStore.clear();
+      _doRenderMessages();
 
       // Ensure channel switcher chips row is visible in channel mode
       const switcherRow = document.getElementById('chatChannelSwitcherRow');
@@ -23765,7 +23935,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
 
       switchMainView('chat');
       messageStore.clear();
-      showMessagesLoadingSkeleton();
+      _doRenderMessages();
       subscribeToChannel(dmChannel);
       fetchDMHistory(targetUsername);
     }
@@ -24255,6 +24425,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
     }
 
     async function fetchHistory(query = '', isSilentSync = false) {
+      if (currentMode !== 'channel') return;
       try {
         if (messageStore.size === 0 && !query && !isSilentSync) {
           showMessagesLoadingSkeleton();
@@ -24309,7 +24480,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
     }
 
     async function fetchDMHistory(targetUser, isSilent = false) {
-      if (!targetUser) return;
+      if (currentMode !== 'dm' || !targetUser) return;
       try {
         if (!isSilent && messageStore.size === 0) {
           showMessagesLoadingSkeleton();
@@ -24767,7 +24938,28 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
         (container.scrollHeight - container.scrollTop - container.clientHeight < 160) || 
         (prevScrollHeight <= container.clientHeight + 40);
       
-      if (messageStore.size === 0) {
+      // Evaluate filtered valid messages count for active context
+      const filteredMsgsCount = (function() {
+        let count = 0;
+        for (const [k, msg] of messageStore.entries()) {
+          if (!k || !msg || typeof msg !== 'object') continue;
+          if (currentMode === 'channel') {
+            const mCh = String(msg.channel_id || msg.channel || 'general').toLowerCase();
+            if (!mCh.startsWith('dm') && !msg.recipient && mCh === String(currentChannel || 'general').toLowerCase()) count++;
+          } else if (currentMode === 'dm') {
+            const tC = String(currentDMTarget || '').toLowerCase();
+            const mC = String(currentUser || '').toLowerCase();
+            const sU = String(msg.user || msg.sender_username || msg.author || msg.sender || '').toLowerCase();
+            const rU = String(msg.recipient || msg.target || '').toLowerCase();
+            const ch = String(msg.channel_id || msg.channel || '').toLowerCase();
+            if ((ch && (ch === String(currentChannel || '').toLowerCase() || (ch.includes(tC) && ch.includes(mC)))) ||
+                (sU === tC && (rU === mC || !rU)) || (sU === mC && rU === tC)) count++;
+          }
+        }
+        return count;
+      })();
+
+      if (filteredMsgsCount === 0) {
         if (currentMode === 'dm' && currentDMTarget) {
           const isFriend = Array.isArray(cachedFriendsList) && cachedFriendsList.some(
             f => (f.username || '').toLowerCase() === currentDMTarget.toLowerCase()
@@ -24806,9 +24998,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
             <div class="chat-empty-title">Welcome to #${escapeHTML(currentChannel)}!</div>
             <div class="chat-empty-desc">This is the start of the #${escapeHTML(currentChannel)} channel. Transmit messages, share code, or launch polls.</div>
             <div class="chat-empty-actions-row">
-              <button class="chat-empty-btn" onclick="document.getElementById('msgInput').focus()">✍️ Write Message</button>
-              <button class="chat-empty-btn" onclick="insertCodeSnippet()">💻 Code Snippet</button>
-              <button class="chat-empty-btn" onclick="openCreatePollModal()">📊 Create Poll</button>
+              <button class="chat-empty-btn btn btn-primary" onclick="document.getElementById('msgInput').focus()" style="padding:8px 18px; font-size:13px; font-weight:700; border-radius:10px;">✍️ Write Message</button>
             </div>
           </div>
         `;
@@ -24816,7 +25006,7 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
         return;
       }
 
-      // Sanitize message store and remove invalid entries
+      // Sanitize message store and filter strictly by active context (Channel vs Personal DM)
       const validMsgs = [];
       for (const [k, msg] of messageStore.entries()) {
         if (!k || k === 'undefined' || !msg || typeof msg !== 'object') {
@@ -24824,6 +25014,34 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
           continue;
         }
         if (!msg.id) msg.id = k;
+
+        // Context filtering strictly isolates channels and personal direct messages:
+        if (currentMode === 'channel') {
+          const msgChan = String(msg.channel_id || msg.channel || 'general').toLowerCase();
+          const activeChan = String(currentChannel || 'general').toLowerCase();
+          // Skip if message is a direct message or belongs to another channel
+          if (msgChan.startsWith('dm') || msg.recipient || msgChan !== activeChan) {
+            continue;
+          }
+        } else if (currentMode === 'dm') {
+          const targetClean = String(currentDMTarget || '').toLowerCase().trim();
+          const meClean = String(currentUser || '').toLowerCase().trim();
+          const msgSender = String(msg.user || msg.sender_username || msg.author || msg.sender || '').toLowerCase().trim();
+          const msgRecipient = String(msg.recipient || msg.target || '').toLowerCase().trim();
+          const msgChan = String(msg.channel_id || msg.channel || '').toLowerCase().trim();
+
+          // A message belongs to this DM if:
+          // 1. Channel matches canonical DM ID or contains both usernames
+          // 2. OR sender is target and recipient is me (or omitted)
+          // 3. OR sender is me and recipient is target
+          const isDmChanMatch = msgChan && (msgChan === String(currentChannel || '').toLowerCase() || (msgChan.includes(targetClean) && msgChan.includes(meClean)));
+          const isUserMatch = (msgSender === targetClean && (msgRecipient === meClean || !msgRecipient)) || (msgSender === meClean && msgRecipient === targetClean);
+
+          if (!isDmChanMatch && !isUserMatch) {
+            continue;
+          }
+        }
+
         msg.user = String(msg.user || msg.sender_username || msg.author || msg.sender || 'Gamer').trim();
         msg.nickname = String(msg.nickname || msg.sender_display_name || msg.user).trim();
         msg.avatar = msg.avatar || msg.sender_avatar_url || msg.avatar_url || '👤';
@@ -28667,6 +28885,9 @@ html[data-theme="parchment"] .connecto-vault-link:hover {
 
         const optMsg = {
           id: tempId,
+          channel_id: currentChannel,
+          channel: currentChannel,
+          recipient: currentMode === 'dm' ? currentDMTarget : null,
           user: currentUser || 'Gamer',
           nickname: currentUser || 'Gamer',
           avatar: currentAvatar || '👤',
