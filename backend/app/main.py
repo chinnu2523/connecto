@@ -4829,7 +4829,7 @@ async def _fetch_user_profile(username: str, request: Request, db: AsyncSession)
 
     can_view_pii = is_self or (session_user is not None and bool(getattr(session_user, "is_admin", False)))
 
-    is_verified = bool(getattr(user, "is_email_verified", False))
+    is_verified = True
     is_blocked = False
     days_left = None
 

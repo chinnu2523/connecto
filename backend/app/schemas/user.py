@@ -113,6 +113,7 @@ class UserResponse(BaseModel):
     @model_validator(mode="after")
     def compute_verification_flags(self):
         # 7-day verification deadline and account blocking permanently removed
+        self.is_email_verified = True
         self.is_temporarily_blocked = False
         self.verification_days_left = None
         self.verification_deadline = None
