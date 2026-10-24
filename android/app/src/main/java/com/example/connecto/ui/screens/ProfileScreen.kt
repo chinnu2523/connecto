@@ -5847,12 +5847,12 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(
-                        if (isVoiceIsoActive) Color(0xFF10B981).copy(alpha = 0.12f)
+                        if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                         else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                     )
                     .border(
                         1.dp,
-                        if (isVoiceIsoActive) Color(0xFF10B981).copy(alpha = 0.50f)
+                        if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.50f)
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                         RoundedCornerShape(14.dp)
                     )
@@ -5869,7 +5869,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             .size(42.dp)
                             .clip(CircleShape)
                             .background(
-                                if (isVoiceIsoActive) Color(0xFF10B981).copy(alpha = 0.25f)
+                                if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
                                 else MaterialTheme.colorScheme.surfaceVariant
                             ),
                         contentAlignment = Alignment.Center
@@ -5877,7 +5877,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         Icon(
                             imageVector = Icons.Default.Mic,
                             contentDescription = null,
-                            tint = if (isVoiceIsoActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (isVoiceIsoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -5895,8 +5895,8 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
                                     .background(
-                                        if (isVoiceIsoActive) Color(0xFF10B981).copy(alpha = 0.2f)
-                                        else Color.Gray.copy(alpha = 0.2f)
+                                        if (isVoiceIsoActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                                     )
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
@@ -5904,7 +5904,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                                     text = if (isVoiceIsoActive) "AI ACTIVE" else "OFF",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = if (isVoiceIsoActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = if (isVoiceIsoActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -5930,12 +5930,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                             Toast.LENGTH_SHORT
                         ).show()
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = Color(0xFF10B981),
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    colors = getMonochromeSwitchColors()
                 )
             }
 
@@ -6095,10 +6090,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         echoCancellation = it
                         audioPrefs.edit().putBoolean("connecto_echo_cancellation", it).apply()
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                    )
+                    colors = getMonochromeSwitchColors()
                 )
             }
 
@@ -6122,10 +6114,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         autoGainControl = it
                         audioPrefs.edit().putBoolean("connecto_auto_gain", it).apply()
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                    )
+                    colors = getMonochromeSwitchColors()
                 )
             }
 
@@ -6149,10 +6138,7 @@ private fun VoiceAudioSettingsCard(hasCoverPhoto: Boolean) {
                         highDefVoice = it
                         audioPrefs.edit().putBoolean("connecto_hd_voice", it).apply()
                     },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = MaterialTheme.colorScheme.primary
-                    )
+                    colors = getMonochromeSwitchColors()
                 )
             }
         }
@@ -6186,7 +6172,7 @@ private fun DspSpecItem(
             modifier = Modifier
                 .size(8.dp)
                 .clip(CircleShape)
-                .background(if (isActive) Color(0xFF10B981) else Color.Gray.copy(alpha = 0.5f))
+                .background(if (isActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
         )
         Spacer(modifier = Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {

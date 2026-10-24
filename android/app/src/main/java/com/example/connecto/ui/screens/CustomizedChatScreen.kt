@@ -414,21 +414,21 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         name = "Default Clean",
         subtitle = "Subtle theme background",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF5F1E8))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF0A0A0A)))
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF141312), Color(0xFF1C1A17)))
     ),
     ChatWallpaperOption(
         id = "glass_mesh",
         name = "Prism Glass Aurora",
         subtitle = "Translucent crystal canvas with floating luminous orbs",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F2FE), Color(0xFFF1F5F9))),
-        darkBrush = Brush.radialGradient(listOf(Color(0xFF0D1B2A), Color(0xFF070B14)))
+        darkBrush = Brush.radialGradient(listOf(Color(0xFF1E3A8A), Color(0xFF0F172A)))
     ),
     ChatWallpaperOption(
         id = "liquid_water",
         name = "Liquid Aqua Droplets",
         subtitle = "Fluid oceanic ripples with water glass refraction",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F7FA), Color(0xFFF0FDF4))),
-        darkBrush = Brush.radialGradient(listOf(Color(0xFF0A2540), Color(0xFF050E1A)))
+        darkBrush = Brush.radialGradient(listOf(Color(0xFF0369A1), Color(0xFF082F49)))
     ),
     ChatWallpaperOption(
         id = "oled",
@@ -442,28 +442,28 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         name = "Cosmic Mesh",
         subtitle = "Deep nebula slate with violet aura",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFEDE9FE), Color(0xFFF1F5F9))),
-        darkBrush = Brush.radialGradient(listOf(Color(0xFF1E1035), Color(0xFF090614)))
+        darkBrush = Brush.radialGradient(listOf(Color(0xFF581C87), Color(0xFF1E1B4B)))
     ),
     ChatWallpaperOption(
         id = "indigo_flow",
         name = "Indigo Gradient",
         subtitle = "Soft twilight sky gradient",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0E7FF))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF111827), Color(0xFF1E1B4B)))
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF3730A3), Color(0xFF1E1B4B)))
     ),
     ChatWallpaperOption(
         id = "emerald_glow",
         name = "Emerald Matrix",
         subtitle = "Deep tactical aurora matrix",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF041C14), Color(0xFF020E0A)))
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF065F46), Color(0xFF022C22)))
     ),
     ChatWallpaperOption(
         id = "parchment_warm",
         name = "Archival Paper",
         subtitle = "Warm vintage ivory grain",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF3EDE2))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF1C1917), Color(0xFF0C0A09)))
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF292524), Color(0xFF1C1917)))
     )
 )
 
@@ -792,12 +792,13 @@ fun CustomizedChatScreen(
             val sf = selectedFriend
             val chatKey = getCanonicalChatId(sf)
             val fId = sf?.id
+            val cleanHandle = sf?.handle?.trim()?.removePrefix("@")?.lowercase() ?: ""
             val userPrefix = myUsername.lowercase()
 
             val fileUriStr = try {
                 val wallpapersDir = java.io.File(context.filesDir, "chat_wallpapers")
                 if (!wallpapersDir.exists()) wallpapersDir.mkdirs()
-                val targetKey = if (chatKey.isNotBlank()) chatKey else (fId ?: "default")
+                val targetKey = if (chatKey.isNotBlank()) chatKey else if (cleanHandle.isNotBlank()) cleanHandle else (fId ?: "default")
                 val localFile = java.io.File(wallpapersDir, "wp_${userPrefix}_${targetKey}.jpg")
                 context.contentResolver.openInputStream(uri)?.use { input ->
                     localFile.outputStream().use { output ->
@@ -815,6 +816,10 @@ fun CustomizedChatScreen(
             if (chatKey.isNotBlank()) {
                 editor.putString("${userPrefix}_chat_wallpaper_custom_$chatKey", fileUriStr)
                     .putString("${userPrefix}_chat_wallpaper_$chatKey", "custom")
+            }
+            if (cleanHandle.isNotBlank()) {
+                editor.putString("${userPrefix}_chat_wallpaper_custom_$cleanHandle", fileUriStr)
+                    .putString("${userPrefix}_chat_wallpaper_$cleanHandle", "custom")
             }
             if (fId != null) {
                 editor.putString("${userPrefix}_chat_wallpaper_custom_$fId", fileUriStr)
@@ -3207,11 +3212,16 @@ fun CustomizedChatScreen(
                                                     customWallpaperUri = null
                                                     val chatKey = getCanonicalChatId(friendObj)
                                                     val fId = friendObj.id
+                                                    val cleanHandle = friendObj.handle.trim().removePrefix("@").lowercase()
                                                     val userPrefix = myUsername.lowercase()
                                                     val editor = friendPrefs.edit()
                                                     if (chatKey.isNotBlank()) {
                                                         editor.putString("${userPrefix}_chat_wallpaper_$chatKey", wallpaper.id)
                                                             .remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                                    }
+                                                    if (cleanHandle.isNotBlank()) {
+                                                        editor.putString("${userPrefix}_chat_wallpaper_$cleanHandle", wallpaper.id)
+                                                            .remove("${userPrefix}_chat_wallpaper_custom_$cleanHandle")
                                                     }
                                                     editor.putString("${userPrefix}_chat_wallpaper_$fId", wallpaper.id)
                                                         .remove("${userPrefix}_chat_wallpaper_custom_$fId")
@@ -5034,10 +5044,15 @@ fun CustomizedChatScreen(
                                     customWallpaperUri = null
                                     val chatKey = getCanonicalChatId(friendObj)
                                     val userPrefix = myUser
+                                    val cleanHandle = friendObj.handle.trim().removePrefix("@").lowercase()
                                     val editor = friendPrefs.edit()
                                     if (chatKey.isNotBlank()) {
                                         editor.putString("${userPrefix}_chat_wallpaper_$chatKey", wpId)
                                             .remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                    }
+                                    if (cleanHandle.isNotBlank()) {
+                                        editor.putString("${userPrefix}_chat_wallpaper_$cleanHandle", wpId)
+                                            .remove("${userPrefix}_chat_wallpaper_custom_$cleanHandle")
                                     }
                                     editor.putString("${userPrefix}_chat_wallpaper_$fId", wpId)
                                         .remove("${userPrefix}_chat_wallpaper_custom_$fId")
@@ -5053,10 +5068,15 @@ fun CustomizedChatScreen(
                                     customWallpaperUri = null
                                     val chatKey = getCanonicalChatId(friendObj)
                                     val userPrefix = myUser
+                                    val cleanHandle = friendObj.handle.trim().removePrefix("@").lowercase()
                                     val editor = friendPrefs.edit()
                                     if (chatKey.isNotBlank()) {
                                         editor.putString("${userPrefix}_chat_wallpaper_$chatKey", "default")
                                             .remove("${userPrefix}_chat_wallpaper_custom_$chatKey")
+                                    }
+                                    if (cleanHandle.isNotBlank()) {
+                                        editor.putString("${userPrefix}_chat_wallpaper_$cleanHandle", "default")
+                                            .remove("${userPrefix}_chat_wallpaper_custom_$cleanHandle")
                                     }
                                     editor.remove("${userPrefix}_chat_wallpaper_custom_$fId")
                                         .putString("${userPrefix}_chat_wallpaper_$fId", "default")
@@ -5108,8 +5128,20 @@ fun CustomizedChatScreen(
                                     .fillMaxSize()
                                     .clipToBounds()
                             ) {
+                                val customWallpaperModel = remember(customWallpaperUri) {
+                                    customWallpaperUri?.let { uriStr ->
+                                        if (uriStr.startsWith("file://")) {
+                                            java.io.File(uriStr.removePrefix("file://"))
+                                        } else if (uriStr.startsWith("/")) {
+                                            java.io.File(uriStr)
+                                        } else {
+                                            android.net.Uri.parse(uriStr)
+                                        }
+                                    }
+                                }
+
                                 AsyncImage(
-                                    model = customWallpaperUri,
+                                    model = customWallpaperModel,
                                     contentDescription = null,
                                     contentScale = resolvedContentScale,
                                     modifier = Modifier
@@ -5125,12 +5157,12 @@ fun CustomizedChatScreen(
                                         )
                                 )
                                 // Legibility Scrim Overlay so chat bubbles and text remain crisp
-                                val scrimAlpha = wallpaperTransform.dim
+                                val scrimAlpha = (wallpaperTransform.dim * 0.5f).coerceIn(0f, 0.45f)
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .background(
-                                            if (isLight) Color.White.copy(alpha = scrimAlpha * 0.85f)
+                                            if (isLight) Color.White.copy(alpha = scrimAlpha * 0.7f)
                                             else Color.Black.copy(alpha = scrimAlpha)
                                         )
                                 )
@@ -5178,13 +5210,13 @@ fun CustomizedChatScreen(
                                         )
                                 )
                                 if (chatWallpaperId != "default" && chatWallpaperId != "oled") {
-                                    val scrimAlpha = wallpaperTransform.dim
+                                    val scrimAlpha = (wallpaperTransform.dim * 0.35f).coerceIn(0f, 0.4f)
                                     Box(
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .background(
                                                 if (isLight) Color.White.copy(alpha = scrimAlpha * 0.5f)
-                                                else Color.Black.copy(alpha = scrimAlpha * 0.6f)
+                                                else Color.Black.copy(alpha = scrimAlpha)
                                             )
                                     )
                                 }

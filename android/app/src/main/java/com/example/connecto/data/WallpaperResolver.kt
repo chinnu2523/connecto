@@ -102,8 +102,12 @@ object WallpaperResolver {
 
         // 4. Check on-disk local files in chat_wallpapers directory
         // Only trigger if no wallpaper was found, or if wallpaper is custom but URI is missing/broken
+        val isUriValidOnDisk = if (resolvedUri.isNullOrBlank()) false else {
+            val path = if (resolvedUri.startsWith("file://")) resolvedUri.removePrefix("file://") else resolvedUri
+            if (path.startsWith("/")) File(path).exists() else true
+        }
         val needsDiskFallback = (resolvedWp == null || resolvedWp == "default") ||
-                (resolvedWp == "custom" && (resolvedUri.isNullOrBlank() || (resolvedUri.startsWith("/") && !File(resolvedUri).exists())))
+                (resolvedWp == "custom" && (resolvedUri.isNullOrBlank() || !isUriValidOnDisk))
 
         if (needsDiskFallback && filesDir != null) {
             val wallpapersDir = File(filesDir, "chat_wallpapers")

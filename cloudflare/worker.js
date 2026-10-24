@@ -142,14 +142,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.2",
-        version_name: "v4.6.2",
-        version_code: 91,
-        build: 91,
-        sha256: "2cc5027076c9489527ebd0ed53b93750f0337b8811d865b46a90021eac789e24",
-        md5: "22696199c6e977192735ef3aadb87044",
+        version: "4.6.3",
+        version_name: "v4.6.3",
+        version_code: 92,
+        build: 92,
+        sha256: "f701fd99a952e0f30423897e2aedf1e37b25a0c18eb2a620cc4726843881ddff",
+        md5: "ecbea29c2015e9ee1a815cb1077dc65e",
         filename: "connecto-fun.apk",
-        size_bytes: 36979522,
+        size_bytes: 36978978,
         size_display: "35.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -157,10 +157,10 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Visible UI & AGSL Canvas Fix: Non-destructive drawBehind canvas ambient shader ensuring 100% luminance pure white (#FFFFFF) typography and crisp legible cards.",
+          "Call Tab Optimization: Streamlined top action bar with dedicated Group Call button and removed redundant isolation toggle.",
+          "Chat Wallpaper Persistence & Scrim Fix: Fixed candidate key fallbacks (chatKey, friendId, cleanHandle), brightened dark gradient presets, and resolved Coil URI rendering.",
+          "Voice & Audio Settings Theming: Dynamically styled switches (Echo Cancellation, AGC, HD Voice) and Voice Isolation AI active badge matching active themes.",
           "Adaptive FLAG_SECURE Protection: Automatic emulator detection permitting dev testing and screenshots while enforcing hardware blackout security on physical devices.",
-          "High-Performance Dark Luxury & Liquid Glass: Buttery smooth 120fps hardware compositing across Noir, Liquid Glass, Midnight, Emerald, and Parchment themes.",
-          "TargetSdk 37 & 16 KB ELF Alignment: Native WebRTC 1.3.8 binaries compiled and packaged with 16 KB page-size support for Android 17 ARM64 devices.",
           "Production Keystore Signed: Signed with APK Signature Scheme V1, V2, and V3 on API 24–37 (Build 91 • 35.3 MB • Production Signed)."
         ]
       });
@@ -206,19 +206,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.2/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.2/connecto-v4.6.2.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.1/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.3/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.3/connecto-v4.6.3.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.2/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.2-b91-canvas-fix.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.3-b92-theme-fix.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.2");
-          res.headers.set("X-Connecto-Build", "91");
+          res.headers.set("X-Connecto-Version", "v4.6.3");
+          res.headers.set("X-Connecto-Build", "92");
           return res;
         }
 
@@ -231,7 +231,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.2"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.3"
               }
             });
             if (upstreamResp.ok) {
@@ -242,8 +242,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.2");
-              downloadHeaders.set("X-Connecto-Build", "91");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.3");
+              downloadHeaders.set("X-Connecto-Build", "92");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -258,7 +258,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.2/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.3/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -6063,19 +6063,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
     return jsonResponse({ users: users });
   }
-  if (path === "/api/v1/app/version" || path === "/api/app/version" || path === "/api/app/latest" || path === "/api/v1/app/latest") {
+  if (path === "/api/v1/app/version" || path === "/api/app/version" || path === "/api/app/latest" || path === "/api/v1/app/latest" || path === "/api/release/latest") {
     return jsonResponse({
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.2",
-      version_name: "v4.6.2",
-      version_code: 91,
-      build: 91,
-      sha256: "2cc5027076c9489527ebd0ed53b93750f0337b8811d865b46a90021eac789e24",
-      md5: "22696199c6e977192735ef3aadb87044",
+      version: "4.6.3",
+      version_name: "v4.6.3",
+      version_code: 92,
+      build: 92,
+      sha256: "f701fd99a952e0f30423897e2aedf1e37b25a0c18eb2a620cc4726843881ddff",
+      md5: "ecbea29c2015e9ee1a815cb1077dc65e",
       filename: "connecto-fun.apk",
-      size_bytes: 36979522,
+      size_bytes: 36978978,
       size_display: "35.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6089,6 +6089,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.6.3",
+          date: "Oct 24, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.3: Streamlined Call Tab, Chat Wallpaper Healing & Theme-Aware Audio Settings",
+          summary: "Connecto v4.6.3 delivers polished mobile user experience upgrades across calls, chat personalization, and profile audio configurations. Streamlines the Call screen action bar, restores robust cross-key wallpaper persistence with rich gradient luminance, and unifies Voice & Audio DSP switches with active system themes.",
+          highlights: [
+            "Call Tab Action Bar Streamlining: Removed redundant Voice Isolation toggle from CallsScreen, leaving a focused Group Call action button while centralizing DSP audio controls in Profile Settings.",
+            "Chat Wallpaper Persistence & Scrim Healing: Healed candidate key fallback asymmetry across scoped chatKey, friendId, and handle; brightened dark gradient presets; and calibrated scrim overlay for optimal contrast.",
+            "Voice & Audio Settings Theming: Replaced hardcoded emerald switches and badges with getMonochromeSwitchColors() and MaterialTheme.colorScheme.primary to match Noir, Parchment, Midnight, and Liquid Glass themes.",
+            "Android Native App v4.6.3 (Build 92 • 35.3 MB • Production Signed): SHA-256 f701fd99a952e0f30423897e2aedf1e37b25a0c18eb2a620cc4726843881ddff • MD5 ecbea29c2015e9ee1a815cb1077dc65e."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
           version: "v4.6.2",
           date: "Oct 23, 2026",
           category: "feature",
@@ -6100,7 +6115,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "Adaptive FLAG_SECURE Blackscreen Protection: Intelligent emulator detection in ScreenSecurityManager automatically clears FLAG_SECURE on development emulators for testing while enforcing hardware screen-recording and casting blackout protection on real user devices.",
             "TargetSdk 37 & 16 KB Page-Size Ready: WebRTC 1.3.8 native binaries with 16 KB ELF alignment verified on Android 17 / API 37 ARM64 runtime.",
             "Optimized Distribution Footprint: Compressed and streamlined release APK down to 35.3 MB (down from 55.2 MB) with full R8 optimization and APK Signature Schemes v1, v2, and v3.",
-            "Android Native App v4.6.2 (Build 91 • 35.3 MB • Production Signed): SHA-256 2cc5027076c9489527ebd0ed53b93750f0337b8811d865b46a90021eac789e24 • MD5 22696199c6e977192735ef3aadb87044."
+            "Android Native App v4.6.2 (Build 91 • 35.3 MB • Production Signed): SHA-256 b51a9df2b0c6dca76d1fa46f7aea277615aeeb7588465b61aaa9441e477b5ff9 • MD5 2947c4c04c923594c05275d636c24813."
           ],
           author: "Connecto Design & Android Core Team"
         },
