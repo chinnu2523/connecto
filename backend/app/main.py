@@ -5917,14 +5917,14 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.5.6",
-        "version_name": "v4.5.6",
-        "version_code": 85,
-        "release_tag": "v4.5.6-stable",
-        "sha256": "e402d8bab235a0079fbfbe669571010073df9f18dd7e55219f8eada0ec59d487",
-        "md5": "222eeaef957e8251f35864eb3ebb595b",
-        "size_bytes": size_bytes,
-        "size_display": size_mb,
+        "version": "4.6.5",
+        "version_name": "v4.6.5",
+        "version_code": 94,
+        "release_tag": "v4.6.5",
+        "sha256": "83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861",
+        "md5": "bc6f3ab6224361cff94fea3bbc60c659",
+        "size_bytes": size_bytes if size_bytes else 37015606,
+        "size_display": size_mb if size_mb else "35.3 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 37 / HyperOS Verified)",
         "download_url": "/download/apk",
@@ -5946,6 +5946,21 @@ async def get_platform_changelog():
     return {
         "status": "success",
         "releases": [
+            {
+                "version": "v4.6.5",
+                "date": "Oct 24, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.6.5: Universal 24/7 AI Customer Support, In-App Legal Hub & Bottom Danger Zone Architecture",
+                "summary": "Connecto v4.6.5 delivers comprehensive 24/7 AI Customer Support assistance across Web and Android, interactive Privacy Policy and Terms of Service readers, and positions the irreversible Delete Account & Data purge section securely at the very end of Help & Support.",
+                "highlights": [
+                    "24/7 AI Customer Support Assistant: Cross-platform AI support assistant with instant knowledge on AES-256 E2EE, blackscreen privacy, custom wallpapers, WebRTC mesh calling, and 2FA.",
+                    "Interactive Platform Legal Center: Seamless in-app modal readers and direct web mirrors for Privacy Policy and Terms of Service directly in the Help & Support center.",
+                    "Bottom Danger Zone Architecture: Moved Delete Account & Data Purge to the very last section of Help & Support with double-confirmation typed safety verification.",
+                    "Android Native App v4.6.5 (Build 94 • 35.3 MB • Production Keystore Signed): SHA-256 83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861 • MD5 bc6f3ab6224361cff94fea3bbc60c659."
+                ],
+                "author": "Connecto Core & Mobile Engineering"
+            },
             {
                 "version": "v4.5.6",
                 "date": "Oct 19, 2026",
