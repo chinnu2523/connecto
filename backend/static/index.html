@@ -1108,6 +1108,41 @@
       border-color: #ffffff !important;
     }
 
+    /* In-Channel Message Search Bar (Noir) */
+    html[data-theme="noir"] .channel-messages-search-bar {
+      background: #080a10 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    html[data-theme="noir"] .channel-search-input-wrap {
+      background: #11141f !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .channel-search-field {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .channel-search-field::placeholder {
+      color: #71717a !important;
+    }
+    html[data-theme="noir"] .channel-search-icon {
+      color: #00e5ff !important;
+    }
+    html[data-theme="noir"] .channel-search-badge {
+      background: rgba(0, 229, 255, 0.15) !important;
+      color: #00e5ff !important;
+      border: 1px solid rgba(0, 229, 255, 0.3) !important;
+    }
+    html[data-theme="noir"] .channel-search-clear {
+      color: #71717a !important;
+    }
+    html[data-theme="noir"] .channel-search-clear:hover {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] mark.channel-search-highlight {
+      background: rgba(0, 229, 255, 0.25) !important;
+      color: #00e5ff !important;
+    }
+
     /* Chat Messages */
     html[data-theme="noir"] .msg-group-author {
       color: #ffffff !important;
@@ -2255,6 +2290,42 @@
       background: #141312 !important;
       color: #ffffff !important;
       border-color: #141312 !important;
+    }
+
+    /* In-Channel Message Search Bar (Parchment) */
+    html[data-theme="parchment"] .channel-messages-search-bar {
+      background: #fbf8f2 !important;
+      border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .channel-search-input-wrap {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.2) !important;
+      color: #141312 !important;
+      box-shadow: 0 2px 6px rgba(68, 64, 60, 0.05) !important;
+    }
+    html[data-theme="parchment"] .channel-search-field {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .channel-search-field::placeholder {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .channel-search-icon {
+      color: #4f46e5 !important;
+    }
+    html[data-theme="parchment"] .channel-search-badge {
+      background: rgba(79, 70, 229, 0.12) !important;
+      color: #4338ca !important;
+      border: 1px solid rgba(79, 70, 229, 0.25) !important;
+    }
+    html[data-theme="parchment"] .channel-search-clear {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .channel-search-clear:hover {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] mark.channel-search-highlight {
+      background: rgba(79, 70, 229, 0.2) !important;
+      color: #4338ca !important;
     }
 
     /* Chat Messages */
@@ -12906,6 +12977,79 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
     .chat-channel-switcher-row::-webkit-scrollbar {
       display: none;
     }
+
+    /* In-Channel Message Search Bar (Directly on Top of Messages) */
+    .channel-messages-search-bar {
+      width: 100%;
+      padding: 6px 18px 8px 18px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      transition: all 0.2s ease;
+    }
+    .channel-search-input-wrap {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      border-radius: 12px;
+      padding: 6px 14px;
+      gap: 10px;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .channel-search-input-wrap:focus-within {
+      border-color: #00e5ff !important;
+      box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.2) !important;
+    }
+    html[data-theme="parchment"] .channel-search-input-wrap:focus-within {
+      border-color: #4f46e5 !important;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
+    }
+    .channel-search-icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      opacity: 0.85;
+    }
+    .channel-search-field {
+      flex: 1 1 0%;
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      font-size: 13px;
+      font-family: inherit;
+      padding: 0;
+      min-width: 0;
+    }
+    .channel-search-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.3px;
+      flex-shrink: 0;
+    }
+    .channel-search-clear {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 2px 6px;
+      font-size: 13px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: opacity 0.15s ease;
+    }
+    mark.channel-search-highlight {
+      font-weight: 700;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
     .channel-chip-btn {
       display: inline-flex;
       align-items: center;
@@ -19551,6 +19695,15 @@ html[data-theme="parchment"] .dm-act-icon:hover {
     box-sizing: border-box !important;
   }
 
+  /* Channel Messages Top Search Bar */
+  .channel-messages-search-bar, #channelMessagesSearchBar {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 6px 0 !important;
+    padding: 6px 18px 8px 18px !important;
+    box-sizing: border-box !important;
+  }
+
   /* Personal DM Speech Bubbles container */
   .personal-dm-row {
     width: 100% !important;
@@ -19884,6 +20037,19 @@ html[data-theme="parchment"] .dm-act-icon:hover {
             <button class="channel-chip-btn" data-channel="voice-lounge" onclick="switchChannel('voice-lounge', 'Spatial Voice Links')">
               <i data-lucide="trophy" style="width:14px; height:14px;"></i> #voice-lounge
             </button>
+          </div>
+
+          <!-- Channel Messages Top Search Bar -->
+          <div class="channel-messages-search-bar" id="channelMessagesSearchBar">
+            <div class="channel-search-input-wrap">
+              <svg class="channel-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input type="text" class="channel-search-field" id="channelSearchField" placeholder="Search messages in #general..." aria-label="Search channel messages" oninput="handleChannelMessageSearch(this.value)" onkeydown="if(event.key==='Escape'){clearChannelMessageSearch();}">
+              <span class="channel-search-badge" id="channelSearchBadge" style="display:none;">0 matches</span>
+              <button type="button" class="channel-search-clear" id="channelSearchClear" onclick="clearChannelMessageSearch()" style="display:none;" title="Clear search" aria-label="Clear search">✕</button>
+            </div>
           </div>
 
           <div class="messages-area" id="messagesArea"></div>
@@ -24549,6 +24715,14 @@ html[data-theme="parchment"] .dm-act-icon:hover {
       const switcherRow = document.getElementById('chatChannelSwitcherRow');
       if (switcherRow) switcherRow.style.removeProperty('display');
 
+      // Update channel message search bar placeholder & clear search
+      const chSearchField = document.getElementById('channelSearchField');
+      if (chSearchField) {
+        chSearchField.placeholder = `Search messages in #${channelId}...`;
+        chSearchField.value = '';
+      }
+      clearChannelMessageSearch(false);
+
       // Hide DM friend lock banner when entering a channel
       const dmLock = document.getElementById('dmFriendLockedBanner');
       if (dmLock) dmLock.style.display = 'none';
@@ -24657,6 +24831,14 @@ html[data-theme="parchment"] .dm-act-icon:hover {
       // Hide announcements lock banner
       const announceLock = document.getElementById('announcementsLockBanner');
       if (announceLock) announceLock.style.display = 'none';
+
+      // Update search bar placeholder for DM
+      const chSearchField = document.getElementById('channelSearchField');
+      if (chSearchField) {
+        chSearchField.placeholder = `Search messages with @${targetUsername}...`;
+        chSearchField.value = '';
+      }
+      clearChannelMessageSearch(false);
 
       document.getElementById('headerPrefix').innerText = '@';
       document.getElementById('headerTitle').innerText = targetUsername;
@@ -25384,6 +25566,105 @@ html[data-theme="parchment"] .dm-act-icon:hover {
       return '';
     }
 
+    let _channelSearchQuery = '';
+    let _channelSearchTimer = null;
+
+    function handleChannelMessageSearch(val) {
+      _channelSearchQuery = (val || '').trim().toLowerCase();
+      const badge = document.getElementById('channelSearchBadge');
+      const clearBtn = document.getElementById('channelSearchClear');
+      
+      if (!_channelSearchQuery) {
+        if (badge) badge.style.display = 'none';
+        if (clearBtn) clearBtn.style.display = 'none';
+        const cards = document.querySelectorAll('#messagesArea .channel-message-card, #messagesArea .connecto-message-card, #messagesArea .personal-dm-row');
+        cards.forEach(c => {
+          c.style.display = '';
+          const body = c.querySelector('.msg-card-body, .dm-bubble-body');
+          if (body && body.dataset.origHtml) {
+            body.innerHTML = body.dataset.origHtml;
+            delete body.dataset.origHtml;
+          }
+        });
+        const emptyNotice = document.getElementById('channelSearchEmptyNotice');
+        if (emptyNotice) emptyNotice.remove();
+        return;
+      }
+
+      if (clearBtn) clearBtn.style.display = 'inline-flex';
+
+      const cards = document.querySelectorAll('#messagesArea .channel-message-card, #messagesArea .connecto-message-card, #messagesArea .personal-dm-row');
+      let matchCount = 0;
+
+      cards.forEach(c => {
+        const text = c.innerText.toLowerCase();
+        const isMatch = text.includes(_channelSearchQuery);
+        if (isMatch) {
+          c.style.display = '';
+          matchCount++;
+          const body = c.querySelector('.msg-card-body, .dm-bubble-body');
+          if (body) {
+            if (!body.dataset.origHtml) {
+              body.dataset.origHtml = body.innerHTML;
+            }
+            highlightCardText(body, _channelSearchQuery);
+          }
+        } else {
+          c.style.display = 'none';
+        }
+      });
+
+      if (badge) {
+        badge.innerText = `${matchCount} ${matchCount === 1 ? 'match' : 'matches'}`;
+        badge.style.display = 'inline-block';
+      }
+
+      let emptyNotice = document.getElementById('channelSearchEmptyNotice');
+      if (matchCount === 0) {
+        if (!emptyNotice) {
+          emptyNotice = document.createElement('div');
+          emptyNotice.id = 'channelSearchEmptyNotice';
+          emptyNotice.className = 'channel-search-empty-state';
+          const area = document.getElementById('messagesArea');
+          if (area) area.appendChild(emptyNotice);
+        }
+        const contextLabel = currentMode === 'dm' ? `@${currentDMTarget || 'User'}` : `#${currentChannel || 'general'}`;
+        emptyNotice.innerHTML = `
+          <div style="text-align:center; padding:36px 16px; color:var(--text-muted, #71717a);">
+            <div style="font-size:28px; margin-bottom:8px;">🔍</div>
+            <div style="font-weight:700; font-size:14px; margin-bottom:4px; color:var(--text-header, #fff);">No messages found matching "${escapeHTML(_channelSearchQuery)}" in ${escapeHTML(contextLabel)}</div>
+            <div style="font-size:12px; margin-bottom:14px; opacity:0.8;">Try searching for a different keyword or clear the search.</div>
+            <button type="button" class="btn btn-outline" style="padding:5px 12px; font-size:11.5px; border-radius:8px;" onclick="clearChannelMessageSearch()">Clear Search</button>
+          </div>
+        `;
+      } else if (emptyNotice) {
+        emptyNotice.remove();
+      }
+    }
+
+    function clearChannelMessageSearch(shouldFocus = true) {
+      _channelSearchQuery = '';
+      const input = document.getElementById('channelSearchField');
+      if (input) {
+        input.value = '';
+        if (shouldFocus) input.focus();
+      }
+      handleChannelMessageSearch('');
+    }
+
+    function highlightCardText(el, query) {
+      if (!el || !query) return;
+      const orig = el.dataset.origHtml;
+      if (!orig) return;
+      try {
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`(?![^<]*>)(${escaped})`, 'gi');
+        el.innerHTML = orig.replace(regex, '<mark class="channel-search-highlight">$1</mark>');
+      } catch (e) {
+        // fallback
+      }
+    }
+
     function formatMessageContent(rawText) {
       if (!rawText) return '';
       let text = rawText;
@@ -26085,6 +26366,11 @@ html[data-theme="parchment"] .dm-act-icon:hover {
       });
 
       container.replaceChildren(fragment);
+
+      // If a channel search query is active, re-apply it to newly rendered messages
+      if (_channelSearchQuery) {
+        handleChannelMessageSearch(_channelSearchQuery);
+      }
 
       const pill = document.getElementById('newMessagesPill');
       if (isAtBottomOrForced) {
