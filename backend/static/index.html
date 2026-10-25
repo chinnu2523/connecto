@@ -19295,6 +19295,211 @@ html[data-theme="parchment"] .dm-act-icon:hover {
   background: #f5f1e8 !important;
 }
 
+/* ==================== DESKTOP SPACE COMPACTION: HOME TAB & CHAT SECTION (DESKTOP ONLY) ==================== */
+@media (min-width: 769px) {
+  /* --- 1. HOME TAB DESKTOP COMPACTION --- */
+  #heroView .hero-container {
+    padding: 0 24px 32px 24px !important;
+    margin: 0 auto !important;
+    max-width: 1360px !important;
+  }
+
+  #heroView .hero-grid {
+    padding: 16px 0 20px 0 !important;
+    margin: 0 auto !important;
+    gap: 28px !important;
+  }
+
+  #heroView .hero-official-title {
+    margin-bottom: 12px !important;
+  }
+
+  #heroView .hero-official-desc {
+    margin-bottom: 16px !important;
+  }
+
+  #heroView .hero-pill-badges-row {
+    margin-bottom: 20px !important;
+  }
+
+  #heroView .shinobi-marquee-wrap {
+    margin: 10px 0 18px 0 !important;
+    padding: 6px 0 !important;
+  }
+
+  #heroView .stats-section-asym {
+    margin: 0 0 24px 0 !important;
+    padding: 16px 20px !important;
+  }
+
+  #heroView .android-showcase-section {
+    padding: 32px 0 24px 0 !important;
+  }
+
+  #heroView .ecosystem-gateway-section {
+    margin: 6px 0 16px 0 !important;
+    padding: 24px 0 20px 0 !important;
+  }
+
+  #heroView .comparison-section {
+    margin: 6px 0 16px 0 !important;
+  }
+
+  #heroView .bento-section-wrap {
+    margin-bottom: 18px !important;
+  }
+
+  #heroView .how-section-diagonal {
+    margin-bottom: 18px !important;
+  }
+
+  #heroView .final-cta-card {
+    padding: 36px 40px !important;
+    margin-bottom: 20px !important;
+  }
+
+  #heroView .landing-footer {
+    margin: 20px 0 0 0 !important;
+    padding: 24px 32px 20px 32px !important;
+  }
+
+  /* Home Dashboard View (if accessed on desktop) */
+  #homeView .connecto-screen-container {
+    margin: 0 auto !important;
+    max-width: 1100px !important;
+    padding: 16px 24px 28px 24px !important;
+  }
+  #homeView .connecto-screen-header {
+    margin-bottom: 12px !important;
+  }
+  #homeView .connecto-search-bar {
+    margin-bottom: 12px !important;
+  }
+  #homeView .connecto-greeting-card {
+    margin-bottom: 14px !important;
+    padding: 16px 20px !important;
+  }
+  #homeView .connecto-quick-action-chips {
+    margin-bottom: 14px !important;
+  }
+  #homeView .connecto-channel-list {
+    gap: 8px !important;
+  }
+
+  /* --- 2. CHAT SECTION DESKTOP COMPACTION --- */
+  /* Remove dead space on the right: make main view expand seamlessly */
+  .main-view-container {
+    flex: 1 1 0% !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .chat-workspace-wrap {
+    width: 100% !important;
+  }
+
+  .chat-messages-column {
+    flex: 1 1 0% !important;
+    width: auto !important;
+  }
+
+  /* Tighten Chat Stream & eliminate excessive padding */
+  .messages-area.channel-mode-active {
+    padding: 10px 18px 12px 18px !important;
+    gap: 8px !important;
+  }
+
+  .messages-area.dm-mode-active {
+    padding: 10px 18px 12px 18px !important;
+    gap: 6px !important;
+  }
+
+  /* Channel Message Cards */
+  .channel-message-card {
+    margin: 2px 0 !important;
+    padding: 10px 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .channel-message-card .msg-card-header {
+    margin-bottom: 4px !important;
+  }
+
+  .channel-message-card .msg-card-body {
+    line-height: 1.45 !important;
+  }
+
+  /* Welcome & Intro Banners */
+  .channel-welcome-card {
+    margin: 8px 10px 12px 10px !important;
+    padding: 14px 18px !important;
+    border-radius: 14px !important;
+  }
+
+  .dm-intro-banner {
+    margin: 8px 10px 12px 10px !important;
+    padding: 10px 16px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Channel Switcher Top Bar */
+  .chat-channel-switcher-row {
+    padding: 6px 14px !important;
+    margin: 0 auto 4px auto !important;
+    gap: 6px !important;
+  }
+
+  /* Personal DM Speech Bubbles */
+  .personal-dm-row {
+    margin: 2px 0 !important;
+  }
+
+  .personal-dm-bubble {
+    padding: 8px 14px 6px 14px !important;
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+  }
+
+  .personal-dm-bubble .dm-bubble-footer {
+    margin-top: 2px !important;
+  }
+
+  /* Chat Input Area */
+  .input-area, #chatInputArea {
+    padding: 8px 16px 10px 16px !important;
+  }
+
+  /* Eliminate empty 20px gap when typingIndicator has no text */
+  #typingIndicator:empty {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: 0 !important;
+  }
+
+  #typingIndicator {
+    margin-bottom: 2px !important;
+    padding: 2px 4px !important;
+  }
+
+  .stitch-input-card {
+    margin: 0 !important;
+  }
+
+  .connecto-enhanced-input-row.stitch-input-row {
+    padding: 4px 8px 6px 8px !important;
+  }
+
+  .connecto-input-capsule-wrapper {
+    min-height: 42px !important;
+  }
+
+  .connecto-input-capsule-wrapper .stitch-input-field {
+    padding: 6px 10px !important;
+    font-size: 13px !important;
+  }
+}
+
 </style>
 </head>
 <body class="in-hero-view">
@@ -23370,14 +23575,6 @@ html[data-theme="parchment"] .dm-act-icon:hover {
           <button type="button" class="btn-text" onclick="backToPasswordLogin()" style="color:var(--text-muted); background:none; border:none; cursor:pointer; font-weight:700; font-size:12.5px;">← Back to Sign In</button>
         </div>
       </form>
-    </div>
-  </div>
-  <!-- Email Verification Grace Banner Removed -->
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button type="button" class="btn grace-verify-btn" onclick="openEmailVerificationModal(false)">Verify Email ⚡</button>
-        <button type="button" class="grace-dismiss-btn" onclick="dismissEmailGraceBanner()" aria-label="Dismiss banner">✕</button>
-      </div>
     </div>
   </div>
 
