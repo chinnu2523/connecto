@@ -10566,6 +10566,346 @@
       color: #ffffff !important;
     }
 
+    /* ==========================================================================
+       ENHANCED METRIC TABS & LOGO BADGES (DARK & LIGHT THEME PARITY)
+       ========================================================================== */
+    .stats-section-asym {
+      display: grid !important;
+      grid-template-columns: repeat(6, 1fr) !important;
+      gap: 14px !important;
+      padding: 16px !important;
+      border-radius: 24px !important;
+      position: relative !important;
+      margin: 0 0 48px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+      overflow: visible !important;
+      backdrop-filter: blur(24px) saturate(180%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+    }
+
+    /* Light Theme (Parchment, Light, Ivory) Frame */
+    html[data-theme="parchment"] .stats-section-asym,
+    html[data-theme="light"] .stats-section-asym,
+    html[data-theme="ivory"] .stats-section-asym {
+      background: #f7f4ed !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 6px 24px -4px rgba(68, 64, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    }
+
+    /* Dark Theme (Noir, Dark, Black, Obsidian) Frame */
+    html[data-theme="noir"] .stats-section-asym,
+    html[data-theme="dark"] .stats-section-asym,
+    html[data-theme="black"] .stats-section-asym,
+    html[data-theme="obsidian"] .stats-section-asym {
+      background: rgba(12, 14, 22, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.09) !important;
+      box-shadow: 0 18px 48px -12px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+
+    /* Individual Stat Tab Card */
+    .stat-tab-card {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      text-align: center !important;
+      padding: 18px 12px 16px !important;
+      border-radius: 18px !important;
+      position: relative !important;
+      cursor: pointer !important;
+      user-select: none !important;
+      overflow: hidden !important;
+      min-height: 200px !important;
+      box-sizing: border-box !important;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.25s ease,
+                  border-color 0.25s ease,
+                  background-color 0.25s ease !important;
+    }
+
+    /* Remove legacy dividers */
+    .stat-tab-card::after {
+      display: none !important;
+    }
+
+    /* Top Accent Line on Each Tab */
+    .stat-top-accent {
+      position: absolute;
+      top: 0;
+      left: 14px;
+      right: 14px;
+      height: 2.5px;
+      border-radius: 0 0 4px 4px;
+      opacity: 0.7;
+      transition: opacity 0.25s ease, height 0.25s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Logo Badge Styling */
+    .stat-logo-wrap {
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .stat-logo-badge {
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      border: 1.5px solid transparent;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.25s ease,
+                  background-color 0.25s ease;
+    }
+
+    .stat-logo-badge svg {
+      width: 24px;
+      height: 24px;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Live Pulse Dot on Logo Badge */
+    .stat-live-dot {
+      position: absolute;
+      top: 3px;
+      right: 3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      border: 1.5px solid rgba(0, 0, 0, 0.4);
+      animation: statLivePulse 2s infinite ease-in-out;
+    }
+    .stat-live-dot.wave {
+      background: #06b6d4;
+      box-shadow: 0 0 8px #06b6d4;
+    }
+    @keyframes statLivePulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.35); opacity: 0.7; }
+    }
+
+    /* Number Display */
+    .stat-num-custom {
+      font-family: var(--font-display, "Playfair Display", Georgia, serif) !important;
+      font-size: clamp(26px, 2.8vw, 34px) !important;
+      font-weight: 900 !important;
+      line-height: 1.15 !important;
+      margin: 8px 0 3px !important;
+      letter-spacing: -0.02em !important;
+    }
+
+    /* Label Display */
+    .stat-label-custom {
+      font-size: 11.5px !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      margin-bottom: 2px !important;
+      line-height: 1.25 !important;
+    }
+
+    /* Subtext Display */
+    .stat-subtext {
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      line-height: 1.35 !important;
+      max-width: 140px !important;
+      margin-bottom: 10px !important;
+    }
+
+    /* Action Pill */
+    .stat-action-pill {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      padding: 4px 10px !important;
+      border-radius: 999px !important;
+      font-size: 10.5px !important;
+      font-weight: 700 !important;
+      margin-top: auto !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .stat-action-pill i, .stat-action-pill svg {
+      width: 12px !important;
+      height: 12px !important;
+      transition: transform 0.2s ease !important;
+    }
+
+    /* Hover Physics & Interactions */
+    .stat-tab-card:hover {
+      transform: translateY(-4px) !important;
+    }
+    .stat-tab-card:hover .stat-top-accent {
+      opacity: 1 !important;
+      height: 3.5px !important;
+    }
+    .stat-tab-card:hover .stat-logo-badge {
+      transform: scale(1.08) !important;
+    }
+    .stat-tab-card:hover .stat-logo-badge svg {
+      transform: scale(1.06) !important;
+    }
+    .stat-tab-card:hover .stat-action-pill i,
+    .stat-tab-card:hover .stat-action-pill svg {
+      transform: translateX(2.5px) !important;
+    }
+    .stat-tab-card:active {
+      transform: scale(0.975) translateY(-1px) !important;
+    }
+
+    /* ==========================================================================
+       THEME SPECIFICS: DARK THEME (NOIR / DARK)
+       ========================================================================== */
+    html[data-theme="noir"] .stat-tab-card,
+    html[data-theme="dark"] .stat-tab-card,
+    html[data-theme="black"] .stat-tab-card,
+    html[data-theme="obsidian"] .stat-tab-card {
+      background: rgba(18, 20, 29, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+    }
+    html[data-theme="noir"] .stat-tab-card:hover,
+    html[data-theme="dark"] .stat-tab-card:hover,
+    html[data-theme="black"] .stat-tab-card:hover,
+    html[data-theme="obsidian"] .stat-tab-card:hover {
+      background: rgba(25, 28, 42, 0.88) !important;
+      border-color: rgba(255, 255, 255, 0.22) !important;
+      box-shadow: 0 14px 34px -4px rgba(0, 0, 0, 0.65), 0 0 20px -4px var(--stat-glow) !important;
+    }
+    html[data-theme="noir"] .stat-num-custom,
+    html[data-theme="dark"] .stat-num-custom,
+    html[data-theme="black"] .stat-num-custom,
+    html[data-theme="obsidian"] .stat-num-custom {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .stat-label-custom,
+    html[data-theme="dark"] .stat-label-custom,
+    html[data-theme="black"] .stat-label-custom,
+    html[data-theme="obsidian"] .stat-label-custom {
+      color: #f1f5f9 !important;
+    }
+    html[data-theme="noir"] .stat-subtext,
+    html[data-theme="dark"] .stat-subtext,
+    html[data-theme="black"] .stat-subtext,
+    html[data-theme="obsidian"] .stat-subtext {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .stat-action-pill,
+    html[data-theme="dark"] .stat-action-pill,
+    html[data-theme="black"] .stat-action-pill,
+    html[data-theme="obsidian"] .stat-action-pill {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #cbd5e1 !important;
+    }
+    html[data-theme="noir"] .stat-tab-card:hover .stat-action-pill,
+    html[data-theme="dark"] .stat-tab-card:hover .stat-action-pill,
+    html[data-theme="black"] .stat-tab-card:hover .stat-action-pill,
+    html[data-theme="obsidian"] .stat-tab-card:hover .stat-action-pill {
+      background: var(--stat-accent) !important;
+      border-color: var(--stat-accent) !important;
+      color: #000000 !important;
+      box-shadow: 0 2px 10px var(--stat-glow) !important;
+    }
+
+    /* ==========================================================================
+       THEME SPECIFICS: LIGHT THEME (PARCHMENT / LIGHT)
+       ========================================================================== */
+    html[data-theme="parchment"] .stat-tab-card,
+    html[data-theme="light"] .stat-tab-card,
+    html[data-theme="ivory"] .stat-tab-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow: 0 2px 8px rgba(68, 64, 60, 0.06), 0 1px 2px rgba(68, 64, 60, 0.04) !important;
+    }
+    html[data-theme="parchment"] .stat-tab-card:hover,
+    html[data-theme="light"] .stat-tab-card:hover,
+    html[data-theme="ivory"] .stat-tab-card:hover {
+      background: #ffffff !important;
+      border-color: rgba(234, 88, 12, 0.35) !important;
+      box-shadow: 0 12px 28px -4px rgba(68, 64, 60, 0.14), 0 0 18px -4px rgba(234, 88, 12, 0.16) !important;
+    }
+    html[data-theme="parchment"] .stat-num-custom,
+    html[data-theme="light"] .stat-num-custom,
+    html[data-theme="ivory"] .stat-num-custom {
+      color: #1c1917 !important;
+    }
+    html[data-theme="parchment"] .stat-label-custom,
+    html[data-theme="light"] .stat-label-custom,
+    html[data-theme="ivory"] .stat-label-custom {
+      color: #292524 !important;
+    }
+    html[data-theme="parchment"] .stat-subtext,
+    html[data-theme="light"] .stat-subtext,
+    html[data-theme="ivory"] .stat-subtext {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .stat-action-pill,
+    html[data-theme="light"] .stat-action-pill,
+    html[data-theme="ivory"] .stat-action-pill {
+      background: #fbf9f5 !important;
+      border: 1px solid rgba(68, 64, 60, 0.15) !important;
+      color: #44403c !important;
+    }
+    html[data-theme="parchment"] .stat-tab-card:hover .stat-action-pill,
+    html[data-theme="light"] .stat-tab-card:hover .stat-action-pill,
+    html[data-theme="ivory"] .stat-tab-card:hover .stat-action-pill {
+      background: #ea580c !important;
+      border-color: #ea580c !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 10px rgba(234, 88, 12, 0.3) !important;
+    }
+
+    /* Responsive Breakpoints */
+    @media (max-width: 1100px) {
+      .stats-section-asym {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 12px !important;
+      }
+    }
+    @media (max-width: 680px) {
+      .stats-section-asym {
+        grid-template-columns: repeat(2, 1fr) !important;
+        padding: 12px !important;
+        gap: 10px !important;
+      }
+      .stat-tab-card {
+        padding: 14px 8px 12px !important;
+        min-height: 170px !important;
+      }
+      .stat-num-custom {
+        font-size: 24px !important;
+      }
+      .stat-logo-badge {
+        width: 42px !important;
+        height: 42px !important;
+      }
+      .stat-logo-badge svg {
+        width: 19px !important;
+        height: 19px !important;
+      }
+      .stat-subtext {
+        display: none !important;
+      }
+    }
+    @media (max-width: 420px) {
+      .stats-section-asym {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        padding: 10px !important;
+      }
+    }
+
     /* Social Sign-In Providers & Divider */
     .auth-social-row {
       display: grid;
@@ -24518,44 +24858,118 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
         </div>
 
-        <div class="stats-section-asym scroll-reveal-3d interactive-tilt-card spatial-3d-section" id="statsSection">
-          <div class="border-beam"></div>
-          <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:var(--chakra-cyan);"><i data-lucide="users" class="lucide-md"></i></div>
-            <div class="stat-num-custom" id="statShinobi">6+</div>
+        <!-- SECTION 2: LIVE METRICS & CAPABILITIES BENTO TABS -->
+        <div class="stats-section-asym scroll-reveal-3d spatial-3d-section" id="statsSection">
+          
+          <!-- Tab 1: Connected People -->
+          <div class="stat-item stat-tab-card" onclick="switchMainView('chat')" role="button" tabindex="0" title="Join Connected Friends in Community Chat" style="--stat-accent: #00D9F5; --stat-glow: rgba(0, 217, 245, 0.35);">
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00D9F5);"></div>
+            <div class="stat-logo-wrap">
+              <div class="stat-logo-badge" style="background: rgba(0, 217, 245, 0.1); border-color: rgba(0, 217, 245, 0.3); color: #00D9F5;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span class="stat-live-dot" title="Live Network Online"></span>
+              </div>
+            </div>
+            <div class="stat-num-custom" id="statShinobi">28+</div>
             <div class="stat-label-custom">Connected People</div>
             <div class="stat-subtext">Verified Friends & Members</div>
+            <div class="stat-action-pill"><span>Join Chat</span> <i data-lucide="arrow-right" class="lucide-xs"></i></div>
           </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:var(--accent);"><i data-lucide="message-square" class="lucide-md"></i></div>
-            <div class="stat-num-custom" id="statMessages" style="color:var(--accent);">42+</div>
+
+          <!-- Tab 2: Messages Sent -->
+          <div class="stat-item stat-tab-card" onclick="switchMainView('chat')" role="button" tabindex="0" title="Send Instant Encrypted Messages" style="--stat-accent: #3b82f6; --stat-glow: rgba(59, 130, 246, 0.35);">
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #3b82f6, #6366f1);"></div>
+            <div class="stat-logo-wrap">
+              <div class="stat-logo-badge" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  <path d="M8 9h8"></path>
+                  <path d="M8 13h5"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-num-custom" id="statMessages">142+</div>
             <div class="stat-label-custom">Messages Sent</div>
             <div class="stat-subtext">Real-Time Channel Messages</div>
+            <div class="stat-action-pill"><span>Duplex Sync</span> <i data-lucide="arrow-right" class="lucide-xs"></i></div>
           </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:var(--green);"><i data-lucide="radio" class="lucide-md"></i></div>
-            <div class="stat-num-custom" style="color:var(--green);">Always-On</div>
+
+          <!-- Tab 3: Always-On Voice Lounges -->
+          <div class="stat-item stat-tab-card" onclick="switchMainView('voice')" role="button" tabindex="0" title="Drop Into Always-On Voice Lounges" style="--stat-accent: #10b981; --stat-glow: rgba(16, 185, 129, 0.35);">
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
+            <div class="stat-logo-wrap">
+              <div class="stat-logo-badge" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"></path>
+                  <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"></path>
+                  <circle cx="12" cy="12" r="2"></circle>
+                  <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"></path>
+                  <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"></path>
+                </svg>
+                <span class="stat-live-dot wave" title="Spatial Voice Active"></span>
+              </div>
+            </div>
+            <div class="stat-num-custom" style="color:var(--green, #10b981);">Always-On</div>
             <div class="stat-label-custom">Voice Lounges</div>
             <div class="stat-subtext">Persistent Audio Rooms</div>
+            <div class="stat-action-pill"><span>Enter Room</span> <i data-lucide="arrow-right" class="lucide-xs"></i></div>
           </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:var(--ninja-gold);"><i data-lucide="shield-check" class="lucide-md"></i></div>
-            <div class="stat-num-custom" id="statLabs" style="color:var(--ninja-gold);">12+</div>
+
+          <!-- Tab 4: Security Labs -->
+          <div class="stat-item stat-tab-card" onclick="switchMainView('learning')" role="button" tabindex="0" title="Practice in Hands-On Security & Protocol Labs" style="--stat-accent: #f59e0b; --stat-glow: rgba(245, 158, 11, 0.35);">
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+            <div class="stat-logo-wrap">
+              <div class="stat-logo-badge" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                  <path d="m9 12 2 2 4-4"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-num-custom" id="statLabs" style="color:var(--ninja-gold, #f59e0b);">12+</div>
             <div class="stat-label-custom">Security Labs</div>
             <div class="stat-subtext">Interactive Protocol Labs</div>
+            <div class="stat-action-pill"><span>Start Labs</span> <i data-lucide="arrow-right" class="lucide-xs"></i></div>
           </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:#a855f7;"><i data-lucide="zap" class="lucide-md"></i></div>
+
+          <!-- Tab 5: Global Latency -->
+          <div class="stat-item stat-tab-card" onclick="document.getElementById('architectureSection')?.scrollIntoView({behavior:'smooth'})" role="button" tabindex="0" title="Inspect High-Throughput Async Architecture" style="--stat-accent: #a855f7; --stat-glow: rgba(168, 85, 247, 0.35);">
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #a855f7, #8b5cf6);"></div>
+            <div class="stat-logo-wrap">
+              <div class="stat-logo-badge" style="background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #a855f7;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+              </div>
+            </div>
             <div class="stat-num-custom" style="color:#a855f7;">&lt; 50ms</div>
             <div class="stat-label-custom">Global Latency</div>
             <div class="stat-subtext">Edge-Routed Mesh Network</div>
+            <div class="stat-action-pill"><span>View Specs</span> <i data-lucide="arrow-right" class="lucide-xs"></i></div>
           </div>
-          <div class="stat-item">
-            <div class="stat-icon-wrap" style="color:#10b981;"><i data-lucide="unlock" class="lucide-md"></i></div>
-            <div class="stat-num-custom" style="color:#10b981;">100% Free</div>
+
+          <!-- Tab 6: Zero Paywalls -->
+          <div class="stat-item stat-tab-card" onclick="openAuthModal('register')" role="button" tabindex="0" title="Create Free Account - 100% Free Forever" style="--stat-accent: #14b8a6; --stat-glow: rgba(20, 184, 166, 0.35);">
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #14b8a6, #0d9488);"></div>
+            <div class="stat-logo-wrap">
+              <div class="stat-logo-badge" style="background: rgba(20, 184, 166, 0.1); border-color: rgba(20, 184, 166, 0.3); color: #14b8a6;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="stat-num-custom" style="color:#14b8a6;">100% Free</div>
             <div class="stat-label-custom">Zero Paywalls</div>
             <div class="stat-subtext">No Nitro or Subscriptions</div>
+            <div class="stat-action-pill"><span>Free Access</span> <i data-lucide="arrow-right" class="lucide-xs"></i></div>
           </div>
+
         </div>
 
         <!-- SECTION: CONNECTO FOR ANDROID (OFFICIAL NATIVE APP) -->
@@ -41608,7 +42022,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-21') {
+        if (name !== 'connecto-v5-0-22') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
