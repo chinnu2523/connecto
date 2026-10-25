@@ -9329,9 +9329,9 @@
       bottom: 4px;
       left: 4px;
       width: calc(50% - 4px);
-      background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+      background: #ffffff;
       border-radius: 10px;
-      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
       transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 1;
       pointer-events: none;
@@ -9360,7 +9360,7 @@
       color: #ffffff;
     }
     .auth-tab-btn.active {
-      color: #ffffff;
+      color: #000000;
       font-weight: 700;
     }
     .auth-tab-btn .auth-tab-icon {
@@ -10313,29 +10313,39 @@
     }
 
     html[data-theme="noir"] .auth-segmented-nav,
-    html[data-theme="dark"] .auth-segmented-nav {
-      background: rgba(0, 0, 0, 0.45) !important;
-      border: 1px solid rgba(255, 255, 255, 0.09) !important;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+    html[data-theme="dark"] .auth-segmented-nav,
+    html[data-theme="black"] .auth-segmented-nav,
+    html[data-theme="obsidian"] .auth-segmented-nav {
+      background: #111114 !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5) !important;
     }
 
     html[data-theme="noir"] .auth-segmented-slider,
-    html[data-theme="dark"] .auth-segmented-slider {
-      background: linear-gradient(135deg, #00D9F5 0%, #2563EB 100%) !important;
-      box-shadow: 0 4px 18px rgba(0, 217, 245, 0.4) !important;
+    html[data-theme="dark"] .auth-segmented-slider,
+    html[data-theme="black"] .auth-segmented-slider,
+    html[data-theme="obsidian"] .auth-segmented-slider {
+      background: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25) !important;
     }
 
     html[data-theme="noir"] .auth-tab-btn,
-    html[data-theme="dark"] .auth-tab-btn {
-      color: #94a3b8 !important;
+    html[data-theme="dark"] .auth-tab-btn,
+    html[data-theme="black"] .auth-tab-btn,
+    html[data-theme="obsidian"] .auth-tab-btn {
+      color: #a1a1aa !important;
     }
     html[data-theme="noir"] .auth-tab-btn:hover,
-    html[data-theme="dark"] .auth-tab-btn:hover {
+    html[data-theme="dark"] .auth-tab-btn:hover,
+    html[data-theme="black"] .auth-tab-btn:hover,
+    html[data-theme="obsidian"] .auth-tab-btn:hover {
       color: #ffffff !important;
     }
     html[data-theme="noir"] .auth-tab-btn.active,
-    html[data-theme="dark"] .auth-tab-btn.active {
-      color: #ffffff !important;
+    html[data-theme="dark"] .auth-tab-btn.active,
+    html[data-theme="black"] .auth-tab-btn.active,
+    html[data-theme="obsidian"] .auth-tab-btn.active {
+      color: #000000 !important;
       font-weight: 700 !important;
     }
 
@@ -10359,9 +10369,9 @@
     }
     html[data-theme="noir"] .auth-input-wrap:focus-within,
     html[data-theme="dark"] .auth-input-wrap:focus-within {
-      border-color: #00D9F5 !important;
-      box-shadow: 0 0 0 3.5px rgba(0, 217, 245, 0.22),
-                  0 8px 24px -4px rgba(0, 217, 245, 0.2),
+      border-color: rgba(255, 255, 255, 0.75) !important;
+      box-shadow: 0 0 0 3.5px rgba(255, 255, 255, 0.16),
+                  0 8px 24px -4px rgba(0, 0, 0, 0.4),
                   inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
       background: rgba(255, 255, 255, 0.065) !important;
       transform: translateY(-1.5px);
@@ -10373,7 +10383,7 @@
     }
     html[data-theme="noir"] .auth-input-wrap:focus-within .auth-input-icon,
     html[data-theme="dark"] .auth-input-wrap:focus-within .auth-input-icon {
-      color: #00D9F5 !important;
+      color: #ffffff !important;
     }
 
     html[data-theme="noir"] .auth-input-field,
@@ -10391,7 +10401,7 @@
 
     html[data-theme="noir"] .auth-typing-bar,
     html[data-theme="dark"] .auth-typing-bar {
-      background: linear-gradient(90deg, #00F5A0, #00D9F5, #2563EB) !important;
+      background: linear-gradient(90deg, #71717a, #ffffff, #a1a1aa) !important;
     }
 
     html[data-theme="noir"] .auth-clear-btn,
@@ -10444,10 +10454,10 @@
     html[data-theme="dark"] #signInSubmitBtn,
     html[data-theme="noir"] #signUpSubmitBtn,
     html[data-theme="dark"] #signUpSubmitBtn {
-      background: linear-gradient(135deg, #00D9F5 0%, #2563EB 100%) !important;
-      color: #ffffff !important;
-      border: 1px solid rgba(255, 255, 255, 0.22) !important;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 24px rgba(0, 217, 245, 0.35) !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #ffffff !important;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2) !important;
     }
     html[data-theme="noir"] .auth-submit-btn-premium:hover,
     html[data-theme="dark"] .auth-submit-btn-premium:hover,
@@ -10456,10 +10466,10 @@
     html[data-theme="noir"] #signUpSubmitBtn:hover,
     html[data-theme="dark"] #signUpSubmitBtn:hover {
       transform: translateY(-1.5px) !important;
-      filter: brightness(1.1) !important;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 28px rgba(0, 217, 245, 0.5) !important;
-      background: linear-gradient(135deg, #00D9F5 0%, #2563EB 100%) !important;
-      color: #ffffff !important;
+      filter: none !important;
+      box-shadow: 0 6px 24px rgba(255, 255, 255, 0.35) !important;
+      background: #f4f4f5 !important;
+      color: #000000 !important;
     }
 
     html[data-theme="noir"] .auth-cancel-btn-premium,
@@ -10476,11 +10486,11 @@
 
     html[data-theme="noir"] .auth-send-otp-btn,
     html[data-theme="dark"] .auth-send-otp-btn {
-      background: linear-gradient(135deg, #00D9F5 0%, #0284c7 100%) !important;
-      color: #031525 !important;
+      background: #ffffff !important;
+      color: #000000 !important;
       font-weight: 800 !important;
-      border: 1px solid rgba(255, 255, 255, 0.25) !important;
-      box-shadow: 0 4px 16px rgba(0, 217, 245, 0.3) !important;
+      border: 1px solid #ffffff !important;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2) !important;
     }
 
     html[data-theme="noir"] .auth-modal-footer,
@@ -10489,11 +10499,13 @@
     }
     html[data-theme="noir"] .auth-footer-link,
     html[data-theme="dark"] .auth-footer-link {
-      color: #00D9F5 !important;
+      color: #ffffff !important;
+      text-decoration: underline !important;
+      text-underline-offset: 3px !important;
     }
     html[data-theme="noir"] .auth-footer-link:hover,
     html[data-theme="dark"] .auth-footer-link:hover {
-      color: #38bdf8 !important;
+      color: #d4d4d8 !important;
     }
 
     html[data-theme="noir"] .auth-remember-wrap,
@@ -10502,7 +10514,7 @@
     }
     html[data-theme="noir"] .auth-remember-wrap input[type="checkbox"],
     html[data-theme="dark"] .auth-remember-wrap input[type="checkbox"] {
-      accent-color: #00D9F5 !important;
+      accent-color: #ffffff !important;
     }
 
     html[data-theme="noir"] .otp-digit-input,
@@ -10513,14 +10525,45 @@
     }
     html[data-theme="noir"] .otp-digit-input:focus,
     html[data-theme="dark"] .otp-digit-input:focus {
-      border-color: #00D9F5 !important;
-      box-shadow: 0 0 16px rgba(0, 217, 245, 0.4) !important;
-      background: rgba(0, 217, 245, 0.08) !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.25) !important;
+      background: rgba(255, 255, 255, 0.08) !important;
     }
     html[data-theme="noir"] .otp-digit-input.filled,
     html[data-theme="dark"] .otp-digit-input.filled {
       border-color: #10b981 !important;
       color: #10b981 !important;
+    }
+
+    /* Landing Nav Login and Sign Up Tab/Buttons in Dark Theme */
+    html[data-theme="noir"] .nav-signup-cta-btn,
+    html[data-theme="dark"] .nav-signup-cta-btn,
+    html[data-theme="black"] .nav-signup-cta-btn,
+    html[data-theme="obsidian"] .nav-signup-cta-btn {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #ffffff !important;
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2) !important;
+    }
+    html[data-theme="noir"] .nav-signup-cta-btn:hover,
+    html[data-theme="dark"] .nav-signup-cta-btn:hover,
+    html[data-theme="black"] .nav-signup-cta-btn:hover,
+    html[data-theme="obsidian"] .nav-signup-cta-btn:hover {
+      background: #f4f4f5 !important;
+      color: #000000 !important;
+      box-shadow: 0 6px 20px rgba(255, 255, 255, 0.35) !important;
+    }
+    html[data-theme="noir"] .landing-link-btn,
+    html[data-theme="dark"] .landing-link-btn,
+    html[data-theme="black"] .landing-link-btn,
+    html[data-theme="obsidian"] .landing-link-btn {
+      color: #d4d4d8 !important;
+    }
+    html[data-theme="noir"] .landing-link-btn:hover,
+    html[data-theme="dark"] .landing-link-btn:hover,
+    html[data-theme="black"] .landing-link-btn:hover,
+    html[data-theme="obsidian"] .landing-link-btn:hover {
+      color: #ffffff !important;
     }
 
     /* Social Sign-In Providers & Divider */
@@ -17128,15 +17171,15 @@ input:-webkit-autofill:active {
   bottom: 4px;
   left: 4px;
   width: calc(50% - 4px);
-  background: linear-gradient(135deg, var(--chakra-cyan, #00cec9) 0%, #6c5ce7 100%);
+  background: #ffffff;
   border-radius: 10px;
-  box-shadow: 0 4px 18px rgba(0, 206, 201, 0.4);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 1;
   pointer-events: none;
 }
 .auth-segmented-slider.register {
-  transform: translateX(100%);
+  transform: translateX(calc(100% + 4px));
 }
 .auth-tab-btn {
   position: relative;
@@ -17145,19 +17188,22 @@ input:-webkit-autofill:active {
   border: none;
   padding: 10px 14px;
   font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text-muted, #94a3b8);
+  font-weight: 600;
+  color: #94a3b8;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  transition: color 0.2s ease;
+  gap: 7px;
+  transition: color 0.2s ease, transform 0.15s ease;
   border-radius: 10px;
 }
-.auth-tab-btn.active {
+.auth-tab-btn:hover {
   color: #ffffff;
-  font-weight: 800;
+}
+.auth-tab-btn.active {
+  color: #000000;
+  font-weight: 700;
 }
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
 </style>
@@ -41562,7 +41608,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-20') {
+        if (name !== 'connecto-v5-0-21') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
