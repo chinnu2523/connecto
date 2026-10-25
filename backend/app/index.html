@@ -9645,6 +9645,186 @@
       align-items: center;
     }
 
+    /* ==================== AUTH TYPING BARS & INTERACTIVE FEEDBACK ==================== */
+    .auth-input-wrap {
+      overflow: hidden;
+    }
+    .auth-typing-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #6366f1, #06b6d4, #22c55e);
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, background 0.3s ease;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .auth-input-wrap:focus-within .auth-typing-bar {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+    .auth-input-wrap.is-typing .auth-typing-bar {
+      background: linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899);
+      box-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+      animation: authTypingBarPulse 1.2s infinite ease-in-out;
+    }
+    @keyframes authTypingBarPulse {
+      0%, 100% { opacity: 0.9; filter: brightness(1); }
+      50% { opacity: 1; filter: brightness(1.3); }
+    }
+    .auth-input-wrap.has-success {
+      border-color: rgba(34, 197, 94, 0.6) !important;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15) !important;
+    }
+    .auth-input-wrap.has-success .auth-typing-bar {
+      background: linear-gradient(90deg, #22c55e, #10b981) !important;
+      opacity: 1 !important;
+      transform: scaleX(1) !important;
+    }
+    .auth-input-wrap.has-error {
+      border-color: rgba(239, 68, 68, 0.6) !important;
+      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+    }
+    .auth-input-wrap.has-error .auth-typing-bar {
+      background: linear-gradient(90deg, #ef4444, #f43f5e) !important;
+      opacity: 1 !important;
+      transform: scaleX(1) !important;
+    }
+    .auth-input-wrap.has-warning {
+      border-color: rgba(245, 158, 11, 0.6) !important;
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15) !important;
+    }
+    .auth-input-wrap.has-warning .auth-typing-bar {
+      background: linear-gradient(90deg, #f59e0b, #eab308) !important;
+      opacity: 1 !important;
+      transform: scaleX(1) !important;
+    }
+
+    .auth-clear-btn {
+      position: absolute;
+      right: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: var(--text-muted, #94a3b8);
+      font-size: 16px;
+      line-height: 1;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s, transform 0.2s;
+      z-index: 2;
+      padding: 0;
+    }
+    .auth-input-wrap:has(.pwd-toggle-btn) .auth-clear-btn {
+      right: 42px;
+    }
+    .auth-clear-btn:hover {
+      background: rgba(239, 68, 68, 0.25);
+      color: #ef4444;
+      transform: scale(1.15);
+    }
+    .caps-lock-warning {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      padding: 2px 6px;
+      border-radius: 6px;
+      animation: fadeIn 0.2s ease;
+    }
+    .auth-typing-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--chakra-cyan, #06b6d4);
+      font-weight: 700;
+      animation: fadeIn 0.2s ease;
+    }
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      display: inline-block;
+      animation: typingDotBlink 0.8s infinite ease-in-out;
+    }
+    @keyframes typingDotBlink {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    .auth-strength-hints {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .pwd-hint {
+      font-size: 10.5px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      color: var(--text-muted, #94a3b8);
+      transition: all 0.2s ease;
+    }
+    .pwd-hint.passed {
+      background: rgba(34, 197, 94, 0.15) !important;
+      border-color: rgba(34, 197, 94, 0.4) !important;
+      color: #22c55e !important;
+      font-weight: 700;
+    }
+
+    /* Dual Theme: Parchment Overrides for Auth Typing Bars */
+    html[data-theme="parchment"] .auth-typing-bar {
+      background: linear-gradient(90deg, #f97316, #ea580c, #c2410c) !important;
+    }
+    html[data-theme="parchment"] .auth-input-wrap.is-typing .auth-typing-bar {
+      background: linear-gradient(90deg, #f97316, #fb923c, #ea580c) !important;
+      box-shadow: 0 0 8px rgba(249, 115, 22, 0.45) !important;
+    }
+    html[data-theme="parchment"] .auth-clear-btn {
+      background: rgba(68, 64, 60, 0.12);
+      color: #78716c;
+    }
+    html[data-theme="parchment"] .auth-clear-btn:hover {
+      background: rgba(220, 38, 38, 0.15);
+      color: #dc2626;
+    }
+    html[data-theme="parchment"] .password-strength-wrap {
+      background: #f5efe6 !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+    }
+    html[data-theme="parchment"] .strength-track {
+      background: rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .pwd-hint {
+      background: #ede8df;
+      border-color: rgba(68, 64, 60, 0.14);
+      color: #78716c;
+    }
+    html[data-theme="parchment"] .pwd-hint.passed {
+      background: rgba(22, 163, 74, 0.15) !important;
+      border-color: rgba(22, 163, 74, 0.45) !important;
+      color: #15803d !important;
+    }
+    html[data-theme="parchment"] .auth-typing-status {
+      color: #ea580c !important;
+    }
+
     /* Avatar Grid for Registration */
     .avatar-preset-grid {
       display: grid;
@@ -26572,20 +26752,32 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
         <!-- 1. Username or Email -->
         <div class="form-group" style="position:relative; z-index:1;">
-          <label for="signInUsername">Username or Email <span style="color:var(--red);">*</span></label>
-          <div class="auth-input-wrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label for="signInUsername">Username or Email <span style="color:var(--red);">*</span></label>
+            <span class="auth-typing-status" id="signInUsernameTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+          </div>
+          <div class="auth-input-wrap" id="signInUsernameWrap">
             <span class="auth-input-icon">👤</span>
             <input type="text" class="auth-input-field" id="signInUsername" placeholder="Enter username or email" autocomplete="username" required>
+            <button type="button" class="auth-clear-btn" id="signInUsernameClear" onclick="clearAuthInput('signInUsername')" title="Clear field" style="display:none;">&times;</button>
+            <div class="auth-typing-bar"></div>
           </div>
         </div>
 
         <!-- 2. Password -->
         <div class="form-group" style="position:relative; z-index:1;">
-          <label for="signInPassword">Password <span style="color:var(--red);">*</span></label>
-          <div class="auth-input-wrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label for="signInPassword">Password <span style="color:var(--red);">*</span></label>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="caps-lock-warning" id="signInCapsLock" style="display:none;">⚠️ Caps Lock ON</span>
+              <span class="auth-typing-status" id="signInPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+            </div>
+          </div>
+          <div class="auth-input-wrap" id="signInPasswordWrap">
             <span class="auth-input-icon">🔒</span>
             <input type="password" class="auth-input-field" id="signInPassword" placeholder="Enter password" autocomplete="current-password" required>
             <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signInPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <div class="auth-typing-bar"></div>
           </div>
         </div>
 
@@ -26610,23 +26802,36 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
         <!-- 1. Unique Username -->
         <div class="form-group" style="position:relative; z-index:1;">
-          <label for="signUpUsername">Username <span style="color:var(--red);">*</span></label>
-          <div class="auth-input-wrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label for="signUpUsername">Username <span style="color:var(--red);">*</span></label>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="auth-typing-status" id="signUpUsernameTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+              <span id="signUpUsernameCounter" style="font-size:11px; color:var(--text-muted); font-weight:600;">0/20</span>
+            </div>
+          </div>
+          <div class="auth-input-wrap" id="signUpUsernameWrap">
             <span class="auth-input-icon">🥷</span>
-            <input type="text" class="auth-input-field" id="signUpUsername" placeholder="Enter username" autocomplete="username" oninput="handleUsernameInput(this.value)" required>
+            <input type="text" class="auth-input-field" id="signUpUsername" placeholder="Enter username" autocomplete="username" maxlength="20" oninput="handleUsernameInput(this.value)" required>
+            <button type="button" class="auth-clear-btn" id="signUpUsernameClear" onclick="clearAuthInput('signUpUsername')" title="Clear field" style="display:none;">&times;</button>
+            <div class="auth-typing-bar"></div>
           </div>
           <div id="signUpUsernameAvailability" style="font-size:11.5px; margin-top:4px; font-weight:600; display:none; align-items:center; gap:4px;"></div>
         </div>
 
         <!-- 2. Email Address & OTP Verification -->
         <div class="form-group" style="position:relative; z-index:1;">
-          <label for="signUpEmail">Email Address <span style="color:var(--red);">*</span></label>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label for="signUpEmail">Email Address <span style="color:var(--red);">*</span></label>
+            <span class="auth-typing-status" id="signUpEmailTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+          </div>
           <div style="display:flex; gap:8px;">
-            <div class="auth-input-wrap" style="flex:1;">
+            <div class="auth-input-wrap" id="signUpEmailWrap" style="flex:1;">
               <span class="auth-input-icon">✉️</span>
               <input type="email" class="auth-input-field" id="signUpEmail" placeholder="Enter email address" autocomplete="email" oninput="handleEmailInput(this.value)" required>
+              <button type="button" class="auth-clear-btn" id="signUpEmailClear" onclick="clearAuthInput('signUpEmail')" title="Clear field" style="display:none;">&times;</button>
+              <div class="auth-typing-bar"></div>
             </div>
-            <button type="button" class="btn" id="signUpSendOtpBtn" onclick="handleSendSignupOtp()" style="padding:0 14px; font-size:12px; font-weight:700; white-space:nowrap; border-radius:12px; height:46px; background:var(--chakra-cyan, #06b6d4); color:#000;">
+            <button type="button" class="btn" id="signUpSendOtpBtn" onclick="handleSendSignupOtp()" style="padding:0 14px; font-size:12px; font-weight:700; white-space:nowrap; border-radius:12px; height:48px; background:var(--chakra-cyan, #06b6d4); color:#000;">
               Verify Email ⚡
             </button>
           </div>
@@ -26643,8 +26848,9 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             <div class="auth-input-wrap" style="flex:1;">
               <span class="auth-input-icon">🔢</span>
               <input type="text" class="auth-input-field" id="signUpOtpInput" placeholder="6-digit code (e.g. 123456)" maxlength="6" inputmode="numeric" style="letter-spacing:2px; font-weight:700;">
+              <div class="auth-typing-bar"></div>
             </div>
-            <button type="button" class="btn btn-primary" id="signUpConfirmOtpBtn" onclick="handleVerifySignupOtp()" style="padding:0 16px; font-size:12.5px; font-weight:800; border-radius:12px; height:46px;">
+            <button type="button" class="btn btn-primary" id="signUpConfirmOtpBtn" onclick="handleVerifySignupOtp()" style="padding:0 16px; font-size:12.5px; font-weight:800; border-radius:12px; height:48px;">
               Verify Code ✓
             </button>
           </div>
@@ -26653,21 +26859,48 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
         <!-- 3. Password -->
         <div class="form-group" style="position:relative; z-index:1;">
-          <label for="signUpPassword">Password <span style="color:var(--red);">*</span></label>
-          <div class="auth-input-wrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label for="signUpPassword">Password <span style="color:var(--red);">*</span></label>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="caps-lock-warning" id="signUpCapsLock" style="display:none;">⚠️ Caps Lock ON</span>
+              <span class="auth-typing-status" id="signUpPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+            </div>
+          </div>
+          <div class="auth-input-wrap" id="signUpPasswordWrap">
             <span class="auth-input-icon">🔒</span>
-            <input type="password" class="auth-input-field" id="signUpPassword" placeholder="Enter password" autocomplete="new-password" oninput="handlePasswordChange(this.value)" required>
+            <input type="password" class="auth-input-field" id="signUpPassword" placeholder="Create strong password" autocomplete="new-password" oninput="handlePasswordChange(this.value)" required>
             <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <div class="auth-typing-bar"></div>
+          </div>
+          <!-- Interactive Password Security Typing Bar -->
+          <div id="signUpPasswordStrengthWrap" class="password-strength-wrap">
+            <div class="strength-track">
+              <div id="signUpStrengthBar" class="strength-bar"></div>
+            </div>
+            <div class="strength-label">
+              <span>Password Security:</span>
+              <span id="signUpStrengthText">Enter password</span>
+            </div>
+            <div class="auth-strength-hints">
+              <span id="pwdHintLength" class="pwd-hint">8+ chars</span>
+              <span id="pwdHintUpperLower" class="pwd-hint">Aa (case)</span>
+              <span id="pwdHintNumber" class="pwd-hint">123 (num)</span>
+              <span id="pwdHintSymbol" class="pwd-hint">#$& (sym)</span>
+            </div>
           </div>
         </div>
 
         <!-- 4. Confirm Password -->
         <div class="form-group" style="position:relative; z-index:1;">
-          <label for="signUpConfirmPassword">Confirm Password <span style="color:var(--red);">*</span></label>
-          <div class="auth-input-wrap">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label for="signUpConfirmPassword">Confirm Password <span style="color:var(--red);">*</span></label>
+            <span class="auth-typing-status" id="signUpConfirmPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+          </div>
+          <div class="auth-input-wrap" id="signUpConfirmPasswordWrap">
             <span class="auth-input-icon">🛡️</span>
-            <input type="password" class="auth-input-field" id="signUpConfirmPassword" placeholder="Confirm password" autocomplete="new-password" oninput="checkPasswordMatch()" required>
+            <input type="password" class="auth-input-field" id="signUpConfirmPassword" placeholder="Confirm your password" autocomplete="new-password" oninput="checkPasswordMatch()" required>
             <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpConfirmPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <div class="auth-typing-bar"></div>
           </div>
           <div id="signUpConfirmFeedback" style="font-size:12px; margin-top:4px; font-weight:700; display:none;"></div>
         </div>
@@ -37132,6 +37365,7 @@ function selectSettingsAvatar(emoji, el) {
       const recov = document.getElementById('accountRecoveryForm');
       if (recov) recov.style.display = 'none';
       switchAuthTab(mode);
+      if (typeof initAuthTypingBars === 'function') initAuthTypingBars();
       document.getElementById('authModal').style.display = 'flex';
     }
 
@@ -37181,14 +37415,21 @@ function selectSettingsAvatar(emoji, el) {
     function handleUsernameInput(val) {
       const availEl = document.getElementById('signUpUsernameAvailability');
       const uInput = document.getElementById('signUpUsername');
+      const uWrap = document.getElementById('signUpUsernameWrap');
+      const uCounter = document.getElementById('signUpUsernameCounter');
+      const uClear = document.getElementById('signUpUsernameClear');
       if (!availEl || !uInput) return;
 
       clearTimeout(usernameCheckTimeout);
       const raw = val.trim();
 
+      if (uCounter) uCounter.innerText = `${val.length}/20`;
+      if (uClear) uClear.style.display = val.length > 0 ? 'flex' : 'none';
+
       if (!raw) {
         availEl.style.display = 'none';
         uInput.style.borderColor = '';
+        uWrap?.classList.remove('has-success', 'has-error', 'has-warning');
         isUsernameAvailable = false;
         return;
       }
@@ -37198,6 +37439,8 @@ function selectSettingsAvatar(emoji, el) {
         availEl.style.color = 'var(--ninja-gold)';
         availEl.innerHTML = '<span>⚠️</span><span>Username must be at least 3 characters.</span>';
         uInput.style.borderColor = 'rgba(251, 191, 36, 0.5)';
+        uWrap?.classList.remove('has-success', 'has-error');
+        uWrap?.classList.add('has-warning');
         isUsernameAvailable = false;
         return;
       }
@@ -37207,6 +37450,8 @@ function selectSettingsAvatar(emoji, el) {
         availEl.style.color = 'var(--red)';
         availEl.innerHTML = '<span>❌</span><span>Letters, numbers, underscores, and hyphens only (no spaces).</span>';
         uInput.style.borderColor = 'rgba(248, 113, 113, 0.6)';
+        uWrap?.classList.remove('has-success', 'has-warning');
+        uWrap?.classList.add('has-error');
         isUsernameAvailable = false;
         return;
       }
@@ -37227,12 +37472,16 @@ function selectSettingsAvatar(emoji, el) {
             availEl.style.color = 'var(--green)';
             availEl.innerHTML = `<span>✅</span><span><strong>@${escapeHTML(raw)}</strong> is available!</span>`;
             uInput.style.borderColor = 'rgba(74, 222, 128, 0.7)';
+            uWrap?.classList.remove('has-error', 'has-warning');
+            uWrap?.classList.add('has-success');
             isUsernameAvailable = true;
           } else {
             availEl.style.display = 'flex';
             availEl.style.color = 'var(--red)';
             availEl.innerHTML = `<span>❌</span><span>${escapeHTML(data.message || 'Username already taken!')}</span>`;
             uInput.style.borderColor = 'rgba(248, 113, 113, 0.7)';
+            uWrap?.classList.remove('has-success', 'has-warning');
+            uWrap?.classList.add('has-error');
             isUsernameAvailable = false;
           }
         } catch (err) {
@@ -37779,6 +38028,7 @@ function selectSettingsAvatar(emoji, el) {
       const pwdEl = document.getElementById('signUpPassword');
       const confirmEl = document.getElementById('signUpConfirmPassword');
       const fb = document.getElementById('signUpConfirmFeedback');
+      const confirmWrap = document.getElementById('signUpConfirmPasswordWrap');
       if (!pwdEl || !confirmEl || !fb) return;
 
       const pwd = pwdEl.value;
@@ -37786,16 +38036,21 @@ function selectSettingsAvatar(emoji, el) {
 
       if (!confirmPwd) {
         fb.style.display = 'none';
+        confirmWrap?.classList.remove('has-success', 'has-error');
         return;
       }
 
       fb.style.display = 'block';
       if (pwd === confirmPwd) {
-        fb.style.color = 'var(--green)';
+        fb.style.color = 'var(--green, #22c55e)';
         fb.innerHTML = '✅ Passwords match';
+        confirmWrap?.classList.remove('has-error');
+        confirmWrap?.classList.add('has-success');
       } else {
-        fb.style.color = 'var(--red)';
+        fb.style.color = 'var(--red, #ef4444)';
         fb.innerHTML = '⚠️ Passwords do not match';
+        confirmWrap?.classList.remove('has-success');
+        confirmWrap?.classList.add('has-error');
       }
     }
 
@@ -37803,42 +38058,140 @@ function selectSettingsAvatar(emoji, el) {
       const wrap = document.getElementById('signUpPasswordStrengthWrap');
       const bar = document.getElementById('signUpStrengthBar');
       const text = document.getElementById('signUpStrengthText');
+      const pwdWrap = document.getElementById('signUpPasswordWrap');
       if (!wrap || !bar || !text) return;
+
+      const hintLen = document.getElementById('pwdHintLength');
+      const hintCase = document.getElementById('pwdHintUpperLower');
+      const hintNum = document.getElementById('pwdHintNumber');
+      const hintSym = document.getElementById('pwdHintSymbol');
 
       if (!pwd) {
         wrap.style.display = 'none';
+        pwdWrap?.classList.remove('has-success', 'has-warning', 'has-error');
+        if (hintLen) hintLen.classList.remove('passed');
+        if (hintCase) hintCase.classList.remove('passed');
+        if (hintNum) hintNum.classList.remove('passed');
+        if (hintSym) hintSym.classList.remove('passed');
         return;
       }
 
       wrap.style.display = 'block';
+
+      const hasLen = pwd.length >= 8;
+      const hasCase = /[A-Z]/.test(pwd) && /[a-z]/.test(pwd);
+      const hasNum = /[0-9]/.test(pwd);
+      const hasSym = /[^A-Za-z0-9]/.test(pwd);
+
+      if (hintLen) hintLen.classList.toggle('passed', hasLen);
+      if (hintCase) hintCase.classList.toggle('passed', hasCase);
+      if (hintNum) hintNum.classList.toggle('passed', hasNum);
+      if (hintSym) hintSym.classList.toggle('passed', hasSym);
+
       let score = 0;
       if (pwd.length >= 4) score += 1;
-      if (pwd.length >= 8) score += 1;
-      if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score += 1;
-      if (/[0-9]/.test(pwd)) score += 1;
-      if (/[^A-Za-z0-9]/.test(pwd)) score += 1;
+      if (hasLen) score += 1;
+      if (hasCase) score += 1;
+      if (hasNum) score += 1;
+      if (hasSym) score += 1;
+
+      pwdWrap?.classList.remove('has-success', 'has-warning', 'has-error');
 
       if (score <= 1) {
         bar.style.width = '25%';
-        bar.style.backgroundColor = 'var(--red)';
-        bar.style.boxShadow = '0 0 10px var(--red)';
-        text.innerHTML = '<span style="color:var(--red); font-weight:800;">Genin (Weak)</span>';
+        bar.style.backgroundColor = 'var(--red, #ef4444)';
+        bar.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.6)';
+        text.innerHTML = '<span style="color:var(--red, #ef4444); font-weight:800;">Genin (Weak)</span>';
+        pwdWrap?.classList.add('has-error');
       } else if (score <= 2) {
         bar.style.width = '50%';
-        bar.style.backgroundColor = 'var(--ninja-gold)';
-        bar.style.boxShadow = '0 0 10px var(--ninja-gold)';
-        text.innerHTML = '<span style="color:var(--ninja-gold); font-weight:800;">Moderate (Medium)</span>';
+        bar.style.backgroundColor = 'var(--ninja-gold, #f59e0b)';
+        bar.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.6)';
+        text.innerHTML = '<span style="color:var(--ninja-gold, #f59e0b); font-weight:800;">Moderate (Medium)</span>';
+        pwdWrap?.classList.add('has-warning');
       } else if (score <= 3) {
         bar.style.width = '75%';
-        bar.style.backgroundColor = 'var(--chakra-cyan)';
-        bar.style.boxShadow = '0 0 12px var(--chakra-cyan)';
-        text.innerHTML = '<span style="color:var(--chakra-cyan); font-weight:800;">Jonin (Strong)</span>';
+        bar.style.backgroundColor = 'var(--chakra-cyan, #06b6d4)';
+        bar.style.boxShadow = '0 0 12px rgba(6, 182, 212, 0.6)';
+        text.innerHTML = '<span style="color:var(--chakra-cyan, #06b6d4); font-weight:800;">Jonin (Strong)</span>';
+        pwdWrap?.classList.add('has-success');
       } else {
         bar.style.width = '100%';
-        bar.style.backgroundColor = 'var(--green)';
-        bar.style.boxShadow = '0 0 16px var(--green)';
-        text.innerHTML = '<span style="color:var(--green); font-weight:800;">Grandmaster Elite (Unbreakable) 🔥</span>';
+        bar.style.backgroundColor = 'var(--green, #22c55e)';
+        bar.style.boxShadow = '0 0 16px rgba(34, 197, 94, 0.6)';
+        text.innerHTML = '<span style="color:var(--green, #22c55e); font-weight:800;">Grandmaster Elite (Unbreakable) 🔥</span>';
+        pwdWrap?.classList.add('has-success');
       }
+    }
+
+    function clearAuthInput(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.value = '';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.focus();
+    }
+
+    function initAuthTypingBars() {
+      const inputs = [
+        { id: 'signInUsername', statusId: 'signInUsernameTypingStatus', clearId: 'signInUsernameClear' },
+        { id: 'signInPassword', statusId: 'signInPasswordTypingStatus', capsId: 'signInCapsLock' },
+        { id: 'signUpUsername', statusId: 'signUpUsernameTypingStatus', clearId: 'signUpUsernameClear' },
+        { id: 'signUpPassword', statusId: 'signUpPasswordTypingStatus', capsId: 'signUpCapsLock' },
+        { id: 'signUpConfirmPassword', statusId: 'signUpConfirmPasswordTypingStatus' },
+        { id: 'signUpEmail', statusId: 'signUpEmailTypingStatus', clearId: 'signUpEmailClear' },
+        { id: 'signUpOtpInput' }
+      ];
+
+      inputs.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (!el || el.dataset.typingBarInit === 'true') return;
+        el.dataset.typingBarInit = 'true';
+
+        const wrap = el.closest('.auth-input-wrap');
+        const statusEl = item.statusId ? document.getElementById(item.statusId) : null;
+        const clearEl = item.clearId ? document.getElementById(item.clearId) : null;
+        const capsEl = item.capsId ? document.getElementById(item.capsId) : null;
+
+        let typingTimeout = null;
+
+        el.addEventListener('input', () => {
+          if (wrap) {
+            wrap.classList.add('is-typing');
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+              wrap.classList.remove('is-typing');
+              if (statusEl) statusEl.style.display = 'none';
+            }, 700);
+          }
+          if (statusEl) {
+            statusEl.style.display = el.value.length > 0 ? 'inline-flex' : 'none';
+          }
+          if (clearEl) {
+            clearEl.style.display = el.value.length > 0 ? 'flex' : 'none';
+          }
+        });
+
+        el.addEventListener('focus', () => {
+          if (clearEl && el.value.length > 0) {
+            clearEl.style.display = 'flex';
+          }
+        });
+
+        if (capsEl) {
+          const checkCaps = (e) => {
+            if (e.getModifierState && e.getModifierState('CapsLock')) {
+              capsEl.style.display = 'inline-flex';
+            } else {
+              capsEl.style.display = 'none';
+            }
+          };
+          el.addEventListener('keydown', checkCaps);
+          el.addEventListener('keyup', checkCaps);
+          el.addEventListener('focus', checkCaps);
+          el.addEventListener('blur', () => { capsEl.style.display = 'none'; });
+        }
+      });
     }
 
     const AUTH_AVATAR_TITLES = {
@@ -39514,7 +39867,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-6') {
+        if (name !== 'connecto-v5-0-7') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
@@ -39522,7 +39875,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     });
   }
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js?v=5.0.6', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?v=5.0.7', { scope: '/' })
       .then((reg) => {
         reg.update();
       })
@@ -40995,6 +41348,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ch = (typeof currentChannel !== 'undefined' && currentChannel) ? currentChannel : 'general';
     input.placeholder = `Message #${ch}...`;
   }
+  if (typeof initAuthTypingBars === 'function') initAuthTypingBars();
 });
 
 function handleInputFocus(focused) {
