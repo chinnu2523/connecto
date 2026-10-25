@@ -14,8 +14,23 @@ class Settings(BaseSettings):
         if not self.SECRET_KEY or self.SECRET_KEY == "super-secret-connecto-key-change-in-production-32bytes!":
             import secrets
             import logging
-            logging.getLogger("uvicorn.error").warning("[SECURITY NOTICE] SECRET_KEY missing or insecure default. Generating cryptographically strong ephemeral key.")
-            self.SECRET_KEY = secrets.token_hex(32)
+            key_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".secret_key")
+            if os.path.exists(key_file):
+                try:
+                    with open(key_file, "r") as f:
+                        k = f.read().strip()
+                        if len(k) >= 32:
+                            self.SECRET_KEY = k
+                except Exception:
+                    pass
+            if not self.SECRET_KEY or len(self.SECRET_KEY) < 32:
+                logging.getLogger("uvicorn.error").warning("[SECURITY NOTICE] SECRET_KEY missing in environment. Generating and persisting cryptographically strong key.")
+                self.SECRET_KEY = secrets.token_hex(32)
+                try:
+                    with open(key_file, "w") as f:
+                        f.write(self.SECRET_KEY)
+                except Exception:
+                    pass
 
     DATABASE_URL: str = f"sqlite+aiosqlite:///{DEFAULT_DB_PATH}"
 

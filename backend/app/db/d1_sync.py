@@ -18,6 +18,7 @@ import logging
 import sqlite3
 import time
 import os
+import re
 import urllib.request
 import urllib.error
 from typing import Dict, Any, List, Optional
@@ -192,6 +193,9 @@ class D1SyncManager:
 
     def sync_table_to_cloud(self, table_name: str) -> int:
         """Pushes rows from local SQLite table to Cloudflare D1 using batch API with fallback."""
+        if not re.match(r'^[a-zA-Z0-9_]+$', table_name):
+            logger.warning(f"[D1_SYNC] Invalid table name rejected: {table_name}")
+            return 0
         try:
             conn = sqlite3.connect(self.local_db_path)
             conn.row_factory = sqlite3.Row
@@ -308,6 +312,9 @@ class D1SyncManager:
 
     def pull_table_from_cloud(self, conn: sqlite3.Connection, table_name: str) -> int:
         """Pulls all rows of a given table from Cloudflare D1 into SQLite."""
+        if not re.match(r'^[a-zA-Z0-9_]+$', table_name):
+            logger.warning(f"[D1_SYNC] Invalid table name rejected: {table_name}")
+            return 0
         cur = conn.cursor()
         exists = cur.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", (table_name,)).fetchone()[0]
         if not exists:

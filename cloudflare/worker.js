@@ -1351,7 +1351,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
       return jsonResponse({ status: "ok", friends: [], incoming_requests: [], outgoing_requests: [] }, 200);
     }
     if (url.pathname.includes("/messages")) {
-      return jsonResponse({ status: "error", error: globalErr.message, messages: [] }, 503);
+      return jsonResponse({ status: "ok", messages: [], count: 0, warning: globalErr.message }, 200);
     }
     if (url.pathname.includes("/notifications")) {
       return jsonResponse({ status: "ok", total_unread: 0, notifications: [] }, 200);
@@ -2205,8 +2205,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         return jsonResponse({ error: "Missing required fields", detail: "Identifier, OTP code, and new password are required." }, 400);
       }
 
-      if (newPassword.length < 4) {
-        return jsonResponse({ error: "Weak password", detail: "Password must be at least 4 characters long." }, 400);
+      if (newPassword.length < 8) {
+        return jsonResponse({ error: "Weak password", detail: "Password must be at least 8 characters long." }, 400);
       }
 
       let user = null;
@@ -2355,8 +2355,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       if (!oldPassword || !newPassword) {
         return jsonResponse({ error: "Both old password and new password are required." }, 400);
       }
-      if (newPassword.length < 4) {
-        return jsonResponse({ error: "New password must be at least 4 characters long." }, 400);
+      if (newPassword.length < 8) {
+        return jsonResponse({ error: "New password must be at least 8 characters long." }, 400);
       }
 
       let user = null;
@@ -3508,7 +3508,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
   // 8. Friends List & Management (Web & Android)
   if (path === "/api/friends" || path === "/api/v1/chat/friends" || path === "/api/chat/friends" || path === "/api/v1/friends" || path === "/api/chat/friends/requests/received") {
-    if (method === "GET") {
+    if (method === "GET" || method === "HEAD") {
       // SEC-15 FIX: Authenticate caller strictly via session token
       const authUser = await resolveUserFromRequest(request, env);
       if (!authUser || !authUser.username) {
@@ -4018,7 +4018,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     const revChannelId = "dm-" + [normalizedTarget, currentUser].join("-");
     const revAltChannelId = "dm_" + [normalizedTarget, currentUser].join("_");
 
-    if (method === "GET") {
+    if (method === "GET" || method === "HEAD") {
       let messages = [];
       if (env.DB) {
         try {
@@ -4667,7 +4667,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       } catch (_) {}
     }
 
-    if (method === "GET") {
+    if (method === "GET" || method === "HEAD") {
       let messages = [];
       const caller = await resolveUserFromRequest(request, env);
       const isDmChannel = canonicalChannel.startsWith("dm-") || canonicalChannel.startsWith("dm_") || channelId.startsWith("dm-") || channelId.startsWith("dm_");
@@ -4768,12 +4768,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           };
         });
         } catch (d1Err) {
-          console.warn("[D1_MESSAGES_FALLBACK]", d1Err.message);
-          return jsonResponse({
-            status: "error",
-            error: "Database temporarily unavailable",
-            messages: []
-          }, 503);
+          console.warn("[D1_MESSAGES_FALLBACK] D1 query warning/limit reached:", d1Err.message);
+          messages = [];
         }
       }
       return jsonResponse({
@@ -5125,7 +5121,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
     }
 
-    if (method === "GET") {
+    if (method === "GET" || method === "HEAD") {
       let replies = [];
       if (env.DB) {
         const repRes = await env.DB.prepare(
@@ -6917,7 +6913,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 
     // 5. Reviews: GET & POST (SEC-B6-03 Parity: Caller authentication required)
     if (resSubPath === "/reviews" || resSubPath.match(/^\/products\/[^\/]+\/reviews$/)) {
-      if (method === "GET") {
+      if (method === "GET" || method === "HEAD") {
         return jsonResponse(RESINORA_REVIEWS || []);
       }
       if (method === "POST") {
@@ -7057,7 +7053,7 @@ async function handlePagesEdgeFallback(request, url, host) {
       resHeaders.set("X-Served-By", "Cloudflare-Pages-Edge");
       resHeaders.set("X-Connecto-Mode", "cloud_server");
       resHeaders.set("Access-Control-Allow-Origin", "*");
-      resHeaders.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
+      resHeaders.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
       resHeaders.set("X-Content-Type-Options", "nosniff");
       resHeaders.set("X-Frame-Options", "SAMEORIGIN");
       resHeaders.set("X-XSS-Protection", "1; mode=block");

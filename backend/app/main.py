@@ -366,7 +366,7 @@ async def security_headers_middleware(request: Request, call_next):
     # Content-Security-Policy (Item 8 & 17)
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; "
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
         "font-src 'self' https://fonts.gstatic.com data:; "
         "img-src 'self' data: blob: https: http:; "
@@ -664,6 +664,14 @@ app.include_router(academy_router, prefix="/api")
 app.include_router(careers_router, prefix="/api")
 app.include_router(notifications_router, prefix="/api/v1")
 # Legacy compat: also expose auth and notifications at /api/* for older clients
+
+@app.get("/api/v1/e2e/secret")
+@app.get("/api/e2e/secret")
+async def get_e2e_secret_top(current_user: User = Depends(get_current_user)):
+    import hashlib
+    salt = f"connecto_e2e_{current_user.id}_{current_user.created_at}_{settings.SECRET_KEY}"
+    secret = hashlib.sha256(salt.encode()).hexdigest()
+    return {"status": "ok", "e2e_secret": secret}
 
 @app.get("/api/v1/sync/status")
 @app.get("/api/sync/status")

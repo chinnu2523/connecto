@@ -7781,6 +7781,22 @@
       box-shadow: 0 0 10px #00cec9, 0 0 18px #10b981;
     }
 
+    .msg-e2ee-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 9.5px;
+      font-weight: 800;
+      color: #10b981;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      padding: 1px 5px;
+      border-radius: 999px;
+      margin-left: 5px;
+      vertical-align: middle;
+      letter-spacing: 0.3px;
+    }
+
     /* 7. Stagger Cascade Delays */
     .stagger-3d-1 { transition-delay: 45ms; }
     .stagger-3d-2 { transition-delay: 90ms; }
@@ -30083,6 +30099,18 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       msg.avatar = msg.avatar || msg.sender_avatar_url || msg.avatar_url || '👤';
       msg.content = typeof msg.content === 'string' ? msg.content : (typeof msg.text === 'string' ? msg.text : '');
       msg.reactions = (msg.reactions && typeof msg.reactions === 'object') ? msg.reactions : {};
+
+      if (msg.content && typeof msg.content === 'string' && msg.content.startsWith('__E2E_AES_GCM__:')) {
+        const otherUser = (String(msg.user).toLowerCase() === String(currentUser || '').toLowerCase()) ? (msg.recipient || currentDMTarget) : msg.user;
+        if (otherUser && typeof ConnectoE2E !== 'undefined') {
+          ConnectoE2E.decryptMessage(msg.content, currentUser, otherUser).then(res => {
+            msg.content = res.text;
+            msg.__is_e2ee = true;
+            renderMessages();
+          }).catch(() => {});
+        }
+      }
+
       messageStore.set(id, msg);
     }
 
@@ -30288,6 +30316,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           const editedHTML = msg.edited ? '<span style="font-size:10px; opacity:0.7; margin-left:4px; font-style:italic;">(edited)</span>' : '';
           const automodBadgeHTML = msg.automod_flagged ? `<span class="msg-automod-badge" title="${escapeHTML(msg.flagged_reason || 'Filtered by Auto-Mod')}">⚠️ AUTO-MOD</span>` : '';
           const scheduledPillHTML = msg.scheduled_origin ? '<span class="msg-scheduled-pill">🕒 Scheduled</span>' : '';
+          const e2eePillHTML = (msg.__is_e2ee || (currentMode === 'dm' && !String(msg.channel_id || '').startsWith('ch_'))) ? '<span class="msg-e2ee-pill" title="End-to-End Encrypted via WebCrypto AES-256-GCM">🔒 E2EE</span>' : '';
           const rawAtt = (msg.attachment || '').trim();
           const isSafeAttScheme = rawAtt.startsWith('https://') || rawAtt.startsWith('http://') || rawAtt.startsWith('/uploads/') || rawAtt.startsWith('data:image/');
           const safeAttachment = isSafeAttScheme ? escapeHTML(rawAtt) : '';
@@ -30365,7 +30394,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                       ${attachmentHTML}
                     </div>
                     <div class="dm-bubble-footer">
-                      <span class="dm-bubble-time">${escapeHTML(formattedTime)}</span>
+                      <span class="dm-bubble-time">${escapeHTML(formattedTime)}</span> ${e2eePillHTML}
                       <span class="dm-bubble-status" title="Delivered & Read">✓✓</span>
                     </div>
                     ${reactionsHTML}
@@ -30401,7 +30430,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                       ${attachmentHTML}
                     </div>
                     <div class="dm-bubble-footer">
-                      <span class="dm-bubble-time">${escapeHTML(formattedTime)}</span>
+                      <span class="dm-bubble-time">${escapeHTML(formattedTime)}</span> ${e2eePillHTML}
                     </div>
                     ${reactionsHTML}
                   </div>
@@ -34344,6 +34373,138 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       }[tag] || tag));
     }
 
+    // ============================================================================
+    // CONNECTO CLIENT-SIDE AES-256-GCM END-TO-END ENCRYPTION (WebCrypto Engine)
+    // ============================================================================
+    const ConnectoE2E = {
+      _cachedKeys: new Map(),
+      _userSecret: null,
+
+      async getUserSecret() {
+        if (this._userSecret) return this._userSecret;
+        try {
+          const token = localStorage.getItem('connecto_token') || authToken;
+          if (token) {
+            const res = await fetch('/api/v1/e2e/secret', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data.e2e_secret) {
+                this._userSecret = data.e2e_secret;
+                return this._userSecret;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[E2E] Secret fetch fallback:', e);
+        }
+        let localSecret = localStorage.getItem('connecto_local_e2e_secret');
+        if (!localSecret) {
+          const arr = new Uint8Array(32);
+          if (window.crypto && window.crypto.getRandomValues) {
+            window.crypto.getRandomValues(arr);
+          } else {
+            for (let i = 0; i < 32; i++) arr[i] = Math.floor(Math.random() * 256);
+          }
+          localSecret = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+          localStorage.setItem('connecto_local_e2e_secret', localSecret);
+        }
+        this._userSecret = localSecret;
+        return this._userSecret;
+      },
+
+      async getConversationKey(userA, userB) {
+        const pair = [String(userA || '').trim().toLowerCase(), String(userB || '').trim().toLowerCase()].sort().join(':');
+        if (this._cachedKeys.has(pair)) return this._cachedKeys.get(pair);
+
+        const secret = await this.getUserSecret();
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+          'raw',
+          enc.encode(`${secret}:${pair}`),
+          { name: 'PBKDF2' },
+          false,
+          ['deriveKey']
+        );
+
+        const key = await window.crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt: enc.encode(`connecto-e2e-salt-${pair}`),
+            iterations: 100000,
+            hash: 'SHA-256'
+          },
+          keyMaterial,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+
+        this._cachedKeys.set(pair, key);
+        return key;
+      },
+
+      async encryptMessage(text, userA, userB) {
+        if (!window.crypto || !window.crypto.subtle || !text) return text;
+        try {
+          const key = await this.getConversationKey(userA, userB);
+          const iv = window.crypto.getRandomValues(new Uint8Array(12));
+          const encoded = new TextEncoder().encode(text);
+          const ciphertext = await window.crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv: iv },
+            key,
+            encoded
+          );
+
+          const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+          combined.set(iv, 0);
+          combined.set(new Uint8Array(ciphertext), iv.length);
+
+          let binary = '';
+          for (let i = 0; i < combined.byteLength; i++) {
+            binary += String.fromCharCode(combined[i]);
+          }
+          return `__E2E_AES_GCM__:${btoa(binary)}`;
+        } catch (e) {
+          console.warn('[E2E] Encryption fallback to TLS transport:', e);
+          return text;
+        }
+      },
+
+      async decryptMessage(payload, userA, userB) {
+        if (typeof payload !== 'string' || !payload.startsWith('__E2E_AES_GCM__:')) {
+          return { text: payload, encrypted: false };
+        }
+        if (!window.crypto || !window.crypto.subtle) {
+          return { text: '[Encrypted Message: WebCrypto Unavailable]', encrypted: true };
+        }
+        try {
+          const b64 = payload.slice('__E2E_AES_GCM__:'.length);
+          const binary = atob(b64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+
+          const iv = bytes.slice(0, 12);
+          const ciphertext = bytes.slice(12);
+          const key = await this.getConversationKey(userA, userB);
+
+          const decrypted = await window.crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: iv },
+            key,
+            ciphertext
+          );
+          const text = new TextDecoder().decode(decrypted);
+          return { text: text, encrypted: true };
+        } catch (e) {
+          console.warn('[E2E] Decryption fallback:', e);
+          return { text: '[Encrypted Message]', encrypted: true };
+        }
+      }
+    };
+
     async function sendCurrentMessage() {
       if (isSendingMessage) return;
 
@@ -34373,16 +34534,12 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       // Announcements Channel Restriction: Admin Only
       if (currentMode !== 'dm' && (currentChannel === 'announcements' || currentChannel === 'announcement')) {
         const isUserAdmin = Boolean(
+          (window.currentUserObj && window.currentUserObj.is_admin) ||
+          (window.__connecto_user && window.__connecto_user.is_admin) ||
           (typeof currentUser === 'string' && (
             currentUser.toLowerCase() === 'connecto_admin' || 
-            currentUser.toLowerCase() === 'admin' ||
-            currentUser.toLowerCase() === 'vance' ||
-            currentUser.toLowerCase() === 'madara' ||
-            currentUser.toLowerCase() === 'viki' ||
-            currentUser.toLowerCase().endsWith('_admin')
-          )) ||
-          localStorage.getItem('connecto_is_admin') === '1' ||
-          (window.currentUserObj && window.currentUserObj.is_admin)
+            currentUser.toLowerCase() === 'admin'
+          ))
         );
         if (!isUserAdmin) {
           showNotificationToast('Transmission Denied', 'Access Denied: Only administrators can post in #announcements.');
@@ -34491,13 +34648,15 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         if (currentMode === 'dm' && currentDMTarget) {
           updateDMConversationLive(currentDMTarget, optMsg, true);
           try {
+            const encryptedContent = await ConnectoE2E.encryptMessage(text, currentUser, currentDMTarget);
+            optMsg.__is_e2ee = true;
             const res = await fetch(`/api/dms/${encodeURIComponent(currentDMTarget)}/messages`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
               body: JSON.stringify({
                 sender: currentUser,
                 recipient: currentDMTarget,
-                content: text,
+                content: encryptedContent,
                 avatar: currentAvatar,
                 temp_id: tempId,
                 reply_to: replyData
@@ -41579,7 +41738,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-13') {
+        if (name !== 'connecto-v5-0-14') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }

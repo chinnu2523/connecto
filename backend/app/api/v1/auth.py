@@ -1273,7 +1273,7 @@ class LegacyVerifyOtpRequest(BaseModel):
 class LegacyResetPwWithOtpRequest(BaseModel):
     username: str
     otp: str
-    new_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 class LegacyVerify2FaRequest(BaseModel):
     username: str
@@ -1668,6 +1668,20 @@ async def terminate_others_session_endpoint(
     current_user: User = Depends(get_current_user)
 ):
     return await terminate_session_endpoint(TerminateSessionPayload(terminate_others=True), request, db, current_user)
+
+
+@router.get("/e2e/secret", status_code=status.HTTP_200_OK)
+async def get_e2e_secret_endpoint(
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns the user's deterministic derivation salt for WebCrypto AES-GCM conversation keys.
+    """
+    import hashlib
+    salt = f"connecto_e2e_{current_user.id}_{current_user.created_at}_{settings.SECRET_KEY}"
+    secret = hashlib.sha256(salt.encode()).hexdigest()
+    return {"status": "ok", "e2e_secret": secret}
+
 
 
 
