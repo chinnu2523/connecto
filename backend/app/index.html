@@ -4625,21 +4625,233 @@
       display: flex;
       align-items: center;
     }
-    .in-chat-search-input {
-      background: var(--bg-darkest);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      color: var(--text-normal);
-      font-size: 12px;
-      padding: 6px 12px;
-      width: 160px;
-      transition: width 150ms var(--ease-smooth), border-color 150ms var(--ease-smooth), box-shadow 150ms var(--ease-smooth);
-      outline: none;
+    .header-search-capsule {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 20px;
+      padding: 5px 10px 5px 12px;
+      height: 34px;
+      width: 220px;
+      box-sizing: border-box;
+      transition: width 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      cursor: text;
     }
-    .in-chat-search-input:focus {
-      width: 210px;
-      border-color: var(--accent);
-      box-shadow: 0 0 16px -2px var(--accent-glow), 0 0 0 1px var(--accent);
+    .header-search-capsule:focus-within,
+    .header-search-capsule.focused {
+      width: 320px;
+    }
+    .header-search-icon {
+      flex-shrink: 0;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+    .in-chat-search-input {
+      flex: 1 1 0%;
+      min-width: 0;
+      border: none !important;
+      outline: none !important;
+      background: transparent !important;
+      font-size: 12.5px;
+      font-family: inherit;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .header-search-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+      letter-spacing: 0.2px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .header-search-clear-btn {
+      background: none;
+      border: none;
+      font-size: 11px;
+      cursor: pointer;
+      padding: 2px 5px;
+      border-radius: 4px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: transform 0.15s ease, color 0.15s ease;
+    }
+    .header-search-clear-btn:hover {
+      transform: scale(1.15);
+    }
+    .header-search-kbd {
+      font-size: 10px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 1px 5px;
+      border-radius: 5px;
+      flex-shrink: 0;
+      cursor: pointer;
+      line-height: 1.4;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+      user-select: none;
+    }
+    .header-search-kbd:hover {
+      transform: translateY(-1px) scale(1.05);
+    }
+
+    /* Live Quick-Results Dropdown Panel */
+    .header-search-dropdown {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 380px;
+      max-width: 92vw;
+      max-height: 440px;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      z-index: 9999;
+      box-sizing: border-box;
+      animation: searchDropdownEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes searchDropdownEnter {
+      from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .header-search-dropdown-header {
+      padding: 8px 10px 6px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .header-search-tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+    }
+    .header-search-tab {
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      background: transparent;
+      white-space: nowrap;
+    }
+    .header-search-results-list {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 300px;
+    }
+    .header-search-empty-hint {
+      text-align: center;
+      padding: 24px 14px;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .header-search-result-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+      border-left: 3px solid transparent;
+    }
+    .header-search-result-item:hover {
+      transform: translateX(2px);
+    }
+    .header-search-res-avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+    }
+    .header-search-res-info {
+      flex: 1 1 0%;
+      min-width: 0;
+    }
+    .header-search-res-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+    }
+    .header-search-res-author {
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--text-header);
+    }
+    .header-search-res-badge {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+    .header-search-res-time {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    .header-search-res-snippet {
+      font-size: 11.5px;
+      line-height: 1.4;
+      color: var(--text-normal);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .header-search-dropdown-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+    }
+    .header-search-nav-hint {
+      color: var(--text-muted);
+      font-size: 10.5px;
+    }
+    .header-search-nav-hint kbd {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+    .header-search-advanced-action {
+      background: none;
+      border: none;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: opacity 0.15s ease;
+    }
+    .header-search-advanced-action:hover {
+      opacity: 0.8;
+      text-decoration: underline;
+    }
+
+    /* Highlight ring on jump */
+    @keyframes pulseSearchTarget {
+      0% { box-shadow: 0 0 0 4px var(--accent, #f97316); transform: scale(1.015); }
+      50% { box-shadow: 0 0 0 6px var(--accent, #f97316); transform: scale(1.02); }
+      100% { box-shadow: none; transform: scale(1); }
+    }
+    .pulse-search-match {
+      animation: pulseSearchTarget 1.2s ease-in-out !important;
     }
 
     .btn-icon { background: none; border: none; font-size: 15px; color: var(--text-muted); cursor: pointer; padding: 6px 8px; border-radius: 6px; transition: 0.15s; }
@@ -11542,7 +11754,6 @@
       }
       
       /* Hide secondary header buttons on mobile to avoid overcrowding */
-      .in-chat-search-wrap,
       #pinsToggleBtn,
       #canvasToggleBtn,
       #scheduledToggleBtn,
@@ -18087,7 +18298,6 @@ pre, .code-block, .chat-code-snippet {
   .header-telemetry-pill,
   .header-divider-sep,
   .header-topic,
-  .in-chat-search-wrap,
   .stage-settings-btn,
   .connect-voice-btn {
     display: none !important;
@@ -18498,7 +18708,6 @@ pre, .code-block, .chat-code-snippet {
   /* Mobile hides bulky in-chat header elements */
   .header-topic,
   .header-divider-sep,
-  .in-chat-search-wrap,
   #canvasToggleBtn,
   #scheduledToggleBtn,
   #bookmarksToggleBtn,
@@ -20383,28 +20592,109 @@ html[data-theme="light"] .chat-header {
   border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
 }
 
-html[data-theme="parchment"] .in-chat-search-wrap,
-html[data-theme="light"] .in-chat-search-wrap {
-  background: #f5f1e8 !important;
-  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+html[data-theme="parchment"] .header-search-capsule,
+html[data-theme="light"] .header-search-capsule {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(249, 115, 22, 0.32) !important;
+  box-shadow: 0 1px 4px rgba(249, 115, 22, 0.08) !important;
+}
+
+html[data-theme="parchment"] .header-search-capsule:focus-within,
+html[data-theme="parchment"] .header-search-capsule.focused,
+html[data-theme="light"] .header-search-capsule:focus-within,
+html[data-theme="light"] .header-search-capsule.focused {
+  background: #ffffff !important;
+  border-color: #f97316 !important;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.20), 0 4px 16px rgba(249, 115, 22, 0.12) !important;
+}
+
+html[data-theme="parchment"] .header-search-icon,
+html[data-theme="light"] .header-search-icon {
+  color: #ea580c !important;
 }
 
 html[data-theme="parchment"] .in-chat-search-input,
 html[data-theme="light"] .in-chat-search-input {
   color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+  caret-color: #f97316 !important;
   background: transparent !important;
 }
 
 html[data-theme="parchment"] .in-chat-search-input::placeholder,
 html[data-theme="light"] .in-chat-search-input::placeholder {
   color: #78716c !important;
+  -webkit-text-fill-color: #78716c !important;
+}
+
+html[data-theme="parchment"] .header-search-badge,
+html[data-theme="light"] .header-search-badge {
+  background: #fff7ed !important;
+  color: #ea580c !important;
+  border: 1px solid rgba(249, 115, 22, 0.25) !important;
+}
+
+html[data-theme="parchment"] .header-search-clear-btn,
+html[data-theme="light"] .header-search-clear-btn {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .header-search-clear-btn:hover,
+html[data-theme="light"] .header-search-clear-btn:hover {
+  color: #ea580c !important;
 }
 
 html[data-theme="parchment"] .header-search-kbd,
 html[data-theme="light"] .header-search-kbd {
+  background: #fff7ed !important;
+  border: 1px solid rgba(249, 115, 22, 0.28) !important;
+  color: #ea580c !important;
+}
+
+/* Light Theme Search Results Dropdown */
+html[data-theme="parchment"] .header-search-dropdown,
+html[data-theme="light"] .header-search-dropdown {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.20) !important;
+  border: 1px solid rgba(249, 115, 22, 0.25) !important;
+  box-shadow: 0 12px 32px rgba(44, 40, 37, 0.14) !important;
+}
+
+html[data-theme="parchment"] .header-search-dropdown-header,
+html[data-theme="light"] .header-search-dropdown-header {
+  border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+  background: #fbf8f2 !important;
+}
+
+html[data-theme="parchment"] .header-search-tab,
+html[data-theme="light"] .header-search-tab {
   color: #57534e !important;
+  background: #f5f1e8 !important;
+}
+
+html[data-theme="parchment"] .header-search-tab.active,
+html[data-theme="light"] .header-search-tab.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  color: #ffffff !important;
+  border-color: #ea580c !important;
+  box-shadow: 0 2px 6px rgba(249, 115, 22, 0.25) !important;
+}
+
+html[data-theme="parchment"] .header-search-result-item:hover,
+html[data-theme="light"] .header-search-result-item:hover {
+  background: #fff7ed !important;
+  border-left-color: #f97316 !important;
+}
+
+html[data-theme="parchment"] .header-search-dropdown-footer,
+html[data-theme="light"] .header-search-dropdown-footer {
+  border-top: 1px solid rgba(68, 64, 60, 0.12) !important;
+  background: #fbf8f2 !important;
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .header-search-advanced-action,
+html[data-theme="light"] .header-search-advanced-action {
+  color: #ea580c !important;
 }
 
 /* 5. HOMEPAGE TOP NAVBAR BUTTON ORDER & POLISH */
@@ -20838,10 +21128,109 @@ html[data-theme="dark"] #headerPrefix {
   color: #a1a1aa !important;
 }
 
-html[data-theme="noir"] .in-chat-search-wrap,
-html[data-theme="dark"] .in-chat-search-wrap {
-  background: #121215 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+/* Dark Theme Top Search Bar & Live Dropdown */
+html[data-theme="noir"] .header-search-capsule,
+html[data-theme="dark"] .header-search-capsule {
+  background: #111114 !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
+html[data-theme="noir"] .header-search-capsule:focus-within,
+html[data-theme="noir"] .header-search-capsule.focused,
+html[data-theme="dark"] .header-search-capsule:focus-within,
+html[data-theme="dark"] .header-search-capsule.focused {
+  background: #16161a !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15), 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+}
+
+html[data-theme="noir"] .header-search-icon,
+html[data-theme="dark"] .header-search-icon {
+  color: #a1a1aa !important;
+}
+
+html[data-theme="noir"] .in-chat-search-input,
+html[data-theme="dark"] .in-chat-search-input {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  background: transparent !important;
+}
+
+html[data-theme="noir"] .in-chat-search-input::placeholder,
+html[data-theme="dark"] .in-chat-search-input::placeholder {
+  color: #71717a !important;
+  -webkit-text-fill-color: #71717a !important;
+}
+
+html[data-theme="noir"] .header-search-badge,
+html[data-theme="dark"] .header-search-badge {
+  background: rgba(255, 255, 255, 0.10) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+html[data-theme="noir"] .header-search-clear-btn,
+html[data-theme="dark"] .header-search-clear-btn {
+  color: #a1a1aa !important;
+}
+
+html[data-theme="noir"] .header-search-clear-btn:hover,
+html[data-theme="dark"] .header-search-clear-btn:hover {
+  color: #ffffff !important;
+}
+
+html[data-theme="noir"] .header-search-kbd,
+html[data-theme="dark"] .header-search-kbd {
+  background: #1c1c20 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #d4d4d8 !important;
+}
+
+/* Dark Theme Search Results Dropdown */
+html[data-theme="noir"] .header-search-dropdown,
+html[data-theme="dark"] .header-search-dropdown {
+  background: #141418 !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+}
+
+html[data-theme="noir"] .header-search-dropdown-header,
+html[data-theme="dark"] .header-search-dropdown-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+  background: #0e0e11 !important;
+}
+
+html[data-theme="noir"] .header-search-tab,
+html[data-theme="dark"] .header-search-tab {
+  color: #a1a1aa !important;
+  background: #18181b !important;
+}
+
+html[data-theme="noir"] .header-search-tab.active,
+html[data-theme="dark"] .header-search-tab.active {
+  background: #27272a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5) !important;
+}
+
+html[data-theme="noir"] .header-search-result-item:hover,
+html[data-theme="dark"] .header-search-result-item:hover {
+  background: #1e1e24 !important;
+  border-left-color: #ffffff !important;
+}
+
+html[data-theme="noir"] .header-search-dropdown-footer,
+html[data-theme="dark"] .header-search-dropdown-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #0e0e11 !important;
+  color: #a1a1aa !important;
+}
+
+html[data-theme="noir"] .header-search-advanced-action,
+html[data-theme="dark"] .header-search-advanced-action {
   color: #ffffff !important;
 }
 
@@ -21072,6 +21461,35 @@ body,
 .stitch-input-card,
 .connecto-input-capsule-wrapper {
   transition: background-color 0.32s var(--ease-snappy), border-color 0.32s var(--ease-snappy), box-shadow 0.32s var(--ease-snappy) !important;
+}
+
+/* Responsive Top Chat Search Bar Rules */
+@media (max-width: 768px) {
+  .in-chat-search-wrap {
+    display: flex !important;
+  }
+  .header-search-capsule {
+    width: 140px !important;
+    height: 30px !important;
+    padding: 3px 8px !important;
+  }
+  .header-search-capsule:focus-within,
+  .header-search-capsule.focused {
+    position: absolute !important;
+    right: 0 !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: calc(100vw - 110px) !important;
+    max-width: 290px !important;
+    z-index: 100 !important;
+  }
+  .header-search-kbd {
+    display: none !important;
+  }
+  .header-search-dropdown {
+    width: calc(100vw - 24px) !important;
+    right: -40px !important;
+  }
 }
 
 /* ==========================================================================
@@ -21319,10 +21737,39 @@ div#membersSidebar {
         <button class="btn btn-outline" id="dmCallBtn" style="display:none; padding:5px 12px; font-size:12px;" onclick="startDMCall()"><i data-lucide="phone" class="lucide-xs"></i> Call</button>
         <button class="btn btn-outline dm-unfriend-header-btn" id="dmUnfriendBtn" style="display:none; padding:5px 12px; font-size:12px; color:#ef4444; border-color:rgba(239, 68, 68, 0.35); align-items:center; gap:5px; cursor:pointer;" onclick="confirmUnfriendUser(currentDMTarget)" title="Unfriend this user"><i data-lucide="user-minus" class="lucide-xs"></i> <span id="dmUnfriendBtnText">Unfriend</span></button>
 
-        <div class="in-chat-search-wrap" onclick="openGlobalSearchModal()" style="cursor:pointer;" title="Search messages or jump to channel (⌘K)">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="in-chat-search-input" id="searchMsgInput" aria-label="Global cross-channel search" placeholder="Search or type ⌘K..." readonly style="cursor:pointer;">
-          <kbd class="header-search-kbd">⌘K</kbd>
+        <!-- Ultra-Modern Top Chat Search Bar with Live Quick-Results Dropdown -->
+        <div class="in-chat-search-wrap" id="headerSearchWrap" role="search">
+          <div class="header-search-capsule" id="headerSearchCapsule" onclick="focusHeaderSearch(event)">
+            <svg class="header-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" class="in-chat-search-input" id="searchMsgInput" aria-label="Search messages, channels or users" placeholder="Search messages, channels... (⌘K)" autocomplete="off" onfocus="handleHeaderSearchFocus()" oninput="handleHeaderSearchInput(this.value)" onkeydown="handleHeaderSearchKeyDown(event)">
+            <span class="header-search-badge" id="headerSearchCountBadge" style="display:none;">0 matches</span>
+            <button type="button" class="header-search-clear-btn" id="headerSearchClearBtn" onclick="clearHeaderSearch(event)" style="display:none;" title="Clear search" aria-label="Clear search">✕</button>
+            <kbd class="header-search-kbd" onclick="openGlobalSearchModal(document.getElementById('searchMsgInput').value); event.stopPropagation();" title="Press ⌘K for Advanced Search">⌘K</kbd>
+          </div>
+
+          <!-- Live Floating Search Results Dropdown -->
+          <div class="header-search-dropdown" id="headerSearchDropdown" style="display:none;" onclick="event.stopPropagation()">
+            <div class="header-search-dropdown-header">
+              <div class="header-search-tabs">
+                <button type="button" class="header-search-tab active" data-tab="all" onclick="setHeaderSearchTab('all')">All</button>
+                <button type="button" class="header-search-tab" data-tab="channel" onclick="setHeaderSearchTab('channel')" id="headerSearchChannelTab">In #general</button>
+                <button type="button" class="header-search-tab" data-tab="users" onclick="setHeaderSearchTab('users')">Users</button>
+                <button type="button" class="header-search-tab" data-tab="links" onclick="setHeaderSearchTab('links')">Links</button>
+              </div>
+            </div>
+            <div class="header-search-results-list" id="headerSearchResultsList">
+              <div class="header-search-empty-hint">
+                <span style="font-size:16px;">⚡</span> Type keywords to search across messages, channels, and contacts
+              </div>
+            </div>
+            <div class="header-search-dropdown-footer">
+              <span class="header-search-nav-hint">Press <kbd>ESC</kbd> to close • <kbd>↵</kbd> to search</span>
+              <button type="button" class="header-search-advanced-action" onclick="openGlobalSearchModal(document.getElementById('searchMsgInput').value)">Full Search Modal →</button>
+            </div>
+          </div>
         </div>
 
         <!-- In-Chat Theme Quick Toggle (Ivory Paper <-> Pure Black OLED) -->
@@ -31072,6 +31519,311 @@ div#membersSidebar {
       }, 150);
     }
 
+    // =========================================================================
+    // ULTRA-MODERN TOP CHAT SEARCH BAR ENGINE
+    // Live In-Header Search, Quick Results Dropdown, Scope Filtering & Jump
+    // =========================================================================
+    let _headerSearchQuery = '';
+    let _headerSearchActiveTab = 'all';
+    let _headerSearchDebounceTimer = null;
+    window.headerSearchResultsActions = {};
+
+    function focusHeaderSearch(e) {
+      const input = document.getElementById('searchMsgInput');
+      if (input) {
+        input.focus();
+      }
+    }
+
+    function handleHeaderSearchFocus() {
+      const capsule = document.getElementById('headerSearchCapsule');
+      if (capsule) capsule.classList.add('focused');
+      const dropdown = document.getElementById('headerSearchDropdown');
+      if (dropdown) dropdown.style.display = 'flex';
+      
+      // Update channel tab label
+      const chTab = document.getElementById('headerSearchChannelTab');
+      if (chTab) {
+        chTab.innerText = currentMode === 'dm' ? `In @${currentDMTarget || 'User'}` : `In #${currentChannel || 'general'}`;
+      }
+
+      const input = document.getElementById('searchMsgInput');
+      const val = input ? input.value.trim() : '';
+      if (val) {
+        executeHeaderSearch(val);
+      } else {
+        renderHeaderSearchEmptyState();
+      }
+    }
+
+    function closeHeaderSearchDropdown() {
+      const dropdown = document.getElementById('headerSearchDropdown');
+      if (dropdown) dropdown.style.display = 'none';
+      const capsule = document.getElementById('headerSearchCapsule');
+      if (capsule) capsule.classList.remove('focused');
+    }
+
+    function clearHeaderSearch(e) {
+      if (e) e.stopPropagation();
+      const input = document.getElementById('searchMsgInput');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      const clearBtn = document.getElementById('headerSearchClearBtn');
+      if (clearBtn) clearBtn.style.display = 'none';
+      const badge = document.getElementById('headerSearchCountBadge');
+      if (badge) badge.style.display = 'none';
+      _headerSearchQuery = '';
+      renderHeaderSearchEmptyState();
+      if (typeof clearChannelMessageSearch === 'function') {
+        clearChannelMessageSearch(false);
+      }
+    }
+
+    function setHeaderSearchTab(tab) {
+      _headerSearchActiveTab = tab;
+      document.querySelectorAll('.header-search-tab').forEach(b => {
+        b.classList.toggle('active', b.getAttribute('data-tab') === tab);
+      });
+      const input = document.getElementById('searchMsgInput');
+      const val = input ? input.value.trim() : '';
+      if (val) {
+        executeHeaderSearch(val);
+      }
+    }
+
+    function handleHeaderSearchInput(val) {
+      _headerSearchQuery = (val || '').trim();
+      const clearBtn = document.getElementById('headerSearchClearBtn');
+      if (clearBtn) clearBtn.style.display = _headerSearchQuery ? 'inline-block' : 'none';
+      
+      const dropdown = document.getElementById('headerSearchDropdown');
+      if (dropdown) dropdown.style.display = 'flex';
+
+      clearTimeout(_headerSearchDebounceTimer);
+      if (!_headerSearchQuery) {
+        const badge = document.getElementById('headerSearchCountBadge');
+        if (badge) badge.style.display = 'none';
+        renderHeaderSearchEmptyState();
+        if (typeof clearChannelMessageSearch === 'function') {
+          clearChannelMessageSearch(false);
+        }
+        return;
+      }
+
+      _headerSearchDebounceTimer = setTimeout(() => {
+        executeHeaderSearch(_headerSearchQuery);
+      }, 150);
+    }
+
+    function handleHeaderSearchKeyDown(e) {
+      if (e.key === 'Escape') {
+        closeHeaderSearchDropdown();
+        e.target.blur();
+      } else if (e.key === 'Enter') {
+        const list = document.getElementById('headerSearchResultsList');
+        const firstItem = list ? list.querySelector('.header-search-result-item') : null;
+        if (firstItem) {
+          firstItem.click();
+        } else if (_headerSearchQuery) {
+          openGlobalSearchModal(_headerSearchQuery);
+        }
+      }
+    }
+
+    function renderHeaderSearchEmptyState() {
+      const list = document.getElementById('headerSearchResultsList');
+      if (!list) return;
+      const currentScope = currentMode === 'dm' ? `@${currentDMTarget || 'User'}` : `#${currentChannel || 'general'}`;
+      list.innerHTML = `
+        <div class="header-search-empty-hint">
+          <div style="font-size: 22px; margin-bottom: 6px;">⚡</div>
+          <div style="font-weight: 700; font-size: 13px; color: var(--text-header); margin-bottom: 4px;">Quick Message & Channel Search</div>
+          <div style="font-size: 11.5px; opacity: 0.8; margin-bottom: 10px;">Type keywords to search live in ${escapeHTML(currentScope)} and across all channels</div>
+          <div style="display:flex; justify-content:center; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="search-filter-chip" style="font-size:11px; padding:2px 8px;" onclick="applyHeaderSearchShortcut('FastAPI')">FastAPI</button>
+            <button type="button" class="search-filter-chip" style="font-size:11px; padding:2px 8px;" onclick="applyHeaderSearchShortcut('WebSocket')">WebSocket</button>
+            <button type="button" class="search-filter-chip" style="font-size:11px; padding:2px 8px;" onclick="applyHeaderSearchShortcut('WebRTC')">WebRTC</button>
+            <button type="button" class="search-filter-chip" style="font-size:11px; padding:2px 8px;" onclick="applyHeaderSearchShortcut('link')">has:link</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function applyHeaderSearchShortcut(term) {
+      const input = document.getElementById('searchMsgInput');
+      if (input) {
+        input.value = term;
+        input.focus();
+        handleHeaderSearchInput(term);
+      }
+    }
+
+    function executeHeaderSearch(query) {
+      const list = document.getElementById('headerSearchResultsList');
+      const badge = document.getElementById('headerSearchCountBadge');
+      if (!list) return;
+
+      const q = query.toLowerCase();
+      const results = [];
+
+      // 1. Channel Search
+      if (_headerSearchActiveTab === 'all' || _headerSearchActiveTab === 'channel') {
+        const channels = ['general', 'announcements', 'dev-chat', 'gaming', 'voice-lounge'];
+        channels.forEach(ch => {
+          if (ch.includes(q)) {
+            results.push({
+              type: 'channel',
+              id: 'ch_' + ch,
+              title: '#' + ch,
+              snippet: `Switch to #${ch} channel relay`,
+              icon: '#',
+              action: () => { switchChannel(ch); closeHeaderSearchDropdown(); }
+            });
+          }
+        });
+      }
+
+      // 2. User Search
+      if (_headerSearchActiveTab === 'all' || _headerSearchActiveTab === 'users') {
+        const users = new Set();
+        if (Array.isArray(cachedFriendsList)) cachedFriendsList.forEach(f => users.add(f.username || f.name));
+        if (Array.isArray(cachedMembersList)) cachedMembersList.forEach(m => users.add(m.username || m.name));
+        users.forEach(u => {
+          if (u && u.toLowerCase().includes(q)) {
+            results.push({
+              type: 'user',
+              id: 'u_' + u,
+              title: '@' + u,
+              snippet: `Open direct message with @${u}`,
+              icon: '👤',
+              action: () => { openDirectMessage(u); closeHeaderSearchDropdown(); }
+            });
+          }
+        });
+      }
+
+      // 3. Messages Search
+      if (messageStore && messageStore.size > 0) {
+        for (const [id, msg] of messageStore.entries()) {
+          if (!msg || typeof msg !== 'object') continue;
+          const content = String(msg.content || msg.text || '');
+          const author = String(msg.nickname || msg.user || msg.author || 'User');
+          const time = formatMessageTimestamp(msg.timestamp || msg.created_at);
+          const channel = msg.channel || msg.channel_id || currentChannel || 'general';
+          const hasLink = content.includes('http://') || content.includes('https://');
+
+          if (_headerSearchActiveTab === 'channel') {
+            const isCurrentChannel = currentMode === 'channel' && String(channel).toLowerCase() === String(currentChannel || 'general').toLowerCase();
+            const isCurrentDM = currentMode === 'dm' && (String(msg.user).toLowerCase() === String(currentDMTarget || '').toLowerCase() || String(msg.recipient).toLowerCase() === String(currentDMTarget || '').toLowerCase());
+            if (!isCurrentChannel && !isCurrentDM) continue;
+          }
+          if (_headerSearchActiveTab === 'links' && !hasLink) continue;
+          if (_headerSearchActiveTab === 'users' && !author.toLowerCase().includes(q)) continue;
+
+          if (content.toLowerCase().includes(q) || author.toLowerCase().includes(q)) {
+            results.push({
+              type: 'message',
+              id: msg.id || id,
+              title: author,
+              snippet: content,
+              time: time,
+              channel: channel,
+              isDm: Boolean(msg.recipient || currentMode === 'dm'),
+              dmTarget: msg.recipient || (msg.user !== currentUser ? msg.user : currentDMTarget),
+              avatar: msg.avatar,
+              action: () => {
+                jumpToHeaderSearchResult(msg.id || id, channel, Boolean(msg.recipient || currentMode === 'dm'), msg.recipient || currentDMTarget);
+              }
+            });
+          }
+          if (results.length >= 25) break;
+        }
+      }
+
+      // Also trigger in-channel filtering for live interaction
+      if (typeof handleChannelMessageSearch === 'function') {
+        handleChannelMessageSearch(query);
+      }
+
+      // Update badge
+      if (badge) {
+        badge.innerText = `${results.length} ${results.length === 1 ? 'match' : 'matches'}`;
+        badge.style.display = 'inline-block';
+      }
+
+      if (results.length === 0) {
+        list.innerHTML = `
+          <div class="header-search-empty-hint">
+            <div style="font-size: 20px; margin-bottom: 4px;">🔍</div>
+            <div style="font-weight: 700; color: var(--text-header); margin-bottom: 2px;">No quick results found for "${escapeHTML(query)}"</div>
+            <div style="font-size: 11px; opacity: 0.75; margin-bottom: 8px;">Try a different keyword or search the entire database</div>
+            <button type="button" class="btn btn-outline" style="font-size:11px; padding:3px 10px; border-radius:6px;" onclick="openGlobalSearchModal('${escapeHTML(query)}')">Full Database Search (⌘K)</button>
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = results.map(item => {
+        const highlightedSnippet = highlightSearchText(item.snippet, query);
+        const tag = item.type === 'channel' ? `<span class="header-search-res-badge">#Channel</span>`
+                  : item.type === 'user' ? `<span class="header-search-res-badge">@Contact</span>`
+                  : `<span class="header-search-res-badge">${item.isDm ? '@DM' : '#' + escapeHTML(item.channel)}</span>`;
+        const avatarEl = item.type === 'channel' ? '#' : (item.type === 'user' ? '👤' : (item.avatar ? `<img src="${escapeHTML(item.avatar)}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : (item.title ? item.title.charAt(0).toUpperCase() : '💬')));
+
+        return `
+          <div class="header-search-result-item" onclick="if(window.headerSearchResultsActions && window.headerSearchResultsActions['${escapeHTML(item.id)}']) window.headerSearchResultsActions['${escapeHTML(item.id)}']();">
+            <div class="header-search-res-avatar">${avatarEl}</div>
+            <div class="header-search-res-info">
+              <div class="header-search-res-meta">
+                <span class="header-search-res-author">${escapeHTML(item.title)}</span>
+                ${tag}
+                ${item.time ? `<span class="header-search-res-time">${escapeHTML(item.time)}</span>` : ''}
+              </div>
+              <div class="header-search-res-snippet">${highlightedSnippet}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Store actions in registry
+      window.headerSearchResultsActions = {};
+      results.forEach(item => {
+        window.headerSearchResultsActions[item.id] = item.action;
+      });
+    }
+
+    async function jumpToHeaderSearchResult(msgId, channelId, isDm, dmTarget) {
+      closeHeaderSearchDropdown();
+      if (isDm && dmTarget) {
+        if (currentDMTarget !== dmTarget) {
+          await openDirectMessage(dmTarget);
+        }
+      } else if (channelId && channelId !== currentChannel) {
+        await switchChannel(channelId);
+      }
+
+      // Smooth scroll to card
+      setTimeout(() => {
+        const card = document.getElementById(`msg-${msgId}`) || document.getElementById(`msg_${msgId}`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.remove('pulse-search-match');
+          void card.offsetWidth;
+          card.classList.add('pulse-search-match');
+        }
+      }, 150);
+    }
+
+    // Global listener to close search dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('headerSearchWrap');
+      if (wrap && !wrap.contains(e.target)) {
+        closeHeaderSearchDropdown();
+      }
+    });
+
     // ==================== SANDBOX INTERACTIVE DEMO ENGINE ====================
     let sandboxChannel = 'general';
     const initialSandboxData = {
@@ -37566,7 +38318,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-3') {
+        if (name !== 'connecto-v5-0-4') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
