@@ -4058,27 +4058,19 @@
       gap: 9px;
     }
 
-    /* 12. Crystal Scroll Reveal Choreography */
+    /* 12. Clean Aesthetic Scroll Reveal */
     .crystal-reveal,
     .scroll-reveal-3d {
-      opacity: 0;
-      transform: translateY(28px) scale(0.975);
-      filter: blur(6px);
-      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
-                  transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
-                  filter 0.75s cubic-bezier(0.16, 1, 0.3, 1) !important;
-      will-change: opacity, transform, filter;
+      opacity: 1;
+      transform: none;
+      filter: none;
+      transition: opacity 0.35s ease;
     }
-    .crystal-reveal.in-view:not(.tilt-active),
-    .scroll-reveal-3d.in-view:not(.tilt-active) {
+    .crystal-reveal.in-view,
+    .scroll-reveal-3d.in-view {
       opacity: 1 !important;
-      transform: translateY(0) scale(1) !important;
-      filter: blur(0px) !important;
-    }
-    .crystal-reveal.in-view.tilt-active,
-    .scroll-reveal-3d.in-view.tilt-active {
-      opacity: 1 !important;
-      filter: blur(0px) !important;
+      transform: none !important;
+      filter: none !important;
     }
 
     /* 13. Liquid Crystal View Transitions */
@@ -7522,11 +7514,11 @@
       to { opacity: 1; transform: translateY(0); }
     }
     @keyframes heroSquareCardIntro {
-      from { opacity: 0; transform: perspective(1200px) rotateX(10deg) translateY(36px) scale(0.95); }
-      to { opacity: 1; transform: perspective(1200px) rotateX(0deg) translateY(0) scale(1); }
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     
-    /* ==================== 3D SPATIAL HERO CONTAINERS ==================== */
+    /* ==================== AESTHETIC HERO CONTAINERS ==================== */
     .hero-container {
       max-width: 1560px;
       margin: 0 auto;
@@ -7538,8 +7530,6 @@
       box-sizing: border-box;
       position: relative;
       z-index: 2;
-      perspective: 1400px;
-      transform-style: preserve-3d;
     }
     .hero-spatial-stage {
       width: 100%;
@@ -7552,34 +7542,26 @@
       align-items: center;
       justify-content: flex-start;
       margin: 0 auto;
-      perspective: 1400px;
-      transform-style: preserve-3d;
       contain: layout;
       box-sizing: border-box;
     }
 
     /* ==========================================================================
-       SECTION: ADVANCED 3D SPATIAL ENGINE & MULTI-TIER TRANSITION SHADOWS
+       SECTION: CLEAN MODERN CARDS & REFINED AMBIENT SHADOWS
        ========================================================================== */
 
-    /* 1. Cinematic 3D Interactive Card Base */
+    /* 1. Aesthetic Card Base */
     .interactive-tilt-card {
       position: relative;
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                  box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-                  border-color 0.25s ease,
-                  background-color 0.25s ease;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.2s ease;
       overflow: hidden;
       width: 100%;
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      contain: layout style;
-      will-change: transform;
+      border-radius: 18px;
     }
 
-    /* Multi-Tier Diffuse Transition Shadows - Dark Mode Default */
+    /* Refined Ambient Shadows - Dark Mode Default */
     .interactive-tilt-card,
     .ecosystem-card,
     .chat-mockup-card,
@@ -7595,9 +7577,8 @@
     .final-cta-card {
       box-shadow: 
         0 0 0 1px rgba(255, 255, 255, 0.08),
-        0 4px 14px -2px rgba(0, 0, 0, 0.6),
-        0 16px 36px -6px rgba(0, 0, 0, 0.75),
-        0 0 24px -4px rgba(16, 185, 129, 0.12);
+        0 4px 20px -2px rgba(0, 0, 0, 0.5),
+        0 12px 32px -4px rgba(0, 0, 0, 0.6);
     }
 
     .interactive-tilt-card:hover,
@@ -7613,37 +7594,15 @@
     .step-card-custom:hover,
     .comparison-card:hover,
     .final-cta-card:hover {
-      border-color: rgba(16, 185, 129, 0.45) !important;
+      transform: translateY(-3px) !important;
+      border-color: rgba(6, 182, 212, 0.45) !important;
       box-shadow: 
-        0 0 0 1px rgba(16, 185, 129, 0.35),
-        0 8px 24px -4px rgba(0, 0, 0, 0.7),
-        0 28px 64px -12px rgba(0, 0, 0, 0.9),
-        0 0 42px -4px rgba(16, 185, 129, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+        0 0 0 1px rgba(6, 182, 212, 0.35),
+        0 12px 32px -4px rgba(0, 0, 0, 0.7),
+        0 0 28px -4px rgba(6, 182, 212, 0.25) !important;
     }
 
-    /* 2. Dynamic Specular Sheen Reflection */
-    .interactive-tilt-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.14), transparent 65%);
-      opacity: 0;
-      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: none;
-      border-radius: inherit;
-      z-index: 5;
-    }
-    .interactive-tilt-card:hover::before,
-    .interactive-tilt-card.tilt-active::before {
-      opacity: 1;
-    }
-
-    /* Light Parchment Parity for Specular Sheen & Shadows */
-    html[data-theme="parchment"] .interactive-tilt-card::before {
-      background: radial-gradient(380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 175, 125, 0.22), transparent 65%) !important;
-    }
-
+    /* Light Parchment Parity for Clean Shadows */
     html[data-theme="parchment"] .interactive-tilt-card,
     html[data-theme="parchment"] .ecosystem-card,
     html[data-theme="parchment"] .chat-mockup-card,
@@ -7660,9 +7619,8 @@
       box-shadow: 
         0 0 0 1px rgba(68, 64, 60, 0.12),
         inset 0 1px 0 #ffffff,
-        0 3px 8px rgba(44, 40, 37, 0.04),
-        0 12px 28px -4px rgba(44, 40, 37, 0.08),
-        0 0 18px -4px rgba(5, 150, 105, 0.1) !important;
+        0 2px 8px rgba(44, 40, 37, 0.05),
+        0 8px 20px -3px rgba(44, 40, 37, 0.08) !important;
     }
 
     html[data-theme="parchment"] .interactive-tilt-card:hover,
@@ -7678,97 +7636,22 @@
     html[data-theme="parchment"] .step-card-custom:hover,
     html[data-theme="parchment"] .comparison-card:hover,
     html[data-theme="parchment"] .final-cta-card:hover {
-      border-color: rgba(5, 150, 105, 0.4) !important;
+      transform: translateY(-3px) !important;
+      border-color: rgba(5, 150, 105, 0.35) !important;
       box-shadow: 
-        0 0 0 1px rgba(5, 150, 105, 0.3),
+        0 0 0 1px rgba(5, 150, 105, 0.25),
         inset 0 1px 0 #ffffff,
-        0 6px 14px rgba(44, 40, 37, 0.06),
-        0 22px 48px -8px rgba(44, 40, 37, 0.14),
-        0 0 32px -4px rgba(5, 150, 105, 0.22) !important;
+        0 6px 16px rgba(44, 40, 37, 0.08),
+        0 14px 28px -4px rgba(44, 40, 37, 0.12) !important;
     }
 
-    /* 3. Multi-Plane 3D Spatial Depth inside Cards */
-    .usecase-icon-badge,
-    .stat-icon-wrap,
-    .arch-node-icon,
-    .faq-badge,
-    .hero-pill-badge,
-    .ecosystem-card-icon,
-    .android-feat-card-icon,
-    .step-badge-custom,
-    .mock-secure-pill {
-      transform: translateZ(30px);
-      transform-style: preserve-3d;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      will-change: transform;
-    }
-    .interactive-tilt-card:hover .usecase-icon-badge,
-    .interactive-tilt-card:hover .stat-icon-wrap,
-    .interactive-tilt-card:hover .arch-node-icon,
-    .interactive-tilt-card:hover .faq-badge,
-    .interactive-tilt-card:hover .ecosystem-card-icon,
-    .interactive-tilt-card:hover .android-feat-card-icon,
-    .interactive-tilt-card:hover .step-badge-custom {
-      transform: translateZ(42px) scale(1.08);
-    }
-    .usecase-card h4,
-    .arch-node strong,
-    .faq-q span,
-    .stat-num-custom,
-    .ecosystem-card-title,
-    .android-showcase-title,
-    .comparison-card strong {
-      transform: translateZ(18px);
-      transform-style: preserve-3d;
-    }
-    .usecase-card p,
-    .arch-node span,
-    .faq-a-content,
-    .stat-label-custom,
-    .ecosystem-card-desc,
-    .android-showcase-desc {
-      transform: translateZ(10px);
-      transform-style: preserve-3d;
-    }
-
-    /* 4. 3D Hierarchy & Preserved Context */
+    /* Clean Card Hierarchy */
     .scroll-reveal-3d, .chat-mockup-card, .final-cta-card, .stats-section-asym, .phone-mockup-frame {
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
       contain: layout style;
-      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.2s ease;
-    }
-    .hero-spatial-stage,
-    .bento-section-wrap,
-    .android-phone-mockup-wrap,
-    .spatial-3d-section {
-      perspective: 1200px;
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
     }
 
-    /* 5. Ambient 3D Levitation & Floating Motion */
-    @keyframes ambientPhoneFloat3D {
-      0%, 100% {
-        transform: perspective(1200px) translateY(0px) rotateX(0deg) rotateY(0deg);
-      }
-      25% {
-        transform: perspective(1200px) translateY(-6px) rotateX(1.5deg) rotateY(-1.2deg);
-      }
-      50% {
-        transform: perspective(1200px) translateY(-10px) rotateX(-1deg) rotateY(1.5deg);
-      }
-      75% {
-        transform: perspective(1200px) translateY(-4px) rotateX(0.8deg) rotateY(0.5deg);
-      }
-    }
-    .phone-mockup-frame:not(.tilt-active) {
-      animation: ambientPhoneFloat3D 7s ease-in-out infinite;
-    }
-
-    /* 6. Glowing Scroll Progress Particle Head */
+    /* Clean Scroll Progress Particle Head */
     .scroll-progress-bar::after {
       content: '';
       position: absolute;
@@ -7797,13 +7680,13 @@
       letter-spacing: 0.3px;
     }
 
-    /* 7. Stagger Cascade Delays */
-    .stagger-3d-1 { transition-delay: 45ms; }
-    .stagger-3d-2 { transition-delay: 90ms; }
-    .stagger-3d-3 { transition-delay: 135ms; }
-    .stagger-3d-4 { transition-delay: 180ms; }
-    .stagger-3d-5 { transition-delay: 225ms; }
-    .stagger-3d-6 { transition-delay: 270ms; }
+    /* Stagger Delays */
+    .stagger-3d-1 { transition-delay: 30ms; }
+    .stagger-3d-2 { transition-delay: 60ms; }
+    .stagger-3d-3 { transition-delay: 90ms; }
+    .stagger-3d-4 { transition-delay: 120ms; }
+    .stagger-3d-5 { transition-delay: 150ms; }
+    .stagger-3d-6 { transition-delay: 180ms; }
 
     /* ==================== CENTERED HERO CHAT MOCKUP ==================== */
     .chat-mockup-card {
@@ -8135,143 +8018,7 @@
       box-shadow: 0 0 14px var(--accent-glow);
     }
 
-    /* 3D Hologram Canvas Stage */
-    .mock-hologram-stage {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-      background: radial-gradient(circle at 50% 50%, var(--accent-tint) 0%, var(--bg-darkest) 75%);
-      position: relative;
-      overflow: hidden;
-    }
-    .mock-hologram-stage.active {
-      display: flex;
-    }
-    #heroHologramCanvas {
-      width: 100%;
-      height: 240px;
-      cursor: grab;
-      border-radius: 12px;
-    }
-    #heroHologramCanvas:active {
-      cursor: grabbing;
-    }
-    .hologram-telemetry-badge {
-      position: absolute;
-      top: 12px;
-      left: 14px;
-      font-family: var(--font-mono);
-      font-size: 10px;
-      color: var(--chakra-cyan);
-      background: rgba(6, 182, 212, 0.1);
-      border: 1px solid rgba(6, 182, 212, 0.25);
-      padding: 3px 8px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      letter-spacing: 0.5px;
-    }
-    .hologram-ctrl-row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      width: 100%;
-      flex-wrap: wrap;
-      z-index: 2;
-    }
-    .holo-model-btn {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      color: var(--text-muted);
-      font-size: 10.5px;
-      font-weight: 700;
-      padding: 4px 9px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .holo-model-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #ffffff;
-    }
-    .holo-model-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #ffffff;
-      box-shadow: 0 0 10px var(--accent-glow);
-    }
 
-    /* 3D Spatial Audio Lounge Stage */
-    .mock-audio-stage {
-      flex: 1;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px;
-      background: radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.15) 0%, rgba(7, 9, 14, 0.95) 75%);
-      position: relative;
-    }
-    .mock-audio-stage.active {
-      display: flex;
-    }
-    .spatial-audio-circle {
-      width: 180px;
-      height: 180px;
-      border: 1px dashed rgba(6, 182, 212, 0.3);
-      border-radius: 50%;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      animation: spatialCircleSpin 20s linear infinite;
-    }
-    @keyframes spatialCircleSpin {
-      100% { transform: rotate(360deg); }
-    }
-    .spatial-audio-node {
-      position: absolute;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(15, 23, 42, 0.9);
-      border: 2px solid var(--chakra-cyan);
-      box-shadow: 0 0 14px var(--chakra-glow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      cursor: pointer;
-      transition: transform 0.2s;
-    }
-    .spatial-audio-node:hover {
-      transform: scale(1.2);
-    }
-    .spatial-node-1 { top: -18px; left: 72px; }
-    .spatial-node-2 { bottom: 10px; right: -5px; }
-    .spatial-node-3 { bottom: 10px; left: -5px; }
-    .spatial-center-listener {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
-      box-shadow: 0 0 20px var(--accent-glow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: var(--bg-darkest);
-      animation: centerPulse 2s ease-in-out infinite;
-    }
-    @keyframes centerPulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 15px var(--accent-glow); }
-      50% { transform: scale(1.1); box-shadow: 0 0 30px var(--accent-glow); }
-    }
 
     /* ==================== SCROLL-DRIVEN HERO MORPH TRANSFORMATION ==================== */
     .hero-scroll-morph-reveal {
@@ -8701,21 +8448,28 @@
       text-decoration: none;
     }
     .nav-logo-badge {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-secondary) 100%);
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
-      color: var(--bg-darkest);
-      box-shadow: 0 0 12px var(--accent-glow);
-      transition: transform 0.4s var(--ease-spring), box-shadow 0.3s;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0, 245, 160, 0.28);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .nav-logo-icon-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: inherit;
     }
     .landing-logo:hover .nav-logo-badge {
-      transform: rotate(180deg) scale(1.12);
-      box-shadow: 0 0 22px var(--accent);
+      transform: scale(1.08);
+      box-shadow: 0 4px 18px rgba(0, 217, 245, 0.45);
     }
     .nav-logo-text {
       font-family: var(--font-display);
@@ -9529,8 +9283,8 @@
       transform-origin: center center;
     }
     @keyframes modalChakraSpring {
-      0% { transform: perspective(1000px) scale(0.88) rotateX(6deg) translateY(24px); opacity: 0; filter: blur(8px); }
-      100% { transform: perspective(1000px) scale(1) rotateX(0deg) translateY(0); opacity: 1; filter: blur(0); }
+      0% { transform: scale(0.96) translateY(12px); opacity: 0; }
+      100% { transform: scale(1) translateY(0); opacity: 1; }
     }
 
     /* Specular Ambient Glow Blobs inside Modal */
@@ -10944,106 +10698,9 @@
       font-weight: 800;
     }
 
-    /* 3D SPATIAL SCROLL TELEMETRY HUD & FULL PAGE 3D SYSTEM */
     .spatial-3d-section {
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
-      will-change: transform, opacity;
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
-      perspective: 1200px;
-    }
-
-    .spatial-scroll-hud {
-      position: fixed;
-      right: 22px;
-      top: 50%;
-      transform: translateY(-50%) translateZ(80px);
-      background: rgba(10, 14, 26, 0.85);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 18px;
-      padding: 14px 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 7px;
-      z-index: 999;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-      pointer-events: none;
-      transform-style: preserve-3d;
-      transition: opacity 0.3s ease;
-    }
-    .hud-header {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 8.5px;
-      font-weight: 800;
-      letter-spacing: 1.2px;
-      color: var(--chakra-cyan);
-      text-transform: uppercase;
-    }
-    .hud-pulse-dot {
-      width: 6px;
-      height: 6px;
-      background: var(--chakra-cyan);
-      border-radius: 50%;
-      box-shadow: 0 0 8px var(--chakra-cyan);
-      animation: hudPulseAnim 1.5s infinite;
-    }
-    @keyframes hudPulseAnim {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.4); opacity: 0.5; }
-    }
-    .hud-depth-display {
-      font-family: 'Outfit', sans-serif;
-      font-size: 16px;
-      font-weight: 900;
-      color: #fff;
-      display: flex;
-      align-items: baseline;
-      gap: 2px;
-    }
-    .hud-depth-unit {
-      font-size: 10px;
-      color: var(--chakra-cyan);
-      font-weight: 700;
-    }
-    .hud-track-bar {
-      width: 4px;
-      height: 60px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 999px;
-      position: relative;
-      overflow: hidden;
-    }
-    .hud-indicator-fill {
       width: 100%;
-      height: 0%;
-      background: linear-gradient(180deg, var(--chakra-cyan), var(--accent), var(--ninja-gold));
-      border-radius: 999px;
-      box-shadow: 0 0 8px var(--chakra-cyan);
-      transition: height 0.08s linear;
-    }
-    .hud-sector-badge {
-      font-size: 8.5px;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      text-align: center;
-      max-width: 80px;
-      line-height: 1.15;
-    }
-    .hud-fps-pill {
-      font-size: 8px;
-      font-weight: 800;
-      color: var(--green);
-      background: rgba(16, 185, 129, 0.12);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 1px 5px;
-      border-radius: 5px;
+      box-sizing: border-box;
     }
 
     /* Mobile Phones & Tablets (<= 768px) - Zero Horizontal Sliding */
@@ -23496,6 +23153,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
   <div class="channels-sidebar" id="channelsSidebar" style="display:none;">
     <div class="server-header" style="display:flex; align-items:center; justify-content:space-between;">
       <div class="server-header-left" onclick="switchMainView('hero')" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+        <img src="/icon.svg" alt="Connecto Logo" width="22" height="22" style="width:22px; height:22px; border-radius:6px; display:inline-block; flex-shrink:0;">
         <span id="currentServerName">connecto.fun</span>
         <span style="font-size: 11px; color: var(--green); font-weight:700;">● Live</span>
       </div>
@@ -24129,7 +23787,9 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           <div class="scroll-progress-bar" id="scrollProgressBar"></div>
           
           <div class="landing-logo" onclick="switchMainView('hero')">
-            <div class="nav-logo-badge"><i data-lucide="shield" class="lucide-sm"></i></div>
+            <div class="nav-logo-badge">
+              <img src="/icon.svg" alt="Connecto Logo" class="nav-logo-icon-img" width="30" height="30">
+            </div>
             <span class="nav-logo-text">Connecto<span class="nav-logo-dot">.</span></span>
             <div class="nav-live-pill" style="background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.4); color:#fbbf24;" title="Connecto is in Public Beta Testing Stage"><span class="nav-live-dot" style="background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span><span>Public Beta</span></div>
           </div>
@@ -25106,7 +24766,10 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         <footer class="landing-footer scroll-reveal-3d">
           <div class="footer-grid">
             <div class="footer-col">
-              <div style="font-family:var(--font-display); font-weight:900; font-size:20px; color:white; margin-bottom:8px;">Connecto<span style="color:var(--accent);">.</span></div>
+              <div style="display:flex; align-items:center; gap:10px; font-family:var(--font-display); font-weight:900; font-size:22px; color:white; margin-bottom:8px;">
+                <img src="/icon.svg" alt="Connecto Logo" width="28" height="28" style="width:28px; height:28px; border-radius:8px; display:inline-block; flex-shrink:0; box-shadow:0 2px 10px rgba(0,245,160,0.25);">
+                <span>Connecto<span style="color:var(--accent);">.</span></span>
+              </div>
               <p style="font-size:13px; color:var(--text-muted); line-height:1.5; max-width:280px;">The real-time communication & security learning platform for friends and developers.</p>
             </div>
             <div class="footer-col">
@@ -25155,11 +24818,14 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       <div class="connecto-screen-container">
         <!-- Header -->
         <div class="connecto-screen-header">
-          <div class="connecto-header-left">
-            <div class="connecto-header-title">connecto.fun</div>
-            <div class="connecto-header-status">
-              <span style="width:7px; height:7px; border-radius:50%; background:#22C55E; display:inline-block;"></span>
-              <span>Online • WebSocket Real-Time</span>
+          <div class="connecto-header-left" style="display:flex; align-items:center; gap:10px;">
+            <img src="/icon.svg" alt="Connecto Logo" class="header-connecto-logo" width="28" height="28" style="width:28px; height:28px; border-radius:8px; display:inline-block; flex-shrink:0;">
+            <div>
+              <div class="connecto-header-title">connecto.fun</div>
+              <div class="connecto-header-status">
+                <span style="width:7px; height:7px; border-radius:50%; background:#22C55E; display:inline-block;"></span>
+                <span>Online • WebSocket Real-Time</span>
+              </div>
             </div>
           </div>
           <div class="connecto-header-actions">
@@ -25549,7 +25215,9 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       
       <div class="mobile-drawer-head">
         <div class="landing-logo" onclick="switchMainView('hero'); closeMobileNavMenu();">
-          <div class="nav-logo-badge"><i data-lucide="shield" class="lucide-sm"></i></div>
+          <div class="nav-logo-badge">
+            <img src="/icon.svg" alt="Connecto Logo" class="nav-logo-icon-img" width="30" height="30">
+          </div>
           <span class="nav-logo-text">Connecto<span class="nav-logo-dot">.</span></span>
         </div>
         <button class="mobile-drawer-close" onclick="closeMobileNavMenu()" aria-label="Close navigation"><i data-lucide="x" class="lucide-sm"></i></button>
@@ -36224,250 +35892,10 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       screen.scrollTop = screen.scrollHeight;
     }
 
-    // ==================== 3D VECTOR HOLOGRAM ENGINE ====================
-    let holoAnimationId = null;
-    let holoModelType = 'chakra';
-    let holoWireframeOnly = false;
-    let holoRotX = 0.4, holoRotY = 0.5;
-    let holoIsDragging = false, holoLastMouseX = 0, holoLastMouseY = 0;
-    let holoEngineInitialized = false;
-
-    function switch3DModel(type) {
-      holoModelType = type;
-      document.querySelectorAll('.holo-model-btn').forEach(b => b.classList.remove('active'));
-      const idMap = { chakra: 'btnModelChakra', shuriken: 'btnModelShuriken', shield: 'btnModelShield', torus: 'btnModelTorus' };
-      if (document.getElementById(idMap[type])) {
-        document.getElementById(idMap[type]).classList.add('active');
-      }
-      const badge = document.getElementById('holoModelNameBadge');
-      if (badge) {
-        badge.innerText = `MODEL: ${type.toUpperCase()}`;
-      }
-    }
-
-    function toggle3DWireframe() {
-      holoWireframeOnly = !holoWireframeOnly;
-      const btn = document.getElementById('btnToggleWire');
-      if (btn) btn.classList.toggle('active', holoWireframeOnly);
-    }
-
-    function init3DHologramEngine() {
-      const canvas = document.getElementById('heroHologramCanvas');
-      if (!canvas) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      if (!holoEngineInitialized) {
-        holoEngineInitialized = true;
-        canvas.addEventListener('mousedown', (e) => {
-          holoIsDragging = true;
-          holoLastMouseX = e.clientX;
-          holoLastMouseY = e.clientY;
-        });
-        window.addEventListener('mouseup', () => { holoIsDragging = false; });
-        window.addEventListener('mousemove', (e) => {
-          if (!holoIsDragging) return;
-          const dx = e.clientX - holoLastMouseX;
-          const dy = e.clientY - holoLastMouseY;
-          holoRotY += dx * 0.01;
-          holoRotX += dy * 0.01;
-          holoLastMouseX = e.clientX;
-          holoLastMouseY = e.clientY;
-        });
-        canvas.addEventListener('touchstart', (e) => {
-          if (e.touches.length === 1) {
-            holoIsDragging = true;
-            holoLastMouseX = e.touches[0].clientX;
-            holoLastMouseY = e.touches[0].clientY;
-          }
-        }, { passive: true });
-        window.addEventListener('touchend', () => { holoIsDragging = false; });
-        window.addEventListener('touchmove', (e) => {
-          if (!holoIsDragging || e.touches.length !== 1) return;
-          const dx = e.touches[0].clientX - holoLastMouseX;
-          const dy = e.touches[0].clientY - holoLastMouseY;
-          holoRotY += dx * 0.012;
-          holoRotX += dy * 0.012;
-          holoLastMouseX = e.touches[0].clientX;
-          holoLastMouseY = e.touches[0].clientY;
-        }, { passive: true });
-      }
-
-      function getGeometry() {
-        if (holoModelType === 'chakra') {
-          const phi = (1 + Math.sqrt(5)) / 2;
-          const v = [
-            [-1, phi, 0], [1, phi, 0], [-1, -phi, 0], [1, -phi, 0],
-            [0, -1, phi], [0, 1, phi], [0, -1, -phi], [0, 1, -phi],
-            [phi, 0, -1], [phi, 0, 1], [-phi, 0, -1], [-phi, 0, 1]
-          ];
-          const edges = [
-            [0,11],[0,5],[0,1],[0,7],[0,10],[1,5],[1,9],[1,8],[1,7],[2,11],
-            [2,10],[2,6],[2,3],[2,4],[3,9],[3,8],[3,6],[3,4],[4,11],[4,5],
-            [4,9],[5,9],[5,11],[6,10],[6,7],[6,8],[7,10],[7,8],[8,9],[10,11]
-          ];
-          return { v: v.map(p => ({ x: p[0] * 55, y: p[1] * 55, z: p[2] * 55 })), edges };
-        } else if (holoModelType === 'shuriken') {
-          const v = [];
-          const rOut = 85, rIn = 30, h = 18;
-          for (let i = 0; i < 8; i++) {
-            const angle = (i * Math.PI) / 4;
-            const r = (i % 2 === 0) ? rOut : rIn;
-            v.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r, z: 0 });
-          }
-          v.push({ x: 0, y: 0, z: h });
-          v.push({ x: 0, y: 0, z: -h });
-          const edges = [];
-          for (let i = 0; i < 8; i++) {
-            const next = (i + 1) % 8;
-            edges.push([i, next]);
-            edges.push([i, 8]);
-            edges.push([i, 9]);
-          }
-          return { v, edges };
-        } else if (holoModelType === 'shield') {
-          const v = [];
-          const edges = [];
-          const rings = 4, segs = 8, rad = 70;
-          for (let r = 0; r < rings; r++) {
-            const theta = (r / rings) * (Math.PI / 2);
-            for (let s = 0; s < segs; s++) {
-              const phi = (s / segs) * Math.PI * 2;
-              v.push({
-                x: rad * Math.sin(theta) * Math.cos(phi),
-                y: rad * Math.cos(theta),
-                z: rad * Math.sin(theta) * Math.sin(phi)
-              });
-            }
-          }
-          v.push({ x: 0, y: rad, z: 0 });
-          for (let r = 0; r < rings; r++) {
-            for (let s = 0; s < segs; s++) {
-              const cur = r * segs + s;
-              const next = r * segs + ((s + 1) % segs);
-              edges.push([cur, next]);
-              if (r < rings - 1) {
-                edges.push([cur, (r + 1) * segs + s]);
-              }
-            }
-          }
-          return { v, edges };
-        } else {
-          const v = [];
-          const edges = [];
-          const R = 60, r = 22, segU = 10, segV = 6;
-          for (let u = 0; u < segU; u++) {
-            const theta = (u / segU) * Math.PI * 2;
-            for (let w = 0; w < segV; w++) {
-              const phi = (w / segV) * Math.PI * 2;
-              v.push({
-                x: (R + r * Math.cos(phi)) * Math.cos(theta),
-                y: (R + r * Math.cos(phi)) * Math.sin(theta),
-                z: r * Math.sin(phi)
-              });
-            }
-          }
-          for (let u = 0; u < segU; u++) {
-            for (let w = 0; w < segV; w++) {
-              const cur = u * segV + w;
-              const nextV = u * segV + ((w + 1) % segV);
-              const nextU = ((u + 1) % segU) * segV + w;
-              edges.push([cur, nextV]);
-              edges.push([cur, nextU]);
-            }
-          }
-          return { v, edges };
-        }
-      }
-
-      function renderFrame() {
-        if (activeHero3DMode !== 'holo') return;
-        const w = canvas.width;
-        const h = canvas.height;
-        ctx.clearRect(0, 0, w, h);
-
-        if (!holoIsDragging) {
-          holoRotY += 0.015;
-          holoRotX += 0.008;
-        }
-
-        const geo = getGeometry();
-        const cosX = Math.cos(holoRotX), sinX = Math.sin(holoRotX);
-        const cosY = Math.cos(holoRotY), sinY = Math.sin(holoRotY);
-
-        const proj = geo.v.map(pt => {
-          let x1 = pt.x * cosY + pt.z * sinY;
-          let y1 = pt.y;
-          let z1 = -pt.x * sinY + pt.z * cosY;
-
-          let x2 = x1;
-          let y2 = y1 * cosX - z1 * sinX;
-          let z2 = y1 * sinX + z1 * cosX;
-
-          const fov = 260;
-          const zDist = z2 + 200;
-          const scale = fov / Math.max(zDist, 1);
-          return {
-            x: x2 * scale + w / 2,
-            y: y2 * scale + h / 2,
-            z: z2,
-            scale
-          };
-        });
-
-        // Use cached colors — no style recalc per frame
-        const accentCol = _pAccent || '#22d3ee';
-        const cyanCol   = _pCyan   || '#22d3ee';
-
-        ctx.lineWidth = 1.6;
-        geo.edges.forEach(([i, j]) => {
-          const p1 = proj[i];
-          const p2 = proj[j];
-          if (!p1 || !p2) return;
-
-          const grad = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
-          const alpha = Math.max(0.15, Math.min(0.85, (p1.z + p2.z + 140) / 280));
-          grad.addColorStop(0, accentCol);
-          grad.addColorStop(1, cyanCol);
-
-          ctx.beginPath();
-          ctx.moveTo(p1.x, p1.y);
-          ctx.lineTo(p2.x, p2.y);
-          ctx.strokeStyle = grad;
-          ctx.globalAlpha = alpha;
-          ctx.stroke();
-        });
-
-        ctx.globalAlpha = 1;
-        proj.forEach(p => {
-          const r = Math.max(2, p.scale * 2.2);
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-          ctx.fillStyle = cyanCol;
-          ctx.shadowColor = cyanCol;
-          ctx.shadowBlur = 8;
-          ctx.fill();
-          ctx.shadowBlur = 0;
-        });
-
-        if (activeHero3DMode === 'holo' && !document.hidden) {
-          const hero = document.getElementById('heroView');
-          if (hero && hero.classList.contains('active')) {
-            holoAnimationId = requestAnimationFrame(renderFrame);
-            return;
-          }
-        }
-        holoAnimationId = null;
-      }
-
-      if (holoAnimationId) {
-        cancelAnimationFrame(holoAnimationId);
-        holoAnimationId = null;
-      }
-      if (activeHero3DMode === 'holo') {
-        renderFrame();
-      }
-    }
+    // ==================== 3D VECTOR HOLOGRAM ENGINE (CLEANED) ====================
+    function switch3DModel() {}
+    function toggle3DWireframe() {}
+    function init3DHologramEngine() {}
 
     // ==================== SHINOBI THEME PRESET ENGINE (LEGACY COMPAT) ====================
     function applyChakraThemePreset(preset) {
@@ -36534,93 +35962,8 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       });
     }
 
-    let cursorMotionInitialized = false;
-    function initCursorAndTiltMotion() {
-      if (cursorMotionInitialized) return;
-      cursorMotionInitialized = true;
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-      let currentCard = null;
-      let cardBounds = null;
-      let rafPending = false;
-      let lastClientX = 0;
-      let lastClientY = 0;
-
-      const cardSelector = '.interactive-tilt-card, .chat-mockup-card, .ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .stats-section-asym, .android-showcase-card-left, .phone-mockup-frame, .arch-flow-wrap, .arch-node, .final-cta-card';
-
-      function resetCard(card) {
-        if (!card) return;
-        card.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease';
-        card.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
-        card.style.removeProperty('--mouse-x');
-        card.style.removeProperty('--mouse-y');
-        setTimeout(() => {
-          if (currentCard !== card) {
-            card.classList.remove('tilt-active');
-            card.style.willChange = 'auto';
-          }
-        }, 650);
-      }
-
-      document.addEventListener('pointerenter', (e) => {
-        const card = e.target && e.target.closest ? e.target.closest(cardSelector) : null;
-        if (card && card !== currentCard) {
-          if (currentCard) resetCard(currentCard);
-          currentCard = card;
-          cardBounds = card.getBoundingClientRect();
-          card.classList.add('tilt-active');
-          card.style.willChange = 'transform';
-          card.style.transition = 'transform 0.1s ease-out, box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease';
-        }
-      }, true);
-
-      document.addEventListener('pointerleave', (e) => {
-        if (currentCard && (!e.relatedTarget || !currentCard.contains(e.relatedTarget))) {
-          resetCard(currentCard);
-          currentCard = null;
-          cardBounds = null;
-        }
-      }, true);
-
-      document.addEventListener('pointermove', (e) => {
-        if (!currentCard || !cardBounds) return;
-        lastClientX = e.clientX;
-        lastClientY = e.clientY;
-
-        if (!rafPending) {
-          rafPending = true;
-          requestAnimationFrame(() => {
-            rafPending = false;
-            if (!currentCard || !cardBounds) return;
-
-            const x = lastClientX - cardBounds.left;
-            const y = lastClientY - cardBounds.top;
-
-            // Normalized coordinates (-1 to 1)
-            const centerX = cardBounds.width / 2;
-            const centerY = cardBounds.height / 2;
-            const relX = Math.max(-1, Math.min(1, (x - centerX) / centerX));
-            const relY = Math.max(-1, Math.min(1, (y - centerY) / centerY));
-
-            // Intensity adjusted for card size
-            const isHeroMockup = currentCard.id === 'heroChatMockup' || currentCard.classList.contains('chat-mockup-card');
-            const isLarge = cardBounds.width > 550 || isHeroMockup;
-            const isSmall = cardBounds.width < 220;
-            const maxDeg = isHeroMockup ? 5.5 : (isLarge ? 6.5 : (isSmall ? 11 : 8.5));
-
-            const rotX = (-relY * maxDeg).toFixed(2);
-            const rotY = (relX * maxDeg).toFixed(2);
-
-            const pctX = Math.max(0, Math.min(100, (x / cardBounds.width) * 100)).toFixed(1);
-            const pctY = Math.max(0, Math.min(100, (y / cardBounds.height) * 100)).toFixed(1);
-
-            currentCard.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale3d(1.025, 1.025, 1.025)`;
-            currentCard.style.setProperty('--mouse-x', `${pctX}%`);
-            currentCard.style.setProperty('--mouse-y', `${pctY}%`);
-          });
-        }
-      }, { passive: true });
-    }
+    // 3D cursor tilt animations removed for clean, aesthetic performance & instant responsiveness
+    function initCursorAndTiltMotion() {}
 
     function initNavHoverPill() {
       const track = document.getElementById('navLinksTrack');
@@ -36653,7 +35996,6 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       });
     }
 
-    let parallaxTicking = false;
     function handleHeroParallax(el) {
       if (!el) el = document.getElementById('heroView');
       if (!el) return;
@@ -36668,15 +36010,6 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       const nav = document.getElementById('landingNav');
       if (nav) {
         nav.classList.toggle('scrolled', el.scrollTop > 20);
-      }
-
-      // Dynamic 3D tilt & scale morph on hero chat mockup when scrolling down
-      const heroMockup = document.getElementById('heroChatMockup');
-      if (heroMockup && !heroMockup.classList.contains('tilt-active')) {
-        const scroll = Math.min(el.scrollTop, 500);
-        const pitch = (scroll / 500) * 7.5;
-        const scale = 1 - (scroll / 500) * 0.035;
-        heroMockup.style.transform = `perspective(1200px) rotateX(${pitch.toFixed(1)}deg) scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, ${scale.toFixed(3)})`;
       }
     }
 
@@ -41413,36 +40746,8 @@ function handleNavCommunityClick() {
   </script>
 <script>
 
-    // ==================== UNIVERSAL EMAIL & PHONE VALIDATOR ====================
-    function isValidEmail(email) {
-      if (!email || typeof email !== 'string') return false;
-      const clean = email.trim();
-      const re = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-      return re.test(clean);
-    }
-
-    function isValidPhone(phone) {
-      if (!phone || typeof phone !== 'string') return false;
-      const clean = phone.trim();
-      if (!/^\+?[0-9\s\-\(\)\.]{7,20}$/.test(clean)) return false;
-      const digits = clean.replace(/\D/g, '');
-      if (digits.length < 7 || digits.length > 15) return false;
-      // Disallow all identical digits
-      if (/^(\d)\1+$/.test(digits)) return false;
-      return true;
-    }
-
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        if (typeof holoAnimationId !== 'undefined' && holoAnimationId) {
-          cancelAnimationFrame(holoAnimationId);
-          holoAnimationId = null;
-        }
-        if (typeof audioEqualizerAnimId !== 'undefined' && audioEqualizerAnimId) {
-          cancelAnimationFrame(audioEqualizerAnimId);
-          audioEqualizerAnimId = null;
-        }
-      } else {
+      if (!document.hidden) {
         // Tab restored to focus: verify WebSocket connection
         if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
           connectWebSocket();
@@ -41452,15 +40757,6 @@ function handleNavCommunityClick() {
           fetchDMHistory(currentDMTarget);
         } else {
           fetchHistory(undefined, true);
-        }
-
-        const hero = document.getElementById('heroView');
-        if (hero && hero.classList.contains('active')) {
-          if (activeHero3DMode === 'holo' && typeof init3DHologramEngine === 'function') {
-            init3DHologramEngine();
-          } else if (activeHero3DMode === 'audio' && typeof initAudioEqualizerCanvas === 'function') {
-            initAudioEqualizerCanvas();
-          }
         }
       }
     });
@@ -41725,7 +41021,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-15') {
+        if (name !== 'connecto-v5-0-16') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
