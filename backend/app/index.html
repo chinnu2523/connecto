@@ -1160,10 +1160,10 @@
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
     }
     html[data-theme="noir"] .msg-bubble-mine {
-      background: #ffffff !important;
-      color: #000000 !important;
-      border: 1px solid #ffffff !important;
-      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.15) !important;
+      background: linear-gradient(135deg, #0284c7 0%, #4f46e5 100%) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(56, 189, 248, 0.45) !important;
+      box-shadow: 0 4px 18px rgba(2, 132, 199, 0.28), 0 1px 3px rgba(0, 0, 0, 0.4) !important;
     }
 
     /* Connecto Modern Message Cards in Noir (Dark) Theme */
@@ -1177,67 +1177,75 @@
       border-color: rgba(255, 255, 255, 0.18) !important;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7) !important;
     }
-    /* In Dark Theme (Noir): Alternate colour is Pure White */
+    /* In Dark Theme (Noir): Mine messages feature an obsidian cyan accent card */
     html[data-theme="noir"] .connecto-message-card.mine {
-      background: #ffffff !important;
-      border: 1px solid #ffffff !important;
-      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.20) !important;
-      color: #000000 !important;
+      background: #0c121d !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.75), 0 0 16px rgba(56, 189, 248, 0.10) !important;
+      color: #f1f5f9 !important;
+    }
+    html[data-theme="noir"] .connecto-message-card.mine:hover {
+      background: #111928 !important;
+      border-color: rgba(56, 189, 248, 0.55) !important;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.85), 0 0 20px rgba(56, 189, 248, 0.16) !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-card-author {
-      color: #000000 !important;
+      color: #38bdf8 !important;
       font-weight: 800 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-card-handle {
-      color: #52525b !important;
+      color: #94a3b8 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-card-time {
-      color: #52525b !important;
+      color: #64748b !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-card-body {
-      color: #111111 !important;
+      color: #f1f5f9 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-card-avatar {
-      background: #000000 !important;
-      color: #ffffff !important;
-      border: 1px solid rgba(0, 0, 0, 0.2) !important;
+      background: #1e293b !important;
+      color: #38bdf8 !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-rx-chip {
-      background: #f4f4f5 !important;
-      border: 1px solid rgba(0, 0, 0, 0.15) !important;
-      color: #18181b !important;
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(56, 189, 248, 0.25) !important;
+      color: #e2e8f0 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-rx-chip.active {
-      background: #000000 !important;
-      color: #ffffff !important;
+      background: rgba(56, 189, 248, 0.25) !important;
+      border-color: #38bdf8 !important;
+      color: #38bdf8 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-hover-actions {
-      background: #ffffff !important;
-      border: 1px solid rgba(0, 0, 0, 0.15) !important;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
-      color: #000000 !important;
+      background: #0f1422 !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8) !important;
+      color: #ffffff !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-hover-actions button {
-      color: #18181b !important;
+      color: #cbd5e1 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-hover-actions button:hover {
-      background: #f4f4f5 !important;
-      color: #000000 !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .msg-quoted-reply {
-      color: #52525b !important;
-      border-left-color: #000000 !important;
+      background: rgba(0, 0, 0, 0.35) !important;
+      color: #94a3b8 !important;
+      border-left: 3px solid #38bdf8 !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .code-block-container {
-      background: #f4f4f5 !important;
-      border-color: rgba(0, 0, 0, 0.15) !important;
+      background: #070a10 !important;
+      border-color: rgba(56, 189, 248, 0.25) !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine .code-block-header {
-      background: #e4e4e7 !important;
-      color: #000000 !important;
+      background: #0e1626 !important;
+      color: #94a3b8 !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     html[data-theme="noir"] .connecto-message-card.mine pre code {
-      color: #000000 !important;
+      color: #e2e8f0 !important;
     }
     html[data-theme="noir"] .connecto-message-card:not(.mine):nth-child(even) {
       background: #0d0d0d !important;
@@ -1247,10 +1255,10 @@
       color: #ffffff !important;
     }
     html[data-theme="noir"] .msg-card-handle {
-      color: #52525b !important;
+      color: #71717a !important;
     }
     html[data-theme="noir"] .msg-card-time {
-      color: #3f3f46 !important;
+      color: #71717a !important;
     }
     html[data-theme="noir"] .msg-card-body {
       color: #d4d4d8 !important;
@@ -1265,8 +1273,9 @@
       color: #d4d4d8 !important;
     }
     html[data-theme="noir"] .connecto-message-card .msg-rx-chip.active {
-      background: #ffffff !important;
-      color: #000000 !important;
+      background: rgba(56, 189, 248, 0.20) !important;
+      border-color: #38bdf8 !important;
+      color: #38bdf8 !important;
     }
     html[data-theme="noir"] .connecto-message-card .msg-hover-actions {
       background: #111111 !important;
@@ -1274,8 +1283,15 @@
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.8) !important;
     }
     html[data-theme="noir"] .msg-quoted-reply {
-      color: #71717a !important;
-      border-left-color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+      border-left: 3px solid #38bdf8 !important;
+      color: #94a3b8 !important;
+      padding: 4px 8px !important;
+      border-radius: 0 6px 6px 0 !important;
+    }
+    html[data-theme="noir"] .msg-quoted-reply .quoted-user {
+      color: #38bdf8 !important;
+      font-weight: 700 !important;
     }
     html[data-theme="noir"] .code-block-container {
       background: #0a0a0a !important;
@@ -1293,6 +1309,11 @@
       background: #1a1a1a !important;
       border: 1px solid rgba(255, 255, 255, 0.10) !important;
       color: #d4d4d8 !important;
+    }
+    html[data-theme="noir"] .btn-copy-code:hover {
+      background: #27272a !important;
+      color: #ffffff !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
     }
     html[data-theme="noir"] .hljs-pre {
       background: #0a0a0a !important;
@@ -1313,11 +1334,154 @@
     }
     html[data-theme="noir"] .msg-rx-chip:hover {
       background: rgba(255, 255, 255, 0.08) !important;
-      border-color: #ffffff !important;
+      border-color: #38bdf8 !important;
     }
     html[data-theme="noir"] .msg-rx-chip.active {
-      background: #ffffff !important;
-      color: #000000 !important;
+      background: rgba(56, 189, 248, 0.20) !important;
+      border-color: #38bdf8 !important;
+      color: #38bdf8 !important;
+    }
+    html[data-theme="noir"] .msg-act-icon {
+      color: #a1a1aa !important;
+    }
+    html[data-theme="noir"] .msg-act-icon:hover {
+      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.12) !important;
+    }
+    html[data-theme="noir"] .msg-act-icon.bookmarked {
+      color: #f59e0b !important;
+    }
+
+    /* Message Links */
+    html[data-theme="noir"] .msg-link,
+    html[data-theme="noir"] .msg-card-body a,
+    html[data-theme="noir"] .dm-bubble-body a {
+      color: #38bdf8 !important;
+      text-decoration: underline !important;
+    }
+    html[data-theme="noir"] .msg-link:hover,
+    html[data-theme="noir"] .msg-card-body a:hover,
+    html[data-theme="noir"] .dm-bubble-body a:hover {
+      color: #7dd3fc !important;
+    }
+
+    /* Link Previews in Noir */
+    html[data-theme="noir"] .msg-link-preview-card {
+      background: #0b0e17 !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      border-left: 3px solid #38bdf8 !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
+    }
+    html[data-theme="noir"] .msg-link-preview-card:hover {
+      background: #111724 !important;
+      border-color: rgba(56, 189, 248, 0.5) !important;
+      border-left: 3px solid #38bdf8 !important;
+    }
+    html[data-theme="noir"] .link-preview-title {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .link-preview-desc {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .link-preview-site-row {
+      color: #38bdf8 !important;
+    }
+
+    /* Thread Pill in Noir */
+    html[data-theme="noir"] .msg-thread-pill {
+      background: rgba(56, 189, 248, 0.10) !important;
+      border: 1px solid rgba(56, 189, 248, 0.35) !important;
+      color: #38bdf8 !important;
+    }
+    html[data-theme="noir"] .msg-thread-pill:hover {
+      background: rgba(56, 189, 248, 0.20) !important;
+      border-color: #38bdf8 !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .thread-pill-meta {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .thread-drawer {
+      background: #090a0f !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: -10px 0 35px rgba(0, 0, 0, 0.9) !important;
+    }
+    html[data-theme="noir"] .thread-root-card {
+      background: #0f131d !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10) !important;
+    }
+    html[data-theme="noir"] .thread-root-author {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .thread-root-time {
+      color: #71717a !important;
+    }
+    html[data-theme="noir"] .thread-root-content {
+      color: #e4e4e7 !important;
+    }
+
+    /* Interactive Polls in Noir */
+    html[data-theme="noir"] .poll-card-wrap {
+      background: #0c0f17 !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+    }
+    html[data-theme="noir"] .poll-question-text {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .poll-option-item {
+      background: rgba(255, 255, 255, 0.04) !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    }
+    html[data-theme="noir"] .poll-option-item:hover:not(.poll-closed) {
+      border-color: #38bdf8 !important;
+      background: rgba(255, 255, 255, 0.08) !important;
+    }
+    html[data-theme="noir"] .poll-option-item.poll-voted {
+      border-color: rgba(56, 189, 248, 0.6) !important;
+      background: rgba(56, 189, 248, 0.10) !important;
+    }
+    html[data-theme="noir"] .poll-progress-fill {
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.25), rgba(99, 102, 241, 0.35)) !important;
+    }
+    html[data-theme="noir"] .poll-option-label {
+      color: #f1f5f9 !important;
+    }
+    html[data-theme="noir"] .poll-option-stats {
+      color: #38bdf8 !important;
+    }
+    html[data-theme="noir"] .poll-card-footer {
+      color: #71717a !important;
+      border-top-color: rgba(255, 255, 255, 0.08) !important;
+    }
+
+    /* Inline Translation in Noir */
+    html[data-theme="noir"] .msg-inline-translation {
+      background: #0b0e14 !important;
+      border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      border-left: 3px solid #6366f1 !important;
+      color: #e2e8f0 !important;
+    }
+    html[data-theme="noir"] .translation-meta {
+      color: #818cf8 !important;
+    }
+    html[data-theme="noir"] .btn-hide-translation {
+      color: #71717a !important;
+    }
+    html[data-theme="noir"] .btn-hide-translation:hover {
+      color: #e4e4e7 !important;
+    }
+
+    /* Badges & Pills in Noir */
+    html[data-theme="noir"] .msg-automod-badge {
+      color: #fbbf24 !important;
+      background: rgba(245, 158, 11, 0.16) !important;
+      border-color: rgba(245, 158, 11, 0.35) !important;
+    }
+    html[data-theme="noir"] .ephemeral-timer-pill {
+      color: #fbbf24 !important;
+      background: rgba(245, 158, 11, 0.16) !important;
+      border-color: rgba(245, 158, 11, 0.35) !important;
     }
     html[data-theme="noir"] .chat-empty-title {
       color: #ffffff !important;
@@ -4550,7 +4714,11 @@
       z-index: 20;
     }
     .msg-row:hover .msg-hover-actions,
-    .msg-row:focus-within .msg-hover-actions {
+    .msg-row:focus-within .msg-hover-actions,
+    .connecto-message-card:hover .msg-hover-actions,
+    .connecto-message-card:focus-within .msg-hover-actions,
+    .channel-message-card:hover .msg-hover-actions,
+    .channel-message-card:focus-within .msg-hover-actions {
       opacity: 1;
       pointer-events: auto;
       transform: translateY(0) scale(1);
@@ -13259,8 +13427,14 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
       z-index: 30;
     }
-    .connecto-message-card:hover .msg-hover-actions {
-      display: flex;
+    .connecto-message-card:hover .msg-hover-actions,
+    .channel-message-card:hover .msg-hover-actions,
+    .connecto-message-card:focus-within .msg-hover-actions,
+    .channel-message-card:focus-within .msg-hover-actions {
+      display: flex !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: translateY(0) scale(1) !important;
     }
 
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
@@ -16300,7 +16474,13 @@ input:-webkit-autofill:active {
   z-index: 30 !important;
 }
 .msg-row:hover .msg-hover-actions,
-.msg-row:focus-within .msg-hover-actions {
+.msg-row:focus-within .msg-hover-actions,
+.connecto-message-card:hover .msg-hover-actions,
+.connecto-message-card:focus-within .msg-hover-actions,
+.channel-message-card:hover .msg-hover-actions,
+.channel-message-card:focus-within .msg-hover-actions,
+.personal-dm-bubble-wrap:hover .msg-hover-actions,
+.personal-dm-bubble-wrap:focus-within .msg-hover-actions {
   opacity: 1 !important;
   pointer-events: auto !important;
   transform: translateY(0) scale(1) !important;
