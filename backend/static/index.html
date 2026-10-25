@@ -9589,8 +9589,53 @@
       color: #94a3b8 !important;
       display: flex !important;
       align-items: center !important;
-      gap: 4px !important;
+      gap: 5px !important;
       margin-bottom: 6px !important;
+      transition: color 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .form-group label i,
+    .form-group label svg {
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
+    }
+    .form-group:focus-within label {
+      color: #00D9F5 !important;
+    }
+    .form-group:focus-within label i,
+    .form-group:focus-within label svg {
+      color: #00D9F5 !important;
+      transform: scale(1.12);
+    }
+
+    /* Staggered Entrance Animations for Input Bars */
+    @keyframes authFieldStagger {
+      0% {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    #signInForm .form-group:nth-of-type(1),
+    #signUpForm .form-group:nth-of-type(1) {
+      animation: authFieldStagger 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.03s both;
+    }
+    #signInForm .form-group:nth-of-type(2),
+    #signUpForm .form-group:nth-of-type(2) {
+      animation: authFieldStagger 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.06s both;
+    }
+    #signUpForm .form-group:nth-of-type(3) {
+      animation: authFieldStagger 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.09s both;
+    }
+    #signUpForm .form-group:nth-of-type(4) {
+      animation: authFieldStagger 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.12s both;
+    }
+    #signUpForm .form-group:nth-of-type(5) {
+      animation: authFieldStagger 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+    }
+    #signUpForm .form-group:nth-of-type(6) {
+      animation: authFieldStagger 0.26s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
     }
 
     /* Input Wrappers & Modern Aesthetic Inputs */
@@ -9607,16 +9652,24 @@
       z-index: 1;
       overflow: hidden;
       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
-      transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
+      transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  background-color 0.25s ease,
+                  transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .auth-input-wrap:hover {
-      border-color: rgba(255, 255, 255, 0.22);
+      border-color: rgba(255, 255, 255, 0.24);
       background: rgba(255, 255, 255, 0.055);
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25);
     }
     .auth-input-wrap:focus-within {
       border-color: #00D9F5 !important;
-      box-shadow: 0 0 0 3.5px rgba(0, 217, 245, 0.22), inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+      box-shadow: 0 0 0 3.5px rgba(0, 217, 245, 0.22),
+                  0 8px 24px -4px rgba(0, 217, 245, 0.2),
+                  inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
       background: rgba(255, 255, 255, 0.065) !important;
+      transform: translateY(-1.5px);
     }
     .auth-input-icon {
       position: static !important;
@@ -9633,7 +9686,7 @@
     }
     .auth-input-wrap:focus-within .auth-input-icon {
       color: #00D9F5 !important;
-      transform: scale(1.1);
+      transform: scale(1.12);
     }
     .auth-input-wrap .auth-input-field {
       flex: 1 1 auto;
@@ -9690,10 +9743,10 @@
       left: 0;
       right: 0;
       height: 2.5px;
-      background: linear-gradient(90deg, #6366f1, #06b6d4, #10b981);
+      background: linear-gradient(90deg, #00F5A0 0%, #00D9F5 50%, #2563EB 100%);
       transform: scaleX(0);
       transform-origin: center;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, background 0.3s ease;
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
       opacity: 0;
       pointer-events: none;
       z-index: 5;
@@ -9703,17 +9756,31 @@
       opacity: 1;
     }
     .auth-input-wrap.is-typing .auth-typing-bar {
-      background: linear-gradient(90deg, #06b6d4, #8b5cf6, #ec4899);
-      box-shadow: 0 0 10px rgba(6, 182, 212, 0.7);
+      background: linear-gradient(90deg, #00F5A0, #00D9F5, #8b5cf6, #ec4899);
+      box-shadow: 0 0 14px rgba(0, 217, 245, 0.85);
       animation: authTypingBarPulse 1.2s infinite ease-in-out;
     }
     @keyframes authTypingBarPulse {
       0%, 100% { opacity: 0.9; filter: brightness(1); }
-      50% { opacity: 1; filter: brightness(1.3); }
+      50% { opacity: 1; filter: brightness(1.35); }
     }
+
+    /* State-driven Micro-Animations on the Input Bars */
+    @keyframes authSuccessPulse {
+      0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45); }
+      70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+    }
+    @keyframes authBarShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+
     .auth-input-wrap.has-success {
-      border-color: rgba(34, 197, 94, 0.6) !important;
-      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15) !important;
+      border-color: rgba(34, 197, 94, 0.75) !important;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+      animation: authSuccessPulse 0.6s ease-out;
     }
     .auth-input-wrap.has-success .auth-typing-bar {
       background: linear-gradient(90deg, #22c55e, #10b981) !important;
@@ -9721,8 +9788,9 @@
       transform: scaleX(1) !important;
     }
     .auth-input-wrap.has-error {
-      border-color: rgba(239, 68, 68, 0.6) !important;
-      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15) !important;
+      border-color: rgba(239, 68, 68, 0.75) !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.22), inset 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+      animation: authBarShake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
     }
     .auth-input-wrap.has-error .auth-typing-bar {
       background: linear-gradient(90deg, #ef4444, #f43f5e) !important;
@@ -9730,8 +9798,8 @@
       transform: scaleX(1) !important;
     }
     .auth-input-wrap.has-warning {
-      border-color: rgba(245, 158, 11, 0.6) !important;
-      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15) !important;
+      border-color: rgba(245, 158, 11, 0.75) !important;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.25) !important;
     }
     .auth-input-wrap.has-warning .auth-typing-bar {
       background: linear-gradient(90deg, #f59e0b, #eab308) !important;
@@ -9740,46 +9808,63 @@
     }
 
     /* Buttons inside Input Wrappers */
+    @keyframes authBtnPopIn {
+      0% { opacity: 0; transform: scale(0.65); }
+      100% { opacity: 1; transform: scale(1); }
+    }
     .auth-clear-btn {
       position: absolute;
       right: 12px;
       background: rgba(255, 255, 255, 0.08);
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       color: #94a3b8;
       font-size: 15px;
       line-height: 1;
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 2;
       padding: 0;
+      animation: authBtnPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     .auth-input-wrap:has(.pwd-toggle-btn) .auth-clear-btn {
-      right: 42px;
+      right: 44px;
     }
     .auth-clear-btn:hover {
-      background: rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(239, 68, 68, 0.4);
       color: #ef4444;
-      transform: scale(1.1);
+      transform: scale(1.12);
     }
     .pwd-toggle-btn {
       position: absolute;
       right: 12px;
-      background: none;
-      border: none;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       color: #64748b;
       cursor: pointer;
       font-size: 15px;
-      padding: 5px;
-      border-radius: 6px;
+      padding: 4px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2;
+    }
+    .pwd-toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      transform: scale(1.08);
+    }
       transition: color 0.2s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 2;
     }
@@ -10069,12 +10154,15 @@
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
     }
     html[data-theme="parchment"] .auth-input-wrap:hover {
-      border-color: rgba(68, 64, 60, 0.35) !important;
+      border-color: rgba(68, 64, 60, 0.38) !important;
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 2px rgba(68, 64, 60, 0.04), 0 4px 12px rgba(68, 64, 60, 0.08) !important;
     }
     html[data-theme="parchment"] .auth-input-wrap:focus-within {
       background: #ffffff !important;
       border-color: #ea580c !important;
-      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+      transform: translateY(-1.5px);
+      box-shadow: 0 0 0 3.5px rgba(234, 88, 12, 0.16), 0 8px 20px -4px rgba(234, 88, 12, 0.15), inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
     }
     html[data-theme="parchment"] .auth-input-icon {
       color: #a8a29e !important;
@@ -10264,13 +10352,19 @@
     }
     html[data-theme="noir"] .auth-input-wrap:hover,
     html[data-theme="dark"] .auth-input-wrap:hover {
-      border-color: rgba(255, 255, 255, 0.22) !important;
+      border-color: rgba(255, 255, 255, 0.24) !important;
+      background: rgba(255, 255, 255, 0.055) !important;
+      transform: translateY(-1px);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.25) !important;
     }
     html[data-theme="noir"] .auth-input-wrap:focus-within,
     html[data-theme="dark"] .auth-input-wrap:focus-within {
       border-color: #00D9F5 !important;
-      box-shadow: 0 0 0 3px rgba(0, 217, 245, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-      background: rgba(255, 255, 255, 0.055) !important;
+      box-shadow: 0 0 0 3.5px rgba(0, 217, 245, 0.22),
+                  0 8px 24px -4px rgba(0, 217, 245, 0.2),
+                  inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+      background: rgba(255, 255, 255, 0.065) !important;
+      transform: translateY(-1.5px);
     }
 
     html[data-theme="noir"] .auth-input-icon,
@@ -41468,7 +41562,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-19') {
+        if (name !== 'connecto-v5-0-20') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
