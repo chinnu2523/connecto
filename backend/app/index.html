@@ -10906,6 +10906,789 @@
       }
     }
 
+    /* ==========================================================================
+       OVERALL WEBSITE TACTILE BENTO CARDS, SQUIRCLE LOGO BADGES & DUAL THEME PARITY
+       ========================================================================== */
+    
+    /* 1. ECOSYSTEM DIRECTORY & CARDS */
+    .ecosystem-grid-6 {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 16px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 1024px) {
+      .ecosystem-grid-6 {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+    @media (max-width: 640px) {
+      .ecosystem-grid-6 {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+    }
+
+    .ecosystem-card {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 20px !important;
+      padding: 22px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      box-sizing: border-box !important;
+      cursor: pointer !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.28s ease,
+                  border-color 0.28s ease,
+                  background-color 0.28s ease !important;
+    }
+
+    .ecosystem-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      border-radius: 20px 20px 0 0 !important;
+      z-index: 2 !important;
+    }
+
+    .ecosystem-card-top {
+      display: flex !important;
+      align-items: flex-start !important;
+      gap: 14px !important;
+    }
+
+    .ecosystem-card-icon {
+      width: 52px !important;
+      height: 52px !important;
+      border-radius: 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      flex-shrink: 0 !important;
+      border: 1px solid !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .ecosystem-card:hover .ecosystem-card-icon {
+      transform: scale(1.1) rotate(-4deg) !important;
+    }
+
+    .ecosystem-pulse-dot {
+      position: absolute !important;
+      top: -2px !important;
+      right: -2px !important;
+      width: 9px !important;
+      height: 9px !important;
+      border-radius: 50% !important;
+      border: 2px solid #0c0e16 !important;
+      animation: statPulseDot 2s infinite ease-in-out !important;
+    }
+
+    .ecosystem-card-title {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 8px !important;
+      font-size: 16.5px !important;
+      font-weight: 800 !important;
+      font-family: var(--font-display) !important;
+      color: var(--text-header) !important;
+    }
+
+    .ecosystem-card-badge {
+      font-size: 10.5px !important;
+      font-weight: 700 !important;
+      padding: 3px 9px !important;
+      border-radius: 9999px !important;
+      border: 1px solid currentColor !important;
+      letter-spacing: 0.02em !important;
+      white-space: nowrap !important;
+    }
+
+    .ecosystem-card-desc {
+      font-size: 13px !important;
+      line-height: 1.55 !important;
+      margin-top: 8px !important;
+      color: var(--text-muted) !important;
+    }
+
+    .ecosystem-card-features {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      margin: 16px 0 18px !important;
+    }
+
+    .ecosystem-feature-chip {
+      font-size: 11px !important;
+      font-weight: 600 !important;
+      padding: 4px 10px !important;
+      border-radius: 8px !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      color: var(--text-muted) !important;
+      border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    }
+
+    .ecosystem-card-action {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding-top: 14px !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    .ecosystem-card-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      font-weight: 800 !important;
+      font-size: 13px !important;
+      background: transparent !important;
+      border: none !important;
+      cursor: pointer !important;
+      padding: 6px 10px !important;
+      border-radius: 8px !important;
+      transition: transform 0.2s ease, gap 0.2s ease !important;
+    }
+    .ecosystem-card:hover .ecosystem-card-btn {
+      transform: translateX(4px) !important;
+    }
+
+    /* Dark Theme Ecosystem Card */
+    html[data-theme="noir"] .ecosystem-card,
+    html[data-theme="dark"] .ecosystem-card,
+    html[data-theme="black"] .ecosystem-card,
+    html[data-theme="obsidian"] .ecosystem-card {
+      background: rgba(14, 16, 26, 0.82) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 10px 32px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    html[data-theme="noir"] .ecosystem-card:hover,
+    html[data-theme="dark"] .ecosystem-card:hover,
+    html[data-theme="black"] .ecosystem-card:hover,
+    html[data-theme="obsidian"] .ecosystem-card:hover {
+      transform: translateY(-5px) !important;
+      border-color: var(--card-accent, #00cec9) !important;
+      box-shadow: 0 20px 40px -12px var(--card-glow, rgba(0, 206, 201, 0.35)), 0 0 0 1px var(--card-accent, #00cec9) !important;
+    }
+
+    /* Light Theme Ecosystem Card */
+    html[data-theme="parchment"] .ecosystem-card,
+    html[data-theme="light"] .ecosystem-card,
+    html[data-theme="ivory"] .ecosystem-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 4px 18px -2px rgba(68, 64, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    }
+    html[data-theme="parchment"] .ecosystem-card:hover,
+    html[data-theme="light"] .ecosystem-card:hover,
+    html[data-theme="ivory"] .ecosystem-card:hover {
+      transform: translateY(-5px) !important;
+      border-color: var(--card-accent, #059669) !important;
+      box-shadow: 0 16px 36px -6px rgba(68, 64, 60, 0.16), 0 0 0 1px var(--card-accent, #059669) !important;
+    }
+    html[data-theme="parchment"] .ecosystem-pulse-dot,
+    html[data-theme="light"] .ecosystem-pulse-dot,
+    html[data-theme="ivory"] .ecosystem-pulse-dot {
+      border-color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .ecosystem-card-action,
+    html[data-theme="light"] .ecosystem-card-action,
+    html[data-theme="ivory"] .ecosystem-card-action {
+      border-top-color: rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .ecosystem-feature-chip,
+    html[data-theme="light"] .ecosystem-feature-chip,
+    html[data-theme="ivory"] .ecosystem-feature-chip {
+      background: #f5eee0 !important;
+      color: #44403c !important;
+      border: 1px solid rgba(68, 64, 60, 0.12) !important;
+    }
+
+    /* 2. PLATFORM COMPARISON MATRIX */
+    .comparison-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 18px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 768px) {
+      .comparison-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+      }
+    }
+
+    .comparison-card {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 20px !important;
+      padding: 24px !important;
+      box-sizing: border-box !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.28s ease,
+                  border-color 0.28s ease,
+                  background-color 0.28s ease !important;
+    }
+
+    .comparison-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      border-radius: 20px 20px 0 0 !important;
+      z-index: 2 !important;
+    }
+
+    .comparison-card-header {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      margin-bottom: 16px !important;
+    }
+
+    .comparison-logo-title-group {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+    }
+
+    .comparison-logo-badge {
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 14px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      border: 1px solid !important;
+      flex-shrink: 0 !important;
+    }
+
+    .comparison-pulse-dot {
+      position: absolute !important;
+      top: -2px !important;
+      right: -2px !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 50% !important;
+      border: 2px solid #0c0e16 !important;
+      animation: statPulseDot 2s infinite ease-in-out !important;
+    }
+
+    .comparison-rows-list {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
+
+    .comparison-row {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      font-size: 13.5px !important;
+      padding: 10px 12px !important;
+      border-radius: 12px !important;
+      box-sizing: border-box !important;
+    }
+
+    .comparison-row strong,
+    .comparison-row span {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    /* Dark Comparison Card */
+    html[data-theme="noir"] .comparison-card,
+    html[data-theme="dark"] .comparison-card,
+    html[data-theme="black"] .comparison-card,
+    html[data-theme="obsidian"] .comparison-card {
+      background: rgba(14, 16, 26, 0.82) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 10px 32px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    html[data-theme="noir"] .comparison-card:hover,
+    html[data-theme="dark"] .comparison-card:hover,
+    html[data-theme="black"] .comparison-card:hover,
+    html[data-theme="obsidian"] .comparison-card:hover {
+      transform: translateY(-4px) !important;
+      border-color: var(--comp-accent, #00cec9) !important;
+      box-shadow: 0 18px 40px -10px var(--comp-glow, rgba(0, 206, 201, 0.35)) !important;
+    }
+    html[data-theme="noir"] .comparison-row,
+    html[data-theme="dark"] .comparison-row,
+    html[data-theme="black"] .comparison-row,
+    html[data-theme="obsidian"] .comparison-row {
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.04) !important;
+    }
+
+    /* Light Comparison Card */
+    html[data-theme="parchment"] .comparison-card,
+    html[data-theme="light"] .comparison-card,
+    html[data-theme="ivory"] .comparison-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 4px 18px -2px rgba(68, 64, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    }
+    html[data-theme="parchment"] .comparison-card:hover,
+    html[data-theme="light"] .comparison-card:hover,
+    html[data-theme="ivory"] .comparison-card:hover {
+      transform: translateY(-4px) !important;
+      border-color: var(--comp-accent, #059669) !important;
+      box-shadow: 0 16px 36px -6px rgba(68, 64, 60, 0.16) !important;
+    }
+    html[data-theme="parchment"] .comparison-pulse-dot,
+    html[data-theme="light"] .comparison-pulse-dot,
+    html[data-theme="ivory"] .comparison-pulse-dot {
+      border-color: #ffffff !important;
+    }
+    html[data-theme="parchment"] .comparison-row,
+    html[data-theme="light"] .comparison-row,
+    html[data-theme="ivory"] .comparison-row {
+      background: #faf8f5 !important;
+      border: 1px solid rgba(68, 64, 60, 0.08) !important;
+    }
+
+    /* 3. PLATFORM ARCHITECTURE NODES */
+    .arch-flow-wrap {
+      display: grid !important;
+      grid-template-columns: repeat(5, 1fr) !important;
+      gap: 14px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 1024px) {
+      .arch-flow-wrap {
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+    }
+    @media (max-width: 640px) {
+      .arch-flow-wrap {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+    }
+
+    .arch-node {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 18px !important;
+      padding: 22px 14px 18px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      text-align: center !important;
+      gap: 10px !important;
+      box-sizing: border-box !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.28s ease,
+                  border-color 0.28s ease,
+                  background-color 0.28s ease !important;
+    }
+
+    .arch-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      border-radius: 18px 18px 0 0 !important;
+      z-index: 2 !important;
+    }
+
+    .arch-node-icon {
+      width: 50px !important;
+      height: 50px !important;
+      border-radius: 15px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      border: 1px solid !important;
+      flex-shrink: 0 !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .arch-node:hover .arch-node-icon {
+      transform: scale(1.12) rotate(-5deg) !important;
+    }
+
+    .arch-pulse-dot {
+      position: absolute !important;
+      top: -2px !important;
+      right: -2px !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 50% !important;
+      border: 2px solid #0c0e16 !important;
+      animation: statPulseDot 2s infinite ease-in-out !important;
+    }
+
+    /* Dark Arch Node */
+    html[data-theme="noir"] .arch-node,
+    html[data-theme="dark"] .arch-node,
+    html[data-theme="black"] .arch-node,
+    html[data-theme="obsidian"] .arch-node {
+      background: rgba(14, 16, 26, 0.82) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    html[data-theme="noir"] .arch-node:hover,
+    html[data-theme="dark"] .arch-node:hover,
+    html[data-theme="black"] .arch-node:hover,
+    html[data-theme="obsidian"] .arch-node:hover {
+      transform: translateY(-6px) !important;
+      border-color: var(--node-accent, #00cec9) !important;
+      box-shadow: 0 18px 36px -8px var(--node-glow, rgba(0, 206, 201, 0.35)), 0 0 0 1px var(--node-accent, #00cec9) !important;
+    }
+
+    /* Light Arch Node */
+    html[data-theme="parchment"] .arch-node,
+    html[data-theme="light"] .arch-node,
+    html[data-theme="ivory"] .arch-node {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 4px 16px -2px rgba(68, 64, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    }
+    html[data-theme="parchment"] .arch-node:hover,
+    html[data-theme="light"] .arch-node:hover,
+    html[data-theme="ivory"] .arch-node:hover {
+      transform: translateY(-6px) !important;
+      border-color: var(--node-accent, #059669) !important;
+      box-shadow: 0 16px 32px -6px rgba(68, 64, 60, 0.16), 0 0 0 1px var(--node-accent, #059669) !important;
+    }
+    html[data-theme="parchment"] .arch-pulse-dot,
+    html[data-theme="light"] .arch-pulse-dot,
+    html[data-theme="ivory"] .arch-pulse-dot {
+      border-color: #ffffff !important;
+    }
+
+    /* 4. LEARNING HUB TRACKS (USECASE CARDS) */
+    .usecase-card {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 18px !important;
+      padding: 22px 18px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      box-sizing: border-box !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.28s ease,
+                  border-color 0.28s ease,
+                  background-color 0.28s ease !important;
+    }
+
+    .usecase-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      border-radius: 18px 18px 0 0 !important;
+      z-index: 2 !important;
+    }
+
+    .usecase-icon-badge {
+      width: 48px !important;
+      height: 48px !important;
+      border-radius: 14px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      border: 1px solid !important;
+      margin-bottom: 12px !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .usecase-card:hover .usecase-icon-badge {
+      transform: scale(1.1) rotate(-4deg) !important;
+    }
+
+    .usecase-pulse-dot {
+      position: absolute !important;
+      top: -2px !important;
+      right: -2px !important;
+      width: 8px !important;
+      height: 8px !important;
+      border-radius: 50% !important;
+      border: 2px solid #0c0e16 !important;
+      animation: statPulseDot 2s infinite ease-in-out !important;
+    }
+
+    /* Dark Learning Hub Card */
+    html[data-theme="noir"] .usecase-card,
+    html[data-theme="dark"] .usecase-card,
+    html[data-theme="black"] .usecase-card,
+    html[data-theme="obsidian"] .usecase-card {
+      background: rgba(14, 16, 26, 0.82) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    html[data-theme="noir"] .usecase-card:hover,
+    html[data-theme="dark"] .usecase-card:hover,
+    html[data-theme="black"] .usecase-card:hover,
+    html[data-theme="obsidian"] .usecase-card:hover {
+      transform: translateY(-5px) !important;
+      border-color: var(--track-accent, #00cec9) !important;
+      box-shadow: 0 18px 36px -8px var(--track-glow, rgba(0, 206, 201, 0.35)) !important;
+    }
+
+    /* Light Learning Hub Card */
+    html[data-theme="parchment"] .usecase-card,
+    html[data-theme="light"] .usecase-card,
+    html[data-theme="ivory"] .usecase-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 4px 16px -2px rgba(68, 64, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    }
+    html[data-theme="parchment"] .usecase-card:hover,
+    html[data-theme="light"] .usecase-card:hover,
+    html[data-theme="ivory"] .usecase-card:hover {
+      transform: translateY(-5px) !important;
+      border-color: var(--track-accent, #059669) !important;
+      box-shadow: 0 16px 32px -6px rgba(68, 64, 60, 0.16) !important;
+    }
+    html[data-theme="parchment"] .usecase-pulse-dot,
+    html[data-theme="light"] .usecase-pulse-dot,
+    html[data-theme="ivory"] .usecase-pulse-dot {
+      border-color: #ffffff !important;
+    }
+
+    /* 5. QUICKSTART STEPS */
+    .steps-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 16px !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    @media (max-width: 768px) {
+      .steps-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+    }
+
+    .step-card-custom {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 18px !important;
+      padding: 22px 18px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      box-sizing: border-box !important;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.28s ease,
+                  border-color 0.28s ease,
+                  background-color 0.28s ease !important;
+    }
+
+    .step-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 3px !important;
+      border-radius: 18px 18px 0 0 !important;
+      z-index: 2 !important;
+    }
+
+    .step-badge-custom {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 12px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-weight: 900 !important;
+      font-size: 16px !important;
+      margin-bottom: 12px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Dark Quickstart Step Card */
+    html[data-theme="noir"] .step-card-custom,
+    html[data-theme="dark"] .step-card-custom,
+    html[data-theme="black"] .step-card-custom,
+    html[data-theme="obsidian"] .step-card-custom {
+      background: rgba(14, 16, 26, 0.82) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+    }
+    html[data-theme="noir"] .step-card-custom:hover,
+    html[data-theme="dark"] .step-card-custom:hover,
+    html[data-theme="black"] .step-card-custom:hover,
+    html[data-theme="obsidian"] .step-card-custom:hover {
+      transform: translateY(-5px) !important;
+      border-color: var(--step-accent, #00F5A0) !important;
+      box-shadow: 0 18px 36px -8px var(--step-glow, rgba(0, 245, 160, 0.35)) !important;
+    }
+
+    /* Light Quickstart Step Card */
+    html[data-theme="parchment"] .step-card-custom,
+    html[data-theme="light"] .step-card-custom,
+    html[data-theme="ivory"] .step-card-custom {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 4px 16px -2px rgba(68, 64, 60, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+    }
+    html[data-theme="parchment"] .step-card-custom:hover,
+    html[data-theme="light"] .step-card-custom:hover,
+    html[data-theme="ivory"] .step-card-custom:hover {
+      transform: translateY(-5px) !important;
+      border-color: var(--step-accent, #059669) !important;
+      box-shadow: 0 16px 32px -6px rgba(68, 64, 60, 0.16) !important;
+    }
+
+    /* 6. ANDROID FEATURE CARDS */
+    .android-feat-card {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 16px !important;
+      padding: 16px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      box-sizing: border-box !important;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.25s ease,
+                  border-color 0.25s ease,
+                  background-color 0.25s ease !important;
+    }
+
+    .android-feat-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 2.5px !important;
+      border-radius: 16px 16px 0 0 !important;
+      z-index: 2 !important;
+    }
+
+    .android-feat-card-top {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+    }
+
+    .android-feat-card-icon {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 11px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      position: relative !important;
+      border: 1px solid !important;
+      flex-shrink: 0 !important;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .android-feat-card:hover .android-feat-card-icon {
+      transform: scale(1.1) rotate(-4deg) !important;
+    }
+
+    .android-pulse-dot {
+      position: absolute !important;
+      top: -2px !important;
+      right: -2px !important;
+      width: 7px !important;
+      height: 7px !important;
+      border-radius: 50% !important;
+      border: 1.5px solid #0c0e16 !important;
+      animation: statPulseDot 2s infinite ease-in-out !important;
+    }
+
+    .android-feat-card-title {
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
+      color: var(--text-header) !important;
+    }
+
+    .android-feat-card-desc {
+      font-size: 11.5px !important;
+      color: var(--text-muted) !important;
+      line-height: 1.5 !important;
+    }
+
+    /* Dark Android Feature Card */
+    html[data-theme="noir"] .android-feat-card,
+    html[data-theme="dark"] .android-feat-card,
+    html[data-theme="black"] .android-feat-card,
+    html[data-theme="obsidian"] .android-feat-card {
+      background: rgba(15, 23, 42, 0.6) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.5) !important;
+    }
+    html[data-theme="noir"] .android-feat-card:hover,
+    html[data-theme="dark"] .android-feat-card:hover,
+    html[data-theme="black"] .android-feat-card:hover,
+    html[data-theme="obsidian"] .android-feat-card:hover {
+      transform: translateY(-3px) !important;
+      border-color: var(--android-accent, #10b981) !important;
+      box-shadow: 0 10px 24px -6px var(--android-glow, rgba(16, 185, 129, 0.35)) !important;
+    }
+
+    /* Light Android Feature Card */
+    html[data-theme="parchment"] .android-feat-card,
+    html[data-theme="light"] .android-feat-card,
+    html[data-theme="ivory"] .android-feat-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      box-shadow: 0 2px 10px rgba(68, 64, 60, 0.05) !important;
+    }
+    html[data-theme="parchment"] .android-feat-card:hover,
+    html[data-theme="light"] .android-feat-card:hover,
+    html[data-theme="ivory"] .android-feat-card:hover {
+      transform: translateY(-3px) !important;
+      border-color: var(--android-accent, #059669) !important;
+      box-shadow: 0 10px 24px -6px rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .android-pulse-dot,
+    html[data-theme="light"] .android-pulse-dot,
+    html[data-theme="ivory"] .android-pulse-dot {
+      border-color: #ffffff !important;
+    }
+
+    /* 7. MOBILE RESPONSIVE CLEANUP */
+    @media (max-width: 680px) {
+      .nav-ai-support-btn {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .floating-support-pill {
+        bottom: 74px !important;
+        right: 14px !important;
+        padding: 0 !important;
+        width: 48px !important;
+        height: 48px !important;
+        border-radius: 16px !important;
+        justify-content: center !important;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45) !important;
+      }
+      .floating-support-pill .support-pill-text,
+      .floating-support-pill .support-pill-badge {
+        display: none !important;
+      }
+      .floating-support-pill .support-pill-pulse {
+        position: absolute !important;
+        top: 7px !important;
+        right: 7px !important;
+      }
+    }
+
     /* Social Sign-In Providers & Divider */
     .auth-social-row {
       display: grid;
@@ -25038,50 +25821,74 @@ html[data-theme="dark"] #saveProfileBtn {
                   <div class="android-feat-card-desc">Account deletion relocated to the very bottom of Help &amp; Support with strict typed confirmation safeguards against accidental purges.</div>
                 </div>
 
-                <div class="android-feat-card">
+                <div class="android-feat-card" style="--android-accent: #10b981; --android-glow: rgba(16, 185, 129, 0.35);">
+                  <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon"><i data-lucide="shield-check" class="lucide-md"></i></span>
+                    <span class="android-feat-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+                      <i data-lucide="shield-check" class="lucide-md"></i>
+                      <span class="android-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                    </span>
                     <span class="android-feat-card-title">Connecto Vault</span>
                   </div>
                   <div class="android-feat-card-desc">Native Biometric fingerprint/face scan + Android device screen lock (PIN/pattern/password) with zero bypasses.</div>
                 </div>
 
-                <div class="android-feat-card">
+                <div class="android-feat-card" style="--android-accent: #a855f7; --android-glow: rgba(168, 85, 247, 0.35);">
+                  <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon"><i data-lucide="moon" class="lucide-md"></i></span>
+                    <span class="android-feat-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
+                      <i data-lucide="moon" class="lucide-md"></i>
+                      <span class="android-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+                    </span>
                     <span class="android-feat-card-title">Pure Black OLED</span>
                   </div>
                   <div class="android-feat-card-desc">True 100% pitch black (#000000) interface designed for ultra-high contrast and massive AMOLED battery savings.</div>
                 </div>
 
-                <div class="android-feat-card">
+                <div class="android-feat-card" style="--android-accent: #00cec9; --android-glow: rgba(0, 206, 201, 0.35);">
+                  <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon"><i data-lucide="zap" class="lucide-md"></i></span>
+                    <span class="android-feat-card-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
+                      <i data-lucide="zap" class="lucide-md"></i>
+                      <span class="android-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
+                    </span>
                     <span class="android-feat-card-title">Real-Time Engine</span>
                   </div>
                   <div class="android-feat-card-desc">Ultra low-latency WebSocket synchronization, live community polls, rich markdown, file attachments, and instant notifications.</div>
                 </div>
 
-                <div class="android-feat-card">
+                <div class="android-feat-card" style="--android-accent: #38bdf8; --android-glow: rgba(56, 189, 248, 0.35);">
+                  <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon"><i data-lucide="mic" class="lucide-md"></i></span>
+                    <span class="android-feat-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">
+                      <i data-lucide="mic" class="lucide-md"></i>
+                      <span class="android-pulse-dot" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
+                    </span>
                     <span class="android-feat-card-title">Spatial Mesh Voice</span>
                   </div>
                   <div class="android-feat-card-desc">Ultra low-latency WebRTC mesh audio lounges with hardware acoustic echo cancellation and background suppression.</div>
                 </div>
 
-                <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.06);">
+                <div class="android-feat-card" style="--android-accent: #10b981; --android-glow: rgba(16, 185, 129, 0.35);">
+                  <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="corner-up-left" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#10b981;">Swipe-to-Reply &amp; Quoted Previews</span>
+                    <span class="android-feat-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+                      <i data-lucide="corner-up-left" class="lucide-md"></i>
+                      <span class="android-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                    </span>
+                    <span class="android-feat-card-title">Swipe-to-Reply &amp; Quoted Previews</span>
                   </div>
                   <div class="android-feat-card-desc">Intuitive right-swipe on channel messages triggers active reply composer banner and embeds quoted message bubbles in sent responses.</div>
                 </div>
 
-                <div class="android-feat-card" style="border-color: rgba(6, 182, 212, 0.3); background: rgba(6, 182, 212, 0.05);">
+                <div class="android-feat-card" style="--android-accent: #06b6d4; --android-glow: rgba(6, 182, 212, 0.35);">
+                  <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #06b6d4, #0284c7);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#06b6d4;"><i data-lucide="cpu" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#06b6d4;">Android 16 &amp; HyperOS Ready</span>
+                    <span class="android-feat-card-icon" style="color: #06b6d4; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
+                      <i data-lucide="cpu" class="lucide-md"></i>
+                      <span class="android-pulse-dot" style="background: #06b6d4; box-shadow: 0 0 8px #06b6d4;"></span>
+                    </span>
+                    <span class="android-feat-card-title">Android 16 &amp; HyperOS Ready</span>
                   </div>
                   <div class="android-feat-card-desc">Full 64-bit arm64-v8a targetSdk 37 build verified live on physical POCO HyperOS and Android 16 with zero Google Play dependencies.</div>
                 </div>
@@ -25248,15 +26055,17 @@ html[data-theme="dark"] #saveProfileBtn {
 
           <div class="ecosystem-grid-6">
             <!-- Portal 1: Live Chat & Channels -->
-            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-1" data-cat="chat" data-title="instant live community chat general developer code markdown">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-1" data-cat="chat" data-title="instant live community chat general developer code markdown" style="--card-accent: #00cec9; --card-glow: rgba(0, 206, 201, 0.35);">
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color:var(--chakra-cyan); background:rgba(0,206,201,0.1); border-color:rgba(0,206,201,0.25);">
+                <div class="ecosystem-card-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
                   <i data-lucide="message-square" class="lucide-md"></i>
+                  <span class="ecosystem-pulse-dot" style="background:#00cec9; box-shadow:0 0 8px #00cec9;"></span>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Instant Live Chat</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(0,206,201,0.15); color:var(--chakra-cyan);">Real-Time</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border-color: rgba(0, 206, 201, 0.3);">Real-Time Bus</span>
                   </div>
                   <p class="ecosystem-card-desc">High-throughput WebSockets message bus with syntax-highlighted code blocks, threaded discussions, and emoji reactions.</p>
                 </div>
@@ -25274,15 +26083,17 @@ html[data-theme="dark"] #saveProfileBtn {
             </div>
 
             <!-- Portal 2: WebRTC Voice Lounge -->
-            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-2" data-cat="voice" data-title="spatial voice lounge p2p webrtc mesh audio dsp">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-2" data-cat="voice" data-title="spatial voice lounge p2p webrtc mesh audio dsp" style="--card-accent: #10b981; --card-glow: rgba(16, 185, 129, 0.35);">
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color:var(--green); background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.25);">
+                <div class="ecosystem-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
                   <i data-lucide="mic" class="lucide-md"></i>
+                  <span class="ecosystem-pulse-dot" style="background:#10b981; box-shadow:0 0 8px #10b981;"></span>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Spatial Voice Lounge</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(16,185,129,0.15); color:var(--green);">Peer-to-Peer</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);">P2P Mesh</span>
                   </div>
                   <p class="ecosystem-card-desc">Peer-to-peer WebRTC mesh voice rooms with dynamic speaker badges, screen sharing, and ultra low-latency audio.</p>
                 </div>
@@ -25295,20 +26106,22 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
               <div class="ecosystem-card-action">
                 <span style="font-size:11.5px; color:var(--text-muted);">Direct P2P Mesh</span>
-                <button class="ecosystem-card-btn" style="color:var(--green);" onclick="switchMainView('voice')">Enter Voice Lounge <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+                <button class="ecosystem-card-btn" style="color:#10b981;" onclick="switchMainView('voice')">Enter Voice Lounge <i data-lucide="arrow-right" class="lucide-sm"></i></button>
               </div>
             </div>
 
             <!-- Portal 3: Learning Hub & Interactive Labs -->
-            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-3" data-cat="academy" data-title="learning hub protocol networking security labs">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-3" data-cat="academy" data-title="learning hub protocol networking security labs" style="--card-accent: #f59e0b; --card-glow: rgba(245, 158, 11, 0.35);">
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color:var(--ninja-gold); background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.25);">
+                <div class="ecosystem-card-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
                   <i data-lucide="book-open" class="lucide-md"></i>
+                  <span class="ecosystem-pulse-dot" style="background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Learning Hub & Labs</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(245,158,11,0.15); color:var(--ninja-gold);">Interactive Labs</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);">12+ Labs</span>
                   </div>
                   <p class="ecosystem-card-desc">Hands-on networking, WebRTC signaling, protocol dissection, and cryptography curriculum with interactive sandboxes.</p>
                 </div>
@@ -25321,20 +26134,22 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
               <div class="ecosystem-card-action">
                 <span style="font-size:11.5px; color:var(--text-muted);">4 Modules • 12+ Labs</span>
-                <button class="ecosystem-card-btn" style="color:var(--ninja-gold);" onclick="switchMainView('learning')">Launch Learning Hub <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+                <button class="ecosystem-card-btn" style="color:#f59e0b;" onclick="switchMainView('learning')">Launch Learning Hub <i data-lucide="arrow-right" class="lucide-sm"></i></button>
               </div>
             </div>
 
             <!-- Portal 4: Connecto Hardware Vault -->
-            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-4" data-cat="security" data-title="connecto hardware vault biometrics aes 256 gcm keys passwords credentials">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-4" data-cat="security" data-title="connecto hardware vault biometrics aes 256 gcm keys passwords credentials" style="--card-accent: #a855f7; --card-glow: rgba(168, 85, 247, 0.35);">
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #a855f7, #8b5cf6);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color:#10b981; background:rgba(168,85,247,0.1); border-color:rgba(16,185,129,0.25);">
+                <div class="ecosystem-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
                   <i data-lucide="shield-check" class="lucide-md"></i>
+                  <span class="ecosystem-pulse-dot" style="background:#a855f7; box-shadow:0 0 8px #a855f7;"></span>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Zero-Knowledge Security</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(16,185,129,0.15); color:#10b981;">End-to-End • AES-256</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7; border-color: rgba(168, 85, 247, 0.3);">AES-256-GCM</span>
                   </div>
                   <p class="ecosystem-card-desc">End-to-end encrypted messaging and private sessions with zero-knowledge AES-256-GCM message envelopes and adaptive privacy protection.</p>
                 </div>
@@ -25347,20 +26162,22 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
               <div class="ecosystem-card-action">
                 <span style="font-size:11.5px; color:var(--text-muted);">connecto.fun/security</span>
-                <button onclick="scrollToHeroSection('archSection')" class="ecosystem-card-btn" style="color:var(--text-header); background:transparent; border:none; cursor:pointer;">Explore Architecture Specs <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+                <button onclick="scrollToHeroSection('archSection')" class="ecosystem-card-btn" style="color:#a855f7;">Explore Specs <i data-lucide="arrow-right" class="lucide-sm"></i></button>
               </div>
             </div>
 
             <!-- Portal 5: Connecto Android Native Application -->
-            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-5" data-cat="apps" data-title="connecto android native app apk mobile download sub 5ms voice push notifications">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-5" data-cat="apps" data-title="connecto android native app apk mobile download sub 5ms voice push notifications" style="--card-accent: #06b6d4; --card-glow: rgba(6, 182, 212, 0.35);">
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #06b6d4, #0284c7);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color:#06b6d4; background:rgba(6,182,212,0.1); border-color:rgba(6,182,212,0.25);">
+                <div class="ecosystem-card-icon" style="color: #06b6d4; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
                   <i data-lucide="smartphone" class="lucide-md"></i>
+                  <span class="ecosystem-pulse-dot" style="background:#06b6d4; box-shadow:0 0 8px #06b6d4;"></span>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Connecto Android Native</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(6,182,212,0.15); color:#06b6d4;">Official APK • v4.6.5</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border-color: rgba(6, 182, 212, 0.3);">Official APK • v4.6.5</span>
                   </div>
                   <p class="ecosystem-card-desc">Native Android client engineered with Dark Luxury &amp; Liquid Glass UI, AGSL GPU shaders, low-latency voice rooms, pure black OLED power saving, and background call listener.</p>
                 </div>
@@ -25373,20 +26190,22 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
               <div class="ecosystem-card-action">
                 <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.6.5</span> • <span class="apk-size-val">36.0 MB</span></span>
-                <a href="/download/apk" download="connecto-fun.apk" class="ecosystem-card-btn" style="color:#06b6d4; text-decoration:none;">Download Android App <i data-lucide="download" class="lucide-sm"></i></a>
+                <a href="/download/apk" download="connecto-fun.apk" class="ecosystem-card-btn" style="color:#06b6d4; text-decoration:none;">Download APK <i data-lucide="download" class="lucide-sm"></i></a>
               </div>
             </div>
 
             <!-- Portal 6: Defense & Community Moderation Guard -->
-            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-6" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-6" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac" style="--card-accent: #38bdf8; --card-glow: rgba(56, 189, 248, 0.35);">
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25);">
+                <div class="ecosystem-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">
                   <i data-lucide="shield-alert" class="lucide-md"></i>
+                  <span class="ecosystem-pulse-dot" style="background:#38bdf8; box-shadow:0 0 8px #38bdf8;"></span>
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Community Defense & Security</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8;">Zero-Trust</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);">Zero-Trust</span>
                   </div>
                   <p class="ecosystem-card-desc">Comprehensive community defense with automated keyword filtering, slowmode rate limits, encrypted session keys, and audit logs.</p>
                 </div>
@@ -25415,65 +26234,80 @@ html[data-theme="dark"] #saveProfileBtn {
 
           <div class="comparison-grid">
             <!-- Card 1: Connecto Advantage -->
-            <div class="comparison-card connecto-highlight interactive-tilt-card scroll-reveal-3d stagger-3d-1">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-size:16px; font-weight:800; color:var(--chakra-cyan); display:flex; align-items:center; gap:6px;">
-                  <i data-lucide="shield" class="lucide-sm"></i> Connecto Platform
+            <div class="comparison-card connecto-highlight interactive-tilt-card scroll-reveal-3d stagger-3d-1" style="--comp-accent: #00cec9; --comp-glow: rgba(0, 206, 201, 0.35);">
+              <div class="comparison-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
+              <div class="comparison-card-header">
+                <div class="comparison-logo-title-group">
+                  <div class="comparison-logo-badge" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
+                    <i data-lucide="shield" class="lucide-md"></i>
+                    <span class="comparison-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
+                  </div>
+                  <div>
+                    <div class="comparison-title-text" style="color: var(--text-header); font-size: 17px; font-weight: 800;">Connecto Platform</div>
+                    <div style="font-size: 11.5px; color: #10b981; font-weight: 700;">Open &amp; High-Throughput</div>
+                  </div>
                 </div>
-                <span class="ecosystem-card-badge" style="background:rgba(0,206,201,0.2); color:var(--chakra-cyan);">Recommended</span>
+                <span class="ecosystem-card-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border-color: rgba(0, 206, 201, 0.3);">Recommended</span>
               </div>
-              <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+              <div class="comparison-rows-list">
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Cost & Access:</span>
-                  <strong style="color:var(--green);">100% Free & Open (No Paywalls)</strong>
+                  <span class="comp-label">Cost &amp; Access:</span>
+                  <strong style="color: #10b981;"><i data-lucide="check-circle-2" class="lucide-xs"></i> 100% Free &amp; Open (No Paywalls)</strong>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Learning Hub:</span>
-                  <strong style="color:var(--chakra-cyan);">Real-Time Network & Security Labs</strong>
+                  <span class="comp-label">Learning Hub:</span>
+                  <strong style="color: #00cec9;"><i data-lucide="check-circle-2" class="lucide-xs"></i> Real-Time Network &amp; Security Labs</strong>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Real-Time Sync:</span>
-                  <strong style="color:#a855f7;">Sub-Millisecond WebSocket Duplex</strong>
+                  <span class="comp-label">Real-Time Sync:</span>
+                  <strong style="color: #a855f7;"><i data-lucide="check-circle-2" class="lucide-xs"></i> Sub-Millisecond WebSocket Duplex</strong>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Audio Architecture:</span>
-                  <strong style="color:#ffffff;">Decentralized Peer-to-Peer Mesh</strong>
+                  <span class="comp-label">Audio Architecture:</span>
+                  <strong style="color: var(--text-header);"><i data-lucide="check-circle-2" class="lucide-xs"></i> Decentralized Peer-to-Peer Mesh</strong>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Client Footprint:</span>
-                  <strong style="color:var(--green);">< 5MB Lightweight Web / 54MB Native APK</strong>
+                  <span class="comp-label">Client Footprint:</span>
+                  <strong style="color: #10b981;"><i data-lucide="check-circle-2" class="lucide-xs"></i> &lt; 5MB Lightweight Web / 36MB Native APK</strong>
                 </div>
               </div>
             </div>
 
             <!-- Card 2: Legacy Proprietary Platforms -->
-            <div class="comparison-card interactive-tilt-card scroll-reveal-3d stagger-3d-2">
-              <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div style="font-size:16px; font-weight:800; color:#94a3b8; display:flex; align-items:center; gap:6px;">
-                  <i data-lucide="box" class="lucide-sm"></i> Legacy Chat Platforms
+            <div class="comparison-card legacy-card interactive-tilt-card scroll-reveal-3d stagger-3d-2" style="--comp-accent: #64748b; --comp-glow: rgba(100, 116, 139, 0.25);">
+              <div class="comparison-top-accent" style="background: linear-gradient(90deg, #64748b, #475569);"></div>
+              <div class="comparison-card-header">
+                <div class="comparison-logo-title-group">
+                  <div class="comparison-logo-badge" style="color: #94a3b8; background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.2);">
+                    <i data-lucide="box" class="lucide-md"></i>
+                  </div>
+                  <div>
+                    <div class="comparison-title-text" style="color: var(--text-header); font-size: 17px; font-weight: 800;">Legacy Chat Platforms</div>
+                    <div style="font-size: 11.5px; color: #94a3b8; font-weight: 600;">Proprietary &amp; Heavy</div>
+                  </div>
                 </div>
-                <span class="ecosystem-card-badge" style="background:rgba(255,255,255,0.06); color:#94a3b8;">Closed</span>
+                <span class="ecosystem-card-badge" style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border-color: rgba(148, 163, 184, 0.25);">Closed Ecosystem</span>
               </div>
-              <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+              <div class="comparison-rows-list">
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Cost & Access:</span>
-                  <span style="color:#ef4444;">Nitro & Monthly Subscriptions</span>
+                  <span class="comp-label">Cost &amp; Access:</span>
+                  <span style="color: #ef4444;"><i data-lucide="x-circle" class="lucide-xs"></i> Nitro &amp; Monthly Subscriptions</span>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Learning Hub:</span>
-                  <span style="color:#94a3b8;">None / Not Supported</span>
+                  <span class="comp-label">Learning Hub:</span>
+                  <span style="color: #94a3b8;"><i data-lucide="x-circle" class="lucide-xs"></i> None / Not Supported</span>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Real-Time Sync:</span>
-                  <span style="color:#94a3b8;">Rate-Limited HTTP Polling</span>
+                  <span class="comp-label">Real-Time Sync:</span>
+                  <span style="color: #94a3b8;"><i data-lucide="alert-circle" class="lucide-xs"></i> Rate-Limited HTTP Polling</span>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Audio Architecture:</span>
-                  <span style="color:#f59e0b;">Centralized Server Routing</span>
+                  <span class="comp-label">Audio Architecture:</span>
+                  <span style="color: #f59e0b;"><i data-lucide="alert-circle" class="lucide-xs"></i> Centralized Server Routing</span>
                 </div>
                 <div class="comparison-row">
-                  <span style="color:#94a3b8;">Client Footprint:</span>
-                  <span style="color:#ef4444;">200MB+ Heavy Electron Client</span>
+                  <span class="comp-label">Client Footprint:</span>
+                  <span style="color: #ef4444;"><i data-lucide="x-circle" class="lucide-xs"></i> 200MB+ Heavy Electron Client</span>
                 </div>
               </div>
             </div>
@@ -25490,37 +26324,56 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <div class="arch-flow-wrap interactive-tilt-card scroll-reveal-3d">
-            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-1">
-              <div class="arch-node-icon" style="color:var(--chakra-cyan);"><i data-lucide="monitor" class="lucide-md"></i></div>
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-1" style="--node-accent: #00cec9; --node-glow: rgba(0, 206, 201, 0.35);">
+              <div class="arch-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
+              <div class="arch-node-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
+                <i data-lucide="monitor" class="lucide-md"></i>
+                <span class="arch-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
+              </div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Client Web App</strong>
-              <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Vanilla JS & CSS3 • PWA Service Worker • Zero Bloat • Hardware-Accelerated UI</span>
-              <div class="arch-node-status">Edge Optimized</div>
+              <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Vanilla JS &amp; CSS3 • PWA Service Worker • Zero Bloat • Hardware-Accelerated UI</span>
+              <div class="arch-node-status" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.25);">Edge Optimized</div>
             </div>
-            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-2">
-              <div class="arch-node-icon" style="color:#ff7675;"><i data-lucide="shield" class="lucide-md"></i></div>
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-2" style="--node-accent: #ff7675; --node-glow: rgba(255, 118, 117, 0.35);">
+              <div class="arch-top-accent" style="background: linear-gradient(90deg, #ff7675, #d63031);"></div>
+              <div class="arch-node-icon" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.3);">
+                <i data-lucide="shield" class="lucide-md"></i>
+                <span class="arch-pulse-dot" style="background: #ff7675; box-shadow: 0 0 8px #ff7675;"></span>
+              </div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Cloudflare Anycast</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">DDoS Shield • TLS 1.3 Strict • Global CDN Caching • Zero Open Port Tunnels</span>
-              <div class="arch-node-status">Global Anycast</div>
+              <div class="arch-node-status" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.25);">Global Anycast</div>
             </div>
-            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-3">
-              <div class="arch-node-icon" style="color:var(--ninja-gold);"><i data-lucide="zap" class="lucide-md"></i></div>
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-3" style="--node-accent: #f59e0b; --node-glow: rgba(245, 158, 11, 0.35);">
+              <div class="arch-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+              <div class="arch-node-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
+                <i data-lucide="zap" class="lucide-md"></i>
+                <span class="arch-pulse-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
+              </div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">FastAPI Async Core</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Python Uvicorn Engine • Asyncio Non-blocking Loop • High-Throughput I/O</span>
-              <div class="arch-node-status">Non-Blocking I/O</div>
+              <div class="arch-node-status" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25);">Non-Blocking I/O</div>
             </div>
-            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-4">
-              <div class="arch-node-icon" style="color:var(--accent);"><i data-lucide="radio" class="lucide-md"></i></div>
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-4" style="--node-accent: #a855f7; --node-glow: rgba(168, 85, 247, 0.35);">
+              <div class="arch-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
+              <div class="arch-node-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
+                <i data-lucide="radio" class="lucide-md"></i>
+                <span class="arch-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+              </div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Real-Time Event Stream</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Full-Duplex WebSocket Framing • Dynamic ICE Signaling • Ephemeral State Sync</span>
-              <div class="arch-node-status">Event-Driven</div>
+              <div class="arch-node-status" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.25);">Event-Driven</div>
             </div>
-            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-5">
-              <div class="arch-node-icon" style="color:var(--green);"><i data-lucide="database" class="lucide-md"></i></div>
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-5" style="--node-accent: #10b981; --node-glow: rgba(16, 185, 129, 0.35);">
+              <div class="arch-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
+              <div class="arch-node-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+                <i data-lucide="database" class="lucide-md"></i>
+                <span class="arch-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+              </div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">ACID Data Engine</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Atomic Transactions • In-Memory Presence • Real-Time Sync</span>
-              <div class="arch-node-status">Atomic Commits</div>
+              <div class="arch-node-status" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25);">Atomic Commits</div>
             </div>
-
           </div>
 
           <div class="arch-spec-banner crystal-card interactive-tilt-card scroll-reveal-3d" style="margin-top:28px; padding:24px 28px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
@@ -25549,30 +26402,46 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <div class="usecases-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
-            <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
-              <div class="usecase-icon-badge" style="color:var(--accent);"><i data-lucide="book-open" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 1</span></div>
+            <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #00cec9; --track-glow: rgba(0, 206, 201, 0.35);">
+              <div class="usecase-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
+              <div class="usecase-icon-badge" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
+                <i data-lucide="book-open" class="lucide-md"></i>
+                <span class="usecase-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
+              </div>
+              <div><span class="rank-pill-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border-color: rgba(0, 206, 201, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 1</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Web Foundations</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">HTTP/1.1 vs HTTP/2 vs HTTP/3, headers, status codes, RESTful methods, and request-response lifecycles.</p>
             </div>
 
-            <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
-              <div class="usecase-icon-badge" style="color:var(--accent);"><i data-lucide="activity" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 2</span></div>
+            <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #10b981; --track-glow: rgba(16, 185, 129, 0.35);">
+              <div class="usecase-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
+              <div class="usecase-icon-badge" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
+                <i data-lucide="activity" class="lucide-md"></i>
+                <span class="usecase-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+              </div>
+              <div><span class="rank-pill-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 2</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Real-Time Streams</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">WebSocket TCP upgrades, framing protocols, WebRTC SDP offer/answer handshakes, and ICE candidate negotiation.</p>
             </div>
 
-            <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
-              <div class="usecase-icon-badge" style="color:var(--gold-rank);"><i data-lucide="shield" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security & Encryption</h4>
+            <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #f59e0b; --track-glow: rgba(245, 158, 11, 0.35);">
+              <div class="usecase-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+              <div class="usecase-icon-badge" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
+                <i data-lucide="shield" class="lucide-md"></i>
+                <span class="usecase-pulse-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
+              </div>
+              <div><span class="rank-pill-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
+              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security &amp; Encryption</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Symmetric AES-256 vs Asymmetric RSA, TLS 1.3 handshake verification, and DTLS-SRTP audio security.</p>
             </div>
 
-            <div class="usecase-card interactive-tilt-card scroll-reveal-3d">
-              <div class="usecase-icon-badge" style="color:var(--gold-rank-bright);"><i data-lucide="sparkles" class="lucide-md"></i></div>
-              <div><span class="rank-pill-badge"><i data-lucide="award" class="lucide-sm"></i> Level 4</span></div>
+            <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #a855f7; --track-glow: rgba(168, 85, 247, 0.35);">
+              <div class="usecase-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
+              <div class="usecase-icon-badge" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
+                <i data-lucide="sparkles" class="lucide-md"></i>
+                <span class="usecase-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
+              </div>
+              <div><span class="rank-pill-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7; border-color: rgba(168, 85, 247, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 4</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Distributed Edge Architecture</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">High-concurrency asyncio architecture, event streams, and zero-trust edge infrastructure.</p>
             </div>
@@ -25683,31 +26552,34 @@ html[data-theme="dark"] #saveProfileBtn {
             <p class="section-sub">Three simple steps to join the Connecto community.</p>
           </div>
           <div class="steps-grid">
-            <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-1">
+            <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-1" style="--step-accent: #00F5A0; --step-glow: rgba(0, 245, 160, 0.35);">
+              <div class="step-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div>
-                <div class="step-badge-custom">1</div>
+                <div class="step-badge-custom" style="background: linear-gradient(135deg, #00F5A0, #00cec9); color: #020617; box-shadow: 0 4px 16px rgba(0, 245, 160, 0.35);">1</div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Connect with Friends</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend circles via invite code or create your own custom encrypted space.</p>
               </div>
-              <div class="step-pill-chip"><i data-lucide="user-plus" class="lucide-sm"></i> Instant Auth</div>
+              <div class="step-pill-chip" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);"><i data-lucide="user-plus" class="lucide-sm"></i> Instant Auth</div>
             </div>
 
-            <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-2">
+            <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-2" style="--step-accent: #00cec9; --step-glow: rgba(0, 206, 201, 0.35);">
+              <div class="step-top-accent" style="background: linear-gradient(90deg, #00cec9, #0984e3);"></div>
               <div>
-                <div class="step-badge-custom" style="background:linear-gradient(135deg, var(--chakra-cyan) 0%, #81ecec 100%);">2</div>
+                <div class="step-badge-custom" style="background: linear-gradient(135deg, #00cec9 0%, #0984e3 100%); color: #ffffff; box-shadow: 0 4px 16px rgba(0, 206, 201, 0.35);">2</div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Coordinate in Real-Time</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Chat across text channels, summon squad mates with @mentions, and hop into clear, low-latency WebRTC voice rooms.</p>
               </div>
-              <div class="step-pill-chip" style="color:var(--chakra-cyan);"><i data-lucide="message-square" class="lucide-sm"></i> Low-Latency WebSockets</div>
+              <div class="step-pill-chip" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);"><i data-lucide="message-square" class="lucide-sm"></i> Low-Latency WebSockets</div>
             </div>
 
-            <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-3">
+            <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-3" style="--step-accent: #f59e0b; --step-glow: rgba(245, 158, 11, 0.35);">
+              <div class="step-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div>
-                <div class="step-badge-custom" style="background:linear-gradient(135deg, var(--ninja-gold) 0%, #ffeaa7 100%); color:#1a1002;">3</div>
+                <div class="step-badge-custom" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #020617; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);">3</div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h4>
-                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh & cryptography in interactive lessons. Level up your skills with hands-on practice.</p>
+                <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh &amp; cryptography in interactive lessons. Level up your skills with hands-on practice.</p>
               </div>
-              <div class="step-pill-chip" style="color:var(--ninja-gold);"><i data-lucide="award" class="lucide-sm"></i> Skill Progression</div>
+              <div class="step-pill-chip" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Skill Progression</div>
             </div>
           </div>
         </div>
@@ -42022,7 +42894,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-22') {
+        if (name !== 'connecto-v5-0-23') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
