@@ -10054,6 +10054,173 @@
       color: #ea580c;
     }
 
+    /* Social Sign-In Providers & Divider */
+    .auth-social-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+      position: relative;
+      z-index: 1;
+    }
+    .auth-social-btn {
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+    .auth-social-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.22);
+      transform: translateY(-1.5px);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+    }
+    .auth-social-btn:active {
+      transform: translateY(1px);
+    }
+    .auth-social-icon {
+      flex-shrink: 0;
+    }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 14px 0 16px 0;
+      position: relative;
+      z-index: 1;
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .auth-divider span {
+      padding: 0 12px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+    }
+
+    /* Password Generator Button */
+    .auth-generate-pwd-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #818cf8;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .auth-generate-pwd-btn:hover {
+      background: rgba(99, 102, 241, 0.24);
+      border-color: rgba(99, 102, 241, 0.45);
+      color: #c7d2fe;
+      transform: translateY(-1px);
+    }
+    .auth-generate-pwd-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Remember Me Checkbox */
+    .auth-remember-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      font-size: 12.5px;
+      color: #94a3b8;
+      user-select: none;
+      transition: color 0.2s ease;
+    }
+    .auth-remember-wrap:hover {
+      color: #e2e8f0;
+    }
+    .auth-remember-wrap input[type="checkbox"] {
+      accent-color: #6366f1;
+      width: 15px;
+      height: 15px;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    /* Live Field Validation Badges */
+    .auth-validation-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 5px;
+      animation: fadeIn 0.2s ease;
+    }
+    .auth-badge-valid {
+      color: #22c55e;
+      background: rgba(34, 197, 94, 0.12);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+    .auth-badge-invalid {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Light Mode Overrides for Expanded Auth */
+    html[data-theme="parchment"] .auth-social-btn {
+      background: #ffffff !important;
+      border-color: rgba(68, 64, 60, 0.18) !important;
+      color: #141312 !important;
+      box-shadow: 0 1px 3px rgba(68, 64, 60, 0.08) !important;
+    }
+    html[data-theme="parchment"] .auth-social-btn:hover {
+      background: #faf8f5 !important;
+      border-color: rgba(68, 64, 60, 0.3) !important;
+      box-shadow: 0 3px 8px rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .auth-divider::before,
+    html[data-theme="parchment"] .auth-divider::after {
+      border-bottom-color: rgba(68, 64, 60, 0.15) !important;
+    }
+    html[data-theme="parchment"] .auth-divider span {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .auth-generate-pwd-btn {
+      background: rgba(234, 88, 12, 0.1) !important;
+      border-color: rgba(234, 88, 12, 0.25) !important;
+      color: #ea580c !important;
+    }
+    html[data-theme="parchment"] .auth-generate-pwd-btn:hover {
+      background: rgba(234, 88, 12, 0.18) !important;
+      border-color: rgba(234, 88, 12, 0.4) !important;
+    }
+    html[data-theme="parchment"] .auth-remember-wrap {
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .auth-remember-wrap:hover {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .auth-remember-wrap input[type="checkbox"] {
+      accent-color: #ea580c !important;
+    }
+
     /* Avatar Grid for Registration */
     .avatar-preset-grid {
       display: grid;
@@ -26981,13 +27148,36 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
       <!-- ==================== 1. SIGN IN FORM ==================== -->
       <form id="signInForm" onsubmit="event.preventDefault(); handleSignInSubmit();" style="display:block;">
-        <div style="margin-bottom:18px; position:relative; z-index:1;">
+        <div style="margin-bottom:16px; position:relative; z-index:1;">
           <div class="auth-brand-badge">
             <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
             <span>Connecto Identity</span>
           </div>
           <h3 class="auth-modal-title">Welcome Back</h3>
           <p class="auth-modal-subtitle">Sign in to your account and access real-time channels.</p>
+        </div>
+
+        <!-- Social Sign-In Providers -->
+        <div class="auth-social-row">
+          <button type="button" class="auth-social-btn auth-social-google" onclick="handleSocialAuth('google')" title="Sign in with Google">
+            <svg class="auth-social-icon" viewBox="0 0 24 24" width="17" height="17">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Google</span>
+          </button>
+          <button type="button" class="auth-social-btn auth-social-github" onclick="handleSocialAuth('github')" title="Sign in with GitHub">
+            <svg class="auth-social-icon" viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>GitHub</span>
+          </button>
+        </div>
+
+        <div class="auth-divider">
+          <span>or continue with credentials</span>
         </div>
 
         <!-- 1. Username or Email -->
@@ -27021,10 +27211,14 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; margin-top:8px; margin-bottom:16px; position:relative; z-index:1;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; margin-bottom:16px; position:relative; z-index:1;">
+          <label class="auth-remember-wrap">
+            <input type="checkbox" id="signInRememberMe" checked>
+            <span>Remember this device</span>
+          </label>
           <button type="button" class="btn-text" style="color:var(--chakra-cyan, #06b6d4); font-size:12.5px; font-weight:700; background:none; border:none; cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:5px;" onclick="openAccountRecovery('password')">
             <i data-lucide="key-round" style="width:13px; height:13px;"></i>
-            <span>Forgot Username or Password?</span>
+            <span>Forgot Password?</span>
           </button>
         </div>
 
@@ -27041,7 +27235,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
       <!-- ==================== 2. CREATE ACCOUNT FORM ==================== -->
       <form id="signUpForm" onsubmit="event.preventDefault(); handleSignUpSubmit();" style="display:none;">
-        <div style="margin-bottom:18px; position:relative; z-index:1;">
+        <div style="margin-bottom:16px; position:relative; z-index:1;">
           <div class="auth-brand-badge">
             <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
             <span>Instant Membership</span>
@@ -27050,11 +27244,35 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           <p class="auth-modal-subtitle">Create your unique profile and start collaborating instantly.</p>
         </div>
 
+        <!-- Social Sign-Up Providers -->
+        <div class="auth-social-row">
+          <button type="button" class="auth-social-btn auth-social-google" onclick="handleSocialAuth('google')" title="Register with Google">
+            <svg class="auth-social-icon" viewBox="0 0 24 24" width="17" height="17">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Google</span>
+          </button>
+          <button type="button" class="auth-social-btn auth-social-github" onclick="handleSocialAuth('github')" title="Register with GitHub">
+            <svg class="auth-social-icon" viewBox="0 0 24 24" width="17" height="17" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+            </svg>
+            <span>GitHub</span>
+          </button>
+        </div>
+
+        <div class="auth-divider">
+          <span>or register with email</span>
+        </div>
+
         <!-- 1. Unique Username -->
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <label for="signUpUsername"><i data-lucide="user" style="width:13px; height:13px;"></i> Username <span style="color:var(--red);">*</span></label>
             <div style="display:flex; align-items:center; gap:8px;">
+              <span class="auth-validation-badge auth-badge-valid" id="signUpUsernameLiveBadge" style="display:none;"><i data-lucide="check" style="width:11px; height:11px;"></i> Valid</span>
               <span class="auth-typing-status" id="signUpUsernameTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
               <span id="signUpUsernameCounter" style="font-size:11px; color:var(--text-muted); font-weight:600;">0/20</span>
             </div>
@@ -27072,7 +27290,10 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <label for="signUpEmail"><i data-lucide="mail" style="width:13px; height:13px;"></i> Email Address <span style="color:var(--red);">*</span></label>
-            <span class="auth-typing-status" id="signUpEmailTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="auth-validation-badge auth-badge-valid" id="signUpEmailLiveBadge" style="display:none;"><i data-lucide="check" style="width:11px; height:11px;"></i> Format OK</span>
+              <span class="auth-typing-status" id="signUpEmailTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+            </div>
           </div>
           <div style="display:flex; gap:10px;">
             <div class="auth-input-wrap" id="signUpEmailWrap" style="flex:1;">
@@ -27113,7 +27334,11 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <label for="signUpPassword"><i data-lucide="lock" style="width:13px; height:13px;"></i> Password <span style="color:var(--red);">*</span></label>
-            <div style="display:flex; align-items:center; gap:8px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button type="button" class="auth-generate-pwd-btn" onclick="generateAndApplyStrongPassword()" title="Generate a cryptographically secure password">
+                <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
+                <span>Suggest Strong</span>
+              </button>
               <span class="caps-lock-warning" id="signUpCapsLock" style="display:none;">⚠️ Caps Lock ON</span>
               <span class="auth-typing-status" id="signUpPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
             </div>
@@ -27151,7 +27376,10 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <label for="signUpConfirmPassword"><i data-lucide="shield-check" style="width:13px; height:13px;"></i> Confirm Password <span style="color:var(--red);">*</span></label>
-            <span class="auth-typing-status" id="signUpConfirmPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="auth-validation-badge" id="signUpConfirmLiveBadge" style="display:none;"></span>
+              <span class="auth-typing-status" id="signUpConfirmPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
+            </div>
           </div>
           <div class="auth-input-wrap" id="signUpConfirmPasswordWrap">
             <span class="auth-input-icon"><i data-lucide="shield-check" style="width:17px; height:17px;"></i></span>
@@ -37605,6 +37833,8 @@ function selectSettingsAvatar(emoji, el) {
           localStorage.setItem('connecto_user', currentUser);
           localStorage.setItem('connecto_avatar', currentAvatar);
           localStorage.setItem('connecto_token', authToken);
+          const remember = document.getElementById('signInRememberMe')?.checked;
+          localStorage.setItem('connecto_remember_me', remember ? 'true' : 'false');
           
           const curUserEl = document.getElementById('currentUserName');
           if (curUserEl) curUserEl.innerText = currentUser;
@@ -37713,6 +37943,7 @@ function selectSettingsAvatar(emoji, el) {
       const uWrap = document.getElementById('signUpUsernameWrap');
       const uCounter = document.getElementById('signUpUsernameCounter');
       const uClear = document.getElementById('signUpUsernameClear');
+      const liveBadge = document.getElementById('signUpUsernameLiveBadge');
       if (!availEl || !uInput) return;
 
       clearTimeout(usernameCheckTimeout);
@@ -37725,6 +37956,7 @@ function selectSettingsAvatar(emoji, el) {
         availEl.style.display = 'none';
         uInput.style.borderColor = '';
         uWrap?.classList.remove('has-success', 'has-error', 'has-warning');
+        if (liveBadge) liveBadge.style.display = 'none';
         isUsernameAvailable = false;
         return;
       }
@@ -37736,6 +37968,12 @@ function selectSettingsAvatar(emoji, el) {
         uInput.style.borderColor = 'rgba(251, 191, 36, 0.5)';
         uWrap?.classList.remove('has-success', 'has-error');
         uWrap?.classList.add('has-warning');
+        if (liveBadge) {
+          liveBadge.style.display = 'inline-flex';
+          liveBadge.className = 'auth-validation-badge auth-badge-invalid';
+          liveBadge.innerHTML = '<i data-lucide="alert-triangle" style="width:11px; height:11px;"></i> Too Short';
+          if (window.lucide) lucide.createIcons();
+        }
         isUsernameAvailable = false;
         return;
       }
@@ -37747,6 +37985,12 @@ function selectSettingsAvatar(emoji, el) {
         uInput.style.borderColor = 'rgba(248, 113, 113, 0.6)';
         uWrap?.classList.remove('has-success', 'has-warning');
         uWrap?.classList.add('has-error');
+        if (liveBadge) {
+          liveBadge.style.display = 'inline-flex';
+          liveBadge.className = 'auth-validation-badge auth-badge-invalid';
+          liveBadge.innerHTML = '<i data-lucide="x" style="width:11px; height:11px;"></i> Invalid Format';
+          if (window.lucide) lucide.createIcons();
+        }
         isUsernameAvailable = false;
         return;
       }
@@ -37769,6 +38013,12 @@ function selectSettingsAvatar(emoji, el) {
             uInput.style.borderColor = 'rgba(74, 222, 128, 0.7)';
             uWrap?.classList.remove('has-error', 'has-warning');
             uWrap?.classList.add('has-success');
+            if (liveBadge) {
+              liveBadge.style.display = 'inline-flex';
+              liveBadge.className = 'auth-validation-badge auth-badge-valid';
+              liveBadge.innerHTML = '<i data-lucide="check" style="width:11px; height:11px;"></i> Available';
+              if (window.lucide) lucide.createIcons();
+            }
             isUsernameAvailable = true;
           } else {
             availEl.style.display = 'flex';
@@ -37777,6 +38027,12 @@ function selectSettingsAvatar(emoji, el) {
             uInput.style.borderColor = 'rgba(248, 113, 113, 0.7)';
             uWrap?.classList.remove('has-success', 'has-warning');
             uWrap?.classList.add('has-error');
+            if (liveBadge) {
+              liveBadge.style.display = 'inline-flex';
+              liveBadge.className = 'auth-validation-badge auth-badge-invalid';
+              liveBadge.innerHTML = '<i data-lucide="x" style="width:11px; height:11px;"></i> Taken';
+              if (window.lucide) lucide.createIcons();
+            }
             isUsernameAvailable = false;
           }
         } catch (err) {
@@ -37789,14 +38045,40 @@ function selectSettingsAvatar(emoji, el) {
     function handleEmailInput(val) {
       const availEl = document.getElementById('signUpEmailAvailability');
       const eInput = document.getElementById('signUpEmail');
-      if (!availEl || !eInput) return;
+      const liveBadge = document.getElementById('signUpEmailLiveBadge');
+      const eWrap = document.getElementById('signUpEmailWrap');
+      if (!eInput) return;
 
       clearTimeout(emailCheckTimeout);
       const raw = val.trim();
-      if (!raw || !raw.includes('@')) {
-        availEl.style.display = 'none';
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!raw) {
+        if (availEl) availEl.style.display = 'none';
         eInput.style.borderColor = '';
+        eWrap?.classList.remove('has-success', 'has-error');
+        if (liveBadge) liveBadge.style.display = 'none';
         return;
+      }
+
+      if (!emailRegex.test(raw)) {
+        if (liveBadge) {
+          liveBadge.style.display = 'inline-flex';
+          liveBadge.className = 'auth-validation-badge auth-badge-invalid';
+          liveBadge.innerHTML = '<i data-lucide="x" style="width:11px; height:11px;"></i> Incomplete';
+          if (window.lucide) lucide.createIcons();
+        }
+        eWrap?.classList.remove('has-success');
+        eWrap?.classList.add('has-error');
+      } else {
+        if (liveBadge) {
+          liveBadge.style.display = 'inline-flex';
+          liveBadge.className = 'auth-validation-badge auth-badge-valid';
+          liveBadge.innerHTML = '<i data-lucide="check" style="width:11px; height:11px;"></i> Valid Email';
+          if (window.lucide) lucide.createIcons();
+        }
+        eWrap?.classList.remove('has-error');
+        eWrap?.classList.add('has-success');
       }
 
       emailCheckTimeout = setTimeout(async () => {
@@ -38314,6 +38596,112 @@ function selectSettingsAvatar(emoji, el) {
       }
     }
 
+    // ==================== COMPREHENSIVE AUTH EXPANSION HELPERS ====================
+
+    function handleSocialAuth(provider) {
+      const providerName = provider === 'google' ? 'Google' : 'GitHub';
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(99, 102, 241, 0.4);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        color: #ffffff;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 13.5px;
+        font-weight: 600;
+        z-index: 100000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        backdrop-filter: blur(16px);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity: 0;
+      `;
+      toast.innerHTML = `
+        <span style="font-size:18px;">⚡</span>
+        <span>Connecting to <strong>${providerName}</strong> single sign-on...</span>
+      `;
+      document.body.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+      });
+
+      setTimeout(() => {
+        if (toast && toast.parentNode) {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(-50%) translateY(20px)';
+          setTimeout(() => toast.remove(), 300);
+        }
+      }, 3000);
+    }
+
+    function generateAndApplyStrongPassword() {
+      const charsUpper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+      const charsLower = 'abcdefghijkmnopqrstuvwxyz';
+      const charsNumbers = '23456789';
+      const charsSymbols = '!@#$%^&*()_+~';
+
+      const getRandomChar = str => str.charAt(Math.floor(Math.random() * str.length));
+
+      let pwd = [
+        getRandomChar(charsUpper),
+        getRandomChar(charsLower),
+        getRandomChar(charsNumbers),
+        getRandomChar(charsSymbols)
+      ];
+
+      const allChars = charsUpper + charsLower + charsNumbers + charsSymbols;
+      for (let i = 0; i < 12; i++) {
+        pwd.push(getRandomChar(allChars));
+      }
+
+      // Shuffle using Fisher-Yates
+      for (let i = pwd.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+      }
+      const finalPassword = pwd.join('');
+
+      const pInput = document.getElementById('signUpPassword');
+      const cInput = document.getElementById('signUpConfirmPassword');
+
+      if (pInput) {
+        pInput.value = finalPassword;
+        pInput.type = 'text'; // Reveal generated password so user can see it
+        pInput.dispatchEvent(new Event('input', { bubbles: true }));
+        handlePasswordChange(finalPassword);
+      }
+
+      if (cInput) {
+        cInput.value = finalPassword;
+        cInput.type = 'text';
+        cInput.dispatchEvent(new Event('input', { bubbles: true }));
+        checkPasswordMatch();
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(finalPassword).catch(() => {});
+      }
+
+      const pWrap = document.getElementById('signUpPasswordWrap');
+      if (pWrap) {
+        pWrap.classList.add('has-success');
+      }
+
+      const fb = document.getElementById('signUpConfirmFeedback');
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = 'var(--green, #22c55e)';
+        fb.innerHTML = '✨ Strong password generated & copied to clipboard!';
+      }
+    }
+
     function handlePasswordChange(pwd) {
       checkPasswordStrength(pwd);
       checkPasswordMatch();
@@ -38324,6 +38712,7 @@ function selectSettingsAvatar(emoji, el) {
       const confirmEl = document.getElementById('signUpConfirmPassword');
       const fb = document.getElementById('signUpConfirmFeedback');
       const confirmWrap = document.getElementById('signUpConfirmPasswordWrap');
+      const liveBadge = document.getElementById('signUpConfirmLiveBadge');
       if (!pwdEl || !confirmEl || !fb) return;
 
       const pwd = pwdEl.value;
@@ -38332,6 +38721,7 @@ function selectSettingsAvatar(emoji, el) {
       if (!confirmPwd) {
         fb.style.display = 'none';
         confirmWrap?.classList.remove('has-success', 'has-error');
+        if (liveBadge) liveBadge.style.display = 'none';
         return;
       }
 
@@ -38341,11 +38731,23 @@ function selectSettingsAvatar(emoji, el) {
         fb.innerHTML = '✅ Passwords match';
         confirmWrap?.classList.remove('has-error');
         confirmWrap?.classList.add('has-success');
+        if (liveBadge) {
+          liveBadge.style.display = 'inline-flex';
+          liveBadge.className = 'auth-validation-badge auth-badge-valid';
+          liveBadge.innerHTML = '<i data-lucide="check" style="width:11px; height:11px;"></i> Match';
+          if (window.lucide) lucide.createIcons();
+        }
       } else {
         fb.style.color = 'var(--red, #ef4444)';
         fb.innerHTML = '⚠️ Passwords do not match';
         confirmWrap?.classList.remove('has-success');
         confirmWrap?.classList.add('has-error');
+        if (liveBadge) {
+          liveBadge.style.display = 'inline-flex';
+          liveBadge.className = 'auth-validation-badge auth-badge-invalid';
+          liveBadge.innerHTML = '<i data-lucide="x" style="width:11px; height:11px;"></i> Mismatch';
+          if (window.lucide) lucide.createIcons();
+        }
       }
     }
 
@@ -39003,6 +39405,8 @@ function handleNavCommunityClick() {
           localStorage.setItem('connecto_user', currentUser);
           localStorage.setItem('connecto_avatar', currentAvatar);
           localStorage.setItem('connecto_token', authToken);
+          const remember = document.getElementById('signInRememberMe')?.checked;
+          localStorage.setItem('connecto_remember_me', remember ? 'true' : 'false');
 
           const curUserEl = document.getElementById('currentUserName');
           if (curUserEl) curUserEl.innerText = currentUser;
@@ -40187,7 +40591,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-8') {
+        if (name !== 'connecto-v5-0-9') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
