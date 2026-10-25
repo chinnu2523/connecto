@@ -11689,6 +11689,834 @@
       }
     }
 
+    /* ==========================================================================
+       MOBILE NAVIGATION BAR & DRAWER UI SYSTEM (DARK & LIGHT THEME PARITY)
+       ========================================================================== */
+
+    /* Hide floating support button when drawer is open */
+    body.mobile-drawer-open .floating-support-pill,
+    .mobile-nav-drawer-overlay.active ~ .floating-support-pill {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* 1. Mobile Navigation Bar Island & Header (< 768px) */
+    @media (max-width: 768px) {
+      .landing-nav-wrapper {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 9999 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+        justify-content: center !important;
+      }
+
+      .landing-nav {
+        border-radius: 0 !important;
+        border-top: none !important;
+        border-left: none !important;
+        border-right: none !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        padding: 8px 14px !important;
+        min-height: 58px !important;
+        height: 58px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        box-sizing: border-box !important;
+        gap: 8px !important;
+      }
+
+      .landing-logo {
+        gap: 8px !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+      }
+      .nav-logo-badge {
+        width: 32px !important;
+        height: 32px !important;
+        border-radius: 10px !important;
+      }
+      .nav-logo-icon-img {
+        width: 22px !important;
+        height: 22px !important;
+      }
+      .nav-logo-text {
+        font-size: 19px !important;
+        font-weight: 900 !important;
+        letter-spacing: -0.02em !important;
+      }
+      .landing-logo .nav-live-pill {
+        display: none !important;
+      }
+
+      .nav-actions-cluster {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+
+      /* Mobile Navbar Auth Buttons */
+      #navAuthButtons {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+      }
+      #navAuthButtons .landing-link-btn {
+        padding: 6px 10px !important;
+        font-size: 12.5px !important;
+        font-weight: 700 !important;
+        border-radius: 9px !important;
+        transition: all 0.2s ease !important;
+      }
+      #navAuthButtons .nav-signup-cta-btn {
+        padding: 6px 12px !important;
+        font-size: 12.5px !important;
+        font-weight: 800 !important;
+        border-radius: 9px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        transition: all 0.2s ease !important;
+      }
+      #navAuthButtons .nav-signup-cta-btn svg {
+        width: 13px !important;
+        height: 13px !important;
+      }
+
+      /* Theme Toggle in Mobile Navbar */
+      .nav-theme-toggle-btn {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 10px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        flex-shrink: 0 !important;
+      }
+      .nav-theme-toggle-btn svg {
+        width: 16px !important;
+        height: 16px !important;
+      }
+
+      /* Hamburger Menu Toggle Button */
+      .mobile-nav-toggle {
+        width: 34px !important;
+        height: 34px !important;
+        border-radius: 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 3.5px !important;
+        padding: 0 !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+        flex-shrink: 0 !important;
+      }
+      .hamburger-bar {
+        width: 16px !important;
+        height: 2px !important;
+        border-radius: 2px !important;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      }
+      .mobile-nav-toggle.open .hamburger-bar:nth-child(1) {
+        transform: translateY(5.5px) rotate(45deg) !important;
+      }
+      .mobile-nav-toggle.open .hamburger-bar:nth-child(2) {
+        opacity: 0 !important;
+        transform: scaleX(0) !important;
+      }
+      .mobile-nav-toggle.open .hamburger-bar:nth-child(3) {
+        transform: translateY(-5.5px) rotate(-45deg) !important;
+      }
+    }
+
+    /* Small Screen Adjustments (< 420px) */
+    @media (max-width: 420px) {
+      .landing-nav {
+        padding: 7px 10px !important;
+        gap: 5px !important;
+      }
+      .nav-logo-text {
+        font-size: 17px !important;
+      }
+      #navAuthButtons .landing-link-btn {
+        padding: 5px 8px !important;
+        font-size: 11.5px !important;
+      }
+      #navAuthButtons .nav-signup-cta-btn {
+        padding: 5px 9px !important;
+        font-size: 11.5px !important;
+      }
+    }
+
+    /* 2. Mobile Navigation Drawer Base & Sizing */
+    .mobile-nav-drawer-overlay {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 100000 !important;
+      display: none !important;
+      opacity: 0 !important;
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      pointer-events: none !important;
+    }
+    .mobile-nav-drawer-overlay.active {
+      display: flex !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    .mobile-nav-drawer {
+      position: absolute !important;
+      top: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: min(350px, 88vw) !important;
+      display: flex !important;
+      flex-direction: column !important;
+      transform: translateX(100%) !important;
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      box-sizing: border-box !important;
+      z-index: 100001 !important;
+    }
+    .mobile-nav-drawer-overlay.active .mobile-nav-drawer {
+      transform: translateX(0) !important;
+    }
+
+    .mobile-drawer-head {
+      padding: 16px 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      flex-shrink: 0 !important;
+    }
+
+    .drawer-beta-pill {
+      font-size: 9.5px !important;
+      font-weight: 800 !important;
+      padding: 1.5px 6px !important;
+      border-radius: 5px !important;
+      background: rgba(245, 158, 11, 0.15) !important;
+      color: #fbbf24 !important;
+      border: 1px solid rgba(245, 158, 11, 0.3) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+      margin-left: 6px !important;
+    }
+
+    .mobile-drawer-close {
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 10px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .mobile-drawer-close:active {
+      transform: scale(0.92) !important;
+    }
+
+    .mobile-drawer-telemetry {
+      padding: 10px 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      flex-shrink: 0 !important;
+    }
+
+    .drawer-stat-pill {
+      flex: 1 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      padding: 7px 10px !important;
+      border-radius: 10px !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      box-sizing: border-box !important;
+    }
+
+    .mobile-drawer-body {
+      padding: 16px 18px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      flex: 1 !important;
+    }
+
+    /* Mobile Drawer APK Bento Card */
+    .mobile-drawer-apk-card {
+      position: relative !important;
+      overflow: hidden !important;
+      border-radius: 16px !important;
+      padding: 14px 16px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      margin-bottom: 4px !important;
+    }
+    .drawer-apk-top-accent {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 2.5px !important;
+      background: linear-gradient(90deg, #10b981, #06b6d4) !important;
+    }
+    .drawer-apk-badge-row {
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+    }
+    .drawer-apk-chip {
+      font-size: 9.5px !important;
+      font-weight: 800 !important;
+      color: #10b981 !important;
+      letter-spacing: 0.5px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+    }
+    .drawer-apk-ver-pill {
+      font-size: 10px !important;
+      font-weight: 700 !important;
+      padding: 2px 7px !important;
+      border-radius: 9999px !important;
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #10b981 !important;
+      border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    }
+    .drawer-apk-main {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+    }
+    .drawer-apk-icon {
+      width: 36px !important;
+      height: 36px !important;
+      border-radius: 11px !important;
+      background: rgba(16, 185, 129, 0.12) !important;
+      border: 1px solid rgba(16, 185, 129, 0.25) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+    }
+    .drawer-apk-details strong {
+      display: block !important;
+      font-size: 13px !important;
+      font-weight: 800 !important;
+      line-height: 1.3 !important;
+    }
+    .drawer-apk-details span {
+      display: block !important;
+      font-size: 11px !important;
+      margin-top: 2px !important;
+    }
+    .drawer-apk-download-btn {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      padding: 8px 12px !important;
+      border-radius: 9px !important;
+      background: linear-gradient(135deg, #10b981, #059669) !important;
+      color: #020617 !important;
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      text-decoration: none !important;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3) !important;
+      transition: transform 0.2s ease !important;
+    }
+    .drawer-apk-download-btn:active {
+      transform: scale(0.98) !important;
+    }
+
+    /* Mobile Drawer Auth Row */
+    .mobile-drawer-auth {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      margin-bottom: 6px !important;
+      padding-bottom: 12px !important;
+    }
+    .drawer-login-btn {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      padding: 9px 12px !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+      border-radius: 11px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+    .drawer-signup-btn {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      padding: 9px 12px !important;
+      font-size: 12.5px !important;
+      font-weight: 800 !important;
+      border-radius: 11px !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .mobile-drawer-label {
+      font-size: 10.5px !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.8px !important;
+      margin-top: 6px !important;
+      margin-bottom: 2px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+    }
+
+    /* Tactile Navigation Bento Links */
+    .mobile-drawer-link {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+      padding: 10px 12px !important;
+      border-radius: 14px !important;
+      text-decoration: none !important;
+      cursor: pointer !important;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s, border-color 0.2s !important;
+    }
+    .mobile-drawer-link:active {
+      transform: scale(0.98) !important;
+    }
+    .mobile-drawer-icon {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 12px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border: 1px solid !important;
+      flex-shrink: 0 !important;
+      transition: transform 0.2s ease !important;
+    }
+    .mobile-drawer-link:hover .mobile-drawer-icon {
+      transform: scale(1.08) !important;
+    }
+    .mobile-drawer-text {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 2px !important;
+      flex: 1 !important;
+      min-width: 0 !important;
+    }
+    .mobile-drawer-text strong {
+      font-size: 13.5px !important;
+      font-weight: 800 !important;
+      line-height: 1.3 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .mobile-drawer-text span {
+      font-size: 11px !important;
+      line-height: 1.3 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+    .drawer-link-arrow {
+      opacity: 0.5 !important;
+      transition: transform 0.2s ease, opacity 0.2s ease !important;
+    }
+    .mobile-drawer-link:hover .drawer-link-arrow {
+      opacity: 1 !important;
+      transform: translateX(3px) !important;
+    }
+
+    /* Segmented Theme Switcher */
+    .mobile-drawer-theme-wrap {
+      margin-top: 4px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+    }
+    .drawer-theme-segmented {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 6px !important;
+      padding: 4px !important;
+      border-radius: 12px !important;
+      box-sizing: border-box !important;
+    }
+    .drawer-theme-tab {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      padding: 8px 10px !important;
+      border-radius: 9px !important;
+      border: none !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .mobile-drawer-foot {
+      padding: 14px 18px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      font-size: 11px !important;
+      flex-shrink: 0 !important;
+    }
+
+    /* 3. DUAL-THEME PARITY STYLES FOR MOBILE NAVBAR & DRAWER */
+
+    /* DARK THEME (Noir, Dark, Black, Obsidian) */
+    html[data-theme="noir"] .landing-nav-wrapper,
+    html[data-theme="dark"] .landing-nav-wrapper,
+    html[data-theme="black"] .landing-nav-wrapper,
+    html[data-theme="obsidian"] .landing-nav-wrapper {
+      background: rgba(10, 12, 20, 0.88) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    html[data-theme="noir"] .nav-logo-text,
+    html[data-theme="dark"] .nav-logo-text {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] #navAuthButtons .landing-link-btn,
+    html[data-theme="dark"] #navAuthButtons .landing-link-btn {
+      color: #cbd5e1 !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      background: rgba(255, 255, 255, 0.04) !important;
+    }
+    html[data-theme="noir"] #navAuthButtons .landing-link-btn:hover,
+    html[data-theme="dark"] #navAuthButtons .landing-link-btn:hover {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] #navAuthButtons .nav-signup-cta-btn,
+    html[data-theme="dark"] #navAuthButtons .nav-signup-cta-btn {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #ffffff !important;
+      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2) !important;
+    }
+    html[data-theme="noir"] .nav-theme-toggle-btn,
+    html[data-theme="dark"] .nav-theme-toggle-btn {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #fbbf24 !important;
+    }
+    html[data-theme="noir"] .mobile-nav-toggle,
+    html[data-theme="dark"] .mobile-nav-toggle {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    }
+    html[data-theme="noir"] .hamburger-bar,
+    html[data-theme="dark"] .hamburger-bar {
+      background: #ffffff !important;
+    }
+
+    /* Dark Drawer Overlay & Box */
+    html[data-theme="noir"] .mobile-nav-drawer-overlay,
+    html[data-theme="dark"] .mobile-nav-drawer-overlay {
+      background: rgba(4, 5, 12, 0.82) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+    }
+    html[data-theme="noir"] .mobile-nav-drawer,
+    html[data-theme="dark"] .mobile-nav-drawer {
+      background: #0b0d18 !important;
+      border-left: 1px solid rgba(255, 255, 255, 0.10) !important;
+      box-shadow: -20px 0 60px rgba(0, 0, 0, 0.85) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-head,
+    html[data-theme="dark"] .mobile-drawer-head {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      background: rgba(14, 16, 26, 0.7) !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-close,
+    html[data-theme="dark"] .mobile-drawer-close {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .drawer-stat-pill,
+    html[data-theme="dark"] .drawer-stat-pill {
+      background: rgba(255, 255, 255, 0.04) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #cbd5e1 !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-apk-card,
+    html[data-theme="dark"] .mobile-drawer-apk-card {
+      background: rgba(14, 18, 30, 0.9) !important;
+      border: 1px solid rgba(16, 185, 129, 0.3) !important;
+      box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6) !important;
+    }
+    html[data-theme="noir"] .drawer-apk-details strong,
+    html[data-theme="dark"] .drawer-apk-details strong {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .drawer-apk-details span,
+    html[data-theme="dark"] .drawer-apk-details span {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-auth,
+    html[data-theme="dark"] .mobile-drawer-auth {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    html[data-theme="noir"] .drawer-login-btn,
+    html[data-theme="dark"] .drawer-login-btn {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .drawer-signup-btn,
+    html[data-theme="dark"] .drawer-signup-btn {
+      background: #ffffff !important;
+      border: 1px solid #ffffff !important;
+      color: #000000 !important;
+      box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2) !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-label,
+    html[data-theme="dark"] .mobile-drawer-label {
+      color: #64748b !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-link,
+    html[data-theme="dark"] .mobile-drawer-link {
+      background: rgba(255, 255, 255, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.07) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-link:hover,
+    html[data-theme="dark"] .mobile-drawer-link:hover {
+      background: rgba(255, 255, 255, 0.07) !important;
+      border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-text strong,
+    html[data-theme="dark"] .mobile-drawer-text strong {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-text span,
+    html[data-theme="dark"] .mobile-drawer-text span {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .drawer-link-arrow,
+    html[data-theme="dark"] .drawer-link-arrow {
+      color: #64748b !important;
+    }
+    html[data-theme="noir"] .drawer-theme-segmented,
+    html[data-theme="dark"] .drawer-theme-segmented {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+    html[data-theme="noir"] .drawer-theme-tab,
+    html[data-theme="dark"] .drawer-theme-tab {
+      background: transparent !important;
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .drawer-theme-tab.active,
+    html[data-theme="dark"] .drawer-theme-tab.active {
+      background: #ffffff !important;
+      color: #000000 !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+    }
+    html[data-theme="noir"] .mobile-drawer-foot,
+    html[data-theme="dark"] .mobile-drawer-foot {
+      border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+      color: #64748b !important;
+    }
+
+    /* LIGHT THEME (Parchment, Light, Ivory) */
+    html[data-theme="parchment"] .landing-nav-wrapper,
+    html[data-theme="light"] .landing-nav-wrapper,
+    html[data-theme="ivory"] .landing-nav-wrapper {
+      background: rgba(251, 248, 242, 0.94) !important;
+      backdrop-filter: blur(24px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+      border-bottom: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 2px 12px rgba(68, 64, 60, 0.06) !important;
+    }
+    html[data-theme="parchment"] .nav-logo-text,
+    html[data-theme="light"] .nav-logo-text {
+      color: #1c1917 !important;
+    }
+    html[data-theme="parchment"] #navAuthButtons .landing-link-btn,
+    html[data-theme="light"] #navAuthButtons .landing-link-btn {
+      color: #44403c !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] #navAuthButtons .landing-link-btn:hover,
+    html[data-theme="light"] #navAuthButtons .landing-link-btn:hover {
+      background: #f5eee0 !important;
+      color: #1c1917 !important;
+    }
+    html[data-theme="parchment"] #navAuthButtons .nav-signup-cta-btn,
+    html[data-theme="light"] #navAuthButtons .nav-signup-cta-btn {
+      background: #1c1917 !important;
+      color: #ffffff !important;
+      border: 1px solid #1c1917 !important;
+      box-shadow: 0 2px 10px rgba(28, 25, 23, 0.15) !important;
+    }
+    html[data-theme="parchment"] .nav-theme-toggle-btn,
+    html[data-theme="light"] .nav-theme-toggle-btn {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      color: #1c1917 !important;
+      box-shadow: 0 1px 3px rgba(68, 64, 60, 0.06) !important;
+    }
+    html[data-theme="parchment"] .mobile-nav-toggle,
+    html[data-theme="light"] .mobile-nav-toggle {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      box-shadow: 0 1px 3px rgba(68, 64, 60, 0.06) !important;
+    }
+    html[data-theme="parchment"] .hamburger-bar,
+    html[data-theme="light"] .hamburger-bar {
+      background: #1c1917 !important;
+    }
+
+    /* Light Drawer Overlay & Box */
+    html[data-theme="parchment"] .mobile-nav-drawer-overlay,
+    html[data-theme="light"] .mobile-nav-drawer-overlay {
+      background: rgba(28, 25, 23, 0.45) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+    }
+    html[data-theme="parchment"] .mobile-nav-drawer,
+    html[data-theme="light"] .mobile-nav-drawer {
+      background: #fbf8f2 !important;
+      border-left: 1px solid rgba(68, 64, 60, 0.18) !important;
+      box-shadow: -20px 0 60px rgba(68, 64, 60, 0.18) !important;
+      color: #1c1917 !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-head,
+    html[data-theme="light"] .mobile-drawer-head {
+      border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+      background: #f5eee0 !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-close,
+    html[data-theme="light"] .mobile-drawer-close {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      color: #1c1917 !important;
+      box-shadow: 0 1px 3px rgba(68, 64, 60, 0.06) !important;
+    }
+    html[data-theme="parchment"] .drawer-stat-pill,
+    html[data-theme="light"] .drawer-stat-pill {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+      color: #44403c !important;
+      box-shadow: 0 1px 3px rgba(68, 64, 60, 0.04) !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-apk-card,
+    html[data-theme="light"] .mobile-drawer-apk-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(16, 185, 129, 0.35) !important;
+      box-shadow: 0 4px 16px rgba(44, 40, 37, 0.06) !important;
+    }
+    html[data-theme="parchment"] .drawer-apk-details strong,
+    html[data-theme="light"] .drawer-apk-details strong {
+      color: #1c1917 !important;
+    }
+    html[data-theme="parchment"] .drawer-apk-details span,
+    html[data-theme="light"] .drawer-apk-details span {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-auth,
+    html[data-theme="light"] .mobile-drawer-auth {
+      border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .drawer-login-btn,
+    html[data-theme="light"] .drawer-login-btn {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      color: #1c1917 !important;
+      box-shadow: 0 1px 3px rgba(68, 64, 60, 0.05) !important;
+    }
+    html[data-theme="parchment"] .drawer-signup-btn,
+    html[data-theme="light"] .drawer-signup-btn {
+      background: #1c1917 !important;
+      border: 1px solid #1c1917 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(28, 25, 23, 0.15) !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-label,
+    html[data-theme="light"] .mobile-drawer-label {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-link,
+    html[data-theme="light"] .mobile-drawer-link {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.12) !important;
+      color: #1c1917 !important;
+      box-shadow: 0 1px 4px rgba(68, 64, 60, 0.04) !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-link:hover,
+    html[data-theme="light"] .mobile-drawer-link:hover {
+      background: #f5eee0 !important;
+      border-color: rgba(68, 64, 60, 0.24) !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-text strong,
+    html[data-theme="light"] .mobile-drawer-text strong {
+      color: #1c1917 !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-text span,
+    html[data-theme="light"] .mobile-drawer-text span {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .drawer-link-arrow,
+    html[data-theme="light"] .drawer-link-arrow {
+      color: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .drawer-theme-segmented,
+    html[data-theme="light"] .drawer-theme-segmented {
+      background: #ede5d5 !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .drawer-theme-tab,
+    html[data-theme="light"] .drawer-theme-tab {
+      background: transparent !important;
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .drawer-theme-tab.active,
+    html[data-theme="light"] .drawer-theme-tab.active {
+      background: #1c1917 !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(28, 25, 23, 0.18) !important;
+    }
+    html[data-theme="parchment"] .mobile-drawer-foot,
+    html[data-theme="light"] .mobile-drawer-foot {
+      border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
+      color: #78716c !important;
+    }
+
     /* Social Sign-In Providers & Divider */
     .auth-social-row {
       display: grid;
@@ -27047,6 +27875,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <img src="/icon.svg" alt="Connecto Logo" class="nav-logo-icon-img" width="30" height="30">
           </div>
           <span class="nav-logo-text">Connecto<span class="nav-logo-dot">.</span></span>
+          <span class="drawer-beta-pill">Beta</span>
         </div>
         <button class="mobile-drawer-close" onclick="closeMobileNavMenu()" aria-label="Close navigation"><i data-lucide="x" class="lucide-sm"></i></button>
       </div>
@@ -27055,103 +27884,136 @@ html[data-theme="dark"] #saveProfileBtn {
       <div class="mobile-drawer-telemetry">
         <div class="drawer-stat-pill">
           <span class="pulse-emerald-dot"></span>
-          <span>Live: <strong id="drawerOnlineCount">160+</strong></span>
+          <span><strong>160+</strong> Friends Online</span>
         </div>
         <div class="drawer-stat-pill">
-          <span><i data-lucide="zap" class="lucide-xs"></i> <strong>WebSocket</strong> Real-Time</span>
-        </div>
-        <div class="drawer-stat-pill">
-          <span><i data-lucide="lock" class="lucide-xs"></i> <strong>Encrypted Session</strong></span>
+          <i data-lucide="zap" class="lucide-xs" style="color:var(--chakra-cyan);"></i>
+          <span><strong>WebSocket</strong> Duplex</span>
         </div>
       </div>
 
       <div class="mobile-drawer-body">
-        <!-- Mobile Native Android APK Card -->
+        <!-- Mobile Native Android APK Bento Card -->
         <div class="mobile-drawer-apk-card">
+          <div class="drawer-apk-top-accent"></div>
           <div class="drawer-apk-badge-row">
             <span class="drawer-apk-chip"><span class="pulse-emerald-dot"></span> OFFICIAL ANDROID APP</span>
             <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.6.5</span> Live</span>
           </div>
           <div class="drawer-apk-main">
             <div class="drawer-apk-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2">
-                <path d="M5 16V9a7 7 0 0 1 14 0v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/>
-                <path d="M9 9h.01"/><path d="M15 9h.01"/><path d="M8 3l1.5 2"/><path d="M16 3l-1.5 2"/>
-              </svg>
+              <i data-lucide="smartphone" class="lucide-md" style="color:#10b981;"></i>
             </div>
             <div class="drawer-apk-details">
-              <strong>Connecto for Android</strong>
-              <span>Pure Black OLED • Vault Biometrics • <span class="apk-size-val">36.0 MB</span></span>
+              <strong>Connecto Android Native</strong>
+              <span>Dark Luxury • Pure OLED • <span class="apk-size-val">36.0 MB</span></span>
             </div>
           </div>
           <a href="/download/apk" download="connecto-fun.apk" class="drawer-apk-download-btn">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Download Native APK (<span class="apk-size-val">36.0 MB</span>)</span>
+            <i data-lucide="download" class="lucide-xs"></i>
+            <span>Download Native APK</span>
           </a>
-          <div class="drawer-apk-trust">
-            <span><i data-lucide="shield-check" class="lucide-xs"></i> Hardware Biometrics</span> • <span><i data-lucide="zap" class="lucide-xs"></i> Low Latency</span> • <span>Android 7.0 - 16+ (HyperOS)</span>
-          </div>
         </div>
 
-        <div class="mobile-drawer-auth" id="mobileDrawerAuthBox" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08);">
-          <button class="btn btn-outline mobile-drawer-btn" style="width:100%; margin-bottom:8px; padding:10px; font-weight:700;" onclick="openAuthModal('login'); closeMobileNavMenu();"><i data-lucide="log-in" class="lucide-xs"></i> Log in</button>
-          <button class="btn nav-cta-shimmer mobile-drawer-btn" style="width:100%; padding:10px; font-weight:800;" onclick="openAuthModal('register'); closeMobileNavMenu();"><i data-lucide="user-plus" class="lucide-xs"></i> Sign up Free <i data-lucide="arrow-right" class="lucide-xs"></i></button>
+        <!-- Auth action buttons (dynamic via updateMobileDrawerAuthUI) -->
+        <div class="mobile-drawer-auth" id="mobileDrawerAuthBox">
+          <button class="drawer-login-btn" onclick="openAuthModal('login'); closeMobileNavMenu();">
+            <i data-lucide="log-in" class="lucide-xs"></i> <span>Log in</span>
+          </button>
+          <button class="drawer-signup-btn" onclick="openAuthModal('register'); closeMobileNavMenu();">
+            <i data-lucide="user-plus" class="lucide-xs"></i> <span>Sign up Free</span> <i data-lucide="arrow-right" class="lucide-xs"></i>
+          </button>
         </div>
+
         <div class="mobile-drawer-label">Platform Navigation</div>
 
-        <a class="mobile-drawer-link" onclick="openCustomerSupportAiModal(); closeMobileNavMenu();">
-          <span class="mobile-drawer-icon" style="background:rgba(16,185,129,0.15); color:#10b981;"><i data-lucide="bot" class="lucide-sm"></i></span>
+        <!-- Tactile Navigation Bento Links with Squircle Badges -->
+        <a class="mobile-drawer-link" onclick="switchMainView('hero'); closeMobileNavMenu();">
+          <span class="mobile-drawer-icon" style="color:#00F5A0; background:rgba(0, 245, 160, 0.12); border-color:rgba(0, 245, 160, 0.25);">
+            <i data-lucide="home" class="lucide-sm"></i>
+          </span>
           <div class="mobile-drawer-text">
-            <strong>24/7 AI Customer Support</strong>
-            <span>Instant answers for audio, encryption, 2FA & APK</span>
+            <strong>Home Overview</strong>
+            <span>Landing &amp; product features</span>
           </div>
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-
+        <a class="mobile-drawer-link" onclick="scrollToHeroSection('ecosystemSection'); closeMobileNavMenu();">
+          <span class="mobile-drawer-icon" style="color:#00cec9; background:rgba(0, 206, 201, 0.12); border-color:rgba(0, 206, 201, 0.25);">
+            <i data-lucide="compass" class="lucide-sm"></i>
+          </span>
+          <div class="mobile-drawer-text">
+            <strong>Ecosystem Directory</strong>
+            <span>Spaces, voice lounges &amp; tools</span>
+          </div>
+          <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
+        </a>
 
         <a class="mobile-drawer-link" onclick="switchMainView('learning'); closeMobileNavMenu();">
-          <span class="mobile-drawer-icon"><i data-lucide="book-open" class="lucide-sm"></i></span>
+          <span class="mobile-drawer-icon" style="color:#f59e0b; background:rgba(245, 158, 11, 0.12); border-color:rgba(245, 158, 11, 0.25);">
+            <i data-lucide="graduation-cap" class="lucide-sm"></i>
+          </span>
           <div class="mobile-drawer-text">
             <strong>Learning Academy</strong>
-            <span>Cybersecurity labs, CTF & knowledge hub</span>
+            <span>Protocols, WebSockets &amp; security labs</span>
           </div>
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
         <a class="mobile-drawer-link" onclick="handleNavCommunityClick(); closeMobileNavMenu();">
-          <span class="mobile-drawer-icon"><i data-lucide="message-square" class="lucide-sm"></i></span>
+          <span class="mobile-drawer-icon" style="color:#a855f7; background:rgba(168, 85, 247, 0.12); border-color:rgba(168, 85, 247, 0.25);">
+            <i data-lucide="message-square" class="lucide-sm"></i>
+          </span>
           <div class="mobile-drawer-text">
-            <strong>Community Chat & Lounges</strong>
-            <span>Join live text channels & voice rooms</span>
+            <strong>Community Chat &amp; Lounges</strong>
+            <span>Direct messaging &amp; WebRTC voice</span>
           </div>
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
         <a class="mobile-drawer-link" onclick="scrollToHeroSection('archSection'); closeMobileNavMenu();">
-          <span class="mobile-drawer-icon"><i data-lucide="shield" class="lucide-sm"></i></span>
+          <span class="mobile-drawer-icon" style="color:#ff7675; background:rgba(255, 118, 117, 0.12); border-color:rgba(255, 118, 117, 0.25);">
+            <i data-lucide="shield" class="lucide-sm"></i>
+          </span>
           <div class="mobile-drawer-text">
-            <strong>Architecture & Security</strong>
-            <span>Zero-trust cryptographic protocols</span>
+            <strong>Architecture &amp; Security</strong>
+            <span>Argon2id, TLS 1.3 &amp; DTLS-SRTP</span>
           </div>
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <!-- Interactive Theme Customizer -->
-        <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
-        <div class="mobile-drawer-label">Theme</div>
-        <div class="chakra-palette-row" style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-          <button class="chakra-theme-dot active" data-theme="parchment" style="background:#f5f1e8; border:2px solid #141312; width:36px; height:36px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:15px;" onclick="setHomepageTheme('parchment')" title="☀️ Light Theme (Ivory Paper)">☀️</button>
-          <button class="chakra-theme-dot" data-theme="noir" style="background:#000000; border:2px solid #ffffff; width:36px; height:36px; border-radius:50%; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; font-size:15px;" onclick="setHomepageTheme('noir')" title="🌙 Dark Theme (Pure Black OLED)">🌙</button>
+        <a class="mobile-drawer-link" onclick="openCustomerSupportAiModal(); closeMobileNavMenu();">
+          <span class="mobile-drawer-icon" style="color:#10b981; background:rgba(16, 185, 129, 0.12); border-color:rgba(16, 185, 129, 0.25);">
+            <i data-lucide="bot" class="lucide-sm"></i>
+          </span>
+          <div class="mobile-drawer-text">
+            <strong>24/7 AI Customer Support</strong>
+            <span>Instant help for audio, keys &amp; APK</span>
+          </div>
+          <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
+        </a>
+
+        <!-- Tactile Theme Segmented Switcher -->
+        <div class="mobile-drawer-theme-wrap">
+          <div class="mobile-drawer-label"><i data-lucide="palette" class="lucide-xs"></i> Appearance Theme</div>
+          <div class="drawer-theme-segmented">
+            <button class="drawer-theme-tab active" data-theme-tab="parchment" onclick="setHomepageTheme('parchment')">
+              <span class="theme-tab-icon">☀️</span>
+              <span class="theme-tab-label">Light Paper</span>
+            </button>
+            <button class="drawer-theme-tab" data-theme-tab="noir" onclick="setHomepageTheme('noir')">
+              <span class="theme-tab-icon">🌙</span>
+              <span class="theme-tab-label">Dark OLED</span>
+            </button>
+          </div>
         </div>
-        <div style="height:1px; background:var(--card-border); margin:6px 0;"></div>
-        
 
       </div>
 
       <div class="mobile-drawer-foot">
         <span>© 2026 Connecto Inc.</span>
-        <span style="color:var(--chakra-cyan); font-weight:700;">Low-Latency WebSockets</span>
+        <span style="color:var(--chakra-cyan); font-weight:700;">Zero-Trust &amp; Real-Time</span>
       </div>
     </div>
   </div>
@@ -41319,13 +42181,20 @@ function selectSettingsAvatar(emoji, el) {
       if (overlay) {
         overlay.classList.add('active');
         document.body.style.overflow = 'hidden';
+        document.body.classList.add('mobile-drawer-open');
       }
       if (btn) btn.classList.add('open');
+      const fab = document.getElementById('floatingSupportAiTrigger');
+      if (fab) fab.style.display = 'none';
       updateMobileDrawerAuthUI();
+      // Ensure icons render in drawer
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        lucide.createIcons();
+      }
     }
 
     function closeMobileNavMenu(e) {
-      if (e && e.target && e.target.closest && e.target.closest('.mobile-nav-drawer') && !e.target.closest('.mobile-drawer-close') && !e.target.closest('.mobile-drawer-link') && !e.target.closest('.mobile-drawer-btn') && !e.target.closest('.landing-logo')) {
+      if (e && e.target && e.target.closest && e.target.closest('.mobile-nav-drawer') && !e.target.closest('.mobile-drawer-close') && !e.target.closest('.mobile-drawer-link') && !e.target.closest('.mobile-drawer-btn') && !e.target.closest('.drawer-login-btn') && !e.target.closest('.drawer-signup-btn') && !e.target.closest('.landing-logo')) {
         return;
       }
       const overlay = document.getElementById('mobileNavDrawerOverlay');
@@ -41333,8 +42202,11 @@ function selectSettingsAvatar(emoji, el) {
       if (overlay) {
         overlay.classList.remove('active');
         document.body.style.overflow = '';
+        document.body.classList.remove('mobile-drawer-open');
       }
       if (btn) btn.classList.remove('open');
+      const fab = document.getElementById('floatingSupportAiTrigger');
+      if (fab) fab.style.display = '';
     }
 
     // ============================================================
@@ -41449,6 +42321,10 @@ function selectSettingsAvatar(emoji, el) {
           d.classList.toggle('active', mapped === canonicalTheme);
         });
 
+        document.querySelectorAll('.drawer-theme-tab').forEach(t => {
+          t.classList.toggle('active', t.getAttribute('data-theme-tab') === canonicalTheme);
+        });
+
         if (typeof refreshParticleColors === 'function') {
           refreshParticleColors();
         }
@@ -41542,8 +42418,8 @@ function selectSettingsAvatar(emoji, el) {
         `;
       } else {
         drawerAuth.innerHTML = `
-          <button class="btn btn-outline mobile-drawer-btn" style="width:100%; margin-bottom:8px; padding:10px; font-weight:700;" onclick="openAuthModal('login'); closeMobileNavMenu();"><i data-lucide="log-in" class="lucide-xs"></i> Log in</button>
-          <button class="btn nav-cta-shimmer mobile-drawer-btn" style="width:100%; padding:10px; font-weight:800;" onclick="openAuthModal('register'); closeMobileNavMenu();"><i data-lucide="user-plus" class="lucide-xs"></i> Sign up Free <i data-lucide="arrow-right" class="lucide-xs"></i></button>
+          <button class="drawer-login-btn" onclick="openAuthModal('login'); closeMobileNavMenu();"><i data-lucide="log-in" class="lucide-xs"></i> <span>Log in</span></button>
+          <button class="drawer-signup-btn" onclick="openAuthModal('register'); closeMobileNavMenu();"><i data-lucide="user-plus" class="lucide-xs"></i> <span>Sign up Free</span> <i data-lucide="arrow-right" class="lucide-xs"></i></button>
         `;
       }
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
@@ -42894,7 +43770,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-23') {
+        if (name !== 'connecto-v5-0-24') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
