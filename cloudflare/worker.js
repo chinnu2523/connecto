@@ -6,7 +6,7 @@ import { RESINORA_PRODUCTS, RESINORA_REVIEWS } from "./resinora_catalog.js";
 // Handles connecto.fun, news.connecto.fun, and resinora.connecto.fun
 
 // Global circuit breaker state across edge worker invocations
-let localServerStatus = "UP"; // Defaults to UP so edge isolates immediately proxy to live local origin via Cloudflare Tunnel
+let localServerStatus = "DOWN"; // Defaults to DOWN so edge isolates avoid cold-start origin timeout delays and serve instantly from Cloudflare Pages/D1
 let lastOriginProbeTime = 0;
 const PROBE_INTERVAL_MS = 30000; // 30 seconds between background probes
 
@@ -79,7 +79,10 @@ export default {
           const callerUname = (caller.username || "").trim().toLowerCase().replace(/^@/, "");
           const pair = [callerUname, peer].sort().join(":");
           const enc = new TextEncoder();
-          const masterSecret = env.SECRET_KEY || "connecto_master_e2e_key_2026_secured";
+          const masterSecret = env.SECRET_KEY;
+          if (!masterSecret) {
+            return jsonResponse({ error: "E2E key engine configuration missing" }, 503);
+          }
           const digest = await crypto.subtle.digest("SHA-256", enc.encode(`connecto_e2e_conv_${pair}_${masterSecret}`));
           const secret = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
           return jsonResponse({ status: "ok", e2e_secret: secret, pair: pair });
@@ -331,13 +334,13 @@ export default {
     }
 
     // 5. Intelligent Automated Proxy & Instant Edge Failover
-    // Always attempt origin proxy first unless explicitly forced to cloud
-    const forceCloud = url.searchParams.get("force_cloud") === "1";
+    // Attempt origin proxy only if origin is UP and not forced to cloud
+    const forceCloud = url.searchParams.get("force_cloud") === "1" || localServerStatus === "DOWN";
 
     if (!forceCloud) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 1200);
         const originResponse = await fetch(request.clone(), { signal: controller.signal });
         clearTimeout(timeoutId);
 
@@ -360,6 +363,7 @@ export default {
           }
         }
       } catch (err) {
+        markLocalServerDown(env, ctx);
         console.warn("[PROXY_FALLBACK]", url.pathname, err.message);
       }
     }
@@ -373,8 +377,8 @@ export default {
       return handleCloudApiRequest(request, url, env, ctx);
     }
 
-    // (B) Handle Web / Static Assets via Cloudflare Pages CDN
-    return handlePagesEdgeFallback(request, url, host);
+    // (B) Handle Web / Static Assets via Cloudflare Pages CDN (with Edge Caching)
+    return handlePagesEdgeFallback(request, url, host, env, ctx);
   }
 };
 
@@ -1003,7 +1007,7 @@ async function generateEdgeToken(userId, env) {
     ["sign"]
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(raw));
-  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).slice(0, 16).join('');
+  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
   return `cf_edge_${userId}_${ts}.${sigHex}`;
 }
 
@@ -1034,9 +1038,11 @@ async function verifyEdgeToken(token, env) {
     ["sign"]
   );
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(payload));
-  const expectedSigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).slice(0, 16).join('');
+  const fullExpectedSigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
   
   // Constant-time signature verification preventing timing side-channel attacks
+  // Supports full 64-character (256-bit) HMAC signatures and 32-char (16-byte) legacy tokens
+  const expectedSigHex = (providedSig.length === 32) ? fullExpectedSigHex.slice(0, 32) : fullExpectedSigHex;
   if (providedSig.length !== expectedSigHex.length) return null;
   let diff = 0;
   for (let i = 0; i < providedSig.length; i++) {
@@ -1372,7 +1378,7 @@ async function handleCloudApiRequest(request, url, env, ctx) {
     if (url.pathname.includes("/groups")) {
       return jsonResponse({ status: "ok", groups: [] }, 200);
     }
-    return jsonResponse({ status: "ok", message: "Edge fallback", error: globalErr.message }, 200);
+    return jsonResponse({ status: "error", message: "Edge processing encountered a temporary error." }, 500);
   }
 }
 
@@ -7063,23 +7069,48 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
 // CLOUDFLARE PAGES CDN FALLBACK FOR WEB / STATIC ASSETS
 // ============================================================================
 
-async function handlePagesEdgeFallback(request, url, host) {
+async function handlePagesEdgeFallback(request, url, host, env, ctx) {
   let pagesPath = url.pathname;
   if (host.startsWith("news.") && (pagesPath === "/" || pagesPath === "")) {
     pagesPath = "/news.html";
   } else if (host.startsWith("resinora.") && (pagesPath === "/" || pagesPath === "")) {
     pagesPath = "/resinora.html";
-  } else if (pagesPath === "/" || pagesPath === "") {
-    pagesPath = "/index.html";
+  } else if (pagesPath === "/" || pagesPath === "" || pagesPath === "/index.html") {
+    // Cloudflare Pages serves root index at / and issues 308 redirect for /index.html
+    pagesPath = "/";
   }
 
-  const pagesUrl = new URL(`https://connecto-web.pages.dev${pagesPath}${url.search}`);
+  const isGetOrHead = request.method === "GET" || request.method === "HEAD";
+  const cache = caches.default;
+  const cacheKey = new Request(url.toString(), { method: request.method });
+
+  // 1. Instant Cloudflare Edge Cache Hit Check
+  if (isGetOrHead && !url.searchParams.has("force_refresh")) {
+    try {
+      const cached = await cache.match(cacheKey);
+      if (cached) {
+        const cachedRes = new Response(cached.body, cached);
+        cachedRes.headers.set("CF-Cache-Status", "HIT");
+        cachedRes.headers.set("X-Served-By", "Cloudflare-Edge-Cache");
+        cachedRes.headers.set("X-Connecto-Mode", "cloud_server");
+        return cachedRes;
+      }
+    } catch (_) {}
+  }
+
+  // 2. Direct Pages CDN fetch (using canonical path to prevent 308 redirect roundtrips)
+  const targetSubPath = pagesPath === "/" ? "" : pagesPath;
+  const pagesUrl = new URL(`https://connecto-web.pages.dev${targetSubPath}${url.search}`);
   try {
     const pagesResponse = await fetch(pagesUrl.toString(), {
       method: request.method,
       headers: {
         "Accept": request.headers.get("Accept") || "*/*",
         "User-Agent": request.headers.get("User-Agent") || ""
+      },
+      cf: {
+        cacheEverything: true,
+        cacheTtl: 3600
       },
       redirect: "follow"
     });
@@ -7089,33 +7120,33 @@ async function handlePagesEdgeFallback(request, url, host) {
       resHeaders.set("X-Served-By", "Cloudflare-Pages-Edge");
       resHeaders.set("X-Connecto-Mode", "cloud_server");
       resHeaders.set("Access-Control-Allow-Origin", "*");
-      resHeaders.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self';");
+      resHeaders.set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://checkout.razorpay.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;");
       resHeaders.set("X-Content-Type-Options", "nosniff");
       resHeaders.set("X-Frame-Options", "SAMEORIGIN");
       resHeaders.set("X-XSS-Protection", "1; mode=block");
       resHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
       resHeaders.set("Permissions-Policy", "camera=(), geolocation=(), microphone=(self)");
+      resHeaders.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+      
       const ct = pagesResponse.headers.get("content-type") || "";
       if (ct.includes("text/html")) {
-        let htmlText = await pagesResponse.text();
-        htmlText = htmlText
-          .replace(/83731dc7c24b4aef0f7e130b227dddb6bc325c7f21cd9d54cd3645911e5cd861/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/831e029803e6a763433f715b2894d3720e26836a737dba2fe8676d5204cb6bc2/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/2254c8e779e80afb507afb3b513170c16ee201426e75692621d6818592993198/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/a85c04b682cb98e09e3b0471d0e3d6a2930075c3f417597e40a275562a83fb1d/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/d6862ee43ffd80256f933007cdd12991b3ad88bdf91a1b1f39e07cda07093d05/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/ea9865a526452fbc8b36c4caed583dc02ad40c5b6944b49183ba5f3fdc14856d/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/b0c0e5d452637bcb3649e82de0259b9c6a4c1715220a262f14310187d401b132/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b")
-          .replace(/c0e6ecd13056266b14d7535930d8d11a29ac81ba46c2eb0267c95eab1b2fa822/g, "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b");
-        return new Response(htmlText, {
-          status: pagesResponse.status,
-          headers: resHeaders
-        });
+        // Cache HTML at edge for 10 minutes, browser for 60 seconds, stale-while-revalidate 24 hours
+        resHeaders.set("Cache-Control", "public, max-age=60, s-maxage=600, stale-while-revalidate=86400");
+      } else {
+        resHeaders.set("Cache-Control", "public, max-age=86400, s-maxage=604800, immutable");
       }
-      return new Response(pagesResponse.body, {
+      resHeaders.set("CF-Cache-Status", "MISS");
+
+      const responseToReturn = new Response(pagesResponse.body, {
         status: pagesResponse.status,
         headers: resHeaders
       });
+
+      if (isGetOrHead && ctx && pagesResponse.status === 200) {
+        ctx.waitUntil(cache.put(cacheKey, responseToReturn.clone()).catch(() => {}));
+      }
+
+      return responseToReturn;
     }
   } catch (e) {
     // Pages failed, fallback to emergency HTML
