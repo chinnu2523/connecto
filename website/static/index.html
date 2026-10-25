@@ -1832,14 +1832,14 @@
     }
 
     /* 5. Tactile Deckle-Lift Physical Hover Animation */
-    html[data-theme="parchment"] .crystal-card:hover,
-    html[data-theme="parchment"] .ecosystem-card:hover,
-    html[data-theme="parchment"] .usecase-card:hover,
-    html[data-theme="parchment"] .step-card-custom:hover,
-    html[data-theme="parchment"] .comparison-card:hover,
-    html[data-theme="parchment"] .bento-card:hover,
-    html[data-theme="parchment"] .faq-item:hover,
-    html[data-theme="parchment"] .final-cta-card:hover {
+    html[data-theme="parchment"] .crystal-card:hover:not(.tilt-active),
+    html[data-theme="parchment"] .ecosystem-card:hover:not(.tilt-active),
+    html[data-theme="parchment"] .usecase-card:hover:not(.tilt-active),
+    html[data-theme="parchment"] .step-card-custom:hover:not(.tilt-active),
+    html[data-theme="parchment"] .comparison-card:hover:not(.tilt-active),
+    html[data-theme="parchment"] .bento-card:hover:not(.tilt-active),
+    html[data-theme="parchment"] .faq-item:hover:not(.tilt-active),
+    html[data-theme="parchment"] .final-cta-card:hover:not(.tilt-active) {
       transform: translateY(-4.5px) scale(1.003) !important;
       border-color: rgba(28, 25, 23, 0.28) !important;
       box-shadow:
@@ -4062,17 +4062,22 @@
     .crystal-reveal,
     .scroll-reveal-3d {
       opacity: 0;
-      transform: translateY(22px) scale(0.988);
-      filter: blur(3px);
-      transition: opacity 0.65s var(--ease-crystal),
-                  transform 0.65s var(--ease-crystal),
-                  filter 0.65s var(--ease-crystal) !important;
+      transform: translateY(28px) scale(0.975);
+      filter: blur(6px);
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+                  filter 0.75s cubic-bezier(0.16, 1, 0.3, 1) !important;
       will-change: opacity, transform, filter;
     }
-    .crystal-reveal.in-view,
-    .scroll-reveal-3d.in-view {
+    .crystal-reveal.in-view:not(.tilt-active),
+    .scroll-reveal-3d.in-view:not(.tilt-active) {
       opacity: 1 !important;
       transform: translateY(0) scale(1) !important;
+      filter: blur(0px) !important;
+    }
+    .crystal-reveal.in-view.tilt-active,
+    .scroll-reveal-3d.in-view.tilt-active {
+      opacity: 1 !important;
       filter: blur(0px) !important;
     }
 
@@ -7553,88 +7558,236 @@
       box-sizing: border-box;
     }
 
-    /* Cinematic 3D Interactive Card Base */
+    /* ==========================================================================
+       SECTION: ADVANCED 3D SPATIAL ENGINE & MULTI-TIER TRANSITION SHADOWS
+       ========================================================================== */
+
+    /* 1. Cinematic 3D Interactive Card Base */
     .interactive-tilt-card {
       position: relative;
-      transition: box-shadow 0.25s var(--ease-snappy), border-color 0.2s, background 0.2s;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                  box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+                  border-color 0.25s ease,
+                  background-color 0.25s ease;
       overflow: hidden;
       width: 100%;
       transform-style: preserve-3d;
+      -webkit-transform-style: preserve-3d;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      contain: layout style;
       will-change: transform;
     }
-    .interactive-tilt-card:hover {
-      border-color: var(--accent-border);
-      box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.9), 0 0 30px -8px var(--accent-glow);
+
+    /* Multi-Tier Diffuse Transition Shadows - Dark Mode Default */
+    .interactive-tilt-card,
+    .ecosystem-card,
+    .chat-mockup-card,
+    .stats-section-asym,
+    .android-showcase-card-left,
+    .phone-mockup-frame,
+    .arch-flow-wrap,
+    .arch-node,
+    .usecase-card,
+    .ctf-sandbox-card,
+    .step-card-custom,
+    .comparison-card,
+    .final-cta-card {
+      box-shadow: 
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        0 4px 14px -2px rgba(0, 0, 0, 0.6),
+        0 16px 36px -6px rgba(0, 0, 0, 0.75),
+        0 0 24px -4px rgba(16, 185, 129, 0.12);
     }
+
+    .interactive-tilt-card:hover,
+    .ecosystem-card:hover,
+    .chat-mockup-card:hover,
+    .stats-section-asym:hover,
+    .android-showcase-card-left:hover,
+    .phone-mockup-frame:hover,
+    .arch-flow-wrap:hover,
+    .arch-node:hover,
+    .usecase-card:hover,
+    .ctf-sandbox-card:hover,
+    .step-card-custom:hover,
+    .comparison-card:hover,
+    .final-cta-card:hover {
+      border-color: rgba(16, 185, 129, 0.45) !important;
+      box-shadow: 
+        0 0 0 1px rgba(16, 185, 129, 0.35),
+        0 8px 24px -4px rgba(0, 0, 0, 0.7),
+        0 28px 64px -12px rgba(0, 0, 0, 0.9),
+        0 0 42px -4px rgba(16, 185, 129, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+    }
+
+    /* 2. Dynamic Specular Sheen Reflection */
     .interactive-tilt-card::before {
       content: '';
       position: absolute;
       inset: 0;
-      background: radial-gradient(400px circle at var(--mouse-x, -999px) var(--mouse-y, -999px), var(--accent-tint), transparent 60%);
+      background: radial-gradient(380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255, 255, 255, 0.14), transparent 65%);
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       pointer-events: none;
       border-radius: inherit;
-      z-index: 2;
+      z-index: 5;
     }
-    .interactive-tilt-card:hover::before {
+    .interactive-tilt-card:hover::before,
+    .interactive-tilt-card.tilt-active::before {
       opacity: 1;
     }
 
-    /* Multi-Plane 3D Spatial Depth inside Cards */
-    .usecase-icon-badge, .stat-icon-wrap, .arch-node-icon, .faq-badge, .hero-pill-badge {
-      transform: translateZ(28px);
+    /* Light Parchment Parity for Specular Sheen & Shadows */
+    html[data-theme="parchment"] .interactive-tilt-card::before {
+      background: radial-gradient(380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 175, 125, 0.22), transparent 65%) !important;
+    }
+
+    html[data-theme="parchment"] .interactive-tilt-card,
+    html[data-theme="parchment"] .ecosystem-card,
+    html[data-theme="parchment"] .chat-mockup-card,
+    html[data-theme="parchment"] .stats-section-asym,
+    html[data-theme="parchment"] .android-showcase-card-left,
+    html[data-theme="parchment"] .phone-mockup-frame,
+    html[data-theme="parchment"] .arch-flow-wrap,
+    html[data-theme="parchment"] .arch-node,
+    html[data-theme="parchment"] .usecase-card,
+    html[data-theme="parchment"] .ctf-sandbox-card,
+    html[data-theme="parchment"] .step-card-custom,
+    html[data-theme="parchment"] .comparison-card,
+    html[data-theme="parchment"] .final-cta-card {
+      box-shadow: 
+        0 0 0 1px rgba(68, 64, 60, 0.12),
+        inset 0 1px 0 #ffffff,
+        0 3px 8px rgba(44, 40, 37, 0.04),
+        0 12px 28px -4px rgba(44, 40, 37, 0.08),
+        0 0 18px -4px rgba(5, 150, 105, 0.1) !important;
+    }
+
+    html[data-theme="parchment"] .interactive-tilt-card:hover,
+    html[data-theme="parchment"] .ecosystem-card:hover,
+    html[data-theme="parchment"] .chat-mockup-card:hover,
+    html[data-theme="parchment"] .stats-section-asym:hover,
+    html[data-theme="parchment"] .android-showcase-card-left:hover,
+    html[data-theme="parchment"] .phone-mockup-frame:hover,
+    html[data-theme="parchment"] .arch-flow-wrap:hover,
+    html[data-theme="parchment"] .arch-node:hover,
+    html[data-theme="parchment"] .usecase-card:hover,
+    html[data-theme="parchment"] .ctf-sandbox-card:hover,
+    html[data-theme="parchment"] .step-card-custom:hover,
+    html[data-theme="parchment"] .comparison-card:hover,
+    html[data-theme="parchment"] .final-cta-card:hover {
+      border-color: rgba(5, 150, 105, 0.4) !important;
+      box-shadow: 
+        0 0 0 1px rgba(5, 150, 105, 0.3),
+        inset 0 1px 0 #ffffff,
+        0 6px 14px rgba(44, 40, 37, 0.06),
+        0 22px 48px -8px rgba(44, 40, 37, 0.14),
+        0 0 32px -4px rgba(5, 150, 105, 0.22) !important;
+    }
+
+    /* 3. Multi-Plane 3D Spatial Depth inside Cards */
+    .usecase-icon-badge,
+    .stat-icon-wrap,
+    .arch-node-icon,
+    .faq-badge,
+    .hero-pill-badge,
+    .ecosystem-card-icon,
+    .android-feat-card-icon,
+    .step-badge-custom,
+    .mock-secure-pill {
+      transform: translateZ(30px);
       transform-style: preserve-3d;
-      transition: transform 0.25s var(--ease-spring);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       will-change: transform;
     }
     .interactive-tilt-card:hover .usecase-icon-badge,
     .interactive-tilt-card:hover .stat-icon-wrap,
     .interactive-tilt-card:hover .arch-node-icon,
-    .interactive-tilt-card:hover .faq-badge {
-      transform: translateZ(36px) scale(1.06);
+    .interactive-tilt-card:hover .faq-badge,
+    .interactive-tilt-card:hover .ecosystem-card-icon,
+    .interactive-tilt-card:hover .android-feat-card-icon,
+    .interactive-tilt-card:hover .step-badge-custom {
+      transform: translateZ(42px) scale(1.08);
     }
-    .usecase-card h4, .arch-node strong, .faq-q span, .stat-num-custom {
-      transform: translateZ(16px);
+    .usecase-card h4,
+    .arch-node strong,
+    .faq-q span,
+    .stat-num-custom,
+    .ecosystem-card-title,
+    .android-showcase-title,
+    .comparison-card strong {
+      transform: translateZ(18px);
       transform-style: preserve-3d;
     }
-    .usecase-card p, .arch-node span, .faq-a-content, .stat-label-custom {
-      transform: translateZ(8px);
+    .usecase-card p,
+    .arch-node span,
+    .faq-a-content,
+    .stat-label-custom,
+    .ecosystem-card-desc,
+    .android-showcase-desc {
+      transform: translateZ(10px);
       transform-style: preserve-3d;
     }
 
-    /* 3D preserve hierarchy — contain:paint promotes compositor layer WITHOUT will-change VRAM waste */
-    .scroll-reveal-3d, .chat-mockup-card, .final-cta-card, .stats-section-asym {
+    /* 4. 3D Hierarchy & Preserved Context */
+    .scroll-reveal-3d, .chat-mockup-card, .final-cta-card, .stats-section-asym, .phone-mockup-frame {
       transform-style: preserve-3d;
       -webkit-transform-style: preserve-3d;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      contain: paint;
-      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
+      contain: layout style;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s ease, border-color 0.2s ease;
     }
-    .interactive-tilt-card {
-      transform-style: preserve-3d;
-      -webkit-transform-style: preserve-3d;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      contain: paint;
-      transition: box-shadow 0.25s ease, border-color 0.2s ease;
-    }
-    /* will-change only on elements actively JS-animated each frame */
-    #heroChatMockup, #heroScrollMorphReveal { will-change: transform, opacity; }
-    .bento-section-wrap {
+    .hero-spatial-stage,
+    .bento-section-wrap,
+    .android-phone-mockup-wrap,
+    .spatial-3d-section {
       perspective: 1200px;
       transform-style: preserve-3d;
       -webkit-transform-style: preserve-3d;
     }
 
-    /* Stagger Cascade Delays */
-    .stagger-3d-1 { transition-delay: 40ms; }
-    .stagger-3d-2 { transition-delay: 80ms; }
-    .stagger-3d-3 { transition-delay: 120ms; }
-    .stagger-3d-4 { transition-delay: 160ms; }
-    .stagger-3d-5 { transition-delay: 200ms; }
-    .stagger-3d-6 { transition-delay: 240ms; }
+    /* 5. Ambient 3D Levitation & Floating Motion */
+    @keyframes ambientPhoneFloat3D {
+      0%, 100% {
+        transform: perspective(1200px) translateY(0px) rotateX(0deg) rotateY(0deg);
+      }
+      25% {
+        transform: perspective(1200px) translateY(-6px) rotateX(1.5deg) rotateY(-1.2deg);
+      }
+      50% {
+        transform: perspective(1200px) translateY(-10px) rotateX(-1deg) rotateY(1.5deg);
+      }
+      75% {
+        transform: perspective(1200px) translateY(-4px) rotateX(0.8deg) rotateY(0.5deg);
+      }
+    }
+    .phone-mockup-frame:not(.tilt-active) {
+      animation: ambientPhoneFloat3D 7s ease-in-out infinite;
+    }
+
+    /* 6. Glowing Scroll Progress Particle Head */
+    .scroll-progress-bar::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: -2.5px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 0 10px #00cec9, 0 0 18px #10b981;
+    }
+
+    /* 7. Stagger Cascade Delays */
+    .stagger-3d-1 { transition-delay: 45ms; }
+    .stagger-3d-2 { transition-delay: 90ms; }
+    .stagger-3d-3 { transition-delay: 135ms; }
+    .stagger-3d-4 { transition-delay: 180ms; }
+    .stagger-3d-5 { transition-delay: 225ms; }
+    .stagger-3d-6 { transition-delay: 270ms; }
 
     /* ==================== CENTERED HERO CHAT MOCKUP ==================== */
     .chat-mockup-card {
@@ -7657,9 +7810,9 @@
       position: relative;
       transform-style: preserve-3d;
       box-sizing: border-box;
-      contain: layout size paint;
+      contain: layout size;
       will-change: transform, opacity;
-      animation: heroSquareCardIntro 0.9s 0.2s var(--ease-spring) both;
+      animation: heroSquareCardIntro 0.9s 0.2s var(--ease-spring);
       transition: box-shadow 0.3s, border-color 0.2s;
     }
 
@@ -21958,15 +22111,15 @@ html[data-theme="parchment"] .final-cta-card:hover {
   will-change: transform, box-shadow;
 }
 
-.ecosystem-card:hover,
-.bento-card:hover,
-.usecase-card:hover,
-.step-card-custom:hover,
-.comparison-card:hover,
-.arch-node:hover,
-.ctf-sandbox-card:hover,
-.faq-item:hover,
-.final-cta-card:hover {
+.ecosystem-card:hover:not(.tilt-active),
+.bento-card:hover:not(.tilt-active),
+.usecase-card:hover:not(.tilt-active),
+.step-card-custom:hover:not(.tilt-active),
+.comparison-card:hover:not(.tilt-active),
+.arch-node:hover:not(.tilt-active),
+.ctf-sandbox-card:hover:not(.tilt-active),
+.faq-item:hover:not(.tilt-active),
+.final-cta-card:hover:not(.tilt-active) {
   transform: translateY(-4px) scale(1.006) !important;
 }
 
@@ -24341,7 +24494,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                 <button class="phone-mock-switch-btn" id="phoneTabChat" onclick="setPhoneMockupScreen('chat')"><i data-lucide="message-square" class="lucide-xs"></i> OLED Chat</button>
               </div>
 
-              <div class="phone-mockup-frame">
+              <div class="phone-mockup-frame interactive-tilt-card scroll-reveal-3d">
                 <div class="phone-notch-bar">
                   <span>12:00</span>
                   <div class="phone-camera-dot"></div>
@@ -24463,7 +24616,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
           <div class="ecosystem-grid-6">
             <!-- Portal 1: Live Chat & Channels -->
-            <div class="ecosystem-card disc-item" data-cat="chat" data-title="instant live community chat general developer code markdown">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-1" data-cat="chat" data-title="instant live community chat general developer code markdown">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:var(--chakra-cyan); background:rgba(0,206,201,0.1); border-color:rgba(0,206,201,0.25);">
                   <i data-lucide="message-square" class="lucide-md"></i>
@@ -24489,7 +24642,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </div>
 
             <!-- Portal 2: WebRTC Voice Lounge -->
-            <div class="ecosystem-card disc-item" data-cat="voice" data-title="spatial voice lounge p2p webrtc mesh audio dsp">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-2" data-cat="voice" data-title="spatial voice lounge p2p webrtc mesh audio dsp">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:var(--green); background:rgba(16,185,129,0.1); border-color:rgba(16,185,129,0.25);">
                   <i data-lucide="mic" class="lucide-md"></i>
@@ -24515,7 +24668,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </div>
 
             <!-- Portal 3: Learning Hub & Interactive Labs -->
-            <div class="ecosystem-card disc-item" data-cat="academy" data-title="learning hub protocol networking security labs">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-3" data-cat="academy" data-title="learning hub protocol networking security labs">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:var(--ninja-gold); background:rgba(245,158,11,0.1); border-color:rgba(245,158,11,0.25);">
                   <i data-lucide="book-open" class="lucide-md"></i>
@@ -24541,7 +24694,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </div>
 
             <!-- Portal 4: Connecto Hardware Vault -->
-            <div class="ecosystem-card disc-item" data-cat="security" data-title="connecto hardware vault biometrics aes 256 gcm keys passwords credentials">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-4" data-cat="security" data-title="connecto hardware vault biometrics aes 256 gcm keys passwords credentials">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:#10b981; background:rgba(168,85,247,0.1); border-color:rgba(16,185,129,0.25);">
                   <i data-lucide="shield-check" class="lucide-md"></i>
@@ -24567,7 +24720,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </div>
 
             <!-- Portal 5: Connecto Android Native Application -->
-            <div class="ecosystem-card disc-item" data-cat="apps" data-title="connecto android native app apk mobile download sub 5ms voice push notifications">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-5" data-cat="apps" data-title="connecto android native app apk mobile download sub 5ms voice push notifications">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:#06b6d4; background:rgba(6,182,212,0.1); border-color:rgba(6,182,212,0.25);">
                   <i data-lucide="smartphone" class="lucide-md"></i>
@@ -24593,7 +24746,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </div>
 
             <!-- Portal 6: Defense & Community Moderation Guard -->
-            <div class="ecosystem-card disc-item" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac">
+            <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-6" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac">
               <div class="ecosystem-card-top">
                 <div class="ecosystem-card-icon" style="color:#38bdf8; background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.25);">
                   <i data-lucide="shield-alert" class="lucide-md"></i>
@@ -24630,7 +24783,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
           <div class="comparison-grid">
             <!-- Card 1: Connecto Advantage -->
-            <div class="comparison-card connecto-highlight">
+            <div class="comparison-card connecto-highlight interactive-tilt-card scroll-reveal-3d stagger-3d-1">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-size:16px; font-weight:800; color:var(--chakra-cyan); display:flex; align-items:center; gap:6px;">
                   <i data-lucide="shield" class="lucide-sm"></i> Connecto Platform
@@ -24662,7 +24815,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </div>
 
             <!-- Card 2: Legacy Proprietary Platforms -->
-            <div class="comparison-card">
+            <div class="comparison-card interactive-tilt-card scroll-reveal-3d stagger-3d-2">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div style="font-size:16px; font-weight:800; color:#94a3b8; display:flex; align-items:center; gap:6px;">
                   <i data-lucide="box" class="lucide-sm"></i> Legacy Chat Platforms
@@ -24705,31 +24858,31 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           </div>
 
           <div class="arch-flow-wrap interactive-tilt-card scroll-reveal-3d">
-            <div class="arch-node scroll-reveal-3d">
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-1">
               <div class="arch-node-icon" style="color:var(--chakra-cyan);"><i data-lucide="monitor" class="lucide-md"></i></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Client Web App</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Vanilla JS & CSS3 • PWA Service Worker • Zero Bloat • Hardware-Accelerated UI</span>
               <div class="arch-node-status">Edge Optimized</div>
             </div>
-            <div class="arch-node scroll-reveal-3d">
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-2">
               <div class="arch-node-icon" style="color:#ff7675;"><i data-lucide="shield" class="lucide-md"></i></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Cloudflare Anycast</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">DDoS Shield • TLS 1.3 Strict • Global CDN Caching • Zero Open Port Tunnels</span>
               <div class="arch-node-status">Global Anycast</div>
             </div>
-            <div class="arch-node scroll-reveal-3d">
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-3">
               <div class="arch-node-icon" style="color:var(--ninja-gold);"><i data-lucide="zap" class="lucide-md"></i></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">FastAPI Async Core</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Python Uvicorn Engine • Asyncio Non-blocking Loop • High-Throughput I/O</span>
               <div class="arch-node-status">Non-Blocking I/O</div>
             </div>
-            <div class="arch-node scroll-reveal-3d">
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-4">
               <div class="arch-node-icon" style="color:var(--accent);"><i data-lucide="radio" class="lucide-md"></i></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Real-Time Event Stream</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Full-Duplex WebSocket Framing • Dynamic ICE Signaling • Ephemeral State Sync</span>
               <div class="arch-node-status">Event-Driven</div>
             </div>
-            <div class="arch-node scroll-reveal-3d">
+            <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-5">
               <div class="arch-node-icon" style="color:var(--green);"><i data-lucide="database" class="lucide-md"></i></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">ACID Data Engine</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Atomic Transactions • In-Memory Presence • Real-Time Sync</span>
@@ -24738,7 +24891,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
           </div>
 
-          <div class="arch-spec-banner crystal-card" style="margin-top:28px; padding:24px 28px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+          <div class="arch-spec-banner crystal-card interactive-tilt-card scroll-reveal-3d" style="margin-top:28px; padding:24px 28px; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
             <div style="max-width:620px;">
               <div style="font-family:var(--font-display); font-size:16px; font-weight:800; color:var(--text-header); display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                 <i data-lucide="shield-check" class="lucide-sm" style="color:var(--accent);"></i> Deep RFC Specifications & Benchmarks
@@ -36195,8 +36348,19 @@ html[data-theme="dark"] .auth-input-field::placeholder {
     }
 
     function initMotionScrollObserver() {
-      const revealItems = document.querySelectorAll('.scroll-reveal-3d, .motion-reveal, .crystal-reveal, .stagger-parent');
+      const selector = '.scroll-reveal-3d, .motion-reveal, .crystal-reveal, .stagger-parent, .ecosystem-card, .stat-item, .arch-node, .usecase-card, .step-card-custom, .comparison-card, .phone-mockup-frame';
+      const revealItems = document.querySelectorAll(selector);
       
+      // Auto-assign staggered delays to grouped elements
+      const staggeredContainers = document.querySelectorAll('.ecosystem-grid-6, .android-features-grid, .arch-flow-wrap, .steps-grid, .stats-section-asym, .usecases-grid, .comparison-grid');
+      staggeredContainers.forEach(container => {
+        Array.from(container.children).forEach((child, idx) => {
+          if (!child.style.transitionDelay && !child.className.includes('stagger-3d-')) {
+            child.style.transitionDelay = `${(idx % 6) * 55}ms`;
+          }
+        });
+      });
+
       if (!window.IntersectionObserver) {
         revealItems.forEach(el => el.classList.add('in-view'));
         return;
@@ -36210,14 +36374,13 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           }
         });
       }, {
-        threshold: 0.1,
-        rootMargin: '0px 0px -40px 0px'
+        threshold: 0.08,
+        rootMargin: '0px 0px -30px 0px'
       });
 
       revealItems.forEach(el => {
-        // If element is already in the initial visible viewport, show immediately without waiting for scroll
         const rect = el.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.9 && rect.bottom > 0) {
+        if (rect.top < window.innerHeight * 0.92 && rect.bottom > 0) {
           el.classList.add('in-view');
         } else {
           observer.observe(el);
@@ -36231,37 +36394,83 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       cursorMotionInitialized = true;
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-      let activeTarget = null;
-      let targetBounds = null;
-
-      document.addEventListener('mouseover', (e) => {
-        const card = e.target.closest('.crystal-card, .ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .stats-section-asym, .android-showcase-card-left, .final-cta-card, .chat-mockup-card');
-        if (card) {
-          activeTarget = card;
-          targetBounds = card.getBoundingClientRect();
-        } else {
-          activeTarget = null;
-          targetBounds = null;
-        }
-      }, { passive: true });
-
+      let currentCard = null;
+      let cardBounds = null;
       let rafPending = false;
       let lastClientX = 0;
       let lastClientY = 0;
 
-      document.addEventListener('mousemove', (e) => {
-        if (!activeTarget || !targetBounds) return;
+      const cardSelector = '.interactive-tilt-card, .chat-mockup-card, .ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .stats-section-asym, .android-showcase-card-left, .phone-mockup-frame, .arch-flow-wrap, .arch-node, .final-cta-card';
+
+      function resetCard(card) {
+        if (!card) return;
+        card.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, border-color 0.3s ease';
+        card.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        card.style.removeProperty('--mouse-x');
+        card.style.removeProperty('--mouse-y');
+        setTimeout(() => {
+          if (currentCard !== card) {
+            card.classList.remove('tilt-active');
+            card.style.willChange = 'auto';
+          }
+        }, 650);
+      }
+
+      document.addEventListener('pointerenter', (e) => {
+        const card = e.target && e.target.closest ? e.target.closest(cardSelector) : null;
+        if (card && card !== currentCard) {
+          if (currentCard) resetCard(currentCard);
+          currentCard = card;
+          cardBounds = card.getBoundingClientRect();
+          card.classList.add('tilt-active');
+          card.style.willChange = 'transform';
+          card.style.transition = 'transform 0.1s ease-out, box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease';
+        }
+      }, true);
+
+      document.addEventListener('pointerleave', (e) => {
+        if (currentCard && (!e.relatedTarget || !currentCard.contains(e.relatedTarget))) {
+          resetCard(currentCard);
+          currentCard = null;
+          cardBounds = null;
+        }
+      }, true);
+
+      document.addEventListener('pointermove', (e) => {
+        if (!currentCard || !cardBounds) return;
         lastClientX = e.clientX;
         lastClientY = e.clientY;
+
         if (!rafPending) {
           rafPending = true;
           requestAnimationFrame(() => {
             rafPending = false;
-            if (!activeTarget || !targetBounds) return;
-            const x = ((lastClientX - targetBounds.left) / targetBounds.width) * 100;
-            const y = ((lastClientY - targetBounds.top) / targetBounds.height) * 100;
-            activeTarget.style.setProperty('--mouse-x', `${x}%`);
-            activeTarget.style.setProperty('--mouse-y', `${y}%`);
+            if (!currentCard || !cardBounds) return;
+
+            const x = lastClientX - cardBounds.left;
+            const y = lastClientY - cardBounds.top;
+
+            // Normalized coordinates (-1 to 1)
+            const centerX = cardBounds.width / 2;
+            const centerY = cardBounds.height / 2;
+            const relX = Math.max(-1, Math.min(1, (x - centerX) / centerX));
+            const relY = Math.max(-1, Math.min(1, (y - centerY) / centerY));
+
+            // Intensity adjusted for card size
+            const isHeroMockup = currentCard.id === 'heroChatMockup' || currentCard.classList.contains('chat-mockup-card');
+            const isLarge = cardBounds.width > 550 || isHeroMockup;
+            const isSmall = cardBounds.width < 220;
+            const maxDeg = isHeroMockup ? 5.5 : (isLarge ? 6.5 : (isSmall ? 11 : 8.5));
+
+            const rotX = (-relY * maxDeg).toFixed(2);
+            const rotY = (relX * maxDeg).toFixed(2);
+
+            const pctX = Math.max(0, Math.min(100, (x / cardBounds.width) * 100)).toFixed(1);
+            const pctY = Math.max(0, Math.min(100, (y / cardBounds.height) * 100)).toFixed(1);
+
+            currentCard.style.transform = `perspective(1200px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale3d(1.025, 1.025, 1.025)`;
+            currentCard.style.setProperty('--mouse-x', `${pctX}%`);
+            currentCard.style.setProperty('--mouse-y', `${pctY}%`);
           });
         }
       }, { passive: true });
@@ -36299,7 +36508,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
     }
 
     let parallaxTicking = false;
-        function handleHeroParallax(el) {
+    function handleHeroParallax(el) {
       if (!el) el = document.getElementById('heroView');
       if (!el) return;
 
@@ -36313,6 +36522,15 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       const nav = document.getElementById('landingNav');
       if (nav) {
         nav.classList.toggle('scrolled', el.scrollTop > 20);
+      }
+
+      // Dynamic 3D tilt & scale morph on hero chat mockup when scrolling down
+      const heroMockup = document.getElementById('heroChatMockup');
+      if (heroMockup && !heroMockup.classList.contains('tilt-active')) {
+        const scroll = Math.min(el.scrollTop, 500);
+        const pitch = (scroll / 500) * 7.5;
+        const scale = 1 - (scroll / 500) * 0.035;
+        heroMockup.style.transform = `perspective(1200px) rotateX(${pitch.toFixed(1)}deg) scale3d(${scale.toFixed(3)}, ${scale.toFixed(3)}, ${scale.toFixed(3)})`;
       }
     }
 
@@ -41361,7 +41579,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-12') {
+        if (name !== 'connecto-v5-0-13') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
