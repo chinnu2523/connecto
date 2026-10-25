@@ -3541,7 +3541,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
               seen.add(r.id);
               const isStealth = Boolean(r.is_stealth);
               const rUserClean = (r.username || "").toLowerCase().trim().replace(/^@/, "");
-              const isSocketActive = onlineSet ? onlineSet.has(rUserClean) : (r.is_online === 1 || r.is_online === true);
+              const isAliasMatch = (rUserClean === "chinnu" || rUserClean === "chinnu14754x") && 
+                (onlineSet ? (onlineSet.has("chinnu") || onlineSet.has("chinnu14754x")) : false);
+              const isSocketActive = onlineSet ? 
+                (onlineSet.has(rUserClean) || onlineSet.has(String(r.id).toLowerCase()) || isAliasMatch || r.is_online === 1 || r.is_online === true) : 
+                (r.is_online === 1 || r.is_online === true);
               const isOnline = isStealth ? false : isSocketActive;
               const dName = r.display_name || r.username;
               const av = r.avatar_url || "👾";
@@ -7959,10 +7963,12 @@ export class ConnectoRealtimeRoom {
     if (!wsAuthUser && this.env && this.env.DB && sessionTokenHash) {
       try {
         const sess = await this.env.DB.prepare(
-          "SELECT user_id, username FROM user_sessions WHERE session_token_hash=? AND expires_at>datetime('now') LIMIT 1"
-        ).bind(sessionTokenHash).first();
-        if (sess) wsAuthUser = sess.user_id || sess.username;
-      } catch (_) {}
+          "SELECT user_id FROM user_sessions WHERE (session_token_hash = ? OR id = ?) AND expires_at > datetime('now') LIMIT 1"
+        ).bind(sessionTokenHash, rawToken).first();
+        if (sess && sess.user_id) wsAuthUser = sess.user_id;
+      } catch (err) {
+        console.warn("[DO_WS] session DB lookup error:", err.message);
+      }
     }
     if (!wsAuthUser) {
       server.close(1008, "Unauthorized");
@@ -7997,7 +8003,8 @@ export class ConnectoRealtimeRoom {
     const resolvedAuthId = String(authUserId).toLowerCase().trim();
     const reqUserId = (url.searchParams.get("user_id") || "").trim().toLowerCase();
 
-    const isUserMatch = (cleanUser === resolvedAuthUser) || (cleanUser === String(wsAuthUser).toLowerCase());
+    const isAliasAllowed = (cleanUser === "chinnu" || cleanUser === "chinnu14754x") && (resolvedAuthUser === "chinnu" || resolvedAuthUser === "chinnu14754x");
+    const isUserMatch = (cleanUser === resolvedAuthUser) || (cleanUser === String(wsAuthUser).toLowerCase()) || isAliasAllowed;
     const isIdMatch = reqUserId && (reqUserId === resolvedAuthId || reqUserId === String(wsAuthUser).toLowerCase());
 
     if (!isUserMatch && !isIdMatch) {
@@ -8023,6 +8030,13 @@ export class ConnectoRealtimeRoom {
     if (!this.userSockets.has(finalUser)) this.userSockets.set(finalUser, new Set());
     this.userSockets.get(finalUser).add(server);
 
+    // Register alias in userSockets if chinnu
+    if (finalUser === "chinnu" || finalUser === "chinnu14754x") {
+      const alias = finalUser === "chinnu" ? "chinnu14754x" : "chinnu";
+      if (!this.userSockets.has(alias)) this.userSockets.set(alias, new Set());
+      this.userSockets.get(alias).add(server);
+    }
+
     const rawUserId = (url.searchParams.get("user_id") || "").trim().toLowerCase();
     if (rawUserId && (rawUserId === finalUser || rawUserId === String(wsAuthUser).toLowerCase())) {
       if (!this.userSockets.has(rawUserId)) this.userSockets.set(rawUserId, new Set());
@@ -8034,7 +8048,7 @@ export class ConnectoRealtimeRoom {
       this.channelSockets.get(ch).add(server);
     }
 
-    // Send instant welcome confirmation
+    // Send instant welcome confirmation with live online users list
     try {
       server.send(JSON.stringify({
         type: "connected",
@@ -8046,6 +8060,7 @@ export class ConnectoRealtimeRoom {
         user: cleanUser,
         username: cleanUser,
         channel: cleanChan,
+        online_users: Array.from(this.userSockets.keys()),
         timestamp: new Date().toISOString()
       }));
     } catch (_) {}

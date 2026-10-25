@@ -23869,6 +23869,30 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         loadNotifPreferences();
         checkEmailVerificationStatus();
         document.getElementById('userStatusBadge').style.background = 'var(--green)';
+
+        // Start periodic presence heartbeat and ally sync (every 30 seconds)
+        if (!window._presenceHeartbeatInterval) {
+          window._presenceHeartbeatInterval = setInterval(async () => {
+            if (currentUser && currentUser !== 'guest' && authToken) {
+              try {
+                const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` };
+                await fetch('/api/user/heartbeat', { headers });
+                const res = await fetch(`/api/friends?username=${encodeURIComponent(currentUser)}`, { headers });
+                if (res.ok) {
+                  const data = await res.json();
+                  if (Array.isArray(data.friends)) {
+                    cachedMembersList = data.friends;
+                    const isOnlineFn = (m) => (!m.is_stealth && (m.status === 'online' || m.is_online === true || m.is_online === 'true' || m.is_online === 1 || m.online === true));
+                    const onlineCount = cachedMembersList.filter(f => isOnlineFn(f)).length;
+                    const badge = document.getElementById('membersOnlineBadge');
+                    if (badge) badge.innerText = `${onlineCount} Online`;
+                    renderMembersRoster(cachedMembersList);
+                  }
+                }
+              } catch (_) {}
+            }
+          }, 30000);
+        }
       } else {
         updateUserStatusText('', '');
         document.getElementById('userStatusBadge').style.background = 'var(--text-muted)';
@@ -24044,7 +24068,14 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         if (currentMode === 'dm' && currentDMTarget) {
           if (headerPrefix) headerPrefix.innerText = '@';
           if (headerTitle) headerTitle.innerText = currentDMTarget;
-          if (headerTopic) headerTopic.innerText = `Direct Message with ${currentDMTarget}`;
+          const isTargetOnline = (Array.isArray(cachedFriendsList) && cachedFriendsList.some(f => (f.username || '').toLowerCase() === currentDMTarget.toLowerCase() && (f.status === 'online' || f.is_online))) ||
+                                 (Array.isArray(cachedMembersList) && cachedMembersList.some(m => (m.username || '').toLowerCase() === currentDMTarget.toLowerCase() && (m.status === 'online' || m.is_online))) ||
+                                 (Array.isArray(dmContacts) && dmContacts.some(c => (c.username || '').toLowerCase() === currentDMTarget.toLowerCase() && (c.status === 'online' || c.is_online)));
+          if (headerTopic) {
+            headerTopic.innerHTML = isTargetOnline 
+              ? `<span style="color:var(--green); font-weight:600;">● Online</span> — Direct Message` 
+              : `<span style="color:var(--text-muted);">○ Offline</span> — Direct Message`;
+          }
           if (dmCallBtn) dmCallBtn.style.display = 'inline-block';
           updateDMHeaderFriendStatus(currentDMTarget);
           fetchDMHistory(currentDMTarget);
@@ -24320,7 +24351,15 @@ html[data-theme="parchment"] .dm-act-icon:hover {
 
       document.getElementById('headerPrefix').innerText = '@';
       document.getElementById('headerTitle').innerText = targetUsername;
-      document.getElementById('headerTopic').innerText = `Direct Message with @${targetUsername}`;
+      const isTargetOnline = (Array.isArray(cachedFriendsList) && cachedFriendsList.some(f => (f.username || '').toLowerCase() === targetUsername.toLowerCase() && (f.status === 'online' || f.is_online))) ||
+                             (Array.isArray(cachedMembersList) && cachedMembersList.some(m => (m.username || '').toLowerCase() === targetUsername.toLowerCase() && (m.status === 'online' || m.is_online))) ||
+                             (Array.isArray(dmContacts) && dmContacts.some(c => (c.username || '').toLowerCase() === targetUsername.toLowerCase() && (c.status === 'online' || c.is_online)));
+      const topicEl = document.getElementById('headerTopic');
+      if (topicEl) {
+        topicEl.innerHTML = isTargetOnline
+          ? `<span style="color:var(--green); font-weight:600;">● Online</span> — Direct Message`
+          : `<span style="color:var(--text-muted);">○ Offline</span> — Direct Message`;
+      }
       document.getElementById('msgInput').placeholder = `Message @${targetUsername}...`;
       document.getElementById('dmCallBtn').style.display = 'inline-block';
       updateDMHeaderFriendStatus(targetUsername);
@@ -24743,10 +24782,14 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         const displayName = contact.nickname || contact.username;
         const showHandle = (displayName.toLowerCase() !== contact.username.toLowerCase());
         const badgeHTML = unreads > 0 ? `<span class="channel-unread-badge">${unreads > 9 ? '9+' : unreads}</span>` : '';
+        const isOnline = contact.status === 'online' || contact.is_online === true || contact.is_online === 1 || contact.is_online === 'true';
 
         div.innerHTML = `
           <div class="channel-name-wrap" style="display:flex; align-items:center; gap:8px; overflow:hidden; min-width:0;">
-            <span style="flex-shrink:0;">${renderAvatarHTML(contact.avatar, displayName, 22)}</span>
+            <div style="position:relative; flex-shrink:0;">
+              ${renderAvatarHTML(contact.avatar, displayName, 22)}
+              <span class="dm-sidebar-status-dot" style="position:absolute; bottom:-1px; right:-1px; width:8px; height:8px; border-radius:50%; background:${isOnline ? 'var(--green)' : 'var(--text-muted)'}; border:1.5px solid var(--bg-sidebar, #121212);" title="${isOnline ? 'Online' : 'Offline'}"></span>
+            </div>
             <div style="display:flex; flex-direction:column; overflow:hidden; line-height:1.2; min-width:0;">
               <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:13px;">${escapeHTML(displayName)}</span>
               ${showHandle ? `<span style="font-size:10px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">@${escapeHTML(contact.username)}</span>` : ''}
@@ -25920,6 +25963,7 @@ html[data-theme="parchment"] .dm-act-icon:hover {
       if (!username) return;
       const u = username.toLowerCase();
 
+      // 1. DM Cards
       document.querySelectorAll(`.connecto-dm-card[data-username="${u}"]`).forEach(card => {
         let dot = card.querySelector('.connecto-online-dot');
         const meta = card.querySelector('.connecto-dm-meta');
@@ -25945,6 +25989,34 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         }
       });
 
+      // 2. DM Sidebar list contact item
+      const dmItem = document.getElementById(`dm-item-${u}`);
+      if (dmItem) {
+        const dot = dmItem.querySelector('.dm-sidebar-status-dot');
+        if (dot) {
+          dot.style.background = isOnline ? 'var(--green)' : 'var(--text-muted)';
+          dot.title = isOnline ? 'Online' : 'Offline';
+        }
+      }
+      if (Array.isArray(dmContacts)) {
+        const c = dmContacts.find(item => (item.username || '').toLowerCase() === u);
+        if (c) {
+          c.is_online = isOnline;
+          c.status = isOnline ? 'online' : 'offline';
+        }
+      }
+
+      // 3. DM Header live topic status
+      if (currentMode === 'dm' && currentDMTarget && currentDMTarget.toLowerCase() === u) {
+        const headerTopic = document.getElementById('headerTopic');
+        if (headerTopic) {
+          headerTopic.innerHTML = isOnline 
+            ? `<span style="color:var(--green); font-weight:600;">● Online</span> — Direct Message` 
+            : `<span style="color:var(--text-muted);">○ Offline</span> — Direct Message`;
+        }
+      }
+
+      // 4. Community Members Sidebar Roster item
       const memberEl = document.querySelector(`.member-item[data-username="${u}"]`);
       if (memberEl) {
         const dot = memberEl.querySelector('.member-status-dot');
@@ -25955,6 +26027,7 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         memberEl.classList.toggle('member-offline', !isOnline);
       }
 
+      // 5. Friends List rows
       document.querySelectorAll(`.friend-row[data-username="${u}"]`).forEach(row => {
         const statusBadge = row.querySelector('.status-badge');
         if (statusBadge) {
@@ -25962,7 +26035,16 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         }
       });
 
-      // Synchronize cachedMembersList and re-render roster so online members are properly placed and highlighted
+      // 6. Synchronize cachedFriendsList
+      if (Array.isArray(cachedFriendsList)) {
+        const friend = cachedFriendsList.find(f => (f.username || '').toLowerCase() === u || String(f.id || '').toLowerCase() === u);
+        if (friend) {
+          friend.is_online = isOnline;
+          friend.status = isOnline ? 'online' : 'offline';
+        }
+      }
+
+      // 7. Synchronize cachedMembersList and re-render roster so online members are properly placed and highlighted
       if (Array.isArray(cachedMembersList)) {
         const mem = cachedMembersList.find(m => (m.username || '').toLowerCase() === u || String(m.id || '').toLowerCase() === u);
         if (mem) {
@@ -31528,6 +31610,11 @@ html[data-theme="parchment"] .dm-act-icon:hover {
               currentDetectedServerType = 'Cloudflare';
             }
             if (typeof updateNetworkStatusBadge === 'function') updateNetworkStatusBadge();
+            if (Array.isArray(data.online_users)) {
+              data.online_users.forEach(u => {
+                if (typeof updateLivePresenceUI === 'function') updateLivePresenceUI(u, true);
+              });
+            }
           } else if (data.type === 'presence_update') {
             const targetUsername = (data.username || '').toLowerCase();
             const targetId = String(data.user_id || '').toLowerCase();
