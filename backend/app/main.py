@@ -7395,8 +7395,8 @@ except ImportError:
 _user_learning_state = {}
 
 @app.get("/api/learning/tracks/{track_id}/lessons")
-async def get_track_lessons(track_id: str, current_user: User = Depends(get_current_user)):
-    username = current_user.username
+async def get_track_lessons(track_id: str, request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
+    username = current_user.username if current_user else request.query_params.get("username", "guest")
     track = next((t for t in LEARNING_TRACKS if t["id"] == track_id), None)
     if not track:
         raise HTTPException(status_code=404, detail="Track not found")
@@ -7416,11 +7416,11 @@ async def get_track_lessons(track_id: str, current_user: User = Depends(get_curr
     }
 
 @app.get("/api/learning/progress")
-async def get_learning_progress(current_user: User = Depends(get_current_user)):
-    username = current_user.username
+async def get_learning_progress(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
+    username = current_user.username if current_user else request.query_params.get("username", "guest")
     user_state = _user_learning_state.get(username, {"completed": set(), "xp": 100})
     xp = user_state["xp"]
-    rank = "Genin" if xp < 200 else ("Chunin" if xp < 500 else "Jonin")
+    rank = "Novice Genin" if xp < 200 else ("Chunin Guardian" if xp < 600 else ("Jonin Specialist" if xp < 1200 else "SOC Master"))
     total_lessons = sum(len(t["lessons"]) for t in LEARNING_TRACKS)
     completed_count = len(user_state["completed"])
     pct = round((completed_count / total_lessons * 100) if total_lessons else 0)
@@ -7433,8 +7433,8 @@ async def get_learning_progress(current_user: User = Depends(get_current_user)):
     }
 
 @app.get("/api/learning/lessons/{lesson_id}")
-async def get_lesson_detail(lesson_id: str, current_user: User = Depends(get_current_user)):
-    username = current_user.username
+async def get_lesson_detail(lesson_id: str, request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
+    username = current_user.username if current_user else request.query_params.get("username", "guest")
     for t in LEARNING_TRACKS:
         for l in t["lessons"]:
             if l["id"] == lesson_id:
@@ -7455,11 +7455,11 @@ async def get_lesson_detail(lesson_id: str, current_user: User = Depends(get_cur
     raise HTTPException(status_code=404, detail="Lesson not found")
 
 @app.post("/api/learning/quiz/submit")
-async def submit_quiz(request: Request, current_user: User = Depends(get_current_user)):
+async def submit_quiz(request: Request, current_user: Optional[User] = Depends(get_current_user_optional)):
     payload = await request.json()
     lesson_id = payload.get("lesson_id")
     selected = payload.get("selected_option")
-    username = current_user.username
+    username = current_user.username if current_user else payload.get("username", "guest")
     
     target_lesson = None
     xp_gain = 50

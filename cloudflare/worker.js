@@ -1,5 +1,6 @@
 import { CHINNU_AVATAR_B64 } from "./avatars.js";
 import { RESINORA_PRODUCTS, RESINORA_REVIEWS } from "./resinora_catalog.js";
+import { LEARNING_TRACKS } from "./learning_data.js";
 
 // Cloudflare Worker: Connecto Intelligent Cloud Edge Gateway
 // Automated Failover: When Local Server is down, Cloud Server connects instantly
@@ -1406,6 +1407,124 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
   if (path === "/api/v1/sync/now" || path === "/api/sync/now") {
     return handleSyncNow(request, env);
+  }
+
+  // 1c. Cloudflare Edge Learning Hub & Security Labs API
+  if (path.startsWith("/api/learning/tracks/") && path.endsWith("/lessons")) {
+    const parts = path.split("/");
+    const trackId = parts[4];
+    const track = LEARNING_TRACKS.find(t => t.id === trackId);
+    if (!track) return jsonResponse({ error: "Track not found" }, 404);
+    const caller = await resolveUserFromRequest(request, env).catch(() => null);
+    let completedSet = new Set();
+    if (env.DB && caller) {
+      try {
+        const rows = await env.DB.prepare("SELECT lesson_id FROM user_learning_progress WHERE user_id = ?").bind(caller.id).all();
+        if (rows && rows.results) rows.results.forEach(r => completedSet.add(r.lesson_id));
+      } catch (_) {}
+    }
+    return jsonResponse({
+      track: { id: track.id, title: track.title, icon: track.icon },
+      lessons: track.lessons.map(l => ({
+        id: l.id,
+        title: l.title,
+        summary: l.summary,
+        completed: completedSet.has(l.id)
+      }))
+    });
+  }
+
+  if (path === "/api/learning/progress") {
+    const caller = await resolveUserFromRequest(request, env).catch(() => null);
+    let xp = 100;
+    let completedSet = new Set();
+    if (env.DB && caller) {
+      try {
+        const rows = await env.DB.prepare("SELECT lesson_id, xp_earned FROM user_learning_progress WHERE user_id = ?").bind(caller.id).all();
+        if (rows && rows.results) {
+          rows.results.forEach(r => {
+            completedSet.add(r.lesson_id);
+            xp += (r.xp_earned || 50);
+          });
+        }
+      } catch (_) {}
+    }
+    const rank = xp < 200 ? "Novice Genin" : (xp < 600 ? "Chunin Guardian" : (xp < 1200 ? "Jonin Specialist" : "SOC Master"));
+    const totalLessons = LEARNING_TRACKS.reduce((acc, t) => acc + t.lessons.length, 0);
+    const compCount = completedSet.size;
+    const pct = totalLessons ? Math.round((compCount / totalLessons) * 100) : 0;
+    return jsonResponse({
+      xp: xp,
+      rank: rank,
+      completed_count: compCount,
+      total_lessons: totalLessons,
+      completion_percentage: pct
+    });
+  }
+
+  if (path.startsWith("/api/learning/lessons/")) {
+    const parts = path.split("/");
+    const lessonId = parts[4];
+    for (const t of LEARNING_TRACKS) {
+      for (const l of t.lessons) {
+        if (l.id === lessonId) {
+          const caller = await resolveUserFromRequest(request, env).catch(() => null);
+          let completed = false;
+          if (env.DB && caller) {
+            try {
+              const row = await env.DB.prepare("SELECT 1 FROM user_learning_progress WHERE user_id = ? AND lesson_id = ?").bind(caller.id, lessonId).first();
+              completed = !!row;
+            } catch (_) {}
+          }
+          return jsonResponse({
+            lesson: {
+              id: l.id,
+              title: l.title,
+              summary: l.summary,
+              content: l.content,
+              completed: completed,
+              quiz: {
+                question: l.quiz.question,
+                options: l.quiz.options
+              }
+            }
+          });
+        }
+      }
+    }
+    return jsonResponse({ error: "Lesson not found" }, 404);
+  }
+
+  if (path === "/api/learning/quiz/submit" && method === "POST") {
+    const payload = await request.json().catch(() => ({}));
+    const lessonId = payload.lesson_id;
+    const selected = payload.selected_option;
+    let targetLesson = null;
+    let xpGain = 50;
+    for (const t of LEARNING_TRACKS) {
+      for (const l of t.lessons) {
+        if (l.id === lessonId) {
+          targetLesson = l;
+          xpGain = t.xp_per_lesson || 50;
+          break;
+        }
+      }
+      if (targetLesson) break;
+    }
+    if (!targetLesson) return jsonResponse({ error: "Lesson not found" }, 404);
+    const correct = (selected === targetLesson.quiz.correct);
+    const caller = await resolveUserFromRequest(request, env).catch(() => null);
+    if (correct && caller && env.DB) {
+      try {
+        await env.DB.prepare("CREATE TABLE IF NOT EXISTS user_learning_progress (user_id TEXT, lesson_id TEXT, xp_earned INTEGER, completed_at TEXT, PRIMARY KEY(user_id, lesson_id))").run().catch(() => {});
+        await env.DB.prepare("INSERT OR REPLACE INTO user_learning_progress (user_id, lesson_id, xp_earned, completed_at) VALUES (?, ?, ?, datetime('now'))").bind(caller.id, lessonId, xpGain).run().catch(() => {});
+      } catch (_) {}
+    }
+    return jsonResponse({
+      correct: correct,
+      xp_gained: correct ? xpGain : 0,
+      explanation: targetLesson.quiz.explanation
+    });
   }
 
   // 2. Authentication: Session Validation (/api/auth/session)
