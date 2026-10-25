@@ -9598,24 +9598,25 @@
       position: relative;
       display: flex;
       align-items: center;
-      background: rgba(255, 255, 255, 0.035);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1.5px solid rgba(255, 255, 255, 0.12);
       border-radius: 14px;
       padding: 0 14px;
       height: 50px;
       box-sizing: border-box;
       z-index: 1;
       overflow: hidden;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
       transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
     }
     .auth-input-wrap:hover {
-      border-color: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.055);
     }
     .auth-input-wrap:focus-within {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.05);
+      border-color: #00D9F5 !important;
+      box-shadow: 0 0 0 3.5px rgba(0, 217, 245, 0.22), inset 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+      background: rgba(255, 255, 255, 0.065) !important;
     }
     .auth-input-icon {
       position: static !important;
@@ -9628,10 +9629,10 @@
       justify-content: center;
       line-height: 1;
       pointer-events: none;
-      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), color 0.25s ease;
     }
     .auth-input-wrap:focus-within .auth-input-icon {
-      color: #818cf8;
+      color: #00D9F5 !important;
       transform: scale(1.1);
     }
     .auth-input-wrap .auth-input-field {
@@ -9654,6 +9655,32 @@
     .auth-input-field::placeholder {
       color: #64748b;
       font-size: 13.5px;
+      transition: color 0.2s ease, opacity 0.2s ease;
+    }
+    .auth-input-wrap:focus-within .auth-input-field::placeholder {
+      color: #94a3b8;
+    }
+    .auth-input-field:-webkit-autofill,
+    .auth-input-field:-webkit-autofill:hover,
+    .auth-input-field:-webkit-autofill:focus,
+    .auth-input-field:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #131724 inset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      transition: background-color 5000s ease-in-out 0s;
+      caret-color: #00D9F5;
+    }
+    input[type="date"].auth-input-field {
+      color-scheme: dark;
+      cursor: pointer;
+    }
+    input[type="date"].auth-input-field::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    input[type="date"].auth-input-field::-webkit-calendar-picker-indicator:hover {
+      opacity: 1;
     }
 
     /* Animated Bottom Typing Bar Beam */
@@ -27850,6 +27877,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <label for="signUpConfirmPassword"><i data-lucide="shield-check" style="width:13px; height:13px;"></i> Confirm Password <span style="color:var(--red);">*</span></label>
             <div style="display:flex; align-items:center; gap:8px;">
+              <span class="caps-lock-warning" id="signUpConfirmCapsLock" style="display:none;">⚠️ Caps Lock ON</span>
               <span class="auth-validation-badge" id="signUpConfirmLiveBadge" style="display:none;"></span>
               <span class="auth-typing-status" id="signUpConfirmPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
             </div>
@@ -27857,6 +27885,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <div class="auth-input-wrap" id="signUpConfirmPasswordWrap">
             <span class="auth-input-icon"><i data-lucide="shield-check" style="width:17px; height:17px;"></i></span>
             <input type="password" class="auth-input-field" id="signUpConfirmPassword" placeholder="Confirm your password" autocomplete="new-password" oninput="checkPasswordMatch()" required>
+            <button type="button" class="auth-clear-btn" id="signUpConfirmPasswordClear" onclick="clearAuthInput('signUpConfirmPassword')" title="Clear field" style="display:none;"><i data-lucide="x" style="width:13px; height:13px;"></i></button>
             <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpConfirmPassword', this)"><i data-lucide="eye" style="width:17px; height:17px;"></i></button>
             <div class="auth-typing-bar"></div>
           </div>
@@ -39720,6 +39749,15 @@ function selectSettingsAvatar(emoji, el) {
       el.value = '';
       el.dispatchEvent(new Event('input', { bubbles: true }));
       el.focus();
+      if (id === 'signUpPassword' || id === 'signUpConfirmPassword') {
+        if (typeof checkPasswordMatch === 'function') checkPasswordMatch();
+      }
+      if (id === 'signUpUsername') {
+        if (typeof handleUsernameInput === 'function') handleUsernameInput('');
+      }
+      if (id === 'signUpEmail') {
+        if (typeof handleEmailInput === 'function') handleEmailInput('');
+      }
     }
 
     function initAuthTypingBars() {
@@ -39728,9 +39766,15 @@ function selectSettingsAvatar(emoji, el) {
         { id: 'signInPassword', statusId: 'signInPasswordTypingStatus', capsId: 'signInCapsLock' },
         { id: 'signUpUsername', statusId: 'signUpUsernameTypingStatus', clearId: 'signUpUsernameClear' },
         { id: 'signUpPassword', statusId: 'signUpPasswordTypingStatus', capsId: 'signUpCapsLock' },
-        { id: 'signUpConfirmPassword', statusId: 'signUpConfirmPasswordTypingStatus' },
+        { id: 'signUpConfirmPassword', statusId: 'signUpConfirmPasswordTypingStatus', capsId: 'signUpConfirmCapsLock', clearId: 'signUpConfirmPasswordClear' },
         { id: 'signUpEmail', statusId: 'signUpEmailTypingStatus', clearId: 'signUpEmailClear' },
-        { id: 'signUpOtpInput' }
+        { id: 'signUpOtpInput' },
+        { id: 'recovPwdIdentifier' },
+        { id: 'recovOtpCode' },
+        { id: 'recovNewPassword' },
+        { id: 'recovConfirmNewPassword' },
+        { id: 'recovFindEmail' },
+        { id: 'emailVerifyOtpInput' }
       ];
 
       inputs.forEach(item => {
@@ -41424,7 +41468,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-18') {
+        if (name !== 'connecto-v5-0-19') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
