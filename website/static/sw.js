@@ -1,4 +1,4 @@
-const CACHE_NAME = 'connecto-v5-0-10';
+const CACHE_NAME = 'connecto-v5-0-11';
 const STATIC_ASSETS = [
   '/manifest.json'
 ];

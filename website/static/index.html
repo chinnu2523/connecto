@@ -23980,6 +23980,12 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           </div>
 
           <div class="nav-actions-cluster" id="navActionsCluster" style="display:flex; align-items:center; gap:8px;">
+            <button class="nav-ai-support-btn" id="navAiSupportBtn" onclick="openCustomerSupportAiModal()" title="24/7 AI Customer Support" aria-label="Open AI Customer Support">
+              <span class="ai-sparkle-dot"></span>
+              <i data-lucide="bot" class="lucide-xs"></i>
+              <span>AI Support</span>
+            </button>
+
             <div id="navAuthButtons" style="display:flex; align-items:center; gap:8px;">
               <button class="landing-link-btn" onclick="openAuthModal('login')">Log in</button>
               <button class="nav-signup-cta-btn" onclick="openAuthModal('register')">Sign up <i data-lucide="arrow-right" class="lucide-sm"></i></button>
@@ -25428,6 +25434,15 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         </div>
         <div class="mobile-drawer-label">Platform Navigation</div>
 
+        <a class="mobile-drawer-link" onclick="openCustomerSupportAiModal(); closeMobileNavMenu();">
+          <span class="mobile-drawer-icon" style="background:rgba(16,185,129,0.15); color:#10b981;"><i data-lucide="bot" class="lucide-sm"></i></span>
+          <div class="mobile-drawer-text">
+            <strong>24/7 AI Customer Support</strong>
+            <span>Instant answers for audio, encryption, 2FA & APK</span>
+          </div>
+          <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
+        </a>
+
 
 
         <a class="mobile-drawer-link" onclick="switchMainView('learning'); closeMobileNavMenu();">
@@ -26247,11 +26262,11 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                   </div>
                 </div>
                 <div style="display:flex; gap:6px;">
-                  <button type="button" class="btn btn-outline" style="font-size:11px; padding:4px 8px; border-radius:8px; border-color:rgba(16,185,129,0.35); color:#34d399;" onclick="clearWebSupportChat()">
-                    Clear Chat
+                  <button type="button" class="btn btn-outline" style="font-size:11px; padding:4px 10px; border-radius:8px; border-color:rgba(16,185,129,0.35); color:#34d399; display:inline-flex; align-items:center; gap:5px;" onclick="clearWebSupportChat()">
+                    <i data-lucide="rotate-ccw" class="lucide-xs"></i> Clear
                   </button>
-                  <button type="button" class="btn btn-outline" style="font-size:11px; padding:4px 8px; border-radius:8px; border-color:rgba(6,182,212,0.35); color:#67e8f9;" onclick="openCustomerSupportAiModal()" title="Pop out full window">
-                    Pop Out ↗
+                  <button type="button" class="btn btn-outline" style="font-size:11px; padding:4px 10px; border-radius:8px; border-color:rgba(6,182,212,0.35); color:#67e8f9; display:inline-flex; align-items:center; gap:5px;" onclick="openCustomerSupportAiModal()" title="Pop out full window">
+                    <i data-lucide="maximize-2" class="lucide-xs"></i> Pop Out
                   </button>
                 </div>
               </div>
@@ -26266,8 +26281,9 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                 <div id="webSupportChatMessages" style="flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;">
                   <!-- Welcome bot card -->
                   <div class="web-ai-bot-bubble">
-                    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px; font-size:11px; font-weight:800; color:#10b981;">
-                      <span>🤖 Connecto AI Assistant</span> • <span>24/7 Online</span>
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:11px; font-weight:800; color:#10b981;">
+                      <span style="display:inline-flex; align-items:center; gap:5px;"><i data-lucide="bot" class="lucide-xs"></i> Connecto AI Assistant</span>
+                      <span style="font-weight:normal; font-size:10px; color:var(--text-muted);">24/7 Online</span>
                     </div>
                     Hello <span id="webAiUserGreetingName">@user</span>! 👋 I am Connecto's 24/7 AI Customer Support Assistant.<br><br>
                     I can help you with anything related to Connecto — including <b>End-to-End Encryption</b>, <b>Voice & Video Calls</b>, <b>Background Notifications</b>, <b>Themes & Chat Wallpapers</b>, <b>Two-Factor Authentication</b>, and <b>Account Privacy</b>.<br><br>
@@ -26276,20 +26292,24 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                 </div>
 
                 <!-- Quick Suggestion Chips Carousel -->
-                <div id="webSupportQuickChips" style="padding:8px 10px; display:flex; gap:6px; overflow-x:auto; white-space:nowrap; background:rgba(0,0,0,0.25); border-top:1px solid rgba(255,255,255,0.06);">
-                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does Encryption & Privacy work?')">🔒 Encryption & Privacy</button>
-                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I set chat wallpapers?')">🎨 Chat Wallpapers</button>
-                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Audio & call issues')">📞 Audio & Calls</button>
-                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Background notifications')">🔔 Notifications</button>
-                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does 2FA work?')">🛡️ Two-Factor (2FA)</button>
-                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I delete my account?')">❌ Delete Account</button>
+                <div id="webSupportQuickChips" style="padding:8px 10px; display:flex; gap:6px; overflow-x:auto; white-space:nowrap; background:rgba(0,0,0,0.25); border-top:1px solid rgba(255,255,255,0.06); scrollbar-width:thin;">
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does Encryption & Privacy work?')"><i data-lucide="shield-check" class="lucide-xs"></i> E2EE & Privacy</button>
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Where can I download the Android APK?')"><i data-lucide="smartphone" class="lucide-xs"></i> Android APK</button>
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I set chat wallpapers?')"><i data-lucide="image" class="lucide-xs"></i> Wallpapers</button>
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Audio & call issues')"><i data-lucide="mic" class="lucide-xs"></i> Audio & Calls</button>
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Background notifications')"><i data-lucide="bell" class="lucide-xs"></i> Notifications</button>
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does 2FA work?')"><i data-lucide="key" class="lucide-xs"></i> Two-Factor (2FA)</button>
+                  <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I delete my account?')"><i data-lucide="trash-2" class="lucide-xs"></i> Delete Account</button>
                 </div>
 
                 <!-- Message input bar -->
                 <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:rgba(0,0,0,0.45); border-top:1px solid rgba(255,255,255,0.08);">
-                  <input type="text" id="webSupportChatInput" placeholder="Ask about any Connecto feature or issue..." style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:8px 12px; color:#ffffff; font-size:12.5px; outline:none;" onkeydown="if(event.key==='Enter') submitWebSupportAiMessage()">
-                  <button type="button" id="webSupportSendBtn" onclick="submitWebSupportAiMessage()" style="height:35px; padding:0 14px; border-radius:8px; background:var(--primary); color:#ffffff; border:none; font-weight:800; font-size:12.5px; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                    <span>Send</span> ➔
+                  <button type="button" class="ai-voice-input-btn" id="webSupportVoiceBtn" onclick="toggleSupportVoiceInput(false)" title="Speak your question (Voice Input)" aria-label="Voice Input" style="width:34px; height:34px; flex-shrink:0;">
+                    <i data-lucide="mic" class="lucide-xs"></i>
+                  </button>
+                  <input type="text" id="webSupportChatInput" placeholder="Ask about any Connecto feature or issue..." style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.14); border-radius:8px; padding:8px 12px; color:#ffffff; font-size:12.5px; outline:none;" onkeydown="if(event.key==='Enter') submitWebSupportAiMessage(false)">
+                  <button type="button" id="webSupportSendBtn" onclick="submitWebSupportAiMessage(false)" style="height:34px; padding:0 14px; border-radius:8px; background:linear-gradient(135deg, #10b981, #059669); color:#ffffff; border:none; font-weight:800; font-size:12px; cursor:pointer; display:inline-flex; align-items:center; gap:5px; flex-shrink:0;">
+                    <span>Send</span> <i data-lucide="send" class="lucide-xs"></i>
                   </button>
                 </div>
               </div>
@@ -26429,6 +26449,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
   <!-- ==================== HELP & SUPPORT MODALS & STYLES ==================== -->
   <style id="support-help-center-styles">
+    /* Floating Support Trigger */
     .floating-support-pill {
       position: fixed;
       bottom: 24px;
@@ -26436,82 +26457,252 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       z-index: 99999;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
       padding: 10px 18px;
       border-radius: 9999px;
-      background: linear-gradient(135deg, #10b981, #06b6d4);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(6, 182, 212, 0.95));
       color: #020617;
       font-weight: 800;
       font-size: 13px;
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 28px rgba(16, 185, 129, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       cursor: pointer;
       transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
     }
     .floating-support-pill:hover {
-      transform: translateY(-2px) scale(1.04);
-      box-shadow: 0 12px 32px rgba(16, 185, 129, 0.6), 0 0 0 2px rgba(255, 255, 255, 0.35);
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 14px 36px rgba(16, 185, 129, 0.65), 0 0 0 2px rgba(255, 255, 255, 0.4);
+    }
+    .floating-support-pill:active {
+      transform: translateY(-1px) scale(0.98);
     }
     .support-pill-pulse {
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: #ffffff;
-      box-shadow: 0 0 8px #ffffff;
+      box-shadow: 0 0 10px #ffffff;
       animation: supportDotPulse 1.8s infinite;
+    }
+    .support-pill-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: rgba(2, 6, 23, 0.25);
+      font-size: 9.5px;
+      letter-spacing: 0.5px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #020617;
     }
     @keyframes supportDotPulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.35); }
+      50% { opacity: 0.4; transform: scale(1.35); }
     }
+
+    /* Navbar AI Support Button */
+    .nav-ai-support-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 9999px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      color: #34d399;
+      font-size: 12.5px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.12);
+    }
+    .nav-ai-support-btn:hover {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: rgba(16, 185, 129, 0.55);
+      color: #6ee7b7;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(16, 185, 129, 0.28);
+    }
+    .ai-sparkle-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: supportDotPulse 2s infinite;
+    }
+
+    /* Quick Chips */
     .quick-chip-btn {
-      padding: 5px 11px;
-      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border-radius: 999px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.12);
       color: #cbd5e1;
-      font-size: 11px;
-      font-weight: 700;
+      font-size: 11.5px;
+      font-weight: 600;
       cursor: pointer;
       white-space: nowrap;
-      transition: all 0.15s ease;
+      transition: all 0.18s ease;
+      user-select: none;
     }
     .quick-chip-btn:hover {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.14);
       border-color: rgba(16, 185, 129, 0.45);
       color: #34d399;
+      transform: translateY(-1px);
     }
+
+    /* Chat Bubbles */
     .web-ai-user-bubble {
       align-self: flex-end;
-      max-width: 85%;
+      max-width: 82%;
       background: linear-gradient(135deg, #10b981, #059669);
       color: #ffffff;
-      border-radius: 14px;
-      border-bottom-right-radius: 2px;
-      padding: 9px 13px;
-      font-size: 12.5px;
-      line-height: 1.45;
+      border-radius: 16px;
+      border-bottom-right-radius: 3px;
+      padding: 10px 14px;
+      font-size: 13px;
+      line-height: 1.5;
       word-break: break-word;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+      animation: bubbleSlideIn 0.22s ease-out;
     }
     .web-ai-bot-bubble {
       align-self: flex-start;
-      max-width: 88%;
-      background: rgba(255, 255, 255, 0.05);
+      max-width: 90%;
+      background: rgba(255, 255, 255, 0.045);
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: #e2e8f0;
-      border-radius: 14px;
-      border-top-left-radius: 2px;
-      padding: 11px 14px;
-      font-size: 12.5px;
-      line-height: 1.5;
+      border-radius: 16px;
+      border-top-left-radius: 3px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.55;
       word-break: break-word;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      animation: bubbleSlideIn 0.22s ease-out;
     }
+    @keyframes bubbleSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Action card inside bot bubbles */
+    .ai-support-action-card {
+      margin-top: 12px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+    .ai-support-action-card:hover {
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+    .ai-action-btn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border-radius: 8px;
+      background: #10b981;
+      color: #020617;
+      font-weight: 800;
+      font-size: 11.5px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .ai-action-btn-pill:hover {
+      background: #34d399;
+      transform: translateY(-1px);
+    }
+
+    /* Actions row on bot message (copy, rating) */
+    .ai-bubble-actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .ai-bubble-action-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      transition: all 0.15s ease;
+    }
+    .ai-bubble-action-btn:hover {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.1);
+    }
+    .ai-bubble-action-btn.active {
+      color: #10b981;
+      font-weight: 700;
+    }
+
+    /* Voice Input Button */
+    .ai-voice-input-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .ai-voice-input-btn:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+    .ai-voice-input-btn.listening {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: #f87171;
+      animation: voiceListenPulse 1.2s infinite ease-in-out;
+    }
+    @keyframes voiceListenPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.15); }
+    }
+
     .web-ai-typing-indicator {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 6px 10px;
+      padding: 8px 12px;
       background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .typing-dot {
@@ -26527,6 +26718,88 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
       40% { transform: translateY(-4px); opacity: 1; }
     }
+
+    /* Light Theme (Parchment) Support */
+    html[data-theme="parchment"] .floating-support-pill {
+      background: linear-gradient(135deg, #059669, #0d9488);
+      color: #ffffff;
+      box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    }
+    html[data-theme="parchment"] .support-pill-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+    html[data-theme="parchment"] .nav-ai-support-btn {
+      background: rgba(5, 150, 105, 0.1);
+      border-color: rgba(5, 150, 105, 0.35);
+      color: #065f46;
+    }
+    html[data-theme="parchment"] .nav-ai-support-btn:hover {
+      background: rgba(5, 150, 105, 0.18);
+      border-color: #059669;
+      color: #047857;
+    }
+    html[data-theme="parchment"] #customerSupportAiModal .modal-box-scroll {
+      background: #faf6ee !important;
+      border: 1px solid #d4cbb8 !important;
+      box-shadow: 0 24px 64px rgba(60, 40, 20, 0.16) !important;
+    }
+    html[data-theme="parchment"] #customerSupportAiModal [style*="background:rgba(0,0,0,0.45)"],
+    html[data-theme="parchment"] #customerSupportAiModal [style*="background:rgba(0, 0, 0, 0.45)"] {
+      background: #f2ece0 !important;
+      border-bottom: 1px solid #e0d6c3 !important;
+    }
+    html[data-theme="parchment"] #customerSupportAiModal [style*="color:#ffffff"],
+    html[data-theme="parchment"] #customerSupportAiModal [style*="color: #ffffff"] {
+      color: #1a1510 !important;
+    }
+    html[data-theme="parchment"] #customerSupportAiModal #modalSupportChatMessages {
+      background: #f7f2e7 !important;
+    }
+    html[data-theme="parchment"] .web-ai-bot-bubble {
+      background: #ffffff !important;
+      border: 1px solid #e2dac9 !important;
+      color: #26211a !important;
+      box-shadow: 0 3px 12px rgba(60, 40, 20, 0.06) !important;
+    }
+    html[data-theme="parchment"] .quick-chip-btn {
+      background: #f0e8d9 !important;
+      border-color: #d6ccba !important;
+      color: #4a3e30 !important;
+    }
+    html[data-theme="parchment"] .quick-chip-btn:hover {
+      background: #e4d7bf !important;
+      border-color: #059669 !important;
+      color: #065f46 !important;
+    }
+    html[data-theme="parchment"] #customerSupportAiModal [style*="background:rgba(0,0,0,0.55)"],
+    html[data-theme="parchment"] #customerSupportAiModal [style*="background:rgba(0, 0, 0, 0.55)"] {
+      background: #f0e8d9 !important;
+      border-top: 1px solid #e0d6c3 !important;
+    }
+    html[data-theme="parchment"] #modalSupportChatInput,
+    html[data-theme="parchment"] #webSupportChatInput {
+      background: #ffffff !important;
+      border: 1px solid #cfc4b0 !important;
+      color: #1a1510 !important;
+    }
+    html[data-theme="parchment"] .ai-voice-input-btn {
+      background: #f5ede0 !important;
+      border-color: #d6ccba !important;
+      color: #4a3e30 !important;
+    }
+    html[data-theme="parchment"] .ai-support-action-card {
+      background: #ecfdf5 !important;
+      border-color: #a7f3d0 !important;
+    }
+    html[data-theme="parchment"] .ai-bubble-actions-row {
+      border-top-color: #e8e0cf !important;
+    }
+    html[data-theme="parchment"] .web-support-chat-container {
+      background: #f5eee0 !important;
+      border-color: #ded4bf !important;
+    }
+
     @media (max-width: 768px) {
       .floating-support-pill {
         bottom: 74px;
@@ -26538,71 +26811,96 @@ html[data-theme="dark"] .auth-input-field::placeholder {
   </style>
 
   <!-- Floating Customer Support AI Launcher -->
-  <div id="floatingSupportAiTrigger" class="floating-support-pill" onclick="openCustomerSupportAiModal()" title="24/7 AI Customer Support">
+  <div id="floatingSupportAiTrigger" class="floating-support-pill" onclick="openCustomerSupportAiModal()" title="24/7 AI Customer Support" aria-label="Open 24/7 AI Customer Support">
     <div class="support-pill-pulse"></div>
-    <span class="support-pill-icon">🤖</span>
+    <i data-lucide="bot" class="lucide-sm" style="display:inline-flex;"></i>
     <span class="support-pill-text">AI Support</span>
+    <span class="support-pill-badge">24/7</span>
   </div>
 
   <!-- 1. Dedicated Full AI Customer Support Chat Modal -->
   <div class="modal-overlay" id="customerSupportAiModal" style="display:none;" onclick="closeCustomerSupportAiModal(event)">
-    <div class="modal-box-scroll border-beam-card" style="max-width:680px; width:92vw; height:min(700px, 90vh); border-radius:24px; padding:0; display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
+    <div class="modal-box-scroll border-beam-card" style="max-width:680px; width:92vw; height:min(720px, 92vh); border-radius:24px; padding:0; display:flex; flex-direction:column; overflow:hidden;" onclick="event.stopPropagation()">
       <div class="border-beam"></div>
       
       <!-- Support Header -->
-      <div style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.4);">
+      <div style="padding:16px 20px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.45); backdrop-filter:blur(16px);">
         <div style="display:flex; align-items:center; gap:12px;">
-          <div style="width:40px; height:40px; border-radius:12px; background:rgba(16,185,129,0.2); display:flex; align-items:center; justify-content:center; color:#10b981; font-size:22px;">
-            🤖
+          <div style="width:42px; height:42px; border-radius:14px; background:linear-gradient(135deg, rgba(16,185,129,0.25), rgba(6,182,212,0.2)); border:1px solid rgba(16,185,129,0.4); display:flex; align-items:center; justify-content:center; color:#10b981;">
+            <i data-lucide="bot" class="lucide-md"></i>
           </div>
           <div>
             <div style="display:flex; align-items:center; gap:8px;">
-              <span style="font-weight:900; font-size:16px; color:#ffffff;">Connecto AI Support</span>
-              <span style="font-size:10px; font-weight:800; padding:2px 7px; border-radius:12px; background:rgba(16,185,129,0.2); color:#10b981; border:1px solid rgba(16,185,129,0.4);">24/7 ONLINE</span>
+              <span style="font-weight:900; font-size:16px; color:#ffffff; letter-spacing:-0.2px;">Connecto AI Support</span>
+              <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; background:rgba(16,185,129,0.18); color:#34d399; border:1px solid rgba(16,185,129,0.45); display:inline-flex; align-items:center; gap:4px;">
+                <span class="pulse-emerald-dot" style="width:5px; height:5px;"></span> 24/7 ONLINE
+              </span>
             </div>
-            <div style="font-size:11.5px; color:var(--text-muted);">Instant assistance for issues, features & security</div>
+            <div style="font-size:11.5px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+              <span>Instant AI answers</span> • <span>E2EE Zero-Knowledge Help</span>
+            </div>
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
-          <button type="button" class="btn btn-outline" style="font-size:11px; padding:4px 10px; border-radius:8px;" onclick="clearWebSupportChat()">Clear</button>
-          <button type="button" class="pins-close-btn" onclick="closeCustomerSupportAiModal()">✕</button>
+          <button type="button" class="btn btn-outline" style="font-size:11px; padding:5px 12px; border-radius:8px; border-color:rgba(255,255,255,0.15); display:inline-flex; align-items:center; gap:5px;" onclick="clearWebSupportChat()">
+            <i data-lucide="rotate-ccw" class="lucide-xs"></i> Clear
+          </button>
+          <button type="button" class="pins-close-btn" onclick="closeCustomerSupportAiModal()" aria-label="Close Support Modal">✕</button>
         </div>
       </div>
 
       <!-- Messages Stream -->
-      <div id="modalSupportChatMessages" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; background:rgba(0,0,0,0.2);">
+      <div id="modalSupportChatMessages" style="flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:14px; background:rgba(0,0,0,0.22);">
         <!-- Bot Greeting -->
         <div class="web-ai-bot-bubble">
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px; font-size:11px; font-weight:800; color:#10b981;">
-            <span>🤖 Connecto AI Assistant</span> • <span>24/7 Online</span>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:11px; font-weight:800; color:#10b981;">
+            <span style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="sparkles" class="lucide-xs"></i> Connecto AI Support Assistant</span>
+            <span style="font-weight:normal; color:var(--text-muted); font-size:10px;">Automated Intelligence</span>
           </div>
-          Hello! 👋 I am Connecto's 24/7 AI Customer Support Assistant.<br><br>
-          I can answer questions and troubleshoot:<br>
-          • <b>End-to-End Encryption & Blackscreen Privacy</b><br>
-          • <b>Setting Custom Chat Wallpapers & OLED Themes</b><br>
-          • <b>Voice & Video Calling, Acoustic Echo Canceler & Voice Isolation</b><br>
-          • <b>Background Push Notifications & Sound Alerts</b><br>
-          • <b>Two-Factor Authentication (2FA) & Account Privacy</b><br>
-          • <b>Permanent Account Deletion & Data Purge</b><br><br>
-          Select a quick prompt or type your query below!
+          Hello! 👋 I am Connecto's 24/7 AI Support Intelligence. Ask me anything about our encrypted architecture, calling, audio tuning, wallpapers, or troubleshooting.<br><br>
+          <b>Popular Assistance Areas:</b><br>
+          • <b>End-to-End Encryption:</b> AES-256-GCM symmetric session security & zero cloud cleartext<br>
+          • <b>Voice Lounges & Audio:</b> WebRTC mesh, Acoustic Echo Canceler (AEC) & Voice Isolation AI<br>
+          • <b>Android APK:</b> Download v4.6.5 (36.0 MB) with hardware biometrics & OLED theme<br>
+          • <b>Chat Wallpapers:</b> Custom image uploads & 5 master gradient presets<br>
+          • <b>Account Protection:</b> Two-Factor Authentication (2FA) & Stealth Ghost presence<br><br>
+          Choose a quick suggestion below or ask any question!
+          <div class="ai-support-action-card">
+            <div>
+              <div style="font-weight:800; font-size:12px; color:#ffffff;">Need Connecto on your phone?</div>
+              <div style="font-size:11px; color:var(--text-muted);">Get the official Android APK v4.6.5 (36.0 MB)</div>
+            </div>
+            <a href="/download/apk" download="connecto-fun.apk" class="ai-action-btn-pill">
+              <i data-lucide="download" class="lucide-xs"></i> Download APK
+            </a>
+          </div>
         </div>
       </div>
 
       <!-- Quick Chips Bar -->
-      <div style="padding:8px 14px; display:flex; gap:6px; overflow-x:auto; white-space:nowrap; background:rgba(0,0,0,0.3); border-top:1px solid rgba(255,255,255,0.06);">
-        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does Encryption & Privacy work?', true)">🔒 Encryption & Privacy</button>
-        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I set chat wallpapers?', true)">🎨 Chat Wallpapers</button>
-        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Audio & call issues', true)">📞 Audio & Calls</button>
-        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Background notifications', true)">🔔 Notifications</button>
-        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does 2FA work?', true)">🛡️ Two-Factor (2FA)</button>
-        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I delete my account?', true)">❌ Delete Account</button>
+      <div style="padding:10px 16px; display:flex; gap:8px; overflow-x:auto; white-space:nowrap; background:rgba(0,0,0,0.32); border-top:1px solid rgba(255,255,255,0.06); scrollbar-width:thin;">
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How does Encryption & Zero-Knowledge privacy work?', true)"><i data-lucide="shield-check" class="lucide-xs"></i> E2EE & Privacy</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Where can I download the Android APK?', true)"><i data-lucide="smartphone" class="lucide-xs"></i> Android APK</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I set custom chat wallpapers?', true)"><i data-lucide="image" class="lucide-xs"></i> Chat Wallpapers</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('Voice isolation and audio call troubleshooting', true)"><i data-lucide="mic" class="lucide-xs"></i> Audio & Calls</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do background push notifications work?', true)"><i data-lucide="bell" class="lucide-xs"></i> Push Alerts</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I enable Two-Factor Authentication (2FA)?', true)"><i data-lucide="key" class="lucide-xs"></i> Two-Factor (2FA)</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I add friends and send direct messages?', true)"><i data-lucide="user-plus" class="lucide-xs"></i> Adding Friends</button>
+        <button type="button" class="quick-chip-btn" onclick="sendWebSupportAiPrompt('How do I delete my account?', true)"><i data-lucide="trash-2" class="lucide-xs"></i> Delete Account</button>
       </div>
 
       <!-- Input Bar -->
-      <div style="padding:12px 16px; background:rgba(0,0,0,0.5); border-top:1px solid rgba(255,255,255,0.08); display:flex; gap:10px;">
-        <input type="text" id="modalSupportChatInput" placeholder="Ask about any Connecto feature or issue..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:10px; padding:10px 14px; color:#ffffff; font-size:13px; outline:none;" onkeydown="if(event.key==='Enter') submitWebSupportAiMessage(true)">
-        <button type="button" id="modalSupportSendBtn" onclick="submitWebSupportAiMessage(true)" style="padding:0 18px; border-radius:10px; background:var(--primary); color:#ffffff; border:none; font-weight:800; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px;">
-          <span>Send</span> ➔
+      <div style="padding:12px 18px; background:rgba(0,0,0,0.55); border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:10px;">
+        <button type="button" class="ai-voice-input-btn" id="modalSupportVoiceBtn" onclick="toggleSupportVoiceInput(true)" title="Speak your question (Voice Input)" aria-label="Voice Input">
+          <i data-lucide="mic" class="lucide-sm"></i>
+        </button>
+        <input type="text" id="modalSupportChatInput" placeholder="Ask about any Connecto feature, audio, security, or issue..." style="flex:1; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:12px; padding:11px 16px; color:#ffffff; font-size:13px; outline:none; transition:all 0.2s;" onkeydown="if(event.key==='Enter') submitWebSupportAiMessage(true)">
+        <button type="button" id="modalSupportSendBtn" onclick="submitWebSupportAiMessage(true)" style="padding:0 20px; height:42px; border-radius:12px; background:linear-gradient(135deg, #10b981, #059669); color:#ffffff; border:none; font-weight:800; font-size:13px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 14px rgba(16,185,129,0.35); transition:all 0.2s; flex-shrink:0;">
+          <span>Ask AI</span> <i data-lucide="send" class="lucide-xs"></i>
+        </button>
+      </div>
+    </div>
+  </div>
         </button>
       </div>
     </div>
@@ -37048,12 +37346,18 @@ function selectSettingsAvatar(emoji, el) {
     }
 
     // ==================== HELP & SUPPORT AI & ACTIONS ====================
-    function openCustomerSupportAiModal() {
+    function openCustomerSupportAiModal(prefillPrompt = '') {
       const modal = document.getElementById('customerSupportAiModal');
       if (modal) {
         modal.style.display = 'flex';
         const inp = document.getElementById('modalSupportChatInput');
-        if (inp) inp.focus();
+        if (inp) {
+          if (prefillPrompt) inp.value = prefillPrompt;
+          inp.focus();
+        }
+      }
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
       }
     }
 
@@ -37150,22 +37454,132 @@ function selectSettingsAvatar(emoji, el) {
       if (modal) modal.style.display = 'none';
     }
 
+    let supportSpeechRecognition = null;
+    let isSupportListening = false;
+
+    function toggleSupportVoiceInput(isModal = true) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const btn = document.getElementById(isModal ? 'modalSupportVoiceBtn' : 'webSupportVoiceBtn');
+      const input = document.getElementById(isModal ? 'modalSupportChatInput' : 'webSupportChatInput');
+
+      if (!SpeechRecognition) {
+        alert('Voice speech recognition is not supported in this browser. Please type your message or use Chrome/Edge.');
+        return;
+      }
+
+      if (isSupportListening) {
+        if (supportSpeechRecognition) supportSpeechRecognition.stop();
+        return;
+      }
+
+      try {
+        supportSpeechRecognition = new SpeechRecognition();
+        supportSpeechRecognition.lang = 'en-US';
+        supportSpeechRecognition.interimResults = false;
+        supportSpeechRecognition.maxAlternatives = 1;
+
+        supportSpeechRecognition.onstart = function() {
+          isSupportListening = true;
+          if (btn) btn.classList.add('listening');
+          if (input) input.placeholder = 'Listening... Speak your question now...';
+        };
+
+        supportSpeechRecognition.onresult = function(event) {
+          const transcript = event.results && event.results[0] && event.results[0][0] ? event.results[0][0].transcript : '';
+          if (input && transcript) {
+            input.value = transcript;
+            submitWebSupportAiMessage(isModal);
+          }
+        };
+
+        supportSpeechRecognition.onerror = function(event) {
+          console.warn('Voice input error:', event.error);
+        };
+
+        supportSpeechRecognition.onend = function() {
+          isSupportListening = false;
+          if (btn) btn.classList.remove('listening');
+          if (input) input.placeholder = 'Ask about any Connecto feature or issue...';
+        };
+
+        supportSpeechRecognition.start();
+      } catch (err) {
+        console.error('Speech recognition exception:', err);
+        isSupportListening = false;
+        if (btn) btn.classList.remove('listening');
+      }
+    }
+
+    function copySupportAnswer(btn) {
+      const bubble = btn.closest('.web-ai-bot-bubble');
+      if (!bubble) return;
+      const textClone = bubble.cloneNode(true);
+      textClone.querySelectorAll('.ai-bubble-actions-row, .ai-support-action-card').forEach(el => el.remove());
+      const rawText = textClone.innerText.trim();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(rawText).then(() => {
+          const origHtml = btn.innerHTML;
+          btn.innerHTML = '<i data-lucide="check" class="lucide-xs"></i> Copied!';
+          if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+          setTimeout(() => {
+            btn.innerHTML = origHtml;
+            if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+          }, 2000);
+        }).catch(err => {
+          console.error('Copy failed', err);
+        });
+      }
+    }
+
+    function rateSupportAnswer(btn, isHelpful) {
+      const row = btn.closest('.ai-bubble-actions-row');
+      if (!row) return;
+      row.querySelectorAll('.ai-rating-btn').forEach(b => {
+        b.classList.remove('active');
+        b.disabled = true;
+      });
+      btn.classList.add('active');
+      const feedbackSpan = row.querySelector('.ai-rating-feedback');
+      if (feedbackSpan) {
+        feedbackSpan.innerText = isHelpful ? 'Thanks for the feedback!' : 'We will improve this!';
+        feedbackSpan.style.display = 'inline';
+      }
+    }
+
     function clearWebSupportChat() {
       const userHandle = (currentUser && currentUser !== 'guest') ? '@' + currentUser : '@user';
       const welcomeHTML = `
         <div class="web-ai-bot-bubble">
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px; font-size:11px; font-weight:800; color:#10b981;">
-            <span>🤖 Connecto AI Assistant</span> • <span>24/7 Online</span>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:11px; font-weight:800; color:#10b981;">
+            <span style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="sparkles" class="lucide-xs"></i> Connecto AI Support Assistant</span>
+            <span style="font-weight:normal; color:var(--text-muted); font-size:10px;">Automated Intelligence</span>
           </div>
-          Hello ${userHandle}! 👋 I am Connecto's 24/7 AI Customer Support Assistant.<br><br>
-          I can help you with anything related to Connecto — including <b>End-to-End Encryption</b>, <b>Voice & Video Calls</b>, <b>Background Notifications</b>, <b>Themes & Chat Wallpapers</b>, <b>Two-Factor Authentication</b>, and <b>Account Privacy</b>.<br><br>
-          Select a topic below or type your question!
+          Hello ${escapeHTML(userHandle)}! 👋 I am Connecto's 24/7 AI Customer Support Intelligence. Ask me anything about our encrypted architecture, calling, audio tuning, wallpapers, or troubleshooting.<br><br>
+          <b>Popular Assistance Areas:</b><br>
+          • <b>End-to-End Encryption:</b> AES-256-GCM symmetric session security & zero cloud cleartext<br>
+          • <b>Voice Lounges & Audio:</b> WebRTC mesh, Acoustic Echo Canceler (AEC) & Voice Isolation AI<br>
+          • <b>Android APK:</b> Download v4.6.5 (36.0 MB) with hardware biometrics & OLED theme<br>
+          • <b>Chat Wallpapers:</b> Custom image uploads & 5 master gradient presets<br>
+          • <b>Account Protection:</b> Two-Factor Authentication (2FA) & Stealth Ghost presence<br><br>
+          Choose a quick suggestion below or ask any question!
+          <div class="ai-support-action-card">
+            <div>
+              <div style="font-weight:800; font-size:12px; color:#ffffff;">Need Connecto on your phone?</div>
+              <div style="font-size:11px; color:var(--text-muted);">Get the official Android APK v4.6.5 (36.0 MB)</div>
+            </div>
+            <a href="/download/apk" download="connecto-fun.apk" class="ai-action-btn-pill">
+              <i data-lucide="download" class="lucide-xs"></i> Download APK
+            </a>
+          </div>
         </div>
       `;
       const p1 = document.getElementById('webSupportChatMessages');
       if (p1) p1.innerHTML = welcomeHTML;
       const p2 = document.getElementById('modalSupportChatMessages');
       if (p2) p2.innerHTML = welcomeHTML;
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+      }
     }
 
     function sendWebSupportAiPrompt(promptText, isModal = false) {
@@ -37207,7 +37621,9 @@ function selectSettingsAvatar(emoji, el) {
       // 3. Generate Knowledgebase Answer after realistic typing delay
       setTimeout(() => {
         if (typingDiv.parentNode) typingDiv.parentNode.removeChild(typingDiv);
-        const replyText = getAiCustomerSupportResponse(query);
+        const res = getAiCustomerSupportResponse(query);
+        const replyText = typeof res === 'object' ? res.text : res;
+        const action = typeof res === 'object' ? res.action : null;
 
         const botDiv = document.createElement('div');
         botDiv.className = 'web-ai-bot-bubble';
@@ -37219,49 +37635,445 @@ function selectSettingsAvatar(emoji, el) {
           .replace(/>/g, '&gt;')
           .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
           .replace(/\*(.*?)\*/g, '<i>$1</i>')
+          .replace(/`(.*?)`/g, '<code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:4px; font-size:11.5px; font-family:monospace; color:#34d399;">$1</code>')
           .replace(/\n\n/g, '<br><br>')
           .replace(/\n• /g, '<br>• ');
 
+        let actionCardHtml = '';
+        if (action) {
+          const iconAttr = action.icon ? `<i data-lucide="${escapeHTML(action.icon)}" class="lucide-xs"></i>` : '';
+          const btnTag = action.href 
+            ? `<a href="${escapeHTML(action.href)}" ${action.download ? `download="${escapeHTML(action.download)}"` : ''} class="ai-action-btn-pill">${iconAttr} ${escapeHTML(action.label || 'Open')}</a>`
+            : `<button type="button" class="ai-action-btn-pill" onclick="${escapeHTML(action.onclick || '')}">${iconAttr} ${escapeHTML(action.label || 'Open')}</button>`;
+
+          actionCardHtml = `
+            <div class="ai-support-action-card">
+              <div>
+                <div style="font-weight:800; font-size:12px; color:var(--text-header, #ffffff);">${escapeHTML(action.title || 'Recommended Action')}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${escapeHTML(action.subtitle || 'Click to continue')}</div>
+              </div>
+              ${btnTag}
+            </div>
+          `;
+        }
+
+        const actionsRowHtml = `
+          <div class="ai-bubble-actions-row">
+            <button type="button" class="ai-bubble-action-btn" onclick="copySupportAnswer(this)" title="Copy answer to clipboard">
+              <i data-lucide="copy" class="lucide-xs"></i> Copy Answer
+            </button>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="ai-rating-feedback" style="display:none; color:#10b981; font-weight:700;"></span>
+              <span style="font-size:10px; color:var(--text-muted);">Was this helpful?</span>
+              <button type="button" class="ai-bubble-action-btn ai-rating-btn" onclick="rateSupportAnswer(this, true)" title="Helpful">
+                <i data-lucide="thumbs-up" class="lucide-xs"></i>
+              </button>
+              <button type="button" class="ai-bubble-action-btn ai-rating-btn" onclick="rateSupportAnswer(this, false)" title="Not Helpful">
+                <i data-lucide="thumbs-down" class="lucide-xs"></i>
+              </button>
+            </div>
+          </div>
+        `;
+
         botDiv.innerHTML = `
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; font-size:11px; font-weight:800; color:#10b981;">
-            <span>🤖 Connecto AI Assistant</span>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:11px; font-weight:800; color:#10b981;">
+            <span style="display:inline-flex; align-items:center; gap:6px;"><i data-lucide="bot" class="lucide-xs"></i> Connecto AI Assistant</span>
             <span style="color:var(--text-muted); font-size:10.5px; font-weight:normal;">Just now</span>
           </div>
           ${formatted}
+          ${actionCardHtml}
+          ${actionsRowHtml}
         `;
         container.appendChild(botDiv);
         container.scrollTop = container.scrollHeight;
-      }, 550);
+
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+          lucide.createIcons();
+        }
+      }, 480);
     }
 
     function getAiCustomerSupportResponse(query) {
       const q = (query || "").toLowerCase();
       
-      if (q.includes("encrypt") || q.includes("security") || q.includes("privacy") || q.includes("e2ee") || q.includes("blackscreen")) {
-        return `🔒 **End-to-End Encryption & Blackscreen Privacy:**\n\n• **End-to-End Encryption (E2EE):** All direct messages in Connecto are encrypted on your device using AES-256-GCM symmetric session keys before transmission. Only you and your recipient possess the private keys.\n• **Hardware Blackscreen Protection:** Connecto activates SurfaceFlinger hardware protection (FLAG_SECURE) to block screenshots and screen recorders on physical devices, shielding chats from spyware and screen grabbers.\n• **Zero Cloud Cleartext:** Cleartext messages and decrypted media are never stored unencrypted on servers.`;
+      // 1. Blackscreen Privacy & Anti-Spyware
+      if (q.includes("blackscreen") || q.includes("screenshot") || q.includes("screen record") || q.includes("spyware") || q.includes("flag_secure")) {
+        return {
+          text: `🛡️ **Hardware Blackscreen Protection & Anti-Spyware:**\n\n• **FLAG_SECURE Hardware Enforcement:** On Android devices, Connecto activates SurfaceFlinger hardware protection to physically block screenshot capture and background screen recording.\n• **Spyware Shielding:** Even if malicious recording software runs on the device, captured buffers appear completely blacked-out.\n• **Decrypted Stream Defense:** Prevents ephemeral photos, private group chats, and one-on-one sessions from ever leaking to device media storage.`,
+          action: {
+            title: 'Experience Hardware Blackscreen',
+            subtitle: 'Get the native Android APK v4.6.5 (36.0 MB)',
+            href: '/download/apk',
+            download: 'connecto-fun.apk',
+            label: 'Download Android APK',
+            icon: 'smartphone'
+          }
+        };
       }
-      
-      if (q.includes("wallpaper") || q.includes("background") || q.includes("theme") || q.includes("color") || q.includes("dark mode") || q.includes("oled") || q.includes("parchment")) {
-        return `🎨 **Chat Wallpapers & Visual Themes:**\n\n• **Setting Chat Wallpapers:** Open any direct chat or group, tap the friend/group profile header at the top, select **Theme & Wallpaper**, and choose from 5 vibrant gradient presets (Emerald Aura, Midnight Obsidian, Cyberpunk Neon, Sapphire Dusk, Sunset Horizon) or upload your custom photo!\n• **System Themes:** Connecto features 5 master themes: **Pure Black OLED**, **Archival Ivory Paper (Parchment)**, **Midnight Navy**, **Cyberpunk Neon**, and **Emerald Matrix**. You can switch themes anytime in Profile Settings ➔ Appearance.\n• **Persistence Healing:** Connecto v4.6.5 synchronizes wallpapers across all device sessions and handles multi-key fallbacks reliably.`;
+
+      // 2. End-to-End Encryption (E2EE) & Zero-Knowledge
+      if (q.includes("encrypt") || q.includes("security") || q.includes("privacy") || q.includes("e2ee") || q.includes("zero knowledge") || q.includes("private key")) {
+        return {
+          text: `🔒 **End-to-End Encryption & Cryptographic Architecture:**\n\n• **AES-256-GCM Session Keys:** All direct messages in Connecto are encrypted directly in the client browser/app before transmission over WebSockets.\n• **Zero Cleartext on Servers:** The FastAPI backend acts strictly as an ephemeral, zero-knowledge message router. Server operators and database dumps cannot read your messages.\n• **Forward Secrecy:** Symmetric session keys cycle periodically to prevent past message decryption even in the unlikely event of device compromise.`,
+          action: {
+            title: 'Inspect Cryptographic Architecture',
+            subtitle: 'Read our zero-trust security & protocol specifications',
+            onclick: "window.location.href='/architecture'",
+            label: 'Security Specs',
+            icon: 'shield-check'
+          }
+        };
       }
-      
-      if (q.includes("audio") || q.includes("mic") || q.includes("call") || q.includes("voice") || q.includes("sound") || q.includes("webrtc") || q.includes("isolation") || q.includes("echo")) {
-        return `📞 **Voice Calls & Audio Troubleshooting:**\n\n• **Voice Isolation AI:** Connecto binds to your device hardware AcousticEchoCanceler (AEC), NoiseSuppressor, and AutomaticGainControl (AGC) to eliminate background noise, AC hum, and fan whir.\n• **Microphone Issues:** Verify microphone permissions in browser settings (allow connecto.fun for Audio). In Profile Settings ➔ Audio & Sound FX, ensure master audio is toggled on.\n• **WebRTC Mesh:** Calls connect peer-to-peer via resilient STUN/TURN relays with ultra-low latency.`;
+
+      // 3. Android APK Download & Installation
+      if (q.includes("apk") || q.includes("android") || q.includes("mobile app") || q.includes("download") || q.includes("hyperos") || q.includes("samsung") || q.includes("xiaomi")) {
+        return {
+          text: `📱 **Connecto for Android APK (v4.6.5 Live):**\n\n• **Direct Download:** Official native build v4.6.5 (Build 94) is 36.0 MB, supporting Android 7.0 through Android 16+ (including HyperOS & OneUI 6+).\n• **Hardware Biometrics:** Includes fingerprint and face unlock vault protection for sensitive chats.\n• **Installation Tip:** Tap download, tap 'Open', and if prompted allow *Install from unknown sources* for your browser. It installs safely with zero trackers or external analytics.`,
+          action: {
+            title: 'Download Official Android APK',
+            subtitle: 'v4.6.5 Live Release • 36.0 MB • Pure Black OLED',
+            href: '/download/apk',
+            download: 'connecto-fun.apk',
+            label: 'Download APK',
+            icon: 'download'
+          }
+        };
       }
-      
-      if (q.includes("notif") || q.includes("alert") || q.includes("faah") || q.includes("background") || q.includes("push") || q.includes("delay")) {
-        return `🔔 **Background Notifications & Alerts:**\n\n• **Instant Push Engine:** Connecto uses high-priority push signaling so incoming messages wake your device even when closed or in deep sleep.\n• **Custom Alert Sound (Faah):** Connecto features a custom frequency chime ('Faah') calibrated for crisp audibility.\n• **Battery Saver:** For zero missed notifications, exempt Connecto from OS battery optimization in your device system settings.`;
+
+      // 4. Chat Wallpapers & Custom Backgrounds
+      if (q.includes("wallpaper") || q.includes("background") || q.includes("chat photo") || q.includes("chat image")) {
+        return {
+          text: `🎨 **Custom Chat Wallpapers & Visual Presets:**\n\n• **How to Set:** Open any direct chat or channel, tap the user/channel title in the top bar, click **Theme & Wallpaper**, and select from 5 master gradient presets or click **Upload Image** for a custom photo.\n• **5 Master Presets:** Emerald Aura, Midnight Obsidian, Cyberpunk Neon, Sapphire Dusk, and Sunset Horizon.\n• **Session Sync:** Wallpapers are persistently remembered in your local browser cache with automated multi-key failover healing.`,
+          action: {
+            title: 'Configure Visual Appearance',
+            subtitle: 'Open appearance settings to customize display & presets',
+            onclick: "openSettingsModal('appearance')",
+            label: 'Open Appearance',
+            icon: 'image'
+          }
+        };
       }
-      
-      if (q.includes("2fa") || q.includes("two factor") || q.includes("otp") || q.includes("vault") || q.includes("biometric") || q.includes("stealth") || q.includes("ghost")) {
-        return `🛡️ **Account Protection & 2FA:**\n\n• **Two-Factor Authentication (2FA):** Enable in Profile Settings ➔ Account & 2FA. Every login from an untrusted session will require a 6-digit OTP code sent to your registered email.\n• **Stealth Mode (Ghost Presence):** Toggle stealth mode to browse and read messages while appearing completely offline to friends and public rosters.\n• **Hardware Vault:** Secure sensitive encryption keys behind hardware biometric locks.`;
+
+      // 5. Dual Themes (Dark Noir vs Light Parchment)
+      if (q.includes("theme") || q.includes("dark mode") || q.includes("light mode") || q.includes("parchment") || q.includes("noir") || q.includes("oled") || q.includes("ivory")) {
+        return {
+          text: `🌓 **Dual Theme System (Dark Noir & Light Parchment):**\n\n• **Pure Black OLED (Dark Noir):** Engineered for true #000000 black OLED display power efficiency, reduced eye strain, and vivid emerald accents.\n• **Archival Ivory Paper (Light Parchment):** Designed like rich warm parchment paper (#faf6ee) with crisp high-contrast editorial typography.\n• **One-Click Switch:** Tap the Sun/Moon toggle button in the top navigation bar or switch themes in Profile Settings ➔ Appearance.`,
+          action: {
+            title: 'Toggle Theme Now',
+            subtitle: 'Instantly toggle between Dark Noir and Light Parchment',
+            onclick: "toggleEditorialTheme()",
+            label: 'Switch Theme',
+            icon: 'sun'
+          }
+        };
       }
-      
-      if (q.includes("delete") || q.includes("purge") || q.includes("close account") || q.includes("erase")) {
-        return `❌ **Account Deletion & Data Purge:**\n\n• **How to Delete:** You can delete your account right from the **very bottom of Help & Support** in Profile Settings!\n• **Irreversible Purge:** Closing your account permanently scrubs your user identity, chats, contacts, calls, and physical database backups across all servers.\n• **Confirmation Required:** You will be prompted to type DELETE in capital letters to confirm this irreversible action.`;
+
+      // 6. Voice Calling, Echo Cancellation & WebRTC
+      if (q.includes("audio") || q.includes("mic") || q.includes("call") || q.includes("voice") || q.includes("sound") || q.includes("webrtc") || q.includes("isolation") || q.includes("echo") || q.includes("noise")) {
+        return {
+          text: `📞 **Spatial Voice Lounges & Audio Tuning:**\n\n• **Hardware Voice Isolation:** Connecto binds directly to client hardware AcousticEchoCanceler (AEC), NoiseSuppressor, and AutomaticGainControl (AGC) to eliminate room echo, air conditioner hum, and fan whir.\n• **Microphone Permission:** If colleagues cannot hear you, verify that your browser has granted microphone access to \`connecto.fun\`.\n• **WebRTC Relays:** Calls utilize low-latency STUN/TURN peer-to-peer mesh networking for crystal-clear 48kHz spatial audio.`,
+          action: {
+            title: 'Check Audio & Sound FX Settings',
+            subtitle: 'Test input devices, alert volumes, and master toggles',
+            onclick: "openSettingsModal('sound')",
+            label: 'Audio Settings',
+            icon: 'mic'
+          }
+        };
       }
-      
-      return `🤖 **Connecto AI Support Assistant:**\n\nI understand you are asking about: *"${query}"*.\n\nConnecto is an end-to-end encrypted messaging, voice, and community platform. Here are helpful pointers:\n\n• **Features & Navigation:** Use the left navigation dock to switch between Direct Messages, Channels Workspace, Calls Lounge, and User Profile.\n• **Account Settings:** Open User Profile & Settings (gear icon) to manage 2FA, audio triggers, display themes, and Help & Support.\n• **Need Direct Assistance?** Email our engineering team anytime at **support@connecto.fun** or report a bug directly via the Report Issue portal.`;
+
+      // 7. Video Lounges & Screen Sharing
+      if (q.includes("video") || q.includes("camera") || q.includes("screen share") || q.includes("webcam")) {
+        return {
+          text: `📹 **Encrypted Video Calls & Lounges:**\n\n• **Peer-to-Peer Video:** Direct encrypted VP8/VP9 video stream with dynamic bitrate adaptation to match your connection speed.\n• **Controls:** Toggle camera on/off, flip rear/front camera on mobile, or mute audio at any moment in the call lounge overlay.\n• **Permissions:** Ensure browser camera access is enabled in the URL lock icon bar.`,
+          action: {
+            title: 'Enter Live Chat & Calling',
+            subtitle: 'Jump into the channels or direct calling lounge',
+            onclick: "switchMainView('chat')",
+            label: 'Go to Chat',
+            icon: 'video'
+          }
+        };
+      }
+
+      // 8. Background Push Notifications & Alerts
+      if (q.includes("notif") || q.includes("alert") || q.includes("background") || q.includes("push") || q.includes("delay") || q.includes("missed")) {
+        return {
+          text: `🔔 **Background Push Notifications & Alert Engine:**\n\n• **High-Priority Push Signaling:** Connecto dispatches push triggers through high-priority Web Push channels to awaken sleeping devices instantly.\n• **Custom Sound (Faah):** Connecto plays an ultra-crisp chime ('Faah') frequency designed to cut through ambient noise without piercing your ears.\n• **Browser Permission:** Click 'Allow' when your browser asks for notification permission to receive instant popups even when minimized.`,
+          action: {
+            title: 'Configure Notification Settings',
+            subtitle: 'Review push alert preferences and test sounds',
+            onclick: "openSettingsModal('notifications')",
+            label: 'Notification Settings',
+            icon: 'bell'
+          }
+        };
+      }
+
+      // 9. Faah Alert Chime & Sound FX
+      if (q.includes("faah") || q.includes("chime") || q.includes("ringtone") || q.includes("sound fx")) {
+        return {
+          text: `🎵 **The Connecto 'Faah' Alert Chime:**\n\n• **Engineered Frequency:** The signature 'Faah' audio alert is harmonically calibrated for instantaneous audibility.\n• **Master Audio Mute:** You can toggle incoming sound FX on or off anytime under Profile Settings ➔ Audio & Sound FX.\n• **Device Ringer Sync:** Connecto respects hardware silent/do-not-disturb switches on mobile devices.`,
+          action: {
+            title: 'Adjust Sound FX Volume',
+            subtitle: 'Open sound settings to test the Faah chime',
+            onclick: "openSettingsModal('sound')",
+            label: 'Sound Settings',
+            icon: 'volume-2'
+          }
+        };
+      }
+
+      // 10. Battery Saver Optimization Exemption
+      if (q.includes("battery") || q.includes("optimization") || q.includes("sleep") || q.includes("killed in background")) {
+        return {
+          text: `⚡ **Battery Optimization & Background Reliability:**\n\n• **Why Alerts Get Delayed:** Many Android OEM skins (HyperOS, MIUI, OneUI, ColorOS) aggressively freeze background apps to save battery.\n• **How to Fix:** Open device **Settings ➔ Apps ➔ Connecto ➔ Battery ➔ Select 'Unrestricted'** (or disable MIUI battery saver).\n• **Autostart:** In Xiaomi / Poco / Redmi devices, enable **Autostart** in App Info to guarantee 100% immediate delivery of incoming calls.`,
+          action: {
+            title: 'View Mobile Installation Guide',
+            subtitle: 'Step-by-step setup for Samsung, Xiaomi, and Pixel',
+            onclick: "switchMainView('learning')",
+            label: 'Learning Academy',
+            icon: 'book-open'
+          }
+        };
+      }
+
+      // 11. Two-Factor Authentication (2FA) & Account Protection
+      if (q.includes("2fa") || q.includes("two factor") || q.includes("otp") || q.includes("vault") || q.includes("biometric") || q.includes("auth code")) {
+        return {
+          text: `🛡️ **Two-Factor Authentication (2FA) & Security:**\n\n• **Email OTP Protection:** Enable 2FA in Profile Settings ➔ Account & 2FA. When active, every sign-in from an untrusted device requires entering a 6-digit verification code sent to your email.\n• **Brute-Force Lockout:** Connecto enforces progressive delays and IP throttling to prevent unauthorized automated password cracking.\n• **Biometric Vault:** Mobile users can lock app launch behind fingerprint or facial recognition hardware.`,
+          action: {
+            title: 'Enable Two-Factor Authentication',
+            subtitle: 'Protect your account with instant email OTP codes',
+            onclick: "openSettingsModal('account')",
+            label: 'Open 2FA Settings',
+            icon: 'key'
+          }
+        };
+      }
+
+      // 12. Login, Sign Up, & Account Access
+      if (q.includes("login") || q.includes("signin") || q.includes("sign in") || q.includes("log in") || q.includes("register") || q.includes("signup") || q.includes("sign up") || q.includes("create account")) {
+        return {
+          text: `✨ **Account Access & Registration:**\n\n• **Instant Creation:** Create an account with just a unique username and strong password. No credit card or invasive personal data required.\n• **Typing Bars:** Our aesthetic authentication modal features live username availability validation badges, an interactive 4-segment security meter, and a 1-click strong password generator.\n• **Remember Me:** Toggle 'Remember this device' to stay securely logged in across browser sessions.`,
+          action: {
+            title: 'Open Authentication Hub',
+            subtitle: 'Sign in to your account or register a free username',
+            onclick: "openAuthModal('register')",
+            label: 'Sign Up / Log In',
+            icon: 'user-check'
+          }
+        };
+      }
+
+      // 13. Password Security & Generator
+      if (q.includes("password") || q.includes("suggest") || q.includes("strong password") || q.includes("forgot") || q.includes("generator")) {
+        return {
+          text: `🔑 **Password Security & 1-Click Generator:**\n\n• **Built-In Password Generator:** Click **'Suggest Strong'** in the Sign Up form to automatically generate an uncrackable 16-character password combining uppercase, lowercase, numbers, and symbols.\n• **Live Security Meter:** The 4-segment meter dynamically rates Weak, Fair, Good, or Unbreakable with live actionable requirement badges.\n• **Argon2 / PBKDF2 Hashing:** Passwords are never stored in cleartext; they are cryptographically hashed with unique per-user salts.`,
+          action: {
+            title: 'Open Sign Up & Password Generator',
+            subtitle: 'Generate a secure 16-character password instantly',
+            onclick: "openAuthModal('register')",
+            label: 'Try Generator',
+            icon: 'key-round'
+          }
+        };
+      }
+
+      // 14. Adding Friends & Direct Messaging (DMs)
+      if (q.includes("friend") || q.includes("add") || q.includes("dm") || q.includes("direct message") || q.includes("roster") || q.includes("chat with someone")) {
+        return {
+          text: `👥 **Adding Friends & Direct Messaging:**\n\n• **Search by Username:** In the main chat dashboard, tap the **Friends / DMs** icon on the left rail, click **Add Friend**, and type their exact \`@username\`.\n• **Instant Handshake:** Once the request is sent, your contact receives real-time notification to accept or decline.\n• **Direct Encryption:** Once accepted, an encrypted 1-on-1 direct channel is automatically provisioned for messaging, files, and voice calls.`,
+          action: {
+            title: 'Open Direct Messages',
+            subtitle: 'Switch to live chat and connect with friends',
+            onclick: "switchMainView('chat')",
+            label: 'Open Friends Dock',
+            icon: 'message-square'
+          }
+        };
+      }
+
+      // 15. Channels & Community Workspaces
+      if (q.includes("channel") || q.includes("workspace") || q.includes("circle") || q.includes("group") || q.includes("lounge")) {
+        return {
+          text: `💬 **Channels & Community Workspaces:**\n\n• **Public & Private Lounges:** Connecto supports both topic-based open community channels and private invite-only circles.\n• **Voice Lounges:** Step in and out of persistent voice channels with zero dialing or ringing interruption.\n• **Media & Code Snippets:** Channels support rich syntax highlighting, attachments, and pinned notices.`,
+          action: {
+            title: 'Explore Community Lounges',
+            subtitle: 'Join public text & voice discussions',
+            onclick: "handleNavCommunityClick()",
+            label: 'Community Lounges',
+            icon: 'users'
+          }
+        };
+      }
+
+      // 16. Media Sharing, Voice Notes & Photos
+      if (q.includes("media") || q.includes("photo") || q.includes("file") || q.includes("voice note") || q.includes("image upload") || q.includes("waveform")) {
+        return {
+          text: `📎 **Media Sharing & Voice Notes:**\n\n• **Original Quality:** Upload images, screenshots, and documents without aggressive lossy compression.\n• **Instant Voice Notes:** Tap the microphone icon in any chat bar to record crisp audio notes with animated waveforms.\n• **Encrypted Transmission:** File buffers are streamed through encrypted WebSocket pipelines with strict file size and type validation.`,
+          action: {
+            title: 'Go to Live Chat',
+            subtitle: 'Send photos, voice notes, and files in live rooms',
+            onclick: "switchMainView('chat')",
+            label: 'Enter Chat',
+            icon: 'paperclip'
+          }
+        };
+      }
+
+      // 17. Pinning Messages & Message Reactions
+      if (q.includes("pin") || q.includes("react") || q.includes("emoji") || q.includes("search message") || q.includes("star")) {
+        return {
+          text: `📌 **Message Reactions & Pinned Notices:**\n\n• **Emoji Reactions:** Hover or long-press any message bubble to react with quick emojis (❤️, 🔥, 👍, 🚀, 🎉).\n• **Pinning Messages:** Channel moderators and direct chat partners can pin critical announcements to the channel header.\n• **Fast Search:** Use the search bar in the channel header to instantly filter conversation history by keywords.`,
+          action: {
+            title: 'Open Chat Dashboard',
+            subtitle: 'Test reactions and pinned messages in chat',
+            onclick: "switchMainView('chat')",
+            label: 'Open Chat',
+            icon: 'smile'
+          }
+        };
+      }
+
+      // 18. Stealth Ghost Presence & Online Status
+      if (q.includes("stealth") || q.includes("ghost") || q.includes("appear offline") || q.includes("invisible") || q.includes("online status")) {
+        return {
+          text: `👻 **Stealth Mode (Ghost Presence):**\n\n• **Invisible Browsing:** Activate Stealth Mode in Profile Settings ➔ Account & 2FA to read messages and participate without appearing online to friends or public rosters.\n• **Zero Telemetry Leak:** Your last seen timestamp and active presence indicators are completely suppressed.\n• **Toggle Anytime:** Easily switch between Visible and Ghost presence whenever you want privacy.`,
+          action: {
+            title: 'Toggle Stealth Mode',
+            subtitle: 'Configure your online visibility in Account settings',
+            onclick: "openSettingsModal('account')",
+            label: 'Privacy Settings',
+            icon: 'eye-off'
+          }
+        };
+      }
+
+      // 19. Permanent Account Deletion & Data Purge
+      if (q.includes("delete") || q.includes("purge") || q.includes("close account") || q.includes("erase") || q.includes("remove account")) {
+        return {
+          text: `❌ **Irreversible Account Deletion & Data Purge:**\n\n• **Zero Data Retention:** Deleting your account permanently scrubs your user handle, profile, direct messages, active tokens, and physical database backups across all servers.\n• **Confirmation Guard:** Because this operation is **100% irreversible**, you must type 'DELETE' in capital letters to confirm.\n• **Location:** You can trigger deletion right below or at the bottom of the Help & Support tab in Profile Settings.`,
+          action: {
+            title: 'Open Account Deletion Modal',
+            subtitle: 'Requires typing DELETE to confirm permanent purge',
+            onclick: "openDeleteAccountConfirmModal()",
+            label: 'Delete Account',
+            icon: 'trash-2'
+          }
+        };
+      }
+
+      // 20. Technology Stack & Architecture
+      if (q.includes("architecture") || q.includes("stack") || q.includes("fastapi") || q.includes("cloudflare") || q.includes("python") || q.includes("open source")) {
+        return {
+          text: `🏛️ **Connecto Architecture & Tech Stack:**\n\n• **Backend Engine:** Ultra-fast asynchronous FastAPI (Python 3.12) with native WebSocket event distribution.\n• **Audio/Video Mesh:** WebRTC peer-to-peer data channels with STUN/TURN failover relays.\n• **Frontend & Edge:** Zero-framework, hyper-optimized Vanilla JavaScript and CSS served globally via Cloudflare Pages edge network.\n• **Storage Layer:** High-speed SQLite/PostgreSQL with client-side CacheStorage service worker persistence.`,
+          action: {
+            title: 'Read Architecture Whitepaper',
+            subtitle: 'Deep dive into zero-knowledge relays & WebSocket specs',
+            onclick: "window.location.href='/architecture'",
+            label: 'Architecture Hub',
+            icon: 'layers'
+          }
+        };
+      }
+
+      // 21. Offline Mode & PWA
+      if (q.includes("offline") || q.includes("pwa") || q.includes("cache") || q.includes("service worker") || q.includes("no internet")) {
+        return {
+          text: `⚡ **Offline Capability & PWA Support:**\n\n• **Service Worker Caching:** Connecto installs a progressive web app service worker that caches all core application assets, fonts, and UI components.\n• **Instant Launch:** The app opens in under 150ms even on slow 2G/3G connections or during temporary network outages.\n• **Automatic Reconnect:** If you lose connection during a chat, Connecto buffers messages and automatically resynchronizes once connectivity returns.`,
+          action: {
+            title: 'Check Cache Status',
+            subtitle: 'Reload page to verify high-speed cached service worker',
+            onclick: "window.location.reload()",
+            label: 'Reload Page',
+            icon: 'refresh-cw'
+          }
+        };
+      }
+
+      // 22. Community Guidelines & Code of Conduct
+      if (q.includes("guidelines") || q.includes("conduct") || q.includes("rules") || q.includes("terms") || q.includes("report")) {
+        return {
+          text: `📜 **Community Guidelines & Terms:**\n\n• **Privacy First:** Never share passwords, 2FA codes, or sensitive financial information with anyone claiming to be staff.\n• **Respectful Conduct:** Harassment, hate speech, spamming, and illicit content distribution are strictly prohibited.\n• **Account Safety:** Keep your password strong and verify your 2FA email to ensure complete security.`,
+          action: {
+            title: 'Review Terms of Service',
+            subtitle: 'Read our platform standards and user responsibilities',
+            onclick: "openTermsOfServiceModal()",
+            label: 'Terms of Service',
+            icon: 'file-text'
+          }
+        };
+      }
+
+      // 23. Bug Reporting & Direct Engineering Contact
+      if (q.includes("bug") || q.includes("contact") || q.includes("support email") || q.includes("developer") || q.includes("feedback") || q.includes("issue")) {
+        return {
+          text: `✉️ **Direct Support & Engineering Contact:**\n\n• **Direct Email:** Reach our core engineering team directly at **support@connecto.fun** for technical escalations or inquiries.\n• **Public Beta Feedback:** Connecto is currently in Public Beta Testing stage — user feedback directly shapes our roadmap!\n• **Response Time:** We generally respond to verified bug reports within 24 to 48 hours.`,
+          action: {
+            title: 'Email Engineering Team',
+            subtitle: 'Direct support inbox: support@connecto.fun',
+            onclick: "window.location.href='mailto:support@connecto.fun'",
+            label: 'Email Support',
+            icon: 'mail'
+          }
+        };
+      }
+
+      // 24. Free Access & Monetization
+      if (q.includes("free") || q.includes("cost") || q.includes("price") || q.includes("pay") || q.includes("subscription") || q.includes("monetiz") || q.includes("ad") || q.includes("ads")) {
+        return {
+          text: `🎁 **100% Free & Ad-Free Communication:**\n\n• **Completely Free:** Connecto core messaging, channels, voice lounges, and Android APK are 100% free.\n• **Zero Third-Party Ads:** We do not run third-party advertising networks, analytics trackers, or data-mining scripts.\n• **No Hidden Paywalls:** You get full access to all features, custom wallpapers, and themes without paying a dime.`,
+          action: {
+            title: 'Register Free Account',
+            subtitle: 'Create a free username in seconds',
+            onclick: "openAuthModal('register')",
+            label: 'Get Started Free',
+            icon: 'gift'
+          }
+        };
+      }
+
+      // 25. Desktop / Browser Compatibility
+      if (q.includes("browser") || q.includes("chrome") || q.includes("safari") || q.includes("firefox") || q.includes("edge") || q.includes("desktop") || q.includes("mac") || q.includes("windows")) {
+        return {
+          text: `💻 **Browser & Desktop Platform Support:**\n\n• **Supported Browsers:** Connecto runs flawlessly on Google Chrome, Apple Safari, Mozilla Firefox, Microsoft Edge, Brave, and Opera.\n• **Responsive Layout:** Works seamlessly across ultra-wide desktop monitors, laptops, tablets, and foldable phones.\n• **Native WebRTC:** Supports hardware microphone isolation and WebSockets out-of-the-box without requiring external plugins.`,
+          action: {
+            title: 'Open Home Dashboard',
+            subtitle: 'Return to the Connecto home dashboard overview',
+            onclick: "switchMainView('home')",
+            label: 'Home Dashboard',
+            icon: 'home'
+          }
+        };
+      }
+
+      // 26. Greetings & Welcome
+      if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("help") || q === "yo" || q === "sup") {
+        return {
+          text: `👋 **Hello! How can I assist you with Connecto today?**\n\nI am your 24/7 AI Customer Support Assistant. I can guide you through:\n\n• **End-to-End Encryption & Blackscreen Privacy**\n• **Downloading Connecto for Android APK v4.6.5**\n• **Setting Custom Chat Wallpapers & OLED Themes**\n• **Troubleshooting Audio, Calls & Voice Isolation**\n• **Two-Factor Authentication (2FA) & Stealth Mode**\n• **Adding Friends, Creating Channels & Sending Media**\n\nSelect any quick chip below or ask your question in plain English!`,
+          action: {
+            title: 'Download Android APK v4.6.5',
+            subtitle: 'Official 36.0 MB release with hardware biometrics',
+            href: '/download/apk',
+            download: 'connecto-fun.apk',
+            label: 'Download APK',
+            icon: 'smartphone'
+          }
+        };
+      }
+
+      // Fallback Answer for general queries
+      return {
+        text: `🤖 **Connecto AI Support Assistant:**\n\nI received your query: *"${query}"*.\n\nConnecto is an end-to-end encrypted messaging, voice, and community workspace. Here are top actions to help you navigate:\n\n• **Direct Messages & Lounges:** Open the left navigation dock to switch between chats, voice rooms, and channels.\n• **Account Security & 2FA:** Open User Profile & Settings (gear icon) to manage Two-Factor Authentication, theme colors, and audio triggers.\n• **Android App:** Download the official APK v4.6.5 for OLED dark mode and hardware blackscreen protection.\n• **Need direct human assistance?** Email our engineering team anytime at **support@connecto.fun**.`,
+        action: {
+          title: 'Need Direct Assistance?',
+          subtitle: 'Our engineering team is available at support@connecto.fun',
+          onclick: "window.location.href='mailto:support@connecto.fun'",
+          label: 'Contact Support',
+          icon: 'mail'
+        }
+      };
     }
 
     let authMode = 'login';
@@ -40545,7 +41357,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-10') {
+        if (name !== 'connecto-v5-0-11') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
