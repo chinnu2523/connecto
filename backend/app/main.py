@@ -667,8 +667,18 @@ app.include_router(notifications_router, prefix="/api/v1")
 
 @app.get("/api/v1/e2e/secret")
 @app.get("/api/e2e/secret")
-async def get_e2e_secret_top(current_user: User = Depends(get_current_user)):
+async def get_e2e_secret_top(
+    peer: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user)
+):
     import hashlib
+    if peer:
+        p_clean = peer.strip().lower().replace("@", "")
+        u_clean = current_user.username.strip().lower().replace("@", "")
+        pair = ":".join(sorted([u_clean, p_clean]))
+        salt = f"connecto_e2e_conv_{pair}_{settings.SECRET_KEY}"
+        secret = hashlib.sha256(salt.encode()).hexdigest()
+        return {"status": "ok", "e2e_secret": secret, "pair": pair}
     salt = f"connecto_e2e_{current_user.id}_{current_user.created_at}_{settings.SECRET_KEY}"
     secret = hashlib.sha256(salt.encode()).hexdigest()
     return {"status": "ok", "e2e_secret": secret}

@@ -28890,16 +28890,8 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       const sendBtn = document.getElementById('sendBtn') || document.querySelector('.connecto-send-circle-btn') || document.querySelector('.input-btn.send-cta');
       const lockBanner = document.getElementById('announcementsLockBanner');
       const isUserAdmin = Boolean(
-        (typeof currentUser === 'string' && (
-          currentUser.toLowerCase() === 'connecto_admin' || 
-          currentUser.toLowerCase() === 'admin' ||
-          currentUser.toLowerCase() === 'vance' ||
-          currentUser.toLowerCase() === 'madara' ||
-          currentUser.toLowerCase() === 'viki' ||
-          currentUser.toLowerCase().endsWith('_admin')
-        )) ||
-        localStorage.getItem('connecto_is_admin') === '1' ||
-        (window.currentUserObj && window.currentUserObj.is_admin)
+        (window.currentUserObj && (window.currentUserObj.is_admin === true || window.currentUserObj.is_admin === 1)) ||
+        (typeof currentUser === 'string' && currentUser.toLowerCase() === 'connecto_admin')
       );
 
       if (channelId === 'announcements') {
@@ -34378,47 +34370,42 @@ html[data-theme="dark"] .auth-input-field::placeholder {
     // ============================================================================
     const ConnectoE2E = {
       _cachedKeys: new Map(),
+      _cachedSecrets: new Map(),
       _userSecret: null,
 
-      async getUserSecret() {
-        if (this._userSecret) return this._userSecret;
+      async getConversationSecret(pair, peer) {
+        if (this._cachedSecrets && this._cachedSecrets.has(pair)) return this._cachedSecrets.get(pair);
+        if (!this._cachedSecrets) this._cachedSecrets = new Map();
         try {
           const token = localStorage.getItem('connecto_token') || authToken;
-          if (token) {
-            const res = await fetch('/api/v1/e2e/secret', {
+          if (token && peer) {
+            const res = await fetch(`/api/v1/e2e/secret?peer=${encodeURIComponent(peer)}`, {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
               const data = await res.json();
               if (data.e2e_secret) {
-                this._userSecret = data.e2e_secret;
-                return this._userSecret;
+                this._cachedSecrets.set(pair, data.e2e_secret);
+                return data.e2e_secret;
               }
             }
           }
         } catch (e) {
-          console.warn('[E2E] Secret fetch fallback:', e);
+          console.warn('[E2E] Pair secret fetch fallback:', e);
         }
-        let localSecret = localStorage.getItem('connecto_local_e2e_secret');
-        if (!localSecret) {
-          const arr = new Uint8Array(32);
-          if (window.crypto && window.crypto.getRandomValues) {
-            window.crypto.getRandomValues(arr);
-          } else {
-            for (let i = 0; i < 32; i++) arr[i] = Math.floor(Math.random() * 256);
-          }
-          localSecret = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
-          localStorage.setItem('connecto_local_e2e_secret', localSecret);
-        }
-        this._userSecret = localSecret;
-        return this._userSecret;
+        return `connecto_e2e_shared_salt_${pair}`;
       },
 
       async getConversationKey(userA, userB) {
-        const pair = [String(userA || '').trim().toLowerCase(), String(userB || '').trim().toLowerCase()].sort().join(':');
+        const uA = String(userA || '').trim().toLowerCase().replace(/^@/, '');
+        const uB = String(userB || '').trim().toLowerCase().replace(/^@/, '');
+        const pair = [uA, uB].sort().join(':');
         if (this._cachedKeys.has(pair)) return this._cachedKeys.get(pair);
 
-        const secret = await this.getUserSecret();
+        const currentClean = String(currentUser || '').trim().toLowerCase().replace(/^@/, '');
+        const peer = (uA === currentClean) ? uB : uA;
+        const secret = await this.getConversationSecret(pair, peer);
+
         const enc = new TextEncoder();
         const keyMaterial = await window.crypto.subtle.importKey(
           'raw',
@@ -41738,7 +41725,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-14') {
+        if (name !== 'connecto-v5-0-15') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
@@ -42564,18 +42551,8 @@ async function updateNetworkStatusBadge() {
     ? currentUser.toLowerCase().trim().replace(/^@/, '') : '';
 
   const isUserAdmin = Boolean(
-    (user && (
-      user === 'chinnu14754x' ||
-      user === 'chinnu' ||
-      user === 'connecto_admin' || 
-      user === 'admin' ||
-      user === 'vance' ||
-      user === 'madara' ||
-      user === 'viki' ||
-      user.endsWith('_admin')
-    )) ||
-    localStorage.getItem('connecto_is_admin') === '1' ||
-    (window.currentUserObj && (window.currentUserObj.is_admin || window.currentUserObj.is_admin === 1))
+    (window.currentUserObj && (window.currentUserObj.is_admin === true || window.currentUserObj.is_admin === 1)) ||
+    (user && (user === 'connecto_admin' || user === 'chinnu14754x'))
   );
 
   if (!isUserAdmin) {
@@ -43238,16 +43215,8 @@ function updateInputPlaceholder() {
   const ch = (typeof currentChannel !== 'undefined' && currentChannel) ? currentChannel : 'general';
   if (ch === 'announcements' || ch === 'announcement') {
     const isUserAdmin = Boolean(
-      (typeof currentUser === 'string' && (
-        currentUser.toLowerCase() === 'connecto_admin' || 
-        currentUser.toLowerCase() === 'admin' ||
-        currentUser.toLowerCase() === 'vance' ||
-        currentUser.toLowerCase() === 'madara' ||
-        currentUser.toLowerCase() === 'viki' ||
-        currentUser.toLowerCase().endsWith('_admin')
-      )) ||
-      localStorage.getItem('connecto_is_admin') === '1' ||
-      (window.currentUserObj && window.currentUserObj.is_admin)
+      (window.currentUserObj && (window.currentUserObj.is_admin === true || window.currentUserObj.is_admin === 1)) ||
+      (typeof currentUser === 'string' && currentUser.toLowerCase() === 'connecto_admin')
     );
     if (!isUserAdmin) {
       input.placeholder = '🔒 #announcements is read-only. Only administrators can broadcast.';

@@ -67,14 +67,24 @@ export default {
       return handleSyncNow(request, env);
     }
 
-    // SEC-05 FIX: E2E secret endpoint — returns (or auto-generates) a per-user server-side salt
-    // used as HMAC key in ConnectoE2EEncryption.deriveConversationKey().
-    // Requires authenticated session; secret is stored in DB and never changes once set.
-    if ((url.pathname === "/api/v1/e2e/secret" || url.pathname === "/api/e2e/secret") && method === "GET") {
+    // SEC-05 FIX: E2E secret endpoint — returns (or auto-generates) a shared conversation salt or per-user salt
+    // used as key material in ConnectoE2E WebCrypto engine.
+    // Requires authenticated session; peer parameter enables deterministic pairwise conversation key sync.
+    if ((url.pathname === "/api/v1/e2e/secret" || url.pathname === "/api/e2e/secret") && (method === "GET" || method === "HEAD")) {
       const caller = await resolveUserFromRequest(request, env);
       if (!caller) return jsonResponse({ error: "Authentication required" }, 401);
       try {
-        // Try to get existing secret
+        const peer = (url.searchParams.get("peer") || "").trim().toLowerCase().replace(/^@/, "");
+        if (peer) {
+          const callerUname = (caller.username || "").trim().toLowerCase().replace(/^@/, "");
+          const pair = [callerUname, peer].sort().join(":");
+          const enc = new TextEncoder();
+          const masterSecret = env.SECRET_KEY || "connecto_master_e2e_key_2026_secured";
+          const digest = await crypto.subtle.digest("SHA-256", enc.encode(`connecto_e2e_conv_${pair}_${masterSecret}`));
+          const secret = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+          return jsonResponse({ status: "ok", e2e_secret: secret, pair: pair });
+        }
+        // Try to get existing per-user secret
         let row = await env.DB.prepare("SELECT e2e_secret FROM users WHERE id = ? LIMIT 1").bind(caller.id).first().catch(() => null);
         let secret = row && row.e2e_secret;
         if (!secret) {
@@ -84,7 +94,7 @@ export default {
           secret = Array.from(randBytes).map(b => b.toString(16).padStart(2, "0")).join("");
           await env.DB.prepare("UPDATE users SET e2e_secret = ? WHERE id = ?").bind(secret, caller.id).run().catch(() => {});
         }
-        return jsonResponse({ e2e_secret: secret });
+        return jsonResponse({ status: "ok", e2e_secret: secret });
       } catch (err) {
         return jsonResponse({ error: "Could not fetch E2E secret" }, 500);
       }
@@ -5084,6 +5094,32 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         { id: "webrtc_eng", title: "Low-Latency Voice & Video Engineer", location: "Remote", type: "Full-time" }
       ]
     });
+  }
+
+  // 17a-2. Delete Message for Everyone: DELETE (/api/messages/:id)
+  const delMsgMatch = path.match(/^\/api(?:\/v1)?(?:\/chat)?\/messages\/([a-zA-Z0-9_\-]+)$/);
+  if (delMsgMatch && method === "DELETE") {
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller) {
+      return jsonResponse({ error: "Unauthorized: Active session required to delete messages." }, 401);
+    }
+    const msgId = delMsgMatch[1];
+    if (env.DB) {
+      try {
+        const msg = await env.DB.prepare("SELECT sender_id, channel_id FROM messages WHERE id = ? LIMIT 1").bind(msgId).first();
+        if (!msg) {
+          return jsonResponse({ error: "Message not found" }, 404);
+        }
+        const isSender = (msg.sender_id === caller.id || (msg.sender_id && msg.sender_id.toLowerCase() === caller.username.toLowerCase()));
+        if (!isSender && !caller.is_admin) {
+          return jsonResponse({ error: "Forbidden: You can only delete your own messages." }, 403);
+        }
+        await env.DB.prepare("DELETE FROM messages WHERE id = ?").bind(msgId).run();
+      } catch (err) {
+        console.warn("[EDGE_DELETE_MSG]", err.message);
+      }
+    }
+    return jsonResponse({ status: "ok", message_id: msgId });
   }
 
   // 17b. Message Threads: GET & POST (/api/messages/:id/thread)
