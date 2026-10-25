@@ -9327,8 +9327,9 @@
       padding: 4px;
       display: grid;
       grid-template-columns: 1fr 1fr;
+      gap: 4px;
       margin-bottom: 22px;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
       z-index: 2;
     }
     .auth-segmented-slider {
@@ -9337,15 +9338,15 @@
       bottom: 4px;
       left: 4px;
       width: calc(50% - 4px);
-      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
       border-radius: 10px;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 1;
       pointer-events: none;
     }
     .auth-segmented-slider.register {
-      transform: translateX(100%);
+      transform: translateX(calc(100% + 4px));
     }
     .auth-tab-btn {
       position: relative;
@@ -9355,18 +9356,17 @@
       color: #94a3b8;
       font-size: 13.5px;
       font-weight: 600;
-      padding: 9px 12px;
+      padding: 10px 14px;
       border-radius: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
-      transition: color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: color 0.2s ease, transform 0.15s ease;
     }
     .auth-tab-btn:hover {
       color: #ffffff;
-      transform: translateY(-1px);
     }
     .auth-tab-btn.active {
       color: #ffffff;
@@ -9378,7 +9378,7 @@
       transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .auth-tab-btn.active .auth-tab-icon {
-      transform: scale(1.15);
+      transform: scale(1.1);
     }
     
     .auth-modal-bg-layer {
@@ -9389,6 +9389,18 @@
       pointer-events: none;
       z-index: 0;
     }
+
+    @keyframes authModalEntrance {
+      0% { opacity: 0; transform: scale(0.96) translateY(10px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    #authModal {
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      background: rgba(8, 10, 18, 0.78) !important;
+    }
+
     #authModal .modal-box-scroll {
       position: relative;
       overflow-y: auto;
@@ -9397,13 +9409,14 @@
       box-sizing: border-box;
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-      background: linear-gradient(180deg, rgba(20, 23, 34, 0.96) 0%, rgba(12, 14, 22, 0.98) 100%) !important;
+      background: linear-gradient(180deg, rgba(18, 22, 34, 0.98) 0%, rgba(10, 13, 22, 0.99) 100%) !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
       box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),
-                  0 24px 60px -12px rgba(0, 0, 0, 0.75),
-                  0 0 50px -15px rgba(99, 102, 241, 0.2) !important;
+                  0 24px 64px -12px rgba(0, 0, 0, 0.8),
+                  0 0 45px -10px rgba(6, 182, 212, 0.2) !important;
       border-radius: 24px !important;
       padding: 30px 32px !important;
+      animation: authModalEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
     #authModal .modal-box-scroll::-webkit-scrollbar {
       width: 6px;
@@ -9419,14 +9432,75 @@
       background: rgba(255, 255, 255, 0.3);
     }
 
+    /* Brand Header with Logo */
+    .auth-brand-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+    .auth-brand-row {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .auth-brand-logo-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 0 20px rgba(6, 182, 212, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+    }
+    .auth-brand-logo-wrap:hover {
+      transform: scale(1.06);
+      box-shadow: 0 6px 24px rgba(6, 182, 212, 0.4);
+    }
+    .auth-brand-logo-img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+    .auth-brand-name {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .auth-brand-tag {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: rgba(6, 182, 212, 0.15);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      color: #06b6d4;
+    }
+
     /* Modal Close Button */
     .auth-modal-close-btn {
       position: absolute;
       top: 18px;
       right: 18px;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.1);
       background: rgba(255, 255, 255, 0.05);
       color: #94a3b8;
@@ -9441,7 +9515,8 @@
     .auth-modal-close-btn:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #ffffff;
-      transform: scale(1.08) rotate(90deg);
+      transform: scale(1.08);
+      border-color: rgba(255, 255, 255, 0.2);
     }
 
     /* Auth Brand Header & Typography */
@@ -9460,19 +9535,53 @@
       text-transform: uppercase;
       margin-bottom: 12px;
     }
+    .auth-form-header {
+      margin-bottom: 20px;
+      position: relative;
+      z-index: 1;
+    }
     .auth-modal-title {
-      font-size: 24px !important;
+      font-size: 23px !important;
       font-weight: 800 !important;
       letter-spacing: -0.025em !important;
       color: #ffffff !important;
-      margin: 0 0 6px 0 !important;
+      margin: 0 0 5px 0 !important;
       line-height: 1.25 !important;
     }
     .auth-modal-subtitle {
       font-size: 13.5px !important;
       color: #94a3b8 !important;
       line-height: 1.5 !important;
-      margin: 0 0 20px 0 !important;
+      margin: 0 !important;
+    }
+    .auth-modal-footer {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 13px;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      position: relative;
+      z-index: 1;
+    }
+    .auth-footer-link {
+      background: none;
+      border: none;
+      padding: 0;
+      color: #06b6d4;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: color 0.15s ease, text-decoration 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .auth-footer-link:hover {
+      color: #38bdf8;
+      text-decoration: underline;
     }
 
     /* Form Groups & Labels */
@@ -9842,12 +9951,28 @@
     }
 
     /* ==================== DUAL THEME: PARCHMENT LIGHT MODE ==================== */
+    html[data-theme="parchment"] #authModal {
+      background: rgba(245, 241, 235, 0.85) !important;
+    }
     html[data-theme="parchment"] #authModal .modal-box-scroll {
       background: #ffffff !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
       box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03),
                   0 24px 60px -12px rgba(68, 64, 60, 0.2),
                   0 8px 24px -4px rgba(68, 64, 60, 0.08) !important;
+    }
+    html[data-theme="parchment"] .auth-brand-name {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .auth-brand-logo-wrap {
+      background: #ffffff !important;
+      border-color: rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 4px 12px rgba(68, 64, 60, 0.1) !important;
+    }
+    html[data-theme="parchment"] .auth-brand-tag {
+      background: rgba(234, 88, 12, 0.1) !important;
+      border-color: rgba(234, 88, 12, 0.25) !important;
+      color: #ea580c !important;
     }
     html[data-theme="parchment"] .auth-modal-close-btn {
       border-color: rgba(68, 64, 60, 0.15);
@@ -9857,6 +9982,7 @@
     html[data-theme="parchment"] .auth-modal-close-btn:hover {
       background: rgba(68, 64, 60, 0.14);
       color: #141312;
+      border-color: rgba(68, 64, 60, 0.25);
     }
     html[data-theme="parchment"] .auth-brand-badge {
       background: rgba(234, 88, 12, 0.08);
@@ -9872,6 +9998,7 @@
     html[data-theme="parchment"] .auth-segmented-nav {
       background: #f1ede6 !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
+      box-shadow: inset 0 1px 3px rgba(68, 64, 60, 0.1) !important;
     }
     html[data-theme="parchment"] .auth-segmented-slider {
       background: #ffffff !important;
@@ -9880,8 +10007,40 @@
     html[data-theme="parchment"] .auth-tab-btn {
       color: #78716c !important;
     }
-    html[data-theme="parchment"] .auth-tab-btn.active {
+    html[data-theme="parchment"] .auth-tab-btn:hover {
       color: #141312 !important;
+    }
+    html[data-theme="parchment"] .auth-tab-btn.active {
+      color: #ea580c !important;
+    }
+    html[data-theme="parchment"] .auth-modal-footer {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .auth-footer-link {
+      color: #ea580c !important;
+    }
+    html[data-theme="parchment"] .auth-footer-link:hover {
+      color: #c2410c !important;
+    }
+    html[data-theme="parchment"] .auth-remember-wrap {
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .auth-remember-wrap input[type="checkbox"] {
+      accent-color: #ea580c !important;
+    }
+    html[data-theme="parchment"] .otp-digit-input {
+      background: #fbf9f6 !important;
+      border-color: rgba(68, 64, 60, 0.2) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .otp-digit-input:focus {
+      border-color: #ea580c !important;
+      box-shadow: 0 0 16px rgba(234, 88, 12, 0.3) !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] .otp-digit-input.filled {
+      border-color: #16a34a !important;
+      color: #15803d !important;
     }
     html[data-theme="parchment"] .form-group label {
       color: #57534e !important;
@@ -27267,6 +27426,19 @@ html[data-theme="dark"] .auth-input-field::placeholder {
       <button type="button" class="auth-modal-close-btn" onclick="closeAuthModal()" aria-label="Close modal">
         <i data-lucide="x" style="width:16px; height:16px;"></i>
       </button>
+
+      <!-- Brand Header with Official Logo -->
+      <div class="auth-brand-center">
+        <div class="auth-brand-row">
+          <div class="auth-brand-logo-wrap">
+            <img src="/icon.svg" alt="Connecto Logo" class="auth-brand-logo-img" width="28" height="28">
+          </div>
+          <div class="auth-brand-name">
+            <span>Connecto</span>
+            <span class="auth-brand-tag">v5.0</span>
+          </div>
+        </div>
+      </div>
       
       <!-- Segmented Pill Switcher with Animated Spring Slider -->
       <div class="auth-segmented-nav">
@@ -27283,11 +27455,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
       <!-- ==================== 1. SIGN IN FORM ==================== -->
       <form id="signInForm" onsubmit="event.preventDefault(); handleSignInSubmit();" style="display:block;">
-        <div style="margin-bottom:20px; position:relative; z-index:1;">
-          <div class="auth-brand-badge">
-            <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
-            <span>Connecto Identity</span>
-          </div>
+        <div class="auth-form-header">
           <h3 class="auth-modal-title">Welcome Back</h3>
           <p class="auth-modal-subtitle">Sign in to your account and access real-time channels.</p>
         </div>
@@ -27343,17 +27511,17 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
           </button>
         </div>
+        <div class="auth-modal-footer">
+          <span>Don't have an account?</span>
+          <button type="button" class="auth-footer-link" onclick="switchAuthTab('register')">Create an account</button>
+        </div>
       </form>
 
       <!-- ==================== 2. CREATE ACCOUNT FORM ==================== -->
       <form id="signUpForm" onsubmit="event.preventDefault(); handleSignUpSubmit();" style="display:none;">
-        <div style="margin-bottom:20px; position:relative; z-index:1;">
-          <div class="auth-brand-badge">
-            <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
-            <span>Instant Membership</span>
-          </div>
-          <h3 class="auth-modal-title">Join Connecto</h3>
-          <p class="auth-modal-subtitle">Create your unique profile and start collaborating instantly.</p>
+        <div class="auth-form-header">
+          <h3 class="auth-modal-title">Create an Account</h3>
+          <p class="auth-modal-subtitle">Join Connecto and start collaborating with friends instantly.</p>
         </div>
 
         <!-- 1. Unique Username -->
@@ -27510,6 +27678,10 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             <span>Create Account</span>
             <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
           </button>
+        </div>
+        <div class="auth-modal-footer">
+          <span>Already have an account?</span>
+          <button type="button" class="auth-footer-link" onclick="switchAuthTab('login')">Sign in</button>
         </div>
       </form>
 
@@ -27669,14 +27841,20 @@ html[data-theme="dark"] .auth-input-field::placeholder {
     </div>
   </div>
 
-  <div class="modal-overlay" id="emailVerificationModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.85); backdrop-filter:blur(20px); align-items:center; justify-content:center; padding:16px;">
-    <div class="auth-card" style="max-width:440px; width:100%; background:rgba(15,23,42,0.96); border:1px solid rgba(99,102,241,0.4); border-radius:24px; padding:28px; position:relative; box-shadow:0 24px 60px rgba(0,0,0,0.8);">
-      <button type="button" id="closeEmailVerificationBtn" onclick="closeEmailVerificationModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; color:var(--text-muted); font-size:18px; cursor:pointer; padding:6px;">✕</button>
+  <div class="modal-overlay" id="emailVerificationModal" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(8,10,18,0.85); backdrop-filter:blur(16px); align-items:center; justify-content:center; padding:16px;" onclick="if(event.target===this)closeEmailVerificationModal()">
+    <div class="modal-box-scroll border-beam-card" style="max-width:440px; width:100%; border-radius:24px; padding:28px 30px; position:relative; box-shadow:0 24px 60px rgba(0,0,0,0.8);">
+      <button type="button" class="auth-modal-close-btn" id="closeEmailVerificationBtn" onclick="closeEmailVerificationModal()" aria-label="Close modal">
+        <i data-lucide="x" style="width:16px; height:16px;"></i>
+      </button>
       
       <div style="text-align:center; margin-bottom:20px;">
-        <div id="emailVerifyIconBox" style="width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg, #6366f1, #3b82f6); display:inline-flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:12px;">✉️</div>
-        <h3 id="emailVerifyTitle" style="font-size:20px; font-weight:900; color:#fff; margin-bottom:6px;">Verify Your Email</h3>
-        <p id="emailVerifyDesc" style="font-size:13px; color:rgba(255,255,255,0.7); line-height:1.5;">Confirm your registered email address with a 6-digit OTP code to maintain full access to Connecto.</p>
+        <div class="auth-brand-center" style="margin-bottom:12px;">
+          <div class="auth-brand-logo-wrap">
+            <img src="/icon.svg" alt="Connecto Logo" class="auth-brand-logo-img" width="28" height="28">
+          </div>
+        </div>
+        <h3 id="emailVerifyTitle" class="auth-modal-title" style="font-size:22px !important; margin-bottom:6px !important;">Verify Your Email</h3>
+        <p id="emailVerifyDesc" class="auth-modal-subtitle" style="font-size:13px !important; line-height:1.5 !important; margin-bottom:0 !important;">Confirm your registered email address with a 6-digit OTP code to maintain full access to Connecto.</p>
       </div>
 
       <div id="emailVerifyStepRequest">
@@ -38370,6 +38548,13 @@ function selectSettingsAvatar(emoji, el) {
       const regTab = document.getElementById('authTabRegister');
       if (regTab) regTab.classList.toggle('active', !isLogin);
       
+      const twoFa = document.getElementById('twoFactorForm');
+      if (twoFa) twoFa.style.display = 'none';
+      const recov = document.getElementById('accountRecoveryForm');
+      if (recov) recov.style.display = 'none';
+      const nav = document.querySelector('.auth-segmented-nav');
+      if (nav) nav.style.display = 'grid';
+
       const slider = document.getElementById('authSegmentedSlider');
       if (slider) {
         slider.classList.toggle('register', mode === 'register');
@@ -39612,6 +39797,8 @@ function selectSettingsAvatar(emoji, el) {
     // Global keyboard shortcuts
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
+        closeAuthModal();
+        closeEmailVerificationModal();
         closeMobileNavMenu();
         closeGlobalSearchModal();
         closeReferralLeaderboardModal();
@@ -41021,7 +41208,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-16') {
+        if (name !== 'connecto-v5-0-17') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
