@@ -9398,26 +9398,26 @@
 
     .auth-segmented-nav {
       position: relative;
-      background: rgba(8, 9, 22, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
-      padding: 5px;
+      padding: 4px;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      margin-bottom: var(--space-5);
-      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
-      z-index: 1;
+      margin-bottom: 22px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      z-index: 2;
     }
     .auth-segmented-slider {
       position: absolute;
-      top: 5px;
-      bottom: 5px;
-      left: 5px;
-      width: calc(50% - 5px);
-      background: linear-gradient(135deg, var(--accent) 0%, #06b6d4 100%);
+      top: 4px;
+      bottom: 4px;
+      left: 4px;
+      width: calc(50% - 4px);
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
       border-radius: 10px;
-      box-shadow: 0 4px 18px var(--accent-glow);
-      transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
       z-index: 1;
       pointer-events: none;
     }
@@ -9429,31 +9429,33 @@
       z-index: 2;
       background: transparent;
       border: none;
-      color: var(--text-muted);
+      color: #94a3b8;
       font-size: 13.5px;
-      font-weight: 700;
-      padding: 10px var(--space-3);
+      font-weight: 600;
+      padding: 9px 12px;
       border-radius: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 7px;
-      transition: color 0.25s, transform 0.2s var(--ease-spring);
+      transition: color 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .auth-tab-btn:hover {
       color: #ffffff;
       transform: translateY(-1px);
     }
     .auth-tab-btn.active {
-      color: var(--bg-darkest);
-      font-weight: 800;
+      color: #ffffff;
+      font-weight: 700;
     }
-    .auth-tab-btn span {
-      transition: transform 0.3s var(--ease-spring);
+    .auth-tab-btn .auth-tab-icon {
+      width: 16px;
+      height: 16px;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .auth-tab-btn.active span {
-      transform: scale(1.2) rotate(-5deg);
+    .auth-tab-btn.active .auth-tab-icon {
+      transform: scale(1.15);
     }
     
     .auth-modal-bg-layer {
@@ -9472,6 +9474,13 @@
       box-sizing: border-box;
       scrollbar-width: thin;
       scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+      background: linear-gradient(180deg, rgba(20, 23, 34, 0.96) 0%, rgba(12, 14, 22, 0.98) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),
+                  0 24px 60px -12px rgba(0, 0, 0, 0.75),
+                  0 0 50px -15px rgba(99, 102, 241, 0.2) !important;
+      border-radius: 24px !important;
+      padding: 30px 32px !important;
     }
     #authModal .modal-box-scroll::-webkit-scrollbar {
       width: 6px;
@@ -9486,43 +9495,121 @@
     #authModal .modal-box-scroll::-webkit-scrollbar-thumb:hover {
       background: rgba(255, 255, 255, 0.3);
     }
+
+    /* Modal Close Button */
+    .auth-modal-close-btn {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 10;
+      padding: 0;
+    }
+    .auth-modal-close-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      transform: scale(1.08) rotate(90deg);
+    }
+
+    /* Auth Brand Header & Typography */
+    .auth-brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      color: #818cf8;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .auth-modal-title {
+      font-size: 24px !important;
+      font-weight: 800 !important;
+      letter-spacing: -0.025em !important;
+      color: #ffffff !important;
+      margin: 0 0 6px 0 !important;
+      line-height: 1.25 !important;
+    }
+    .auth-modal-subtitle {
+      font-size: 13.5px !important;
+      color: #94a3b8 !important;
+      line-height: 1.5 !important;
+      margin: 0 0 20px 0 !important;
+    }
+
+    /* Form Groups & Labels */
+    .form-group {
+      margin-bottom: 16px !important;
+      position: relative;
+      z-index: 1;
+    }
+    .form-group label {
+      font-size: 11.5px !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.04em !important;
+      text-transform: uppercase !important;
+      color: #94a3b8 !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 4px !important;
+      margin-bottom: 6px !important;
+    }
+
+    /* Input Wrappers & Modern Aesthetic Inputs */
     .auth-input-wrap {
       position: relative;
       display: flex;
       align-items: center;
-      background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
       padding: 0 14px;
-      height: 48px;
+      height: 50px;
       box-sizing: border-box;
       z-index: 1;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+      transition: border-color 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
+    }
+    .auth-input-wrap:hover {
+      border-color: rgba(255, 255, 255, 0.18);
     }
     .auth-input-wrap:focus-within {
-      border-color: var(--chakra-cyan, #00cec9);
-      box-shadow: 0 0 0 3px rgba(0, 206, 201, 0.2), 0 8px 24px rgba(0, 206, 201, 0.15);
-      background: rgba(15, 23, 42, 0.92);
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
     }
-    .auth-input-icon,
-    .auth-input-wrap .auth-input-icon {
+    .auth-input-icon {
       position: static !important;
-      left: auto !important;
-      top: auto !important;
       font-size: 16px;
       margin-right: 12px;
-      opacity: 0.8;
+      color: #64748b;
       flex-shrink: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       line-height: 1;
       pointer-events: none;
-      transition: transform 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease;
     }
     .auth-input-wrap:focus-within .auth-input-icon {
-      opacity: 1;
-      transform: scale(1.15);
+      color: #818cf8;
+      transform: scale(1.1);
     }
     .auth-input-wrap .auth-input-field {
       flex: 1 1 auto;
@@ -9533,129 +9620,27 @@
       border: none !important;
       outline: none !important;
       box-shadow: none !important;
-      transform: none !important;
-      color: #f8fafc !important;
-      font-size: 14px !important;
+      color: #ffffff !important;
+      font-size: 14.5px !important;
+      font-weight: 500 !important;
       font-family: inherit;
       padding: 0 32px 0 0 !important;
       margin: 0 !important;
       line-height: normal;
     }
-    .auth-input-field:not(.auth-input-wrap *) {
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 10px;
-      color: #f8fafc;
-      font-size: 14px;
-      font-family: inherit;
-      padding: 8px 12px;
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .auth-input-field:not(.auth-input-wrap *):focus {
-      border-color: rgba(99, 102, 241, 0.6);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    }
-    .auth-input-wrap:not(:has(.pwd-toggle-btn)) .auth-input-field {
-      padding-right: 0 !important;
-    }
-    select.auth-input-field,
-    .auth-input-wrap select {
-      appearance: none !important;
-      -webkit-appearance: none !important;
-      -moz-appearance: none !important;
-      padding: 0 32px 0 0 !important;
-      background: transparent !important;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-      background-repeat: no-repeat !important;
-      background-position: calc(100% - 4px) center !important;
-      background-size: 14px !important;
-      color: #ffffff !important;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-    select.auth-input-field option,
-    .auth-input-wrap select option {
-      background: #0b0d1e !important;
-      color: #ffffff !important;
-      padding: 8px 12px;
-    }
-    .auth-input-wrap .auth-input-field:focus {
-      border: none !important;
-      outline: none !important;
-      box-shadow: none !important;
-      transform: none !important;
-      background: transparent !important;
-    }
     .auth-input-field::placeholder {
-      color: rgba(148, 163, 184, 0.6);
+      color: #64748b;
       font-size: 13.5px;
     }
-    .pwd-toggle-btn {
-      position: absolute;
-      right: 12px;
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      font-size: 15px;
-      padding: 5px;
-      border-radius: 6px;
-      transition: transform 0.2s var(--ease-spring), color 0.2s;
-    }
-    .pwd-toggle-btn:hover {
-      color: var(--text-header);
-      transform: scale(1.2);
-    }
 
-    /* Password Strength Gauge */
-    .password-strength-wrap {
-      margin-top: 10px;
-      background: rgba(0, 0, 0, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 8px 12px;
-      display: none;
-      animation: fadeInSlideUp 0.3s var(--ease-snappy);
-      z-index: 1;
-      position: relative;
-    }
-    .strength-track {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 9999px;
-      overflow: hidden;
-      margin-bottom: 6px;
-      position: relative;
-    }
-    .strength-bar {
-      height: 100%;
-      width: 0%;
-      border-radius: 9999px;
-      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.35s, box-shadow 0.35s;
-    }
-    .strength-label {
-      font-size: 11.5px;
-      color: var(--text-muted);
-      font-weight: 700;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* ==================== AUTH TYPING BARS & INTERACTIVE FEEDBACK ==================== */
-    .auth-input-wrap {
-      overflow: hidden;
-    }
+    /* Animated Bottom Typing Bar Beam */
     .auth-typing-bar {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #6366f1, #06b6d4, #22c55e);
+      height: 2.5px;
+      background: linear-gradient(90deg, #6366f1, #06b6d4, #10b981);
       transform: scaleX(0);
       transform-origin: center;
       transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, background 0.3s ease;
@@ -9704,13 +9689,14 @@
       transform: scaleX(1) !important;
     }
 
+    /* Buttons inside Input Wrappers */
     .auth-clear-btn {
       position: absolute;
       right: 12px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
       border: none;
-      color: var(--text-muted, #94a3b8);
-      font-size: 16px;
+      color: #94a3b8;
+      font-size: 15px;
       line-height: 1;
       width: 22px;
       height: 22px;
@@ -9719,7 +9705,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: background 0.2s, color 0.2s, transform 0.2s;
+      transition: all 0.2s ease;
       z-index: 2;
       padding: 0;
     }
@@ -9727,10 +9713,32 @@
       right: 42px;
     }
     .auth-clear-btn:hover {
-      background: rgba(239, 68, 68, 0.25);
+      background: rgba(239, 68, 68, 0.2);
       color: #ef4444;
+      transform: scale(1.1);
+    }
+    .pwd-toggle-btn {
+      position: absolute;
+      right: 12px;
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 15px;
+      padding: 5px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 2;
+    }
+    .pwd-toggle-btn:hover {
+      color: #ffffff;
       transform: scale(1.15);
     }
+
+    /* Badges & Typing Status */
     .caps-lock-warning {
       display: inline-flex;
       align-items: center;
@@ -9739,8 +9747,8 @@
       font-weight: 700;
       color: #f59e0b;
       background: rgba(245, 158, 11, 0.12);
-      border: 1px solid rgba(245, 158, 11, 0.28);
-      padding: 2px 6px;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      padding: 2px 7px;
       border-radius: 6px;
       animation: fadeIn 0.2s ease;
     }
@@ -9749,13 +9757,13 @@
       align-items: center;
       gap: 5px;
       font-size: 11px;
-      color: var(--chakra-cyan, #06b6d4);
+      color: #818cf8;
       font-weight: 700;
       animation: fadeIn 0.2s ease;
     }
     .typing-dot {
-      width: 6px;
-      height: 6px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       background: currentColor;
       display: inline-block;
@@ -9764,6 +9772,43 @@
     @keyframes typingDotBlink {
       0%, 100% { opacity: 0.3; transform: scale(0.8); }
       50% { opacity: 1; transform: scale(1.2); }
+    }
+
+    /* 4-Segment Luxury Password Strength Meter */
+    .password-strength-wrap {
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: none;
+      animation: fadeInSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 1;
+      position: relative;
+    }
+    .strength-track {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 6px !important;
+      background: transparent !important;
+      height: 5px !important;
+      margin-bottom: 8px !important;
+      border-radius: 0 !important;
+      overflow: visible !important;
+    }
+    .strength-segment {
+      height: 5px;
+      border-radius: 9999px;
+      background: rgba(255, 255, 255, 0.1);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .strength-label {
+      font-size: 11.5px;
+      color: #94a3b8;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
     .auth-strength-hints {
       display: flex;
@@ -9776,19 +9821,173 @@
       font-weight: 600;
       padding: 3px 8px;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      color: var(--text-muted, #94a3b8);
-      transition: all 0.2s ease;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .pwd-hint.passed {
-      background: rgba(34, 197, 94, 0.15) !important;
-      border-color: rgba(34, 197, 94, 0.4) !important;
-      color: #22c55e !important;
+      background: rgba(34, 197, 94, 0.12) !important;
+      border-color: rgba(34, 197, 94, 0.35) !important;
+      color: #4ade80 !important;
       font-weight: 700;
     }
 
-    /* Dual Theme: Parchment Overrides for Auth Typing Bars */
+    /* Premium Tactile Buttons */
+    .auth-submit-btn-premium {
+      height: 50px !important;
+      border-radius: 14px !important;
+      font-size: 14.5px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.01em !important;
+      color: #ffffff !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 8px !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      cursor: pointer !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 18px rgba(79, 70, 229, 0.35) !important;
+    }
+    .auth-submit-btn-premium:hover {
+      transform: translateY(-1.5px) !important;
+      filter: brightness(1.08) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 22px rgba(79, 70, 229, 0.45) !important;
+    }
+    .auth-submit-btn-premium:active {
+      transform: translateY(1px) !important;
+    }
+    .auth-cancel-btn-premium {
+      height: 50px !important;
+      border-radius: 14px !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      cursor: pointer !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #cbd5e1 !important;
+    }
+    .auth-cancel-btn-premium:hover {
+      background: rgba(255, 255, 255, 0.09) !important;
+      color: #ffffff !important;
+      transform: translateY(-1px) !important;
+    }
+    .auth-cancel-btn-premium:active {
+      transform: translateY(1px) !important;
+    }
+    .auth-send-otp-btn {
+      height: 50px !important;
+      border-radius: 14px !important;
+      font-size: 12.5px !important;
+      font-weight: 700 !important;
+      padding: 0 16px !important;
+      white-space: nowrap !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+      color: #000000 !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3) !important;
+      cursor: pointer !important;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .auth-send-otp-btn:hover {
+      transform: translateY(-1px) !important;
+      filter: brightness(1.1) !important;
+    }
+    .auth-2fa-icon-shield {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 12px auto;
+      border-radius: 16px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #818cf8;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ==================== DUAL THEME: PARCHMENT LIGHT MODE ==================== */
+    html[data-theme="parchment"] #authModal .modal-box-scroll {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03),
+                  0 24px 60px -12px rgba(68, 64, 60, 0.2),
+                  0 8px 24px -4px rgba(68, 64, 60, 0.08) !important;
+    }
+    html[data-theme="parchment"] .auth-modal-close-btn {
+      border-color: rgba(68, 64, 60, 0.15);
+      background: rgba(68, 64, 60, 0.06);
+      color: #78716c;
+    }
+    html[data-theme="parchment"] .auth-modal-close-btn:hover {
+      background: rgba(68, 64, 60, 0.14);
+      color: #141312;
+    }
+    html[data-theme="parchment"] .auth-brand-badge {
+      background: rgba(234, 88, 12, 0.08);
+      border-color: rgba(234, 88, 12, 0.22);
+      color: #ea580c;
+    }
+    html[data-theme="parchment"] .auth-modal-title {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .auth-modal-subtitle {
+      color: #64748b !important;
+    }
+    html[data-theme="parchment"] .auth-segmented-nav {
+      background: #f1ede6 !important;
+      border-color: rgba(68, 64, 60, 0.12) !important;
+    }
+    html[data-theme="parchment"] .auth-segmented-slider {
+      background: #ffffff !important;
+      box-shadow: 0 2px 8px rgba(68, 64, 60, 0.16) !important;
+    }
+    html[data-theme="parchment"] .auth-tab-btn {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .auth-tab-btn.active {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .form-group label {
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .auth-input-wrap {
+      background: #ffffff !important;
+      border: 1.5px solid rgba(68, 64, 60, 0.2) !important;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+    }
+    html[data-theme="parchment"] .auth-input-wrap:hover {
+      border-color: rgba(68, 64, 60, 0.35) !important;
+    }
+    html[data-theme="parchment"] .auth-input-wrap:focus-within {
+      background: #ffffff !important;
+      border-color: #ea580c !important;
+      box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+    }
+    html[data-theme="parchment"] .auth-input-icon {
+      color: #a8a29e !important;
+    }
+    html[data-theme="parchment"] .auth-input-wrap:focus-within .auth-input-icon {
+      color: #ea580c !important;
+    }
+    html[data-theme="parchment"] .auth-input-field {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .auth-input-field::placeholder {
+      color: #a8a29e !important;
+    }
     html[data-theme="parchment"] .auth-typing-bar {
       background: linear-gradient(90deg, #f97316, #ea580c, #c2410c) !important;
     }
@@ -9797,32 +9996,62 @@
       box-shadow: 0 0 8px rgba(249, 115, 22, 0.45) !important;
     }
     html[data-theme="parchment"] .auth-clear-btn {
-      background: rgba(68, 64, 60, 0.12);
-      color: #78716c;
+      background: rgba(68, 64, 60, 0.12) !important;
+      color: #78716c !important;
     }
     html[data-theme="parchment"] .auth-clear-btn:hover {
-      background: rgba(220, 38, 38, 0.15);
-      color: #dc2626;
+      background: rgba(220, 38, 38, 0.15) !important;
+      color: #dc2626 !important;
+    }
+    html[data-theme="parchment"] .pwd-toggle-btn {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .pwd-toggle-btn:hover {
+      color: #141312 !important;
     }
     html[data-theme="parchment"] .password-strength-wrap {
-      background: #f5efe6 !important;
-      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      background: #f7f3ea !important;
+      border-color: rgba(68, 64, 60, 0.14) !important;
     }
-    html[data-theme="parchment"] .strength-track {
+    html[data-theme="parchment"] .strength-segment {
       background: rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .pwd-hint {
-      background: #ede8df;
-      border-color: rgba(68, 64, 60, 0.14);
-      color: #78716c;
+      background: #ede8df !important;
+      border-color: rgba(68, 64, 60, 0.12) !important;
+      color: #78716c !important;
     }
     html[data-theme="parchment"] .pwd-hint.passed {
-      background: rgba(22, 163, 74, 0.15) !important;
-      border-color: rgba(22, 163, 74, 0.45) !important;
+      background: rgba(22, 163, 74, 0.12) !important;
+      border-color: rgba(22, 163, 74, 0.35) !important;
       color: #15803d !important;
     }
     html[data-theme="parchment"] .auth-typing-status {
       color: #ea580c !important;
+    }
+    html[data-theme="parchment"] .auth-submit-btn-premium {
+      background: linear-gradient(180deg, #ea580c 0%, #c2410c 100%) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 4px 16px rgba(234, 88, 12, 0.32) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+    html[data-theme="parchment"] .auth-cancel-btn-premium {
+      background: #f1ede6 !important;
+      border-color: rgba(68, 64, 60, 0.15) !important;
+      color: #44403c !important;
+    }
+    html[data-theme="parchment"] .auth-cancel-btn-premium:hover {
+      background: #e8e3d9 !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .auth-send-otp-btn {
+      background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%) !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(234, 88, 12, 0.25) !important;
+    }
+    html[data-theme="parchment"] .auth-2fa-icon-shield {
+      background: rgba(234, 88, 12, 0.08);
+      border-color: rgba(234, 88, 12, 0.22);
+      color: #ea580c;
     }
 
     /* Avatar Grid for Registration */
@@ -26725,160 +26954,188 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
   <!-- Auth Modal (Sign In / Create Account) -->
   <div class="modal-overlay" id="authModal" onclick="handleAuthOverlayClick(event)">
-    <div class="modal-box-scroll border-beam-card" style="width:min(490px, 94vw); max-height:90vh; border-radius:22px; box-sizing:border-box;" onclick="event.stopPropagation()">
+    <div class="modal-box-scroll border-beam-card" style="width:min(490px, 94vw); max-height:90vh; border-radius:24px; box-sizing:border-box;" onclick="event.stopPropagation()">
       <div class="auth-modal-bg-layer">
         <div class="border-beam"></div>
         <div class="auth-ambient-orb-1"></div>
         <div class="auth-ambient-orb-2"></div>
       </div>
+
+      <!-- Minimalist Close Button -->
+      <button type="button" class="auth-modal-close-btn" onclick="closeAuthModal()" aria-label="Close modal">
+        <i data-lucide="x" style="width:16px; height:16px;"></i>
+      </button>
       
       <!-- Segmented Pill Switcher with Animated Spring Slider -->
       <div class="auth-segmented-nav">
         <div class="auth-segmented-slider" id="authSegmentedSlider"></div>
         <button type="button" class="auth-tab-btn active" id="authTabLogin" onclick="switchAuthTab('login')">
-          <span>🔐</span> Sign In
+          <i data-lucide="log-in" class="auth-tab-icon"></i>
+          <span>Sign In</span>
         </button>
         <button type="button" class="auth-tab-btn" id="authTabRegister" onclick="switchAuthTab('register')">
-          <span>🚀</span> Create Account
+          <i data-lucide="user-plus" class="auth-tab-icon"></i>
+          <span>Create Account</span>
         </button>
       </div>
 
-            <!-- ==================== 1. SIGN IN FORM ==================== -->
+      <!-- ==================== 1. SIGN IN FORM ==================== -->
       <form id="signInForm" onsubmit="event.preventDefault(); handleSignInSubmit();" style="display:block;">
-        <div style="margin-bottom:var(--space-4); position:relative; z-index:1;">
-          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Welcome Back to Connecto!</h3>
-          <p style="font-size:13px; color:var(--text-muted);">Sign in to your account and access real-time channels.</p>
+        <div style="margin-bottom:18px; position:relative; z-index:1;">
+          <div class="auth-brand-badge">
+            <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
+            <span>Connecto Identity</span>
+          </div>
+          <h3 class="auth-modal-title">Welcome Back</h3>
+          <p class="auth-modal-subtitle">Sign in to your account and access real-time channels.</p>
         </div>
 
         <!-- 1. Username or Email -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label for="signInUsername">Username or Email <span style="color:var(--red);">*</span></label>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signInUsername"><i data-lucide="user" style="width:13px; height:13px;"></i> Username or Email <span style="color:var(--red);">*</span></label>
             <span class="auth-typing-status" id="signInUsernameTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
           </div>
           <div class="auth-input-wrap" id="signInUsernameWrap">
-            <span class="auth-input-icon">👤</span>
+            <span class="auth-input-icon"><i data-lucide="user" style="width:17px; height:17px;"></i></span>
             <input type="text" class="auth-input-field" id="signInUsername" placeholder="Enter username or email" autocomplete="username" required>
-            <button type="button" class="auth-clear-btn" id="signInUsernameClear" onclick="clearAuthInput('signInUsername')" title="Clear field" style="display:none;">&times;</button>
+            <button type="button" class="auth-clear-btn" id="signInUsernameClear" onclick="clearAuthInput('signInUsername')" title="Clear field" style="display:none;"><i data-lucide="x" style="width:13px; height:13px;"></i></button>
             <div class="auth-typing-bar"></div>
           </div>
         </div>
 
         <!-- 2. Password -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label for="signInPassword">Password <span style="color:var(--red);">*</span></label>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signInPassword"><i data-lucide="lock" style="width:13px; height:13px;"></i> Password <span style="color:var(--red);">*</span></label>
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="caps-lock-warning" id="signInCapsLock" style="display:none;">⚠️ Caps Lock ON</span>
               <span class="auth-typing-status" id="signInPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
             </div>
           </div>
           <div class="auth-input-wrap" id="signInPasswordWrap">
-            <span class="auth-input-icon">🔒</span>
-            <input type="password" class="auth-input-field" id="signInPassword" placeholder="Enter password" autocomplete="current-password" required>
-            <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signInPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="auth-input-icon"><i data-lucide="lock" style="width:17px; height:17px;"></i></span>
+            <input type="password" class="auth-input-field" id="signInPassword" placeholder="Enter your password" autocomplete="current-password" required>
+            <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signInPassword', this)"><i data-lucide="eye" style="width:17px; height:17px;"></i></button>
             <div class="auth-typing-bar"></div>
           </div>
         </div>
 
-                <div style="display:flex; justify-content:flex-end; margin-top:6px; margin-bottom:12px; position:relative; z-index:1;">
-          <button type="button" class="btn-text" style="color:var(--chakra-cyan); font-size:12px; font-weight:700; background:none; border:none; cursor:pointer; padding:0;" onclick="openAccountRecovery('password')">Forgot Username or Password?</button>
+        <div style="display:flex; justify-content:flex-end; margin-top:8px; margin-bottom:16px; position:relative; z-index:1;">
+          <button type="button" class="btn-text" style="color:var(--chakra-cyan, #06b6d4); font-size:12.5px; font-weight:700; background:none; border:none; cursor:pointer; padding:0; display:inline-flex; align-items:center; gap:5px;" onclick="openAccountRecovery('password')">
+            <i data-lucide="key-round" style="width:13px; height:13px;"></i>
+            <span>Forgot Username or Password?</span>
+          </button>
         </div>
 
         <div class="auth-alert" id="signInFeedback" style="position:relative; z-index:1; display:none;"></div>
 
-        <div style="display:flex; gap:var(--space-3); margin-top:var(--space-5); position:relative; z-index:1;">
-          <button type="button" class="btn btn-outline" style="flex:1; padding:12px; border-radius:12px;" onclick="closeAuthModal()">Cancel</button>
-          <button type="submit" class="btn auth-submit-shimmer" id="signInSubmitBtn" style="flex:2; padding:12px; font-size:14.5px; border-radius:12px; font-weight:800;">Sign In ➔</button>
+        <div style="display:flex; gap:12px; margin-top:20px; position:relative; z-index:1;">
+          <button type="button" class="auth-cancel-btn-premium" style="flex:1;" onclick="closeAuthModal()">Cancel</button>
+          <button type="submit" class="auth-submit-btn-premium" id="signInSubmitBtn" style="flex:2;">
+            <span>Sign In</span>
+            <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+          </button>
         </div>
       </form>
 
       <!-- ==================== 2. CREATE ACCOUNT FORM ==================== -->
       <form id="signUpForm" onsubmit="event.preventDefault(); handleSignUpSubmit();" style="display:none;">
-        <div style="margin-bottom:var(--space-4); position:relative; z-index:1;">
-          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Join Connecto</h3>
-          <p style="font-size:13px; color:var(--text-muted);">Create your unique profile and start collaborating.</p>
+        <div style="margin-bottom:18px; position:relative; z-index:1;">
+          <div class="auth-brand-badge">
+            <i data-lucide="sparkles" style="width:12px; height:12px;"></i>
+            <span>Instant Membership</span>
+          </div>
+          <h3 class="auth-modal-title">Join Connecto</h3>
+          <p class="auth-modal-subtitle">Create your unique profile and start collaborating instantly.</p>
         </div>
 
         <!-- 1. Unique Username -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label for="signUpUsername">Username <span style="color:var(--red);">*</span></label>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signUpUsername"><i data-lucide="user" style="width:13px; height:13px;"></i> Username <span style="color:var(--red);">*</span></label>
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="auth-typing-status" id="signUpUsernameTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
               <span id="signUpUsernameCounter" style="font-size:11px; color:var(--text-muted); font-weight:600;">0/20</span>
             </div>
           </div>
           <div class="auth-input-wrap" id="signUpUsernameWrap">
-            <span class="auth-input-icon">🥷</span>
-            <input type="text" class="auth-input-field" id="signUpUsername" placeholder="Enter username" autocomplete="username" maxlength="20" oninput="handleUsernameInput(this.value)" required>
-            <button type="button" class="auth-clear-btn" id="signUpUsernameClear" onclick="clearAuthInput('signUpUsername')" title="Clear field" style="display:none;">&times;</button>
+            <span class="auth-input-icon"><i data-lucide="user" style="width:17px; height:17px;"></i></span>
+            <input type="text" class="auth-input-field" id="signUpUsername" placeholder="Choose a username" autocomplete="username" maxlength="20" oninput="handleUsernameInput(this.value)" required>
+            <button type="button" class="auth-clear-btn" id="signUpUsernameClear" onclick="clearAuthInput('signUpUsername')" title="Clear field" style="display:none;"><i data-lucide="x" style="width:13px; height:13px;"></i></button>
             <div class="auth-typing-bar"></div>
           </div>
           <div id="signUpUsernameAvailability" style="font-size:11.5px; margin-top:4px; font-weight:600; display:none; align-items:center; gap:4px;"></div>
         </div>
 
         <!-- 2. Email Address & OTP Verification -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label for="signUpEmail">Email Address <span style="color:var(--red);">*</span></label>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signUpEmail"><i data-lucide="mail" style="width:13px; height:13px;"></i> Email Address <span style="color:var(--red);">*</span></label>
             <span class="auth-typing-status" id="signUpEmailTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:10px;">
             <div class="auth-input-wrap" id="signUpEmailWrap" style="flex:1;">
-              <span class="auth-input-icon">✉️</span>
+              <span class="auth-input-icon"><i data-lucide="mail" style="width:17px; height:17px;"></i></span>
               <input type="email" class="auth-input-field" id="signUpEmail" placeholder="Enter email address" autocomplete="email" oninput="handleEmailInput(this.value)" required>
-              <button type="button" class="auth-clear-btn" id="signUpEmailClear" onclick="clearAuthInput('signUpEmail')" title="Clear field" style="display:none;">&times;</button>
+              <button type="button" class="auth-clear-btn" id="signUpEmailClear" onclick="clearAuthInput('signUpEmail')" title="Clear field" style="display:none;"><i data-lucide="x" style="width:13px; height:13px;"></i></button>
               <div class="auth-typing-bar"></div>
             </div>
-            <button type="button" class="btn" id="signUpSendOtpBtn" onclick="handleSendSignupOtp()" style="padding:0 14px; font-size:12px; font-weight:700; white-space:nowrap; border-radius:12px; height:48px; background:var(--chakra-cyan, #06b6d4); color:#000;">
-              Verify Email ⚡
+            <button type="button" class="auth-send-otp-btn" id="signUpSendOtpBtn" onclick="handleSendSignupOtp()">
+              <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
+              <span>Verify Email</span>
             </button>
           </div>
           <div id="signUpEmailFeedback" style="font-size:11.5px; margin-top:4px; font-weight:600; display:none;"></div>
         </div>
 
         <!-- 2.1 Email OTP Input Box (Revealed after clicking Verify Email) -->
-        <div class="form-group" id="signUpOtpGroup" style="position:relative; z-index:1; display:none; background:rgba(6,182,212,0.06); border:1px dashed rgba(6,182,212,0.3); border-radius:14px; padding:12px;">
+        <div class="form-group" id="signUpOtpGroup" style="position:relative; z-index:1; display:none; background:rgba(6,182,212,0.06); border:1px dashed rgba(6,182,212,0.3); border-radius:14px; padding:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="signUpOtpInput" style="font-size:11px; font-weight:800; color:var(--chakra-cyan); text-transform:uppercase; margin:0;">Enter 6-Digit Email OTP <span style="color:var(--red);">*</span></label>
+            <label for="signUpOtpInput" style="font-size:11px; font-weight:800; color:var(--chakra-cyan); text-transform:uppercase; margin:0;"><i data-lucide="key-round" style="width:12px; height:12px;"></i> Enter 6-Digit Email OTP <span style="color:var(--red);">*</span></label>
             <span id="signUpOtpTimer" style="font-size:11px; color:var(--text-muted);">Code sent to inbox</span>
           </div>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:10px;">
             <div class="auth-input-wrap" style="flex:1;">
-              <span class="auth-input-icon">🔢</span>
-              <input type="text" class="auth-input-field" id="signUpOtpInput" placeholder="6-digit code (e.g. 123456)" maxlength="6" inputmode="numeric" style="letter-spacing:2px; font-weight:700;">
+              <span class="auth-input-icon"><i data-lucide="key-round" style="width:17px; height:17px;"></i></span>
+              <input type="text" class="auth-input-field" id="signUpOtpInput" placeholder="6-digit code" maxlength="6" inputmode="numeric" style="letter-spacing:4px; font-weight:800; font-family:var(--font-mono, monospace);">
               <div class="auth-typing-bar"></div>
             </div>
-            <button type="button" class="btn btn-primary" id="signUpConfirmOtpBtn" onclick="handleVerifySignupOtp()" style="padding:0 16px; font-size:12.5px; font-weight:800; border-radius:12px; height:48px;">
-              Verify Code ✓
+            <button type="button" class="auth-submit-btn-premium" id="signUpConfirmOtpBtn" onclick="handleVerifySignupOtp()" style="padding:0 18px; font-size:13px;">
+              <span>Verify Code</span>
+              <i data-lucide="check" style="width:15px; height:15px;"></i>
             </button>
           </div>
           <div id="signUpOtpFeedback" style="font-size:11.5px; margin-top:6px; font-weight:700; display:none;"></div>
         </div>
 
         <!-- 3. Password -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label for="signUpPassword">Password <span style="color:var(--red);">*</span></label>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signUpPassword"><i data-lucide="lock" style="width:13px; height:13px;"></i> Password <span style="color:var(--red);">*</span></label>
             <div style="display:flex; align-items:center; gap:8px;">
               <span class="caps-lock-warning" id="signUpCapsLock" style="display:none;">⚠️ Caps Lock ON</span>
               <span class="auth-typing-status" id="signUpPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
             </div>
           </div>
           <div class="auth-input-wrap" id="signUpPasswordWrap">
-            <span class="auth-input-icon">🔒</span>
-            <input type="password" class="auth-input-field" id="signUpPassword" placeholder="Create strong password" autocomplete="new-password" oninput="handlePasswordChange(this.value)" required>
-            <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <span class="auth-input-icon"><i data-lucide="lock" style="width:17px; height:17px;"></i></span>
+            <input type="password" class="auth-input-field" id="signUpPassword" placeholder="Create a strong password" autocomplete="new-password" oninput="handlePasswordChange(this.value)" required>
+            <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpPassword', this)"><i data-lucide="eye" style="width:17px; height:17px;"></i></button>
             <div class="auth-typing-bar"></div>
           </div>
-          <!-- Interactive Password Security Typing Bar -->
+          
+          <!-- 4-Segment Luxury Security Meter -->
           <div id="signUpPasswordStrengthWrap" class="password-strength-wrap">
             <div class="strength-track">
-              <div id="signUpStrengthBar" class="strength-bar"></div>
+              <div id="signUpStrengthSeg1" class="strength-segment"></div>
+              <div id="signUpStrengthSeg2" class="strength-segment"></div>
+              <div id="signUpStrengthSeg3" class="strength-segment"></div>
+              <div id="signUpStrengthSeg4" class="strength-segment"></div>
             </div>
+            <div id="signUpStrengthBar" style="display:none;"></div>
             <div class="strength-label">
-              <span>Password Security:</span>
+              <span style="display:inline-flex; align-items:center; gap:5px;"><i data-lucide="shield-check" style="width:13px; height:13px;"></i> Security Level:</span>
               <span id="signUpStrengthText">Enter password</span>
             </div>
             <div class="auth-strength-hints">
@@ -26891,35 +27148,35 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         </div>
 
         <!-- 4. Confirm Password -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label for="signUpConfirmPassword">Confirm Password <span style="color:var(--red);">*</span></label>
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <label for="signUpConfirmPassword"><i data-lucide="shield-check" style="width:13px; height:13px;"></i> Confirm Password <span style="color:var(--red);">*</span></label>
             <span class="auth-typing-status" id="signUpConfirmPasswordTypingStatus" style="display:none;"><span class="typing-dot"></span> Typing...</span>
           </div>
           <div class="auth-input-wrap" id="signUpConfirmPasswordWrap">
-            <span class="auth-input-icon">🛡️</span>
+            <span class="auth-input-icon"><i data-lucide="shield-check" style="width:17px; height:17px;"></i></span>
             <input type="password" class="auth-input-field" id="signUpConfirmPassword" placeholder="Confirm your password" autocomplete="new-password" oninput="checkPasswordMatch()" required>
-            <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpConfirmPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+            <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('signUpConfirmPassword', this)"><i data-lucide="eye" style="width:17px; height:17px;"></i></button>
             <div class="auth-typing-bar"></div>
           </div>
           <div id="signUpConfirmFeedback" style="font-size:12px; margin-top:4px; font-weight:700; display:none;"></div>
         </div>
 
         <!-- 5. Age Verification (18 or above strictly enforced) -->
-        <div class="form-group" style="position:relative; z-index:1;">
+        <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <label for="signUpDob" style="margin:0; font-size:11px; font-weight:800; color:var(--text-muted); text-transform:uppercase;">Date of Birth (Must be 18+ years) <span style="color:var(--red);">*</span></label>
-            <span style="font-size:10.5px; color:#22c55e; font-weight:700; background:rgba(34,197,94,0.1); padding:2px 6px; border-radius:6px; border:1px solid rgba(34,197,94,0.25);">18+ Verified</span>
+            <label for="signUpDob"><i data-lucide="calendar" style="width:13px; height:13px;"></i> Date of Birth (18+ Required) <span style="color:var(--red);">*</span></label>
+            <span style="font-size:10.5px; color:#22c55e; font-weight:700; background:rgba(34,197,94,0.1); padding:2px 7px; border-radius:6px; border:1px solid rgba(34,197,94,0.25); display:inline-flex; align-items:center; gap:4px;"><i data-lucide="check" style="width:12px; height:12px;"></i> 18+ Required</span>
           </div>
           <div class="auth-input-wrap">
-            <span class="auth-input-icon">🎂</span>
+            <span class="auth-input-icon"><i data-lucide="calendar" style="width:17px; height:17px;"></i></span>
             <input type="date" class="auth-input-field" id="signUpDob" style="color:var(--text-header); font-size:13.5px;" onchange="validateSignUpAge(this.value)" required>
           </div>
           <div id="signUpAgeFeedback" style="font-size:11.5px; margin-top:4px; font-weight:700; display:none;"></div>
         </div>
 
         <!-- 6. Agreed to Terms and Conditions Checkbox -->
-        <div class="form-group" style="position:relative; z-index:1; margin-top:16px;">
+        <div class="form-group" style="margin-top:16px;">
           <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:12.5px; color:var(--text-normal); line-height:1.45; text-transform:none; font-weight:500;">
             <input type="checkbox" id="signUpTermsCheckbox" style="margin-top:2px; width:17px; height:17px; accent-color:var(--chakra-cyan, #06b6d4); cursor:pointer; flex-shrink:0;" required>
             <span>
@@ -26930,25 +27187,31 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
         <div class="auth-alert" id="signUpFeedback" style="position:relative; z-index:1; display:none;"></div>
 
-        <div style="display:flex; gap:var(--space-3); margin-top:var(--space-5); position:relative; z-index:1;">
-          <button type="button" class="btn btn-outline" style="flex:1; padding:12px; border-radius:12px;" onclick="closeAuthModal()">Cancel</button>
-          <button type="submit" class="btn auth-submit-shimmer" id="signUpSubmitBtn" style="flex:2; padding:12px; font-size:14.5px; border-radius:12px; font-weight:800;">Create Account 🚀</button>
+        <div style="display:flex; gap:12px; margin-top:20px; position:relative; z-index:1;">
+          <button type="button" class="auth-cancel-btn-premium" style="flex:1;" onclick="closeAuthModal()">Cancel</button>
+          <button type="submit" class="auth-submit-btn-premium" id="signUpSubmitBtn" style="flex:2;">
+            <span>Create Account</span>
+            <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+          </button>
         </div>
       </form>
+
       <!-- ==================== 3. 2FA PHONE OTP VERIFICATION FORM ==================== -->
       <form id="twoFactorForm" onsubmit="event.preventDefault(); handleTwoFactorSubmit();" style="display:none;">
-        <div style="text-align:center; margin-bottom:var(--space-4); position:relative; z-index:1;">
-          <div style="font-size:36px; margin-bottom:6px;">🛡️</div>
-          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Two-Factor Authentication (2FA)</h3>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.45;">
-            Enter the 6-digit verification code sent to your registered email or phone:<br>
+        <div style="text-align:center; margin-bottom:18px; position:relative; z-index:1;">
+          <div class="auth-2fa-icon-shield">
+            <i data-lucide="shield-check" style="width:28px; height:28px;"></i>
+          </div>
+          <h3 class="auth-modal-title">Two-Factor Verification</h3>
+          <p class="auth-modal-subtitle">
+            Enter the 6-digit code sent to your registered account:<br>
             <strong style="color:var(--chakra-cyan); font-family:var(--font-mono); font-size:14px;" id="twoFactorMaskedPhone">+1 (***) ***-****</strong>
           </p>
         </div>
 
         <!-- 6-Digit Segmented OTP Input Grid -->
-        <div class="form-group" style="position:relative; z-index:1;">
-          <label style="text-align:center; display:block; margin-bottom:10px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Enter 6-Digit Connecto OTP</label>
+        <div class="form-group">
+          <label style="text-align:center; display:block; margin-bottom:10px; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; color:var(--text-muted);">Enter 6-Digit OTP</label>
           <div class="otp-inputs-grid" id="otpInputsGrid">
             <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" autofocus autocomplete="one-time-code" oninput="handleOtpDigitInput(this, 0)" onkeydown="handleOtpDigitKeydown(event, 0)" onpaste="handleOtpPaste(event)">
             <input type="text" class="otp-digit-input" maxlength="1" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" oninput="handleOtpDigitInput(this, 1)" onkeydown="handleOtpDigitKeydown(event, 1)">
@@ -26962,26 +27225,32 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         <div class="auth-alert" id="twoFactorFeedback" style="position:relative; z-index:1; display:none;"></div>
 
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; position:relative; z-index:1; font-size:12px;">
-          <button type="button" class="btn-text" id="twoFactorBackBtn" onclick="backToPasswordLogin()" style="color:var(--text-muted); background:none; border:none; cursor:pointer; font-weight:700;">← Back to Login</button>
-          <button type="button" class="btn-text" id="twoFactorResendBtn" onclick="handleResendOTP()" style="color:var(--chakra-cyan); background:none; border:none; cursor:pointer; font-weight:800;">Resend OTP</button>
+          <button type="button" class="btn-text" id="twoFactorBackBtn" onclick="backToPasswordLogin()" style="color:var(--text-muted); background:none; border:none; cursor:pointer; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:13px; height:13px;"></i> Back to Login</button>
+          <button type="button" class="btn-text" id="twoFactorResendBtn" onclick="handleResendOTP()" style="color:var(--chakra-cyan); background:none; border:none; cursor:pointer; font-weight:800; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> Resend Code</button>
         </div>
 
-        <div style="display:flex; gap:var(--space-3); margin-top:var(--space-4); position:relative; z-index:1;">
-          <button type="submit" class="btn auth-submit-shimmer" id="twoFactorSubmitBtn" style="width:100%; padding:12px; font-size:14.5px; border-radius:12px; font-weight:800;">Verify & Enter Connecto ➔</button>
+        <div style="margin-top:18px; position:relative; z-index:1;">
+          <button type="submit" class="auth-submit-btn-premium" id="twoFactorSubmitBtn" style="width:100%;">
+            <span>Verify & Enter Connecto</span>
+            <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+          </button>
         </div>
       </form>
+
       <!-- ==================== 4. ACCOUNT RECOVERY (FORGOT PASSWORD & USERNAME) ==================== -->
       <form id="accountRecoveryForm" onsubmit="event.preventDefault();" style="display:none;">
-        <div style="text-align:center; margin-bottom:var(--space-4); position:relative; z-index:1;">
-          <div style="font-size:36px; margin-bottom:6px;">🗝️</div>
-          <h3 class="modal-title shimmer-title" style="margin-bottom:4px; font-size:22px; font-weight:900;">Account Recovery</h3>
-          <p style="font-size:13px; color:var(--text-muted); line-height:1.45;">Recover your lost username or reset your password via Email OTP.</p>
+        <div style="text-align:center; margin-bottom:18px; position:relative; z-index:1;">
+          <div class="auth-2fa-icon-shield">
+            <i data-lucide="key-round" style="width:28px; height:28px;"></i>
+          </div>
+          <h3 class="auth-modal-title">Account Recovery</h3>
+          <p class="auth-modal-subtitle">Recover your credentials securely via verified email OTP.</p>
         </div>
 
         <!-- Sub-tab switcher for Recovery -->
         <div style="display:flex; background:rgba(255,255,255,0.06); padding:4px; border-radius:12px; margin-bottom:18px; position:relative; z-index:1; gap:4px;">
-          <button type="button" id="recovTabPassword" class="auth-tab-btn active" style="flex:1; min-width:0; white-space:nowrap; padding:8px 10px; font-size:12.5px; border-radius:8px; border:none; background:rgba(0,206,201,0.2); color:#fff; font-weight:800; cursor:pointer;" onclick="switchRecoveryTab('password')">🔑 Reset Password</button>
-          <button type="button" id="recovTabUsername" class="auth-tab-btn" style="flex:1; min-width:0; white-space:nowrap; padding:8px 10px; font-size:12.5px; border-radius:8px; border:none; background:transparent; color:var(--text-muted); font-weight:700; cursor:pointer;" onclick="switchRecoveryTab('username')">🔍 Find Username</button>
+          <button type="button" id="recovTabPassword" class="auth-tab-btn active" style="flex:1; min-width:0; white-space:nowrap; padding:8px 10px; font-size:12.5px; border-radius:8px; border:none; background:rgba(99,102,241,0.25); color:#fff; font-weight:800; cursor:pointer;" onclick="switchRecoveryTab('password')">Reset Password</button>
+          <button type="button" id="recovTabUsername" class="auth-tab-btn" style="flex:1; min-width:0; white-space:nowrap; padding:8px 10px; font-size:12.5px; border-radius:8px; border:none; background:transparent; color:var(--text-muted); font-weight:700; cursor:pointer;" onclick="switchRecoveryTab('username')">Find Username</button>
         </div>
 
         <!-- 1. Reset Password Section -->
@@ -26989,13 +27258,17 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           <!-- Step 1: Send OTP -->
           <div id="recovPwdStep1" style="display:block;">
             <div class="form-group">
-              <label for="recovPwdIdentifier">Registered Email or Username <span style="color:var(--red);">*</span></label>
+              <label for="recovPwdIdentifier"><i data-lucide="mail" style="width:13px; height:13px;"></i> Registered Email or Username <span style="color:var(--red);">*</span></label>
               <div class="auth-input-wrap">
-                <span class="auth-input-icon">✉️</span>
+                <span class="auth-input-icon"><i data-lucide="mail" style="width:17px; height:17px;"></i></span>
                 <input type="text" class="auth-input-field" id="recovPwdIdentifier" placeholder="Enter username or email" autocomplete="email">
+                <div class="auth-typing-bar"></div>
               </div>
             </div>
-            <button type="button" class="btn auth-submit-shimmer" id="recovSendOtpBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800; margin-top:8px;" onclick="handleSendResetOTP()">Send Reset OTP ➔</button>
+            <button type="button" class="auth-submit-btn-premium" id="recovSendOtpBtn" style="width:100%; margin-top:12px;" onclick="handleSendResetOTP()">
+              <span>Send Reset OTP</span>
+              <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+            </button>
           </div>
 
           <!-- Step 2: Enter OTP & New Password -->
@@ -27005,59 +27278,75 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             </p>
             
             <div class="form-group">
-              <label for="recovOtpCode">6-Digit Email OTP <span style="color:var(--red);">*</span></label>
+              <label for="recovOtpCode"><i data-lucide="key-round" style="width:13px; height:13px;"></i> 6-Digit Email OTP <span style="color:var(--red);">*</span></label>
               <div class="auth-input-wrap">
-                <span class="auth-input-icon">🔢</span>
+                <span class="auth-input-icon"><i data-lucide="key-round" style="width:17px; height:17px;"></i></span>
                 <input type="text" class="auth-input-field" id="recovOtpCode" placeholder="Enter 6-digit code" maxlength="6" inputmode="numeric" style="letter-spacing:4px; font-weight:800; font-family:var(--font-mono, monospace);">
+                <div class="auth-typing-bar"></div>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="recovNewPassword">New Password <span style="color:var(--red);">*</span></label>
+              <label for="recovNewPassword"><i data-lucide="lock" style="width:13px; height:13px;"></i> New Password <span style="color:var(--red);">*</span></label>
               <div class="auth-input-wrap">
-                <span class="auth-input-icon">🔒</span>
+                <span class="auth-input-icon"><i data-lucide="lock" style="width:17px; height:17px;"></i></span>
                 <input type="password" class="auth-input-field" id="recovNewPassword" placeholder="Enter new password" autocomplete="new-password">
-                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('recovNewPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('recovNewPassword', this)"><i data-lucide="eye" style="width:17px; height:17px;"></i></button>
+                <div class="auth-typing-bar"></div>
               </div>
             </div>
 
             <div class="form-group">
-              <label for="recovConfirmNewPassword">Confirm New Password <span style="color:var(--red);">*</span></label>
+              <label for="recovConfirmNewPassword"><i data-lucide="shield-check" style="width:13px; height:13px;"></i> Confirm New Password <span style="color:var(--red);">*</span></label>
               <div class="auth-input-wrap">
-                <span class="auth-input-icon">🛡️</span>
+                <span class="auth-input-icon"><i data-lucide="shield-check" style="width:17px; height:17px;"></i></span>
                 <input type="password" class="auth-input-field" id="recovConfirmNewPassword" placeholder="Confirm new password" autocomplete="new-password">
-                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('recovConfirmNewPassword', this)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                <button type="button" class="pwd-toggle-btn" onclick="togglePasswordVisibility('recovConfirmNewPassword', this)"><i data-lucide="eye" style="width:17px; height:17px;"></i></button>
+                <div class="auth-typing-bar"></div>
               </div>
             </div>
 
-            <button type="button" class="btn auth-submit-shimmer" id="recovSubmitResetBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800; margin-top:8px;" onclick="handleResetPasswordSubmit()">Update Password & Sign In ➔</button>
+            <button type="button" class="auth-submit-btn-premium" id="recovSubmitResetBtn" style="width:100%; margin-top:12px;" onclick="handleResetPasswordSubmit()">
+              <span>Update Password & Sign In</span>
+              <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+            </button>
           </div>
         </div>
 
         <!-- 2. Find Username Section -->
         <div id="recovUsernameSection" style="display:none; position:relative; z-index:1;">
           <div class="form-group">
-            <label for="recovFindEmail">Enter Your Registered Email <span style="color:var(--red);">*</span></label>
+            <label for="recovFindEmail"><i data-lucide="mail" style="width:13px; height:13px;"></i> Registered Email Address <span style="color:var(--red);">*</span></label>
             <div class="auth-input-wrap">
-              <span class="auth-input-icon">📧</span>
+              <span class="auth-input-icon"><i data-lucide="mail" style="width:17px; height:17px;"></i></span>
               <input type="email" class="auth-input-field" id="recovFindEmail" placeholder="Enter email address" autocomplete="email">
+              <div class="auth-typing-bar"></div>
             </div>
           </div>
-          <button type="button" class="btn auth-submit-shimmer" id="recovFindBtn" style="width:100%; padding:12px; font-size:14px; border-radius:12px; font-weight:800; margin-top:8px;" onclick="handleFindUsername()">Find My Username 🔍</button>
+          <button type="button" class="auth-submit-btn-premium" id="recovFindBtn" style="width:100%; margin-top:12px;" onclick="handleFindUsername()">
+            <span>Find My Username</span>
+            <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+          </button>
 
           <!-- Discovered Username Card Result -->
-          <div id="recovUsernameResult" style="display:none; margin-top:16px; background:rgba(0,206,201,0.08); border:1px solid rgba(0,206,201,0.3); border-radius:14px; padding:16px; text-align:center;">
-            <div style="font-size:32px; margin-bottom:4px;" id="recovFoundAvatar">🔥</div>
-            <div style="font-size:12px; color:var(--text-muted);">Your Username:</div>
+          <div id="recovUsernameResult" style="display:none; margin-top:16px; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.25); border-radius:14px; padding:16px; text-align:center;">
+            <div style="font-size:32px; margin-bottom:4px;" id="recovFoundAvatar">✨</div>
+            <div style="font-size:12px; color:var(--text-muted);">Your Registered Username:</div>
             <div style="font-size:18px; font-weight:900; color:#fff; margin:4px 0 12px;" id="recovFoundUsername">@shadow_hayate</div>
-            <button type="button" class="btn" style="width:100%; padding:9px; font-size:13px; font-weight:800; background:linear-gradient(135deg, #00cec9, #6c5ce7); color:#060913; border:none; border-radius:10px; cursor:pointer;" onclick="signInWithRecoveredUsername()">Sign In as @<span id="recovFoundUsernameBtn">shadow_hayate</span> ➔</button>
+            <button type="button" class="auth-submit-btn-premium" style="width:100%;" onclick="signInWithRecoveredUsername()">
+              <span>Sign In as @<span id="recovFoundUsernameBtn">shadow_hayate</span></span>
+              <i data-lucide="arrow-right" style="width:16px; height:16px;"></i>
+            </button>
           </div>
         </div>
 
         <div class="auth-alert" id="recoveryFeedback" style="position:relative; z-index:1; display:none; margin-top:14px;"></div>
 
         <div style="display:flex; justify-content:center; margin-top:16px; position:relative; z-index:1;">
-          <button type="button" class="btn-text" onclick="backToPasswordLogin()" style="color:var(--text-muted); background:none; border:none; cursor:pointer; font-weight:700; font-size:12.5px;">← Back to Sign In</button>
+          <button type="button" class="btn-text" onclick="backToPasswordLogin()" style="color:var(--text-muted); background:none; border:none; cursor:pointer; font-weight:700; font-size:12.5px; display:inline-flex; align-items:center; gap:4px;">
+            <i data-lucide="arrow-left" style="width:13px; height:13px;"></i>
+            <span>Back to Sign In</span>
+          </button>
         </div>
       </form>
     </div>
@@ -37367,6 +37656,9 @@ function selectSettingsAvatar(emoji, el) {
       switchAuthTab(mode);
       if (typeof initAuthTypingBars === 'function') initAuthTypingBars();
       document.getElementById('authModal').style.display = 'flex';
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+      }
     }
 
     function closeAuthModal() {
@@ -37406,6 +37698,9 @@ function selectSettingsAvatar(emoji, el) {
         if (signInForm) signInForm.style.display = 'none';
         const upFb = document.getElementById('signUpFeedback');
         if (upFb) upFb.style.display = 'none';
+      }
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
       }
     }
 
@@ -37649,12 +37944,12 @@ function selectSettingsAvatar(emoji, el) {
     function togglePasswordVisibility(inputId, btnEl) {
       const el = document.getElementById(inputId);
       if (!el) return;
-      if (el.type === 'password') {
-        el.type = 'text';
-        if (btnEl) btnEl.innerText = '🙈';
-      } else {
-        el.type = 'password';
-        if (btnEl) btnEl.innerText = '👁️';
+      const isPwd = el.type === 'password';
+      el.type = isPwd ? 'text' : 'password';
+      if (btnEl) {
+        btnEl.innerHTML = isPwd 
+          ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+          : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
       }
     }
 
@@ -38056,15 +38351,27 @@ function selectSettingsAvatar(emoji, el) {
 
     function checkPasswordStrength(pwd) {
       const wrap = document.getElementById('signUpPasswordStrengthWrap');
-      const bar = document.getElementById('signUpStrengthBar');
       const text = document.getElementById('signUpStrengthText');
       const pwdWrap = document.getElementById('signUpPasswordWrap');
-      if (!wrap || !bar || !text) return;
+      const seg1 = document.getElementById('signUpStrengthSeg1');
+      const seg2 = document.getElementById('signUpStrengthSeg2');
+      const seg3 = document.getElementById('signUpStrengthSeg3');
+      const seg4 = document.getElementById('signUpStrengthSeg4');
+      if (!wrap || !text) return;
 
       const hintLen = document.getElementById('pwdHintLength');
       const hintCase = document.getElementById('pwdHintUpperLower');
       const hintNum = document.getElementById('pwdHintNumber');
       const hintSym = document.getElementById('pwdHintSymbol');
+
+      const resetSegments = () => {
+        [seg1, seg2, seg3, seg4].forEach(s => {
+          if (s) {
+            s.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            s.style.boxShadow = 'none';
+          }
+        });
+      };
 
       if (!pwd) {
         wrap.style.display = 'none';
@@ -38073,6 +38380,7 @@ function selectSettingsAvatar(emoji, el) {
         if (hintCase) hintCase.classList.remove('passed');
         if (hintNum) hintNum.classList.remove('passed');
         if (hintSym) hintSym.classList.remove('passed');
+        resetSegments();
         return;
       }
 
@@ -38089,37 +38397,49 @@ function selectSettingsAvatar(emoji, el) {
       if (hintSym) hintSym.classList.toggle('passed', hasSym);
 
       let score = 0;
-      if (pwd.length >= 4) score += 1;
-      if (hasLen) score += 1;
-      if (hasCase) score += 1;
+      if (pwd.length >= 6) score += 1;
+      if (hasLen && hasCase) score += 1;
       if (hasNum) score += 1;
       if (hasSym) score += 1;
 
-      pwdWrap?.classList.remove('has-success', 'has-warning', 'has-error');
+      if (score < 1) score = 1;
 
-      if (score <= 1) {
-        bar.style.width = '25%';
-        bar.style.backgroundColor = 'var(--red, #ef4444)';
-        bar.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.6)';
-        text.innerHTML = '<span style="color:var(--red, #ef4444); font-weight:800;">Genin (Weak)</span>';
+      pwdWrap?.classList.remove('has-success', 'has-warning', 'has-error');
+      resetSegments();
+
+      if (score === 1) {
+        if (seg1) {
+          seg1.style.backgroundColor = '#ef4444';
+          seg1.style.boxShadow = '0 0 10px rgba(239, 68, 68, 0.6)';
+        }
+        text.innerHTML = '<span style="color:#ef4444; font-weight:700;">Weak (Vulnerable)</span>';
         pwdWrap?.classList.add('has-error');
-      } else if (score <= 2) {
-        bar.style.width = '50%';
-        bar.style.backgroundColor = 'var(--ninja-gold, #f59e0b)';
-        bar.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.6)';
-        text.innerHTML = '<span style="color:var(--ninja-gold, #f59e0b); font-weight:800;">Moderate (Medium)</span>';
+      } else if (score === 2) {
+        [seg1, seg2].forEach(s => {
+          if (s) {
+            s.style.backgroundColor = '#f59e0b';
+            s.style.boxShadow = '0 0 10px rgba(245, 158, 11, 0.6)';
+          }
+        });
+        text.innerHTML = '<span style="color:#f59e0b; font-weight:700;">Moderate</span>';
         pwdWrap?.classList.add('has-warning');
-      } else if (score <= 3) {
-        bar.style.width = '75%';
-        bar.style.backgroundColor = 'var(--chakra-cyan, #06b6d4)';
-        bar.style.boxShadow = '0 0 12px rgba(6, 182, 212, 0.6)';
-        text.innerHTML = '<span style="color:var(--chakra-cyan, #06b6d4); font-weight:800;">Jonin (Strong)</span>';
+      } else if (score === 3) {
+        [seg1, seg2, seg3].forEach(s => {
+          if (s) {
+            s.style.backgroundColor = '#06b6d4';
+            s.style.boxShadow = '0 0 10px rgba(6, 182, 212, 0.6)';
+          }
+        });
+        text.innerHTML = '<span style="color:#06b6d4; font-weight:700;">Strong</span>';
         pwdWrap?.classList.add('has-success');
       } else {
-        bar.style.width = '100%';
-        bar.style.backgroundColor = 'var(--green, #22c55e)';
-        bar.style.boxShadow = '0 0 16px rgba(34, 197, 94, 0.6)';
-        text.innerHTML = '<span style="color:var(--green, #22c55e); font-weight:800;">Grandmaster Elite (Unbreakable) 🔥</span>';
+        [seg1, seg2, seg3, seg4].forEach(s => {
+          if (s) {
+            s.style.backgroundColor = '#22c55e';
+            s.style.boxShadow = '0 0 12px rgba(34, 197, 94, 0.6)';
+          }
+        });
+        text.innerHTML = '<span style="color:#22c55e; font-weight:700;">Unbreakable (Elite)</span>';
         pwdWrap?.classList.add('has-success');
       }
     }
@@ -39867,7 +40187,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-7') {
+        if (name !== 'connecto-v5-0-8') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
