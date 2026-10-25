@@ -25381,17 +25381,7 @@ html[data-theme="parchment"] .dm-act-icon:hover {
     }
 
     function getUserRoleBadge(username) {
-      const u = (username || '').toLowerCase();
-      if (u === 'connecto_admin' || u === 'admin') {
-        return '<span class="role-badge role-badge-admin" style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:rgba(124,92,252,0.25); color:#CABEFF; border:1px solid rgba(124,92,252,0.45); letter-spacing:0.3px;">Shadow Master</span>';
-      }
-      if (u === 'vivek') {
-        return '<span class="role-badge role-badge-architect" style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:rgba(124,92,252,0.2); color:#CABEFF; border:1px solid rgba(124,92,252,0.4); letter-spacing:0.3px;">Architect</span>';
-      }
-      if (u === 'chinnu' || u.startsWith('chinnu')) {
-        return '<span class="role-badge role-badge-synth" style="font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px; background:rgba(0,229,255,0.15); color:#00E5FF; border:1px solid rgba(0,229,255,0.35); letter-spacing:0.3px;">Synthesizer</span>';
-      }
-      return '<span class="role-badge role-badge-op" style="font-size:10px; font-weight:600; padding:2px 6px; border-radius:5px; background:rgba(255,255,255,0.06); color:#94A3B8; border:1px solid rgba(255,255,255,0.1);">Operative</span>';
+      return '';
     }
 
     function formatMessageContent(rawText) {
@@ -25883,7 +25873,6 @@ html[data-theme="parchment"] .dm-act-icon:hover {
           const isOwner = Boolean(currentUser && (msg.user || '').toLowerCase() === currentUser.toLowerCase());
           const displayName = msg.nickname || msg.user;
           const showHandle = (displayName.toLowerCase() !== msg.user.toLowerCase());
-          const roleBadgeHTML = getUserRoleBadge(msg.user);
           const formattedTime = formatMessageTimestamp(msg.timestamp || msg.created_at);
           const editedHTML = msg.edited ? '<span style="font-size:10px; opacity:0.7; margin-left:4px; font-style:italic;">(edited)</span>' : '';
           const automodBadgeHTML = msg.automod_flagged ? `<span class="msg-automod-badge" title="${escapeHTML(msg.flagged_reason || 'Filtered by Auto-Mod')}">⚠️ AUTO-MOD</span>` : '';
@@ -26028,7 +26017,6 @@ html[data-theme="parchment"] .dm-act-icon:hover {
                   <div class="msg-card-names">
                     <span class="msg-card-author">${escapeHTML(displayName)}</span>
                     ${showHandle ? `<span class="msg-card-handle">@${escapeHTML(msg.user)}</span>` : ''}
-                    ${roleBadgeHTML}
                   </div>
                 </div>
                 <div class="msg-card-time" title="${escapeHTML(msg.timestamp || msg.created_at || '')}">${escapeHTML(formattedTime)}</div>
