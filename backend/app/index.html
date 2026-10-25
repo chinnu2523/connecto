@@ -1680,15 +1680,6 @@
     html[data-theme="noir"] .profile-card-title {
       color: #ffffff !important;
     }
-    html[data-theme="noir"] .auth-input-field {
-      background: #111111 !important;
-      border: 1px solid rgba(255, 255, 255, 0.12) !important;
-      color: #d4d4d8 !important;
-    }
-    html[data-theme="noir"] .auth-input-field:focus {
-      border-color: rgba(255, 255, 255, 0.3) !important;
-      background: #0a0a0a !important;
-    }
     html[data-theme="noir"] .profile-studio-footer {
       background: #050505 !important;
       border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
@@ -1698,7 +1689,7 @@
       border-bottom: 1px solid rgba(34, 197, 94, 0.25) !important;
       color: #d4d4d8 !important;
     }
-    html[data-theme="noir"] .modal-box-scroll {
+    html[data-theme="noir"] .modal-box-scroll:not(#authModal .modal-box-scroll) {
       background: #0a0a0a !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
       color: #d4d4d8 !important;
@@ -10134,6 +10125,281 @@
       background: rgba(234, 88, 12, 0.08);
       border-color: rgba(234, 88, 12, 0.22);
       color: #ea580c;
+    }
+
+    /* ==================== DUAL THEME: NOIR (DARK) MODE ==================== */
+    html[data-theme="noir"] #authModal,
+    html[data-theme="dark"] #authModal,
+    html[data-theme="noir"] #emailVerificationModal,
+    html[data-theme="dark"] #emailVerificationModal {
+      background: rgba(5, 7, 12, 0.85) !important;
+      backdrop-filter: blur(20px) saturate(190%) !important;
+      -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
+    }
+
+    html[data-theme="noir"] #authModal .modal-box-scroll,
+    html[data-theme="dark"] #authModal .modal-box-scroll,
+    html[data-theme="noir"] #emailVerificationModal .modal-box-scroll,
+    html[data-theme="dark"] #emailVerificationModal .modal-box-scroll {
+      background: linear-gradient(180deg, rgba(16, 20, 32, 0.98) 0%, rgba(9, 11, 18, 0.99) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05),
+                  0 28px 70px -12px rgba(0, 0, 0, 0.85),
+                  0 0 50px -10px rgba(6, 182, 212, 0.22) !important;
+    }
+
+    html[data-theme="noir"] .auth-brand-center,
+    html[data-theme="dark"] .auth-brand-center {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+    }
+
+    html[data-theme="noir"] .auth-brand-logo-wrap,
+    html[data-theme="dark"] .auth-brand-logo-wrap {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%) !important;
+      border: 1px solid rgba(255, 255, 255, 0.16) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 24px rgba(6, 182, 212, 0.3) !important;
+    }
+
+    html[data-theme="noir"] .auth-brand-name,
+    html[data-theme="dark"] .auth-brand-name {
+      color: #ffffff !important;
+    }
+
+    html[data-theme="noir"] .auth-brand-tag,
+    html[data-theme="dark"] .auth-brand-tag {
+      background: rgba(6, 182, 212, 0.15) !important;
+      border: 1px solid rgba(6, 182, 212, 0.3) !important;
+      color: #00D9F5 !important;
+    }
+
+    html[data-theme="noir"] .auth-modal-close-btn,
+    html[data-theme="dark"] .auth-modal-close-btn {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .auth-modal-close-btn:hover,
+    html[data-theme="dark"] .auth-modal-close-btn:hover {
+      background: rgba(255, 255, 255, 0.14) !important;
+      color: #ffffff !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+    }
+
+    html[data-theme="noir"] .auth-modal-title,
+    html[data-theme="dark"] .auth-modal-title {
+      color: #ffffff !important;
+    }
+
+    html[data-theme="noir"] .auth-modal-subtitle,
+    html[data-theme="dark"] .auth-modal-subtitle {
+      color: #94a3b8 !important;
+    }
+
+    html[data-theme="noir"] .auth-segmented-nav,
+    html[data-theme="dark"] .auth-segmented-nav {
+      background: rgba(0, 0, 0, 0.45) !important;
+      border: 1px solid rgba(255, 255, 255, 0.09) !important;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    html[data-theme="noir"] .auth-segmented-slider,
+    html[data-theme="dark"] .auth-segmented-slider {
+      background: linear-gradient(135deg, #00D9F5 0%, #2563EB 100%) !important;
+      box-shadow: 0 4px 18px rgba(0, 217, 245, 0.4) !important;
+    }
+
+    html[data-theme="noir"] .auth-tab-btn,
+    html[data-theme="dark"] .auth-tab-btn {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .auth-tab-btn:hover,
+    html[data-theme="dark"] .auth-tab-btn:hover {
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .auth-tab-btn.active,
+    html[data-theme="dark"] .auth-tab-btn.active {
+      color: #ffffff !important;
+      font-weight: 700 !important;
+    }
+
+    html[data-theme="noir"] .form-group label,
+    html[data-theme="dark"] .form-group label {
+      color: #cbd5e1 !important;
+    }
+
+    html[data-theme="noir"] .auth-input-wrap,
+    html[data-theme="dark"] .auth-input-wrap {
+      background: rgba(255, 255, 255, 0.035) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+    }
+    html[data-theme="noir"] .auth-input-wrap:hover,
+    html[data-theme="dark"] .auth-input-wrap:hover {
+      border-color: rgba(255, 255, 255, 0.22) !important;
+    }
+    html[data-theme="noir"] .auth-input-wrap:focus-within,
+    html[data-theme="dark"] .auth-input-wrap:focus-within {
+      border-color: #00D9F5 !important;
+      box-shadow: 0 0 0 3px rgba(0, 217, 245, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+      background: rgba(255, 255, 255, 0.055) !important;
+    }
+
+    html[data-theme="noir"] .auth-input-icon,
+    html[data-theme="dark"] .auth-input-icon {
+      color: #64748b !important;
+    }
+    html[data-theme="noir"] .auth-input-wrap:focus-within .auth-input-icon,
+    html[data-theme="dark"] .auth-input-wrap:focus-within .auth-input-icon {
+      color: #00D9F5 !important;
+    }
+
+    html[data-theme="noir"] .auth-input-field,
+    html[data-theme="dark"] .auth-input-field {
+      background: transparent !important;
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .auth-input-field::placeholder,
+    html[data-theme="dark"] .auth-input-field::placeholder {
+      color: #64748b !important;
+    }
+
+    html[data-theme="noir"] .auth-typing-bar,
+    html[data-theme="dark"] .auth-typing-bar {
+      background: linear-gradient(90deg, #00F5A0, #00D9F5, #2563EB) !important;
+    }
+
+    html[data-theme="noir"] .auth-clear-btn,
+    html[data-theme="dark"] .auth-clear-btn {
+      background: rgba(255, 255, 255, 0.08) !important;
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .auth-clear-btn:hover,
+    html[data-theme="dark"] .auth-clear-btn:hover {
+      background: rgba(239, 68, 68, 0.2) !important;
+      color: #ef4444 !important;
+    }
+
+    html[data-theme="noir"] .pwd-toggle-btn,
+    html[data-theme="dark"] .pwd-toggle-btn {
+      color: #64748b !important;
+    }
+    html[data-theme="noir"] .pwd-toggle-btn:hover,
+    html[data-theme="dark"] .pwd-toggle-btn:hover {
+      color: #ffffff !important;
+    }
+
+    html[data-theme="noir"] .password-strength-wrap,
+    html[data-theme="dark"] .password-strength-wrap {
+      background: rgba(255, 255, 255, 0.04) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    html[data-theme="noir"] .strength-segment,
+    html[data-theme="dark"] .strength-segment {
+      background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    html[data-theme="noir"] .pwd-hint,
+    html[data-theme="dark"] .pwd-hint {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.09) !important;
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .pwd-hint.passed,
+    html[data-theme="dark"] .pwd-hint.passed {
+      background: rgba(34, 197, 94, 0.14) !important;
+      border-color: rgba(34, 197, 94, 0.35) !important;
+      color: #4ade80 !important;
+    }
+
+    html[data-theme="noir"] .auth-submit-btn-premium,
+    html[data-theme="dark"] .auth-submit-btn-premium,
+    html[data-theme="noir"] #signInSubmitBtn,
+    html[data-theme="dark"] #signInSubmitBtn,
+    html[data-theme="noir"] #signUpSubmitBtn,
+    html[data-theme="dark"] #signUpSubmitBtn {
+      background: linear-gradient(135deg, #00D9F5 0%, #2563EB 100%) !important;
+      color: #ffffff !important;
+      border: 1px solid rgba(255, 255, 255, 0.22) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 6px 24px rgba(0, 217, 245, 0.35) !important;
+    }
+    html[data-theme="noir"] .auth-submit-btn-premium:hover,
+    html[data-theme="dark"] .auth-submit-btn-premium:hover,
+    html[data-theme="noir"] #signInSubmitBtn:hover,
+    html[data-theme="dark"] #signInSubmitBtn:hover,
+    html[data-theme="noir"] #signUpSubmitBtn:hover,
+    html[data-theme="dark"] #signUpSubmitBtn:hover {
+      transform: translateY(-1.5px) !important;
+      filter: brightness(1.1) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 8px 28px rgba(0, 217, 245, 0.5) !important;
+      background: linear-gradient(135deg, #00D9F5 0%, #2563EB 100%) !important;
+      color: #ffffff !important;
+    }
+
+    html[data-theme="noir"] .auth-cancel-btn-premium,
+    html[data-theme="dark"] .auth-cancel-btn-premium {
+      background: rgba(255, 255, 255, 0.06) !important;
+      border: 1px solid rgba(255, 255, 255, 0.12) !important;
+      color: #cbd5e1 !important;
+    }
+    html[data-theme="noir"] .auth-cancel-btn-premium:hover,
+    html[data-theme="dark"] .auth-cancel-btn-premium:hover {
+      background: rgba(255, 255, 255, 0.1) !important;
+      color: #ffffff !important;
+    }
+
+    html[data-theme="noir"] .auth-send-otp-btn,
+    html[data-theme="dark"] .auth-send-otp-btn {
+      background: linear-gradient(135deg, #00D9F5 0%, #0284c7 100%) !important;
+      color: #031525 !important;
+      font-weight: 800 !important;
+      border: 1px solid rgba(255, 255, 255, 0.25) !important;
+      box-shadow: 0 4px 16px rgba(0, 217, 245, 0.3) !important;
+    }
+
+    html[data-theme="noir"] .auth-modal-footer,
+    html[data-theme="dark"] .auth-modal-footer {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .auth-footer-link,
+    html[data-theme="dark"] .auth-footer-link {
+      color: #00D9F5 !important;
+    }
+    html[data-theme="noir"] .auth-footer-link:hover,
+    html[data-theme="dark"] .auth-footer-link:hover {
+      color: #38bdf8 !important;
+    }
+
+    html[data-theme="noir"] .auth-remember-wrap,
+    html[data-theme="dark"] .auth-remember-wrap {
+      color: #94a3b8 !important;
+    }
+    html[data-theme="noir"] .auth-remember-wrap input[type="checkbox"],
+    html[data-theme="dark"] .auth-remember-wrap input[type="checkbox"] {
+      accent-color: #00D9F5 !important;
+    }
+
+    html[data-theme="noir"] .otp-digit-input,
+    html[data-theme="dark"] .otp-digit-input {
+      background: rgba(0, 0, 0, 0.55) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.15) !important;
+      color: #ffffff !important;
+    }
+    html[data-theme="noir"] .otp-digit-input:focus,
+    html[data-theme="dark"] .otp-digit-input:focus {
+      border-color: #00D9F5 !important;
+      box-shadow: 0 0 16px rgba(0, 217, 245, 0.4) !important;
+      background: rgba(0, 217, 245, 0.08) !important;
+    }
+    html[data-theme="noir"] .otp-digit-input.filled,
+    html[data-theme="dark"] .otp-digit-input.filled {
+      border-color: #10b981 !important;
+      color: #10b981 !important;
     }
 
     /* Social Sign-In Providers & Divider */
@@ -23142,8 +23408,6 @@ html[data-theme="noir"] .profile-studio-modal,
 html[data-theme="dark"] .profile-studio-modal,
 html[data-theme="noir"] #settingsModal .modal-box-scroll,
 html[data-theme="dark"] #settingsModal .modal-box-scroll,
-html[data-theme="noir"] #authModal .modal-box-scroll,
-html[data-theme="dark"] #authModal .modal-box-scroll,
 html[data-theme="noir"] #globalSearchModal .modal-card,
 html[data-theme="dark"] #globalSearchModal .modal-card,
 html[data-theme="noir"] .user-popover-card,
@@ -23188,60 +23452,12 @@ html[data-theme="dark"] .profile-card-section {
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 14px !important;
 }
-html[data-theme="noir"] .auth-submit-shimmer,
-html[data-theme="dark"] .auth-submit-shimmer,
-html[data-theme="noir"] #signInSubmitBtn,
-html[data-theme="dark"] #signInSubmitBtn,
-html[data-theme="noir"] #signUpSubmitBtn,
-html[data-theme="dark"] #signUpSubmitBtn,
 html[data-theme="noir"] #saveProfileBtn,
 html[data-theme="dark"] #saveProfileBtn {
   background: linear-gradient(135deg, #27272a 0%, #18181b 100%) !important;
   color: #ffffff !important;
   border: 1px solid rgba(255, 255, 255, 0.24) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6) !important;
-}
-html[data-theme="noir"] .auth-submit-shimmer:hover,
-html[data-theme="dark"] .auth-submit-shimmer:hover,
-html[data-theme="noir"] #signInSubmitBtn:hover,
-html[data-theme="dark"] #signInSubmitBtn:hover,
-html[data-theme="noir"] #signUpSubmitBtn:hover,
-html[data-theme="dark"] #signUpSubmitBtn:hover {
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-color: #ffffff !important;
-}
-
-html[data-theme="noir"] .auth-segmented-nav,
-html[data-theme="dark"] .auth-segmented-nav {
-  background: #111114 !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
-}
-html[data-theme="noir"] .auth-segmented-slider,
-html[data-theme="dark"] .auth-segmented-slider {
-  background: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.25) !important;
-}
-html[data-theme="noir"] .auth-tab-btn,
-html[data-theme="dark"] .auth-tab-btn {
-  color: #a1a1aa !important;
-}
-html[data-theme="noir"] .auth-tab-btn.active,
-html[data-theme="dark"] .auth-tab-btn.active {
-  color: #000000 !important;
-}
-html[data-theme="noir"] .auth-input-wrap,
-html[data-theme="dark"] .auth-input-wrap {
-  background: #141418 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-}
-html[data-theme="noir"] .auth-input-field,
-html[data-theme="dark"] .auth-input-field {
-  color: #ffffff !important;
-}
-html[data-theme="noir"] .auth-input-field::placeholder,
-html[data-theme="dark"] .auth-input-field::placeholder {
-  color: #71717a !important;
 }
 
 </style>
@@ -41208,7 +41424,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-17') {
+        if (name !== 'connecto-v5-0-18') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
