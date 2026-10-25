@@ -7,7 +7,7 @@
         var urlParams = new URLSearchParams(window.location.search);
         var queryTheme = urlParams.get('theme');
         var storedTheme = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_chakra_theme');
-        var theme = (queryTheme || storedTheme || 'noir').toLowerCase();
+        var theme = (queryTheme || storedTheme || 'parchment').toLowerCase();
         var validThemes = ['parchment', 'noir'];
         var canonical = validThemes.indexOf(theme) !== -1 ? theme : (['ivory', 'light', 'paper', 'crimson', 'gold', 'cashmere', 'forge'].indexOf(theme) !== -1 ? 'parchment' : 'noir');
         document.documentElement.setAttribute('data-theme', canonical);
@@ -20152,6 +20152,315 @@ html[data-theme="parchment"] .dm-act-icon:hover {
   }
 }
 
+/* ==========================================================================
+   BULLETPROOF EDITORIAL DUAL-THEME OVERRIDES: LIGHT THEME (IVORY PAPER / PARCHMENT)
+   Authoritative Rules at Tail of Stylesheet to Guarantee Contrast & Visibility
+   ========================================================================== */
+
+/* 1. CHAT INPUT CAPSULE & TYPING TEXT VISIBILITY */
+html[data-theme="parchment"] .stitch-input-card,
+html[data-theme="parchment"] #chatInputArea,
+html[data-theme="parchment"] .input-area {
+  background: #fbf8f2 !important;
+  border-top: 1px solid rgba(68, 64, 60, 0.16) !important;
+}
+
+html[data-theme="parchment"] .connecto-input-capsule-wrapper,
+html[data-theme="parchment"] #connectoInputBoxWrapper,
+html[data-theme="parchment"] .connecto-enhanced-input-row .connecto-input-capsule-wrapper {
+  background: #ffffff !important;
+  border: 1.5px solid rgba(68, 64, 60, 0.22) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 2px 10px rgba(44, 40, 37, 0.05) !important;
+}
+
+html[data-theme="parchment"] .connecto-input-capsule-wrapper.focused,
+html[data-theme="parchment"] #connectoInputBoxWrapper.focused,
+html[data-theme="parchment"] .connecto-enhanced-input-row .connecto-input-capsule-wrapper.focused {
+  background: #ffffff !important;
+  border-color: #141312 !important;
+  box-shadow: 0 0 0 3px rgba(20, 19, 18, 0.12), 0 4px 16px rgba(44, 40, 37, 0.08) !important;
+}
+
+/* Chat Input Field: Crisp, high-contrast dark charcoal text while user is typing */
+html[data-theme="parchment"] #msgInput,
+html[data-theme="parchment"] input#msgInput,
+html[data-theme="parchment"] textarea#msgInput,
+html[data-theme="parchment"] .connecto-enhanced-input-row .stitch-input-field,
+html[data-theme="parchment"] .stitch-input-field,
+html[data-theme="parchment"] .input-box {
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+  caret-color: #141312 !important;
+  background: transparent !important;
+  font-weight: 500 !important;
+}
+
+html[data-theme="parchment"] #msgInput:focus,
+html[data-theme="parchment"] input#msgInput:focus,
+html[data-theme="parchment"] .connecto-enhanced-input-row .stitch-input-field:focus,
+html[data-theme="parchment"] .stitch-input-field:focus {
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+  caret-color: #141312 !important;
+}
+
+html[data-theme="parchment"] #msgInput::placeholder,
+html[data-theme="parchment"] input#msgInput::placeholder,
+html[data-theme="parchment"] .connecto-enhanced-input-row .stitch-input-field::placeholder,
+html[data-theme="parchment"] .stitch-input-field::placeholder,
+html[data-theme="parchment"] .input-box::placeholder {
+  color: #78716c !important;
+  -webkit-text-fill-color: #78716c !important;
+  opacity: 1 !important;
+}
+
+/* Send Button & Emoji Reactions */
+html[data-theme="parchment"] .connecto-send-circle-btn,
+html[data-theme="parchment"] #sendBtn {
+  background: #141312 !important;
+  color: #ffffff !important;
+  border: 1px solid #141312 !important;
+  box-shadow: 0 2px 8px rgba(20, 19, 18, 0.16) !important;
+}
+
+html[data-theme="parchment"] .connecto-send-circle-btn:hover,
+html[data-theme="parchment"] #sendBtn:hover {
+  background: #000000 !important;
+  color: #ffffff !important;
+  transform: scale(1.08) !important;
+  box-shadow: 0 4px 14px rgba(20, 19, 18, 0.28) !important;
+}
+
+html[data-theme="parchment"] .connecto-emoji-inline-btn,
+html[data-theme="parchment"] #emojiPickerBtn {
+  color: #141312 !important;
+  filter: none !important;
+}
+
+/* 2. CHAT MESSAGES TOP SEARCH BAR */
+html[data-theme="parchment"] .channel-messages-search-bar,
+html[data-theme="parchment"] #channelMessagesSearchBar {
+  background: #fbf8f2 !important;
+  border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+}
+
+html[data-theme="parchment"] .channel-search-input-wrap {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: 0 1px 4px rgba(44, 40, 37, 0.04) !important;
+}
+
+html[data-theme="parchment"] .channel-search-input-wrap.focused,
+html[data-theme="parchment"] .channel-search-input-wrap:focus-within {
+  background: #ffffff !important;
+  border-color: #141312 !important;
+  box-shadow: 0 0 0 2px rgba(20, 19, 18, 0.1) !important;
+}
+
+html[data-theme="parchment"] .channel-search-field,
+html[data-theme="parchment"] #channelSearchField {
+  color: #141312 !important;
+  -webkit-text-fill-color: #141312 !important;
+  background: transparent !important;
+}
+
+html[data-theme="parchment"] .channel-search-field::placeholder,
+html[data-theme="parchment"] #channelSearchField::placeholder {
+  color: #78716c !important;
+  -webkit-text-fill-color: #78716c !important;
+}
+
+html[data-theme="parchment"] .channel-search-icon {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .channel-search-badge {
+  background: #f5f1e8 !important;
+  color: #57534e !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+}
+
+html[data-theme="parchment"] .channel-search-clear {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .channel-search-clear:hover {
+  color: #141312 !important;
+  background: rgba(68, 64, 60, 0.1) !important;
+}
+
+/* 3. CHANNEL CHIPS & HEADER CONTROLS */
+html[data-theme="parchment"] .chat-channel-switcher-row,
+html[data-theme="parchment"] #chatChannelSwitcherRow {
+  background: #fbf8f2 !important;
+  border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
+}
+
+html[data-theme="parchment"] .channel-chip-btn {
+  background: #f5f1e8 !important;
+  color: #57534e !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+}
+
+html[data-theme="parchment"] .channel-chip-btn:hover {
+  background: #eae4d6 !important;
+  color: #141312 !important;
+  border-color: rgba(68, 64, 60, 0.28) !important;
+}
+
+html[data-theme="parchment"] .channel-chip-btn.active {
+  background: #141312 !important;
+  color: #ffffff !important;
+  border-color: #141312 !important;
+  box-shadow: 0 2px 6px rgba(20, 19, 18, 0.14) !important;
+}
+
+/* 4. CHAT HEADER CONTROLS & IN-CHAT SEARCH */
+html[data-theme="parchment"] .chat-header {
+  background: rgba(251, 248, 242, 0.96) !important;
+  border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+}
+
+html[data-theme="parchment"] .in-chat-search-wrap {
+  background: #f5f1e8 !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+}
+
+html[data-theme="parchment"] .in-chat-search-input {
+  color: #141312 !important;
+  background: transparent !important;
+}
+
+html[data-theme="parchment"] .in-chat-search-input::placeholder {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .header-search-kbd {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.20) !important;
+  color: #57534e !important;
+}
+
+/* 5. HOMEPAGE TOP NAVBAR BUTTON ORDER & POLISH */
+html[data-theme="parchment"] .landing-nav-wrapper {
+  background: transparent !important;
+}
+
+html[data-theme="parchment"] .landing-nav {
+  background: rgba(251, 248, 242, 0.94) !important;
+  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+  box-shadow: 0 4px 20px rgba(44, 40, 37, 0.06) !important;
+}
+
+html[data-theme="parchment"] .nav-links-track {
+  background: rgba(68, 64, 60, 0.05) !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+}
+
+html[data-theme="parchment"] .landing-link {
+  color: #57534e !important;
+}
+
+html[data-theme="parchment"] .landing-link:hover,
+html[data-theme="parchment"] .landing-link.active {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .nav-actions-cluster {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+html[data-theme="parchment"] .nav-theme-toggle-btn {
+  background: #f5f1e8 !important;
+  border: 1px solid rgba(68, 64, 60, 0.20) !important;
+  color: #141312 !important;
+  box-shadow: 0 1px 4px rgba(44, 40, 37, 0.04) !important;
+}
+
+html[data-theme="parchment"] .nav-theme-toggle-btn:hover {
+  background: #eae4d6 !important;
+  border-color: #141312 !important;
+  color: #000000 !important;
+}
+
+/* 6. MESSAGE CARDS & BUBBLES IN LIGHT THEME */
+html[data-theme="parchment"] .connecto-message-card.channel-message-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.12) !important;
+  box-shadow: 0 2px 8px rgba(44, 40, 37, 0.04) !important;
+}
+
+html[data-theme="parchment"] .connecto-message-card.channel-message-card:hover {
+  background: #ffffff !important;
+  border-color: rgba(68, 64, 60, 0.22) !important;
+  box-shadow: 0 4px 14px rgba(44, 40, 37, 0.07) !important;
+}
+
+html[data-theme="parchment"] .connecto-message-card.channel-message-card.mine {
+  background: #f8f5ee !important;
+  border-color: rgba(68, 64, 60, 0.20) !important;
+}
+
+html[data-theme="parchment"] .msg-card-author {
+  color: #141312 !important;
+  font-weight: 700 !important;
+}
+
+html[data-theme="parchment"] .msg-card-handle {
+  color: #78716c !important;
+}
+
+html[data-theme="parchment"] .msg-card-time {
+  color: #a8a29e !important;
+}
+
+html[data-theme="parchment"] .msg-card-body,
+html[data-theme="parchment"] .msg-card-body div {
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .msg-hover-actions,
+html[data-theme="parchment"] .dm-bubble-hover-actions {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  box-shadow: 0 4px 16px rgba(44, 40, 37, 0.12) !important;
+}
+
+html[data-theme="parchment"] .msg-act-icon,
+html[data-theme="parchment"] .dm-act-icon {
+  color: #44403c !important;
+}
+
+html[data-theme="parchment"] .msg-act-icon:hover,
+html[data-theme="parchment"] .dm-act-icon:hover {
+  background: #f2eee4 !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-theirs {
+  background: #ffffff !important;
+  border: 1px solid rgba(68, 64, 60, 0.14) !important;
+  color: #141312 !important;
+}
+
+html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-mine {
+  background: #141312 !important;
+  border: 1px solid #141312 !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-mine .dm-bubble-time,
+html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-mine .dm-bubble-status {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-mine div {
+  color: #ffffff !important;
+}
+
 </style>
 </head>
 <body class="in-hero-view">
@@ -26667,7 +26976,6 @@ html[data-theme="parchment"] .dm-act-icon:hover {
                     <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '👍')" title="Thumbs Up 👍">👍</button>
                     <button class="dm-act-icon" onclick="initiateReply('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 40))}')" title="Reply">💬</button>
                     <button class="dm-act-icon" onclick="translateMessageInline('${msg.id}')" title="Translate">🌐</button>
-                    <button class="dm-act-icon ${isMessageBookmarked(msg.id) ? 'bookmarked' : ''}" onclick="toggleBookmarkMessage('${msg.id}')" title="Bookmark">🔖</button>
                     <button class="dm-act-icon" onclick="copyMessageText('${msg.id}')" title="Copy">📋</button>
                     <button class="dm-act-icon" onclick="openReportMessageModal('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 45))}')" title="Report">🚩</button>
                   </div>
@@ -26704,7 +27012,6 @@ html[data-theme="parchment"] .dm-act-icon:hover {
                 <button class="msg-act-icon" onclick="openThreadDrawer('${msg.id}', '${encodeURIComponent(msg.channel_id || currentChannel)}')" title="Reply in Thread">🧵</button>
                 <button class="msg-act-icon" onclick="initiateReply('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 40))}')" title="Quote Reply">💬</button>
                 <button class="msg-act-icon" onclick="translateMessageInline('${msg.id}')" title="Translate Message">🌐</button>
-                <button class="msg-act-icon ${isMessageBookmarked(msg.id) ? 'bookmarked' : ''}" onclick="toggleBookmarkMessage('${msg.id}')" title="${isMessageBookmarked(msg.id) ? 'Remove Bookmark' : 'Save Bookmark'}">🔖</button>
                 <button class="msg-act-icon" onclick="copyMessageText('${msg.id}')" title="Copy Text">📋</button>
                 <button class="msg-act-icon" onclick="openReportMessageModal('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 45))}')" title="Report Message">🚩</button>
                 ${isOwner ? `<button class="msg-act-icon" onclick="promptEditMessage('${msg.id}')" title="Edit">✏️</button>` : ''}
@@ -36622,7 +36929,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-0') {
+        if (name !== 'connecto-v5-0-1') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
@@ -36630,7 +36937,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     });
   }
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js?v=5.0.0', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?v=5.0.1', { scope: '/' })
       .then((reg) => {
         reg.update();
       })
