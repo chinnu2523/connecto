@@ -1756,8 +1756,9 @@
     }
 
     /* 2. Archival Drafting Paper Surface & Atmospheric Watermark */
-    html[data-theme="parchment"] body body,
-    html[data-theme="parchment"] #heroView #heroView {
+    html[data-theme="parchment"] body,
+    html[data-theme="parchment"] #heroView,
+    html[data-theme="parchment"] .main-view-container {
       background-color: #fbf8f2 !important;
       background-image: 
         radial-gradient(ellipse 90% 50% at 50% 0%, rgba(212, 175, 125, 0.14), transparent 75%),
@@ -1765,6 +1766,13 @@
         linear-gradient(90deg, rgba(68, 64, 60, 0.022) 1px, transparent 1px) !important;
       background-size: 100% 100%, 36px 36px, 36px 36px !important;
       color: #44403c !important;
+    }
+    html[data-theme="parchment"] .ambient-bg {
+      display: none !important;
+    }
+    html[data-theme="parchment"] .hero-official-bg {
+      display: none !important;
+      opacity: 0 !important;
     }
 
     /* 3. Letterpress Intaglio Deboss Effect for Headlines */
@@ -2695,6 +2703,205 @@
     html[data-theme="parchment"] .chat-empty-icon-wrap {
       background: #ebe6dc !important;
       border-color: rgba(68, 64, 60, 0.2) !important;
+    }
+
+    /* Message Links in Light Theme */
+    html[data-theme="parchment"] .msg-link,
+    html[data-theme="parchment"] .msg-card-body a,
+    html[data-theme="parchment"] .dm-bubble-body a {
+      color: #b45309 !important;
+      text-decoration: underline !important;
+    }
+    html[data-theme="parchment"] .msg-link:hover,
+    html[data-theme="parchment"] .msg-card-body a:hover,
+    html[data-theme="parchment"] .dm-bubble-body a:hover {
+      color: #92400e !important;
+    }
+
+    /* Hover Action Bar in Light Theme */
+    html[data-theme="parchment"] .msg-hover-actions {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      box-shadow: 0 4px 16px rgba(44, 40, 37, 0.12) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .msg-act-icon {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .msg-act-icon:hover {
+      background: rgba(68, 64, 60, 0.08) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .msg-act-icon.bookmarked {
+      color: #d97706 !important;
+    }
+
+    /* Interactive Polls in Light Theme */
+    html[data-theme="parchment"] .poll-card-wrap {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      box-shadow: 0 4px 16px rgba(44, 40, 37, 0.08) !important;
+    }
+    html[data-theme="parchment"] .poll-question-text {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .poll-option-item {
+      background: #fbf8f2 !important;
+      border: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .poll-option-item:hover:not(.poll-closed) {
+      border-color: #141312 !important;
+      background: #ffffff !important;
+    }
+    html[data-theme="parchment"] .poll-option-item.poll-voted {
+      border-color: #141312 !important;
+      background: rgba(20, 19, 18, 0.06) !important;
+    }
+    html[data-theme="parchment"] .poll-progress-fill {
+      background: linear-gradient(90deg, rgba(68, 64, 60, 0.12), rgba(68, 64, 60, 0.22)) !important;
+    }
+    html[data-theme="parchment"] .poll-option-label {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .poll-option-stats {
+      color: #141312 !important;
+      font-weight: 800 !important;
+    }
+    html[data-theme="parchment"] .poll-card-footer {
+      color: #78716c !important;
+      border-top-color: rgba(68, 64, 60, 0.1) !important;
+    }
+
+    /* Link Previews in Light Theme */
+    html[data-theme="parchment"] .msg-link-preview-card {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.18) !important;
+      border-left: 3px solid #141312 !important;
+      box-shadow: 0 4px 16px rgba(44, 40, 37, 0.08) !important;
+    }
+    html[data-theme="parchment"] .msg-link-preview-card:hover {
+      background: #faf7f2 !important;
+      border-color: #141312 !important;
+      border-left: 3px solid #141312 !important;
+    }
+    html[data-theme="parchment"] .link-preview-title {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .link-preview-desc {
+      color: #57534e !important;
+    }
+    html[data-theme="parchment"] .link-preview-site-row {
+      color: #78716c !important;
+    }
+
+    /* Thread Pill & Drawer in Light Theme */
+    html[data-theme="parchment"] .msg-thread-pill {
+      background: rgba(68, 64, 60, 0.07) !important;
+      border: 1px solid rgba(68, 64, 60, 0.22) !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .msg-thread-pill:hover {
+      background: rgba(68, 64, 60, 0.14) !important;
+      border-color: #141312 !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .thread-pill-meta {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .thread-drawer {
+      background: #fbf8f2 !important;
+      border-left: 1px solid rgba(68, 64, 60, 0.16) !important;
+      box-shadow: -10px 0 35px rgba(68, 64, 60, 0.15) !important;
+    }
+    html[data-theme="parchment"] .thread-root-card {
+      background: #f5f1e8 !important;
+      border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
+    }
+    html[data-theme="parchment"] .thread-root-author {
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .thread-root-time {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .thread-root-content {
+      color: #292524 !important;
+    }
+
+    /* Inline Translation in Light Theme */
+    html[data-theme="parchment"] .msg-inline-translation {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.16) !important;
+      border-left: 3px solid #7c3aed !important;
+      color: #292524 !important;
+    }
+    html[data-theme="parchment"] .translation-meta {
+      color: #7c3aed !important;
+    }
+    html[data-theme="parchment"] .btn-hide-translation {
+      color: #78716c !important;
+    }
+    html[data-theme="parchment"] .btn-hide-translation:hover {
+      color: #141312 !important;
+    }
+
+    /* Navbar Action Buttons in Light Theme */
+    html[data-theme="parchment"] .nav-actions-cluster {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+    }
+    html[data-theme="parchment"] .nav-user-pill {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.22) !important;
+      color: #141312 !important;
+      box-shadow: 0 1px 3px rgba(44, 40, 37, 0.06) !important;
+    }
+    html[data-theme="parchment"] .nav-user-pill:hover {
+      background: #f5f1e8 !important;
+      border-color: #141312 !important;
+    }
+    html[data-theme="parchment"] .nav-user-name {
+      color: #141312 !important;
+      font-weight: 700 !important;
+    }
+    html[data-theme="parchment"] .nav-enter-clan-btn {
+      background: #141312 !important;
+      color: #fbf8f2 !important;
+      border: 1px solid #141312 !important;
+      box-shadow: 0 2px 8px rgba(20, 19, 18, 0.18) !important;
+    }
+    html[data-theme="parchment"] .nav-enter-clan-btn:hover {
+      background: #292524 !important;
+      color: #ffffff !important;
+      transform: translateY(-1px) !important;
+    }
+    html[data-theme="parchment"] .nav-signout-btn {
+      background: rgba(239, 68, 68, 0.08) !important;
+      color: #dc2626 !important;
+      border: 1px solid rgba(239, 68, 68, 0.22) !important;
+    }
+    html[data-theme="parchment"] .nav-signout-btn:hover {
+      background: rgba(239, 68, 68, 0.15) !important;
+      color: #b91c1c !important;
+    }
+    html[data-theme="parchment"] .nav-theme-toggle-btn {
+      background: #ffffff !important;
+      border: 1px solid rgba(68, 64, 60, 0.2) !important;
+      color: #141312 !important;
+      box-shadow: 0 1px 3px rgba(44, 40, 37, 0.06) !important;
+    }
+    html[data-theme="parchment"] .nav-theme-toggle-btn:hover {
+      background: #f5f1e8 !important;
+      border-color: #141312 !important;
+      color: #141312 !important;
+    }
+    html[data-theme="parchment"] .public-beta-banner {
+      background: #fef3c7 !important;
+      color: #92400e !important;
+      border-bottom: 1px solid #fcd34d !important;
+    }
+    html[data-theme="parchment"] .public-beta-banner a {
+      color: #0284c7 !important;
     }
 
     /* Chat Input Area */
@@ -20180,11 +20387,7 @@ html[data-theme="parchment"] .dm-act-icon:hover {
         </button>
 
 
-        <div style="position:relative;">
-          <button class="btn-icon" id="bookmarksToggleBtn" onclick="toggleBookmarksDrawer()" title="Personal Saved Bookmarks"><i data-lucide="bookmark" class="lucide-sm"></i></button>
-          <div class="notif-badge" id="bookmarksBadge" style="display:none; background:var(--chakra-cyan); color:#000;">0</div>
-        </div>
-        <button class="btn-icon" id="membersToggleBtn" onclick="toggleMembersSidebar()" title="Friends & Members Roster"><i data-lucide="users" class="lucide-sm"></i></button>
+
         <div style="position:relative;">
           <button class="btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown()" title="Notifications & DND"><i data-lucide="bell" class="lucide-sm"></i></button>
           <div class="notif-badge" id="notifBadge" style="display:none;"></div>
@@ -20630,26 +20833,29 @@ html[data-theme="parchment"] .dm-act-icon:hover {
           <div class="nav-links-track" id="navLinksTrack">
             <div class="nav-sliding-pill" id="navSlidingPill"></div>
             <a class="landing-link" id="navLinkAbout" onclick="scrollToHeroSection('ecosystemSection')">Features</a>
-            <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
+            <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
+            <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
             <a class="landing-link" id="navLinkVault" onclick="openConnectoVault()" style="display:inline-flex; align-items:center; gap:6px; color:#10b981; font-weight:700; cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm"></i>Vault</a>
             <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.6.5 Live • 36.0 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
               <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.6.5</span></span>
             </a>
-            <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
           </div>
 
-          <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
-            <span id="navThemeToggleIcon" style="display:inline-flex; align-items:center; justify-content:center;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            </span>
-          </button>
+          <div class="nav-actions-cluster" id="navActionsCluster" style="display:flex; align-items:center; gap:8px;">
+            <div id="navAuthButtons" style="display:flex; align-items:center; gap:8px;">
+              <button class="landing-link-btn" onclick="openAuthModal('login')">Log in</button>
+              <button class="nav-signup-cta-btn" onclick="openAuthModal('register')">Sign up <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+            </div>
 
-          <div id="navAuthButtons" style="display:flex; align-items:center; gap:10px;">
-            <button class="landing-link-btn" onclick="openAuthModal('login')">Log in</button>
-            <button class="nav-signup-cta-btn" onclick="openAuthModal('register')">Sign up <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+            <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+              <span id="navThemeToggleIcon" style="display:inline-flex; align-items:center; justify-content:center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              </span>
+            </button>
+
             <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Toggle navigation menu" onclick="toggleMobileNavMenu()">
               <span class="hamburger-bar"></span>
               <span class="hamburger-bar"></span>
@@ -35089,13 +35295,11 @@ function selectSettingsAvatar(emoji, el) {
           <button class="nav-signout-btn" onclick="handleLogout()" title="Sign Out">
             <span>🚪</span> <span class="signout-btn-label">Sign Out</span>
           </button>
-          ${toggleBtnHtml}
         `;
       } else {
         container.innerHTML = `
           <button class="landing-link-btn" onclick="openAuthModal('login')">Log in</button>
           <button class="nav-signup-cta-btn" onclick="openAuthModal('register')">Sign up ➔</button>
-          ${toggleBtnHtml}
         `;
       }
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
