@@ -4188,19 +4188,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     try {
       const match = path.match(/^\/api\/(?:dms|dm)\/([^\/]+)\/(?:read|mark-read)/);
       const targetUser = match ? decodeURIComponent(match[1]).trim().toLowerCase().replace(/^@/, "") : "";
-      let myUser = (
-        url.searchParams.get("username") ||
-        url.searchParams.get("user") ||
-        request.headers.get("X-User-Username") ||
-        ""
-      ).trim().toLowerCase().replace(/^@/, "");
-
-      if (!myUser) {
-        const authUser = await resolveUserFromRequest(request, env);
-        if (authUser && authUser.username) {
-          myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
-        }
+      const authUser = await resolveUserFromRequest(request, env);
+      if (!authUser || !authUser.username) {
+        return jsonResponse({ error: "Authentication required to mark direct messages as read" }, 401);
       }
+      const myUser = authUser.username.trim().toLowerCase().replace(/^@/, "");
 
       if (env.DB && myUser && targetUser) {
         const callerRow = await env.DB.prepare(
@@ -5571,11 +5563,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const joinMatch = path.match(/^\/api\/voice\/rooms\/([^\/]+)\/join/);
   if (joinMatch) {
     const roomId = decodeURIComponent(joinMatch[1]);
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to join voice lounges" }, 401);
+    }
     const body = await request.json().catch(() => ({}));
-    const username = (body.username || request.headers.get("X-User-Username") || "guest").trim().toLowerCase().replace(/^@/, "");
-    const nickname = body.nickname || username;
-    const avatar = body.avatar || "👾";
-    const rank = body.rank || "Genin";
+    const username = caller.username.trim().toLowerCase().replace(/^@/, "");
+    const nickname = caller.display_name || caller.username;
+    const avatar = caller.avatar_url || body.avatar || "👾";
+    const rank = caller.is_admin ? "Hokage" : (body.rank || "Member");
 
     const roomNames = {
       vr_lounge: "Main Shinobi Lounge",
@@ -5622,8 +5618,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   const leaveMatch = path.match(/^\/api\/voice\/rooms\/([^\/]+)\/leave/);
   if (leaveMatch) {
     const roomId = decodeURIComponent(leaveMatch[1]);
-    const body = await request.json().catch(() => ({}));
-    const username = (body.username || request.headers.get("X-User-Username") || "guest").trim().toLowerCase().replace(/^@/, "");
+    const caller = await resolveUserFromRequest(request, env);
+    if (!caller || !caller.username) {
+      return jsonResponse({ error: "Unauthorized: Active session required to leave voice lounges" }, 401);
+    }
+    const username = caller.username.trim().toLowerCase().replace(/^@/, "");
 
     if (ctx) {
       ctx.waitUntil(broadcastRealtime(env, {

@@ -124,16 +124,8 @@ async def authenticate_ws_session(websocket: WebSocket) -> User | None:
                     await db.commit()
                     return user
             else:
-                # Check recent session for token
-                old_stmt = select(UserSession).where(UserSession.session_token_hash == token_hash)
-                old_session = (await db.execute(old_stmt)).scalar_one_or_none()
-                if old_session:
-                    user_stmt = select(User).where(User.id == old_session.user_id)
-                    user = (await db.execute(user_stmt)).scalar_one_or_none()
-                    if user:
-                        old_session.expires_at = now + timedelta(days=settings.SESSION_EXPIRE_DAYS)
-                        await db.commit()
-                        return user
+                # SEC-V02 FIX: Expired session tokens must NOT be revived
+                return None
 
         # Security Hardening: Only explicitly identified guest / anonymous sessions are permitted without a token.
         # Registered user identities strictly require a valid session token to prevent impersonation.

@@ -29184,13 +29184,13 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         const data = await res.json();
         
         if (data.correct) {
-          fb.innerHTML = `<span style="color:var(--green); font-weight:800;">✅ Excellent Job! +${data.xp_gained} XP Awarded!</span><br>${data.explanation}`;
+          fb.innerHTML = `<span style="color:var(--green); font-weight:800;">✅ Excellent Job! +${Number(data.xp_gained || 0)} XP Awarded!</span><br>${escapeHTML(data.explanation || '')}`;
           document.getElementById('w3LessonStatusBadge').style.display = 'inline-block';
           lItem.completed = true;
           renderW3LessonsSidebar();
-          document.getElementById('learnRankBadge').innerText = `${data.rank} • ${data.current_xp} XP`;
+          document.getElementById('learnRankBadge').innerText = `${escapeHTML(data.rank || '')} • ${Number(data.current_xp || 0)} XP`;
         } else {
-          fb.innerHTML = `<span style="color:var(--red); font-weight:800;">❌ Incorrect Answer.</span><br>${data.explanation}`;
+          fb.innerHTML = `<span style="color:var(--red); font-weight:800;">❌ Incorrect Answer.</span><br>${escapeHTML(data.explanation || '')}`;
         }
       } catch (err) {
         fb.innerText = `Error: ${err.message}`;
@@ -37417,9 +37417,13 @@ function selectSettingsAvatar(emoji, el) {
       }
 
       try {
+        const token = localStorage.getItem('connecto_token');
         await fetch('/api/v1/users/me/delete-account', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+          },
           body: JSON.stringify({ confirmation: 'DELETE', username: currentUser })
         });
       } catch (_) {}
@@ -41357,7 +41361,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-11') {
+        if (name !== 'connecto-v5-0-12') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }

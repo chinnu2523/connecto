@@ -888,10 +888,10 @@ async def forgot_password_reset(
     """
     Resets user password with verified OTP. Automatically creates a session and logs the user in.
     """
-    if len(req.new_password) < 4:
+    if len(req.new_password) < 8:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="New password must be at least 4 characters long."
+            detail="New password must be at least 8 characters long."
         )
 
     raw_id = req.identifier.strip().lower()
@@ -1354,8 +1354,8 @@ async def change_password_endpoint(
     if not req.old_password or not req.new_password:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Both old and new passwords are required.")
     
-    if len(req.new_password) < 4:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 4 characters long.")
+    if len(req.new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 8 characters long.")
 
     clean_pwd = (req.old_password or "").strip()
     is_valid = verify_password(target_user.password_hash, req.old_password)

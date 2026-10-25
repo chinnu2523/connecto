@@ -8,7 +8,7 @@ class UserSignup(BaseModel):
     email: str = Field(..., min_length=3, max_length=128)
     username: str = Field(..., min_length=3, max_length=32)
     display_name: Optional[str] = Field(default="", max_length=64)
-    password: str = Field(..., min_length=4, max_length=128)
+    password: str = Field(..., min_length=8, max_length=128)
     date_of_birth: Optional[str] = Field(default=None, description="YYYY-MM-DD format for age verification")
     age: Optional[int] = Field(default=None, description="Age in years, must be 18 or above")
     agreed_to_terms: bool = Field(default=False, description="Must be true to agree to terms and conditions")
@@ -158,7 +158,7 @@ class ForgotPasswordVerify(BaseModel):
 class ForgotPasswordReset(BaseModel):
     identifier: str = Field(..., min_length=1)
     otp_code: str = Field(..., min_length=4, max_length=16)
-    new_password: str = Field(..., min_length=4, max_length=128)
+    new_password: str = Field(..., min_length=8, max_length=128)
 
 class TwoFactorToggleRequest(BaseModel):
     enabled: bool
