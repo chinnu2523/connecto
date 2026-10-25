@@ -22706,21 +22706,24 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
   <!-- 1. Left Guilds Navigation Rail (Hidden on homepage) -->
   <div class="guilds-nav" style="display:none;">
-    <div class="guild-icon active" id="tabChatBtn" onclick="switchMainView('chat')" title="Connecto Official Server">
+    <div class="guild-icon active" id="tabHomeBtn" onclick="switchMainView('home')" title="Home Dashboard">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div class="guild-icon" id="tabChatBtn" onclick="switchMainView('chat')" title="Connecto Channels & Community Chat">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
       <div class="rail-unread-badge" id="railUnreadBadge">0</div>
-    </div>
-    <div class="guild-icon" id="tabHeroBtn" onclick="switchMainView('hero')" title="Platform Overview & Features">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     </div>
     <div class="guild-icon" id="tabFriendsBtn" onclick="switchMainView('friends')" title="Friends & Contacts">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     </div>
+    <div class="guild-icon" id="tabVoiceBtn" onclick="switchMainView('voice')" title="Voice & Screen Lounge">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+    </div>
     <div class="guild-icon" id="tabLearnBtn" onclick="switchMainView('learning')" title="Learning Hub">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10"/><path d="M6 10h10"/></svg>
     </div>
-    <div class="guild-icon" id="tabVoiceBtn" onclick="switchMainView('voice')" title="Voice & Screen Lounge">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+    <div class="guild-icon" id="tabHeroBtn" onclick="switchMainView('hero')" title="Platform Overview & Landing">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
     </div>
 
     <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.6.5 Live • 24/7 AI Support & Legal Suite • 36.0 MB)" style="text-decoration:none; color:#10b981; position:relative;">
@@ -22730,10 +22733,6 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         <span class="apk-version-val">v4.6.5</span>
       </div>
     </a>
-        <div class="guild-icon" id="tabVaultRailBtn" onclick="openConnectoVault()" title="Connecto Hardware Vault (Biometrics & OLED Keyguard)" style="position:relative; color:#10b981;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <div class="rail-unread-badge" style="display:block; background:#10b981; color:#020617; font-weight:900; font-size:8px;">VAULT</div>
-    </div>
 <div class="guild-separator"></div>
     <div class="guild-icon" onclick="openSettingsModal()" title="Account & Settings">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -23392,11 +23391,11 @@ html[data-theme="dark"] .auth-input-field::placeholder {
 
           <div class="nav-links-track" id="navLinksTrack">
             <div class="nav-sliding-pill" id="navSlidingPill"></div>
+            <a class="landing-link" id="navLinkHome" onclick="switchMainView('home')" style="cursor:pointer;"><i data-lucide="home" class="lucide-sm"></i>Home</a>
             <a class="landing-link" id="navLinkAbout" onclick="scrollToHeroSection('ecosystemSection')">Features</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
             <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
-            <a class="landing-link" id="navLinkVault" onclick="openConnectoVault()" style="display:inline-flex; align-items:center; gap:6px; color:#10b981; font-weight:700; cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm"></i>Vault</a>
             <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.6.5 Live • 36.0 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
@@ -23442,7 +23441,8 @@ html[data-theme="dark"] .auth-input-field::placeholder {
               <span class="hero-pill-badge"><i data-lucide="radio" class="lucide-sm"></i> Mesh Voice</span>
             </div>
             <div class="hero-cta-buttons-row">
-              <button class="btn hero-cta-btn-primary" onclick="switchMainView('chat')"><span>Open Live Chat</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+              <button class="btn hero-cta-btn-primary" onclick="switchMainView('home')"><span>Open Home Dashboard</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+              <button class="btn hero-cta-btn-secondary" onclick="switchMainView('chat')"><span>Open Live Chat</span> <i data-lucide="message-square" class="lucide-sm"></i></button>
               <button class="btn hero-cta-btn-secondary" onclick="scrollToHeroSection('ecosystemSection')"><span>Explore Architecture</span> <i data-lucide="arrow-down" class="lucide-sm"></i></button>
             </div>
           </div>
@@ -23966,21 +23966,21 @@ html[data-theme="dark"] .auth-input-field::placeholder {
                 </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
-                    <span>Connecto Hardware Vault</span>
-                    <span class="ecosystem-card-badge" style="background:rgba(16,185,129,0.15); color:#10b981;">Hardware-Backed • AES-256</span>
+                    <span>Zero-Knowledge Security</span>
+                    <span class="ecosystem-card-badge" style="background:rgba(16,185,129,0.15); color:#10b981;">End-to-End • AES-256</span>
                   </div>
-                  <p class="ecosystem-card-desc">Hardware-isolated secure enclave with biometric authentication, zero-knowledge AES-256-GCM encrypted notes, and adaptive theme lighting.</p>
+                  <p class="ecosystem-card-desc">End-to-end encrypted messaging and private sessions with zero-knowledge AES-256-GCM message envelopes and adaptive privacy protection.</p>
                 </div>
               </div>
               <div class="ecosystem-card-features">
-                <span class="ecosystem-feature-chip">Biometrics</span>
+                <span class="ecosystem-feature-chip">E2E Privacy</span>
                 <span class="ecosystem-feature-chip">AES-256-GCM</span>
-                <span class="ecosystem-feature-chip">Light/OLED Sync</span>
+                <span class="ecosystem-feature-chip">Light/Dark Sync</span>
                 <span class="ecosystem-feature-chip">Zero Knowledge</span>
               </div>
               <div class="ecosystem-card-action">
-                <span style="font-size:11.5px; color:var(--text-muted);">connecto.fun/vault</span>
-                <button onclick="openConnectoVault()" class="ecosystem-card-btn" style="color:#10b981; background:transparent; border:none; cursor:pointer;">Launch Hardware Vault <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+                <span style="font-size:11.5px; color:var(--text-muted);">connecto.fun/security</span>
+                <button onclick="scrollToHeroSection('archSection')" class="ecosystem-card-btn" style="color:var(--text-header); background:transparent; border:none; cursor:pointer;">Explore Architecture Specs <i data-lucide="arrow-right" class="lucide-sm"></i></button>
               </div>
             </div>
 
@@ -24374,7 +24374,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
               <ul>
                 <li><a onclick="scrollToHeroSection('ecosystemSection')"><i data-lucide="layers" class="lucide-sm" style="margin-right:6px;"></i> Platform Ecosystem</a></li>
                 <li><a href="/changelog" target="_blank"><i data-lucide="file-text" class="lucide-sm" style="margin-right:6px;"></i> Platform Changelog</a></li>
-                <li><a onclick="openConnectoVault()" style="cursor:pointer;"><i data-lucide="shield-check" class="lucide-sm" style="margin-right:6px;"></i> Connecto Hardware Vault</a></li>
+                <li><a onclick="switchMainView('home')" style="cursor:pointer;"><i data-lucide="home" class="lucide-sm" style="margin-right:6px;"></i> Connecto Home Dashboard</a></li>
                 <li><a onclick="scrollToHeroSection('faqSection')"><i data-lucide="help-circle" class="lucide-sm" style="margin-right:6px;"></i> Platform FAQ</a></li>
                 <li><a onclick="openCustomerSupportAiModal()" style="cursor:pointer;"><i data-lucide="headphones" class="lucide-sm" style="margin-right:6px;"></i> Customer Support (24/7 AI)</a></li>
               </ul>
@@ -24408,10 +24408,13 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             <div class="connecto-header-title">connecto.fun</div>
             <div class="connecto-header-status">
               <span style="width:7px; height:7px; border-radius:50%; background:#22C55E; display:inline-block;"></span>
-              <span>Online</span>
+              <span>Online • WebSocket Real-Time</span>
             </div>
           </div>
           <div class="connecto-header-actions">
+            <button type="button" class="connecto-header-icon-btn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
             <button type="button" class="connecto-header-icon-btn" onclick="openAddFriendModal()" title="Add Friend">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
             </button>
@@ -24430,7 +24433,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           <div class="connecto-greeting-title" id="homeGreetingTitle">Welcome to Connecto 👋</div>
           <div class="connecto-greeting-sub">
             <span style="width:7px; height:7px; border-radius:50%; background:#22C55E; display:inline-block;"></span>
-            <span id="homeNetworkStatusText">Connected to the Connecto Network</span>
+            <span id="homeNetworkStatusText">Connected to the Connecto Network • Sub-5ms Delivery</span>
           </div>
         </div>
 
@@ -24445,11 +24448,20 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           <button type="button" class="connecto-action-pill" onclick="switchMainView('calls')">
             <span>📞</span> <span>Calls</span>
           </button>
+          <button type="button" class="connecto-action-pill" onclick="switchMainView('voice')">
+            <span>🔊</span> <span>Voice Lounge</span>
+          </button>
+          <button type="button" class="connecto-action-pill" onclick="switchMainView('learning')">
+            <span>🌱</span> <span>Learning</span>
+          </button>
+          <button type="button" class="connecto-action-pill" onclick="switchMainView('friends')">
+            <span>👥</span> <span>Friends</span>
+          </button>
           <button type="button" class="connecto-action-pill" onclick="openSettingsModal()">
             <span>👤</span> <span>Profile</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="openAddFriendModal()">
-            <span>+</span> <span>Add</span>
+            <span>+</span> <span>Add Friend</span>
           </button>
         </div>
 
@@ -24463,29 +24475,45 @@ html[data-theme="dark"] .auth-input-field::placeholder {
             <div class="connecto-channel-hash">#</div>
             <div class="connecto-channel-info">
               <div class="connecto-channel-name">#general</div>
-              <div class="connecto-channel-desc">Team announcements and general chat</div>
+              <div class="connecto-channel-desc">Team announcements and general community chat</div>
             </div>
           </div>
           <div class="connecto-channel-card" onclick="selectChannel('announcements'); switchMainView('chat');">
             <div class="connecto-channel-hash">#</div>
             <div class="connecto-channel-info">
               <div class="connecto-channel-name">#announcements</div>
-              <div class="connecto-channel-desc">Official updates and releases</div>
+              <div class="connecto-channel-desc">Official platform updates and release notes</div>
             </div>
           </div>
           <div class="connecto-channel-card" onclick="selectChannel('dev-chat'); switchMainView('chat');">
             <div class="connecto-channel-hash">#</div>
             <div class="connecto-channel-info">
               <div class="connecto-channel-name">#dev-chat</div>
-              <div class="connecto-channel-desc">Discussions and shared resources</div>
+              <div class="connecto-channel-desc">Architecture discussions, shared snippets &amp; APIs</div>
             </div>
           </div>
           <div class="connecto-channel-card" onclick="selectChannel('gaming'); switchMainView('chat');">
             <div class="connecto-channel-hash">#</div>
             <div class="connecto-channel-info">
               <div class="connecto-channel-name">#gaming</div>
-              <div class="connecto-channel-desc">Discussions and shared resources</div>
+              <div class="connecto-channel-desc">Casual hangouts, live voice sessions &amp; gaming</div>
             </div>
+          </div>
+        </div>
+
+        <!-- Active Voice Lounges Section -->
+        <div class="connecto-section-header" style="margin-top:24px;">
+          <div class="connecto-section-title">Active Voice Lounges</div>
+          <a class="connecto-section-link" onclick="switchMainView('voice')">Open Lounge</a>
+        </div>
+        <div class="connecto-channel-list">
+          <div class="connecto-channel-card" onclick="switchMainView('voice');">
+            <div class="connecto-channel-hash" style="color:var(--green, #22c55e);">🔊</div>
+            <div class="connecto-channel-info">
+              <div class="connecto-channel-name">Tactical War Room • WebRTC Mesh</div>
+              <div class="connecto-channel-desc">Ultra-low latency Opus audio • Direct encrypted room</div>
+            </div>
+            <button type="button" class="btn" style="padding:6px 14px; font-size:12px; border-radius:10px;">Join Lounge ➔</button>
           </div>
         </div>
 
@@ -24498,7 +24526,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
           </div>
         </div>
         <div class="connecto-dm-list" id="homeDmList">
-          <div style="text-align:center; padding:24px 16px; color:#64748b; font-size:12.5px;">No direct messages yet.</div>
+          <div style="text-align:center; padding:24px 16px; color:#64748b; font-size:12.5px;">No direct messages yet. <a onclick="openAddFriendModal()" style="color:#ea580c; cursor:pointer; font-weight:700; text-decoration:underline; margin-left:4px;">Add friends</a> to start chatting!</div>
         </div>
       </div>
     </div>
@@ -27350,6 +27378,7 @@ html[data-theme="dark"] .auth-input-field::placeholder {
         heroView.style.setProperty('display', 'none', 'important');
       }
       document.getElementById('friendsView')?.classList.remove('active');
+      document.getElementById('tabHomeBtn')?.classList.remove('active');
       document.getElementById('tabChatBtn')?.classList.remove('active');
       document.getElementById('tabHeroBtn')?.classList.remove('active');
       document.getElementById('tabFriendsBtn')?.classList.remove('active');
@@ -39485,7 +39514,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
   if ('caches' in window) {
     caches.keys().then((names) => {
       names.forEach((name) => {
-        if (name !== 'connecto-v5-0-5') {
+        if (name !== 'connecto-v5-0-6') {
           console.log('[PWA] Purging stale cache:', name);
           caches.delete(name);
         }
@@ -39493,7 +39522,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
     });
   }
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js?v=5.0.2', { scope: '/' })
+    navigator.serviceWorker.register('/sw.js?v=5.0.6', { scope: '/' })
       .then((reg) => {
         reg.update();
       })
@@ -40840,6 +40869,14 @@ function enhancedSwitchMainView(view) {
     document.body.classList.add('in-app-view');
     document.body.classList.remove('mobile-in-chat');
     localStorage.setItem('connecto_prev_mobile_view', 'home');
+
+    const guildsNav = document.querySelector('.guilds-nav');
+    if (guildsNav) {
+      if (isMobile) guildsNav.style.setProperty('display', 'none', 'important');
+      else { guildsNav.style.removeProperty('display'); guildsNav.style.display = 'flex'; }
+    }
+    document.querySelectorAll('.guild-icon').forEach(g => g.classList.remove('active'));
+    document.getElementById('tabHomeBtn')?.classList.add('active');
 
     // On mobile, hide the redundant chat header when in Home view
     if (isMobile && chatHeader) {
