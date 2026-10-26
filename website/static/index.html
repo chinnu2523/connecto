@@ -31417,7 +31417,7 @@ html[data-theme="dark"] #saveProfileBtn {
             dd.innerHTML = `<div style="padding:10px; font-size:12px; color:var(--text-muted);">No users found. Press Enter to message @${escapeHTML(q)}</div>`;
           } else {
             dd.innerHTML = unique.map(u => `
-              <div class="search-result-item" onclick="selectSearchResultUser('${escapeHTML(u)}')">
+              <div class="search-result-item" data-username="${escapeHTML(u)}" onclick="selectSearchResultUserFromElement(this)">
                 <span>👤</span>
                 <strong>${escapeHTML(u)}</strong>
               </div>
@@ -32264,6 +32264,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
       const knownLangs = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'css', 'json', 'bash', 'sh', 'cpp', 'c', 'rust', 'rs', 'go', 'sql', 'yaml', 'yml', 'markdown', 'md', 'xml'];
 
+      const codeBlockNonce = Math.random().toString(36).substring(2, 10);
       // 1. Extract triple backtick code blocks with optional language specifier
       const codeBlocks = [];
       text = text.replace(/```([a-zA-Z0-9_-]+)?(?:\r?\n|[\t ])?([\s\S]*?)```/g, (match, rawLang, codeContent) => {
@@ -32282,16 +32283,16 @@ html[data-theme="dark"] #saveProfileBtn {
           }
         }
 
-        const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-        codeBlocks.push({ lang: lang, code: (code || '').trim() });
+        const placeholder = `__CODE_BLOCK_${codeBlockNonce}_${codeBlocks.length}__`;
+        codeBlocks.push({ lang: lang, code: (code || '').trim(), placeholder });
         return placeholder;
       });
 
       // 2. Extract inline code with single backticks
       const inlineCodes = [];
       text = text.replace(/`([^`\n]+)`/g, (match, inlineContent) => {
-        const placeholder = `__INLINE_CODE_${inlineCodes.length}__`;
-        inlineCodes.push(inlineContent);
+        const placeholder = `__INLINE_CODE_${codeBlockNonce}_${inlineCodes.length}__`;
+        inlineCodes.push({ content: inlineContent, placeholder });
         return placeholder;
       });
 
@@ -32315,8 +32316,8 @@ html[data-theme="dark"] #saveProfileBtn {
 
       // 4. Restore inline code
       inlineCodes.forEach((ic, idx) => {
-        const rendered = `<code class="inline-code-pill">${escapeHTML(ic)}</code>`;
-        escaped = escaped.replace(`__INLINE_CODE_${idx}__`, rendered);
+        const rendered = `<code class="inline-code-pill">${escapeHTML(ic.content || ic)}</code>`;
+        escaped = escaped.replaceAll(ic.placeholder || `__INLINE_CODE_${idx}__`, rendered);
       });
 
       // 5. Restore and highlight triple-backtick code blocks
@@ -32350,7 +32351,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <pre class="hljs-pre"><code class="hljs ${cb.lang ? 'language-' + cb.lang : ''}">${highlighted}</code></pre>
           </div>
         `;
-        escaped = escaped.replace(`__CODE_BLOCK_${idx}__`, blockHTML);
+        escaped = escaped.replaceAll(cb.placeholder || `__CODE_BLOCK_${idx}__`, blockHTML);
       });
 
       return escaped;
@@ -32380,14 +32381,18 @@ html[data-theme="dark"] #saveProfileBtn {
     // ==================== OPENGRAPH RICH LINK PREVIEWS ====================
     function renderLinkPreviewHTML(preview) {
       if (!preview || !preview.url) return '';
-      const imageHTML = preview.image ? `<img src="${escapeHTML(preview.image)}" class="link-preview-image" alt="Preview Image" onerror="this.style.display='none'">` : '';
-      const favHTML = preview.favicon ? `<img src="${escapeHTML(preview.favicon)}" class="link-preview-favicon" alt="Icon" onerror="this.style.display='none'">` : '<span style="font-size:12px;">🔗</span>';
+      const rawUrl = String(preview.url).trim();
+      if (!rawUrl.startsWith('https://') && !rawUrl.startsWith('http://')) return '';
+      const safeUrl = escapeHTML(rawUrl);
+      const isSafeImg = (u) => u && (u.startsWith('https://') || u.startsWith('http://') || u.startsWith('/uploads/') || u.startsWith('data:image/'));
+      const imageHTML = isSafeImg(preview.image) ? `<img src="${escapeHTML(preview.image)}" class="link-preview-image" alt="Preview Image" onerror="this.style.display='none'">` : '';
+      const favHTML = isSafeImg(preview.favicon) ? `<img src="${escapeHTML(preview.favicon)}" class="link-preview-favicon" alt="Icon" onerror="this.style.display='none'">` : '<span style="font-size:12px;">🔗</span>';
       const siteName = preview.site_name || preview.domain || 'External Link';
       const title = preview.title || preview.url;
       const desc = preview.description ? `<div class="link-preview-desc">${escapeHTML(preview.description)}</div>` : '';
 
       return `
-        <a href="${escapeHTML(preview.url)}" target="_blank" rel="noopener noreferrer" class="msg-link-preview-card" onclick="event.stopPropagation()">
+        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="msg-link-preview-card" onclick="event.stopPropagation()">
           ${imageHTML}
           <div class="link-preview-body">
             <div class="link-preview-site-row">
@@ -32617,11 +32622,11 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="chat-empty-actions-row" style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
                 <button class="chat-empty-btn btn btn-outline" style="padding:6px 14px; font-size:12.5px;" onclick="startDMCall()">📞 Call @${escapeHTML(currentDMTarget)}</button>
                 ${isFriend ? `
-                  <button class="chat-empty-btn btn btn-outline" style="padding:6px 14px; font-size:12.5px; color:#ef4444; border-color:rgba(239, 68, 68, 0.4);" onclick="confirmUnfriendUser('${escapeHTML(currentDMTarget)}')">
+                  <button class="chat-empty-btn btn btn-outline" style="padding:6px 14px; font-size:12.5px; color:#ef4444; border-color:rgba(239, 68, 68, 0.4);" onclick="handleUnfriendCurrentDMTarget()">
                     <i data-lucide="user-minus" class="lucide-xs"></i> Unfriend
                   </button>
                 ` : `
-                  <button class="chat-empty-btn btn btn-outline" style="padding:6px 14px; font-size:12.5px; color:var(--chakra-cyan, #06b6d4); border-color:rgba(6, 182, 212, 0.4);" onclick="sendFriendRequestFromDM('${escapeHTML(currentDMTarget)}')">
+                  <button class="chat-empty-btn btn btn-outline" style="padding:6px 14px; font-size:12.5px; color:var(--chakra-cyan, #06b6d4); border-color:rgba(6, 182, 212, 0.4);" onclick="handleAddFriendCurrentDMTarget()">
                     <i data-lucide="user-plus" class="lucide-xs"></i> Add Friend
                   </button>
                 `}
@@ -32722,11 +32727,11 @@ html[data-theme="dark"] #saveProfileBtn {
           <div style="display:flex; gap:8px;">
             <button class="btn btn-outline" style="padding:5px 12px; font-size:12px;" onclick="startDMCall()">📞 Call</button>
             ${isFriend ? `
-              <button class="btn btn-outline" style="padding:5px 12px; font-size:12px; color:#ef4444; border-color:rgba(239, 68, 68, 0.4);" onclick="confirmUnfriendUser('${escapeHTML(currentDMTarget)}')">
+              <button class="btn btn-outline" style="padding:5px 12px; font-size:12px; color:#ef4444; border-color:rgba(239, 68, 68, 0.4);" onclick="handleUnfriendCurrentDMTarget()">
                 <i data-lucide="user-minus" class="lucide-xs"></i> Unfriend
               </button>
             ` : `
-              <button class="btn btn-outline" style="padding:5px 12px; font-size:12px; color:var(--chakra-cyan, #06b6d4); border-color:rgba(6, 182, 212, 0.4);" onclick="sendFriendRequestFromDM('${escapeHTML(currentDMTarget)}')">
+              <button class="btn btn-outline" style="padding:5px 12px; font-size:12px; color:var(--chakra-cyan, #06b6d4); border-color:rgba(6, 182, 212, 0.4);" onclick="handleAddFriendCurrentDMTarget()">
                 <i data-lucide="user-plus" class="lucide-xs"></i> Add Friend
               </button>
             `}
@@ -32768,7 +32773,7 @@ html[data-theme="dark"] #saveProfileBtn {
           const isSafeAttScheme = rawAtt.startsWith('https://') || rawAtt.startsWith('http://') || rawAtt.startsWith('/uploads/') || rawAtt.startsWith('data:image/');
           const safeAttachment = isSafeAttScheme ? escapeHTML(rawAtt) : '';
           const safeAttachmentUrl = isSafeAttScheme ? encodeURI(rawAtt) : '#';
-          const attachmentHTML = (msg.attachment && isSafeAttScheme) ? `<img src="${safeAttachment}" style="margin-top:6px; max-width:260px; max-height:180px; border-radius:6px; display:block; cursor:pointer;" alt="Attachment" onclick="window.open('${safeAttachmentUrl}', '_blank', 'noopener,noreferrer')">` : '';
+          const attachmentHTML = (msg.attachment && isSafeAttScheme) ? `<img src="${safeAttachment}" style="margin-top:6px; max-width:260px; max-height:180px; border-radius:6px; display:block; cursor:pointer;" data-url="${safeAttachment}" alt="Attachment" onclick="handleAttachmentImgClick(this)">` : '';
 
           let replyHTML = '';
           if (msg.reply_to) {
@@ -32792,7 +32797,7 @@ html[data-theme="dark"] #saveProfileBtn {
             const chips = Object.entries(msg.reactions).map(([emoji, users]) => {
               const hasReacted = Array.isArray(users) && currentUser && users.includes(currentUser.toLowerCase());
               return `
-                <span class="msg-rx-chip ${hasReacted ? 'active' : ''}" onclick="handleMessageReaction('${msg.id}', '${emoji}')" title="${(users || []).join(', ')}">
+                <span class="msg-rx-chip ${hasReacted ? 'active' : ''}" data-emoji="${escapeHTML(emoji)}" onclick="handleReactionBtnClick(this)" title="${escapeHTML((users || []).join(', '))}">
                   <span>${emoji}</span>
                   <span style="font-weight:700;">${(users || []).length}</span>
                 </span>
@@ -32806,7 +32811,7 @@ html[data-theme="dark"] #saveProfileBtn {
             const repliesLabel = msg.thread_count === 1 ? '1 reply' : `${msg.thread_count} replies`;
             const lastReplyText = msg.thread_last_reply_at ? `Last reply ${msg.thread_last_reply_at}` : 'View thread';
             threadPillHTML = `
-              <div class="msg-thread-pill" onclick="openThreadDrawer('${msg.id}', '${encodeURIComponent(msg.channel_id || currentChannel)}')">
+              <div class="msg-thread-pill" onclick="openThreadActionBtn(this)">
                 <span>🧵</span>
                 <span>${repliesLabel}</span>
                 <span class="thread-pill-meta">• ${lastReplyText}</span>
@@ -32824,6 +32829,8 @@ html[data-theme="dark"] #saveProfileBtn {
 
           const card = document.createElement('div');
           card.id = `msg-${msg.id}`;
+          card.setAttribute('data-msg-id', msg.id);
+          card.setAttribute('data-channel-id', msg.channel_id || currentChannel || '');
 
           if (currentMode === 'dm') {
             // ==================== PERSONAL CHAT (DIRECT MESSAGE) BUBBLE UI ====================
@@ -32847,13 +32854,13 @@ html[data-theme="dark"] #saveProfileBtn {
                     ${reactionsHTML}
                   </div>
                   <div class="dm-bubble-hover-actions dm-actions-mine">
-                    <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '❤️')" title="Love ❤️">❤️</button>
-                    <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '🔥')" title="Fire 🔥">🔥</button>
-                    <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '👍')" title="Thumbs Up 👍">👍</button>
-                    <button class="dm-act-icon" onclick="initiateReply('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 40))}')" title="Reply">💬</button>
-                    <button class="dm-act-icon" onclick="copyMessageText('${msg.id}')" title="Copy">📋</button>
-                    ${isOwner ? `<button class="dm-act-icon" onclick="promptEditMessage('${msg.id}')" title="Edit">✏️</button>` : ''}
-                    ${isOwner ? `<button class="dm-act-icon" onclick="deleteMessage('${msg.id}')" title="Delete">🗑️</button>` : ''}
+                    <button class="dm-act-icon" data-emoji="❤️" onclick="handleReactionBtnClick(this)" title="Love ❤️">❤️</button>
+                    <button class="dm-act-icon" data-emoji="🔥" onclick="handleReactionBtnClick(this)" title="Fire 🔥">🔥</button>
+                    <button class="dm-act-icon" data-emoji="👍" onclick="handleReactionBtnClick(this)" title="Thumbs Up 👍">👍</button>
+                    <button class="dm-act-icon" onclick="handleReplyActionBtn(this)" title="Reply">💬</button>
+                    <button class="dm-act-icon" onclick="copyMessageActionBtn(this)" title="Copy">📋</button>
+                    ${isOwner ? `<button class="dm-act-icon" onclick="promptEditActionBtn(this)" title="Edit">✏️</button>` : ''}
+                    ${isOwner ? `<button class="dm-act-icon" onclick="deleteMessageActionBtn(this)" title="Delete">🗑️</button>` : ''}
                   </div>
                 </div>
               `;
@@ -32861,13 +32868,13 @@ html[data-theme="dark"] #saveProfileBtn {
               // Incoming message from DM Partner -> Left-aligned Bubble with Avatar Beside It
               card.className = `personal-dm-row dm-row-theirs ${msg.is_new_incoming ? 'incoming-spring' : ''}`;
               card.innerHTML = `
-                <div class="dm-bubble-avatar-col" onclick="handleMemberClick('${escapeHTML(msg.user)}', event)">
+                <div class="dm-bubble-avatar-col" data-username="${escapeHTML(msg.user)}" onclick="handleMemberClickFromElement(this, event)">
                   ${renderAvatarHTML(msg.avatar, displayName, 32)}
                 </div>
                 <div class="personal-dm-bubble-wrap">
                   <div class="personal-dm-bubble dm-bubble-theirs">
                     <div class="dm-sender-header">
-                      <span class="dm-sender-name" onclick="handleMemberClick('${escapeHTML(msg.user)}', event)">${escapeHTML(displayName)}</span>
+                      <span class="dm-sender-name" data-username="${escapeHTML(msg.user)}" onclick="handleMemberClickFromElement(this, event)">${escapeHTML(displayName)}</span>
                     </div>
                     ${replyHTML}
                     <div class="dm-bubble-body">
@@ -32882,13 +32889,13 @@ html[data-theme="dark"] #saveProfileBtn {
                     ${reactionsHTML}
                   </div>
                   <div class="dm-bubble-hover-actions dm-actions-theirs">
-                    <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '❤️')" title="Love ❤️">❤️</button>
-                    <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '🔥')" title="Fire 🔥">🔥</button>
-                    <button class="dm-act-icon" onclick="handleMessageReaction('${msg.id}', '👍')" title="Thumbs Up 👍">👍</button>
-                    <button class="dm-act-icon" onclick="initiateReply('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 40))}')" title="Reply">💬</button>
-                    <button class="dm-act-icon" onclick="translateMessageInline('${msg.id}')" title="Translate">🌐</button>
-                    <button class="dm-act-icon" onclick="copyMessageText('${msg.id}')" title="Copy">📋</button>
-                    <button class="dm-act-icon" onclick="openReportMessageModal('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 45))}')" title="Report">🚩</button>
+                    <button class="dm-act-icon" data-emoji="❤️" onclick="handleReactionBtnClick(this)" title="Love ❤️">❤️</button>
+                    <button class="dm-act-icon" data-emoji="🔥" onclick="handleReactionBtnClick(this)" title="Fire 🔥">🔥</button>
+                    <button class="dm-act-icon" data-emoji="👍" onclick="handleReactionBtnClick(this)" title="Thumbs Up 👍">👍</button>
+                    <button class="dm-act-icon" onclick="handleReplyActionBtn(this)" title="Reply">💬</button>
+                    <button class="dm-act-icon" onclick="translateMessageActionBtn(this)" title="Translate">🌐</button>
+                    <button class="dm-act-icon" onclick="copyMessageActionBtn(this)" title="Copy">📋</button>
+                    <button class="dm-act-icon" onclick="handleReportActionBtn(this)" title="Report">🚩</button>
                   </div>
                 </div>
               `;
@@ -32898,7 +32905,7 @@ html[data-theme="dark"] #saveProfileBtn {
             card.className = `connecto-message-card channel-message-card ${isMine ? 'mine' : ''} ${msg.is_new_incoming ? 'incoming-spring' : ''}`;
             card.innerHTML = `
               <div class="msg-card-header">
-                <div class="msg-card-user-info" onclick="handleMemberClick('${escapeHTML(msg.user)}', event)">
+                <div class="msg-card-user-info" data-username="${escapeHTML(msg.user)}" onclick="handleMemberClickFromElement(this, event)">
                   <div class="msg-card-avatar">${renderAvatarHTML(msg.avatar, displayName, 38)}</div>
                   <div class="msg-card-names">
                     <span class="msg-card-author">${escapeHTML(displayName)}</span>
@@ -32917,17 +32924,17 @@ html[data-theme="dark"] #saveProfileBtn {
               ${reactionsHTML}
               ${threadPillHTML}
               <div class="msg-hover-actions">
-                <button class="msg-act-icon" onclick="handleMessageReaction('${msg.id}', '🔥')" title="React 🔥">🔥</button>
-                <button class="msg-act-icon" onclick="handleMessageReaction('${msg.id}', '⚡')" title="React ⚡">⚡</button>
-                <button class="msg-act-icon" onclick="handleMessageReaction('${msg.id}', '👍')" title="React 👍">👍</button>
-                <button class="msg-act-icon" onclick="openThreadDrawer('${msg.id}', '${encodeURIComponent(msg.channel_id || currentChannel)}')" title="Reply in Thread">🧵</button>
-                <button class="msg-act-icon" onclick="initiateReply('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 40))}')" title="Quote Reply">💬</button>
-                <button class="msg-act-icon" onclick="translateMessageInline('${msg.id}')" title="Translate Message">🌐</button>
-                <button class="msg-act-icon" onclick="copyMessageText('${msg.id}')" title="Copy Text">📋</button>
-                <button class="msg-act-icon" onclick="openReportMessageModal('${msg.id}', '${escapeHTML(msg.user)}', '${escapeHTML(msg.content.slice(0, 45))}')" title="Report Message">🚩</button>
-                ${isOwner ? `<button class="msg-act-icon" onclick="promptEditMessage('${msg.id}')" title="Edit">✏️</button>` : ''}
-                <button class="msg-act-icon" onclick="togglePinMessage('${msg.id}')" title="${msg.pinned ? 'Unpin' : 'Pin'}">📌</button>
-                ${isOwner ? `<button class="msg-act-icon" onclick="deleteMessage('${msg.id}')" title="Delete">🗑️</button>` : ''}
+                <button class="msg-act-icon" data-emoji="🔥" onclick="handleReactionBtnClick(this)" title="React 🔥">🔥</button>
+                <button class="msg-act-icon" data-emoji="⚡" onclick="handleReactionBtnClick(this)" title="React ⚡">⚡</button>
+                <button class="msg-act-icon" data-emoji="👍" onclick="handleReactionBtnClick(this)" title="React 👍">👍</button>
+                <button class="msg-act-icon" onclick="openThreadActionBtn(this)" title="Reply in Thread">🧵</button>
+                <button class="msg-act-icon" onclick="handleReplyActionBtn(this)" title="Quote Reply">💬</button>
+                <button class="msg-act-icon" onclick="translateMessageActionBtn(this)" title="Translate Message">🌐</button>
+                <button class="msg-act-icon" onclick="copyMessageActionBtn(this)" title="Copy Text">📋</button>
+                <button class="msg-act-icon" onclick="handleReportActionBtn(this)" title="Report Message">🚩</button>
+                ${isOwner ? `<button class="msg-act-icon" onclick="promptEditActionBtn(this)" title="Edit">✏️</button>` : ''}
+                <button class="msg-act-icon" onclick="togglePinActionBtn(this)" title="${msg.pinned ? 'Unpin' : 'Pin'}">📌</button>
+                ${isOwner ? `<button class="msg-act-icon" onclick="deleteMessageActionBtn(this)" title="Delete">🗑️</button>` : ''}
               </div>
             `;
           }
@@ -33061,6 +33068,91 @@ html[data-theme="dark"] #saveProfileBtn {
 
     // Reply Threading System
     let currentReplyTarget = null;
+    
+    // ==================== SECURE EVENT DELEGATION HELPERS ====================
+    function _getMsgFromBtn(el) {
+      if (!el) return null;
+      const card = el.closest('[data-msg-id]') || el.closest('.personal-dm-row, .connecto-message-card');
+      const msgId = el.getAttribute('data-msg-id') || (card ? card.getAttribute('data-msg-id') : null);
+      if (!msgId) return null;
+      return messageStore.get(msgId) || { id: msgId };
+    }
+
+    function handleReplyActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg) initiateReply(msg.id, msg.user || '', (msg.content || '').slice(0, 40));
+    }
+
+    function handleReportActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg) openReportMessageModal(msg.id, msg.user || '', (msg.content || '').slice(0, 45));
+    }
+
+    function handleReactionBtnClick(el) {
+      const msg = _getMsgFromBtn(el);
+      const emoji = el.getAttribute('data-emoji') || el.innerText.trim() || '👍';
+      if (msg && msg.id) handleMessageReaction(msg.id, emoji);
+    }
+
+    function copyMessageActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg && msg.id) copyMessageText(msg.id);
+    }
+
+    function translateMessageActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg && msg.id) translateMessageInline(msg.id);
+    }
+
+    function openThreadActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg && msg.id) {
+        const card = el.closest('[data-msg-id]');
+        const ch = (card ? card.getAttribute('data-channel-id') : '') || msg.channel_id || currentChannel;
+        openThreadDrawer(msg.id, encodeURIComponent(ch));
+      }
+    }
+
+    function promptEditActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg && msg.id) promptEditMessage(msg.id);
+    }
+
+    function togglePinActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg && msg.id) togglePinMessage(msg.id);
+    }
+
+    function deleteMessageActionBtn(el) {
+      const msg = _getMsgFromBtn(el);
+      if (msg && msg.id) deleteMessage(msg.id);
+    }
+
+    function handleMemberClickFromElement(el, event) {
+      const uname = el.getAttribute('data-username') || el.closest('[data-username]')?.getAttribute('data-username');
+      if (uname) handleMemberClick(uname, event);
+    }
+
+    function handleAttachmentImgClick(el) {
+      const url = el.getAttribute('data-url');
+      if (url && (url.startsWith('https://') || url.startsWith('http://') || url.startsWith('/uploads/') || url.startsWith('data:image/'))) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+      }
+    }
+
+    function handleUnfriendCurrentDMTarget() {
+      if (currentDMTarget) confirmUnfriendUser(currentDMTarget);
+    }
+
+    function handleAddFriendCurrentDMTarget() {
+      if (currentDMTarget) sendFriendRequestFromDM(currentDMTarget);
+    }
+
+    function selectSearchResultUserFromElement(el) {
+      const uname = el.getAttribute('data-username');
+      if (uname) selectSearchResultUser(uname);
+    }
+
     function initiateReply(msgId, author, snippet) {
       currentReplyTarget = { msgId, author, snippet };
       const bar = document.getElementById('replyBar');
@@ -33340,7 +33432,7 @@ html[data-theme="dark"] #saveProfileBtn {
           }
 
           return `
-            <div class="member-item ${isOffline ? 'member-offline' : 'member-online'}" data-username="${escapeHTML(m.username).toLowerCase()}" onclick="handleMemberClick('${escapeHTML(m.username)}', event)">
+            <div class="member-item ${isOffline ? 'member-offline' : 'member-online'}" data-username="${escapeHTML(m.username).toLowerCase()}" onclick="handleMemberClickFromElement(this, event)">
               <div class="member-avatar-wrap">
                 <div class="member-avatar-inner">
                   ${renderAvatarHTML(m.avatar || m.avatar_url, m.nickname || m.display_name || m.username, 30)}
