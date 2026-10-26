@@ -25931,6 +25931,10 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
               <div class="connecto-input-capsule-wrapper" id="connectoInputBoxWrapper">
                 <button type="button" class="connecto-emoji-inline-btn" id="emojiPickerBtn" title="Emoji Reactions" onclick="toggleEmojiPicker()">😊</button>
+                <button type="button" class="connecto-timer-inline-btn" id="msgTimerBtn" title="Self-Destruct Timer (Off / 10s / 30s / 1m / 5m / 1h / 24h)" onclick="cycleMsgTimer()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:14px; padding:0 4px; display:inline-flex; align-items:center; gap:2px; transition:all 0.2s;">
+                  <span>⏱️</span>
+                  <span id="msgTimerBadge" style="display:none; font-size:10px; font-weight:800; background:rgba(6,182,212,0.2); color:#06b6d4; padding:1px 5px; border-radius:999px;"></span>
+                </button>
                 <input type="text" class="stitch-input-field input-box" id="msgInput" aria-label="Type your message" placeholder="Message #general..." onkeydown="handleKeyDown(event)" oninput="handleMsgInputChange(this)" onfocus="handleInputFocus(true)" onblur="handleInputFocus(false)">
                 <button type="button" class="connecto-send-circle-btn" id="sendBtn" title="Send Message" onclick="sendCurrentMessage()">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
