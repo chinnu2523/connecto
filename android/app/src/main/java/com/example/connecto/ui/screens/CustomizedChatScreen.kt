@@ -606,6 +606,10 @@ fun CustomizedChatScreen(
     val notifPrefs = remember { context.getSharedPreferences("connecto_notifications_prefs", Context.MODE_PRIVATE) }
     val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
     val myUsername = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
+    val chatActivity = remember(context) { context.findFragmentActivity() }
+    androidx.compose.runtime.LaunchedEffect(myUsername) {
+        com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(chatActivity)
+    }
 
     fun getCanonicalChatId(f: FriendItem?): String {
         if (f == null) return ""

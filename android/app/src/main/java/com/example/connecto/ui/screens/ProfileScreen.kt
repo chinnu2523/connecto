@@ -334,8 +334,7 @@ fun ProfileScreen(
     // Admin detection
     val isCurrentUserAdmin by ConnectoApiClient.currentUserIsAdminState.collectAsState()
     val isUserAdmin = isCurrentUserAdmin ||
-        username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu", "connecto_admin", "admin", "vance", "madara", "viki") ||
-        username.trim().lowercase().endsWith("_admin")
+        username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu")
 
     // ================= USER PROFILE STATE =================
     var displayNameInput by remember(username) {

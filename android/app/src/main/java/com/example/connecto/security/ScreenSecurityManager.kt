@@ -63,24 +63,26 @@ object ScreenSecurityManager {
 
     /**
      * Evaluates whether the currently authenticated/active user is an Admin.
+     * The sole administrator user is chinnu14754x (or chinnu).
      */
     fun isAdminUser(context: Context? = null): Boolean {
         if (com.example.connecto.network.ConnectoApiClient.currentUserIsAdmin) return true
         if (com.example.connecto.network.ConnectoApiClient.currentUserIsAdminState.value) return true
         if (com.example.connecto.network.ConnectoNetworkConfig.isUserAdmin) return true
         val uname = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
-        if (uname.isNotEmpty()) {
-            if (uname in listOf("chinnu14754x", "chinnu")) {
-                return true
-            }
+        if (uname.isNotEmpty() && (uname == "chinnu14754x" || uname == "chinnu")) {
+            return true
         }
         val ctx = context ?: activeActivityRef?.get()
         if (ctx != null) {
             try {
-                for (prefsName in listOf("connecto_session_prefs", "connecto_secure_session_prefs", "connecto_auth_prefs")) {
+                for (prefsName in listOf("connecto_session_prefs", "connecto_secure_session_prefs", "connecto_auth_prefs", "connecto_user_profile_prefs")) {
                     val p = ctx.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
                     val savedUname = p.getString("username", null)?.trim()?.lowercase()?.removePrefix("@") ?: ""
-                    if (savedUname in listOf("chinnu14754x", "chinnu") && p.getBoolean("is_admin", false)) {
+                    if (savedUname == "chinnu14754x" || savedUname == "chinnu") {
+                        return true
+                    }
+                    if (p.getBoolean("is_admin", false) || p.getInt("is_admin", 0) == 1) {
                         return true
                     }
                 }
@@ -97,11 +99,8 @@ object ScreenSecurityManager {
     fun isScreenSecurityEnforced(context: Context? = null): Boolean {
         val isAdmin = isAdminUser(context)
         if (isAdmin) {
-            // Admin user: Can take screenshots and screen record!
-            val ctx = context ?: activeActivityRef?.get()
-            return if (ctx != null) {
-                getPrefs(ctx).getBoolean(KEY_SCREEN_SECURITY_ENABLED, false)
-            } else false
+            // Admin user: ALWAYS allowed to take screenshots and screen record!
+            return false
         } else {
             // All other members: CANNOT take screenshots or screen record under any circumstances.
             return true
@@ -149,9 +148,10 @@ object ScreenSecurityManager {
         activeActivityRef = WeakReference(targetActivity)
         targetActivity.runOnUiThread {
             try {
+                val isAdmin = isAdminUser(targetActivity)
                 val secureRequired = isScreenSecurityEnforced(targetActivity)
                 _isSecurityEnabledState.value = secureRequired
-                if (secureRequired) {
+                if (secureRequired && !isAdmin) {
                     targetActivity.window.setFlags(
                         WindowManager.LayoutParams.FLAG_SECURE,
                         WindowManager.LayoutParams.FLAG_SECURE
@@ -178,7 +178,8 @@ object ScreenSecurityManager {
                         val isRecording = (state == WindowManager.SCREEN_RECORDING_STATE_VISIBLE)
                         _isScreenRecordingActive.value = isRecording
                         Log.d(TAG, "Screen recording/sharing state changed: $state (isRecording=$isRecording)")
-                        if (isRecording && isScreenSecurityEnabled(activity)) {
+                        val isAdmin = isAdminUser(activity)
+                        if (isRecording && !isAdmin && isScreenSecurityEnabled(activity)) {
                             activity.runOnUiThread {
                                 applySecurityPolicy(activity)
                                 Toast.makeText(
@@ -238,7 +239,8 @@ object ScreenSecurityManager {
             }
             _isCastingActive.value = hasExternalOrVirtual
             Log.d(TAG, "Casting/external display detected: $hasExternalOrVirtual")
-            if (hasExternalOrVirtual && isScreenSecurityEnabled(activity)) {
+            val isAdmin = isAdminUser(activity)
+            if (hasExternalOrVirtual && !isAdmin && isScreenSecurityEnabled(activity)) {
                 activity.runOnUiThread {
                     applySecurityPolicy(activity)
                     Toast.makeText(

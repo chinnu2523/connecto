@@ -160,10 +160,10 @@ export default {
         version_name: "v4.6.6",
         version_code: 95,
         build: 95,
-        sha256: "4e5ce4ad47b0e637c8ed3ab25338191243a5e25da8a1a081e69ded9f2888a33f",
-        md5: "02684e79d3d51a74d473fec1812bacff",
+        sha256: "53b4fe20e0439a61c66c160d9eca8fe5c9fd39348f98b310f3b8dc30311c9c5a",
+        md5: "a79017c57db1741f7136a59d7f69773d",
         filename: "connecto-fun.apk",
-        size_bytes: 37777300,
+        size_bytes: 37777620,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -1772,7 +1772,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           avatar: user.avatar_url || "👾",
           avatar_url: user.avatar_url || "👾",
           two_factor_enabled: true,
-          is_stealth: !!user.is_stealth
+          is_stealth: !!user.is_stealth,
+          is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu"))
         }
       });
     } catch (err) {
@@ -3538,6 +3539,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           avatar_url: "/uploads/avatars/chinnu_avatar_verified.webp",
           banner_url: "/uploads/avatars/b43b49a15ddf4d80a139a9f22c7ee17b.webp",
           bio: "Connecto Gamer",
+          is_admin: 1,
           is_online: 0
         },
         "chinnu": {
@@ -3547,6 +3549,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           avatar_url: "/uploads/avatars/chinnu_avatar_verified.webp",
           banner_url: "/uploads/avatars/b43b49a15ddf4d80a139a9f22c7ee17b.webp",
           bio: "Connecto Gamer",
+          is_admin: 1,
           is_online: 0
         },
         "srinu": {
@@ -6367,10 +6370,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       version_name: "v4.6.6",
       version_code: 95,
       build: 95,
-      sha256: "4e5ce4ad47b0e637c8ed3ab25338191243a5e25da8a1a081e69ded9f2888a33f",
-      md5: "02684e79d3d51a74d473fec1812bacff",
+      sha256: "53b4fe20e0439a61c66c160d9eca8fe5c9fd39348f98b310f3b8dc30311c9c5a",
+      md5: "a79017c57db1741f7136a59d7f69773d",
       filename: "connecto-fun.apk",
-      size_bytes: 37777300,
+      size_bytes: 37777620,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6394,7 +6397,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "In-Call Earpiece Default Audio Routing: Voice and audio calls default directly to the phone earpiece receiver instead of the loudspeaker, maintaining call privacy immediately upon connection.",
             "Hardware Proximity Sensor Screen-Off Lock: Uses native PROXIMITY sensor and PowerManager PROXIMITY_SCREEN_OFF_WAKE_LOCK to shut down screen and disable touch when phone is near ear, turning back on when lifted away.",
             "Sole Administrator Screen Security Policy: Hardened screen capture policy reserving screenshot and screen recording bypass exclusively for chinnu14754x; all other member accounts strictly enforce FLAG_SECURE.",
-            "Android Native App v4.6.6 (Build 95 • 36.0 MB • Production Keystore Signed): SHA-256 4e5ce4ad47b0e637c8ed3ab25338191243a5e25da8a1a081e69ded9f2888a33f • MD5 02684e79d3d51a74d473fec1812bacff."
+            "Android Native App v4.6.6 (Build 95 • 36.0 MB • Production Keystore Signed): SHA-256 53b4fe20e0439a61c66c160d9eca8fe5c9fd39348f98b310f3b8dc30311c9c5a • MD5 a79017c57db1741f7136a59d7f69773d."
           ],
           author: "Connecto Core & Mobile Engineering"
         },

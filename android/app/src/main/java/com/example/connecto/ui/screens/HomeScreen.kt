@@ -610,9 +610,8 @@ fun HomeScreen(
                     // GLASSMORPHIC INPUT BAR
                     val sessionPrefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
                     val loggedInUsername = remember { sessionPrefs.getString("username", "user") ?: "user" }
-                    val isUserAdmin = loggedInUsername.equals("connecto_admin", ignoreCase = true) ||
-                                      loggedInUsername.equals("admin", ignoreCase = true) ||
-                                      loggedInUsername.equals("vance", ignoreCase = true) ||
+                    val isUserAdmin = loggedInUsername.equals("chinnu14754x", ignoreCase = true) ||
+                                      loggedInUsername.equals("chinnu", ignoreCase = true) ||
                                       sessionPrefs.getBoolean("is_admin", false)
                     val canPostInChannel = !activeChannel.isReadOnly || isUserAdmin
                     if (canPostInChannel) {

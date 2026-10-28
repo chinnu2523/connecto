@@ -131,11 +131,11 @@ class MainActivity : FragmentActivity() {
             window.statusBarColor = android.graphics.Color.parseColor("#000000")
             window.navigationBarColor = android.graphics.Color.parseColor("#000000")
         }
+        com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
         com.example.connecto.security.ScreenSecurityManager.init(this)
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
         com.example.connecto.security.ScreenSecurityManager.registerListeners(this)
         com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
-        com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
         // Ensure legacy Connecto Active foreground notification is removed and its channel deleted
         com.example.connecto.notifications.ConnectoRealtimeService.dismissConnectoActiveNotification(this)
         // Schedule message purge on background IO thread (not in onOpen which blocks Main thread)
@@ -390,7 +390,7 @@ fun ConnectoApp(
     val isCastingActive by com.example.connecto.security.ScreenSecurityManager.isCastingActive.collectAsState()
     val isUserAdmin by com.example.connecto.network.ConnectoApiClient.currentUserIsAdminState.collectAsState()
     val mainActivityRef = context as? android.app.Activity
-    androidx.compose.runtime.LaunchedEffect(isScreenSecurityActive, isUserAdmin, authenticatedUsername) {
+    androidx.compose.runtime.LaunchedEffect(isScreenSecurityActive, isUserAdmin, authenticatedUsername, currentTab) {
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(mainActivityRef)
     }
 

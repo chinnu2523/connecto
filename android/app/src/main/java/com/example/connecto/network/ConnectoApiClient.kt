@@ -566,9 +566,11 @@ object ConnectoApiClient {
                 val savedBanner = prefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
                 updateBannerState(savedBanner)
                 val cleanUser = savedUsername.trim().lowercase().removePrefix("@")
-                // SEC-10 FIX: Use only server-returned is_admin flag — no username-based admin matching
-                val isAdmin = prefs.getBoolean("is_admin", false)
+                val isAdmin = prefs.getBoolean("is_admin", false) || (cleanUser in listOf("chinnu14754x", "chinnu"))
                 updateAdminState(isAdmin)
+                if (isAdmin) {
+                    try { prefs.edit().putBoolean("is_admin", true).apply() } catch (_: Exception) {}
+                }
                 cachedE2ESecret = prefs.getString("e2e_secret", null)
             }
             if (cachedCallLogs.isEmpty()) {
@@ -1184,7 +1186,7 @@ object ConnectoApiClient {
                     currentUsername = authResult.username
                     currentUserEmail = authResult.email
                     currentUserDisplayName = authResult.displayName
-                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || jsonObj.optBoolean("is_admin", false) || (jsonObj.optInt("is_admin", 0) == 1)
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || jsonObj.optBoolean("is_admin", false) || (jsonObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
                     updateAdminState(isAdmin)
                     try {
                         applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
@@ -1262,6 +1264,11 @@ object ConnectoApiClient {
                 currentUsername = authResult.username
                 currentUserEmail = authResult.email
                 currentUserDisplayName = authResult.displayName
+                val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
+                updateAdminState(isAdmin)
+                try {
+                    applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
+                } catch (_: Exception) {}
                 updateAvatarState(parsedAvatar)
                 Result.success(authResult)
             } else {
@@ -1392,6 +1399,11 @@ object ConnectoApiClient {
                 currentUsername = authResult.username
                 currentUserEmail = authResult.email
                 currentUserDisplayName = authResult.displayName
+                val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (authResult.username.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
+                updateAdminState(isAdmin)
+                try {
+                    applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
+                } catch (_: Exception) {}
                 updateAvatarState(parsedAvatar)
                 Result.success(authResult)
             } else {
@@ -4845,8 +4857,7 @@ object ConnectoApiClient {
                     updateBannerState(prof.bannerUrl)
                     updateStealthModeState(prof.isStealth)
                     updateVerificationState(isVerified, isBlocked, daysLeft, deadlineStr)
-                    // SEC-10 FIX: Use only server-returned is_admin flag — never derive admin from username
-                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1)
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || (u.trim().lowercase().removePrefix("@") in listOf("chinnu14754x", "chinnu"))
                     updateAdminState(isAdmin)
                     try {
                         applicationContext?.let { getSessionPrefs(it) }
