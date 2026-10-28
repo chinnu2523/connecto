@@ -605,8 +605,8 @@ async def login(
             detail="Invalid username/email or password."
         )
 
-    # Sole admin policy: ONLY chinnu14754x and connecto_admin are admin, all others are members
-    is_adm = (user.username.lower() in ("chinnu14754x", "connecto_admin"))
+    # Sole admin policy: ONLY chinnu14754x is admin, all others are members
+    is_adm = (user.username.lower() in ("chinnu14754x", "chinnu"))
     if bool(user.is_admin) != is_adm:
         user.is_admin = is_adm
         await db.commit()

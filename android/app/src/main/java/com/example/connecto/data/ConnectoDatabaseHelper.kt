@@ -258,7 +258,19 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         GlobalScope.launch(Dispatchers.IO) {
             try { purgeMessagesOlderThan24Hours() } catch (_: Exception) {}
             try { purgeOptimisticMessages() } catch (_: Exception) {}
+            try { purgeCorruptedDmChannels() } catch (_: Exception) {}
         }
+    }
+
+    fun purgeCorruptedDmChannels() {
+        try {
+            val db = writableDatabase
+            db.delete(
+                TABLE_CHANNELS,
+                "$COL_CH_TYPE = 'dm' AND ($COL_CH_ID LIKE 'grp-%' OR $COL_CH_ID LIKE 'grp_%' OR $COL_CH_ID LIKE 'group-%' OR $COL_CH_NAME LIKE 'grp-%' OR $COL_CH_NAME LIKE 'grp_%' OR $COL_CH_NAME LIKE 'group-%')",
+                null
+            )
+        } catch (_: Exception) {}
     }
 
     private fun pollDtoToJson(poll: PollDto?): String? {
@@ -608,7 +620,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
         if (!channelId.isNullOrBlank()) {
             val cleanCh = channelId.trim().lowercase().removePrefix("#")
-            if (cleanCh.startsWith("dm-") || cleanCh.startsWith("dm_")) {
+            if (cleanCh.startsWith("grp-") || cleanCh.startsWith("grp_") || cleanCh.startsWith("group-")) {
+                // Ignore group channels for 1-on-1 direct messages
+            } else if (cleanCh.startsWith("dm-") || cleanCh.startsWith("dm_")) {
                 val hasU1 = cleanCh.contains(u1) || (u1Base.isNotEmpty() && cleanCh.contains(u1Base))
                 val hasU2 = cleanCh.contains(u2) || (u2Base.isNotEmpty() && cleanCh.contains(u2Base))
                 if (hasU1 && hasU2) {
@@ -619,13 +633,16 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 var isAlien = false
                 try {
                     val chCursor = readableDatabase.rawQuery(
-                        "SELECT $COL_CH_NAME FROM $TABLE_CHANNELS WHERE $COL_CH_ID = ? LIMIT 1",
+                        "SELECT $COL_CH_NAME, $COL_CH_TYPE FROM $TABLE_CHANNELS WHERE $COL_CH_ID = ? LIMIT 1",
                         arrayOf(cleanCh)
                     )
                     chCursor.use { cur ->
                         if (cur.moveToFirst()) {
                             val chName = cur.getString(0)?.lowercase() ?: ""
-                            if (chName.startsWith("dm-") || chName.startsWith("dm_")) {
+                            val chType = cur.getString(1)?.lowercase() ?: ""
+                            if (chType == "group" || chName.startsWith("grp-") || chName.startsWith("grp_") || chName.startsWith("group-")) {
+                                isAlien = true
+                            } else if (chName.startsWith("dm-") || chName.startsWith("dm_")) {
                                 val hasU1 = chName.contains(u1) || (u1Base.isNotEmpty() && chName.contains(u1Base))
                                 val hasU2 = chName.contains(u2) || (u2Base.isNotEmpty() && chName.contains(u2Base))
                                 if (!hasU1 || !hasU2) {
@@ -646,13 +663,17 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         // 1. Look up any channel mappings stored in TABLE_CHANNELS (e.g. type = 'dm')
         try {
             val chCursor = db.rawQuery(
-                "SELECT $COL_CH_ID, $COL_CH_NAME FROM $TABLE_CHANNELS WHERE $COL_CH_TYPE = 'dm'",
+                "SELECT $COL_CH_ID, $COL_CH_NAME FROM $TABLE_CHANNELS WHERE $COL_CH_TYPE = 'dm' AND $COL_CH_ID NOT LIKE 'grp-%' AND $COL_CH_ID NOT LIKE 'grp_%' AND $COL_CH_ID NOT LIKE 'group-%' AND $COL_CH_NAME NOT LIKE 'grp-%' AND $COL_CH_NAME NOT LIKE 'grp_%' AND $COL_CH_NAME NOT LIKE 'group-%'",
                 null
             )
             chCursor.use { cur ->
                 while (cur.moveToNext()) {
                     val chId = cur.getString(0)?.trim()?.lowercase()?.removePrefix("#") ?: continue
                     val chName = cur.getString(1)?.trim()?.lowercase()?.removePrefix("#") ?: ""
+                    if (chId.startsWith("grp-") || chId.startsWith("grp_") || chId.startsWith("group-") ||
+                        chName.startsWith("grp-") || chName.startsWith("grp_") || chName.startsWith("group-")) {
+                        continue
+                    }
                     val hasU1 = chName.contains(u1) || (u1Base.isNotEmpty() && chName.contains(u1Base))
                     val hasU2 = chName.contains(u2) || (u2Base.isNotEmpty() && chName.contains(u2Base))
                     if (candidates.contains(chName) || (hasU1 && hasU2)) {
@@ -661,6 +682,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                 }
             }
         } catch (_: Exception) {}
+
+        // Ensure no group chat IDs leak into direct message candidate channels
+        candidates.removeAll { it.startsWith("grp-") || it.startsWith("grp_") || it.startsWith("group-") }
 
         // 2. Discover all friend identifiers (id, name, handle) from TABLE_FRIENDS
         val friendIdentifiers = mutableSetOf(u2)
@@ -822,11 +846,17 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
     }
 
     fun saveDmChannel(canonicalName: String, channelId: String) {
+        val cleanId = channelId.trim().lowercase().removePrefix("#")
+        val cleanName = canonicalName.trim().lowercase().removePrefix("#")
+        if (cleanId.startsWith("grp-") || cleanId.startsWith("grp_") || cleanId.startsWith("group-") ||
+            cleanName.startsWith("grp-") || cleanName.startsWith("grp_") || cleanName.startsWith("group-")) {
+            return
+        }
         try {
             val db = writableDatabase
             val cv = ContentValues().apply {
-                put(COL_CH_ID, channelId.trim().lowercase().removePrefix("#"))
-                put(COL_CH_NAME, canonicalName.trim().lowercase().removePrefix("#"))
+                put(COL_CH_ID, cleanId)
+                put(COL_CH_NAME, cleanName)
                 put(COL_CH_TYPE, "dm")
             }
             db.insertWithOnConflict(TABLE_CHANNELS, null, cv, SQLiteDatabase.CONFLICT_REPLACE)
@@ -838,7 +868,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             val db = readableDatabase
             val c = canonicalName.trim().lowercase().removePrefix("#")
             val cursor = db.rawQuery(
-                "SELECT $COL_CH_ID FROM $TABLE_CHANNELS WHERE lower($COL_CH_NAME) = ? AND $COL_CH_TYPE = 'dm' LIMIT 1",
+                "SELECT $COL_CH_ID FROM $TABLE_CHANNELS WHERE lower($COL_CH_NAME) = ? AND $COL_CH_TYPE = 'dm' AND $COL_CH_ID NOT LIKE 'grp-%' AND $COL_CH_ID NOT LIKE 'grp_%' AND $COL_CH_ID NOT LIKE 'group-%' LIMIT 1",
                 arrayOf(c)
             )
             cursor.use {

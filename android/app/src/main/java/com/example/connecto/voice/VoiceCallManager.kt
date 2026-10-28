@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -141,10 +142,10 @@ object VoiceCallManager {
     private val _isMuted = MutableStateFlow(false)
     val isMuted: StateFlow<Boolean> = _isMuted.asStateFlow()
 
-    private val _isSpeakerOn = MutableStateFlow(true)
+    private val _isSpeakerOn = MutableStateFlow(false)
     val isSpeakerOn: StateFlow<Boolean> = _isSpeakerOn.asStateFlow()
 
-    private val _currentAudioRoute = MutableStateFlow(AudioRoute.SPEAKER)
+    private val _currentAudioRoute = MutableStateFlow(AudioRoute.EARPIECE)
     val currentAudioRoute: StateFlow<AudioRoute> = _currentAudioRoute.asStateFlow()
 
     private val _isBluetoothConnected = MutableStateFlow(false)
@@ -153,7 +154,7 @@ object VoiceCallManager {
     private val _bluetoothDeviceName = MutableStateFlow<String?>("Bluetooth Audio")
     val bluetoothDeviceName: StateFlow<String?> = _bluetoothDeviceName.asStateFlow()
 
-    private val _availableAudioRoutes = MutableStateFlow<List<AudioRoute>>(listOf(AudioRoute.SPEAKER, AudioRoute.EARPIECE))
+    private val _availableAudioRoutes = MutableStateFlow<List<AudioRoute>>(listOf(AudioRoute.EARPIECE, AudioRoute.SPEAKER))
     val availableAudioRoutes: StateFlow<List<AudioRoute>> = _availableAudioRoutes.asStateFlow()
 
     // Realtime Voice Isolation (Adaptive Noise Cancellation & Vocal EQ)
@@ -377,45 +378,32 @@ object VoiceCallManager {
 
     // WebRTC Engine & Concurrency Controls
     private val webRtcTeardownLock = Any()
-    private val callTeardownLock = Any()
+    private val isTeardownInProgress = java.util.concurrent.atomic.AtomicBoolean(false)
     private val disposedPcs: MutableSet<PeerConnection> = Collections.synchronizedSet(Collections.newSetFromMap(IdentityHashMap<PeerConnection, Boolean>()))
     private var peerConnectionFactory: PeerConnectionFactory? = null
     private var localAudioSource: AudioSource? = null
     private var localAudioTrack: RtcAudioTrack? = null
     private val peerConnections = ConcurrentHashMap<String, PeerConnection>()
 
-    // ICE servers: Only our own connecto.fun STUN/TURN + one Google STUN fallback.
-    // Removed 4 third-party openrelay.metered.ca servers — each one added 200-800ms of
-    // parallel ICE gathering delay before WebRTC could converge on the best candidate pair.
+    // ICE servers: Resilient public STUN servers for NAT traversal.
+    // Removed unreachable connecto.fun:3478 which caused candidate gathering timeouts.
     private val iceServers by lazy {
         listOf(
-            // Primary: connecto.fun STUN
-            PeerConnection.IceServer.builder("stun:connecto.fun:3478").createIceServer(),
-            // Primary: connecto.fun TURN over UDP — lowest latency relay path
-            PeerConnection.IceServer.builder("turn:connecto.fun:3478?transport=udp")
-                .setUsername("connecto").setPassword("ConnectoVoice2026!").createIceServer(),
-            // Primary: connecto.fun TURN over TCP — firewall fallback
-            PeerConnection.IceServer.builder("turn:connecto.fun:3478?transport=tcp")
-                .setUsername("connecto").setPassword("ConnectoVoice2026!").createIceServer(),
-            // Secondary: Google STUN — internet-side fallback
-            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+            PeerConnection.IceServer.builder("stun:stun.cloudflare.com:3478").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer()
         )
     }
 
     private fun getRtcConfig(): PeerConnection.RTCConfiguration {
         return PeerConnection.RTCConfiguration(iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
-            // GATHER_ONCE: stop after first complete set of candidates.
-            // GATHER_CONTINUALLY was causing perpetual ICE restarts adding 100-300ms overhead.
-            continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_ONCE
+            continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
             bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
-            // Pre-gather 10 candidate slots before call needs them, hiding ICE latency
-            // behind signaling exchange. Raised from 2 to 10.
             iceCandidatePoolSize = 10
-            // Disable TCP candidate fallback — TCP adds ~50ms vs UDP; only fallback if UDP fails.
-            // WebRTC already handles TCP fallback internally via TURN TCP server above.
-            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
+            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
         }
     }
 
@@ -511,9 +499,15 @@ object VoiceCallManager {
                                 audioTrack?.write(data, 0, data.size, AudioTrack.WRITE_NON_BLOCKING)
                             }
 
-                            // Relay voice_data over WebSocket if P2P peer connections are not established
+                            // Relay voice_data over WebSocket if P2P peer connections are not in CONNECTED/COMPLETED state
                             val roomId = _activeRoomId.value
-                            if (_callState.value == CallState.CONNECTED && !roomId.isNullOrBlank() && peerConnections.isEmpty()) {
+                            val hasConnectedPeer = peerConnections.values.any { pc ->
+                                try {
+                                    val s = pc.iceConnectionState()
+                                    s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                                } catch (_: Throwable) { false }
+                            }
+                            if (_callState.value == CallState.CONNECTED && !roomId.isNullOrBlank() && !hasConnectedPeer) {
                                 val base64Str = Base64.encodeToString(data, 0, data.size, Base64.NO_WRAP)
                                 val packet = JSONObject().apply {
                                     put("action", "voice_data")
@@ -521,6 +515,7 @@ object VoiceCallManager {
                                     put("room_id", roomId)
                                     put("channel_id", roomId)
                                     put("audio", base64Str)
+                                    put("sample_rate", samples.sampleRate)
                                 }
                                 sendWsMessage(packet)
                             }
@@ -627,13 +622,10 @@ object VoiceCallManager {
                         _callState.value = CallState.CONNECTED
                         startStatsPolling(peerId)
                     } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED ||
-                        newState == PeerConnection.IceConnectionState.CLOSED ||
                         newState == PeerConnection.IceConnectionState.FAILED) {
-                        val is1on1 = _activeCallPartner.value != null || _activeCallPartnerUsername.value != null || isCallCaller
-                        if (is1on1 && _callState.value == CallState.CONNECTED) {
-                            Log.d(TAG, "1:1 WebRTC ICE connection disconnected/closed ($newState). Terminating call session.")
-                            endCallLocally()
-                        }
+                        Log.w(TAG, "WebRTC ICE state for peer $peerId: $newState. Seamlessly falling back to WebSocket audio relay.")
+                    } else if (newState == PeerConnection.IceConnectionState.CLOSED) {
+                        Log.d(TAG, "WebRTC ICE connection closed for peer $peerId")
                     }
                 }
 
@@ -681,7 +673,13 @@ object VoiceCallManager {
                 }
             }
 
+            if (localAudioTrack == null) {
+                startLocalAudio()
+            }
             val pc = factory.createPeerConnection(rtcConfig, observer) ?: return null
+            if (localAudioTrack == null) {
+                startLocalAudio()
+            }
             localAudioTrack?.let { track ->
                 pc.addTrack(track, listOf("ARDAMS"))
             }
@@ -943,66 +941,109 @@ object VoiceCallManager {
         _callStats.value = null
     }
 
-    private fun stopWebRtc() {
+    private fun closeAndDisposePeer(peerId: String) {
+        val pc: PeerConnection?
         synchronized(webRtcTeardownLock) {
-            stopStatsPolling()
+            pc = peerConnections.remove(peerId)
+            if (pc != null) {
+                val aliasKeys = peerConnections.entries.filter { it.value === pc }.map { it.key }
+                aliasKeys.forEach { peerConnections.remove(it) }
+            }
+        }
+        if (pc != null && !disposedPcs.contains(pc)) {
             try {
-                // 1. Immediately disable local audio track to prevent audio processing threads
-                // from pushing frames into closing peer connections.
-                try {
-                    localAudioTrack?.setEnabled(false)
-                } catch (t: Throwable) {
-                    Log.w(TAG, "Error disabling localAudioTrack: ${t.message}")
+                for (sender in pc.senders) {
+                    try { pc.removeTrack(sender) } catch (_: Throwable) {}
                 }
+                pc.close()
+            } catch (t: Throwable) {
+                Log.w(TAG, "Error closing left peer PC: ${t.message}")
+            }
+            scope.launch(Dispatchers.IO) {
+                if (!disposedPcs.contains(pc)) {
+                    disposedPcs.add(pc)
+                    try {
+                        pc.dispose()
+                        Log.d(TAG, "Disposed PeerConnection for left peer: $peerId")
+                    } catch (e: Throwable) {
+                        Log.e(TAG, "Error disposing left peer PC: ${e.message}")
+                    }
+                }
+            }
+        }
+    }
 
-                // 2. Snapshot unique PeerConnection instances (identity set) and clear lookup map
-                val uniquePcs = peerConnections.values.filterNotNull().toSet()
+    private fun stopWebRtc() {
+        stopStatsPolling()
+        try {
+            // 1. Immediately disable local audio track to prevent audio processing threads
+            // from pushing frames into closing peer connections.
+            try {
+                localAudioTrack?.setEnabled(false)
+            } catch (t: Throwable) {
+                Log.w(TAG, "Error disabling localAudioTrack: ${t.message}")
+            }
+
+            // 2. Snapshot unique PeerConnection instances (identity set) and clear lookup map under lock
+            val uniquePcs: Set<PeerConnection>
+            val trackToDispose: RtcAudioTrack?
+            val sourceToDispose: AudioSource?
+
+            synchronized(webRtcTeardownLock) {
+                uniquePcs = peerConnections.values.filterNotNull().toSet()
                 peerConnections.clear()
+                trackToDispose = localAudioTrack
+                localAudioTrack = null
+                sourceToDispose = localAudioSource
+                localAudioSource = null
+            }
 
-                // 3. Gracefully close and dispose each unique PeerConnection once and only once
+            // 3. Immediately close each unique PeerConnection without holding locks (non-blocking)
+            for (pc in uniquePcs) {
+                if (!disposedPcs.contains(pc)) {
+                    try {
+                        for (sender in pc.senders) {
+                            try {
+                                pc.removeTrack(sender)
+                            } catch (_: Throwable) {}
+                        }
+                        pc.close()
+                    } catch (t: Throwable) {
+                        Log.w(TAG, "Error closing PeerConnection: ${t.message}")
+                    }
+                }
+            }
+
+            // 4. Heavy native disposal offloaded to background IO thread (NEVER blocks Main UI thread)
+            scope.launch(Dispatchers.IO) {
                 for (pc in uniquePcs) {
                     if (!disposedPcs.contains(pc)) {
                         disposedPcs.add(pc)
                         try {
-                            // Detach senders if possible
-                            try {
-                                for (sender in pc.senders) {
-                                    try {
-                                        pc.removeTrack(sender)
-                                    } catch (_: Throwable) {}
-                                }
-                            } catch (_: Throwable) {}
-
-                            pc.close()
                             pc.dispose()
-                            Log.d(TAG, "PeerConnection successfully closed and disposed")
+                            Log.d(TAG, "PeerConnection successfully disposed in background IO")
                         } catch (t: Throwable) {
-                            Log.e(TAG, "Error disposing PeerConnection: ${t.message}")
+                            Log.e(TAG, "Error disposing PeerConnection in background: ${t.message}")
                         }
                     }
                 }
 
-                // 4. Dispose local audio track & source after PeerConnection teardown
                 try {
-                    localAudioTrack?.dispose()
+                    trackToDispose?.dispose()
                 } catch (t: Throwable) {
                     Log.e(TAG, "Error disposing localAudioTrack: ${t.message}")
-                } finally {
-                    localAudioTrack = null
                 }
 
                 try {
-                    localAudioSource?.dispose()
+                    sourceToDispose?.dispose()
                 } catch (t: Throwable) {
                     Log.e(TAG, "Error disposing localAudioSource: ${t.message}")
-                } finally {
-                    localAudioSource = null
                 }
 
-                Log.d(TAG, "WebRTC engine successfully stopped and disposed")
-            } catch (t: Throwable) {
-                Log.e(TAG, "Error stopping WebRTC: ${t.message}")
+                Log.d(TAG, "WebRTC engine background disposal finished")
             }
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error stopping WebRTC: ${t.message}")
         }
     }
 
@@ -1016,6 +1057,12 @@ object VoiceCallManager {
         applyHardwareVoiceIsolationParams(savedVoiceIso)
         initWebRtcFactory(context)
         initAudioDeviceCallbacks()
+        ProximityScreenLockManager.init(context)
+        scope.launch {
+            _callState.collect {
+                syncProximityMonitoring()
+            }
+        }
         connectWebSocket()
         startPeriodicPing()
     }
@@ -1731,6 +1778,11 @@ object VoiceCallManager {
                     _callState.value = CallState.CONNECTED
                     _incomingCall.value = null
                     _participantCount.value = 2
+
+        // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
+        setAudioRoute(initialRoute)
+        syncProximityMonitoring()
                     appContext?.let {
                         VoiceCallForegroundService.startService(it, _activeCallTitle.value, _activeCallPartner.value, _isMuted.value)
                     }
@@ -1782,8 +1834,9 @@ object VoiceCallManager {
 
                 "voice_data" -> {
                     val base64Audio = json.optString("audio")
+                    val sampleRate = json.optInt("sample_rate", SAMPLE_RATE)
                     if (base64Audio.isNotEmpty() && _callState.value == CallState.CONNECTED) {
-                        playAudioChunk(base64Audio)
+                        playAudioChunk(base64Audio, sampleRate)
                     }
                 }
 
@@ -1834,28 +1887,7 @@ object VoiceCallManager {
                     val is1on1 = _activeCallPartner.value != null || _activeCallPartnerUsername.value != null || isCallCaller
                     Log.d(TAG, "WebRTC voice peer left: $peerId (is1on1=$is1on1, callState=${_callState.value})")
                     if (peerId.isNotBlank()) {
-                        synchronized(webRtcTeardownLock) {
-                            val pc = peerConnections.remove(peerId)
-                            if (pc != null) {
-                                // Remove any alias keys pointing to the same PeerConnection instance
-                                val aliasKeys = peerConnections.entries.filter { it.value === pc }.map { it.key }
-                                aliasKeys.forEach { peerConnections.remove(it) }
-
-                                if (!disposedPcs.contains(pc)) {
-                                    disposedPcs.add(pc)
-                                    try {
-                                        for (sender in pc.senders) {
-                                            try { pc.removeTrack(sender) } catch (_: Throwable) {}
-                                        }
-                                        pc.close()
-                                        pc.dispose()
-                                        Log.d(TAG, "Disposed PeerConnection for left peer: $peerId")
-                                    } catch (e: Throwable) {
-                                        Log.e(TAG, "Error disposing left peer PC: ${e.message}")
-                                    }
-                                }
-                            }
-                        }
+                        closeAndDisposePeer(peerId)
                     }
                     if (_participantCount.value > 1) {
                         _participantCount.value -= 1
@@ -2195,7 +2227,8 @@ object VoiceCallManager {
             Log.d(TAG, "Ignoring incoming call trigger for already terminated room: $roomId")
             return
         }
-        if (_callState.value != CallState.IDLE && _incomingCall.value?.roomId == roomId) {
+        if (_callState.value != CallState.IDLE) {
+            Log.d(TAG, "Ignoring incoming call trigger: already in state ${_callState.value}")
             return
         }
         Log.d(TAG, "Triggering incoming call (background/push/poll) from $callerName ($roomId)")
@@ -2271,6 +2304,11 @@ object VoiceCallManager {
         _activeCallTitle.value = "1:1 Voice Call with $cleanDisplayName"
         _activeCallAvatar.value = resolvedAvatar
         _participantCount.value = 2
+
+        // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
+        setAudioRoute(initialRoute)
+        syncProximityMonitoring()
 
         // If user is calling themselves (Echo / Loopback audio test call)
         if (cleanTarget.equals(currentUsername, ignoreCase = true) ||
@@ -2368,6 +2406,11 @@ object VoiceCallManager {
         _activeCallAvatar.value = call.callerAvatar
         _callState.value = CallState.CONNECTED
         _participantCount.value = 2
+
+        // Activate EARPIECE by default for 1:1 voice calls (unless Bluetooth headset is connected)
+        val initialRoute = if (_isBluetoothConnected.value) AudioRoute.BLUETOOTH else AudioRoute.EARPIECE
+        setAudioRoute(initialRoute)
+        syncProximityMonitoring()
 
         if (call.callerAvatar.isNullOrBlank() && call.callerUsername.isNotBlank()) {
             scope.launch {
@@ -2536,56 +2579,58 @@ object VoiceCallManager {
         _callState.value = CallState.IDLE
 
         if (!roomId.isNullOrBlank()) {
-            val endMsg = JSONObject().apply {
-                put("action", "call:end")
-                put("type", "call:end")
-                if (cleanPartner.isNotBlank()) {
-                    put("target", cleanPartner)
-                    put("target_user", cleanPartner)
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val endMsg = JSONObject().apply {
+                        put("action", "call:end")
+                        put("type", "call:end")
+                        if (cleanPartner.isNotBlank()) {
+                            put("target", cleanPartner)
+                            put("target_user", cleanPartner)
+                        }
+                        put("call_id", roomId)
+                        put("room_id", roomId)
+                    }
+                    sendWsMessage(endMsg)
+
+                    val callEndMsg = JSONObject().apply {
+                        put("type", "call_end")
+                        put("action", "call:end")
+                        if (cleanPartner.isNotBlank()) {
+                            put("target", cleanPartner)
+                            put("target_user", cleanPartner)
+                        }
+                        put("room_id", roomId)
+                        put("call_id", roomId)
+                    }
+                    sendWsMessage(callEndMsg)
+
+                    val cancelMsg = JSONObject().apply {
+                        put("type", "call:cancel")
+                        put("action", "call:cancel")
+                        if (cleanPartner.isNotBlank()) {
+                            put("target", cleanPartner)
+                            put("target_user", cleanPartner)
+                        }
+                        put("room_id", roomId)
+                        put("call_id", roomId)
+                    }
+                    sendWsMessage(cancelMsg)
+
+                    // Also send voice_leave to remove us from server's voice_rooms map
+                    val leaveMsg = JSONObject().apply {
+                        put("type", "voice_leave")
+                        put("action", "voice:leave")
+                        put("channel_id", roomId)
+                        put("room_id", roomId)
+                    }
+                    sendWsMessage(leaveMsg)
+
+                    ConnectoApiClient.endVoiceCall(roomId, cleanPartner)
+                    ConnectoApiClient.respondToVoiceCall(roomId, "decline", cleanPartner)
+                } catch (t: Throwable) {
+                    Log.w(TAG, "Error dispatching endCall network messages: ${t.message}")
                 }
-                put("call_id", roomId)
-                put("room_id", roomId)
-            }
-            sendWsMessage(endMsg)
-
-            val callEndMsg = JSONObject().apply {
-                put("type", "call_end")
-                put("action", "call:end")
-                if (cleanPartner.isNotBlank()) {
-                    put("target", cleanPartner)
-                    put("target_user", cleanPartner)
-                }
-                put("room_id", roomId)
-                put("call_id", roomId)
-            }
-            sendWsMessage(callEndMsg)
-
-            val cancelMsg = JSONObject().apply {
-                put("type", "call:cancel")
-                put("action", "call:cancel")
-                if (cleanPartner.isNotBlank()) {
-                    put("target", cleanPartner)
-                    put("target_user", cleanPartner)
-                }
-                put("room_id", roomId)
-                put("call_id", roomId)
-            }
-            sendWsMessage(cancelMsg)
-
-            // Also send voice_leave to remove us from server's voice_rooms map
-            val leaveMsg = JSONObject().apply {
-                put("type", "voice_leave")
-                put("action", "voice:leave")
-                put("channel_id", roomId)
-                put("room_id", roomId)
-            }
-            sendWsMessage(leaveMsg)
-
-            scope.launch {
-                ConnectoApiClient.endVoiceCall(roomId, cleanPartner)
-            }
-            scope.launch {
-                ConnectoApiClient.respondToVoiceCall(roomId, "decline", cleanPartner)
             }
         }
 
@@ -2593,7 +2638,7 @@ object VoiceCallManager {
         val callSessionKey = "${roomId}_${cleanPartner}_${isCaller}"
         if (!partnerTitle.isBlank() && !recordedCallSessions.contains(callSessionKey)) {
             recordedCallSessions.add(callSessionKey)
-            scope.launch {
+            scope.launch(Dispatchers.IO) {
                 ConnectoApiClient.recordCallLog(
                     callerName = partnerTitle,
                     callType = if (roomCode.startsWith("group_voice")) "Group Call" else "Voice Call",
@@ -2629,35 +2674,91 @@ object VoiceCallManager {
     }
 
     private fun endCallLocally() {
-        synchronized(callTeardownLock) {
-            val roomId = _activeRoomId.value ?: _incomingCall.value?.roomId ?: _activeCallRoomCode.value
-            markCallTerminated(roomId)
-            if (_callState.value == CallState.IDLE && _activeRoomId.value == null && _activeCallPartner.value == null && _incomingCall.value == null) {
-                Log.d(TAG, "endCallLocally: Already idle, skipping redundant teardown")
-                return
-            }
-            Log.d(TAG, "endCallLocally: Tearing down call session")
+        val wasTearingDown = isTeardownInProgress.getAndSet(true)
+        val currentCallState = _callState.value
+        val currentRoom = _activeRoomId.value ?: _incomingCall.value?.roomId ?: _activeCallRoomCode.value
+
+        if (currentCallState == CallState.IDLE && currentRoom == null && _activeCallPartner.value == null && _incomingCall.value == null) {
+            Log.d(TAG, "endCallLocally: Already idle and clean, skipping redundant teardown")
+            isTeardownInProgress.set(false)
+            return
+        }
+
+        Log.d(TAG, "endCallLocally: Tearing down call session (state=$currentCallState, room=$currentRoom)")
+
+        markCallTerminated(currentRoom)
+
+        // 1. Instantly switch call state to IDLE so UI dismisses in 0ms (never sticks or freezes)
+        _callState.value = CallState.IDLE
+        isCallCaller = false
+        _activeRoomId.value = null
+        _activeCallPartner.value = null
+        _activeCallPartnerUsername.value = null
+        _activeCallAvatar.value = null
+        _activeCallRoomCode.value = null
+        _incomingCall.value = null
+        _participantCount.value = 1
+        _liveAudioAmplitude.value = 0f
+        ProximityScreenLockManager.stopMonitoring()
+        _currentAudioRoute.value = AudioRoute.EARPIECE
+        _isSpeakerOn.value = false
+
+        // 2. Dismiss notifications and cancel foreground service immediately
+        try {
             com.example.connecto.ui.components.InAppNotificationController.dismiss()
             ConnectoNotificationManager.cancelCallNotification()
             appContext?.let {
                 VoiceCallForegroundService.stopService(it)
             }
-            stopWebRtc()
-            stopAudioHardware()
-            durationJob?.cancel()
-            durationJob = null
-            _callDurationSeconds.value = 0
-            _callState.value = CallState.IDLE
-            isCallCaller = false
-            _activeRoomId.value = null
-            _activeCallPartner.value = null
-            _activeCallPartnerUsername.value = null
-            _activeCallAvatar.value = null
-            _activeCallRoomCode.value = null
-            _incomingCall.value = null
-            _participantCount.value = 1
-            _liveAudioAmplitude.value = 0f
+        } catch (t: Throwable) {
+            Log.w(TAG, "Error stopping notifications/service: ${t.message}")
         }
+
+        // 3. Cancel duration timer
+        durationJob?.cancel()
+        durationJob = null
+        _callDurationSeconds.value = 0
+
+        // 4. Send leave notifications to server on IO thread
+        if (!currentRoom.isNullOrBlank()) {
+            val cleanRoom = currentRoom.trim()
+            scope.launch(Dispatchers.IO) {
+                try {
+                    val endMsg = JSONObject().apply {
+                        put("action", "call:end")
+                        put("type", "call:end")
+                        put("call_id", cleanRoom)
+                        put("room_id", cleanRoom)
+                    }
+                    sendWsMessage(endMsg)
+
+                    val leaveMsg = JSONObject().apply {
+                        put("type", "voice_leave")
+                        put("action", "voice:leave")
+                        put("channel_id", cleanRoom)
+                        put("room_id", cleanRoom)
+                    }
+                    sendWsMessage(leaveMsg)
+
+                    ConnectoApiClient.endVoiceCall(cleanRoom)
+                } catch (_: Exception) {}
+            }
+        }
+
+        // 5. Tear down WebRTC and Audio hardware (both are completely non-blocking)
+        try {
+            stopWebRtc()
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error in stopWebRtc: ${t.message}")
+        }
+
+        try {
+            stopAudioHardware()
+        } catch (t: Throwable) {
+            Log.e(TAG, "Error in stopAudioHardware: ${t.message}")
+        }
+
+        isTeardownInProgress.set(false)
     }
 
     fun toggleMute() {
@@ -2925,7 +3026,7 @@ object VoiceCallManager {
 
             _isBluetoothConnected.value = btFound
             _bluetoothDeviceName.value = if (btFound) btName else null
-            val routes = mutableListOf(AudioRoute.SPEAKER, AudioRoute.EARPIECE)
+            val routes = mutableListOf(AudioRoute.EARPIECE, AudioRoute.SPEAKER)
             if (btFound) {
                 routes.add(0, AudioRoute.BLUETOOTH)
             }
@@ -2934,7 +3035,7 @@ object VoiceCallManager {
             if (btFound && _callState.value == CallState.CONNECTED && _currentAudioRoute.value != AudioRoute.BLUETOOTH) {
                 setAudioRoute(AudioRoute.BLUETOOTH)
             } else if (!btFound && _currentAudioRoute.value == AudioRoute.BLUETOOTH) {
-                setAudioRoute(AudioRoute.SPEAKER)
+                setAudioRoute(AudioRoute.EARPIECE)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error refreshing audio devices: ${e.message}")
@@ -2968,13 +3069,13 @@ object VoiceCallManager {
     fun setBluetoothConnectedForTesting(connected: Boolean, deviceName: String = "Galaxy Buds Pro") {
         _isBluetoothConnected.value = connected
         _bluetoothDeviceName.value = if (connected) deviceName else null
-        val routes = mutableListOf(AudioRoute.SPEAKER, AudioRoute.EARPIECE)
+        val routes = mutableListOf(AudioRoute.EARPIECE, AudioRoute.SPEAKER)
         if (connected) {
             routes.add(0, AudioRoute.BLUETOOTH)
             setAudioRoute(AudioRoute.BLUETOOTH)
         } else {
             if (_currentAudioRoute.value == AudioRoute.BLUETOOTH) {
-                setAudioRoute(AudioRoute.SPEAKER)
+                setAudioRoute(AudioRoute.EARPIECE)
             }
         }
         _availableAudioRoutes.value = routes
@@ -2984,6 +3085,7 @@ object VoiceCallManager {
     fun setAudioRoute(route: AudioRoute) {
         _currentAudioRoute.value = route
         _isSpeakerOn.value = (route == AudioRoute.SPEAKER)
+        syncProximityMonitoring()
         try {
             val am = audioManager ?: return
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -3092,6 +3194,20 @@ object VoiceCallManager {
         }
     }
 
+    fun syncProximityMonitoring() {
+        try {
+            val isInCall = (_callState.value == CallState.CONNECTED || _callState.value == CallState.OUTGOING_RINGING)
+            val isEarpiece = (_currentAudioRoute.value == AudioRoute.EARPIECE)
+            if (isInCall && isEarpiece) {
+                ProximityScreenLockManager.startMonitoring()
+            } else {
+                ProximityScreenLockManager.stopMonitoring()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error syncing proximity monitoring: ${e.message}")
+        }
+    }
+
     // ----------------------------------------------------
     // Audio Hardware Engine (AudioRecord & AudioTrack)
     // ----------------------------------------------------
@@ -3160,7 +3276,10 @@ object VoiceCallManager {
             }
 
             try {
-                jobToCancel?.cancelAndJoin()
+                jobToCancel?.cancel()
+                withTimeoutOrNull(500) {
+                    jobToCancel?.join()
+                }
             } catch (t: Throwable) {
                 Log.w(TAG, "Error joining recording job: ${t.message}")
             }
@@ -3192,33 +3311,44 @@ object VoiceCallManager {
             } catch (t: Throwable) {
                 Log.e(TAG, "Error releasing AudioTrack: ${t.message}")
             }
-        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            try {
-                audioManager?.clearCommunicationDevice()
-            } catch (t: Throwable) {
-                Log.e(TAG, "Error clearing communication device: ${t.message}")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                try {
+                    audioManager?.clearCommunicationDevice()
+                } catch (t: Throwable) {
+                    Log.e(TAG, "Error clearing communication device: ${t.message}")
+                }
             }
-        }
 
-        try {
-            audioManager?.mode = AudioManager.MODE_NORMAL
-        } catch (t: Throwable) {
-            Log.e(TAG, "Error resetting AudioManager mode: ${t.message}")
+            try {
+                audioManager?.mode = AudioManager.MODE_NORMAL
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error resetting AudioManager mode: ${t.message}")
+            }
         }
     }
 
-    private fun initAudioTrack() {
+    private var currentTrackSampleRate = SAMPLE_RATE
+
+    private fun initAudioTrack(sampleRate: Int = SAMPLE_RATE) {
         try {
-            if (audioTrack != null && audioTrack?.state == AudioTrack.STATE_INITIALIZED) {
+            val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
+            if (audioTrack != null && audioTrack?.state == AudioTrack.STATE_INITIALIZED && currentTrackSampleRate == effectiveRate) {
                 if (audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING) {
                     audioTrack?.play()
                 }
                 return
             }
+            if (audioTrack != null && currentTrackSampleRate != effectiveRate) {
+                try {
+                    audioTrack?.stop()
+                    audioTrack?.release()
+                } catch (_: Throwable) {}
+                audioTrack = null
+            }
+            currentTrackSampleRate = effectiveRate
             val minBuf = AudioTrack.getMinBufferSize(
-                SAMPLE_RATE,
+                effectiveRate,
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
             )
@@ -3234,7 +3364,7 @@ object VoiceCallManager {
                 .setAudioFormat(
                     AudioFormat.Builder()
                         .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                        .setSampleRate(SAMPLE_RATE)
+                        .setSampleRate(effectiveRate)
                         .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                         .build()
                 )
@@ -3243,16 +3373,20 @@ object VoiceCallManager {
                 .build()
 
             audioTrack?.play()
-            Log.d(TAG, "AudioTrack initialized and playing")
+            Log.d(TAG, "AudioTrack initialized and playing at $effectiveRate Hz")
         } catch (t: Throwable) {
             Log.e(TAG, "Failed initializing AudioTrack: ${t.message}", t)
         }
     }
 
-    private fun playAudioChunk(base64Audio: String) {
+    private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
         try {
             val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
-            if (bytes.isNotEmpty() && audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING) {
+            if (bytes.isNotEmpty()) {
+                val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
+                if (audioTrack == null || audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING || currentTrackSampleRate != effectiveRate) {
+                    initAudioTrack(effectiveRate)
+                }
                 audioTrack?.write(bytes, 0, bytes.size, AudioTrack.WRITE_NON_BLOCKING)
             }
         } catch (t: Throwable) {

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select, or_, and_, func
+from sqlalchemy import select, or_, and_, func, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_current_user, get_current_user_optional
 from app.core.moderation import check_auto_mod, check_rate_limit
@@ -191,30 +191,22 @@ async def start_direct_message(
     if target_user.id == current_user.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot start a DM with yourself.")
 
-    # Check if DM channel already exists between these 2 users by participant lookup
-    dm_stmt = (
-        select(Channel.id)
-        .join(DMParticipant, DMParticipant.channel_id == Channel.id)
-        .where(
-            Channel.server_id.is_(None),
-            DMParticipant.user_id.in_([current_user.id, target_user.id])
-        )
-        .group_by(Channel.id)
-        .having(func.count(DMParticipant.user_id) == 2)
-    )
-    existing_channel_id = (await db.execute(dm_stmt)).scalar_one_or_none()
-
     canonical_dm_name = f"dm-{min(current_user.username, target_user.username)}-{max(current_user.username, target_user.username)}"
+    alt_dm_name = f"dm_{min(current_user.username, target_user.username)}_{max(current_user.username, target_user.username)}"
+    rev_dm_name = f"dm-{max(current_user.username, target_user.username)}-{min(current_user.username, target_user.username)}"
 
-    if existing_channel_id:
-        existing_ch = (await db.execute(select(Channel).where(Channel.id == existing_channel_id))).scalar_one()
-        return existing_ch
-
-    # Also check if channel exists by canonical name
-    name_stmt = select(Channel).where(Channel.name == canonical_dm_name)
-    existing_name_ch = (await db.execute(name_stmt)).scalar_one_or_none()
+    # 1. Check by canonical/alt name first
+    name_stmt = select(Channel).where(
+        or_(
+            Channel.name == canonical_dm_name,
+            Channel.name == alt_dm_name,
+            Channel.name == rev_dm_name,
+            Channel.id == canonical_dm_name,
+            Channel.id == alt_dm_name
+        )
+    )
+    existing_name_ch = (await db.execute(name_stmt)).scalars().first()
     if existing_name_ch:
-        # Ensure participants are recorded
         p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == existing_name_ch.id, DMParticipant.user_id == current_user.id))).scalar_one_or_none()
         if not p1:
             db.add(DMParticipant(channel_id=existing_name_ch.id, user_id=current_user.id))
@@ -223,6 +215,35 @@ async def start_direct_message(
             db.add(DMParticipant(channel_id=existing_name_ch.id, user_id=target_user.id))
         await db.commit()
         return existing_name_ch
+
+    # 2. Check if DM channel already exists between these 2 users by participant lookup strictly excluding groups
+    total_parts_sub = (
+        select(DMParticipant.channel_id)
+        .group_by(DMParticipant.channel_id)
+        .having(func.count(DMParticipant.user_id) == 2)
+    ).subquery()
+
+    dm_stmt = (
+        select(Channel)
+        .join(DMParticipant, DMParticipant.channel_id == Channel.id)
+        .where(
+            Channel.server_id.is_(None),
+            Channel.type != "group",
+            not_(Channel.name.like("grp-%")),
+            not_(Channel.name.like("grp_%")),
+            not_(Channel.name.like("group-%")),
+            not_(Channel.id.like("grp-%")),
+            not_(Channel.id.like("grp_%")),
+            not_(Channel.id.like("group-%")),
+            DMParticipant.user_id.in_([current_user.id, target_user.id]),
+            Channel.id.in_(select(total_parts_sub.c.channel_id))
+        )
+        .group_by(Channel.id)
+        .having(func.count(DMParticipant.user_id) == 2)
+    )
+    existing_ch = (await db.execute(dm_stmt)).scalars().first()
+    if existing_ch:
+        return existing_ch
 
     # Create new canonical DM channel
     dm_channel = Channel(

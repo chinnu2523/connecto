@@ -99,7 +99,7 @@ class UserResponse(BaseModel):
     requires_2fa: Optional[bool] = False
     masked_destination: Optional[str] = None
     is_stealth: Optional[bool] = False
-    is_online: Optional[bool] = True
+    is_online: Optional[bool] = False
     is_admin: Optional[bool] = False
     username_changed: bool
     is_email_verified: Optional[bool] = False

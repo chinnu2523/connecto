@@ -3,6 +3,7 @@ package com.example.connecto.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -713,6 +714,29 @@ fun HomeChatScreen(
         }
     }
 
+    // Real-time friend request updates listener
+    DisposableEffect(context) {
+        val receiver = object : android.content.BroadcastReceiver() {
+            override fun onReceive(ctx: android.content.Context?, intent: android.content.Intent?) {
+                coroutineScope.launch {
+                    refreshDashboard()
+                }
+            }
+        }
+        val filter = android.content.IntentFilter("com.connecto.app.FRIEND_REQUEST_UPDATED")
+        try {
+            androidx.core.content.ContextCompat.registerReceiver(
+                context,
+                receiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+        } catch (_: Exception) {}
+        onDispose {
+            try { context.unregisterReceiver(receiver) } catch (_: Exception) {}
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -728,6 +752,8 @@ fun HomeChatScreen(
                 title = "Connecto",
                 subtitle = "Dashboard",
                 userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
+                pendingFriendRequestsCount = friendRequests.size,
+                onAddFriendClick = { isAddFriendOpen = true },
                 onMenuClick = null,
                 onVoiceGroupClick = null,
                 showProfileButton = false,

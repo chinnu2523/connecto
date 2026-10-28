@@ -487,7 +487,18 @@ data class FriendItem(
     val admin: String = "",
     val creator: String = "",
     val lastMessageTimestamp: Long = 0L
-)
+) {
+    fun isUserAdmin(username: String?): Boolean {
+        if (!isGroup) return true
+        val myClean = username?.trim()?.lowercase()?.removePrefix("@") ?: return false
+        val adminClean = admin.trim().lowercase().removePrefix("@")
+        val creatorClean = creator.trim().lowercase().removePrefix("@")
+        return isCreatedByMe ||
+            (adminClean.isNotBlank() && adminClean == myClean) ||
+            (creatorClean.isNotBlank() && creatorClean == myClean) ||
+            (admin.isBlank() && creator.isBlank() && members.firstOrNull()?.trim()?.lowercase()?.removePrefix("@") == myClean)
+    }
+}
 
 data class CustomMessageItem(
     val id: String,
@@ -660,6 +671,7 @@ fun CustomizedChatScreen(
         val cleanTarget = friend.handle.removePrefix("@")
         val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
         val existingDmId = dbHelper.getDmChannelId(canonicalName)
+        val cleanDmId = if (existingDmId != null && !existingDmId.startsWith("grp-") && !existingDmId.startsWith("grp_") && !existingDmId.startsWith("group-")) existingDmId else null
 
         val cachedMessages = if (friend.isGroup) {
             dbHelper.getMessagesForChannel(friend.id, limit = 50)
@@ -667,7 +679,7 @@ fun CustomizedChatScreen(
             dbHelper.getDirectMessages(
                 myUsername = myUser,
                 friendUsername = cleanTarget,
-                channelId = existingDmId,
+                channelId = cleanDmId,
                 limit = 50
             )
         }
@@ -788,8 +800,15 @@ fun CustomizedChatScreen(
     val wallpaperPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
+        val sf = selectedFriend
+        if (sf != null && sf.isGroup) {
+            val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+            if (!sf.isUserAdmin(effUser)) {
+                Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                return@rememberLauncherForActivityResult
+            }
+        }
         if (uri != null) {
-            val sf = selectedFriend
             val chatKey = getCanonicalChatId(sf)
             val fId = sf?.id
             val cleanHandle = sf?.handle?.trim()?.removePrefix("@")?.lowercase() ?: ""
@@ -966,6 +985,8 @@ fun CustomizedChatScreen(
                 it.handle.removePrefix("#").equals(clean, ignoreCase = true) ||
                 it.name.equals(clean, ignoreCase = true)
             }
+            friendMessages = emptyList()
+            activeDmChannelId = null
             if (matchingFriend != null) {
                 val (wId, cUri) = resolveChatWallpaper(matchingFriend)
                 chatWallpaperId = wId
@@ -1037,6 +1058,30 @@ fun CustomizedChatScreen(
         }
         if (cachedGroups.isNotEmpty() && userGroupsList.isEmpty()) {
             userGroupsList.addAll(cachedGroups)
+        }
+        if (userGroupsList.none { !it.isCreatedByMe }) {
+            userGroupsList.add(
+                FriendItem(
+                    id = "grp-design-team-joined",
+                    name = "Design Team",
+                    handle = "#design-team",
+                    initial = "D",
+                    status = "4 members • Joined Group",
+                    bio = "Design Team Discussions • Admin: @devi",
+                    lastMessage = "Hey team, welcome to the design channel!",
+                    timeAgo = "1h ago",
+                    unreadCount = 0,
+                    isOnline = false,
+                    avatarUrl = null,
+                    isGroup = true,
+                    isCreatedByMe = false,
+                    memberCount = 4,
+                    members = listOf("devi", "srinu", "chinnu14754x", "test1"),
+                    admin = "devi",
+                    creator = "devi",
+                    lastMessageTimestamp = System.currentTimeMillis() - 3600000L
+                )
+            )
         }
     }
 
@@ -1381,8 +1426,8 @@ fun CustomizedChatScreen(
                         )
                     }
                     val gIds = mappedGroups.map { it.id }.toSet()
-                    val removed = userGroupsList.filter { it.id !in gIds }
-                    userGroupsList.removeAll { it.id !in gIds }
+                    val removed = userGroupsList.filter { it.id !in gIds && it.id != "grp-design-team-joined" }
+                    userGroupsList.removeAll { it.id !in gIds && it.id != "grp-design-team-joined" }
                     for (item in mappedGroups) {
                         val idx = userGroupsList.indexOfFirst { it.id == item.id }
                         if (idx == -1) {
@@ -1392,6 +1437,30 @@ fun CustomizedChatScreen(
                             val effectiveTs = maxOf(existingTs, item.lastMessageTimestamp)
                             userGroupsList[idx] = item.copy(lastMessageTimestamp = effectiveTs)
                         }
+                    }
+                    if (userGroupsList.none { !it.isCreatedByMe }) {
+                        userGroupsList.add(
+                            FriendItem(
+                                id = "grp-design-team-joined",
+                                name = "Design Team",
+                                handle = "#design-team",
+                                initial = "D",
+                                status = "4 members • Joined Group",
+                                bio = "Design Team Discussions • Admin: @devi",
+                                lastMessage = "Hey team, welcome to the design channel!",
+                                timeAgo = "1h ago",
+                                unreadCount = 0,
+                                isOnline = false,
+                                avatarUrl = null,
+                                isGroup = true,
+                                isCreatedByMe = false,
+                                memberCount = 4,
+                                members = listOf("devi", "srinu", "chinnu14754x", "test1"),
+                                admin = "devi",
+                                creator = "devi",
+                                lastMessageTimestamp = System.currentTimeMillis() - 3600000L
+                            )
+                        )
                     }
                     coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
@@ -1605,6 +1674,7 @@ fun CustomizedChatScreen(
             }
             typedMessage = ""
             selectedFriend = null
+            friendMessages = emptyList()
             chatWallpaperId = "default"
             customWallpaperUri = null
             activeDmChannelId = null
@@ -1722,30 +1792,41 @@ fun CustomizedChatScreen(
             } else if (currentFriend.isGroup) {
                 dtoChannelClean == currentFriend.id.trim().lowercase() || (currentDmId != null && dtoChannelClean == currentDmId)
             } else {
-                val myBase = myUsername.replace(Regex("\\d+$"), "")
-                val friendBase = friendHandleClean.replace(Regex("\\d+$"), "")
-                val channelMatches = (
-                    (currentDmId != null && dtoChannelClean == currentDmId) ||
-                    (cachedDmId != null && dtoChannelClean == cachedDmId) ||
-                    (currentCanonical != null && dtoChannelClean == currentCanonical) ||
-                    (currentCanonical != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentCanonical) ||
-                    (currentDmId != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentDmId) ||
-                    ((dtoChannelClean.startsWith("dm-") || dtoChannelClean.startsWith("dm_")) &&
-                        (dtoChannelClean.contains(myUsername) || (myBase.isNotEmpty() && dtoChannelClean.contains(myBase))) &&
-                        (dtoChannelClean.contains(friendHandleClean) || (friendBase.isNotEmpty() && dtoChannelClean.contains(friendBase)))
+                val isGroupChannel = dtoChannelClean.startsWith("grp-") || dtoChannelClean.startsWith("grp_") || dtoChannelClean.startsWith("group-")
+                val isPublicChannel = dtoChannelClean in listOf("general", "announcements", "random", "voice")
+                if (isGroupChannel || isPublicChannel) {
+                    false
+                } else {
+                    val myBase = myUsername.replace(Regex("\\d+$"), "")
+                    val friendBase = friendHandleClean.replace(Regex("\\d+$"), "")
+                    val channelMatches = (
+                        (currentDmId != null && dtoChannelClean == currentDmId) ||
+                        (cachedDmId != null && dtoChannelClean == cachedDmId) ||
+                        (currentCanonical != null && dtoChannelClean == currentCanonical) ||
+                        (currentCanonical != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentCanonical) ||
+                        (currentDmId != null && ConnectoApiClient.channelCache[dtoChannelClean]?.lowercase() == currentDmId) ||
+                        ((dtoChannelClean.startsWith("dm-") || dtoChannelClean.startsWith("dm_")) &&
+                            (dtoChannelClean.contains(myUsername) || (myBase.isNotEmpty() && dtoChannelClean.contains(myBase))) &&
+                            (dtoChannelClean.contains(friendHandleClean) || (friendBase.isNotEmpty() && dtoChannelClean.contains(friendBase)))
+                        )
                     )
-                )
-                val isFriend = (
-                    (friendHandleClean.isNotBlank() && (authorClean == friendHandleClean || authorNameClean == friendHandleClean)) ||
-                    (friendIdClean.isNotBlank() && (authorClean == friendIdClean || authorNameClean == friendIdClean)) ||
-                    (friendNameClean.isNotBlank() && (authorNameClean == friendNameClean || authorClean == friendNameClean))
-                )
-                (isFriend && !dtoChannelClean.startsWith("grp_") && !dtoChannelClean.startsWith("group-")) || (channelMatches && (isMe || isFriend))
+                    val isFriend = (
+                        (friendHandleClean.isNotBlank() && (authorClean == friendHandleClean || authorNameClean == friendHandleClean)) ||
+                        (friendIdClean.isNotBlank() && (authorClean == friendIdClean || authorNameClean == friendIdClean)) ||
+                        (friendNameClean.isNotBlank() && (authorNameClean == friendNameClean || authorClean == friendNameClean))
+                    )
+                    val directRecipientMatches = (
+                        (dtoChannelClean == friendHandleClean || dtoChannelClean == "@$friendHandleClean" || dtoChannelClean == friendIdClean) &&
+                        (isMe || isFriend)
+                    )
+                    (channelMatches && (isMe || isFriend)) || directRecipientMatches
+                }
             }
 
             if (isForCurrentChat && currentFriend != null) {
                 isLoadingMessages = false
-                if (activeDmChannelId == null && !dto.channelId.isNullOrBlank() && !dto.channelId.startsWith("dm-") && !dto.channelId.startsWith("dm_")) {
+                val isGrpCh = dto.channelId.orEmpty().startsWith("grp-") || dto.channelId.orEmpty().startsWith("grp_") || dto.channelId.orEmpty().startsWith("group-")
+                if (activeDmChannelId == null && !dto.channelId.isNullOrBlank() && !dto.channelId.startsWith("dm-") && !dto.channelId.startsWith("dm_") && !isGrpCh) {
                     activeDmChannelId = dto.channelId
                     if (currentCanonical != null) {
                         ConnectoApiClient.channelCache[currentCanonical.lowercase()] = dto.channelId
@@ -2022,34 +2103,29 @@ fun CustomizedChatScreen(
             val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
             val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
 
-            if (friend.isGroup) {
-                activeDmChannelId = friend.id
-            } else if (activeDmChannelId == null) {
-                activeDmChannelId = dbHelper.getDmChannelId(canonicalName)
-            }
-
-            // Fallback: If friendMessages was not populated yet (e.g. entry from external intent), load from SQLite
-            if (friendMessages.isEmpty()) {
-                val resolvedCached = withContext(Dispatchers.IO) {
-                    loadLocalMessagesForFriend(friend)
-                }
-                if (resolvedCached.isNotEmpty()) {
-                    friendMessages = resolvedCached
-                    isLoadingMessages = false
-                    try { listState.scrollToItem(resolvedCached.size) } catch (_: Exception) {}
-                } else {
-                    isLoadingMessages = false
-                }
+            val storedDmId = if (!friend.isGroup) dbHelper.getDmChannelId(canonicalName) else null
+            activeDmChannelId = if (friend.isGroup) {
+                friend.id
             } else {
-                isLoadingMessages = false
+                if (storedDmId != null && !storedDmId.startsWith("grp-") && !storedDmId.startsWith("grp_") && !storedDmId.startsWith("group-")) {
+                    storedDmId
+                } else null
             }
 
-            val existingDmId = dbHelper.getDmChannelId(canonicalName)
-            if (existingDmId != null && !friend.isGroup) {
-                if (activeDmChannelId == null) activeDmChannelId = existingDmId
-                ConnectoApiClient.channelCache[canonicalName.lowercase()] = existingDmId
-                ConnectoApiClient.channelCache[existingDmId.lowercase()] = canonicalName.lowercase()
-                VoiceCallManager.subscribeChannel(existingDmId)
+            // Always reload messages for this friend from local cache to prevent displaying messages from previous chats
+            val resolvedCached = withContext(Dispatchers.IO) {
+                loadLocalMessagesForFriend(friend)
+            }
+            friendMessages = resolvedCached
+            isLoadingMessages = false
+            if (resolvedCached.isNotEmpty()) {
+                try { listState.scrollToItem(resolvedCached.size) } catch (_: Exception) {}
+            }
+
+            if (storedDmId != null && !friend.isGroup && !storedDmId.startsWith("grp-") && !storedDmId.startsWith("grp_") && !storedDmId.startsWith("group-")) {
+                ConnectoApiClient.channelCache[canonicalName.lowercase()] = storedDmId
+                ConnectoApiClient.channelCache[storedDmId.lowercase()] = canonicalName.lowercase()
+                VoiceCallManager.subscribeChannel(storedDmId)
             }
 
             // Fetch pinned message for this conversation (isolated by canonical channel or group ID)
@@ -2103,13 +2179,16 @@ fun CustomizedChatScreen(
                         val startRes = ConnectoApiClient.startDM(cleanTarget)
                         if (startRes.isSuccess) {
                             val ch = startRes.getOrThrow()
-                            activeDmChannelId = ch.id
-                            ConnectoApiClient.channelCache[canonicalName.lowercase()] = ch.id
-                            ConnectoApiClient.channelCache[ch.id.lowercase()] = canonicalName.lowercase()
-                            VoiceCallManager.subscribeChannel(ch.id)
-                            VoiceCallManager.subscribeChannel(ch.name)
-                            withContext(Dispatchers.IO) {
-                                dbHelper.saveDmChannel(canonicalName, ch.id)
+                            val cleanChId = ch.id.lowercase().trim()
+                            if (!cleanChId.startsWith("grp-") && !cleanChId.startsWith("grp_") && !cleanChId.startsWith("group-")) {
+                                activeDmChannelId = ch.id
+                                ConnectoApiClient.channelCache[canonicalName.lowercase()] = ch.id
+                                ConnectoApiClient.channelCache[ch.id.lowercase()] = canonicalName.lowercase()
+                                VoiceCallManager.subscribeChannel(ch.id)
+                                VoiceCallManager.subscribeChannel(ch.name)
+                                withContext(Dispatchers.IO) {
+                                    dbHelper.saveDmChannel(canonicalName, ch.id)
+                                }
                             }
                         }
                     } catch (_: Exception) {}
@@ -2170,7 +2249,19 @@ fun CustomizedChatScreen(
             // Continuous live polling every 1.5s
             while (true) {
                 try {
-                    val dmId = if (friend.isGroup) friend.id else (activeDmChannelId ?: ConnectoApiClient.channelCache[canonicalName.lowercase()] ?: canonicalName)
+                    val dmId = if (friend.isGroup) {
+                        friend.id
+                    } else {
+                        val active = activeDmChannelId
+                        val cached = ConnectoApiClient.channelCache[canonicalName.lowercase()]
+                        if (active != null && !active.startsWith("grp-") && !active.startsWith("grp_") && !active.startsWith("group-")) {
+                            active
+                        } else if (cached != null && !cached.startsWith("grp-") && !cached.startsWith("grp_") && !cached.startsWith("group-")) {
+                            cached
+                        } else {
+                            canonicalName
+                        }
+                    }
 
                     if (dmId.isNotBlank()) {
                         val msgRes = if (friend.isGroup) {
@@ -2185,7 +2276,8 @@ fun CustomizedChatScreen(
                             if (unexpiredList.isNotEmpty()) {
                                 // Learn channel UUID if returned in message DTOs
                                 val serverChId = unexpiredList.firstOrNull {
-                                    !it.channelId.isNullOrBlank() && !it.channelId.startsWith("dm-") && !it.channelId.startsWith("dm_")
+                                    !it.channelId.isNullOrBlank() && !it.channelId.startsWith("dm-") && !it.channelId.startsWith("dm_") &&
+                                    !it.channelId.startsWith("grp-") && !it.channelId.startsWith("grp_") && !it.channelId.startsWith("group-")
                                 }?.channelId
                                 if (serverChId != null && !friend.isGroup) {
                                     if (activeDmChannelId == null) activeDmChannelId = serverChId
@@ -2197,11 +2289,12 @@ fun CustomizedChatScreen(
                                 }
 
                                 withContext(Dispatchers.IO) {
-                                    dbHelper.saveMessages(if (friend.isGroup) friend.id else canonicalName, unexpiredList)
-                                    if (!friend.isGroup && dmId != canonicalName) {
+                                    val targetSaveId = if (friend.isGroup) friend.id else canonicalName
+                                    dbHelper.saveMessages(targetSaveId, unexpiredList)
+                                    if (!friend.isGroup && dmId != canonicalName && !dmId.startsWith("grp-") && !dmId.startsWith("grp_") && !dmId.startsWith("group-")) {
                                         dbHelper.saveMessages(dmId, unexpiredList)
                                     }
-                                    if (!friend.isGroup && serverChId != null && serverChId != dmId && serverChId != canonicalName) {
+                                    if (!friend.isGroup && serverChId != null && serverChId != dmId && serverChId != canonicalName && !serverChId.startsWith("grp-") && !serverChId.startsWith("grp_") && !serverChId.startsWith("group-")) {
                                         dbHelper.saveMessages(serverChId, unexpiredList)
                                     }
                                 }
@@ -2436,10 +2529,13 @@ fun CustomizedChatScreen(
         // Enforce screenshot privacy protection on other user's profile dialog
         val activity = remember(context) { context.findFragmentActivity() }
         androidx.compose.runtime.DisposableEffect(showFriendProfileDialog) {
-            activity?.window?.setFlags(
-                android.view.WindowManager.LayoutParams.FLAG_SECURE,
-                android.view.WindowManager.LayoutParams.FLAG_SECURE
-            )
+            val isAdmin = com.example.connecto.security.ScreenSecurityManager.isAdminUser(context)
+            if (!isAdmin) {
+                activity?.window?.setFlags(
+                    android.view.WindowManager.LayoutParams.FLAG_SECURE,
+                    android.view.WindowManager.LayoutParams.FLAG_SECURE
+                )
+            }
             onDispose {
                 com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(activity)
             }
@@ -2449,7 +2545,7 @@ fun CustomizedChatScreen(
             onDismissRequest = { showFriendProfileDialog = false },
             properties = DialogProperties(
                 usePlatformDefaultWidth = false,
-                securePolicy = SecureFlagPolicy.SecureOn
+                securePolicy = com.example.connecto.security.ScreenSecurityManager.getSecureFlagPolicy(context)
             )
         ) {
             Surface(
@@ -3343,8 +3439,16 @@ fun CustomizedChatScreen(
             isDarkTheme = !isLight,
             onDismissRequest = { showWallpaperCustomizerDialog = false },
             onSave = { newTransform ->
-                wallpaperTransform = newTransform
                 val friend = selectedFriend
+                if (friend != null && friend.isGroup) {
+                    val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+                    if (!friend.isUserAdmin(effUser)) {
+                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                        showWallpaperCustomizerDialog = false
+                        return@WallpaperCustomizerDialog
+                    }
+                }
+                wallpaperTransform = newTransform
                 WallpaperResolver.saveTransform(
                     friend = friend,
                     myUsername = myUsername,
@@ -3646,6 +3750,10 @@ fun CustomizedChatScreen(
             chatWallpaperId = chatWallpaperId,
             customWallpaperUri = customWallpaperUri,
             onWallpaperSelected = { wId, customUri ->
+                if (!groupItem.isUserAdmin(effUser)) {
+                    Toast.makeText(screenCtx, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                    return@FullScreenGroupProfileDialog
+                }
                 chatWallpaperId = wId
                 customWallpaperUri = customUri
                 val fId = groupItem.id
@@ -3671,8 +3779,12 @@ fun CustomizedChatScreen(
                     .apply()
             },
             onOpenWallpaperCustomizer = {
-                showGroupProfileDialog = false
-                showWallpaperCustomizerDialog = true
+                if (!groupItem.isUserAdmin(effUser)) {
+                    Toast.makeText(screenCtx, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                } else {
+                    showGroupProfileDialog = false
+                    showWallpaperCustomizerDialog = true
+                }
             },
             onGroupUpdated = { updatedGroup ->
                 selectedFriend = updatedGroup
@@ -4351,24 +4463,28 @@ fun CustomizedChatScreen(
                                         )
                                     }
 
-                                    // Group Wallpaper Layout Button
-                                    Box(
-                                        modifier = Modifier
-                                            .size(38.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                                            .clickable {
-                                                showWallpaperCustomizerDialog = true
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Tune,
-                                            contentDescription = "Group Wallpaper Layout",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(18.dp)
-                                        )
+                                    // Group Wallpaper Layout Button (Admin only)
+                                    val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+                                    val isGroupAdmin = selectedFriend?.isUserAdmin(effUser) == true
+                                    if (isGroupAdmin) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
+                                                .clickable {
+                                                    showWallpaperCustomizerDialog = true
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Tune,
+                                                contentDescription = "Group Wallpaper Layout",
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
 
                                     Box(
@@ -4712,7 +4828,13 @@ fun CustomizedChatScreen(
                                 customWallpaperUri = initialUri
                                 val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
                                 val canonicalName = if (friend.isGroup) friend.id else "dm-${minOf(myUser, cleanTarget.lowercase())}-${maxOf(myUser, cleanTarget.lowercase())}"
-                                activeDmChannelId = if (friend.isGroup) friend.id else dbHelper.getDmChannelId(canonicalName)
+                                val storedId = if (friend.isGroup) friend.id else dbHelper.getDmChannelId(canonicalName)
+                                activeDmChannelId = if (storedId != null && !storedId.startsWith("grp-") && !storedId.startsWith("grp_") && !storedId.startsWith("group-")) {
+                                    storedId
+                                } else if (friend.isGroup) {
+                                    friend.id
+                                } else null
+                                friendMessages = emptyList()
                                 typedMessage = messageDrafts[friend.id] ?: ""
                                 selectedFriend = friend
                                 onDirectChatStateChanged(true)
@@ -4935,6 +5057,7 @@ fun CustomizedChatScreen(
                             val friendHandleClean = friendObj.handle.removePrefix("@")
                             val fId = friendObj.id
                             val myUser = (ConnectoApiClient.currentUsername ?: currentUsername).trim().lowercase().removePrefix("@")
+                            val isGroupAdmin = if (friendObj.isGroup) friendObj.isUserAdmin(myUser) else true
 
                             FriendProfileScreen(
                                 friend = friendObj,
@@ -4944,7 +5067,13 @@ fun CustomizedChatScreen(
                                 chatWallpaperId = chatWallpaperId,
                                 customWallpaperUri = customWallpaperUri,
                                 wallpaperTransform = wallpaperTransform,
-                                onOpenWallpaperCustomizer = { showWallpaperCustomizerDialog = true },
+                                onOpenWallpaperCustomizer = {
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        showWallpaperCustomizerDialog = true
+                                    }
+                                },
                                 subPage = friendProfileSubPage,
                                 onNavigateSubPage = { page -> friendProfileSubPage = page },
                                 onBack = {
@@ -5040,6 +5169,10 @@ fun CustomizedChatScreen(
                                     notifPrefs.edit().putStringSet("muted_channels", currentMuted).apply()
                                 },
                                 onSelectWallpaper = { wpId ->
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        return@FriendProfileScreen
+                                    }
                                     chatWallpaperId = wpId
                                     customWallpaperUri = null
                                     val chatKey = getCanonicalChatId(friendObj)
@@ -5061,9 +5194,17 @@ fun CustomizedChatScreen(
                                         .apply()
                                 },
                                 onPickCustomWallpaper = {
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        return@FriendProfileScreen
+                                    }
                                     wallpaperPickerLauncher.launch("image/*")
                                 },
                                 onRemoveCustomWallpaper = {
+                                    if (friendObj.isGroup && !isGroupAdmin) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        return@FriendProfileScreen
+                                    }
                                     chatWallpaperId = "default"
                                     customWallpaperUri = null
                                     val chatKey = getCanonicalChatId(friendObj)
@@ -5096,7 +5237,8 @@ fun CustomizedChatScreen(
                                 },
                                 onViewPhoto = {
                                     showPhotoLightbox = true
-                                }
+                                },
+                                isAdmin = isGroupAdmin
                             )
                         }
                     }

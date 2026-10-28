@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
@@ -107,8 +108,21 @@ fun BiometricLockScreen(
     val contentOnGradient = getContentColorOnAccentGradient()
     val coroutineScope = rememberCoroutineScope()
 
-    var authStatusMessage by remember {
-        mutableStateOf("Scan fingerprint, use device PIN, or enter account password")
+    val isFaceHardware = remember(context) { BiometricAuthManager.hasFaceHardware(context) }
+    var preferredModality by remember(context, username) {
+        mutableStateOf(BiometricAuthManager.getPreferredModality(context, username))
+    }
+    val isFaceId = remember(preferredModality, isFaceHardware) {
+        if (preferredModality == BiometricAuthManager.BiometricModality.FACE_ID) true
+        else if (preferredModality == BiometricAuthManager.BiometricModality.FINGERPRINT) false
+        else isFaceHardware
+    }
+
+    var authStatusMessage by remember(isFaceId) {
+        mutableStateOf(
+            if (isFaceId) "Glance at screen to unlock with Face ID, or use PIN / Password"
+            else "Scan fingerprint, use device PIN, or enter account password"
+        )
     }
     var isAuthFailed by remember { mutableStateOf(false) }
     var isAuthSuccess by remember { mutableStateOf(false) }
@@ -228,18 +242,19 @@ fun BiometricLockScreen(
         }
 
         try {
-            authStatusMessage = "Waiting for biometric scan or screen lock..."
+            authStatusMessage = if (isFaceId) "Looking for your face..." else "Waiting for biometric scan or screen lock..."
             isAuthFailed = false
 
             BiometricAuthManager.authenticate(
                 activity = activity,
-                title = "Unlock Connecto",
-                subtitle = "Verify identity for @$username",
-                description = "Scan fingerprint, face, or enter device screen lock to unlock Connecto",
+                title = if (isFaceId) "Unlock Connecto with Face ID" else "Unlock Connecto",
+                subtitle = if (isFaceId) "Glance at the camera or use device screen lock" else "Verify identity for @$username",
+                description = if (isFaceId) "Confirm your identity with Face ID or Device PIN" else "Scan fingerprint, face, or enter device screen lock to unlock Connecto",
+                isFaceId = isFaceId,
                 onSuccess = {
                     isAuthSuccess = true
                     isAuthFailed = false
-                    authStatusMessage = "Identity verified successfully! 🔓"
+                    authStatusMessage = if (isFaceId) "Face ID verified successfully! 🔓" else "Identity verified successfully! 🔓"
                     onUnlockSuccess()
                 },
                 onError = { errorCode, errString ->
@@ -253,7 +268,7 @@ fun BiometricLockScreen(
                 },
                 onFailed = {
                     isAuthFailed = true
-                    authStatusMessage = "Biometric not recognized. Please try again or unlock with password."
+                    authStatusMessage = if (isFaceId) "Face not recognized. Glance again or unlock with password." else "Biometric not recognized. Please try again or unlock with password."
                 },
                 onFallbackToDeviceCredential = {
                     if (isSecure) triggerScreenLockPrompt() else showPasswordDialog = true
@@ -261,7 +276,7 @@ fun BiometricLockScreen(
             )
         } catch (t: Throwable) {
             isAuthFailed = true
-            authStatusMessage = "Biometric unavailable. Unlock using screen lock or password below."
+            authStatusMessage = if (isFaceId) "Face ID unavailable. Unlock using screen lock or password below." else "Biometric unavailable. Unlock using screen lock or password below."
             if (isSecure) triggerScreenLockPrompt() else showPasswordDialog = true
         }
     }
@@ -335,14 +350,37 @@ fun BiometricLockScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Main Interactive Biometric Fingerprint Scanner
+            // Active Modality Pill
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = if (isFaceId) Icons.Default.Face else Icons.Default.Fingerprint,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (isFaceId) "Face ID App Lock Active" else "Biometric App Lock Active",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Main Interactive Biometric Scanner (Face ID Viewfinder / Fingerprint)
+            val scannerShape = if (isFaceId) RoundedCornerShape(32.dp) else CircleShape
             Box(
                 modifier = Modifier
                     .size(112.dp)
                     .scale(if (isAuthSuccess) 1.0f else pulseScale)
-                    .clip(CircleShape)
+                    .clip(scannerShape)
                     .background(
                         Brush.radialGradient(
                             listOf(
@@ -360,7 +398,7 @@ fun BiometricLockScreen(
                             else if (isAuthFailed) listOf(Color(0xFFEF4444), Color(0xFFEF4444))
                             else gradientColors
                         ),
-                        shape = CircleShape
+                        shape = scannerShape
                     )
                     .clickable {
                         val isBioEnrolled = BiometricAuthManager.isBiometricEnrolled(context)
@@ -376,14 +414,50 @@ fun BiometricLockScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (isAuthSuccess) Icons.Default.LockOpen else Icons.Default.Fingerprint,
-                    contentDescription = "Trigger Biometric Unlock",
+                    imageVector = if (isAuthSuccess) Icons.Default.LockOpen else if (isFaceId) Icons.Default.Face else Icons.Default.Fingerprint,
+                    contentDescription = if (isFaceId) "Trigger Face ID Unlock" else "Trigger Biometric Unlock",
                     tint = if (isAuthSuccess) MaterialTheme.colorScheme.primary else if (isAuthFailed) Color(0xFFEF4444) else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(52.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Modality Switcher Chip: Toggle between Face ID and Fingerprint
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(20.dp))
+                    .clickable {
+                        val newModality = if (isFaceId) BiometricAuthManager.BiometricModality.FINGERPRINT else BiometricAuthManager.BiometricModality.FACE_ID
+                        preferredModality = newModality
+                        BiometricAuthManager.setPreferredModality(context, username, newModality)
+                        authStatusMessage = if (newModality == BiometricAuthManager.BiometricModality.FACE_ID) {
+                            "Switched to Face ID unlock"
+                        } else {
+                            "Switched to Fingerprint unlock"
+                        }
+                    }
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (isFaceId) Icons.Default.Fingerprint else Icons.Default.Face,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (isFaceId) "Switch to Fingerprint" else "Switch to Face ID",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Live Security Status Pill
             Box(
@@ -421,13 +495,13 @@ fun BiometricLockScreen(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Fingerprint,
+                        imageVector = if (isFaceId) Icons.Default.Face else Icons.Default.Fingerprint,
                         contentDescription = null,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Scan Biometrics",
+                        text = if (isFaceId) "Scan Face ID" else "Scan Biometrics",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp
                     )

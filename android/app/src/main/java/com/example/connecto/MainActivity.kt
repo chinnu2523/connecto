@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.fragment.app.FragmentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.Lifecycle
@@ -133,6 +134,7 @@ class MainActivity : FragmentActivity() {
         com.example.connecto.security.ScreenSecurityManager.init(this)
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
         com.example.connecto.security.ScreenSecurityManager.registerListeners(this)
+        com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
         com.example.connecto.network.ConnectoApiClient.initSessionFromPrefs(this)
         // Ensure legacy Connecto Active foreground notification is removed and its channel deleted
         com.example.connecto.notifications.ConnectoRealtimeService.dismissConnectoActiveNotification(this)
@@ -234,11 +236,13 @@ class MainActivity : FragmentActivity() {
     override fun onResume() {
         super.onResume()
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(this)
+        com.example.connecto.voice.ProximityScreenLockManager.updateActivity(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         com.example.connecto.security.ScreenSecurityManager.unregisterListeners(this)
+        com.example.connecto.voice.ProximityScreenLockManager.stopMonitoring()
     }
 }
 
@@ -384,8 +388,9 @@ fun ConnectoApp(
     val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
     val isRecordingActive by com.example.connecto.security.ScreenSecurityManager.isScreenRecordingActive.collectAsState()
     val isCastingActive by com.example.connecto.security.ScreenSecurityManager.isCastingActive.collectAsState()
+    val isUserAdmin by com.example.connecto.network.ConnectoApiClient.currentUserIsAdminState.collectAsState()
     val mainActivityRef = context as? android.app.Activity
-    androidx.compose.runtime.LaunchedEffect(isScreenSecurityActive) {
+    androidx.compose.runtime.LaunchedEffect(isScreenSecurityActive, isUserAdmin, authenticatedUsername) {
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(mainActivityRef)
     }
 
@@ -407,6 +412,9 @@ fun ConnectoApp(
 
     val unreadNotifCount by com.example.connecto.network.ConnectoApiClient.unreadNotificationCount.collectAsState()
     val callState by VoiceCallManager.callState.collectAsState()
+    val currentAudioRoute by VoiceCallManager.currentAudioRoute.collectAsState()
+    val isProximityScreenLocked by com.example.connecto.voice.ProximityScreenLockManager.isScreenOffLocked.collectAsState()
+    val isProximityNear by com.example.connecto.voice.ProximityScreenLockManager.isNear.collectAsState()
     val incomingCallData by VoiceCallManager.incomingCall.collectAsState()
     val managerCallTitle by VoiceCallManager.activeCallTitle.collectAsState()
     val managerRoomCode by VoiceCallManager.activeCallRoomCode.collectAsState()
@@ -703,6 +711,7 @@ fun ConnectoApp(
                             // Persist user session
                             prefs.edit()
                                 .putBoolean("is_logged_in", true)
+                                .putBoolean("is_admin", com.example.connecto.network.ConnectoApiClient.currentUserIsAdmin)
                                 .putString("username", username)
                                 .putString("token", com.example.connecto.network.ConnectoApiClient.sessionToken)
                                 .putString("user_id", com.example.connecto.network.ConnectoApiClient.currentUserId)
@@ -1021,6 +1030,29 @@ fun ConnectoApp(
                     performCompleteSignOut(context, authenticatedUsername)
                     flowState = AppFlowState.AUTH_HOME
                 }
+            )
+        }
+
+        // In-Call Proximity Screen-Off Lock:
+        // When audio is on the earpiece and the top receiver / proximity sensor is covered (phone held to ear),
+        // the screen is completely turned off (pitch black) and touch input is locked just like native phone calls.
+        val isCallActive = (callState == CallState.CONNECTED || callState == CallState.OUTGOING_RINGING)
+        val shouldBlackoutForEar = (isProximityScreenLocked || isProximityNear) &&
+                currentAudioRoute == com.example.connecto.voice.AudioRoute.EARPIECE &&
+                isCallActive
+
+        if (shouldBlackoutForEar) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .pointerInput(Unit) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                awaitPointerEvent()
+                            }
+                        }
+                    }
             )
         }
 

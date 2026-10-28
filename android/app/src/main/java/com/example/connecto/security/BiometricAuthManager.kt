@@ -3,6 +3,7 @@ package com.example.connecto.security
 import android.app.KeyguardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.biometric.BiometricManager
@@ -22,6 +23,88 @@ enum class BiometricStatus {
 object BiometricAuthManager {
 
     private const val TAG = "BiometricAuthManager"
+
+    const val PREF_BIOMETRIC_MODALITY = "pref_biometric_modality_"
+
+    enum class BiometricModality {
+        FACE_ID,
+        FINGERPRINT,
+        AUTO,
+        DEVICE_CREDENTIAL
+    }
+
+    /**
+     * Checks whether the device hardware supports Face Recognition / Face ID.
+     */
+    fun hasFaceHardware(context: Context): Boolean {
+        return try {
+            val pm = context.packageManager
+            pm.hasSystemFeature(PackageManager.FEATURE_FACE) ||
+            pm.hasSystemFeature("android.hardware.biometrics.face")
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Checks whether the device hardware supports Fingerprint recognition.
+     */
+    fun hasFingerprintHardware(context: Context): Boolean {
+        return try {
+            val pm = context.packageManager
+            pm.hasSystemFeature(PackageManager.FEATURE_FINGERPRINT) ||
+            pm.hasSystemFeature("android.hardware.fingerprint")
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Checks whether the device hardware supports Iris recognition.
+     */
+    fun hasIrisHardware(context: Context): Boolean {
+        return try {
+            val pm = context.packageManager
+            pm.hasSystemFeature(PackageManager.FEATURE_IRIS) ||
+            pm.hasSystemFeature("android.hardware.biometrics.iris")
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Returns the user's preferred biometric unlock modality.
+     */
+    fun getPreferredModality(context: Context, username: String?): BiometricModality {
+        if (username.isNullOrBlank()) return BiometricModality.AUTO
+        return try {
+            val prefs = context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)
+            val saved = prefs.getString("$PREF_BIOMETRIC_MODALITY$username", BiometricModality.AUTO.name)
+            BiometricModality.valueOf(saved ?: BiometricModality.AUTO.name)
+        } catch (_: Throwable) {
+            BiometricModality.AUTO
+        }
+    }
+
+    /**
+     * Saves the user's preferred biometric unlock modality.
+     */
+    fun setPreferredModality(context: Context, username: String, modality: BiometricModality) {
+        val prefs = context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString("$PREF_BIOMETRIC_MODALITY$username", modality.name).apply()
+    }
+
+    /**
+     * Returns true if Face ID is the primary/active biometric unlock method for this user/device.
+     */
+    fun isFaceIdPrimary(context: Context, username: String? = null): Boolean {
+        val pref = getPreferredModality(context, username)
+        if (pref == BiometricModality.FACE_ID) return true
+        if (pref == BiometricModality.FINGERPRINT) return false
+
+        // AUTO: If device has Face ID hardware, default to Face ID!
+        return hasFaceHardware(context)
+    }
 
     // Combination for modern Android 11+ (API 30+)
     // NOTE: BIOMETRIC_WEAK cannot be combined with DEVICE_CREDENTIAL on API 30+ — causes IllegalArgumentException
@@ -121,13 +204,19 @@ object BiometricAuthManager {
     /**
      * Returns a human-friendly description of the security & biometric status.
      */
-    fun getStatusDescription(context: Context): String {
+    fun getStatusDescription(context: Context, username: String? = null): String {
+        val hasFace = hasFaceHardware(context)
+        val hasFp = hasFingerprintHardware(context)
         val hasBio = isBiometricEnrolled(context)
         val hasDeviceSecure = isDeviceSecure(context)
+        val isFacePrimary = isFaceIdPrimary(context, username)
 
         return when {
-            hasBio && hasDeviceSecure -> "Fingerprint, Face ID & Device Screen Lock active"
-            hasBio -> "Biometric scan (Fingerprint / Face ID) enrolled & active"
+            hasFace && hasFp && hasBio -> if (isFacePrimary) "Face ID (Primary) & Fingerprint active" else "Fingerprint (Primary) & Face ID active"
+            hasFace && hasBio -> "Face ID enrolled & active"
+            hasFp && hasBio -> "Fingerprint enrolled & active"
+            hasBio && hasDeviceSecure -> if (isFacePrimary) "Face ID & Device Screen Lock active" else "Fingerprint & Device Screen Lock active"
+            hasBio -> if (isFacePrimary) "Face ID biometric enrolled & active" else "Fingerprint biometric enrolled & active"
             hasDeviceSecure -> "Device Screen Lock (PIN / Pattern / Password) active"
             else -> "Connecto account password lock active"
         }
@@ -156,12 +245,16 @@ object BiometricAuthManager {
         title: String = "Unlock Connecto",
         subtitle: String = "Verify your biometric or device screen lock to continue",
         description: String? = "Confirm your identity with Fingerprint, Face ID, or Device PIN",
+        isFaceId: Boolean = false,
         onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
         onError: (errorCode: Int, errString: CharSequence) -> Unit = { _, _ -> },
         onFailed: () -> Unit = {},
         onFallbackToDeviceCredential: (() -> Unit)? = null
     ) {
         try {
+            val actualTitle = if (isFaceId && title == "Unlock Connecto") "Unlock Connecto with Face ID" else title
+            val actualSubtitle = if (isFaceId && subtitle.contains("biometric")) "Glance at the camera or use device screen lock" else subtitle
+            val actualDescription = if (isFaceId && description != null && description.contains("Fingerprint")) "Confirm your identity with Face ID or Device PIN" else description
             // On API < 30 (Android 10 and below), if biometric is not enrolled but device lock is set,
             // BiometricPrompt cannot handle screen lock without biometrics. Route directly to device credential.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R && !isBiometricEnrolled(activity)) {
@@ -209,11 +302,11 @@ object BiometricAuthManager {
             val biometricPrompt = BiometricPrompt(activity, executor, callback)
 
             val promptInfoBuilder = BiometricPrompt.PromptInfo.Builder()
-                .setTitle(title)
-                .setSubtitle(subtitle)
+                .setTitle(actualTitle)
+                .setSubtitle(actualSubtitle)
 
-            if (!description.isNullOrBlank()) {
-                promptInfoBuilder.setDescription(description)
+            if (!actualDescription.isNullOrBlank()) {
+                promptInfoBuilder.setDescription(actualDescription)
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

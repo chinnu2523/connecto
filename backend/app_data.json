@@ -1,5 +1,5 @@
 {
-  "total_users": 15,
+  "total_users": 12,
   "total_channels": 51,
   "users": [
     {
@@ -59,14 +59,6 @@
       "bio": "Competitive gamer, tournament player, and Free Fire streamer \ud83c\udfae"
     },
     {
-      "id": "usr_vivek",
-      "username": "vivek",
-      "display_name": "Vivek",
-      "email": "vivek@connecto.fun",
-      "avatar_url": "https://connecto.fun/uploads/avatars/vivek_cyber_avatar.webp",
-      "bio": null
-    },
-    {
       "id": "f56a5269-71fe-4344-84e4-a1e231ece962",
       "username": "test1",
       "display_name": "Test One",
@@ -105,22 +97,6 @@
       "email": "shinobi_99@connecto.fun",
       "avatar_url": "\ud83d\udc7e",
       "bio": null
-    },
-    {
-      "id": "usr_aria_stark",
-      "username": "aria_stark",
-      "display_name": "Aria Stark",
-      "email": "aria@connecto.fun",
-      "avatar_url": "\ud83d\udc7e",
-      "bio": ""
-    },
-    {
-      "id": "usr_zack_miller",
-      "username": "zack_miller",
-      "display_name": "Zack Miller",
-      "email": "zack@connecto.fun",
-      "avatar_url": "\ud83c\udfae",
-      "bio": ""
     }
   ],
   "channels": [

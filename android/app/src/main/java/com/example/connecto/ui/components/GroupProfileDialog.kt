@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
@@ -194,10 +195,14 @@ fun FullScreenGroupProfileDialog(
         }
     }
 
-    // Group Wallpaper Photo Picker Launcher
+    // Group Wallpaper Photo Picker Launcher (Admin only)
     val groupWallpaperPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
+        if (!isAdmin) {
+            Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+            return@rememberLauncherForActivityResult
+        }
         if (uri != null) {
             val fileUriStr = try {
                 val wallpapersDir = java.io.File(context.filesDir, "chat_wallpapers")
@@ -223,7 +228,7 @@ fun FullScreenGroupProfileDialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+            securePolicy = com.example.connecto.security.ScreenSecurityManager.getSecureFlagPolicy(context)
         )
     ) {
         Surface(
@@ -547,6 +552,31 @@ fun FullScreenGroupProfileDialog(
                                     color = MaterialTheme.colorScheme.primary,
                                     letterSpacing = 0.5.sp
                                 )
+                                if (!isAdmin) {
+                                    Spacer(modifier = Modifier.weight(1f))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Icon(
+                                                imageVector = Icons.Default.Lock,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.size(11.dp)
+                                            )
+                                            Text(
+                                                text = "Admin Only",
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
                             }
 
                             Box(
@@ -556,10 +586,17 @@ fun FullScreenGroupProfileDialog(
                                     .background(MaterialTheme.colorScheme.surface)
                                     .border(
                                         1.dp,
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                        if (isAdmin) MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                         RoundedCornerShape(16.dp)
                                     )
-                                    .clickable { showWallpaperSelectorModal = true }
+                                    .clickable {
+                                        if (isAdmin) {
+                                            showWallpaperSelectorModal = true
+                                        } else {
+                                            Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                     .padding(14.dp)
                             ) {
                                 Row(
@@ -599,45 +636,70 @@ fun FullScreenGroupProfileDialog(
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                             Text(
-                                                text = "Tap to customize group wallpaper",
+                                                text = if (isAdmin) "Tap to customize group wallpaper" else "Admin only • Managed by @$effectiveAdminUsername",
                                                 fontSize = 11.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
 
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        if (onOpenWallpaperCustomizer != null) {
-                                            androidx.compose.material3.OutlinedButton(
-                                                onClick = onOpenWallpaperCustomizer,
+                                    if (isAdmin) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            if (onOpenWallpaperCustomizer != null) {
+                                                androidx.compose.material3.OutlinedButton(
+                                                    onClick = onOpenWallpaperCustomizer,
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Tune,
+                                                        contentDescription = "Customize Wallpaper Layout",
+                                                        modifier = Modifier.size(14.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("Layout", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                                }
+                                            }
+
+                                            Button(
+                                                onClick = { showWallpaperSelectorModal = true },
                                                 shape = RoundedCornerShape(10.dp),
-                                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Tune,
-                                                    contentDescription = "Customize Wallpaper Layout",
+                                                    imageVector = Icons.Default.Wallpaper,
+                                                    contentDescription = null,
                                                     modifier = Modifier.size(14.dp)
                                                 )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Text("Layout", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("Wallpapers", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
-
-                                        Button(
-                                            onClick = { showWallpaperSelectorModal = true },
-                                            shape = RoundedCornerShape(10.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 9.dp, vertical = 6.dp)
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Wallpaper,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Wallpapers", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Lock,
+                                                    contentDescription = "Locked",
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                                Text(
+                                                    text = "Admin Only",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -1008,12 +1070,16 @@ fun FullScreenGroupProfileDialog(
         )
     }
 
-    // Group chat wallpaper selector modal (accessible to all group members)
+    // Group chat wallpaper selector modal (Admin only)
     if (showWallpaperSelectorModal) {
-        Dialog(
-            onDismissRequest = { showWallpaperSelectorModal = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
-        ) {
+        if (!isAdmin) {
+            showWallpaperSelectorModal = false
+            Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+        } else {
+            Dialog(
+                onDismissRequest = { showWallpaperSelectorModal = false },
+                properties = DialogProperties(usePlatformDefaultWidth = false)
+            ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth(0.92f)
@@ -1278,6 +1344,7 @@ fun FullScreenGroupProfileDialog(
             }
         }
     }
+}
 }
 
 /**

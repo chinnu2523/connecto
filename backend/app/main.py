@@ -88,7 +88,7 @@ async def seed_channels():
                                 password_hash=hash_password(str(uuid.uuid4())),
                                 is_admin=True,
                                 username_changed=False,
-                                is_online=True,
+                                is_online=False,
                                 is_stealth=False
                             )
                             session.add(u)
@@ -898,7 +898,7 @@ async def admin_reseed(
     return {"status": "ok", "message": "Seed complete"}
 
 from fastapi import Depends, Query
-from sqlalchemy import select, or_, and_, func, text
+from sqlalchemy import select, or_, and_, func, text, not_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_current_user, get_current_user_optional
 from app.db.models.user import User
@@ -2497,30 +2497,19 @@ async def start_dm_compat(
             )
         
     canonical_dm_name = f"dm-{min(current_u.username, target_u.username)}-{max(current_u.username, target_u.username)}"
+    alt_dm_name = f"dm_{min(current_u.username, target_u.username)}_{max(current_u.username, target_u.username)}"
+    rev_dm_name = f"dm-{max(current_u.username, target_u.username)}-{min(current_u.username, target_u.username)}"
     
-    # Lookup by participant
-    dm_stmt = (
-        select(Channel.id)
-        .join(DMParticipant, DMParticipant.channel_id == Channel.id)
-        .where(
-            Channel.server_id.is_(None),
-            DMParticipant.user_id.in_([current_u.id, target_u.id])
+    # Check by canonical name first
+    name_stmt = select(Channel).where(
+        or_(
+            Channel.name == canonical_dm_name,
+            Channel.name == alt_dm_name,
+            Channel.name == rev_dm_name,
+            Channel.id == canonical_dm_name,
+            Channel.id == alt_dm_name
         )
-        .group_by(Channel.id)
-        .having(func.count(DMParticipant.user_id) == 2)
     )
-    existing_channel_id = (await db.execute(dm_stmt)).scalars().first()
-    if existing_channel_id:
-        existing_ch = (await db.execute(select(Channel).where(Channel.id == existing_channel_id))).scalars().first()
-        return {
-            "id": existing_ch.id,
-            "name": existing_ch.name,
-            "type": existing_ch.type,
-            "server_id": None,
-            "created_at": str(existing_ch.created_at) if existing_ch.created_at else ""
-        }
-        
-    name_stmt = select(Channel).where(Channel.name == canonical_dm_name)
     existing_name_ch = (await db.execute(name_stmt)).scalars().first()
     if existing_name_ch:
         p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == existing_name_ch.id, DMParticipant.user_id == current_u.id))).scalars().first()
@@ -2536,6 +2525,41 @@ async def start_dm_compat(
             "type": existing_name_ch.type,
             "server_id": None,
             "created_at": str(existing_name_ch.created_at) if existing_name_ch.created_at else ""
+        }
+
+    # Lookup by participant - strictly 2 participants and excluding group chats
+    total_parts_sub = (
+        select(DMParticipant.channel_id)
+        .group_by(DMParticipant.channel_id)
+        .having(func.count(DMParticipant.user_id) == 2)
+    ).subquery()
+
+    dm_stmt = (
+        select(Channel)
+        .join(DMParticipant, DMParticipant.channel_id == Channel.id)
+        .where(
+            Channel.server_id.is_(None),
+            Channel.type != "group",
+            not_(Channel.name.like("grp-%")),
+            not_(Channel.name.like("grp_%")),
+            not_(Channel.name.like("group-%")),
+            not_(Channel.id.like("grp-%")),
+            not_(Channel.id.like("grp_%")),
+            not_(Channel.id.like("group-%")),
+            DMParticipant.user_id.in_([current_u.id, target_u.id]),
+            Channel.id.in_(select(total_parts_sub.c.channel_id))
+        )
+        .group_by(Channel.id)
+        .having(func.count(DMParticipant.user_id) == 2)
+    )
+    existing_ch = (await db.execute(dm_stmt)).scalars().first()
+    if existing_ch:
+        return {
+            "id": existing_ch.id,
+            "name": existing_ch.name,
+            "type": existing_ch.type,
+            "server_id": None,
+            "created_at": str(existing_ch.created_at) if existing_ch.created_at else ""
         }
         
     dm_channel = Channel(server_id=None, name=canonical_dm_name, type="text")
@@ -4367,8 +4391,14 @@ async def mark_dm_read(
             Channel, Channel.id == DMParticipant.channel_id
         ).where(
             Channel.type == 'dm',
+            not_(Channel.name.like("grp-%")),
+            not_(Channel.name.like("grp_%")),
+            not_(Channel.name.like("group-%")),
+            not_(Channel.id.like("grp-%")),
+            not_(Channel.id.like("grp_%")),
+            not_(Channel.id.like("group-%")),
             DMParticipant.user_id.in_([caller.id, target_u.id])
-        ).group_by(DMParticipant.channel_id).having(func.count(DMParticipant.user_id) >= 2)
+        ).group_by(DMParticipant.channel_id).having(func.count(DMParticipant.user_id) == 2)
         part_ch_ids = (await db.execute(part_sub)).scalars().all()
         matching_ch_ids.update(part_ch_ids)
 
@@ -4479,23 +4509,46 @@ async def get_dm_messages_compat(
     canonical_dm_name = f"dm-{min(clean_sender, clean_target)}-{max(clean_sender, clean_target)}"
     alt_dm_name = f"dm_{min(clean_sender, clean_target)}_{max(clean_sender, clean_target)}"
     rev_dm_name = f"dm-{clean_target}-{clean_sender}"
+    rev_alt_dm_name = f"dm_{clean_target}_{clean_sender}"
     
-    stmt = select(Channel).where(or_(Channel.name == canonical_dm_name, Channel.name == alt_dm_name, Channel.name == rev_dm_name))
+    stmt = select(Channel).where(
+        or_(
+            Channel.name == canonical_dm_name,
+            Channel.name == alt_dm_name,
+            Channel.name == rev_dm_name,
+            Channel.name == rev_alt_dm_name,
+            Channel.id == canonical_dm_name,
+            Channel.id == alt_dm_name
+        )
+    )
     channel = (await db.execute(stmt)).scalars().first()
     if not channel:
         tgt_user = (await db.execute(select(User).where(func.lower(User.username) == clean_target))).scalar_one_or_none()
         if tgt_user and sender_u:
+            total_parts_sub = (
+                select(DMParticipant.channel_id)
+                .group_by(DMParticipant.channel_id)
+                .having(func.count(DMParticipant.user_id) == 2)
+            ).subquery()
             p_stmt = (
                 select(Channel)
                 .join(DMParticipant, DMParticipant.channel_id == Channel.id)
                 .where(
                     Channel.server_id.is_(None),
-                    DMParticipant.user_id.in_([sender_u.id, tgt_user.id])
+                    Channel.type != "group",
+                    not_(Channel.name.like("grp-%")),
+                    not_(Channel.name.like("grp_%")),
+                    not_(Channel.name.like("group-%")),
+                    not_(Channel.id.like("grp-%")),
+                    not_(Channel.id.like("grp_%")),
+                    not_(Channel.id.like("group-%")),
+                    DMParticipant.user_id.in_([sender_u.id, tgt_user.id]),
+                    Channel.id.in_(select(total_parts_sub.c.channel_id))
                 )
                 .group_by(Channel.id)
                 .having(func.count(DMParticipant.user_id) == 2)
             )
-            channel = (await db.execute(p_stmt)).scalar_one_or_none()
+            channel = (await db.execute(p_stmt)).scalars().first()
 
     if not channel:
         return {"status": "ok", "messages": []}
@@ -5039,9 +5092,9 @@ async def update_user_profile_compat(
     if is_online is not None:
         user.is_online = bool(is_online)
 
-    # Ensure user is marked online if active session
+    # Presence is governed dynamically by WebSocket connection state
     if not user.is_stealth:
-        user.is_online = True
+        user.is_online = is_user_strictly_online(user)
 
     await db.commit()
     await db.refresh(user)
@@ -5234,12 +5287,16 @@ async def get_friends_compat(
                 "sender": sender_u.username,
                 "sender_id": sender_u.id,
                 "sender_username": sender_u.username,
+                "friend_username": sender_u.username,
                 "recipient": user.username,
                 "recipient_id": user.id,
                 "nickname": sender_u.display_name or sender_u.username,
                 "display_name": sender_u.display_name or sender_u.username,
+                "sender_display_name": sender_u.display_name or sender_u.username,
+                "friend_display_name": sender_u.display_name or sender_u.username,
                 "avatar": sender_u.avatar_url or "",
                 "avatar_url": sender_u.avatar_url or "",
+                "sender_avatar_url": sender_u.avatar_url or "",
                 "friend_avatar_url": sender_u.avatar_url or "",
                 "status": "pending",
                 "timestamp": str(f.created_at) if f.created_at else "Just now",
@@ -5369,34 +5426,62 @@ async def send_friend_request_compat(
             await db.refresh(incoming_pending)
 
             canonical_dm_name = f"dm-{min(sender.username, recipient.username)}-{max(sender.username, recipient.username)}"
-            dm_stmt = (
-                select(Channel.id)
-                .join(DMParticipant, DMParticipant.channel_id == Channel.id)
-                .where(
-                    Channel.server_id.is_(None),
-                    DMParticipant.user_id.in_([sender.id, recipient.id])
-                )
-                .group_by(Channel.id)
-                .having(func.count(DMParticipant.user_id) == 2)
-            )
-            existing_channel_id = (await db.execute(dm_stmt)).scalar_one_or_none()
-            if not existing_channel_id:
-                existing_name_ch = (await db.execute(select(Channel).where(Channel.name == canonical_dm_name))).scalar_one_or_none()
-                if existing_name_ch:
-                    dm_ch = existing_name_ch
-                else:
-                    dm_ch = Channel(server_id=None, name=canonical_dm_name, type="text")
-                    db.add(dm_ch)
-                    await db.commit()
-                    await db.refresh(dm_ch)
+            alt_dm_name = f"dm_{min(sender.username, recipient.username)}_{max(sender.username, recipient.username)}"
+            rev_dm_name = f"dm-{max(sender.username, recipient.username)}-{min(sender.username, recipient.username)}"
 
-                p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == sender.id))).scalar_one_or_none()
-                if not p1:
-                    db.add(DMParticipant(channel_id=dm_ch.id, user_id=sender.id))
-                p2 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == recipient.id))).scalar_one_or_none()
-                if not p2:
-                    db.add(DMParticipant(channel_id=dm_ch.id, user_id=recipient.id))
+            # 1. Lookup by canonical name first
+            name_stmt = select(Channel).where(
+                or_(
+                    Channel.name == canonical_dm_name,
+                    Channel.name == alt_dm_name,
+                    Channel.name == rev_dm_name,
+                    Channel.id == canonical_dm_name,
+                    Channel.id == alt_dm_name
+                )
+            )
+            dm_ch = (await db.execute(name_stmt)).scalars().first()
+
+            # 2. If not found by name, lookup by participants strictly excluding groups
+            if not dm_ch:
+                total_parts_sub = (
+                    select(DMParticipant.channel_id)
+                    .group_by(DMParticipant.channel_id)
+                    .having(func.count(DMParticipant.user_id) == 2)
+                ).subquery()
+                dm_stmt = (
+                    select(Channel)
+                    .join(DMParticipant, DMParticipant.channel_id == Channel.id)
+                    .where(
+                        Channel.server_id.is_(None),
+                        Channel.type != "group",
+                        not_(Channel.name.like("grp-%")),
+                        not_(Channel.name.like("grp_%")),
+                        not_(Channel.name.like("group-%")),
+                        not_(Channel.id.like("grp-%")),
+                        not_(Channel.id.like("grp_%")),
+                        not_(Channel.id.like("group-%")),
+                        DMParticipant.user_id.in_([sender.id, recipient.id]),
+                        Channel.id.in_(select(total_parts_sub.c.channel_id))
+                    )
+                    .group_by(Channel.id)
+                    .having(func.count(DMParticipant.user_id) == 2)
+                )
+                dm_ch = (await db.execute(dm_stmt)).scalars().first()
+
+            # 3. If still not found, create new DM channel
+            if not dm_ch:
+                dm_ch = Channel(server_id=None, name=canonical_dm_name, type="text")
+                db.add(dm_ch)
                 await db.commit()
+                await db.refresh(dm_ch)
+
+            p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == sender.id))).scalar_one_or_none()
+            if not p1:
+                db.add(DMParticipant(channel_id=dm_ch.id, user_id=sender.id))
+            p2 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == recipient.id))).scalar_one_or_none()
+            if not p2:
+                db.add(DMParticipant(channel_id=dm_ch.id, user_id=recipient.id))
+            await db.commit()
 
             req_data = {
                 "id": incoming_pending.id,
@@ -5537,34 +5622,62 @@ async def accept_friend_request_compat(
 
     if u1 and u2:
         canonical_dm_name = f"dm-{min(u1.username, u2.username)}-{max(u1.username, u2.username)}"
-        dm_stmt = (
-            select(Channel.id)
-            .join(DMParticipant, DMParticipant.channel_id == Channel.id)
-            .where(
-                Channel.server_id.is_(None),
-                DMParticipant.user_id.in_([u1.id, u2.id])
-            )
-            .group_by(Channel.id)
-            .having(func.count(DMParticipant.user_id) == 2)
-        )
-        existing_channel_id = (await db.execute(dm_stmt)).scalar_one_or_none()
-        if not existing_channel_id:
-            existing_name_ch = (await db.execute(select(Channel).where(Channel.name == canonical_dm_name))).scalar_one_or_none()
-            if existing_name_ch:
-                dm_ch = existing_name_ch
-            else:
-                dm_ch = Channel(server_id=None, name=canonical_dm_name, type="text")
-                db.add(dm_ch)
-                await db.commit()
-                await db.refresh(dm_ch)
+        alt_dm_name = f"dm_{min(u1.username, u2.username)}_{max(u1.username, u2.username)}"
+        rev_dm_name = f"dm-{max(u1.username, u2.username)}-{min(u1.username, u2.username)}"
 
-            p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == u1.id))).scalar_one_or_none()
-            if not p1:
-                db.add(DMParticipant(channel_id=dm_ch.id, user_id=u1.id))
-            p2 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == u2.id))).scalar_one_or_none()
-            if not p2:
-                db.add(DMParticipant(channel_id=dm_ch.id, user_id=u2.id))
+        # 1. Lookup by canonical name first
+        name_stmt = select(Channel).where(
+            or_(
+                Channel.name == canonical_dm_name,
+                Channel.name == alt_dm_name,
+                Channel.name == rev_dm_name,
+                Channel.id == canonical_dm_name,
+                Channel.id == alt_dm_name
+            )
+        )
+        dm_ch = (await db.execute(name_stmt)).scalars().first()
+
+        # 2. If not found by name, lookup by participants strictly excluding groups
+        if not dm_ch:
+            total_parts_sub = (
+                select(DMParticipant.channel_id)
+                .group_by(DMParticipant.channel_id)
+                .having(func.count(DMParticipant.user_id) == 2)
+            ).subquery()
+            dm_stmt = (
+                select(Channel)
+                .join(DMParticipant, DMParticipant.channel_id == Channel.id)
+                .where(
+                    Channel.server_id.is_(None),
+                    Channel.type != "group",
+                    not_(Channel.name.like("grp-%")),
+                    not_(Channel.name.like("grp_%")),
+                    not_(Channel.name.like("group-%")),
+                    not_(Channel.id.like("grp-%")),
+                    not_(Channel.id.like("grp_%")),
+                    not_(Channel.id.like("group-%")),
+                    DMParticipant.user_id.in_([u1.id, u2.id]),
+                    Channel.id.in_(select(total_parts_sub.c.channel_id))
+                )
+                .group_by(Channel.id)
+                .having(func.count(DMParticipant.user_id) == 2)
+            )
+            dm_ch = (await db.execute(dm_stmt)).scalars().first()
+
+        # 3. If still not found, create new DM channel
+        if not dm_ch:
+            dm_ch = Channel(server_id=None, name=canonical_dm_name, type="text")
+            db.add(dm_ch)
             await db.commit()
+            await db.refresh(dm_ch)
+
+        p1 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == u1.id))).scalar_one_or_none()
+        if not p1:
+            db.add(DMParticipant(channel_id=dm_ch.id, user_id=u1.id))
+        p2 = (await db.execute(select(DMParticipant).where(DMParticipant.channel_id == dm_ch.id, DMParticipant.user_id == u2.id))).scalar_one_or_none()
+        if not p2:
+            db.add(DMParticipant(channel_id=dm_ch.id, user_id=u2.id))
+        await db.commit()
 
         # Broadcast WS updates to both users
         resp1 = {
@@ -5890,9 +6003,9 @@ async def get_app_version_endpoint(response: Response = None):
         "version_name": "v4.6.5",
         "version_code": 94,
         "release_tag": "v4.6.5",
-        "sha256": "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b",
-        "md5": "3a71efb4e37f906cc8281810808958c3",
-        "size_bytes": size_bytes if size_bytes else 37747916,
+        "sha256": "03c0b2fbf88acba0f05f394b659b36dda1b0e3a7288813a583362b83c219c7f1",
+        "md5": "5a47f4d4ba66f2b0874a39a76bfc6130",
+        "size_bytes": size_bytes if size_bytes else 37748988,
         "size_display": size_mb if size_mb else "36.0 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 37 / HyperOS Verified)",
@@ -6916,19 +7029,11 @@ async def get_ice_servers():
         "iceServers": [
             {
                 "urls": [
-                    "stun:connecto.fun:3478",
+                    "stun:stun.cloudflare.com:3478",
                     "stun:stun.l.google.com:19302",
                     "stun:stun1.l.google.com:19302",
                     "stun:stun2.l.google.com:19302"
                 ]
-            },
-            {
-                "urls": [
-                    "turn:connecto.fun:3478?transport=udp",
-                    "turn:connecto.fun:3478?transport=tcp"
-                ],
-                "username": "connecto",
-                "credential": "ConnectoVoice2026!"
             }
         ],
         "iceCandidatePoolSize": 10,

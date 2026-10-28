@@ -118,6 +118,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Face
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.Gamepad
@@ -403,7 +404,7 @@ fun ProfileScreen(
         mutableStateOf(prefs.getBoolean("stealth_mode_$username", false))
     }
     var isUserOnline by remember(username) {
-        mutableStateOf(!prefs.getBoolean("stealth_mode_$username", false))
+        mutableStateOf(false)
     }
     var twoFactorEnabled by remember(username) {
         mutableStateOf(prefs.getBoolean("two_factor_enabled_$username", false))
@@ -1094,7 +1095,7 @@ fun ProfileScreen(
                         userInitial = userInitial,
                         avatarUrl = profilePhotoUri,
                         isStealthModeOn = stealthModeEnabled,
-                        isOnline = true,
+                        isOnline = isUserOnline,
                         showProfileButton = false
                     )
 
@@ -2164,7 +2165,18 @@ fun ProfileScreen(
                                 item(key = "sub_security_biometric_section") {
                                     val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
                                     val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
-                                    val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
+                                    val isFaceHardware = remember(context) { BiometricAuthManager.hasFaceHardware(context) }
+                                    var preferredModality by remember(context, username) {
+                                        mutableStateOf(BiometricAuthManager.getPreferredModality(context, username))
+                                    }
+                                    val isFaceIdActive = remember(preferredModality, isFaceHardware) {
+                                        if (preferredModality == BiometricAuthManager.BiometricModality.FACE_ID) true
+                                        else if (preferredModality == BiometricAuthManager.BiometricModality.FINGERPRINT) false
+                                        else isFaceHardware
+                                    }
+                                    val statusDescription = remember(context, preferredModality) {
+                                        BiometricAuthManager.getStatusDescription(context, username)
+                                    }
 
                                     Box(
                                         modifier = Modifier
@@ -2195,7 +2207,7 @@ fun ProfileScreen(
                                                     modifier = Modifier.weight(1f)
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Fingerprint,
+                                                        imageVector = if (isFaceIdActive) Icons.Default.Face else Icons.Default.Fingerprint,
                                                         contentDescription = null,
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(22.dp)
@@ -2204,7 +2216,7 @@ fun ProfileScreen(
                                                     Column {
                                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                                             Text(
-                                                                text = "Biometric & App Lock",
+                                                                text = if (isFaceIdActive) "Face ID & App Lock" else "Biometric & App Lock",
                                                                 fontSize = 15.sp,
                                                                 fontWeight = FontWeight.SemiBold,
                                                                 color = MaterialTheme.colorScheme.onSurface
@@ -2225,7 +2237,10 @@ fun ProfileScreen(
                                                             }
                                                         }
                                                         Text(
-                                                            text = if (isAppLockEnabled) "Require biometric scan or device screen lock to open" else "Unlock app without biometric prompt",
+                                                            text = if (isAppLockEnabled) {
+                                                                if (isFaceIdActive) "Unlock with Face ID or device screen lock to open"
+                                                                else "Require biometric scan or device screen lock to open"
+                                                            } else "Unlock app without biometric prompt",
                                                             fontSize = 12.sp,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
@@ -2238,7 +2253,8 @@ fun ProfileScreen(
                                                         if (isChecked) {
                                                             Toast.makeText(
                                                                 context,
-                                                                "Biometric App Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
+                                                                if (isFaceIdActive) "Face ID App Lock enabled. Unlock with Face ID, Screen Lock, or Password."
+                                                                else "Biometric App Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
                                                                 Toast.LENGTH_SHORT
                                                             ).show()
                                                         }
@@ -2247,6 +2263,89 @@ fun ProfileScreen(
                                                     },
                                                     colors = getMonochromeSwitchColors()
                                                 )
+                                            }
+
+                                            // Modality Selector: Face ID vs Fingerprint
+                                            if (isAppLockEnabled) {
+                                                Column(modifier = Modifier.fillMaxWidth()) {
+                                                    Text(
+                                                        text = "Preferred Unlock Method",
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        // Option 1: Face ID
+                                                        val isFaceSelected = preferredModality == BiometricAuthManager.BiometricModality.FACE_ID || (preferredModality == BiometricAuthManager.BiometricModality.AUTO && isFaceHardware)
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .clip(RoundedCornerShape(10.dp))
+                                                                .background(if (isFaceSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                                .border(1.dp, if (isFaceSelected) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(10.dp))
+                                                                .clickable {
+                                                                    preferredModality = BiometricAuthManager.BiometricModality.FACE_ID
+                                                                    BiometricAuthManager.setPreferredModality(context, username, BiometricAuthManager.BiometricModality.FACE_ID)
+                                                                    Toast.makeText(context, "App Lock set to Face ID mode 👤", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                                .padding(vertical = 8.dp),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Face,
+                                                                    contentDescription = null,
+                                                                    tint = if (isFaceSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    modifier = Modifier.size(16.dp)
+                                                                )
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text(
+                                                                    text = "Face ID",
+                                                                    fontSize = 12.sp,
+                                                                    fontWeight = if (isFaceSelected) FontWeight.Bold else FontWeight.Medium,
+                                                                    color = if (isFaceSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+
+                                                        // Option 2: Fingerprint
+                                                        val isFpSelected = preferredModality == BiometricAuthManager.BiometricModality.FINGERPRINT || (preferredModality == BiometricAuthManager.BiometricModality.AUTO && !isFaceHardware)
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .weight(1f)
+                                                                .clip(RoundedCornerShape(10.dp))
+                                                                .background(if (isFpSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                                .border(1.dp, if (isFpSelected) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(10.dp))
+                                                                .clickable {
+                                                                    preferredModality = BiometricAuthManager.BiometricModality.FINGERPRINT
+                                                                    BiometricAuthManager.setPreferredModality(context, username, BiometricAuthManager.BiometricModality.FINGERPRINT)
+                                                                    Toast.makeText(context, "App Lock set to Fingerprint mode 🖐", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                                .padding(vertical = 8.dp),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Fingerprint,
+                                                                    contentDescription = null,
+                                                                    tint = if (isFpSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                    modifier = Modifier.size(16.dp)
+                                                                )
+                                                                Spacer(modifier = Modifier.width(4.dp))
+                                                                Text(
+                                                                    text = "Fingerprint",
+                                                                    fontSize = 12.sp,
+                                                                    fontWeight = if (isFpSelected) FontWeight.Bold else FontWeight.Medium,
+                                                                    color = if (isFpSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
                                             }
 
                                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
@@ -2283,7 +2382,7 @@ fun ProfileScreen(
                                                         contentAlignment = Alignment.Center
                                                     ) {
                                                         Icon(
-                                                            imageVector = if (isAppLockEnabled) Icons.Default.Shield else Icons.Default.Lock,
+                                                            imageVector = if (isFaceIdActive) Icons.Default.Face else if (isAppLockEnabled) Icons.Default.Shield else Icons.Default.Lock,
                                                             contentDescription = null,
                                                             tint = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                             modifier = Modifier.size(18.dp)
@@ -2292,7 +2391,7 @@ fun ProfileScreen(
                                                     Spacer(modifier = Modifier.width(12.dp))
                                                     Column(modifier = Modifier.weight(1f)) {
                                                         Text(
-                                                            text = "Device Hardware Security",
+                                                            text = if (isFaceIdActive) "Face ID Hardware & Security" else "Device Hardware Security",
                                                             fontSize = 13.sp,
                                                             fontWeight = FontWeight.Bold,
                                                             color = MaterialTheme.colorScheme.onSurface
@@ -2336,31 +2435,37 @@ fun ProfileScreen(
                                                         )
                                                     }
                                                     Spacer(modifier = Modifier.width(12.dp))
-                                                    Column {
-                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        ) {
                                                             Text(
-                                                                text = "Screen Privacy (Black Screen)",
-                                                                fontSize = 14.sp,
+                                                                text = if (isUserAdmin) "Admin Screenshot Access" else "Screenshot Protection",
+                                                                fontSize = 13.5.sp,
                                                                 fontWeight = FontWeight.SemiBold,
                                                                 color = MaterialTheme.colorScheme.onSurface
                                                             )
-                                                            Spacer(modifier = Modifier.width(6.dp))
                                                             Box(
                                                                 modifier = Modifier
                                                                     .clip(RoundedCornerShape(6.dp))
-                                                                    .background(if (isScreenSecurityActive) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                                    .background(if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
                                                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                                                             ) {
                                                                 Text(
-                                                                    text = if (isScreenSecurityActive) "PROTECTED" else "OFF",
+                                                                    text = if (isUserAdmin) "ADMIN UNLOCKED" else "MEMBER RESTRICTED",
                                                                     fontSize = 9.sp,
                                                                     fontWeight = FontWeight.Bold,
-                                                                    color = if (isScreenSecurityActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                    color = if (isUserAdmin) Color(0xFF3B82F6) else Color(0xFFEF4444)
                                                                 )
                                                             }
                                                         }
                                                         Text(
-                                                            text = "Shows a black screen for others during screenshot, screen share, and screen cast.",
+                                                            text = if (isUserAdmin) {
+                                                                "Admin Access: You can take screenshots and screen record in Connecto. Optional blackscreen toggle available."
+                                                            } else {
+                                                                "Restricted: Only admin users can take screenshots or screen record in Connecto. All members are protected."
+                                                            },
                                                             fontSize = 11.sp,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
@@ -2368,15 +2473,24 @@ fun ProfileScreen(
                                                 }
 
                                                 Switch(
-                                                    checked = isScreenSecurityActive,
+                                                    checked = if (isUserAdmin) isScreenSecurityActive else true,
+                                                    enabled = isUserAdmin,
                                                     onCheckedChange = { isChecked ->
-                                                        com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
-                                                        Toast.makeText(
-                                                            context,
-                                                            if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
-                                                            else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible.",
-                                                            Toast.LENGTH_SHORT
-                                                        ).show()
+                                                        if (isUserAdmin) {
+                                                            com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
+                                                            Toast.makeText(
+                                                                context,
+                                                                if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
+                                                                else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible for admin.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        } else {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "🛡️ Restricted: Only admin users can take screenshots or modify screen security. Protection is locked for members.",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        }
                                                     },
                                                     colors = getMonochromeSwitchColors()
                                                 )
@@ -3241,9 +3355,20 @@ fun ProfileScreen(
                             }
                             ProfileSubPage.BIOMETRIC_LOCK -> {
                                 item(key = "sub_biometric_lock_form") {
-                                                        val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
-                    val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
-                    val statusDescription = remember(context) { BiometricAuthManager.getStatusDescription(context) }
+                                    val isDeviceSecure = remember(context) { BiometricAuthManager.isDeviceSecure(context) }
+                                    val isBioReady = remember(context) { BiometricAuthManager.checkBiometricAvailability(context) == BiometricStatus.READY }
+                                    val isFaceHardware = remember(context) { BiometricAuthManager.hasFaceHardware(context) }
+                                    var preferredModality by remember(context, username) {
+                                        mutableStateOf(BiometricAuthManager.getPreferredModality(context, username))
+                                    }
+                                    val isFaceIdActive = remember(preferredModality, isFaceHardware) {
+                                        if (preferredModality == BiometricAuthManager.BiometricModality.FACE_ID) true
+                                        else if (preferredModality == BiometricAuthManager.BiometricModality.FINGERPRINT) false
+                                        else isFaceHardware
+                                    }
+                                    val statusDescription = remember(context, preferredModality) {
+                                        BiometricAuthManager.getStatusDescription(context, username)
+                                    }
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -3273,7 +3398,7 @@ fun ProfileScreen(
                                             modifier = Modifier.weight(1f)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Fingerprint,
+                                                imageVector = if (isFaceIdActive) Icons.Default.Face else Icons.Default.Fingerprint,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(22.dp)
@@ -3282,7 +3407,7 @@ fun ProfileScreen(
                                             Column {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                                     Text(
-                                                        text = "Biometric App Lock",
+                                                        text = if (isFaceIdActive) "Face ID & App Lock" else "Biometric App Lock",
                                                         fontSize = 15.sp,
                                                         fontWeight = FontWeight.SemiBold,
                                                         color = MaterialTheme.colorScheme.onSurface
@@ -3303,7 +3428,10 @@ fun ProfileScreen(
                                                     }
                                                 }
                                                 Text(
-                                                    text = if (isAppLockEnabled) "Require biometric scan or device screen lock to open" else "Unlock app without biometric prompt",
+                                                    text = if (isAppLockEnabled) {
+                                                        if (isFaceIdActive) "Unlock with Face ID or device screen lock to open"
+                                                        else "Require biometric scan or device screen lock to open"
+                                                    } else "Unlock app without biometric prompt",
                                                     fontSize = 12.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -3316,7 +3444,8 @@ fun ProfileScreen(
                                                 if (isChecked) {
                                                     Toast.makeText(
                                                         context,
-                                                        "Biometric App Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
+                                                        if (isFaceIdActive) "Face ID App Lock enabled. Unlock with Face ID, Screen Lock, or Password."
+                                                        else "Biometric App Lock enabled. Unlock with Biometrics, Screen Lock, or Password.",
                                                         Toast.LENGTH_SHORT
                                                     ).show()
                                                 }
@@ -3325,6 +3454,89 @@ fun ProfileScreen(
                                             },
                                             colors = getMonochromeSwitchColors()
                                         )
+                                    }
+
+                                    // Modality Selector: Face ID vs Fingerprint
+                                    if (isAppLockEnabled) {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            Text(
+                                                text = "Preferred Unlock Method",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                // Option 1: Face ID
+                                                val isFaceSelected = preferredModality == BiometricAuthManager.BiometricModality.FACE_ID || (preferredModality == BiometricAuthManager.BiometricModality.AUTO && isFaceHardware)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(if (isFaceSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                        .border(1.dp, if (isFaceSelected) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(10.dp))
+                                                        .clickable {
+                                                            preferredModality = BiometricAuthManager.BiometricModality.FACE_ID
+                                                            BiometricAuthManager.setPreferredModality(context, username, BiometricAuthManager.BiometricModality.FACE_ID)
+                                                            Toast.makeText(context, "App Lock set to Face ID mode 👤", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                        .padding(vertical = 8.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Face,
+                                                            contentDescription = null,
+                                                            tint = if (isFaceSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = "Face ID",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = if (isFaceSelected) FontWeight.Bold else FontWeight.Medium,
+                                                            color = if (isFaceSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+
+                                                // Option 2: Fingerprint
+                                                val isFpSelected = preferredModality == BiometricAuthManager.BiometricModality.FINGERPRINT || (preferredModality == BiometricAuthManager.BiometricModality.AUTO && !isFaceHardware)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(if (isFpSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                        .border(1.dp, if (isFpSelected) MaterialTheme.colorScheme.primary else Color.Transparent, RoundedCornerShape(10.dp))
+                                                        .clickable {
+                                                            preferredModality = BiometricAuthManager.BiometricModality.FINGERPRINT
+                                                            BiometricAuthManager.setPreferredModality(context, username, BiometricAuthManager.BiometricModality.FINGERPRINT)
+                                                            Toast.makeText(context, "App Lock set to Fingerprint mode 🖐", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                        .padding(vertical = 8.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Fingerprint,
+                                                            contentDescription = null,
+                                                            tint = if (isFpSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Text(
+                                                            text = "Fingerprint",
+                                                            fontSize = 12.sp,
+                                                            fontWeight = if (isFpSelected) FontWeight.Bold else FontWeight.Medium,
+                                                            color = if (isFpSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
 
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
@@ -3361,7 +3573,7 @@ fun ProfileScreen(
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Icon(
-                                                    imageVector = if (isAppLockEnabled) Icons.Default.Shield else Icons.Default.Lock,
+                                                    imageVector = if (isFaceIdActive) Icons.Default.Face else if (isAppLockEnabled) Icons.Default.Shield else Icons.Default.Lock,
                                                     contentDescription = null,
                                                     tint = if (isAppLockEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.size(18.dp)
@@ -3370,7 +3582,7 @@ fun ProfileScreen(
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(
-                                                    text = "Device Hardware Security",
+                                                    text = if (isFaceIdActive) "Face ID Hardware & Security" else "Device Hardware Security",
                                                     fontSize = 13.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSurface
@@ -3414,31 +3626,37 @@ fun ProfileScreen(
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
                                                     Text(
-                                                        text = "Screen Privacy (Black Screen)",
-                                                        fontSize = 14.sp,
+                                                        text = if (isUserAdmin) "Admin Screenshot Access" else "Screenshot Protection",
+                                                        fontSize = 13.5.sp,
                                                         fontWeight = FontWeight.SemiBold,
                                                         color = MaterialTheme.colorScheme.onSurface
                                                     )
-                                                    Spacer(modifier = Modifier.width(6.dp))
                                                     Box(
                                                         modifier = Modifier
                                                             .clip(RoundedCornerShape(6.dp))
-                                                            .background(if (isScreenSecurityActive) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
+                                                            .background(if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
                                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                                     ) {
                                                         Text(
-                                                            text = if (isScreenSecurityActive) "PROTECTED" else "OFF",
+                                                            text = if (isUserAdmin) "ADMIN UNLOCKED" else "MEMBER RESTRICTED",
                                                             fontSize = 9.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = if (isScreenSecurityActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                            color = if (isUserAdmin) Color(0xFF3B82F6) else Color(0xFFEF4444)
                                                         )
                                                     }
                                                 }
                                                 Text(
-                                                    text = "Shows a black screen for others during screenshot, screen share, and screen cast.",
+                                                    text = if (isUserAdmin) {
+                                                        "Admin Access: You can take screenshots and screen record in Connecto. Optional blackscreen toggle available."
+                                                    } else {
+                                                        "Restricted: Only admin users can take screenshots or screen record in Connecto. All members are protected."
+                                                    },
                                                     fontSize = 11.sp,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
@@ -3446,15 +3664,24 @@ fun ProfileScreen(
                                         }
 
                                         Switch(
-                                            checked = isScreenSecurityActive,
+                                            checked = if (isUserAdmin) isScreenSecurityActive else true,
+                                            enabled = isUserAdmin,
                                             onCheckedChange = { isChecked ->
-                                                com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
-                                                Toast.makeText(
-                                                    context,
-                                                    if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
-                                                    else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible.",
-                                                    Toast.LENGTH_SHORT
-                                                ).show()
+                                                if (isUserAdmin) {
+                                                    com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
+                                                    Toast.makeText(
+                                                        context,
+                                                        if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
+                                                        else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible for admin.",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                } else {
+                                                    Toast.makeText(
+                                                        context,
+                                                        "🛡️ Restricted: Only admin users can take screenshots or modify screen security. Protection is locked for members.",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
                                             },
                                             colors = getMonochromeSwitchColors()
                                         )

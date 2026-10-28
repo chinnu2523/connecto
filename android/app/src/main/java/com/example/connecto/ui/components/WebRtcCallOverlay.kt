@@ -64,6 +64,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import coil.compose.AsyncImage
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.ui.theme.OnlineGreen
@@ -109,6 +110,7 @@ fun WebRtcCallOverlay(
     val managerParticipantCount by VoiceCallManager.participantCount.collectAsState()
 
     var isVideoOn by remember { mutableStateOf(false) }
+    var isEndingCall by remember { mutableStateOf(false) }
     var hasMicPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
@@ -352,9 +354,12 @@ fun WebRtcCallOverlay(
                         .size(44.dp)
                         .clip(CircleShape)
                         .background(Color.Red)
-                        .clickable {
-                            VoiceCallManager.endCall()
-                            onEndCall()
+                        .clickable(enabled = !isEndingCall) {
+                            if (!isEndingCall) {
+                                isEndingCall = true
+                                VoiceCallManager.endCall()
+                                onEndCall()
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {
@@ -406,6 +411,7 @@ fun FullScreenCallUI(
     var resolvedAvatar by remember(avatarUrl, managerAvatar) {
         mutableStateOf(avatarUrl ?: managerAvatar)
     }
+    var isEndingCall by remember { mutableStateOf(false) }
 
     LaunchedEffect(managerAvatar) {
         if (!managerAvatar.isNullOrBlank()) {
@@ -614,13 +620,13 @@ fun FullScreenCallUI(
                 .fillMaxSize()
                 .statusBarsPadding()
                 .navigationBarsPadding()
-                .padding(horizontal = 24.dp, vertical = 20.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             // TOP HEADER: Minimize Button, Security Status Pill, Audio Route
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -629,8 +635,8 @@ fun FullScreenCallUI(
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .border(1.dp, Color.White.copy(alpha = 0.16f), CircleShape)
+                        .background(Color.White.copy(alpha = 0.10f))
+                        .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
                         .clickable { onMinimize?.invoke() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -643,36 +649,53 @@ fun FullScreenCallUI(
                 }
 
                 // Security & Status Capsule Pill
+                val securityPillText = when (callState) {
+                    CallState.CONNECTED -> if (isVoiceIsolationEnabled) "E2E • VOICE ISOLATION" else "E2E ENCRYPTED"
+                    CallState.OUTGOING_RINGING -> "RINGING"
+                    CallState.INCOMING_RINGING -> "INCOMING"
+                    CallState.IDLE -> "DISCONNECTED"
+                }
+                val securityPillColor = if (callState == CallState.CONNECTED) OnlineGreen else Color(0xFFFBBF24)
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
+                        .padding(horizontal = 6.dp)
                         .clip(RoundedCornerShape(20.dp))
                         .background(Color.White.copy(alpha = 0.08f))
                         .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 14.dp, vertical = 7.dp)
+                        .clickable {
+                            val isolationSummary = voiceIsolationCapabilities.statusSummary
+                            android.widget.Toast.makeText(
+                                context,
+                                "🔒 End-to-End Encrypted\nMicrophone: $isolationSummary",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                        .padding(horizontal = 12.dp, vertical = 7.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Encrypted",
-                        tint = if (callState == CallState.CONNECTED) OnlineGreen else Color(0xFFFBBF24),
+                        tint = securityPillColor,
                         modifier = Modifier.size(12.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
                     Box(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(if (callState == CallState.CONNECTED) OnlineGreen else Color(0xFFF59E0B))
+                            .background(securityPillColor)
                     )
-                    Spacer(modifier = Modifier.width(7.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (callState == CallState.CONNECTED) {
-                            if (isVoiceIsolationEnabled) "E2E • ${voiceIsolationCapabilities.statusSummary.uppercase()}" else "E2E ENCRYPTED"
-                        } else "CONNECTING",
-                        fontSize = 10.5.sp,
+                        text = securityPillText,
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.2.sp,
+                        letterSpacing = 0.8.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         color = Color.White.copy(alpha = 0.90f)
                     )
                 }
@@ -694,15 +717,15 @@ fun FullScreenCallUI(
                         .size(42.dp)
                         .clip(CircleShape)
                         .background(
-                            if (isBtActive) Color(0xFF38BDF8).copy(alpha = 0.20f)
-                            else if (currentAudioRoute == AudioRoute.SPEAKER) OnlineGreen.copy(alpha = 0.20f)
-                            else Color.White.copy(alpha = 0.08f)
+                            if (isBtActive) Color(0xFF38BDF8).copy(alpha = 0.22f)
+                            else if (currentAudioRoute == AudioRoute.SPEAKER) OnlineGreen.copy(alpha = 0.22f)
+                            else Color.White.copy(alpha = 0.10f)
                         )
                         .border(
                             1.dp,
                             if (isBtActive) Color(0xFF38BDF8).copy(alpha = 0.50f)
                             else if (currentAudioRoute == AudioRoute.SPEAKER) OnlineGreen.copy(alpha = 0.50f)
-                            else Color.White.copy(alpha = 0.16f),
+                            else Color.White.copy(alpha = 0.18f),
                             CircleShape
                         )
                         .clickable { showAudioRouteDialog = true },
@@ -1017,7 +1040,13 @@ fun FullScreenCallUI(
                         }
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { showAudioRouteDialog = true }
+                            modifier = Modifier.clickable {
+                                if (isBluetoothConnected) {
+                                    showAudioRouteDialog = true
+                                } else {
+                                    VoiceCallManager.toggleSpeaker()
+                                }
+                            }
                         ) {
                             Box(
                                 modifier = Modifier
@@ -1145,9 +1174,12 @@ fun FullScreenCallUI(
                                 )
                             )
                             .border(1.5.dp, Color(0xFFF87171).copy(alpha = 0.50f), RoundedCornerShape(28.dp))
-                            .clickable {
-                                VoiceCallManager.endCall()
-                                onEndCall()
+                            .clickable(enabled = !isEndingCall) {
+                                if (!isEndingCall) {
+                                    isEndingCall = true
+                                    VoiceCallManager.endCall()
+                                    onEndCall()
+                                }
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -1260,7 +1292,7 @@ fun AudioRouteSelectionDialog(
                 AudioRouteSelectionItem(
                     icon = Icons.Default.Phone,
                     title = "Earpiece",
-                    subtitle = "Internal phone receiver",
+                    subtitle = "Internal phone receiver • Screen turns off at ear",
                     isSelected = currentRoute == AudioRoute.EARPIECE,
                     isEnabled = true,
                     onClick = {
@@ -1376,6 +1408,7 @@ fun MinimizedCallPill(
     val callPartner by VoiceCallManager.activeCallPartner.collectAsState()
     val managerAvatar by VoiceCallManager.activeCallAvatar.collectAsState()
     val designColors = LocalConnectoColors.current
+    var isEndingCall by remember { mutableStateOf(false) }
 
     val cleanName = (callPartner ?: callTitle)
         .removePrefix("1:1 Voice Call with ")
@@ -1506,9 +1539,12 @@ fun MinimizedCallPill(
                         .size(34.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFDC2626))
-                        .clickable {
-                            VoiceCallManager.endCall()
-                            onEndCall()
+                        .clickable(enabled = !isEndingCall) {
+                            if (!isEndingCall) {
+                                isEndingCall = true
+                                VoiceCallManager.endCall()
+                                onEndCall()
+                            }
                         },
                     contentAlignment = Alignment.Center
                 ) {

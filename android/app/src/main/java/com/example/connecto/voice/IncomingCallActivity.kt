@@ -116,6 +116,7 @@ class IncomingCallActivity : ComponentActivity() {
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                                 putExtra(ConnectoNotificationManager.EXTRA_NOTIFICATION_ACTION, ConnectoNotificationManager.ACTION_ANSWER_CALL)
                                 putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, roomId)
+                                putExtra(ConnectoNotificationManager.EXTRA_INTERNAL_SOURCE, true)
                             }
                             startActivity(mainIntent)
                             finish()

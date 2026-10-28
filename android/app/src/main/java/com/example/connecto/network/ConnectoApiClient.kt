@@ -289,7 +289,7 @@ data class ProfileDataDto(
     val twoFactorEnabled: Boolean = false,
     val twoFactorMethod: String? = "sms",
     val isStealth: Boolean = false,
-    val isOnline: Boolean = true,
+    val isOnline: Boolean = false,
     val isEmailVerified: Boolean = true,
     val isTemporarilyBlocked: Boolean = false,
     val verificationDaysLeft: Int? = null,
@@ -472,6 +472,9 @@ object ConnectoApiClient {
         currentUserIsAdmin = isAdmin
         ConnectoNetworkConfig.isUserAdmin = isAdmin
         _currentUserIsAdminState.value = isAdmin
+        try {
+            com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy()
+        } catch (_: Exception) {}
     }
 
     fun updateServerType(serverType: String) {
@@ -1181,6 +1184,11 @@ object ConnectoApiClient {
                     currentUsername = authResult.username
                     currentUserEmail = authResult.email
                     currentUserDisplayName = authResult.displayName
+                    val isAdmin = userObj.optBoolean("is_admin", false) || (userObj.optInt("is_admin", 0) == 1) || jsonObj.optBoolean("is_admin", false) || (jsonObj.optInt("is_admin", 0) == 1)
+                    updateAdminState(isAdmin)
+                    try {
+                        applicationContext?.let { getSessionPrefs(it) }?.edit()?.putBoolean("is_admin", isAdmin)?.apply()
+                    } catch (_: Exception) {}
                     updateAvatarState(parsedAvatar)
                     updateVerificationState(
                         isVerified = isEmailVerified
@@ -2089,11 +2097,32 @@ object ConnectoApiClient {
                 val respText = response.getOrThrow()
                 val list = mutableListOf<MessageDto>()
 
-                val jsonArr = if (respText.trim().startsWith("[")) {
+                var jsonArr = if (respText.trim().startsWith("[")) {
                     JSONArray(respText)
                 } else {
                     val obj = JSONObject(respText)
                     obj.optJSONArray("messages") ?: JSONArray()
+                }
+
+                if (jsonArr.length() == 0 && !friendUsername.isNullOrBlank()) {
+                    val encFriend = java.net.URLEncoder.encode(friendUsername.trim().lowercase().removePrefix("@"), "UTF-8")
+                    val fallbackResp = executeRequest(
+                        endpoint = "/api/dms/$encFriend/messages?$params",
+                        method = "GET",
+                        body = null,
+                        token = token ?: sessionToken
+                    )
+                    if (fallbackResp.isSuccess) {
+                        val fbText = fallbackResp.getOrThrow()
+                        val fbArr = if (fbText.trim().startsWith("[")) {
+                            JSONArray(fbText)
+                        } else {
+                            JSONObject(fbText).optJSONArray("messages") ?: JSONArray()
+                        }
+                        if (fbArr.length() > 0) {
+                            jsonArr = fbArr
+                        }
+                    }
                 }
 
                 for (i in 0 until jsonArr.length()) {
@@ -3015,25 +3044,41 @@ object ConnectoApiClient {
 
                 if (respText.trim().startsWith("{")) {
                     val obj = JSONObject(respText)
-                    val incoming = obj.optJSONArray("incoming") ?: JSONArray()
+                    val incoming = obj.optJSONArray("incoming") ?: obj.optJSONArray("requests") ?: JSONArray()
                     for (i in 0 until incoming.length()) {
                         val item = incoming.getJSONObject(i)
                         val sUser = item.optString("sender").ifEmpty {
-                            item.optString("sender_username").ifEmpty { item.optString("username") }
+                            item.optString("sender_username").ifEmpty {
+                                item.optString("username").ifEmpty {
+                                    item.optString("friend_username").ifEmpty {
+                                        item.optString("friendUsername")
+                                    }
+                                }
+                            }
                         }
                         if (sUser.isBlank()) continue
 
                         val dName = item.optString("nickname").ifEmpty {
                             item.optString("display_name").ifEmpty {
-                                item.optString("sender_nickname", sUser)
+                                item.optString("sender_display_name").ifEmpty {
+                                    item.optString("friend_display_name").ifEmpty {
+                                        item.optString("sender_nickname", sUser)
+                                    }
+                                }
                             }
                         }
                         val reqId = item.optString("id").ifEmpty {
                             item.optString("request_id", sUser)
                         }
                         val avatar = item.optString("avatar").ifEmpty {
-                            item.optString("avatar_url").takeIf { it.isNotEmpty() }
-                        }
+                            item.optString("avatar_url").ifEmpty {
+                                item.optString("sender_avatar").ifEmpty {
+                                    item.optString("sender_avatar_url").ifEmpty {
+                                        item.optString("friend_avatar_url")
+                                    }
+                                }
+                            }
+                        }.takeIf { it.isNotEmpty() }
                         val time = item.optString("timestamp").ifEmpty {
                             item.optString("created_at", "Just now")
                         }
@@ -3041,7 +3086,7 @@ object ConnectoApiClient {
                         list.add(
                             FriendRequestItemDto(
                                 id = reqId,
-                                senderId = sUser,
+                                senderId = item.optString("sender_id").ifEmpty { item.optString("user_id", sUser) },
                                 senderUsername = sUser,
                                 senderDisplayName = dName,
                                 senderAvatarUrl = avatar,
@@ -3053,14 +3098,37 @@ object ConnectoApiClient {
                     val arr = JSONArray(respText)
                     for (i in 0 until arr.length()) {
                         val item = arr.getJSONObject(i)
+                        val sUser = item.optString("sender_username").ifEmpty {
+                            item.optString("sender").ifEmpty {
+                                item.optString("username").ifEmpty {
+                                    item.optString("friend_username", "")
+                                }
+                            }
+                        }
+                        val dName = item.optString("sender_display_name").ifEmpty {
+                            item.optString("display_name").ifEmpty {
+                                item.optString("friend_display_name").ifEmpty {
+                                    item.optString("nickname", sUser)
+                                }
+                            }
+                        }
+                        val avatar = item.optString("sender_avatar_url").ifEmpty {
+                            item.optString("sender_avatar").ifEmpty {
+                                item.optString("avatar_url").ifEmpty {
+                                    item.optString("friend_avatar_url").ifEmpty {
+                                        item.optString("avatar")
+                                    }
+                                }
+                            }
+                        }.takeIf { it.isNotEmpty() }
                         list.add(
                             FriendRequestItemDto(
-                                id = item.optString("id"),
-                                senderId = item.optString("sender_id"),
-                                senderUsername = item.optString("sender_username"),
-                                senderDisplayName = item.optString("sender_display_name"),
-                                senderAvatarUrl = item.optString("sender_avatar_url").takeIf { it.isNotEmpty() },
-                                createdAt = item.optString("created_at")
+                                id = item.optString("id").ifEmpty { item.optString("request_id") },
+                                senderId = item.optString("sender_id").ifEmpty { item.optString("user_id", sUser) },
+                                senderUsername = sUser,
+                                senderDisplayName = dName,
+                                senderAvatarUrl = avatar,
+                                createdAt = item.optString("created_at").ifEmpty { item.optString("timestamp", "Just now") }
                             )
                         )
                     }
@@ -3371,14 +3439,17 @@ object ConnectoApiClient {
             if (response.isSuccess) {
                 val respText = response.getOrThrow()
                 val obj = JSONObject(respText)
-                val chId = obj.optString("id").ifEmpty {
-                    if (myUser.isNotEmpty() && myUser != cleanTarget && myUser != "guest") {
-                        "dm-${minOf(myUser, cleanTarget)}-${maxOf(myUser, cleanTarget)}"
-                    } else {
-                        cleanTarget
-                    }
+                val rawId = obj.optString("id")
+                val isGrp = rawId.startsWith("grp-") || rawId.startsWith("grp_") || rawId.startsWith("group-")
+                val chId = if (rawId.isNotEmpty() && !isGrp) {
+                    rawId
+                } else if (myUser.isNotEmpty() && myUser != cleanTarget && myUser != "guest") {
+                    "dm-${minOf(myUser, cleanTarget)}-${maxOf(myUser, cleanTarget)}"
+                } else {
+                    cleanTarget
                 }
-                val chName = obj.optString("name", cleanTarget)
+                val rawName = obj.optString("name", cleanTarget)
+                val chName = if (rawName.startsWith("grp-") || rawName.startsWith("grp_") || rawName.startsWith("group-")) cleanTarget else rawName
                 Result.success(ChannelDto(id = chId, name = chName, type = "dm"))
             } else {
                 val canonicalName = if (myUser.isNotEmpty() && myUser != cleanTarget && myUser != "guest") {

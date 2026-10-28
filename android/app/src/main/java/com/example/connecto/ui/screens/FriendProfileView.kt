@@ -47,6 +47,8 @@ import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Wallpaper
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
@@ -237,8 +239,10 @@ fun FriendProfileScreen(
     onInitiateVideoCall: (() -> Unit)? = null,
     onOpenDirectChat: () -> Unit,
     onViewPhoto: () -> Unit,
+    isAdmin: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val friendHandleClean = friend.handle.removePrefix("@").trim()
     val isMatchingProfile = profData != null && (
         profData.username.equals(friendHandleClean, ignoreCase = true) ||
@@ -602,9 +606,45 @@ fun FriendProfileScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            contentPadding = PaddingValues(top = 8.dp, bottom = 28.dp)
                     ) {
+                        // 0. ADMIN RESTRICTION NOTICE (if group and non-admin)
+                        if (friend.isGroup && !isAdmin) {
+                            item(key = "wp_admin_only_banner") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(Color(0xFFF59E0B).copy(alpha = 0.12f))
+                                        .border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+                                        .padding(14.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null,
+                                            tint = Color(0xFFF59E0B),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = "Admin Access Required",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFF59E0B)
+                                            )
+                                            Text(
+                                                text = "Only group admins can change the group chat wallpaper.",
+                                                fontSize = 11.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // 1. LIVE WALLPAPER PREVIEW CARD
                         item(key = "wp_preview_card") {
                             val activeWp = AVAILABLE_CHAT_WALLPAPERS.find { it.id == chatWallpaperId }
@@ -626,7 +666,13 @@ fun FriendProfileScreen(
                                         .clip(RoundedCornerShape(18.dp))
                                         .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(18.dp))
                                         .then(
-                                            if (onOpenWallpaperCustomizer != null) Modifier.clickable { onOpenWallpaperCustomizer() }
+                                            if (onOpenWallpaperCustomizer != null) Modifier.clickable {
+                                                if (friend.isGroup && !isAdmin) {
+                                                    Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    onOpenWallpaperCustomizer()
+                                                }
+                                            }
                                             else Modifier
                                         )
                                 ) {
@@ -735,7 +781,13 @@ fun FriendProfileScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Button(
-                                        onClick = onPickCustomWallpaper,
+                                        onClick = {
+                                            if (friend.isGroup && !isAdmin) {
+                                                Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                onPickCustomWallpaper()
+                                            }
+                                        },
                                         modifier = Modifier
                                             .weight(1f)
                                             .height(46.dp),
@@ -757,7 +809,13 @@ fun FriendProfileScreen(
 
                                     if (onOpenWallpaperCustomizer != null && (customWallpaperUri != null || chatWallpaperId != "default")) {
                                         Button(
-                                            onClick = onOpenWallpaperCustomizer,
+                                            onClick = {
+                                                if (friend.isGroup && !isAdmin) {
+                                                    Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    onOpenWallpaperCustomizer()
+                                                }
+                                            },
                                             modifier = Modifier.height(46.dp),
                                             shape = RoundedCornerShape(14.dp),
                                             colors = ButtonDefaults.buttonColors(
@@ -781,7 +839,13 @@ fun FriendProfileScreen(
 
                                     if (customWallpaperUri != null) {
                                         Button(
-                                            onClick = onRemoveCustomWallpaper,
+                                            onClick = {
+                                                if (friend.isGroup && !isAdmin) {
+                                                    Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                                } else {
+                                                    onRemoveCustomWallpaper()
+                                                }
+                                            },
                                             modifier = Modifier.height(46.dp),
                                             shape = RoundedCornerShape(14.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
@@ -823,7 +887,13 @@ fun FriendProfileScreen(
                                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                                         shape = RoundedCornerShape(14.dp)
                                     )
-                                    .clickable { onSelectWallpaper(wp.id) }
+                                    .clickable {
+                                        if (friend.isGroup && !isAdmin) {
+                                            Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            onSelectWallpaper(wp.id)
+                                        }
+                                    }
                                     .padding(12.dp)
                             ) {
                                 Row(
@@ -1216,13 +1286,21 @@ fun FriendProfileScreen(
                             val activeWpName = if (chatWallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) "CUSTOM PHOTO"
                             else AVAILABLE_CHAT_WALLPAPERS.find { it.id == chatWallpaperId }?.name?.uppercase() ?: "DEFAULT"
 
+                            val isWallpaperRestricted = friend.isGroup && !isAdmin
+
                             FriendProfileNavButton(
                                 title = "Theme & Wallpaper",
-                                subtitle = "Custom photo wallpaper, gradient presets & chat theme",
+                                subtitle = if (isWallpaperRestricted) "Only group admins can change wallpaper" else "Custom photo wallpaper, gradient presets & chat theme",
                                 icon = Icons.Default.Wallpaper,
-                                badgeText = activeWpName,
-                                badgeColor = MaterialTheme.colorScheme.primary,
-                                onClick = { onNavigateSubPage("theme_wallpaper") }
+                                badgeText = if (isWallpaperRestricted) "ADMIN ONLY" else activeWpName,
+                                badgeColor = if (isWallpaperRestricted) Color(0xFFF59E0B) else MaterialTheme.colorScheme.primary,
+                                onClick = {
+                                    if (isWallpaperRestricted) {
+                                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        onNavigateSubPage("theme_wallpaper")
+                                    }
+                                }
                             )
                         }
 

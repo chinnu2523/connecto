@@ -157,7 +157,7 @@ fun CustomerSupportAiDialog(
             q.contains("encrypt") || q.contains("e2ee") || q.contains("security") || q.contains("blackscreen") || q.contains("privacy") || q.contains("flag_secure") -> {
                 "🔒 **End-to-End Encryption & Blackscreen Privacy:**\n\n" +
                 "• **End-to-End Encryption (E2EE):** All messages, photos, and voice data are encrypted client-side using **AES-256-GCM** with ephemeral salt derivation. Only you and your chat partner hold the decryption keys.\n" +
-                "• **App-Wide Blackscreen Privacy:** Connecto applies Android `FLAG_SECURE` at the hardware compositor level. Any screenshots, screen recordings, or screen sharing (Zoom, Discord, Meet) display a pitch-black screen (#000000) to protect your private data.\n" +
+                "• **Admin Screenshot & Anti-Capture Protection:** Connecto applies Android `FLAG_SECURE` at the hardware compositor level for members. Only administrator users can take screenshots or screen record in the application; for all other members, screenshots and screen recordings are strictly blocked to protect privacy.\n" +
                 "• **Stealth Mode:** Toggle Stealth Mode in Profile -> Security & Privacy to hide your green online status dot while reading and chatting freely!"
             }
             q.contains("2fa") || q.contains("two-factor") || q.contains("otp") || q.contains("login") || q.contains("password") -> {
@@ -643,8 +643,8 @@ fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
 
                     LegalSectionItem(
                         number = "2",
-                        title = "Hardware Blackscreen Protection (FLAG_SECURE)",
-                        body = "Connecto enforces WindowManager.LayoutParams.FLAG_SECURE at Android's SurfaceFlinger hardware level. Any screen-recording tools, third-party screen sharing apps (Zoom, Discord, Meet), and unauthorized screenshot tools will receive an opaque pitch-black screen (#000000), protecting your chats against accidental capture or spyware."
+                        title = "Hardware Screen Protection & Admin Screenshot Policy (FLAG_SECURE)",
+                        body = "Connecto enforces WindowManager.LayoutParams.FLAG_SECURE at Android's SurfaceFlinger hardware level for all members. Only authorized administrator users are permitted to take screenshots or screen record in the application. For all other members, screenshot tools, screen recorders, and screen-sharing apps (Zoom, Discord, Meet) receive a solid black screen (#000000)."
                     )
 
                     LegalSectionItem(

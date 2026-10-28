@@ -138,7 +138,7 @@ fun PhotoLightboxDialog(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = true,
             dismissOnClickOutside = true,
-            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+            securePolicy = com.example.connecto.security.ScreenSecurityManager.getSecureFlagPolicy()
         )
     ) {
         var zoomScale by remember { mutableFloatStateOf(1.0f) }
@@ -571,7 +571,7 @@ fun CoverPresetsDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+            securePolicy = com.example.connecto.security.ScreenSecurityManager.getSecureFlagPolicy()
         )
     ) {
         Surface(
@@ -742,7 +742,7 @@ fun CoverOptionsMenuDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
-            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+            securePolicy = com.example.connecto.security.ScreenSecurityManager.getSecureFlagPolicy()
         )
     ) {
         Surface(
@@ -1050,7 +1050,7 @@ fun InteractiveCropFitDialog(
             usePlatformDefaultWidth = false,
             dismissOnBackPress = !isProcessingCrop,
             dismissOnClickOutside = !isProcessingCrop,
-            securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+            securePolicy = com.example.connecto.security.ScreenSecurityManager.getSecureFlagPolicy()
         )
     ) {
         Surface(

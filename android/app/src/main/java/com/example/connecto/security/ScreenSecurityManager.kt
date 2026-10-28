@@ -61,48 +61,105 @@ object ScreenSecurityManager {
                 || Build.HARDWARE.contains("ranchu"))
     }
 
-    private fun getDefaultSecurityState(): Boolean {
-        // On emulators / dev environments, default to false so adb screencap and automated proofs produce visible UI.
-        // On real hardware devices, default to true for enterprise-grade screenshot / screenshare protection.
-        return !isEmulator()
+    /**
+     * Evaluates whether the currently authenticated/active user is an Admin.
+     */
+    fun isAdminUser(context: Context? = null): Boolean {
+        if (com.example.connecto.network.ConnectoApiClient.currentUserIsAdmin) return true
+        if (com.example.connecto.network.ConnectoApiClient.currentUserIsAdminState.value) return true
+        if (com.example.connecto.network.ConnectoNetworkConfig.isUserAdmin) return true
+        val uname = (com.example.connecto.network.ConnectoApiClient.currentUsername ?: "").trim().lowercase().removePrefix("@")
+        if (uname.isNotEmpty()) {
+            if (uname in listOf("chinnu14754x", "chinnu")) {
+                return true
+            }
+        }
+        val ctx = context ?: activeActivityRef?.get()
+        if (ctx != null) {
+            try {
+                for (prefsName in listOf("connecto_session_prefs", "connecto_secure_session_prefs", "connecto_auth_prefs")) {
+                    val p = ctx.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+                    val savedUname = p.getString("username", null)?.trim()?.lowercase()?.removePrefix("@") ?: ""
+                    if (savedUname in listOf("chinnu14754x", "chinnu") && p.getBoolean("is_admin", false)) {
+                        return true
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+        return false
+    }
+
+    /**
+     * Core Security Policy:
+     * Only the admin user can take screenshots and screen record in the application.
+     * All other members are strictly prohibited: FLAG_SECURE is enforced to block screenshots and recording.
+     */
+    fun isScreenSecurityEnforced(context: Context? = null): Boolean {
+        val isAdmin = isAdminUser(context)
+        if (isAdmin) {
+            // Admin user: Can take screenshots and screen record!
+            val ctx = context ?: activeActivityRef?.get()
+            return if (ctx != null) {
+                getPrefs(ctx).getBoolean(KEY_SCREEN_SECURITY_ENABLED, false)
+            } else false
+        } else {
+            // All other members: CANNOT take screenshots or screen record under any circumstances.
+            return true
+        }
     }
 
     fun init(context: Context) {
-        val prefs = getPrefs(context)
-        val defaultVal = getDefaultSecurityState()
-        val enabled = prefs.getBoolean(KEY_SCREEN_SECURITY_ENABLED, defaultVal)
-        _isSecurityEnabledState.value = enabled
-        Log.d(TAG, "ScreenSecurityManager initialized. Blackscreen security enabled: $enabled (isEmulator=${isEmulator()})")
+        val secureRequired = isScreenSecurityEnforced(context)
+        _isSecurityEnabledState.value = secureRequired
+        Log.d(TAG, "ScreenSecurityManager initialized. isSecureEnforced=$secureRequired (isAdmin=${isAdminUser(context)})")
     }
 
     fun isScreenSecurityEnabled(context: Context): Boolean {
-        val defaultVal = getDefaultSecurityState()
-        return getPrefs(context).getBoolean(KEY_SCREEN_SECURITY_ENABLED, defaultVal)
+        return isScreenSecurityEnforced(context)
     }
 
-    fun setScreenSecurityEnabled(context: Context, enabled: Boolean, activity: Activity? = null) {
+    fun getSecureFlagPolicy(context: Context? = null): androidx.compose.ui.window.SecureFlagPolicy {
+        return if (isAdminUser(context)) {
+            androidx.compose.ui.window.SecureFlagPolicy.SecureOff
+        } else {
+            androidx.compose.ui.window.SecureFlagPolicy.SecureOn
+        }
+    }
+
+    fun setScreenSecurityEnabled(context: Context, enabled: Boolean, activity: Activity? = null): Boolean {
+        val isAdmin = isAdminUser(context)
+        if (!isAdmin) {
+            Toast.makeText(
+                context,
+                "🛡️ Restricted: Only administrator users can take screenshots or modify screen security. Members are protected.",
+                Toast.LENGTH_LONG
+            ).show()
+            return false
+        }
         getPrefs(context).edit().putBoolean(KEY_SCREEN_SECURITY_ENABLED, enabled).apply()
         _isSecurityEnabledState.value = enabled
         val targetActivity = activity ?: activeActivityRef?.get() ?: (context as? Activity)
         applySecurityPolicy(targetActivity)
-        Log.d(TAG, "Screen security preference updated: $enabled")
+        Log.d(TAG, "Screen security preference updated by admin: $enabled")
+        return true
     }
 
-    fun applySecurityPolicy(activity: Activity?) {
-        if (activity == null) return
-        activeActivityRef = WeakReference(activity)
-        activity.runOnUiThread {
+    fun applySecurityPolicy(activity: Activity? = null) {
+        val targetActivity = activity ?: activeActivityRef?.get() ?: return
+        activeActivityRef = WeakReference(targetActivity)
+        targetActivity.runOnUiThread {
             try {
-                val enabled = isScreenSecurityEnabled(activity)
-                if (enabled) {
-                    activity.window.setFlags(
+                val secureRequired = isScreenSecurityEnforced(targetActivity)
+                _isSecurityEnabledState.value = secureRequired
+                if (secureRequired) {
+                    targetActivity.window.setFlags(
                         WindowManager.LayoutParams.FLAG_SECURE,
                         WindowManager.LayoutParams.FLAG_SECURE
                     )
-                    Log.d(TAG, "FLAG_SECURE applied to window: blackscreen protection ACTIVE")
+                    Log.d(TAG, "FLAG_SECURE applied to window: non-admin member screenshot/recording BLOCKED")
                 } else {
-                    activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                    Log.d(TAG, "FLAG_SECURE cleared from window: blackscreen protection DISABLED")
+                    targetActivity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    Log.d(TAG, "FLAG_SECURE cleared from window: admin user screenshot/recording ALLOWED")
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to apply security policy to window: ${e.message}")

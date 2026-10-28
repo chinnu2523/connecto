@@ -156,14 +156,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.5",
-        version_name: "v4.6.5",
-        version_code: 94,
-        build: 94,
-        sha256: "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b",
-        md5: "3a71efb4e37f906cc8281810808958c3",
+        version: "4.6.6",
+        version_name: "v4.6.6",
+        version_code: 95,
+        build: 95,
+        sha256: "4e5ce4ad47b0e637c8ed3ab25338191243a5e25da8a1a081e69ded9f2888a33f",
+        md5: "02684e79d3d51a74d473fec1812bacff",
         filename: "connecto-fun.apk",
-        size_bytes: 37747916,
+        size_bytes: 37777300,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -171,11 +171,11 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "In-Call Earpiece Default Routing: Voice calls route directly to the phone earpiece receiver by default instead of loudspeaker.",
+          "Hardware Proximity Screen-Off Lock: Automatic display blackout and touch lock when phone is held to ear, with instant wake on ear release.",
+          "Sole Administrator Screen Security: Only chinnu14754x can capture screenshots; all other members protected by FLAG_SECURE.",
           "Hardware-Backed Android KeyStore: Integrated EncryptedSharedPreferences (AES-256-GCM) with master key protection for session tokens and cryptographic credentials.",
-          "Interactive 24/7 AI Customer Support: Integrated conversational AI assistant in Help & Support for instant answers on app topics, voice & audio configurations, chat wallpapers, 2FA, and troubleshooting.",
-          "In-App Legal Center: Comprehensive viewable Privacy Policy and Terms of Service with zero-telemetry encryption disclosures placed at the bottom of Help & Support.",
-          "Reordered Help & Support Architecture: Moved Delete Account & Purge Data button to the bottom of Help & Support with typed-confirmation safeguards.",
-          "Hardened CSP & Edge Security: Full Content Security Policy, zero-trust WebSocket HMAC verification, and strict origin sanitization."
+          "Interactive 24/7 AI Customer Support: Integrated conversational AI assistant in Help & Support for instant answers on app topics, voice & audio configurations, chat wallpapers, 2FA, and troubleshooting."
         ]
       });
     }
@@ -220,19 +220,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-v4.6.5.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.4/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-v4.6.6.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.5-b94.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.6-b95.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.5");
-          res.headers.set("X-Connecto-Build", "94");
+          res.headers.set("X-Connecto-Version", "v4.6.6");
+          res.headers.set("X-Connecto-Build", "95");
           return res;
         }
 
@@ -245,7 +245,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.5"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.6"
               }
             });
             if (upstreamResp.ok) {
@@ -256,8 +256,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.5");
-              downloadHeaders.set("X-Connecto-Build", "94");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.6");
+              downloadHeaders.set("X-Connecto-Build", "95");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -272,7 +272,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.5/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -1652,10 +1652,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       const token = await generateEdgeToken(user.id, env);
       await recordUserSession(user.id, token, request, body, env);
 
-      // Update online status
-      if (env.DB) {
-        await env.DB.prepare("UPDATE users SET is_online = 1 WHERE id = ?").bind(user.id).run().catch(() => {});
-      }
+      // Online presence is dynamically tracked via active WebSocket connection in ConnectoRealtimeRoom
 
       return jsonResponse({
         status: "ok",
@@ -1675,7 +1672,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           status_emoji: user.status_emoji || "⚡",
           two_factor_enabled: false,
           is_stealth: !!user.is_stealth,
-          is_admin: !!user.is_admin
+          is_admin: Boolean(user.is_admin && (user.username || "").toLowerCase() === "chinnu14754x")
         }
       });
     } catch (err) {
@@ -3541,7 +3538,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           avatar_url: "/uploads/avatars/chinnu_avatar_verified.webp",
           banner_url: "/uploads/avatars/b43b49a15ddf4d80a139a9f22c7ee17b.webp",
           bio: "Connecto Gamer",
-          is_online: 1
+          is_online: 0
         },
         "chinnu": {
           id: "usr_3b394606",
@@ -3550,28 +3547,28 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           avatar_url: "/uploads/avatars/chinnu_avatar_verified.webp",
           banner_url: "/uploads/avatars/b43b49a15ddf4d80a139a9f22c7ee17b.webp",
           bio: "Connecto Gamer",
-          is_online: 1
+          is_online: 0
         },
         "srinu": {
           id: "dfdb326a-a597-450d-b2d7-8b23ea1f15aa",
           username: "srinu",
           display_name: "srinu",
           avatar_url: "/uploads/avatars/b43b49a15ddf4d80a139a9f22c7ee17b.webp",
-          is_online: 1
+          is_online: 0
         },
         "devi": {
           id: "f2dffd03-e361-44ec-9c69-2cb1acfdcab2",
           username: "devi",
           display_name: "divyasree",
           avatar_url: "/uploads/avatars/df190cf7a46742d193b81e7da078d563.webp",
-          is_online: 1
+          is_online: 0
         },
         "test1": {
           id: "f56a5269-71fe-4344-84e4-a1e231ece962",
           username: "test1",
           display_name: "Test One",
           avatar_url: "/uploads/avatars/e0f32b345cd345349f86a73eead1257e.webp",
-          is_online: 1
+          is_online: 0
         }
       };
       user = knownUsers[targetUser.toLowerCase()];
@@ -3591,8 +3588,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     const effectiveStealth = !!user.is_stealth;
     const onlineSet = await getOnlineUsersFromRealtime(env);
     const targetClean = (user.username || "").toLowerCase().trim().replace(/^@/, "");
-    const isSocketActive = onlineSet ? onlineSet.has(targetClean) : (user.is_online === 1 || user.is_online === true);
-    const effectiveOnline = effectiveStealth ? false : isSocketActive;
+    const isSocketActive = onlineSet ? (onlineSet.has(targetClean) || (user.id && onlineSet.has(String(user.id).toLowerCase()))) : false;
+    const effectiveOnline = effectiveStealth ? false : Boolean(isSocketActive);
     if (user.username && (user.username.toLowerCase() === "chinnu14754x" || user.username.toLowerCase() === "chinnu")) {
       user.avatar_url = "/uploads/avatars/chinnu_avatar_verified.webp";
     }
@@ -3621,9 +3618,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       two_factor_enabled: isSelf ? Boolean(user.two_factor_enabled) : false,
       two_factor_method: user.two_factor_method || "email",
       is_stealth: effectiveStealth,
-      is_online: isSelf ? !effectiveStealth : effectiveOnline,
-      status: (isSelf ? !effectiveStealth : effectiveOnline) ? "online" : "offline",
-      rank: user.is_admin ? "Hokage" : "Member",
+      is_online: effectiveOnline,
+      status: effectiveOnline ? "online" : "offline",
+      is_admin: Boolean(user.is_admin && ((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu")),
+      rank: (((user.username || "").toLowerCase() === "chinnu14754x" || (user.username || "").toLowerCase() === "chinnu") && user.is_admin) ? "Hokage" : "Member",
       xp: 250,
       level: 2,
       next_rank_xp: 500,
@@ -3642,14 +3640,28 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   // 8. Friends List & Management (Web & Android)
-  if (path === "/api/friends" || path === "/api/v1/chat/friends" || path === "/api/chat/friends" || path === "/api/v1/friends" || path === "/api/chat/friends/requests/received") {
+  if (
+    path === "/api/friends" ||
+    path === "/api/friends/requests" ||
+    path === "/api/friends/requests/received" ||
+    path === "/api/friends/requests/pending" ||
+    path === "/api/friends/pending" ||
+    path === "/api/v1/friends" ||
+    path === "/api/v1/friends/requests" ||
+    path === "/api/v1/friends/requests/received" ||
+    path === "/api/v1/friends/pending" ||
+    path === "/api/v1/chat/friends" ||
+    path === "/api/chat/friends" ||
+    path === "/api/chat/friends/requests/received" ||
+    path === "/api/v1/chat/friends/requests/received"
+  ) {
     if (method === "GET" || method === "HEAD") {
       // SEC-15 FIX: Authenticate caller strictly via session token
       const authUser = await resolveUserFromRequest(request, env);
       if (!authUser || !authUser.username) {
         return jsonResponse({ error: "Unauthorized: Active session required to view friends list." }, 401);
       }
-      let myUsername = authUser.username.trim().toLowerCase().replace(/^@/, "");
+      let myUsername = (url.searchParams.get("username") || url.searchParams.get("user") || authUser.username || "").trim().toLowerCase().replace(/^@/, "");
       if (myUsername === "chinnu") myUsername = "chinnu14754x";
 
       let friendsList = [];
@@ -3679,9 +3691,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
               const isAliasMatch = (rUserClean === "chinnu" || rUserClean === "chinnu14754x") && 
                 (onlineSet ? (onlineSet.has("chinnu") || onlineSet.has("chinnu14754x")) : false);
               const isSocketActive = onlineSet ? 
-                (onlineSet.has(rUserClean) || onlineSet.has(String(r.id).toLowerCase()) || isAliasMatch || r.is_online === 1 || r.is_online === true) : 
-                (r.is_online === 1 || r.is_online === true);
-              const isOnline = isStealth ? false : isSocketActive;
+                (onlineSet.has(rUserClean) || onlineSet.has(String(r.id).toLowerCase()) || isAliasMatch) : 
+                false;
+              const isOnline = isStealth ? false : Boolean(isSocketActive);
               const dName = r.display_name || r.username;
               const av = r.avatar_url || "👾";
               const ban = r.banner_url || "";
@@ -3750,26 +3762,71 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
               id: inc.request_id,
               request_id: inc.request_id,
               user_id: inc.sender_id,
+              sender_id: inc.sender_id,
+              sender: inc.sender_username,
+              sender_username: inc.sender_username,
+              username: inc.sender_username,
               friend_username: inc.sender_username,
+              nickname: inc.sender_display_name || inc.sender_username,
+              display_name: inc.sender_display_name || inc.sender_username,
+              sender_display_name: inc.sender_display_name || inc.sender_username,
               friend_display_name: inc.sender_display_name || inc.sender_username,
+              avatar: inc.avatar_url || "👾",
+              avatar_url: inc.avatar_url || "👾",
+              sender_avatar: inc.avatar_url || "👾",
+              sender_avatar_url: inc.avatar_url || "👾",
               friend_avatar_url: inc.avatar_url || "👾",
               status: "pending",
+              timestamp: inc.created_at || "Just now",
               created_at: inc.created_at
+            });
+          }
+
+          // Fetch pending outgoing requests
+          const outRes = await env.DB.prepare(`
+            SELECT f.id as request_id, u.id as recipient_id, u.username as recipient_username, u.display_name as recipient_display_name, u.avatar_url, f.created_at
+            FROM friendships f
+            JOIN users u ON f.friend_id = u.id
+            WHERE f.user_id = ? AND f.status = 'pending'
+          `).bind(caller.id).all();
+          for (const out of (outRes.results || [])) {
+            outgoingList.push({
+              id: out.request_id,
+              request_id: out.request_id,
+              user_id: caller.id,
+              recipient_id: out.recipient_id,
+              recipient: out.recipient_username,
+              recipient_username: out.recipient_username,
+              friend_username: out.recipient_username,
+              nickname: out.recipient_display_name || out.recipient_username,
+              display_name: out.recipient_display_name || out.recipient_username,
+              avatar: out.avatar_url || "👾",
+              avatar_url: out.avatar_url || "👾",
+              status: "pending",
+              timestamp: out.created_at || "Just now",
+              created_at: out.created_at
             });
           }
         }
       }
 
       // If called specifically as received requests endpoint, return incoming array
-      if (path.includes("requests/received")) {
-        return jsonResponse(incomingList);
+      if (path.includes("requests/received") || path.endsWith("/requests") || path.endsWith("/pending")) {
+        return jsonResponse(path.includes("requests/received") ? incomingList : {
+          status: "ok",
+          friends: friendsList,
+          incoming: incomingList,
+          outgoing: outgoingList,
+          requests: incomingList
+        });
       }
 
       return jsonResponse({
         status: "ok",
         friends: friendsList,
         incoming: incomingList,
-        outgoing: outgoingList
+        outgoing: outgoingList,
+        requests: incomingList
       });
     }
 
@@ -3779,7 +3836,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
   }
 
   // 9. Friends Request / Accept / Decline / Remove
-  if (path === "/api/friends/request" || path === "/api/v1/friends/request") {
+  if (path === "/api/friends/request" || path === "/api/v1/friends/request" || path === "/api/v1/chat/friends/request") {
     try {
       const caller = await resolveUserFromRequest(request, env);
       if (!caller || !caller.username) {
@@ -3793,42 +3850,59 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       if (recipientName === "chinnu") recipientName = "chinnu14754x";
       let fId = "fr_" + Math.random().toString(36).substring(2, 12);
       let senderAvatar = body.sender_avatar || body.avatar || "👾";
+      let recipientObj = null;
+
       if (senderName && recipientName && env.DB) {
         let sender = await env.DB.prepare(`
-          SELECT id, avatar_url FROM users 
-          WHERE lower(username) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
+          SELECT id, username, avatar_url FROM users 
+          WHERE lower(username) = ? OR id = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
           LIMIT 1
-        `).bind(senderName, senderName).first();
+        `).bind(senderName, caller.id, senderName).first();
         let recipient = await env.DB.prepare(`
-          SELECT id FROM users 
-          WHERE lower(username) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
+          SELECT id, username FROM users 
+          WHERE lower(username) = ? OR id = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
           LIMIT 1
-        `).bind(recipientName, recipientName).first();
+        `).bind(recipientName, recipientName, recipientName).first();
 
         if (sender && recipient) {
+          recipientObj = recipient;
           if (sender.avatar_url) senderAvatar = sender.avatar_url;
-          const existing = await env.DB.prepare("SELECT id, status FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?) LIMIT 1").bind(sender.id, recipient.id, recipient.id, sender.id).first();
+          const existing = await env.DB.prepare("SELECT id, status, user_id, friend_id FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?) LIMIT 1").bind(sender.id, recipient.id, recipient.id, sender.id).first();
           if (!existing) {
             await env.DB.prepare("INSERT INTO friendships (id, user_id, friend_id, status, created_at) VALUES (?, ?, ?, 'pending', datetime('now'))").bind(fId, sender.id, recipient.id).run();
           } else {
             fId = existing.id;
+            if (existing.status !== 'accepted') {
+              await env.DB.prepare("UPDATE friendships SET user_id = ?, friend_id = ?, status = 'pending', created_at = datetime('now') WHERE id = ?").bind(sender.id, recipient.id, existing.id).run();
+            }
           }
         }
       }
-      if (senderName && recipientName && ctx) {
-        ctx.waitUntil(broadcastRealtime(env, {
+      if (senderName && recipientName) {
+        const targetHandle = recipientObj ? recipientObj.username.toLowerCase() : recipientName;
+        const broadcastPromise = broadcastRealtime(env, {
           type: "friend_request_received",
-          target: recipientName,
-          sender: senderName,
+          target: targetHandle,
+          sender: caller.username,
           sender_avatar: senderAvatar,
           request_id: fId
-        }));
+        });
+        if (ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil(broadcastPromise);
+        } else {
+          await broadcastPromise;
+        }
       }
     } catch (_) {}
     return jsonResponse({ status: "ok", message: "Friend request processed" });
   }
 
-  if (path === "/api/friends/accept" || path === "/api/v1/friends/accept") {
+  if (
+    path === "/api/friends/accept" ||
+    path === "/api/v1/friends/accept" ||
+    path === "/api/v1/chat/friends/accept" ||
+    (path.includes("/friends/requests/") && path.endsWith("/accept"))
+  ) {
     try {
       const caller = await resolveUserFromRequest(request, env);
       if (!caller || !caller.username) {
@@ -3836,41 +3910,62 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
       const body = await request.json().catch(() => ({}));
       let senderName = (body.sender || body.friend_username || "").trim().toLowerCase().replace(/^@/, "");
+      const reqId = body.request_id || body.id || (path.includes("/friends/requests/") ? path.split("/friends/requests/")[1].split("/")[0] : null);
       // SEC-15 FIX: Lock recipient to authenticated caller
       let recipientName = caller.username.trim().toLowerCase().replace(/^@/, "");
       if (senderName === "chinnu") senderName = "chinnu14754x";
       if (recipientName === "chinnu") recipientName = "chinnu14754x";
       let recipientAvatar = "👾";
-      if (senderName && recipientName && env.DB) {
-        const u1 = await env.DB.prepare(`
-          SELECT id FROM users 
-          WHERE lower(username) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
-          LIMIT 1
-        `).bind(senderName, senderName).first();
+      if (env.DB) {
         const u2 = await env.DB.prepare(`
           SELECT id, avatar_url FROM users 
-          WHERE lower(username) = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
+          WHERE lower(username) = ? OR id = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
           LIMIT 1
-        `).bind(recipientName, recipientName).first();
+        `).bind(recipientName, caller.id, recipientName).first();
         if (u2 && u2.avatar_url) recipientAvatar = u2.avatar_url;
-        if (u1 && u2) {
+
+        let u1 = null;
+        if (senderName) {
+          u1 = await env.DB.prepare(`
+            SELECT id, username FROM users 
+            WHERE lower(username) = ? OR id = ? OR (lower(?) = 'chinnu' AND lower(username) = 'chinnu14754x') 
+            LIMIT 1
+          `).bind(senderName, senderName, senderName).first();
+        }
+
+        if (reqId && u2) {
+          await env.DB.prepare("UPDATE friendships SET status = 'accepted' WHERE id = ? AND friend_id = ?").bind(reqId, u2.id).run();
+        } else if (u1 && u2) {
           // SEC-W4-06 FIX: Require that the pending request was sent from u1 to u2 (caller) to prevent unilateral self-acceptance
-          await env.DB.prepare("UPDATE friendships SET status = 'accepted', updated_at = datetime('now') WHERE user_id = ? AND friend_id = ? AND status = 'pending'").bind(u1.id, u2.id).run();
+          await env.DB.prepare("UPDATE friendships SET status = 'accepted' WHERE user_id = ? AND friend_id = ? AND status = 'pending'").bind(u1.id, u2.id).run();
         }
       }
-      if (senderName && recipientName && ctx) {
-        ctx.waitUntil(broadcastRealtime(env, {
+      if (senderName && recipientName) {
+        const broadcastPromise = broadcastRealtime(env, {
           type: "friend_accepted",
           target: senderName,
           sender: recipientName,
           sender_avatar: recipientAvatar
-        }));
+        });
+        if (ctx && typeof ctx.waitUntil === "function") {
+          ctx.waitUntil(broadcastPromise);
+        } else {
+          await broadcastPromise;
+        }
       }
     } catch (_) {}
     return jsonResponse({ status: "ok", message: "Friend request accepted" });
   }
 
-  if (path === "/api/friends/decline" || path === "/api/friends/remove" || path === "/api/friends/unfriend") {
+  if (
+    path === "/api/friends/decline" ||
+    path === "/api/v1/friends/decline" ||
+    path === "/api/friends/remove" ||
+    path === "/api/friends/unfriend" ||
+    path === "/api/v1/friends/remove" ||
+    path === "/api/v1/friends/unfriend" ||
+    (path.includes("/friends/requests/") && path.endsWith("/decline"))
+  ) {
     try {
       // SEC-15 FIX: Require authenticated caller; lock unfriend action to the caller
       const authUser = await resolveUserFromRequest(request, env);
@@ -3879,13 +3974,18 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       }
       const body = await request.json().catch(() => ({}));
       let myName = authUser.username.trim().toLowerCase().replace(/^@/, "");
-      let targetName = (body.friend_username || body.target_username || body.recipient || "").trim().toLowerCase().replace(/^@/, "");
+      let targetName = (body.friend_username || body.target_username || body.recipient || body.sender || "").trim().toLowerCase().replace(/^@/, "");
+      const reqId = body.request_id || body.id || (path.includes("/friends/requests/") ? path.split("/friends/requests/")[1].split("/")[0] : null);
       if (!targetName && body.username && body.username.trim().toLowerCase().replace(/^@/, "") !== myName) {
         targetName = body.username.trim().toLowerCase().replace(/^@/, "");
       }
 
       if (targetName === "chinnu") targetName = "chinnu14754x";
       if (myName === "chinnu") myName = "chinnu14754x";
+
+      if (reqId && env.DB) {
+        await env.DB.prepare("DELETE FROM friendships WHERE id = ?").bind(reqId).run().catch(() => {});
+      }
 
       if (targetName && myName && env.DB) {
         const u1 = await env.DB.prepare(`
@@ -4000,8 +4100,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             seen.add(r.id);
             const isStealth = Boolean(r.is_stealth);
             const rUserClean = (r.username || "").toLowerCase().trim().replace(/^@/, "");
-            const isSocketActive = onlineSet ? onlineSet.has(rUserClean) : (r.is_online === 1 || r.is_online === true);
-            const isOnline = isStealth ? false : isSocketActive;
+            const isSocketActive = onlineSet ? (onlineSet.has(rUserClean) || onlineSet.has(String(r.id).toLowerCase())) : false;
+            const isOnline = isStealth ? false : Boolean(isSocketActive);
             const cName1 = "dm-" + [caller.username.toLowerCase(), rUserClean].sort().join("-");
             const cName2 = "dm_" + [caller.username.toLowerCase(), rUserClean].sort().join("_");
             let lastMsgText = "Direct chat active • Tap to message";
@@ -4843,6 +4943,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       if (env.DB) {
         // SEC-W4-09 FIX: Ensure channelCandidates contains at least one default to prevent empty IN () syntax error
         const channelCandidates = Array.from(new Set([canonicalChannel, channelId, resolvedChannelId].filter(Boolean)));
+        if (isDmChannel) {
+          const rawCh = (canonicalChannel || channelId).replace(/^dm[-_]/i, "");
+          const parts = rawCh.includes("-") ? rawCh.split("-") : rawCh.split("_");
+          if (parts.length >= 2) {
+            const p0 = parts[0].trim().toLowerCase().replace(/^@/, "");
+            const p1 = parts[1].trim().toLowerCase().replace(/^@/, "");
+            const minU = p0 < p1 ? p0 : p1;
+            const maxU = p0 < p1 ? p1 : p0;
+            channelCandidates.push(`dm-${minU}-${maxU}`);
+            channelCandidates.push(`dm_${minU}_${maxU}`);
+            channelCandidates.push(`dm-${maxU}-${minU}`);
+            channelCandidates.push(`dm_${maxU}_${minU}`);
+          }
+        }
         if (channelCandidates.length === 0) channelCandidates.push("general");
         const placeholders = channelCandidates.map(() => "?").join(", ");
         let querySql = `
@@ -5134,8 +5248,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       users = (res.results || []).map(u => {
         const isStealth = Boolean(u.is_stealth);
         const uClean = (u.username || "").toLowerCase().trim().replace(/^@/, "");
-        const isSocketActive = onlineSet ? onlineSet.has(uClean) : (u.is_online === 1 || u.is_online === true);
-        const isOnline = isStealth ? false : isSocketActive;
+        const isSocketActive = onlineSet ? (onlineSet.has(uClean) || onlineSet.has(String(u.id).toLowerCase())) : false;
+        const isOnline = isStealth ? false : Boolean(isSocketActive);
         // SEC-21 FIX: Never expose user email addresses in public user listing
         return {
           id: u.id,
@@ -6249,14 +6363,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.5",
-      version_name: "v4.6.5",
-      version_code: 94,
-      build: 94,
-      sha256: "4a78605ca8fac3d9c2eb63fef47176510b7140c5893d0e7653e9d70fd06bd08b",
-      md5: "3a71efb4e37f906cc8281810808958c3",
+      version: "4.6.6",
+      version_name: "v4.6.6",
+      version_code: 95,
+      build: 95,
+      sha256: "4e5ce4ad47b0e637c8ed3ab25338191243a5e25da8a1a081e69ded9f2888a33f",
+      md5: "02684e79d3d51a74d473fec1812bacff",
       filename: "connecto-fun.apk",
-      size_bytes: 37747916,
+      size_bytes: 37777300,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6270,10 +6384,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
+          version: "v4.6.6",
+          date: "Oct 28, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.6: Default Earpiece Audio Routing, Proximity Screen-Off Lock & Sole Admin Security",
+          summary: "Connecto v4.6.6 introduces automatic in-call earpiece receiver routing, hardware proximity sensor screen blackout and touch lock, and locks screen capture capabilities to sole administrator chinnu14754x.",
+          highlights: [
+            "In-Call Earpiece Default Audio Routing: Voice and audio calls default directly to the phone earpiece receiver instead of the loudspeaker, maintaining call privacy immediately upon connection.",
+            "Hardware Proximity Sensor Screen-Off Lock: Uses native PROXIMITY sensor and PowerManager PROXIMITY_SCREEN_OFF_WAKE_LOCK to shut down screen and disable touch when phone is near ear, turning back on when lifted away.",
+            "Sole Administrator Screen Security Policy: Hardened screen capture policy reserving screenshot and screen recording bypass exclusively for chinnu14754x; all other member accounts strictly enforce FLAG_SECURE.",
+            "Android Native App v4.6.6 (Build 95 • 36.0 MB • Production Keystore Signed): SHA-256 4e5ce4ad47b0e637c8ed3ab25338191243a5e25da8a1a081e69ded9f2888a33f • MD5 02684e79d3d51a74d473fec1812bacff."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
           version: "v4.6.5",
           date: "Oct 24, 2026",
           category: "feature",
-          tag: "Latest Release",
+          tag: "Previous Release",
           title: "Connecto v4.6.5: Universal 24/7 AI Customer Support, In-App Legal Hub & Bottom Danger Zone Architecture",
           summary: "Connecto v4.6.5 delivers comprehensive 24/7 AI Customer Support assistance across Web and Android, interactive Privacy Policy and Terms of Service readers, and positions the irreversible Delete Account & Data purge section securely at the very end of Help & Support.",
           highlights: [

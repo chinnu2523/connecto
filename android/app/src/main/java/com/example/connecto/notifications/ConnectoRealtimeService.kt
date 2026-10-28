@@ -171,7 +171,7 @@ class ConnectoRealtimeService : Service() {
                                 val callerUsername = pendingObj.optString("caller_username").ifEmpty { pendingObj.optString("caller") }
                                 val callerName = pendingObj.optString("caller_name").ifEmpty { callerUsername }
                                 val callerAvatar = pendingObj.optString("caller_avatar").ifEmpty { pendingObj.optString("avatar") }.ifEmpty { null }
-                                if (roomId.isNotBlank() && callerUsername.isNotBlank()) {
+                                if (roomId.isNotBlank() && callerUsername.isNotBlank() && !VoiceCallManager.isCallTerminated(roomId)) {
                                     VoiceCallManager.triggerIncomingCallFromPushOrBackground(
                                         roomId = roomId,
                                         callerId = pendingObj.optString("caller_id", callerUsername),
