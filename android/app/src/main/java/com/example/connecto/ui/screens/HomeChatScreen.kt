@@ -808,7 +808,7 @@ fun HomeChatScreen(
                             decorationBox = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
                                     Text(
-                                        text = "Search messages, channels, or people...",
+                                        text = "Search favourites...",
                                         fontSize = 13.sp,
                                         color = colors.textDisabled
                                     )
@@ -921,9 +921,9 @@ fun HomeChatScreen(
                         }
                         item {
                             QuickActionChip(
-                                icon = Icons.Default.PersonAdd,
-                                label = "Add Friend",
-                                onClick = { isAddFriendOpen = true }
+                                icon = Icons.Default.Star,
+                                label = "Favourites",
+                                onClick = { isFavouritesDialogOpen = true }
                             )
                         }
                     }
@@ -986,7 +986,7 @@ fun HomeChatScreen(
                     }
                 }
 
-                // 6. Recent Channels Directory
+                // 5. Favourites List Only (No groups or non-favourite friends on Home tab)
                 item {
                     Column(
                         modifier = Modifier
@@ -998,115 +998,24 @@ fun HomeChatScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Workspace Channels",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary
-                            )
-                            Text(
-                                text = "View All",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.primary,
-                                modifier = Modifier.clickable { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
-
-                        if (channels.isEmpty() && isLoadingDashboard) {
-                            androidx.compose.foundation.layout.Column(
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                repeat(3) {
-                                    ShimmerChannelItem()
-                                }
-                            }
-                        } else if (filteredChannels.isEmpty() && searchQuery.isNotEmpty()) {
-                            Text(
-                                text = "No channels matching \"$searchQuery\"",
-                                fontSize = 13.sp,
-                                color = colors.textSecondary,
-                                modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
-                            )
-                        } else {
-                            val displayedChannels = filteredChannels.take(if (searchQuery.isNotEmpty()) 10 else 4)
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                displayedChannels.forEachIndexed { index, ch ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                            .clickable {
-                                                onNavigateToChannel?.invoke(ch.name) ?: onNavigateToMessages()
-                                            }
-                                            .padding(vertical = 10.dp, horizontal = ConnectoSpacing.xs),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Tag,
-                                            contentDescription = null,
-                                            tint = colors.textSecondary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "#${ch.name}",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = colors.textPrimary
-                                            )
-                                            Text(
-                                                text = when (ch.name.trim().lowercase().removePrefix("#")) {
-                                                    "general" -> "Team announcements and general chat"
-                                                    "announcements" -> "Official updates and releases"
-                                                    "dev-chat", "dev-talk" -> "Engineering, architecture and code"
-                                                    "gaming" -> "Casual discussion, lounge and off-topic"
-                                                    "war-room" -> "Tactical briefings & threat intelligence"
-                                                    "tournaments" -> "Free Fire esports tournaments & matches"
-                                                    "clips" -> "Community gaming highlights & clutches"
-                                                    "voice-lounge" -> "Voice & screen sharing lounge"
-                                                    else -> "Discussions and shared resources"
-                                                },
-                                                fontSize = 12.sp,
-                                                color = colors.textSecondary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                    }
-                                    if (index < displayedChannels.size - 1) {
-                                        ConnectoDivider(thickness = 0.5.dp)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 7. Recent Conversations / Direct Messages (Favourites & All Contacts)
-                item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.sm)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = if (favouriteUsernames.isNotEmpty()) "Direct Messages (Favourites)" else "Direct Messages",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary
-                            )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (favouriteUsernames.isNotEmpty()) "Edit (${favouriteUsernames.size}/5)" else "★ Add Favourites",
+                                    text = "Favourites",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFFB800),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (favouriteUsernames.isNotEmpty()) "Edit (${favouriteUsernames.size}/5)" else "★ Select Favourites",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = colors.primary,
@@ -1115,7 +1024,7 @@ fun HomeChatScreen(
                                         .padding(end = 12.dp)
                                 )
                                 Text(
-                                    text = "Open Chat",
+                                    text = "All Messages",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     color = colors.primary,
@@ -1127,7 +1036,6 @@ fun HomeChatScreen(
                         Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
 
                         if (favouriteUsernames.isNotEmpty()) {
-                            // Render pinned favourites
                             if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
                                 Text(
                                     text = "No favourites matching \"$searchQuery\"",
@@ -1246,94 +1154,14 @@ fun HomeChatScreen(
                                 }
                             }
                         } else {
-                            // Favourites empty: display all conversations and user profiles directly!
-                            if (recentConversations.isEmpty() && isLoadingDashboard) {
-                                androidx.compose.foundation.layout.Column(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    repeat(3) {
-                                        ShimmerConversationItem()
-                                    }
-                                }
-                            } else if (filteredConversations.isEmpty() && searchQuery.isNotEmpty()) {
-                                Text(
-                                    text = "No conversations matching \"$searchQuery\"",
-                                    fontSize = 13.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
-                                )
-                            } else if (filteredConversations.isEmpty()) {
-                                ConnectoEmptyState(
-                                    title = "No conversations yet",
-                                    description = "Connect with colleagues or friends to start messaging.",
-                                    icon = Icons.Outlined.Chat,
-                                    actionText = "Add a Friend",
-                                    onActionClick = { isAddFriendOpen = true }
-                                )
-                            } else {
-                                Column(modifier = Modifier.fillMaxWidth()) {
-                                    filteredConversations.forEachIndexed { index, convo ->
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                                .clickable { onOpenConversation(convo) }
-                                                .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            ConnectoAvatar(
-                                                name = convo.name,
-                                                avatarUrl = convo.avatarUrl,
-                                                size = ConnectoAvatarSize.MD,
-                                                status = if (convo.isGroup) null else (if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE)
-                                            )
-                                            Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = convo.name,
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = colors.textPrimary,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                    Text(
-                                                        text = convo.timestamp,
-                                                        fontSize = 11.sp,
-                                                        color = colors.textDisabled
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
-                                                ) {
-                                                    Text(
-                                                        text = if (convo.isGroup) convo.lastMessage else "@${convo.username} • ${convo.lastMessage}",
-                                                        fontSize = 12.sp,
-                                                        color = colors.textSecondary,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis,
-                                                        modifier = Modifier.weight(1f)
-                                                    )
-                                                    if (convo.unreadCount > 0) {
-                                                        ConnectoBadge(count = convo.unreadCount)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        if (index < filteredConversations.size - 1) {
-                                            ConnectoDivider(thickness = 0.5.dp)
-                                        }
-                                    }
-                                }
-                            }
+                            // Favourites list is empty: Show only the dedicated favourites empty state. Never show groups or friends!
+                            ConnectoEmptyState(
+                                title = "No Favourites Added",
+                                description = "Star your favourite contacts to quickly message or call them directly from Home.",
+                                icon = Icons.Default.Star,
+                                actionText = "★ Select Favourites",
+                                onActionClick = { isFavouritesDialogOpen = true }
+                            )
                         }
                     }
                 }
