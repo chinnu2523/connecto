@@ -58,27 +58,27 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "id": "pdfstudio",
         "package_name": "com.app.pdfstudio",
         "name": "PDF Studio",
-        "badge": "PDF Creator & Editor",
-        "tagline": "Generate, merge, edit & annotate PDF documents",
-        "description": "Professional all-in-one PDF toolkit for Android. Generate multi-page documents from formatted text or images, merge multiple PDF files losslessly, reorder/rotate/delete pages, and draw or annotate directly on documents.",
+        "badge": "PDF Editor & Converter",
+        "tagline": "Change names in matching fonts, edit text & convert images to PDF",
+        "description": "Professional PDF editor for Android. Find & replace names in the exact same font and size, tap to edit text in-place, convert JPG/PNG/WEBP to PDF, merge multiple PDF files losslessly, and draw or annotate directly on documents.",
         "category": "Productivity",
-        "version_name": "1.0.0",
-        "version_code": 1,
-        "size_bytes": 28205689,
-        "size_formatted": "26.9 MB",
+        "version_name": "1.1.0",
+        "version_code": 2,
+        "size_bytes": 28274202,
+        "size_formatted": "27.0 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#EF4444",
         "changelog": [
-            "Generate rich PDF documents from formatted text with automatic pagination",
-            "Photos to PDF: Convert multiple gallery images into high quality PDFs",
-            "Lossless PDF merging powered by Apache PDFBox engine",
-            "Visual page manager: rotate 90°, reorder, and delete pages",
-            "Drawing & Annotating: Freehand pen, highlighter, and tap-to-add text notes",
-            "Built-in PDF viewer with zoom & pan, share, and device export"
+            "Same-Font Name & Text Replacement: Find & replace names in exact matching fonts and sizes",
+            "Visual Tap-to-Edit: Tap any text line on the PDF page to edit information in-place",
+            "Universal Image to PDF: Convert JPG, PNG, WEBP, BMP, HEIF or any photos to PDF",
+            "Page formatting: A4, Letter, Auto-orientation, custom margins, and compression options",
+            "Direct in-PDF text editing replaced separate document generator",
+            "Lossless PDF merging and interactive drawing/annotating"
         ],
         "is_essential": False,
-        "updated_at": "2026-10-29T20:30:00Z"
+        "updated_at": "2026-10-29T21:15:00Z"
     }
 ]
 
