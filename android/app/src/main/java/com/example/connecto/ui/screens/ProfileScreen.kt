@@ -2406,93 +2406,64 @@ fun ProfileScreen(
 
                                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), thickness = 1.dp)
 
-                                            // Screen Privacy & Black Screen Protection Switch
+                                            // Screen Privacy & Black Screen Protection Policy (Toggle removed; automatically enforced by admin role)
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.SpaceBetween
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.weight(1f)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(
+                                                            if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.12f)
+                                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                        ),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(36.dp)
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                            .background(
-                                                                if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                                else MaterialTheme.colorScheme.surfaceVariant
-                                                            ),
-                                                        contentAlignment = Alignment.Center
+                                                    Icon(
+                                                        imageVector = if (isUserAdmin) Icons.Default.Shield else Icons.Default.Shield,
+                                                        contentDescription = null,
+                                                        tint = if (isUserAdmin) Color(0xFF3B82F6) else MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                                     ) {
-                                                        Icon(
-                                                            imageVector = if (isScreenSecurityActive) Icons.Default.Shield else Icons.Default.VisibilityOff,
-                                                            contentDescription = null,
-                                                            tint = if (isScreenSecurityActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                            modifier = Modifier.size(18.dp)
+                                                        Text(
+                                                            text = if (isUserAdmin) "Admin Screenshot Access" else "Screenshot Protection",
+                                                            fontSize = 13.5.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = MaterialTheme.colorScheme.onSurface
                                                         )
-                                                    }
-                                                    Spacer(modifier = Modifier.width(12.dp))
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(6.dp))
+                                                                .background(if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
+                                                                .padding(horizontal = 6.dp, vertical = 2.dp)
                                                         ) {
                                                             Text(
-                                                                text = if (isUserAdmin) "Admin Screenshot Access" else "Screenshot Protection",
-                                                                fontSize = 13.5.sp,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                color = MaterialTheme.colorScheme.onSurface
+                                                                text = if (isUserAdmin) "ADMIN UNLOCKED" else "MEMBER RESTRICTED",
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = if (isUserAdmin) Color(0xFF3B82F6) else Color(0xFFEF4444)
                                                             )
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .clip(RoundedCornerShape(6.dp))
-                                                                    .background(if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
-                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                            ) {
-                                                                Text(
-                                                                    text = if (isUserAdmin) "ADMIN UNLOCKED" else "MEMBER RESTRICTED",
-                                                                    fontSize = 9.sp,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    color = if (isUserAdmin) Color(0xFF3B82F6) else Color(0xFFEF4444)
-                                                                )
-                                                            }
                                                         }
-                                                        Text(
-                                                            text = if (isUserAdmin) {
-                                                                "Admin Access: You can take screenshots and screen record in Connecto. Optional blackscreen toggle available."
-                                                            } else {
-                                                                "Restricted: Only admin users can take screenshots or screen record in Connecto. All members are protected."
-                                                            },
-                                                            fontSize = 11.sp,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
                                                     }
-                                                }
-
-                                                Switch(
-                                                    checked = if (isUserAdmin) isScreenSecurityActive else true,
-                                                    enabled = isUserAdmin,
-                                                    onCheckedChange = { isChecked ->
-                                                        if (isUserAdmin) {
-                                                            com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
-                                                            Toast.makeText(
-                                                                context,
-                                                                if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
-                                                                else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible for admin.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
+                                                    Text(
+                                                        text = if (isUserAdmin) {
+                                                            "Admin Access: Full screenshot and screen recording permission is automatically enabled for administrator."
                                                         } else {
-                                                            Toast.makeText(
-                                                                context,
-                                                                "🛡️ Restricted: Only admin users can take screenshots or modify screen security. Protection is locked for members.",
-                                                                Toast.LENGTH_SHORT
-                                                            ).show()
-                                                        }
-                                                    },
-                                                    colors = getMonochromeSwitchColors()
-                                                )
+                                                            "Restricted: Only admin users can take screenshots or screen record in Connecto. All members are protected."
+                                                        },
+                                                        fontSize = 11.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                             }
 
                                             // Real-time Screen Share & Cast Hardware Protection Status Card
@@ -2543,7 +2514,7 @@ fun ProfileScreen(
                                                         text = if (isScreenSecurityActive)
                                                             "All screenshots, video captures, screen sharing (Discord, Zoom, Meet, Teams), and external display mirrors render as solid pitch black (#000000) for others."
                                                         else
-                                                            "Screenshots, recordings, and screen sharing can see all screen contents. Turn ON for blackscreen protection.",
+                                                            "Screenshots, recordings, and screen sharing are automatically managed by role security policy.",
                                                         fontSize = 11.sp,
                                                         lineHeight = 15.sp,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -3597,93 +3568,64 @@ fun ProfileScreen(
 
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), thickness = 1.dp)
 
-                                    // 3. Screen Privacy & Black Screen Protection Switch
+                                    // 3. Screen Privacy & Black Screen Protection Policy (Toggle removed; automatically enforced by admin role)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.12f)
+                                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                ),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(36.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(
-                                                        if (isScreenSecurityActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                        else MaterialTheme.colorScheme.surfaceVariant
-                                                    ),
-                                                contentAlignment = Alignment.Center
+                                            Icon(
+                                                imageVector = if (isUserAdmin) Icons.Default.Shield else Icons.Default.Shield,
+                                                contentDescription = null,
+                                                tint = if (isUserAdmin) Color(0xFF3B82F6) else MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
-                                                Icon(
-                                                    imageVector = if (isScreenSecurityActive) Icons.Default.Shield else Icons.Default.VisibilityOff,
-                                                    contentDescription = null,
-                                                    tint = if (isScreenSecurityActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.size(18.dp)
+                                                Text(
+                                                    text = if (isUserAdmin) "Admin Screenshot Access" else "Screenshot Protection",
+                                                    fontSize = 13.5.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.onSurface
                                                 )
-                                            }
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
                                                 ) {
                                                     Text(
-                                                        text = if (isUserAdmin) "Admin Screenshot Access" else "Screenshot Protection",
-                                                        fontSize = 13.5.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.onSurface
+                                                        text = if (isUserAdmin) "ADMIN UNLOCKED" else "MEMBER RESTRICTED",
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = if (isUserAdmin) Color(0xFF3B82F6) else Color(0xFFEF4444)
                                                     )
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(6.dp))
-                                                            .background(if (isUserAdmin) Color(0xFF3B82F6).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f))
-                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = if (isUserAdmin) "ADMIN UNLOCKED" else "MEMBER RESTRICTED",
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = if (isUserAdmin) Color(0xFF3B82F6) else Color(0xFFEF4444)
-                                                        )
-                                                    }
                                                 }
-                                                Text(
-                                                    text = if (isUserAdmin) {
-                                                        "Admin Access: You can take screenshots and screen record in Connecto. Optional blackscreen toggle available."
-                                                    } else {
-                                                        "Restricted: Only admin users can take screenshots or screen record in Connecto. All members are protected."
-                                                    },
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
                                             }
-                                        }
-
-                                        Switch(
-                                            checked = if (isUserAdmin) isScreenSecurityActive else true,
-                                            enabled = isUserAdmin,
-                                            onCheckedChange = { isChecked ->
-                                                if (isUserAdmin) {
-                                                    com.example.connecto.security.ScreenSecurityManager.setScreenSecurityEnabled(context, isChecked, activity)
-                                                    Toast.makeText(
-                                                        context,
-                                                        if (isChecked) "🛡️ Black screen protection enabled for screenshots, share & cast."
-                                                        else "⚠️ Screen privacy disabled. Screenshots and sharing are now visible for admin.",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
+                                            Text(
+                                                text = if (isUserAdmin) {
+                                                    "Admin Access: Full screenshot and screen recording permission is automatically enabled for administrator."
                                                 } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "🛡️ Restricted: Only admin users can take screenshots or modify screen security. Protection is locked for members.",
-                                                        Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-                                            },
-                                            colors = getMonochromeSwitchColors()
-                                        )
+                                                    "Restricted: Only admin users can take screenshots or screen record in Connecto. All members are protected."
+                                                },
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
 
                                     // Real-time Screen Share & Cast Hardware Protection Status Card
@@ -3734,7 +3676,7 @@ fun ProfileScreen(
                                                 text = if (isScreenSecurityActive)
                                                     "All screenshots, video captures, screen sharing (Discord, Zoom, Meet, Teams), and external display mirrors render as solid pitch black (#000000) for others."
                                                 else
-                                                    "Screenshots, recordings, and screen sharing can see all screen contents. Turn ON for blackscreen protection.",
+                                                    "Screenshots, recordings, and screen sharing are automatically managed by role security policy.",
                                                 fontSize = 11.sp,
                                                 lineHeight = 15.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
