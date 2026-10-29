@@ -1560,7 +1560,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.2.0",
+      store_version: "1.3.0",
       total_apps: 4,
       apps: [
         {
@@ -1571,21 +1571,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.2.0",
-          version_code: 3,
-          size_bytes: 12388521,
-          size_formatted: "11.8 MB",
+          version_name: "1.3.0",
+          version_code: 4,
+          size_bytes: 12513280,
+          size_formatted: "11.9 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "In-App Auto-Update Engine: Store checks and updates itself seamlessly",
-            "Executive Window Inset Padding: Status bar header clearance for bezel-free devices",
-            "Prominent Package Size Badges: Application download weight displayed boldly on card headers",
-            "Pitch-Black OLED Classic Theme with Monochromatic Architectural Insignia"
+            "App Button & Dedicated Detail View: Tap any app card to open full details, previews, and management",
+            "Integrated Uninstaller: Native system uninstallation trigger with 1-tap removal",
+            "High-Fidelity Application Previews: Interactive screenshot walkthrough carousel for all ecosystem apps",
+            "Pure Background Auto-Update: Removed manual toggles in favor of silent autonomous synchronization"
           ],
           is_essential: true,
-          updated_at: "2026-10-29T21:55:00Z"
+          updated_at: "2026-10-29T23:15:00Z"
         },
         {
           id: "connecto",
@@ -1621,22 +1621,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "2.8.0",
-          version_code: 28,
-          size_bytes: 131965379,
-          size_formatted: "125.8 MB",
+          version_name: "2.9.0",
+          version_code: 29,
+          size_bytes: 169527201,
+          size_formatted: "161.7 MB",
           download_url: "https://connecto.fun/downloads/jarvis-ai-official.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Streaming 80ms openWakeWord neural pipeline (melspectrogram + embedding + ONNX head)",
-            "Live score telemetry meter (10Hz) & per-second audio frame metrics in Developer Mode",
-            "5-Shot personal voice calibration tool (records scores locally, sets threshold below spoken peaks)",
-            "Command & number disambiguation conflict resolution (pending prompt answers prioritized)",
-            "Vivo OriginOS background frame stall watchdog & 1-tap battery optimization fix"
+            "Vosk ASR offline wake engine with restricted grammar ([\"jarvis\", \"hey jarvis\", \"[unk]\"])",
+            "Near 100% trigger reliability on Indian & global accents with zero noise false positives",
+            "Unified WakeWordEngine interface supporting Vosk, openWakeWord, and Off",
+            "Default Digital Assistant integration (ROLE_ASSISTANT) with power-button / swipe gesture launch",
+            "Battery Saver option: Listen only while screen is on or charging (0% drain screen-off)",
+            "Developer Mode real-time telemetry: frames per second, peak input level (dB), and live transcripts"
           ],
           is_essential: true,
-          updated_at: "2026-10-29T15:48:00Z"
+          updated_at: "2026-10-29T17:38:00Z"
         },
         {
           id: "pdfstudio",
