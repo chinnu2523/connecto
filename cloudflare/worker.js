@@ -156,14 +156,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.6",
-        version_name: "v4.6.6",
-        version_code: 95,
-        build: 95,
-        sha256: "741fea08f8df7490d61d4f4b296fed20c3b4c31115ca26ba4253b3cd332a3904",
-        md5: "56986e5acc16c0b36ac437980cea2a02",
+        version: "4.6.7",
+        version_name: "v4.6.7",
+        version_code: 96,
+        build: 96,
+        sha256: "92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729",
+        md5: "9fa021719cb9460d5e93a3cb411d3623",
         filename: "connecto-fun.apk",
-        size_bytes: 37776168,
+        size_bytes: 37776172,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -220,18 +220,18 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-v4.6.6.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.7/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.7/connecto-v4.6.7.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.6-b95-hotfix4.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.7-b96.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.6");
-          res.headers.set("X-Connecto-Build", "95");
+          res.headers.set("X-Connecto-Version", "v4.6.7");
+          res.headers.set("X-Connecto-Build", "96");
           return res;
         }
 
@@ -244,7 +244,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.6"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.7"
               }
             });
             if (upstreamResp.ok) {
@@ -255,8 +255,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.6");
-              downloadHeaders.set("X-Connecto-Build", "95");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.7");
+              downloadHeaders.set("X-Connecto-Build", "96");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -271,7 +271,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.7/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -6365,14 +6365,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.6",
-      version_name: "v4.6.6",
-      version_code: 95,
-      build: 95,
-      sha256: "741fea08f8df7490d61d4f4b296fed20c3b4c31115ca26ba4253b3cd332a3904",
-      md5: "56986e5acc16c0b36ac437980cea2a02",
+      version: "4.6.7",
+      version_name: "v4.6.7",
+      version_code: 96,
+      build: 96,
+      sha256: "92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729",
+      md5: "9fa021719cb9460d5e93a3cb411d3623",
       filename: "connecto-fun.apk",
-      size_bytes: 37776168,
+      size_bytes: 37776172,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6385,6 +6385,25 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.6.7",
+          date: "Oct 29, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.7: Comprehensive Security, Workspace Channels & Face ID Architecture",
+          summary: "Connecto v4.6.7 unifies in-call earpiece audio routing, proximity screen lock, workspace channels directory, biometric face unlock, automated role-based screen capture protection, and exclusive administrator security.",
+          highlights: [
+            "In-Call Earpiece Default Audio Routing: Voice and audio calls default directly to the phone earpiece receiver instead of the loudspeaker, maintaining call privacy immediately upon connection.",
+            "Hardware Proximity Sensor Screen-Off Lock: Uses native PROXIMITY sensor and PowerManager PROXIMITY_SCREEN_OFF_WAKE_LOCK to shut down screen and disable touch when phone is near ear, turning back on when lifted away.",
+            "Sole Administrator Screen Security Policy: Hardened screen capture policy reserving screenshot and screen recording bypass exclusively for chinnu14754x; all other member accounts strictly enforce FLAG_SECURE.",
+            "Automated Role-Based Security: Removed manual screenshot switch toggle in Security & Privacy; permissions are automatically enforced based on user role.",
+            "Passive Face ID & Biometrics: Enabled BIOMETRIC_WEAK class 2 sensors and passive face unlock without forced fingerprint prompt fallback.",
+            "Workspace Channels Directory on Home: Direct access to #general, #announcements, #dev-chat, #gaming and community channels alongside curated personal favourites.",
+            "Sole Administrator Database & Server Enforcement: Cleared legacy accounts and enforced chinnu14754x as the sole administrator.",
+            "Android Native App v4.6.7 (Build 96 • 36.0 MB • Production Keystore Signed): SHA-256 92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729 • MD5 9fa021719cb9460d5e93a3cb411d3623."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v4.6.6",
           date: "Oct 28, 2026",

@@ -5999,13 +5999,13 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.6.5",
-        "version_name": "v4.6.5",
-        "version_code": 94,
-        "release_tag": "v4.6.5",
-        "sha256": "03c0b2fbf88acba0f05f394b659b36dda1b0e3a7288813a583362b83c219c7f1",
-        "md5": "5a47f4d4ba66f2b0874a39a76bfc6130",
-        "size_bytes": size_bytes if size_bytes else 37748988,
+        "version": "4.6.7",
+        "version_name": "v4.6.7",
+        "version_code": 96,
+        "release_tag": "v4.6.7",
+        "sha256": "92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729",
+        "md5": "9fa021719cb9460d5e93a3cb411d3623",
+        "size_bytes": size_bytes if size_bytes else 37776172,
         "size_display": size_mb if size_mb else "36.0 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 37 / HyperOS Verified)",
@@ -6014,10 +6014,11 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "Permanent Account Deletion: Dedicated Delete Account Forever button in Profile Danger Zone and Help & Support, purging live records from SQLite and Cloudflare D1 across 23 tables, plus physical database backup scrubbing.",
-            "AI Voice Isolation Studio: Dedicated Voice & Audio Settings sub-page in Profile with real-time 18-bar VU meter mic sensitivity monitor, acoustic echo cancellation, and auto gain control.",
-            "Spectral Speech Bandpass: 280Hz high-pass filter rejecting AC rumble, 3400Hz low-pass cutting coil hiss, adaptive -26dB noise gating, and +1.2dB vocal presence boost.",
-            "In-Call Voice Isolation Chip: Live one-tap Voice Isolation toggle on CallsScreen header and in-call WebRTC overlay."
+            "In-Call Earpiece Default Routing: Voice calls route directly to the phone earpiece receiver by default instead of loudspeaker.",
+            "Hardware Proximity Screen-Off Lock: Automatic display blackout and touch lock when phone is held to ear, with instant wake on ear release.",
+            "Sole Administrator Screen Security: Only chinnu14754x can capture screenshots; all other members protected by FLAG_SECURE.",
+            "Passive Face ID & Biometrics: Direct face unlock and BIOMETRIC_WEAK support without forced fingerprint fallback.",
+            "Workspace Channels Directory: Clean channel list and curated favourites on Home tab."
         ]
     }
 
@@ -6028,6 +6029,25 @@ async def get_platform_changelog():
     return {
         "status": "success",
         "releases": [
+            {
+                "version": "v4.6.7",
+                "date": "Oct 29, 2026",
+                "category": "feature",
+                "tag": "Latest Release",
+                "title": "Connecto v4.6.7: Comprehensive Security, Workspace Channels & Face ID Architecture",
+                "summary": "Connecto v4.6.7 unifies in-call earpiece audio routing, proximity screen lock, workspace channels directory, biometric face unlock, automated role-based screen capture protection, and exclusive administrator security.",
+                "highlights": [
+                    "In-Call Earpiece Default Audio Routing: Voice and audio calls default directly to the phone earpiece receiver instead of the loudspeaker, maintaining call privacy immediately upon connection.",
+                    "Hardware Proximity Sensor Screen-Off Lock: Uses native PROXIMITY sensor and PowerManager PROXIMITY_SCREEN_OFF_WAKE_LOCK to shut down screen and disable touch when phone is near ear, turning back on when lifted away.",
+                    "Sole Administrator Screen Security Policy: Hardened screen capture policy reserving screenshot and screen recording bypass exclusively for chinnu14754x; all other member accounts strictly enforce FLAG_SECURE.",
+                    "Automated Role-Based Security: Removed manual screenshot switch toggle in Security & Privacy; permissions are automatically enforced based on user role.",
+                    "Passive Face ID & Biometrics: Enabled BIOMETRIC_WEAK class 2 sensors and passive face unlock without forced fingerprint prompt fallback.",
+                    "Workspace Channels Directory on Home: Direct access to #general, #announcements, #dev-chat, #gaming and community channels alongside curated personal favourites.",
+                    "Sole Administrator Database & Server Enforcement: Cleared legacy accounts and enforced chinnu14754x as the sole administrator.",
+                    "Android Native App v4.6.7 (Build 96 • 36.0 MB • Production Keystore Signed): SHA-256 92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729 • MD5 9fa021719cb9460d5e93a3cb411d3623."
+                ],
+                "author": "Connecto Core & Mobile Engineering"
+            },
             {
                 "version": "v4.6.5",
                 "date": "Oct 24, 2026",
