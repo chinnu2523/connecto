@@ -477,6 +477,16 @@ fun ConnectoApp(
                     ?: authenticatedUsername
                 val savedToken = com.example.connecto.network.ConnectoApiClient.sessionToken
                     ?: prefs.getString("token", null)
+                    ?: com.example.connecto.network.ConnectoApiClient.getPersistedToken()
+                if (!savedToken.isNullOrBlank()) {
+                    com.example.connecto.network.ConnectoApiClient.sessionToken = savedToken
+                }
+                if (com.example.connecto.network.ConnectoApiClient.currentUsername.isNullOrBlank()) {
+                    com.example.connecto.network.ConnectoApiClient.currentUsername = authenticatedUsername
+                }
+                if (com.example.connecto.network.ConnectoApiClient.currentUserId.isNullOrBlank()) {
+                    com.example.connecto.network.ConnectoApiClient.currentUserId = userId
+                }
                 VoiceCallManager.updateCredentialsAndConnect(
                     username = authenticatedUsername,
                     userId = userId,
@@ -708,16 +718,35 @@ fun ConnectoApp(
                     // HOMEPAGE WITH SIGN UP & SIGN IN ONLY (NO OTHER TABS SHOWN)
                     AuthHomeScreen(
                         onAuthSuccess = { username ->
-                            // Persist user session
+                            // Persist user session across both SharedPreferences and SecureStorageManager
+                            val tokenVal = com.example.connecto.network.ConnectoApiClient.sessionToken
+                            val userIdVal = com.example.connecto.network.ConnectoApiClient.currentUserId
+                            val emailVal = com.example.connecto.network.ConnectoApiClient.currentUserEmail
+                            val dispNameVal = com.example.connecto.network.ConnectoApiClient.currentUserDisplayName
+                            val isAdminVal = com.example.connecto.network.ConnectoApiClient.currentUserIsAdmin
+
                             prefs.edit()
                                 .putBoolean("is_logged_in", true)
-                                .putBoolean("is_admin", com.example.connecto.network.ConnectoApiClient.currentUserIsAdmin)
+                                .putBoolean("is_admin", isAdminVal)
                                 .putString("username", username)
-                                .putString("token", com.example.connecto.network.ConnectoApiClient.sessionToken)
-                                .putString("user_id", com.example.connecto.network.ConnectoApiClient.currentUserId)
-                                .putString("email", com.example.connecto.network.ConnectoApiClient.currentUserEmail)
-                                .putString("display_name", com.example.connecto.network.ConnectoApiClient.currentUserDisplayName)
+                                .putString("token", tokenVal)
+                                .putString("user_id", userIdVal)
+                                .putString("email", emailVal)
+                                .putString("display_name", dispNameVal)
                                 .apply()
+
+                            try {
+                                val secPrefs = com.example.connecto.security.SecureStorageManager.getEncryptedPrefs(context)
+                                secPrefs.edit()
+                                    .putBoolean("is_logged_in", true)
+                                    .putBoolean("is_admin", isAdminVal)
+                                    .putString("username", username)
+                                    .putString("token", tokenVal)
+                                    .putString("user_id", userIdVal)
+                                    .putString("email", emailVal)
+                                    .putString("display_name", dispNameVal)
+                                    .apply()
+                            } catch (_: Exception) {}
 
                             com.example.connecto.network.ConnectoApiClient.channelCache.clear()
                             onUsernameChange(username)

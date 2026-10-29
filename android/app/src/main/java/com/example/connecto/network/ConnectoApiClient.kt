@@ -549,29 +549,55 @@ object ConnectoApiClient {
     fun initSessionFromPrefs(context: android.content.Context) {
         applicationContext = context.applicationContext
         try {
-            val prefs = getSessionPrefs(context)
-            val isLoggedIn = prefs.getBoolean("is_logged_in", false)
-            val savedUsername = prefs.getString("username", null)
-            val savedToken = prefs.getString("token", null)
+            val securePrefs = getSessionPrefs(context)
+            val legacyPrefs = context.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+
+            val isLoggedIn = securePrefs.getBoolean("is_logged_in", false) || legacyPrefs.getBoolean("is_logged_in", false)
+            val savedUsername = securePrefs.getString("username", null) ?: legacyPrefs.getString("username", null)
+            val savedToken = securePrefs.getString("token", null) ?: legacyPrefs.getString("token", null)
+
             if (isLoggedIn && !savedUsername.isNullOrEmpty()) {
                 sessionToken = savedToken
-                currentUserId = prefs.getString("user_id", null)
-                currentSessionId = prefs.getString("current_session_id", null)
+                currentUserId = securePrefs.getString("user_id", null) ?: legacyPrefs.getString("user_id", null)
+                currentSessionId = securePrefs.getString("current_session_id", null) ?: legacyPrefs.getString("current_session_id", null)
                 currentUsername = savedUsername
-                currentUserEmail = prefs.getString("email", null)
-                currentUserDisplayName = prefs.getString("display_name", null)
-                val savedAvatar = prefs.getString("avatar_url", null)
+                currentUserEmail = securePrefs.getString("email", null) ?: legacyPrefs.getString("email", null)
+                currentUserDisplayName = securePrefs.getString("display_name", null) ?: legacyPrefs.getString("display_name", null)
+                val savedAvatar = securePrefs.getString("avatar_url", null) ?: legacyPrefs.getString("avatar_url", null)
                 updateAvatarState(savedAvatar)
                 val pPrefs = context.getSharedPreferences("connecto_user_profile_prefs", android.content.Context.MODE_PRIVATE)
-                val savedBanner = prefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
+                val savedBanner = securePrefs.getString("banner_url", null) ?: legacyPrefs.getString("banner_url", null) ?: pPrefs.getString("banner_uri_$savedUsername", null)
                 updateBannerState(savedBanner)
                 val cleanUser = savedUsername.trim().lowercase().removePrefix("@")
-                val isAdmin = prefs.getBoolean("is_admin", false) || (cleanUser in listOf("chinnu14754x", "chinnu"))
+                val isAdmin = securePrefs.getBoolean("is_admin", false) || legacyPrefs.getBoolean("is_admin", false) || (cleanUser in listOf("chinnu14754x", "chinnu"))
                 updateAdminState(isAdmin)
                 if (isAdmin) {
-                    try { prefs.edit().putBoolean("is_admin", true).apply() } catch (_: Exception) {}
+                    try {
+                        securePrefs.edit().putBoolean("is_admin", true).apply()
+                        legacyPrefs.edit().putBoolean("is_admin", true).apply()
+                    } catch (_: Exception) {}
                 }
-                cachedE2ESecret = prefs.getString("e2e_secret", null)
+                cachedE2ESecret = securePrefs.getString("e2e_secret", null) ?: legacyPrefs.getString("e2e_secret", null)
+
+                // Unify both preference stores so session tokens and user credentials never diverge
+                try {
+                    securePrefs.edit()
+                        .putBoolean("is_logged_in", true)
+                        .putString("username", savedUsername)
+                        .putString("user_id", currentUserId)
+                        .putString("display_name", currentUserDisplayName)
+                        .apply()
+                    legacyPrefs.edit()
+                        .putBoolean("is_logged_in", true)
+                        .putString("username", savedUsername)
+                        .putString("user_id", currentUserId)
+                        .putString("display_name", currentUserDisplayName)
+                        .apply()
+                    if (!savedToken.isNullOrBlank()) {
+                        securePrefs.edit().putString("token", savedToken).apply()
+                        legacyPrefs.edit().putString("token", savedToken).apply()
+                    }
+                } catch (_: Exception) {}
             }
             if (cachedCallLogs.isEmpty()) {
                 cachedCallLogs = loadCallLogsCache(context)
@@ -642,8 +668,15 @@ object ConnectoApiClient {
         if (!inMemory.isNullOrBlank()) return inMemory
         val ctx = applicationContext ?: return null
         return try {
-            val prefs = getSessionPrefs(ctx)
-            val t = prefs.getString("token", null)?.takeIf { it.isNotBlank() }
+            val securePrefs = getSessionPrefs(ctx)
+            var t = securePrefs.getString("token", null)?.takeIf { it.isNotBlank() }
+            if (t.isNullOrBlank()) {
+                val legacy = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+                t = legacy.getString("token", null)?.takeIf { it.isNotBlank() }
+                if (t != null) {
+                    try { securePrefs.edit().putString("token", t).apply() } catch (_: Exception) {}
+                }
+            }
             if (t != null) {
                 sessionToken = t
             }
@@ -1493,11 +1526,12 @@ object ConnectoApiClient {
 
     suspend fun getUserSessions(): Result<List<UserSessionDto>> = withContext(Dispatchers.IO) {
         try {
+            val tokenToUse = sessionToken ?: getPersistedToken()
             val response = executeRequest(
                 endpoint = "/api/auth/sessions",
                 method = "GET",
                 body = null,
-                token = sessionToken
+                token = tokenToUse
             )
             if (response.isSuccess) {
                 val json = JSONObject(response.getOrThrow())

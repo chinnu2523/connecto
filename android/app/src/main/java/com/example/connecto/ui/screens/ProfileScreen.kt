@@ -741,6 +741,9 @@ fun ProfileScreen(
             isLoadingSessions = true
             sessionErrorMessage = null
             try {
+                if (ConnectoApiClient.sessionToken.isNullOrBlank()) {
+                    ConnectoApiClient.initSessionFromPrefs(context)
+                }
                 val res = ConnectoApiClient.getUserSessions()
                 if (res.isSuccess) {
                     activeSessions = res.getOrThrow()
