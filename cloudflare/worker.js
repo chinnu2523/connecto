@@ -220,8 +220,35 @@ export default {
       cleanPath === "/download/store" ||
       cleanPath === "/downloads/our-store.apk" ||
       cleanPath === "/downloads/connectostore.apk" ||
-      cleanPath === "/our-store.apk"
+      cleanPath === "/downloads/connecto-store.apk" ||
+      cleanPath === "/our-store.apk" ||
+      cleanPath.includes("our-store") ||
+      cleanPath.includes("connectostore")
     ) {
+      try {
+        const storeResp = await fetch("https://connecto-web.pages.dev/downloads/our-store.apk", {
+          headers: {
+            "User-Agent": "Connecto-Cloud-Worker/1.0.0"
+          }
+        });
+        if (storeResp.ok) {
+          const downloadHeaders = new Headers();
+          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
+          downloadHeaders.set("Content-Disposition", 'attachment; filename="our-store.apk"');
+          const cl = storeResp.headers.get("content-length");
+          if (cl) downloadHeaders.set("Content-Length", cl);
+          downloadHeaders.set("Cache-Control", "public, max-age=3600, s-maxage=3600");
+          downloadHeaders.set("Access-Control-Allow-Origin", "*");
+          downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
+          downloadHeaders.set("X-Connecto-App", "Our Store");
+          return new Response(storeResp.body, {
+            status: 200,
+            headers: downloadHeaders
+          });
+        }
+      } catch (err) {
+        console.error("Store download fetch error:", err);
+      }
       return Response.redirect("https://connecto-web.pages.dev/downloads/our-store.apk", 302);
     }
 
