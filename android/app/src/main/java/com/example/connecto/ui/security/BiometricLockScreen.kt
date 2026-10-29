@@ -192,7 +192,7 @@ fun BiometricLockScreen(
                 val promptInfo = androidx.biometric.BiometricPrompt.PromptInfo.Builder()
                     .setTitle("Unlock Connecto")
                     .setSubtitle("Enter device PIN, pattern, or password")
-                    .setAllowedAuthenticators(BiometricAuthManager.ALLOWED_AUTHENTICATORS_API30)
+                    .setAllowedAuthenticators(BiometricAuthManager.AUTHENTICATORS_DEVICE_CREDENTIAL)
                     .build()
                 authStatusMessage = "Confirming device screen lock..."
                 isAuthFailed = false
@@ -438,6 +438,7 @@ fun BiometricLockScreen(
                         } else {
                             "Switched to Fingerprint unlock"
                         }
+                        triggerBiometricPrompt()
                     }
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically

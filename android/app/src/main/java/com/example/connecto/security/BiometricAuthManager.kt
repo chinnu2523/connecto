@@ -40,7 +40,24 @@ object BiometricAuthManager {
         return try {
             val pm = context.packageManager
             pm.hasSystemFeature(PackageManager.FEATURE_FACE) ||
-            pm.hasSystemFeature("android.hardware.biometrics.face")
+            pm.hasSystemFeature("android.hardware.biometrics.face") ||
+            pm.hasSystemFeature("android.hardware.face") ||
+            pm.hasSystemFeature("com.samsung.android.bio.face") ||
+            pm.hasSystemFeature("com.sec.android.hardware.biometrics.face") ||
+            (pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT) && isWeakBiometricAvailable(context))
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Checks if weak biometrics (such as Class 2 Face Unlock) are available on device.
+     */
+    fun isWeakBiometricAvailable(context: Context): Boolean {
+        return try {
+            val bm = BiometricManager.from(context)
+            val res = bm.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+            res == BiometricManager.BIOMETRIC_SUCCESS || res == BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED
         } catch (_: Throwable) {
             false
         }
@@ -106,10 +123,16 @@ object BiometricAuthManager {
         return hasFaceHardware(context)
     }
 
-    // Combination for modern Android 11+ (API 30+)
-    // NOTE: BIOMETRIC_WEAK cannot be combined with DEVICE_CREDENTIAL on API 30+ — causes IllegalArgumentException
+    // Authenticators for Face ID (includes BIOMETRIC_WEAK so Class 2 Face Unlock is recognized by Android)
+    const val AUTHENTICATORS_FACE_ID = BiometricManager.Authenticators.BIOMETRIC_STRONG or
+            BiometricManager.Authenticators.BIOMETRIC_WEAK
+
+    // Authenticators for Fingerprint on Android 11+ (API 30+)
     const val ALLOWED_AUTHENTICATORS_API30 = BiometricManager.Authenticators.BIOMETRIC_STRONG or
             BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
+    // Authenticators for Device Screen Lock (PIN, Pattern, Password) directly
+    const val AUTHENTICATORS_DEVICE_CREDENTIAL = BiometricManager.Authenticators.DEVICE_CREDENTIAL
 
     // Authenticators for API < 30 check
     const val BIOMETRIC_CHECK_LEGACY = BiometricManager.Authenticators.BIOMETRIC_STRONG or
@@ -309,14 +332,21 @@ object BiometricAuthManager {
                 promptInfoBuilder.setDescription(actualDescription)
             }
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // Android 11+ (API 30+): Allows DEVICE_CREDENTIAL in allowed authenticators without negative button
-                promptInfoBuilder.setAllowedAuthenticators(ALLOWED_AUTHENTICATORS_API30)
+            if (isFaceId) {
+                // Face ID Mode:
+                // 1. Must include BIOMETRIC_WEAK so Class 2 Face Unlock is recognized by Android
+                // 2. setConfirmationRequired(false): Passive unlock! As soon as face is recognized by camera, it unlocks immediately without requiring touch
+                // 3. setNegativeButtonText: Allows fallback to device screen lock (PIN/Password) on all Android versions
+                promptInfoBuilder.setAllowedAuthenticators(AUTHENTICATORS_FACE_ID)
+                promptInfoBuilder.setConfirmationRequired(false)
+                promptInfoBuilder.setNegativeButtonText("Use PIN / Password")
             } else {
-                // Android 7.0 - 10 (API 24-29):
-                // Do NOT call setAllowedAuthenticators(BIOMETRIC_STRONG) - causes IllegalArgumentException on weak sensors!
-                // Omit setAllowedAuthenticators and setNegativeButtonText so all enrolled fingerprints work reliably.
-                promptInfoBuilder.setNegativeButtonText("Unlock with Password")
+                // Fingerprint Mode:
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    promptInfoBuilder.setAllowedAuthenticators(ALLOWED_AUTHENTICATORS_API30)
+                } else {
+                    promptInfoBuilder.setNegativeButtonText("Unlock with Password")
+                }
             }
 
             val promptInfo = promptInfoBuilder.build()
