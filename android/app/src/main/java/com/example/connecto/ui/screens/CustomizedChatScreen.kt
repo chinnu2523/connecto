@@ -1023,23 +1023,37 @@ fun CustomizedChatScreen(
     // Load cached friends AND cached groups from SQLite on IO thread on first composition for 0ms instant render
     LaunchedEffect(Unit) {
         val (cachedFriends, cachedGroups) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+            if (effUser.isNotBlank()) {
+                dbHelper.sanitizeFriendsLastMessages(effUser)
+            }
             val list = dbHelper.getCachedFriends()
             val mappedFriends = list.map { f ->
                 val cleanHandle = f.handle.removePrefix("@").trim().lowercase()
-                var ts = f.lastMessageTimestamp
-                if (ts == 0L) {
-                    ts = maxOf(
-                        readPrefs.getLong("last_timestamp_${f.id}", 0L),
-                        readPrefs.getLong("last_timestamp_${cleanHandle}", 0L)
-                    )
+                val latest = if (effUser.isNotBlank()) dbHelper.getLatestMessageInfoForFriend(effUser, cleanHandle) else null
+                val cleanMsg = if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
+                    latest.first
+                } else if (f.lastMessage.isNotBlank() && f.lastMessage != "null" && f.lastMessage != "None" && latest != null) {
+                    f.lastMessage
+                } else {
+                    // Stale preview cleanup: if no direct messages exist, clean SharedPreferences and state
+                    readPrefs.edit()
+                        .remove("last_msg_${f.id}")
+                        .remove("last_msg_${cleanHandle}")
+                        .remove("last_time_${f.id}")
+                        .remove("last_time_${cleanHandle}")
+                        .remove("last_timestamp_${f.id}")
+                        .remove("last_timestamp_${cleanHandle}")
+                        .apply()
+                    "Direct chat active • Tap to message"
                 }
-                if (ts == 0L && currentUsername.isNotBlank()) {
-                    val latest = dbHelper.getLatestMessageInfoForFriend(currentUsername, cleanHandle)
-                    if (latest != null) {
-                        ts = latest.second
-                    }
+                val ts = if (latest != null && latest.second > 0L) latest.second else 0L
+                val time = if (latest != null && latest.second > 0L) {
+                    SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(latest.second))
+                } else {
+                    if (cleanMsg == "Direct chat active • Tap to message") "Active" else f.timeAgo
                 }
-                if (ts != f.lastMessageTimestamp) f.copy(lastMessageTimestamp = ts) else f
+                f.copy(lastMessage = cleanMsg, timeAgo = time, lastMessageTimestamp = ts)
             }
 
             val groupList = dbHelper.getCachedGroups()
@@ -1256,26 +1270,28 @@ fun CustomizedChatScreen(
                         f.unreadCount
                     )
                     val rawPrefMsg = readPrefs.getString("last_msg_${f.friendId}", null) ?: readPrefs.getString("last_msg_${cleanUsername.lowercase()}", null)
-                    val lastMsg = if (!rawPrefMsg.isNullOrBlank() && rawPrefMsg != "Direct chat active • Tap to message") {
-                        rawPrefMsg
-                    } else if (!f.lastMessage.isNullOrBlank() && f.lastMessage != "Direct chat active • Tap to message" && f.lastMessage != "Connected via Cloudflare D1") {
-                        f.lastMessage
+                    val sanitizedPrefMsg = if (rawPrefMsg == "null" || rawPrefMsg == "None" || rawPrefMsg.isNullOrBlank()) null else rawPrefMsg
+
+                    // Resolve latest real message from local direct message database
+                    val latest = if (effUsername.isNotBlank()) dbHelper.getLatestMessageInfoForFriend(effUsername, cleanUsername) else null
+
+                    val (lastMsg, time, lastTs) = if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
+                        val formattedTime = if (latest.second > 0L) SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(latest.second)) else "Just now"
+                        Triple(latest.first, formattedTime, latest.second)
+                    } else if (!sanitizedPrefMsg.isNullOrBlank() && sanitizedPrefMsg != "Direct chat active • Tap to message" && latest != null) {
+                        val rawPrefTime = readPrefs.getString("last_time_${f.friendId}", null) ?: readPrefs.getString("last_time_${cleanUsername.lowercase()}", null)
+                        Triple(sanitizedPrefMsg, formatIsoTime(if (!rawPrefTime.isNullOrBlank()) rawPrefTime else "Active"), maxOf(readPrefs.getLong("last_timestamp_${f.friendId}", 0L), readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L)))
                     } else {
-                        cachedFriend?.lastMessage?.ifBlank { null } ?: "Direct chat active • Tap to message"
-                    }
-                    val rawPrefTime = readPrefs.getString("last_time_${f.friendId}", null) ?: readPrefs.getString("last_time_${cleanUsername.lowercase()}", null)
-                    val time = formatIsoTime(if (!rawPrefTime.isNullOrBlank()) rawPrefTime else (cachedFriend?.timeAgo ?: "Active"))
-                    var lastTs = maxOf(
-                        readPrefs.getLong("last_timestamp_${f.friendId}", 0L),
-                        readPrefs.getLong("last_timestamp_${cleanUsername.lowercase()}", 0L),
-                        cachedFriend?.lastMessageTimestamp ?: 0L,
-                        f.lastMessageTimestamp
-                    )
-                    if (lastTs == 0L && currentUsername.isNotBlank()) {
-                        val latest = dbHelper.getLatestMessageInfoForFriend(currentUsername, cleanUsername)
-                        if (latest != null) {
-                            lastTs = latest.second
-                        }
+                        // Purge any stale preview keys for friend with 0 messages
+                        readPrefs.edit()
+                            .remove("last_msg_${f.friendId}")
+                            .remove("last_msg_${cleanUsername.lowercase()}")
+                            .remove("last_time_${f.friendId}")
+                            .remove("last_time_${cleanUsername.lowercase()}")
+                            .remove("last_timestamp_${f.friendId}")
+                            .remove("last_timestamp_${cleanUsername.lowercase()}")
+                            .apply()
+                        Triple("Direct chat active • Tap to message", "Active", 0L)
                     }
                     val isFriendOnline = f.isOnline && !f.isStealth
                     FriendItem(
@@ -1977,11 +1993,10 @@ fun CustomizedChatScreen(
                     val h = it.handle.removePrefix("@").trim().lowercase()
                     val id = it.id.trim().lowercase()
                     val n = it.name.trim().lowercase()
-                    val hBase = h.replace(Regex("\\d+$"), "")
-                    val authorBase = authorClean.replace(Regex("\\d+$"), "")
-                    h == authorClean || id == authorClean || n == authorNameClean || h == authorNameClean ||
-                    (authorBase.isNotEmpty() && hBase == authorBase) ||
-                    (dtoChannelClean.startsWith("dm-") && dtoChannelClean.contains(h))
+                    val canonDash = "dm-${minOf(myUsername, h)}-${maxOf(myUsername, h)}"
+                    val canonUnder = "dm_${minOf(myUsername, h)}_${maxOf(myUsername, h)}"
+                    h == authorClean || id == authorClean || n == authorNameClean ||
+                    dtoChannelClean == canonDash || dtoChannelClean == canonUnder
                 }
 
                 if (fIdx != -1) {
@@ -4999,8 +5014,12 @@ fun CustomizedChatScreen(
 
                                         Spacer(modifier = Modifier.height(3.dp))
 
+                                        val displayMsg = if (friend.lastMessage.isBlank() || friend.lastMessage == "null" || friend.lastMessage == "None") {
+                                            "Direct chat active • Tap to message"
+                                        } else friend.lastMessage
+
                                         Text(
-                                            text = friend.lastMessage,
+                                            text = displayMsg,
                                             fontSize = 13.sp,
                                             color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                                             fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
@@ -5016,8 +5035,12 @@ fun CustomizedChatScreen(
                                         horizontalAlignment = Alignment.End,
                                         verticalArrangement = Arrangement.Center
                                     ) {
+                                        val displayTime = if (friend.timeAgo.isBlank() || friend.timeAgo == "null" || friend.timeAgo == "None") {
+                                            "Active"
+                                        } else formatIsoTime(friend.timeAgo)
+
                                         Text(
-                                            text = formatIsoTime(friend.timeAgo),
+                                            text = displayTime,
                                             fontSize = 11.sp,
                                             fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
                                             color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,

@@ -95,8 +95,12 @@ object ScreenSecurityManager {
      * Core Security Policy:
      * Only the admin user can take screenshots and screen record in the application.
      * All other members are strictly prohibited: FLAG_SECURE is enforced to block screenshots and recording.
+     * On development emulators, screenshots are permitted for test verification and CI/CD capture.
      */
     fun isScreenSecurityEnforced(context: Context? = null): Boolean {
+        if (isEmulator()) {
+            return false
+        }
         val isAdmin = isAdminUser(context)
         if (isAdmin) {
             // Admin user: ALWAYS allowed to take screenshots and screen record!

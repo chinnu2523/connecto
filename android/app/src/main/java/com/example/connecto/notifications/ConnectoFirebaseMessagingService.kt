@@ -144,39 +144,60 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                         dbHelper.saveMessage(msgDto.copy(channelId = canonicalName))
                     }
 
-                    // 2. Increment unread count & last message in SQLite
+                    val isGrp = channelId.startsWith("grp-") || channelId.startsWith("grp_") || channelId.startsWith("group-") ||
+                        channelId in listOf("general", "announcements", "random", "voice")
+                    val isDm = channelId.startsWith("dm-") || channelId.startsWith("dm_") || !isGrp
+
                     val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
                     val currentTs = System.currentTimeMillis()
-                    dbHelper.incrementFriendUnreadCount(
-                        friendIdOrHandle = cleanSender,
-                        lastMessage = body,
-                        timeAgo = timeStr,
-                        lastMessageTimestamp = currentTs
-                    )
 
-                    // 3. Update persistent SharedPreferences so conversation list & unread badges reflect immediately
-                    val friendObj = dbHelper.getFriendByUsernameOrHandle(cleanSender)
-                    val fid = friendObj?.id ?: cleanSender
-                    val fHandle = friendObj?.handle?.removePrefix("@")?.lowercase() ?: cleanSender
-                    for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
-                        val rPrefs = getSharedPreferences(prefName, Context.MODE_PRIVATE)
-                        val curUnread = maxOf(rPrefs.getInt("unread_$fid", 0), rPrefs.getInt("unread_$cleanSender", 0)) + 1
-                        val editor = rPrefs.edit()
-                            .putString("last_msg_$fid", body)
-                            .putString("last_time_$fid", timeStr)
-                            .putInt("unread_$fid", curUnread)
-                            .putLong("last_timestamp_$fid", currentTs)
-                            .putString("last_msg_$cleanSender", body)
-                            .putString("last_time_$cleanSender", timeStr)
-                            .putInt("unread_$cleanSender", curUnread)
-                            .putLong("last_timestamp_$cleanSender", currentTs)
-                        if (fHandle != cleanSender && fHandle.isNotBlank()) {
-                            editor.putString("last_msg_$fHandle", body)
-                                .putString("last_time_$fHandle", timeStr)
-                                .putInt("unread_$fHandle", curUnread)
-                                .putLong("last_timestamp_$fHandle", currentTs)
+                    if (isGrp) {
+                        dbHelper.updateGroupLastMessage(channelId, body, timeStr, currentTs)
+                        for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
+                            val rPrefs = getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                            val curUnread = rPrefs.getInt("unread_$channelId", 0) + 1
+                            rPrefs.edit()
+                                .putString("last_msg_$channelId", body)
+                                .putString("last_time_$channelId", timeStr)
+                                .putInt("unread_$channelId", curUnread)
+                                .putLong("last_timestamp_$channelId", currentTs)
+                                .apply()
                         }
-                        editor.apply()
+                    } else if (isDm) {
+                        val friendObj = dbHelper.getFriendByUsernameOrHandle(cleanSender)
+                        if (friendObj != null) {
+                            // 2. Increment unread count & last message in SQLite
+                            dbHelper.incrementFriendUnreadCount(
+                                friendIdOrHandle = cleanSender,
+                                lastMessage = body,
+                                timeAgo = timeStr,
+                                lastMessageTimestamp = currentTs
+                            )
+
+                            // 3. Update persistent SharedPreferences so conversation list & unread badges reflect immediately
+                            val fid = friendObj.id
+                            val fHandle = friendObj.handle.removePrefix("@").lowercase()
+                            for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
+                                val rPrefs = getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                                val curUnread = maxOf(rPrefs.getInt("unread_$fid", 0), rPrefs.getInt("unread_$cleanSender", 0)) + 1
+                                val editor = rPrefs.edit()
+                                    .putString("last_msg_$fid", body)
+                                    .putString("last_time_$fid", timeStr)
+                                    .putInt("unread_$fid", curUnread)
+                                    .putLong("last_timestamp_$fid", currentTs)
+                                    .putString("last_msg_$cleanSender", body)
+                                    .putString("last_time_$cleanSender", timeStr)
+                                    .putInt("unread_$cleanSender", curUnread)
+                                    .putLong("last_timestamp_$cleanSender", currentTs)
+                                if (fHandle != cleanSender && fHandle.isNotBlank()) {
+                                    editor.putString("last_msg_$fHandle", body)
+                                        .putString("last_time_$fHandle", timeStr)
+                                        .putInt("unread_$fHandle", curUnread)
+                                        .putLong("last_timestamp_$fHandle", currentTs)
+                                }
+                                editor.apply()
+                            }
+                        }
                     }
 
                     // 4. Forward to in-memory VoiceCallManager bus if process is active

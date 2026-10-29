@@ -1566,34 +1566,60 @@ object VoiceCallManager {
                             if (!isCurrentlyViewingThisChat) {
                                 appContext?.let { ctx ->
                                     try {
+                                        val isGrp = chId.startsWith("grp-") || chId.startsWith("grp_") || chId.startsWith("group-") ||
+                                            rawChName.startsWith("grp-") || rawChName.startsWith("grp_") || rawChName.startsWith("group-") ||
+                                            chId in listOf("general", "announcements", "random", "voice")
+                                        val isDm = chId.startsWith("dm-") || chId.startsWith("dm_") ||
+                                            rawChName.startsWith("dm-") || rawChName.startsWith("dm_")
+
                                         val timeStr = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date())
-                                        ConnectoDatabaseHelper.getInstance(ctx).incrementFriendUnreadCount(
-                                            friendIdOrHandle = cleanSender,
-                                            lastMessage = content,
-                                            timeAgo = timeStr
-                                        )
-                                        val friendObj = ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanSender)
-                                        val fid = friendObj?.id ?: cleanSender
-                                        val fHandle = friendObj?.handle?.removePrefix("@")?.lowercase() ?: cleanSender
-                                        for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
-                                            val rPrefs = ctx.getSharedPreferences(prefName, Context.MODE_PRIVATE)
-                                            val curUnread = maxOf(rPrefs.getInt("unread_$fid", 0), rPrefs.getInt("unread_$cleanSender", 0)) + 1
-                                            val editor = rPrefs.edit()
-                                                .putString("last_msg_$fid", content)
-                                                .putString("last_time_$fid", timeStr)
-                                                .putInt("unread_$fid", curUnread)
-                                                .putLong("last_timestamp_$fid", System.currentTimeMillis())
-                                                .putString("last_msg_$cleanSender", content)
-                                                .putString("last_time_$cleanSender", timeStr)
-                                                .putInt("unread_$cleanSender", curUnread)
-                                                .putLong("last_timestamp_$cleanSender", System.currentTimeMillis())
-                                            if (fHandle != cleanSender && fHandle.isNotBlank()) {
-                                                editor.putString("last_msg_$fHandle", content)
-                                                    .putString("last_time_$fHandle", timeStr)
-                                                    .putInt("unread_$fHandle", curUnread)
-                                                    .putLong("last_timestamp_$fHandle", System.currentTimeMillis())
+                                        val nowMs = System.currentTimeMillis()
+
+                                        if (isGrp) {
+                                            val targetGId = if (rawChId.isNotBlank()) rawChId else chId
+                                            ConnectoDatabaseHelper.getInstance(ctx).updateGroupLastMessage(targetGId, content, timeStr, nowMs)
+                                            for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
+                                                val rPrefs = ctx.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                                                val curUnread = rPrefs.getInt("unread_$targetGId", 0) + 1
+                                                rPrefs.edit()
+                                                    .putString("last_msg_$targetGId", content)
+                                                    .putString("last_time_$targetGId", timeStr)
+                                                    .putInt("unread_$targetGId", curUnread)
+                                                    .putLong("last_timestamp_$targetGId", nowMs)
+                                                    .apply()
                                             }
-                                            editor.apply()
+                                        } else if (isDm) {
+                                            val friendObj = ConnectoDatabaseHelper.getInstance(ctx).getFriendByUsernameOrHandle(cleanSender)
+                                            if (friendObj != null) {
+                                                ConnectoDatabaseHelper.getInstance(ctx).incrementFriendUnreadCount(
+                                                    friendIdOrHandle = cleanSender,
+                                                    lastMessage = content,
+                                                    timeAgo = timeStr,
+                                                    lastMessageTimestamp = nowMs
+                                                )
+                                                val fid = friendObj.id
+                                                val fHandle = friendObj.handle.removePrefix("@").lowercase()
+                                                for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
+                                                    val rPrefs = ctx.getSharedPreferences(prefName, Context.MODE_PRIVATE)
+                                                    val curUnread = maxOf(rPrefs.getInt("unread_$fid", 0), rPrefs.getInt("unread_$cleanSender", 0)) + 1
+                                                    val editor = rPrefs.edit()
+                                                        .putString("last_msg_$fid", content)
+                                                        .putString("last_time_$fid", timeStr)
+                                                        .putInt("unread_$fid", curUnread)
+                                                        .putLong("last_timestamp_$fid", nowMs)
+                                                        .putString("last_msg_$cleanSender", content)
+                                                        .putString("last_time_$cleanSender", timeStr)
+                                                        .putInt("unread_$cleanSender", curUnread)
+                                                        .putLong("last_timestamp_$cleanSender", nowMs)
+                                                    if (fHandle != cleanSender && fHandle.isNotBlank()) {
+                                                        editor.putString("last_msg_$fHandle", content)
+                                                            .putString("last_time_$fHandle", timeStr)
+                                                            .putInt("unread_$fHandle", curUnread)
+                                                            .putLong("last_timestamp_$fHandle", nowMs)
+                                                    }
+                                                    editor.apply()
+                                                }
+                                            }
                                         }
                                     } catch (_: Exception) {}
                                 }

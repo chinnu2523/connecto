@@ -753,8 +753,7 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
 
                 val isAuthorValid = allowedAuthors.isEmpty() ||
                     allowedAuthors.contains(authorId) ||
-                    allowedAuthors.contains(authorName) ||
-                    allowedAuthors.any { allowed -> (authorId.isNotEmpty() && authorId.contains(allowed)) || (authorName.isNotEmpty() && authorName.contains(allowed)) }
+                    allowedAuthors.contains(authorName)
 
                 if (!isAuthorValid) {
                     continue // Strictly skip messages from third parties/colliding accounts
@@ -1210,11 +1209,15 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         try {
             val db = writableDatabase
             val clean = friendIdOrHandle.trim().lowercase().removePrefix("@")
-            val cleanBase = clean.replace(Regex("\\d+$"), "")
+            val sanitizedMsg = if (lastMessage.isBlank() || lastMessage == "null" || lastMessage == "None") {
+                "Direct chat active • Tap to message"
+            } else lastMessage
+            val sanitizedTime = if (timeAgo.isBlank() || timeAgo == "null" || timeAgo == "None") "Active" else timeAgo
+
             val cv = ContentValues().apply {
                 put(COL_FRIEND_UNREAD, unreadCount)
-                put(COL_FRIEND_LAST_MSG, lastMessage)
-                put(COL_FRIEND_TIME, timeAgo)
+                put(COL_FRIEND_LAST_MSG, sanitizedMsg)
+                put(COL_FRIEND_TIME, sanitizedTime)
                 if (lastMessageTimestamp > 0L) {
                     put(COL_FRIEND_LAST_TIMESTAMP, lastMessageTimestamp)
                 }
@@ -1222,8 +1225,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             db.update(
                 TABLE_FRIENDS,
                 cv,
-                "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ? OR ($COL_FRIEND_HANDLE LIKE ? AND ? != '')",
-                arrayOf(clean, clean, "@$clean", clean, "%$cleanBase%", cleanBase)
+                "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_NAME) = ?",
+                arrayOf(clean, clean, "@$clean", clean)
             )
         } catch (_: Exception) {}
     }
@@ -1253,7 +1256,6 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         try {
             val db = writableDatabase
             val clean = friendIdOrHandle.trim().lowercase().removePrefix("@")
-            val cleanBase = clean.replace(Regex("\\d+$"), "")
 
             var friendId: String? = null
             var currentUnread = 0
@@ -1266,10 +1268,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                    OR LOWER($COL_FRIEND_HANDLE) = ? 
                    OR LOWER($COL_FRIEND_HANDLE) = ? 
                    OR LOWER($COL_FRIEND_NAME) = ?
-                   OR ($COL_FRIEND_HANDLE LIKE ? AND ? != '')
                 LIMIT 1
                 """.trimIndent(),
-                arrayOf(clean, clean, "@$clean", clean, "%$cleanBase%", cleanBase)
+                arrayOf(clean, clean, "@$clean", clean)
             )
             cursor.use {
                 if (it.moveToFirst()) {
@@ -1279,10 +1280,19 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             }
 
             val newUnread = currentUnread + 1
+            val sanitizedMsg = if (lastMessage != null) {
+                if (lastMessage.isBlank() || lastMessage == "null" || lastMessage == "None") {
+                    "Direct chat active • Tap to message"
+                } else lastMessage
+            } else null
+            val sanitizedTime = if (timeAgo != null) {
+                if (timeAgo.isBlank() || timeAgo == "null" || timeAgo == "None") "Active" else timeAgo
+            } else null
+
             val cv = ContentValues().apply {
                 put(COL_FRIEND_UNREAD, newUnread)
-                if (!lastMessage.isNullOrBlank()) put(COL_FRIEND_LAST_MSG, lastMessage)
-                if (!timeAgo.isNullOrBlank()) put(COL_FRIEND_TIME, timeAgo)
+                if (sanitizedMsg != null) put(COL_FRIEND_LAST_MSG, sanitizedMsg)
+                if (sanitizedTime != null) put(COL_FRIEND_TIME, sanitizedTime)
                 if (lastMessageTimestamp > 0L) put(COL_FRIEND_LAST_TIMESTAMP, lastMessageTimestamp)
             }
 
@@ -1306,7 +1316,6 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         try {
             val db = readableDatabase
             val clean = identifier.trim().lowercase().removePrefix("@")
-            val cleanBase = clean.replace(Regex("\\d+$"), "")
             val cursor = db.rawQuery(
                 """
                 SELECT * FROM $TABLE_FRIENDS 
@@ -1314,10 +1323,9 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                    OR LOWER($COL_FRIEND_HANDLE) = ? 
                    OR LOWER($COL_FRIEND_HANDLE) = ? 
                    OR LOWER($COL_FRIEND_NAME) = ?
-                   OR ($COL_FRIEND_HANDLE LIKE ? AND ? != '')
                 LIMIT 1
                 """.trimIndent(),
-                arrayOf(clean, clean, "@$clean", clean, "%$cleanBase%", cleanBase)
+                arrayOf(clean, clean, "@$clean", clean)
             )
             cursor.use {
                 if (it.moveToFirst()) {
@@ -1327,6 +1335,14 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                     val bannerUrl = if (bannerCol >= 0) it.getString(bannerCol) else null
                     val tsCol = it.getColumnIndex(COL_FRIEND_LAST_TIMESTAMP)
                     val lastTs = if (tsCol >= 0) it.getLong(tsCol) else 0L
+                    val rawMsg = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_LAST_MSG))
+                    val sanitizedMsg = if (rawMsg.isNullOrBlank() || rawMsg == "null" || rawMsg == "None") {
+                        "Direct chat active • Tap to message"
+                    } else rawMsg
+                    val rawTime = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_TIME))
+                    val sanitizedTime = if (rawTime.isNullOrBlank() || rawTime == "null" || rawTime == "None") {
+                        "Active"
+                    } else rawTime
                     return FriendItem(
                         id = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_ID)),
                         name = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_NAME)),
@@ -1334,8 +1350,8 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
                         initial = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_INITIAL)),
                         status = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_STATUS)) ?: "Accepted Friend",
                         bio = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_BIO)) ?: "Connecto Gamer",
-                        lastMessage = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_LAST_MSG)) ?: "Direct chat active",
-                        timeAgo = it.getString(it.getColumnIndexOrThrow(COL_FRIEND_TIME)) ?: "Active",
+                        lastMessage = sanitizedMsg,
+                        timeAgo = sanitizedTime,
                         unreadCount = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_UNREAD)),
                         isOnline = it.getInt(it.getColumnIndexOrThrow(COL_FRIEND_IS_ONLINE)) == 1,
                         avatarUrl = avatarUrl,
@@ -1346,6 +1362,41 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
             }
         } catch (_: Exception) {}
         return null
+    }
+
+    /**
+     * Reconciles all cached friends against actual direct messages stored in SQLite.
+     * If no direct messages exist between users, resets the friend's lastMessage to the clean default
+     * ("Direct chat active • Tap to message") and timeAgo to "Active", purging any stale or cross-pollinated previews.
+     */
+    fun sanitizeFriendsLastMessages(myUsername: String) {
+        try {
+            val u1 = myUsername.trim().lowercase().removePrefix("@")
+            if (u1.isBlank()) return
+            val db = writableDatabase
+            val friends = getCachedFriends()
+            for (f in friends) {
+                val cleanHandle = f.handle.trim().lowercase().removePrefix("@")
+                val latest = getLatestMessageInfoForFriend(u1, cleanHandle)
+                val cv = ContentValues()
+                if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
+                    cv.put(COL_FRIEND_LAST_MSG, latest.first)
+                    if (latest.second > 0L) {
+                        cv.put(COL_FRIEND_LAST_TIMESTAMP, latest.second)
+                    }
+                } else {
+                    cv.put(COL_FRIEND_LAST_MSG, "Direct chat active • Tap to message")
+                    cv.put(COL_FRIEND_TIME, "Active")
+                    cv.put(COL_FRIEND_LAST_TIMESTAMP, 0L)
+                }
+                db.update(
+                    TABLE_FRIENDS,
+                    cv,
+                    "LOWER($COL_FRIEND_ID) = ? OR LOWER($COL_FRIEND_HANDLE) = ? OR LOWER($COL_FRIEND_HANDLE) = ?",
+                    arrayOf(f.id.lowercase(), f.handle.lowercase(), "@$cleanHandle")
+                )
+            }
+        } catch (_: Exception) {}
     }
 
     /**
