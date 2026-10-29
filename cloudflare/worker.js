@@ -323,7 +323,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.2.0");
+          downloadHeaders.set("X-Connecto-Version", "v1.3.0");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1645,22 +1645,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           name: "PDF Studio",
           badge: "PDF Editor & Converter",
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
-          description: "Professional PDF editor for Android. Select any text on the page with interactive zoom & pan, find & replace names in the exact same font and size, convert JPG/PNG/WEBP to PDF, and merge multiple PDF files losslessly.",
+          description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.2.0",
-          version_code: 3,
-          size_bytes: 28299691,
+          version_name: "1.3.0",
+          version_code: 4,
+          size_bytes: 28316075,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
-            "Pinpoint Text Selection: Tap any word, name, or sentence with instant contextual 'Edit' action",
-            "Smooth Multi-Touch Pinch-to-Zoom & Pan: Inspect documents up to 400% magnification",
-            "Same-Font Name & Text Replacement: Change names seamlessly in identical matching fonts and sizes",
-            "Streamlined Clean UI: Removed drawing & annotate clutter for pure text editing experience",
+            "Smooth Multi-Touch Pinch-to-Zoom: Pinch, spread, and pan effortlessly anywhere across the page",
+            "Universal In-Page Editing: Tap any text or blank area on the document to edit or insert text directly",
+            "Custom Font Family & Point Size: Fine-tune font family and pt size for seamless typography matching",
+            "Same-Font Name & Text Replacement: Change names throughout the document with automatic font matching",
             "Universal Image to PDF Converter (JPG, PNG, WEBP, BMP, HEIF, GIF)",
-            "Lossless PDF merging and full page reorganization"
+            "Organize Pages: Reorder, rotate, or delete pages losslessly"
           ],
           is_essential: false,
           updated_at: "2026-10-29T21:15:00Z"
