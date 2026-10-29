@@ -1647,23 +1647,24 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.3.0",
-          version_code: 4,
-          size_bytes: 28316075,
+          version_name: "1.4.0",
+          version_code: 5,
+          size_bytes: 28348843,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
-            "Smooth Multi-Touch Pinch-to-Zoom: Pinch, spread, and pan effortlessly anywhere across the page",
-            "Universal In-Page Editing: Tap any text or blank area on the document to edit or insert text directly",
-            "Custom Font Family & Point Size: Fine-tune font family and pt size for seamless typography matching",
-            "Same-Font Name & Text Replacement: Change names throughout the document with automatic font matching",
+            "WYSIWYG Live Text Editing: Modifications and whiteouts render in real-time directly over the canvas",
+            "Undo & Redo History: Seamless one-click undo and redo for all text edits and replacements",
+            "Rich Typography & Styling: Choose font color (Black, Navy, Crimson, Emerald, Amber, Violet, Slate, White), Bold, Italic, and font size",
+            "1-Tap Erase / Whiteout: Cleanly remove unwanted text, numbers, or names from any page",
+            "Smooth Multi-Touch Pinch-to-Zoom & Double-Tap: Pinch or double-tap to zoom up to 450% with effortless pan",
             "Universal Image to PDF Converter (JPG, PNG, WEBP, BMP, HEIF, GIF)",
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
           ],
           is_essential: false,
-          updated_at: "2026-10-29T21:15:00Z"
+          updated_at: "2026-10-29T21:40:00Z"
         }
       ]
     });
