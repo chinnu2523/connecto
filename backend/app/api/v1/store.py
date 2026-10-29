@@ -14,21 +14,21 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.7",
-        "version_code": 96,
+        "version_name": "4.6.8",
+        "version_code": 97,
         "size_bytes": 37888000,
         "size_formatted": "36.1 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Our Store dynamic integration & updates",
             "Fixed direct message preview synchronization",
             "Enhanced biometrics & screen security",
-            "Workspace channel presence optimizations",
-            "Performance and battery enhancements"
+            "Workspace channel presence optimizations"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-29T11:00:00Z"
+        "updated_at": "2026-10-29T13:30:00Z"
     },
     {
         "id": "jarvis",
@@ -62,7 +62,7 @@ async def get_store_apps(response: Response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     return {
         "status": "success",
-        "store_name": "Connecto App Store",
+        "store_name": "Our Store",
         "store_version": "1.0.0",
         "total_apps": len(APPS_CATALOG),
         "apps": APPS_CATALOG

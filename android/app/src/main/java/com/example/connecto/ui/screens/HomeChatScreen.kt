@@ -58,6 +58,15 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material.icons.outlined.Chat
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import com.example.connecto.updater.AppUpdateManager
+import com.example.connecto.updater.AppUpdateDetails
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -209,6 +218,13 @@ fun HomeChatScreen(
     var isVoiceGroupOpen by remember { mutableStateOf(false) }
     var isSearchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    val updateDetails by AppUpdateManager.updateState.collectAsState()
+    val isStoreInstalled = remember(context) { AppUpdateManager.isOurStoreInstalled(context) }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        AppUpdateManager.checkForUpdates()
+    }
 
     var pendingVoiceGroupInfo by remember { mutableStateOf<Pair<String, List<FriendshipDto>>?>(null) }
 
@@ -886,6 +902,19 @@ fun HomeChatScreen(
                                 color = if (connectTimedOut && !isWsConnected) colors.warning else colors.textSecondary
                             )
                         }
+                    }
+                }
+
+                // 2.5 Update Available Banner
+                updateDetails?.let { update ->
+                    item(key = "home_app_update_banner") {
+                        HomeAppUpdateBanner(
+                            update = update,
+                            isStoreInstalled = isStoreInstalled,
+                            onUpdateClick = {
+                                AppUpdateManager.openUpdateDestination(context)
+                            }
+                        )
                     }
                 }
 
@@ -1812,6 +1841,143 @@ private fun SelectFavouritesDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun HomeAppUpdateBanner(
+    update: AppUpdateDetails,
+    isStoreInstalled: Boolean,
+    onUpdateClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.xs),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF1E293B)
+        ),
+        border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(ConnectoSpacing.md)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF2563EB)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🚀",
+                            fontSize = 18.sp
+                        )
+                    }
+                    Column {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "New Update Available",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = Color(0xFF2563EB).copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, Color(0xFF3B82F6))
+                            ) {
+                                Text(
+                                    text = "v${update.latestVersionName}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF60A5FA),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (isStoreInstalled) "Install the latest version via Our Store" else "Update available on Connecto Web Store",
+                            fontSize = 12.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                    }
+                }
+            }
+
+            if (update.changelog.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF0F172A))
+                        .padding(ConnectoSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    update.changelog.take(2).forEach { note ->
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Text(
+                                text = "•",
+                                color = Color(0xFF60A5FA),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                text = note,
+                                color = Color(0xFFCBD5E1),
+                                fontSize = 12.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+
+            Button(
+                onClick = onUpdateClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2563EB),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (isStoreInstalled) "Update via Our Store" else "Download / Update on Website",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
