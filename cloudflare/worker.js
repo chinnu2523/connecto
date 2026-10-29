@@ -323,7 +323,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.0.0");
+          downloadHeaders.set("X-Connecto-Version", "v1.2.0");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1647,10 +1647,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Select any text on the page with interactive zoom & pan, find & replace names in the exact same font and size, convert JPG/PNG/WEBP to PDF, and merge multiple PDF files losslessly.",
           category: "Productivity",
-          version_name: "1.1.0",
-          version_code: 2,
-          size_bytes: 28369316,
-          size_formatted: "27.1 MB",
+          version_name: "1.2.0",
+          version_code: 3,
+          size_bytes: 28299691,
+          size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
