@@ -5966,6 +5966,38 @@ async def download_apk_direct():
     return {"error": "APK not found on server"}
 
 
+@app.api_route("/download/store-apk", methods=["GET", "HEAD"])
+@app.api_route("/download/store", methods=["GET", "HEAD"])
+@app.api_route("/downloads/our-store.apk", methods=["GET", "HEAD"])
+@app.api_route("/downloads/ConnectoStore.apk", methods=["GET", "HEAD"])
+@app.api_route("/our-store.apk", methods=["GET", "HEAD"])
+async def download_store_apk_direct():
+    candidates = [
+        os.path.join(static_dir, "downloads", "our-store.apk"),
+        os.path.join(static_dir, "downloads", "ConnectoStore.apk"),
+        "/Users/madarauchiha/.gemini/antigravity/scratch/connecto-store/app/build/outputs/apk/release/app-release.apk"
+    ]
+    apk_path = next((p for p in candidates if os.path.exists(p)), None)
+    if apk_path and os.path.exists(apk_path):
+        return FileResponse(
+            path=apk_path,
+            filename="our-store.apk",
+            media_type="application/vnd.android.package-archive",
+            headers={
+                "Content-Disposition": 'attachment; filename="our-store.apk"',
+                "Cache-Control": "public, max-age=604800",
+                "Access-Control-Allow-Origin": "*"
+            }
+        )
+    return {"error": "Store APK not found on server"}
+
+
+@app.get("/store")
+@app.get("/store/")
+async def redirect_store_to_main():
+    return RedirectResponse(url="/#ourStoreSection", status_code=302)
+
+
 @app.api_route("/download/qr", methods=["GET", "HEAD"])
 @app.api_route("/downloads/connecto-apk-qr.png", methods=["GET", "HEAD"])
 async def download_qr_direct():

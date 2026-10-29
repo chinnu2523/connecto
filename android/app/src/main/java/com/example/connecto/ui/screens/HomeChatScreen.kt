@@ -1915,7 +1915,7 @@ fun HomeAppUpdateBanner(
                             }
                         }
                         Text(
-                            text = if (isStoreInstalled) "Install the latest version via Our Store" else "Update available on Connecto Web Store",
+                            text = if (isStoreInstalled) "Install the latest version via Our Store" else "Update available on connecto.fun",
                             fontSize = 12.sp,
                             color = Color(0xFF94A3B8)
                         )
@@ -1968,7 +1968,7 @@ fun HomeAppUpdateBanner(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = if (isStoreInstalled) "Update via Our Store" else "Download / Update on Website",
+                    text = if (isStoreInstalled) "Update via Our Store" else "Get Update on connecto.fun",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp
                 )

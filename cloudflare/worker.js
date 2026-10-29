@@ -207,16 +207,32 @@ export default {
       }, 200, isTailscale ? "local_server" : "cloud_server");
     }
 
+    const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
+
+    // 3a-2. Redirect /store to the main website's Our Store section
+    if (cleanPath === "/store" || cleanPath === "/store/") {
+      return Response.redirect("https://connecto.fun/#ourStoreSection", 302);
+    }
+
+    // 3a-3. Cloudflare Edge Gateway for Our Store APK
+    if (
+      cleanPath === "/download/store-apk" ||
+      cleanPath === "/download/store" ||
+      cleanPath === "/downloads/our-store.apk" ||
+      cleanPath === "/downloads/connectostore.apk" ||
+      cleanPath === "/our-store.apk"
+    ) {
+      return Response.redirect("https://connecto-web.pages.dev/downloads/our-store.apk", 302);
+    }
+
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
-    const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
     if (!isStaticAsset && (
-      cleanPath.endsWith(".apk") ||
       cleanPath.includes("/downloads/connecto") ||
       cleanPath === "/download" ||
       cleanPath === "/download/apk" ||
-      cleanPath.startsWith("/download/") ||
-      cleanPath === "/connecto-fun.apk"
+      cleanPath === "/connecto-fun.apk" ||
+      cleanPath.endsWith("connecto-fun.apk")
     )) {
       try {
         const canonicalApkUrls = [

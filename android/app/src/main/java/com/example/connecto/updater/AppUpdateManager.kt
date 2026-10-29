@@ -25,7 +25,7 @@ data class AppUpdateDetails(
 
 object AppUpdateManager {
     private const val STORE_PACKAGE = "com.connecto.store"
-    private const val STORE_WEB_URL = "https://connecto.fun/store"
+    private const val STORE_WEB_URL = "https://connecto.fun/#ourStoreSection"
 
     private val _updateState = MutableStateFlow<AppUpdateDetails?>(null)
     val updateState: StateFlow<AppUpdateDetails?> = _updateState.asStateFlow()
