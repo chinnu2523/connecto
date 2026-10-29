@@ -160,10 +160,10 @@ export default {
         version_name: "v4.6.6",
         version_code: 95,
         build: 95,
-        sha256: "fad2ebeab4f27c5ce7bbac58a6dfefb94f1016dd72391001855525cc48718b7b",
-        md5: "e3f3d29581c15bc45f0055a7d23041d7",
+        sha256: "741fea08f8df7490d61d4f4b296fed20c3b4c31115ca26ba4253b3cd332a3904",
+        md5: "56986e5acc16c0b36ac437980cea2a02",
         filename: "connecto-fun.apk",
-        size_bytes: 37774560,
+        size_bytes: 37776168,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -224,7 +224,7 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.6/connecto-v4.6.6.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.6-b95-hotfix3.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.6-b95-hotfix4.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -6369,10 +6369,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       version_name: "v4.6.6",
       version_code: 95,
       build: 95,
-      sha256: "fad2ebeab4f27c5ce7bbac58a6dfefb94f1016dd72391001855525cc48718b7b",
-      md5: "e3f3d29581c15bc45f0055a7d23041d7",
+      sha256: "741fea08f8df7490d61d4f4b296fed20c3b4c31115ca26ba4253b3cd332a3904",
+      md5: "56986e5acc16c0b36ac437980cea2a02",
       filename: "connecto-fun.apk",
-      size_bytes: 37774560,
+      size_bytes: 37776168,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6391,12 +6391,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           category: "feature",
           tag: "Latest Release",
           title: "Connecto v4.6.6: Default Earpiece Audio Routing, Proximity Screen-Off Lock & Sole Admin Security",
-          summary: "Connecto v4.6.6 introduces automatic in-call earpiece receiver routing, hardware proximity sensor screen blackout and touch lock, and locks screen capture capabilities to sole administrator chinnu14754x.",
+          summary: "Connecto v4.6.6 introduces automatic in-call earpiece receiver routing, hardware proximity sensor screen blackout and touch lock, workspace channels directory, and locks screen capture capabilities to sole administrator chinnu14754x.",
           highlights: [
             "In-Call Earpiece Default Audio Routing: Voice and audio calls default directly to the phone earpiece receiver instead of the loudspeaker, maintaining call privacy immediately upon connection.",
             "Hardware Proximity Sensor Screen-Off Lock: Uses native PROXIMITY sensor and PowerManager PROXIMITY_SCREEN_OFF_WAKE_LOCK to shut down screen and disable touch when phone is near ear, turning back on when lifted away.",
             "Sole Administrator Screen Security Policy: Hardened screen capture policy reserving screenshot and screen recording bypass exclusively for chinnu14754x; all other member accounts strictly enforce FLAG_SECURE.",
-            "Android Native App v4.6.6 (Build 95 • 36.0 MB • Production Keystore Signed): SHA-256 fad2ebeab4f27c5ce7bbac58a6dfefb94f1016dd72391001855525cc48718b7b • MD5 e3f3d29581c15bc45f0055a7d23041d7."
+            "Workspace Channels Directory on Home: Direct access to #general, #announcements, #dev-chat, #gaming and community channels alongside curated personal favourites.",
+            "Android Native App v4.6.6 (Build 95 • 36.0 MB • Production Keystore Signed): SHA-256 741fea08f8df7490d61d4f4b296fed20c3b4c31115ca26ba4253b3cd332a3904 • MD5 56986e5acc16c0b36ac437980cea2a02."
           ],
           author: "Connecto Core & Mobile Engineering"
         },

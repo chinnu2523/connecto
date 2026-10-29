@@ -808,7 +808,7 @@ fun HomeChatScreen(
                             decorationBox = { innerTextField ->
                                 if (searchQuery.isEmpty()) {
                                     Text(
-                                        text = "Search favourites...",
+                                        text = "Search channels or favourites...",
                                         fontSize = 13.sp,
                                         color = colors.textDisabled
                                     )
@@ -986,7 +986,107 @@ fun HomeChatScreen(
                     }
                 }
 
-                // 5. Favourites List Only (No groups or non-favourite friends on Home tab)
+                // 5. Workspace Channels Directory
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.sm)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Workspace Channels",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = colors.textPrimary
+                            )
+                            Text(
+                                text = "View All",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.primary,
+                                modifier = Modifier.clickable { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
+
+                        if (channels.isEmpty() && isLoadingDashboard) {
+                            androidx.compose.foundation.layout.Column(
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                repeat(3) {
+                                    ShimmerChannelItem()
+                                }
+                            }
+                        } else if (filteredChannels.isEmpty() && searchQuery.isNotEmpty()) {
+                            Text(
+                                text = "No channels matching \"" + searchQuery + "\"",
+                                fontSize = 13.sp,
+                                color = colors.textSecondary,
+                                modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
+                            )
+                        } else {
+                            val displayedChannels = filteredChannels.take(if (searchQuery.isNotEmpty()) 10 else 4)
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                displayedChannels.forEachIndexed { index, ch ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                            .clickable {
+                                                onNavigateToChannel?.invoke(ch.name) ?: onNavigateToMessages()
+                                            }
+                                            .padding(vertical = 10.dp, horizontal = ConnectoSpacing.xs),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Tag,
+                                            contentDescription = null,
+                                            tint = colors.textSecondary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "#${ch.name}",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = colors.textPrimary
+                                            )
+                                            Text(
+                                                text = when (ch.name.trim().lowercase().removePrefix("#")) {
+                                                    "general" -> "Team announcements and general chat"
+                                                    "announcements" -> "Official updates and releases"
+                                                    "dev-chat", "dev-talk" -> "Engineering, architecture and code"
+                                                    "gaming" -> "Casual discussion, lounge and off-topic"
+                                                    "war-room" -> "Tactical briefings & threat intelligence"
+                                                    "tournaments" -> "Free Fire esports tournaments & matches"
+                                                    "clips" -> "Community gaming highlights & clutches"
+                                                    "voice-lounge" -> "Voice & screen sharing lounge"
+                                                    else -> "Discussions and shared resources"
+                                                },
+                                                fontSize = 12.sp,
+                                                color = colors.textSecondary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+                                    if (index < displayedChannels.size - 1) {
+                                        ConnectoDivider(thickness = 0.5.dp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 6. Favourites List Only (No groups or non-favourite friends on Home tab)
                 item {
                     Column(
                         modifier = Modifier
