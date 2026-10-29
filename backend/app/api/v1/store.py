@@ -64,10 +64,10 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "category": "Productivity",
         "version_name": "1.1.0",
         "version_code": 2,
-        "size_bytes": 28274202,
-        "size_formatted": "27.0 MB",
+        "size_bytes": 28753137,
+        "size_formatted": "27.4 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
-        "icon_url": "https://connecto.fun/static/favicon.svg",
+        "icon_url": "https://connecto.fun/static/pdf_studio_logo.png",
         "accent_color": "#EF4444",
         "changelog": [
             "Same-Font Name & Text Replacement: Find & replace names in exact matching fonts and sizes",

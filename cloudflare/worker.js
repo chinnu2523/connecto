@@ -272,34 +272,28 @@ export default {
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
     if (
       cleanPath === "/downloads/jarvis-ai-official.apk" ||
+      cleanPath === "/downloads/jarvis-assistant.apk" ||
       cleanPath.includes("jarvis-ai-official") ||
-      cleanPath.includes("jarvis") && cleanPath.endsWith(".apk")
+      (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
-      try {
-        const jarvisResp = await fetch("https://connecto-web.pages.dev/downloads/jarvis-ai-official.apk", {
-          headers: {
-            "User-Agent": "Connecto-Cloud-Worker/1.0.0"
-          }
-        });
-        if (jarvisResp.ok) {
-          const downloadHeaders = new Headers();
-          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
-          downloadHeaders.set("Content-Disposition", 'attachment; filename="jarvis-ai-official.apk"');
-          const cl = jarvisResp.headers.get("content-length");
-          if (cl) downloadHeaders.set("Content-Length", cl);
-          downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800");
-          downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Package", "com.omni.assistant");
-          downloadHeaders.set("X-Connecto-App", "JARVIS AI");
-          return new Response(jarvisResp.body, {
-            status: 200,
-            headers: downloadHeaders
-          });
-        }
-      } catch (err) {
-        console.error("JARVIS download fetch error:", err);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.10/jarvis-ai-official.apk", 302);
+    }
+
+    // 3a-4b. PDF Studio Logo Edge Asset
+    if (cleanPath === "/static/pdf_studio_logo.png" || cleanPath === "/pdf_studio_logo.png") {
+      const binStr = atob("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+davb+798uc0zaieWyekVdJMQGnhX/px98kugAzu4OTwqM2eO+9qtv3DFfv//dDNp8z0fDu3fqW55ekvXigZY4c98LTmiIc9cObjhK5LQJ/jROkhOj7+1GPtKKOx2wwA1dp1091T/uuOPmrm57vr89c32976/v3/vuHCR8/8nFDKTMBTCg//2r6OLoQrAFHf8SmiQ068z/5f7/rG7Z085x1v+8D+Xx/+kLM7eU7IvQT85IUva/bMbW5q8I+rrAXYECwfwhUAYhgdflhz9EWP3f/vd376C508752f+FzT7Nq98Ov1p57crDv6yE6eF3ItAePw36f0ErBa+EdkFwDVGC/2G1/1H/4D39sc+4tPbg49/dSF/777m3csLAzswp5v39nsnL954f0Bxtbd6x7N7m07lv299/i1py082vi/M5/c7Llj+echphx2BywO/8UlYDT/+STHMwvhfzAFgOJMEqxjt/3RGzsN192337H/1+uOmX1tAeRYApYL/1JLgPBfnl0AGazizOFRq21veE9z+9++q9sn3bPn7l/eeVe3zw0z3g7oYjxYLfxLux3w1qtfn3x8HWU6dpsBoCp7du7cu3//459ttv3d+5pvffjjnf8dh9z37sWFu2/btuLv80ZAw7vpq7c1NfroZ66/6iFnnzLITMCFLcK/lJmAcfjTawEo7fqxtOMlp2AdbTiyOeQ+91z49fi2wq5bvp7kOKCPMe7CC1868Z/JtQS89eo3THkuRk0UZgBgAkc84pz9Hy7U1c4CZnfuWZucxhlNE/65loC94c9abAOECSx+858dPdxegNLCP7c1AcK/PQUAWjr8+85ojnr8w/f+y+49zfa3f9C5o3hdhH8uJUD4D3wLoLS7JaUdL3k49P4bm+Ne/cL9HwC0/T0fXng/ACh5jHtyh+Gf+nbAZR1N+4+aOKwBgOWMRs26DUc060+da458/MObY5/5E83oqCMW/tfubdubb7z8b5w3itZH+KcqAV2FfzQKAOEd96rfaJrxo+U2w69e8nuu/ilan+E/dAkQ/tOzBgBa2nXjrc0tP/vCZscH/9M5o1hDhP9QawKE/2zMAMBqbyr0tW82d37mi82OKz7S3HHZBxc+CwBKNWT49z0TIPwzWO/wdyecdff7ohYi2kc+tvHEj9/9Ofd92brpCb3/Haxs09bLnZ6CjUajVu8E+I4HP/qq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");
+      const len = binStr.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binStr.charCodeAt(i);
       }
-      return Response.redirect("https://connecto-web.pages.dev/downloads/jarvis-ai-official.apk", 302);
+      return new Response(bytes.buffer, {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "public, max-age=604800, s-maxage=604800, immutable",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
     }
 
     // 3a-5. Cloudflare Edge Gateway for PDF Studio APK
@@ -1603,21 +1597,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "2.0.0",
-          version_code: 2,
-          size_bytes: 132120576,
-          size_formatted: "126 MB",
+          version_name: "2.8.0",
+          version_code: 28,
+          size_bytes: 131965379,
+          size_formatted: "125.8 MB",
           download_url: "https://connecto.fun/downloads/jarvis-ai-official.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Multimodal voice conversation engine",
-            "Real-time visual scene analysis",
-            "Biometric fingerprint & face recognition security",
-            "Background task automation and scheduled triggers"
+            "Streaming 80ms openWakeWord neural pipeline (melspectrogram + embedding + ONNX head)",
+            "Live score telemetry meter (10Hz) & per-second audio frame metrics in Developer Mode",
+            "5-Shot personal voice calibration tool (records scores locally, sets threshold below spoken peaks)",
+            "Command & number disambiguation conflict resolution (pending prompt answers prioritized)",
+            "Vivo OriginOS background frame stall watchdog & 1-tap battery optimization fix"
           ],
           is_essential: true,
-          updated_at: "2026-10-29T12:00:00Z"
+          updated_at: "2026-10-29T15:48:00Z"
         },
         {
           id: "pdfstudio",
@@ -1629,10 +1624,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           category: "Productivity",
           version_name: "1.1.0",
           version_code: 2,
-          size_bytes: 28274202,
-          size_formatted: "27.0 MB",
+          size_bytes: 28753137,
+          size_formatted: "27.4 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
-          icon_url: "https://connecto.fun/static/favicon.svg",
+          icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
             "Same-Font Name & Text Replacement: Find & replace names in exact matching fonts and sizes",
