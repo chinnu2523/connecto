@@ -6033,14 +6033,14 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.6.7",
-        "version_name": "v4.6.7",
-        "version_code": 96,
-        "release_tag": "v4.6.7",
+        "version": "4.6.8",
+        "version_name": "v4.6.8",
+        "version_code": 97,
+        "release_tag": "v4.6.8",
         "sha256": "92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729",
         "md5": "9fa021719cb9460d5e93a3cb411d3623",
-        "size_bytes": size_bytes if size_bytes else 37776172,
-        "size_display": size_mb if size_mb else "36.0 MB",
+        "size_bytes": size_bytes if size_bytes else 37888000,
+        "size_display": size_mb if size_mb else "36.1 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 37 / HyperOS Verified)",
         "download_url": "/download/apk",
@@ -6048,11 +6048,11 @@ async def get_app_version_endpoint(response: Response = None):
         "qr_code_url": "/static/downloads/connecto-apk-qr.png",
         "last_modified": last_modified,
         "features": [
-            "In-Call Earpiece Default Routing: Voice calls route directly to the phone earpiece receiver by default instead of loudspeaker.",
-            "Hardware Proximity Screen-Off Lock: Automatic display blackout and touch lock when phone is held to ear, with instant wake on ear release.",
-            "Sole Administrator Screen Security: Only chinnu14754x can capture screenshots; all other members protected by FLAG_SECURE.",
-            "Passive Face ID & Biometrics: Direct face unlock and BIOMETRIC_WEAK support without forced fingerprint fallback.",
-            "Workspace Channels Directory: Clean channel list and curated favourites on Home tab."
+            "Fixed 1:1 direct chat preview synchronization (Lucifer & Divyasree preview issue resolved).",
+            "Our Store on-site integration & dynamic 1-tap in-app update banner.",
+            "In-Call Earpiece Default Routing: Voice calls route directly to the phone earpiece receiver.",
+            "Hardware Proximity Screen-Off Lock: Automatic display blackout and touch lock during calls.",
+            "Sole Administrator Screen Security: Role-based capture policies with WindowManager protection."
         ]
     }
 
