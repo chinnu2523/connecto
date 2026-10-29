@@ -156,14 +156,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.7",
-        version_name: "v4.6.7",
-        version_code: 96,
-        build: 96,
-        sha256: "92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729",
-        md5: "9fa021719cb9460d5e93a3cb411d3623",
+        version: "4.6.8",
+        version_name: "v4.6.8",
+        version_code: 97,
+        build: 97,
+        sha256: "c98b162d4aaf1aee39db7ba0a51f15bcc80deeee68f2b8609baf6290647fc6bc",
+        md5: "5079b44019478e109e40c8c675b45a22",
         filename: "connecto-fun.apk",
-        size_bytes: 37776172,
+        size_bytes: 37785036,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -171,6 +171,8 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "1:1 Chat Message Preview Synchronization: Resolved issue where messages between Lucifer and Divyasree did not reflect latest previews on the home/recent chats screen.",
+          "Our Store In-App & Web Integration: Seamless update detection and redirection to Our Store for continuous in-app updates.",
           "In-Call Earpiece Default Routing: Voice calls route directly to the phone earpiece receiver by default instead of loudspeaker.",
           "Hardware Proximity Screen-Off Lock: Automatic display blackout and touch lock when phone is held to ear, with instant wake on ear release.",
           "Sole Administrator Screen Security: Only chinnu14754x can capture screenshots; all other members protected by FLAG_SECURE.",
@@ -263,18 +265,18 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.7/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.7/connecto-v4.6.7.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.8/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.8/connecto-v4.6.8.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.7-b96.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.8-b97.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.7");
-          res.headers.set("X-Connecto-Build", "96");
+          res.headers.set("X-Connecto-Version", "v4.6.8");
+          res.headers.set("X-Connecto-Build", "97");
           return res;
         }
 
@@ -287,7 +289,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.7"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.8"
               }
             });
             if (upstreamResp.ok) {
@@ -298,8 +300,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.7");
-              downloadHeaders.set("X-Connecto-Build", "96");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.8");
+              downloadHeaders.set("X-Connecto-Build", "97");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -314,7 +316,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.7/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.8/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -6468,14 +6470,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.7",
-      version_name: "v4.6.7",
-      version_code: 96,
-      build: 96,
-      sha256: "92bc19a9f129746b9e5b9b59e49d88f3d62788c557c0c1ea08ff27b726a59729",
-      md5: "9fa021719cb9460d5e93a3cb411d3623",
+      version: "4.6.8",
+      version_name: "v4.6.8",
+      version_code: 97,
+      build: 97,
+      sha256: "c98b162d4aaf1aee39db7ba0a51f15bcc80deeee68f2b8609baf6290647fc6bc",
+      md5: "5079b44019478e109e40c8c675b45a22",
       filename: "connecto-fun.apk",
-      size_bytes: 37776172,
+      size_bytes: 37785036,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6488,6 +6490,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.6.8",
+          date: "Oct 29, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.8: 1:1 Chat Preview Synchronization & Our Store In-App Integration",
+          summary: "Connecto v4.6.8 resolves the 1:1 direct chat message preview synchronization issue (Lucifer & Divyasree preview bug) and integrates automated update detection with direct redirection to Our Store.",
+          highlights: [
+            "1:1 Chat Message Preview Synchronization Fix: Fixed the issue where new messages between Lucifer and Divyasree did not reflect real-time last message previews on the home/recent chats list.",
+            "Our Store In-App & Web Integration: Seamless update detection on the home tab redirecting to Our Store, with fallback to connecto.fun for 1-tap APK install.",
+            "Android Native App v4.6.8 (Build 97 • 36.0 MB • Production Keystore Signed): SHA-256 c98b162d4aaf1aee39db7ba0a51f15bcc80deeee68f2b8609baf6290647fc6bc • MD5 5079b44019478e109e40c8c675b45a22."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v4.6.7",
           date: "Oct 29, 2026",
