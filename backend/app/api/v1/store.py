@@ -53,6 +53,32 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         ],
         "is_essential": True,
         "updated_at": "2026-10-29T12:00:00Z"
+    },
+    {
+        "id": "pdfstudio",
+        "package_name": "com.app.pdfstudio",
+        "name": "PDF Studio",
+        "badge": "PDF Creator & Editor",
+        "tagline": "Generate, merge, edit & annotate PDF documents",
+        "description": "Professional all-in-one PDF toolkit for Android. Generate multi-page documents from formatted text or images, merge multiple PDF files losslessly, reorder/rotate/delete pages, and draw or annotate directly on documents.",
+        "category": "Productivity",
+        "version_name": "1.0.0",
+        "version_code": 1,
+        "size_bytes": 28205689,
+        "size_formatted": "26.9 MB",
+        "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
+        "icon_url": "https://connecto.fun/static/favicon.svg",
+        "accent_color": "#EF4444",
+        "changelog": [
+            "Generate rich PDF documents from formatted text with automatic pagination",
+            "Photos to PDF: Convert multiple gallery images into high quality PDFs",
+            "Lossless PDF merging powered by Apache PDFBox engine",
+            "Visual page manager: rotate 90°, reorder, and delete pages",
+            "Drawing & Annotating: Freehand pen, highlighter, and tap-to-add text notes",
+            "Built-in PDF viewer with zoom & pan, share, and device export"
+        ],
+        "is_essential": False,
+        "updated_at": "2026-10-29T20:30:00Z"
     }
 ]
 
