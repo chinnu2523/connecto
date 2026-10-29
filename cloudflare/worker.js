@@ -257,7 +257,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.1.0");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.2.0");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1560,9 +1560,33 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.0.0",
-      total_apps: 3,
+      store_version: "1.2.0",
+      total_apps: 4,
       apps: [
+        {
+          id: "ourstore",
+          package_name: "com.connecto.store",
+          name: "Our Store",
+          badge: "App Hub Engine",
+          tagline: "Autonomous package installer, background updater & security vault",
+          description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
+          category: "System",
+          version_name: "1.2.0",
+          version_code: 3,
+          size_bytes: 12388521,
+          size_formatted: "11.8 MB",
+          download_url: "https://connecto.fun/downloads/our-store.apk",
+          icon_url: "https://connecto.fun/static/favicon.svg",
+          accent_color: "#FFFFFF",
+          changelog: [
+            "In-App Auto-Update Engine: Store checks and updates itself seamlessly",
+            "Executive Window Inset Padding: Status bar header clearance for bezel-free devices",
+            "Prominent Package Size Badges: Application download weight displayed boldly on card headers",
+            "Pitch-Black OLED Classic Theme with Monochromatic Architectural Insignia"
+          ],
+          is_essential: true,
+          updated_at: "2026-10-29T21:55:00Z"
+        },
         {
           id: "connecto",
           package_name: "com.connecto.app",
@@ -1624,8 +1648,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           category: "Productivity",
           version_name: "1.1.0",
           version_code: 2,
-          size_bytes: 28753137,
-          size_formatted: "27.4 MB",
+          size_bytes: 28299691,
+          size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
