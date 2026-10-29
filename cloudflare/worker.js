@@ -1560,7 +1560,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.3.0",
+      store_version: "1.4.0",
       total_apps: 4,
       apps: [
         {
@@ -1571,21 +1571,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.3.0",
-          version_code: 4,
+          version_name: "1.4.0",
+          version_code: 5,
           size_bytes: 12513280,
           size_formatted: "11.9 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "App Button & Dedicated Detail View: Tap any app card to open full details, previews, and management",
-            "Integrated Uninstaller: Native system uninstallation trigger with 1-tap removal",
-            "High-Fidelity Application Previews: Interactive screenshot walkthrough carousel for all ecosystem apps",
-            "Pure Background Auto-Update: Removed manual toggles in favor of silent autonomous synchronization"
+            "Real-Time Android Update Notifications: System notification alerts whenever any ecosystem app has an update ready",
+            "Deep Linked Notification Actions: Tap notification or 'UPDATE NOW' to directly open the app's update & preview screen",
+            "App Button Navigation: Dedicated detail screen with 1-tap uninstaller and rich screenshot mockups",
+            "Silent Autonomous Background Engine: Monitors and auto-synchronizes releases without draining battery"
           ],
           is_essential: true,
-          updated_at: "2026-10-29T23:15:00Z"
+          updated_at: "2026-10-30T00:20:00Z"
         },
         {
           id: "connecto",
