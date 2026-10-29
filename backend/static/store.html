@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connecto App Store | Official Ecosystem Hub</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace']
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8'
+            },
+            cyanBrand: {
+              500: '#06b6d4',
+              600: '#0891b2'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b0f17;
+      color: #f1f5f9;
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.10) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+    .glass-card:hover {
+      border-color: rgba(59, 130, 246, 0.4);
+      transform: translateY(-2px);
+      transition: all 0.25s ease-out;
+    }
+    .glow-btn {
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+
+  <!-- Navigation -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyanBrand-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+          </div>
+          <div>
+            <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">Connecto Store</span>
+            <span class="text-xs px-2 py-0.5 ml-2 rounded-full font-mono font-medium bg-brand-500/10 text-brand-400 border border-brand-500/20">Official Hub</span>
+          </div>
+        </a>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <a href="https://connecto.fun" class="text-sm font-medium text-slate-400 hover:text-white transition">Main Portal</a>
+        <a href="https://news.connecto.fun" class="text-sm font-medium text-slate-400 hover:text-white transition">News Wire</a>
+        <a href="/downloads/ConnectoStore.apk" class="inline-flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 transition">
+          <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Get Store App</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="max-w-6xl mx-auto px-4 pt-12 pb-6 text-center">
+    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-950/60 border border-brand-800/50 text-brand-400 text-xs font-semibold mb-4">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span>Direct Fast Downloads • Instant 1-Tap Updates</span>
+    </div>
+    <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4 leading-tight">
+      Your Dedicated <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">App Ecosystem</span>
+    </h1>
+    <p class="max-w-2xl mx-auto text-slate-400 text-base sm:text-lg mb-8 leading-relaxed">
+      Browse, install, and instantly update your official applications directly without Play Store delays or manual web browsing.
+    </p>
+
+    <!-- Native App Store Banner -->
+    <div class="max-w-3xl mx-auto p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brand-900/40 to-cyanBrand-900/30 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+      <div class="flex items-center space-x-4">
+        <div class="w-12 h-12 rounded-xl bg-brand-600/30 border border-brand-500/40 flex items-center justify-center shrink-0">
+          <svg class="w-7 h-7 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-white font-bold text-base">Install Connecto Store on Android</h3>
+          <p class="text-slate-400 text-xs sm:text-sm">Never visit the website to update again. 1-tap updates directly inside the phone app.</p>
+        </div>
+      </div>
+      <a href="/downloads/ConnectoStore.apk" class="whitespace-nowrap px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-md transition flex items-center space-x-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        <span>Download Store APK</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Apps Grid -->
+  <main class="max-w-6xl mx-auto px-4 py-8 flex-1">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+        <span>Featured Applications</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">2 Verified Apps</span>
+      </h2>
+      <div class="text-xs text-slate-500 font-mono">Live Edge Catalog v1.0.0</div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="appsContainer">
+      
+      <!-- 1. CONNECTO APP CARD -->
+      <div class="glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-4">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/30">
+                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="text-2xl font-bold text-white">Connecto</h3>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider">Official</span>
+                </div>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.app • v4.6.7 (b96)</p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span class="text-xs text-emerald-400 font-medium">● Stable Release</span>
+                  <span class="text-xs text-slate-500">•</span>
+                  <span class="text-xs text-slate-400">36.1 MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, workspace channels, and offline data sync.
+          </p>
+
+          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v4.6.7</h4>
+            <ul class="text-xs text-slate-300 space-y-1">
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Fixed direct message preview synchronization (Lucifer/Divyasree)</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Optimized biometric unlock and physical screenshot security</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Workspace channel real-time presence & connection fixes</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+          <div class="text-[11px] text-slate-500 font-mono">
+            Requires Android 7.0+
+          </div>
+          <div class="flex items-center space-x-2">
+            <a href="/downloads/connecto-fun.apk" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center space-x-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              <span>Download APK</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. JARVIS AI APP CARD -->
+      <div class="glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative overflow-hidden">
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-cyanBrand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center space-x-4">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-700 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30">
+                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <h3 class="text-2xl font-bold text-white">JARVIS AI</h3>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">AI Assistant</span>
+                </div>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">com.omni.assistant • v2.0.0 (b2)</p>
+                <div class="flex items-center space-x-2 mt-1">
+                  <span class="text-xs text-cyan-400 font-medium">● Multimodal Agent</span>
+                  <span class="text-xs text-slate-500">•</span>
+                  <span class="text-xs text-slate-400">126 MB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
+            Autonomous multimodal AI assistant powered by Gemini. Features conversational voice, computer vision, camera analysis, and automated device actions.
+          </p>
+
+          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v2.0.0</h4>
+            <ul class="text-xs text-slate-300 space-y-1">
+              <li class="flex items-center space-x-2">
+                <span class="text-cyan-400">✓</span>
+                <span>Full multimodal voice reasoning engine</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-cyan-400">✓</span>
+                <span>Live camera vision intelligence and object recognition</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-cyan-400">✓</span>
+                <span>Biometric face/fingerprint security and system alarms</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+          <div class="text-[11px] text-slate-500 font-mono">
+            Requires Android 7.0+
+          </div>
+          <div class="flex items-center space-x-2">
+            <a href="/downloads/jarvis-ai-official.apk" class="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/30 transition flex items-center space-x-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+              </svg>
+              <span>Download APK</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-8 bg-slate-950/60">
+    <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
+      <p>© 2026 Connecto App Store. Verified secure, direct edge delivery via Cloudflare Anycast.</p>
+      <div class="flex justify-center space-x-4 mt-2">
+        <a href="https://connecto.fun/privacy.html" class="hover:text-slate-400">Privacy Policy</a>
+        <span>•</span>
+        <a href="https://connecto.fun/terms.html" class="hover:text-slate-400">Terms of Service</a>
+        <span>•</span>
+        <a href="/api/v1/store/apps" class="hover:text-slate-400 font-mono">Catalog API</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

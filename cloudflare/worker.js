@@ -1408,6 +1408,66 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return handleSyncNow(request, env);
   }
 
+  // 1c. Connecto App Store Catalog API
+  if (path === "/api/v1/store/apps" || path === "/api/store/apps") {
+    return jsonResponse({
+      status: "success",
+      store_name: "Connecto App Store",
+      store_version: "1.0.0",
+      total_apps: 2,
+      apps: [
+        {
+          id: "connecto",
+          package_name: "com.connecto.app",
+          name: "Connecto",
+          badge: "Official Messaging",
+          tagline: "Private encrypted messaging, calls & workspaces",
+          description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
+          category: "Communication",
+          version_name: "4.6.7",
+          version_code: 96,
+          size_bytes: 37888000,
+          size_formatted: "36.1 MB",
+          download_url: "https://connecto.fun/downloads/connecto-fun.apk",
+          icon_url: "https://connecto.fun/static/favicon.svg",
+          accent_color: "#2563EB",
+          changelog: [
+            "Fixed direct message preview synchronization",
+            "Enhanced biometrics & screen security",
+            "Workspace channel presence optimizations",
+            "Performance and battery enhancements"
+          ],
+          is_essential: true,
+          updated_at: "2026-10-29T11:00:00Z"
+        },
+        {
+          id: "jarvis",
+          package_name: "com.omni.assistant",
+          name: "JARVIS AI",
+          badge: "AI Super-Assistant",
+          tagline: "Multimodal voice, vision & device automation assistant",
+          description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
+          category: "Artificial Intelligence",
+          version_name: "2.0.0",
+          version_code: 2,
+          size_bytes: 132120576,
+          size_formatted: "126 MB",
+          download_url: "https://connecto.fun/downloads/jarvis-ai-official.apk",
+          icon_url: "https://connecto.fun/static/favicon.svg",
+          accent_color: "#06B6D4",
+          changelog: [
+            "Multimodal voice conversation engine",
+            "Real-time visual scene analysis",
+            "Biometric fingerprint & face recognition security",
+            "Background task automation and scheduled triggers"
+          ],
+          is_essential: true,
+          updated_at: "2026-10-29T12:00:00Z"
+        }
+      ]
+    });
+  }
+
   // 1c. Cloudflare Edge Learning Hub & Security Labs API
   if (path.startsWith("/api/learning/tracks/") && path.endsWith("/lessons")) {
     const parts = path.split("/");
@@ -7343,6 +7403,10 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
   let pagesPath = url.pathname;
   if (host.startsWith("news.") && (pagesPath === "/" || pagesPath === "")) {
     pagesPath = "/news.html";
+  } else if (host.startsWith("store.") && (pagesPath === "/" || pagesPath === "")) {
+    pagesPath = "/store.html";
+  } else if (pagesPath === "/store" || pagesPath === "/appstore") {
+    pagesPath = "/store.html";
   } else if (host.startsWith("resinora.") && (pagesPath === "/" || pagesPath === "")) {
     pagesPath = "/resinora.html";
   } else if (pagesPath === "/" || pagesPath === "" || pagesPath === "/index.html") {

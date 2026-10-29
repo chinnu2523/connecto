@@ -797,10 +797,12 @@ async def user_notification_preferences_endpoint(request: Request, username: Opt
 from app.resinora_backend import router as resinora_router
 from app.api.v1.news import router as news_router
 from app.api.v1.cv import router as cv_router
+from app.api.v1.store import router as store_router
 
 app.include_router(resinora_router)
 app.include_router(news_router)
 app.include_router(cv_router)
+app.include_router(store_router)
 
 @app.websocket("/ws/{channel_id}/{username}")
 async def ws_channel_user_endpoint(websocket: WebSocket, channel_id: str, username: str):
@@ -6822,6 +6824,7 @@ async def get_platform_changelog():
 
 CV_HTML_PATH = os.path.join(static_dir, "cv_screening.html")
 NEWS_HTML_PATH = os.path.join(static_dir, "news.html")
+STORE_HTML_PATH = os.path.join(static_dir, "store.html")
 STATUS_HTML_PATH = os.path.join(static_dir, "status.html")
 CHANGELOG_HTML_PATH = os.path.join(static_dir, "changelog.html")
 RESINORA_HTML_PATH = os.path.join(static_dir, "resinora.html")
@@ -6928,6 +6931,13 @@ async def root_landing_page(request: Request):
 @app.head("/newsroom")
 async def news_portal():
     return FileResponse(NEWS_HTML_PATH, media_type="text/html")
+
+@app.get("/store")
+@app.get("/appstore")
+@app.head("/store")
+@app.head("/appstore")
+async def store_portal():
+    return FileResponse(STORE_HTML_PATH, media_type="text/html")
 
 @app.get("/resinora")
 @app.head("/resinora")
