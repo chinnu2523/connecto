@@ -1560,7 +1560,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.4.0",
+      store_version: "1.4.1",
       total_apps: 4,
       apps: [
         {
@@ -1571,21 +1571,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.4.0",
-          version_code: 5,
+          version_name: "1.4.1",
+          version_code: 6,
           size_bytes: 12513280,
           size_formatted: "11.9 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
+            "Simplified Update Notifications: Concise, non-cluttered notification copy ('Application is available for update')",
             "Real-Time Android Update Notifications: System notification alerts whenever any ecosystem app has an update ready",
-            "Deep Linked Notification Actions: Tap notification or 'UPDATE NOW' to directly open the app's update & preview screen",
-            "App Button Navigation: Dedicated detail screen with 1-tap uninstaller and rich screenshot mockups",
-            "Silent Autonomous Background Engine: Monitors and auto-synchronizes releases without draining battery"
+            "Deep Linked Notification Actions: Tap notification or 'UPDATE' to directly open the app's update & preview screen",
+            "App Button Navigation: Dedicated detail screen with 1-tap uninstaller and rich screenshot mockups"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T00:20:00Z"
+          updated_at: "2026-10-30T00:32:00Z"
         },
         {
           id: "connecto",
