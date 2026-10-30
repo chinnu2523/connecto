@@ -257,7 +257,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.2.0");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.0");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders

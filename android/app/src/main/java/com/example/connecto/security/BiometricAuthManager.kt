@@ -44,7 +44,11 @@ object BiometricAuthManager {
             pm.hasSystemFeature("android.hardware.face") ||
             pm.hasSystemFeature("com.samsung.android.bio.face") ||
             pm.hasSystemFeature("com.sec.android.hardware.biometrics.face") ||
-            (pm.hasSystemFeature(PackageManager.FEATURE_CAMERA_FRONT) && isWeakBiometricAvailable(context))
+            pm.hasSystemFeature("com.oppo.biometrics.face") ||
+            pm.hasSystemFeature("com.vivo.biometrics.face") ||
+            pm.hasSystemFeature("com.xiaomi.biometrics.face") ||
+            pm.hasSystemFeature("com.oneplus.face") ||
+            pm.hasSystemFeature("com.motorola.hardware.biometrics.face")
         } catch (_: Throwable) {
             false
         }
@@ -275,9 +279,9 @@ object BiometricAuthManager {
         onFallbackToDeviceCredential: (() -> Unit)? = null
     ) {
         try {
-            val actualTitle = if (isFaceId && title == "Unlock Connecto") "Unlock Connecto with Face ID" else title
-            val actualSubtitle = if (isFaceId && subtitle.contains("biometric")) "Glance at the camera or use device screen lock" else subtitle
-            val actualDescription = if (isFaceId && description != null && description.contains("Fingerprint")) "Confirm your identity with Face ID or Device PIN" else description
+            val actualTitle = if (isFaceId) "Unlock with Face ID" else title
+            val actualSubtitle = if (isFaceId) "Glance at the front camera or scan fingerprint" else subtitle
+            val actualDescription = if (isFaceId) "Looking for your face... Android System Face Unlock active" else description
             // On API < 30 (Android 10 and below), if biometric is not enrolled but device lock is set,
             // BiometricPrompt cannot handle screen lock without biometrics. Route directly to device credential.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R && !isBiometricEnrolled(activity)) {

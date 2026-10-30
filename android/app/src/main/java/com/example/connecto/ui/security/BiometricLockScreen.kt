@@ -1,16 +1,11 @@
 package com.example.connecto.ui.security
 
-import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.pm.PackageManager
-import android.graphics.SurfaceTexture
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.view.TextureView
-import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -85,11 +80,9 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.security.BiometricAuthManager
-import com.example.connecto.security.FaceScannerHelper
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import kotlinx.coroutines.launch
@@ -134,26 +127,11 @@ fun BiometricLockScreen(
 
     var authStatusMessage by remember(isFaceId) {
         mutableStateOf(
-            if (isFaceId) "Glance at the front camera to unlock 🤳"
+            if (isFaceId) "Glance at the front camera to unlock with Face ID 🤳"
             else "Scan fingerprint, use device PIN, or enter account password"
         )
     }
 
-    var hasCameraPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-        )
-    }
-    val cameraPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasCameraPermission = isGranted
-        if (isGranted) {
-            authStatusMessage = "Glance at the front camera to unlock 🤳"
-        } else {
-            authStatusMessage = "Camera permission needed for Face Scan. Switch to Fingerprint or Password."
-        }
-    }
     var isAuthFailed by remember { mutableStateOf(false) }
     var isAuthSuccess by remember { mutableStateOf(false) }
 
@@ -187,8 +165,6 @@ fun BiometricLockScreen(
         ),
         label = "laserY"
     )
-
-    var faceScannerHelper by remember { mutableStateOf<FaceScannerHelper?>(null) }
 
     // Android Native Device Screen Lock (PIN, Pattern, Password) Activity Launcher
     val deviceCredentialLauncher = rememberLauncherForActivityResult(
@@ -284,14 +260,14 @@ fun BiometricLockScreen(
         }
 
         try {
-            authStatusMessage = if (isFaceId) "Looking for your face..." else "Waiting for biometric scan or screen lock..."
+            authStatusMessage = if (isFaceId) "Looking for your face... Glance at the camera 🤳" else "Waiting for biometric scan or screen lock..."
             isAuthFailed = false
 
             BiometricAuthManager.authenticate(
                 activity = activity,
-                title = if (isFaceId) "Unlock Connecto with Face ID" else "Unlock Connecto",
-                subtitle = if (isFaceId) "Glance at the camera or use device screen lock" else "Verify identity for @$username",
-                description = if (isFaceId) "Confirm your identity with Face ID or Device PIN" else "Scan fingerprint, face, or enter device screen lock to unlock Connecto",
+                title = if (isFaceId) "Unlock with Face ID" else "Unlock Connecto",
+                subtitle = if (isFaceId) "Glance at the front camera or scan fingerprint" else "Verify identity for @$username",
+                description = if (isFaceId) "Looking for your face... Android System Face Unlock active" else "Scan fingerprint, face, or enter device screen lock to unlock Connecto",
                 isFaceId = isFaceId,
                 onSuccess = {
                     isAuthSuccess = true
@@ -323,26 +299,18 @@ fun BiometricLockScreen(
         }
     }
 
-    // Automatically trigger authentication on launch
+    // Automatically trigger native biometric authentication on launch (Face ID or Fingerprint)
     LaunchedEffect(Unit) {
         try {
-            if (isFaceId) {
-                if (!hasCameraPermission) {
-                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                } else {
-                    authStatusMessage = "Glance at the front camera to unlock 🤳"
-                }
+            val isBioEnrolled = BiometricAuthManager.isBiometricEnrolled(context)
+            val isSecure = BiometricAuthManager.isDeviceSecure(context)
+            if (isBioEnrolled) {
+                triggerBiometricPrompt()
+            } else if (isSecure) {
+                triggerScreenLockPrompt()
             } else {
-                val isBioEnrolled = BiometricAuthManager.isBiometricEnrolled(context)
-                val isSecure = BiometricAuthManager.isDeviceSecure(context)
-                if (isBioEnrolled) {
-                    triggerBiometricPrompt()
-                } else if (isSecure) {
-                    triggerScreenLockPrompt()
-                } else {
-                    authStatusMessage = "Device screen lock not set. Enter Connecto password to unlock."
-                    showPasswordDialog = true
-                }
+                authStatusMessage = "Device screen lock not set. Enter Connecto password to unlock."
+                showPasswordDialog = true
             }
         } catch (t: Throwable) {
             authStatusMessage = "Tap below to unlock with Connecto password"
@@ -428,7 +396,7 @@ fun BiometricLockScreen(
             val scannerShape = if (isFaceId) RoundedCornerShape(32.dp) else CircleShape
             Box(
                 modifier = Modifier
-                    .size(if (isFaceId && hasCameraPermission) 140.dp else 112.dp)
+                    .size(112.dp)
                     .scale(if (isAuthSuccess) 1.0f else pulseScale)
                     .clip(scannerShape)
                     .background(
@@ -451,78 +419,36 @@ fun BiometricLockScreen(
                         shape = scannerShape
                     )
                     .clickable {
-                        if (isFaceId) {
-                            if (!hasCameraPermission) {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            } else {
-                                authStatusMessage = "Looking for your face... 🤳"
-                            }
+                        val isBioEnrolled = BiometricAuthManager.isBiometricEnrolled(context)
+                        val isSecure = BiometricAuthManager.isDeviceSecure(context)
+                        if (isBioEnrolled) {
+                            triggerBiometricPrompt()
+                        } else if (isSecure) {
+                            triggerScreenLockPrompt()
                         } else {
-                            val isBioEnrolled = BiometricAuthManager.isBiometricEnrolled(context)
-                            val isSecure = BiometricAuthManager.isDeviceSecure(context)
-                            if (isBioEnrolled) {
-                                triggerBiometricPrompt()
-                            } else if (isSecure) {
-                                triggerScreenLockPrompt()
-                            } else {
-                                showPasswordDialog = true
-                            }
+                            showPasswordDialog = true
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
-                if (isFaceId && hasCameraPermission && !isAuthSuccess) {
-                    // Front-Facing Camera Hardware Viewfinder
-                    AndroidView(
-                        modifier = Modifier.fillMaxSize(),
-                        factory = { ctx ->
-                            TextureView(ctx).apply {
-                                layoutParams = ViewGroup.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    ViewGroup.LayoutParams.MATCH_PARENT
-                                )
-                                surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                                    override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
-                                        faceScannerHelper = FaceScannerHelper(
-                                            context = ctx,
-                                            onFaceDetected = { faceConfidence ->
-                                                if (!isAuthSuccess) {
-                                                    isAuthSuccess = true
-                                                    isAuthFailed = false
-                                                    authStatusMessage = "Face verified successfully! 🔓"
-                                                    try {
-                                                        val vibrator = ctx.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                                            vibrator?.vibrate(VibrationEffect.createOneShot(50, VibrationEffect.DEFAULT_AMPLITUDE))
-                                                        }
-                                                    } catch (_: Exception) {}
-                                                    faceScannerHelper?.stopScanning()
-                                                    onUnlockSuccess()
-                                                }
-                                            },
-                                            onError = { err ->
-                                                authStatusMessage = err
-                                            }
-                                        ).also { it.startScanning(this@apply) }
-                                    }
+                Icon(
+                    imageVector = if (isAuthSuccess) Icons.Default.LockOpen
+                        else if (isFaceId) Icons.Default.Face
+                        else Icons.Default.Fingerprint,
+                    contentDescription = if (isFaceId) "Trigger Face ID Unlock" else "Trigger Biometric Unlock",
+                    tint = if (isAuthSuccess) MaterialTheme.colorScheme.primary
+                        else if (isAuthFailed) Color(0xFFEF4444)
+                        else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(54.dp)
+                )
 
-                                    override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {}
-                                    override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
-                                        faceScannerHelper?.stopScanning()
-                                        return true
-                                    }
-                                    override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
-                                }
-                            }
-                        }
-                    )
-
-                    // Vertical Laser Scan Beam Sweeping Over Face
+                // High-tech laser sweep animation when Face ID is active
+                if (isFaceId && !isAuthSuccess) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(2.5.dp)
-                            .offset(y = (-50 + (100 * laserY)).dp)
+                            .offset(y = (-36 + (72 * laserY)).dp)
                             .background(
                                 Brush.horizontalGradient(
                                     listOf(
@@ -534,39 +460,6 @@ fun BiometricLockScreen(
                                     )
                                 )
                             )
-                    )
-                } else {
-                    Icon(
-                        imageVector = if (isAuthSuccess) Icons.Default.LockOpen
-                            else if (isFaceId) Icons.Default.Face
-                            else Icons.Default.Fingerprint,
-                        contentDescription = if (isFaceId) "Trigger Face ID Unlock" else "Trigger Biometric Unlock",
-                        tint = if (isAuthSuccess) MaterialTheme.colorScheme.primary
-                            else if (isAuthFailed) Color(0xFFEF4444)
-                            else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(52.dp)
-                    )
-                }
-            }
-
-            if (isFaceId && !hasCameraPermission && !isAuthSuccess) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Button(
-                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = null,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Enable Camera for Face Scan",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -583,16 +476,12 @@ fun BiometricLockScreen(
                         val newModality = if (isFaceId) BiometricAuthManager.BiometricModality.FINGERPRINT else BiometricAuthManager.BiometricModality.FACE_ID
                         preferredModality = newModality
                         BiometricAuthManager.setPreferredModality(context, username, newModality)
-                        if (newModality == BiometricAuthManager.BiometricModality.FINGERPRINT) {
-                            faceScannerHelper?.stopScanning()
-                            authStatusMessage = "Touch the fingerprint sensor to unlock"
-                            triggerBiometricPrompt()
+                        authStatusMessage = if (newModality == BiometricAuthManager.BiometricModality.FACE_ID) {
+                            "Glance at the front camera to unlock with Face ID 🤳"
                         } else {
-                            authStatusMessage = "Glance at the front camera to unlock 🤳"
-                            if (!hasCameraPermission) {
-                                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
+                            "Touch the fingerprint sensor to unlock 🖐"
                         }
+                        triggerBiometricPrompt()
                     }
                     .padding(horizontal = 14.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -605,7 +494,7 @@ fun BiometricLockScreen(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (isFaceId) "Switch to Fingerprint (Sensor Prompt)" else "Switch to Face Scan (Camera Viewfinder)",
+                    text = if (isFaceId) "Switch to Fingerprint (Sensor Prompt)" else "Switch to Face ID (System Prompt)",
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
