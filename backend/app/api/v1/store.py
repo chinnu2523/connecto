@@ -62,28 +62,26 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Change names in matching fonts, edit text & convert images to PDF",
         "description": "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
         "category": "Productivity",
-        "version_name": "1.4.5",
-        "version_code": 10,
+        "version_name": "1.4.6",
+        "version_code": 11,
         "size_bytes": 28316079,
         "size_formatted": "27.0 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
         "icon_url": "https://connecto.fun/static/pdf_studio_logo.png",
         "accent_color": "#EF4444",
         "changelog": [
-            "Proportional Text Scaling: Font size and metrics in live overlay dynamically scale to match exact PDF canvas scale (no oversized or overflowing text in tables)",
+            "Seamless In-Bitmap Compositing: Text replacements and erasures are rendered directly into the high-resolution page bitmap with exact sampled background color blending (teal, colored tables, shaded cells, and white backgrounds stay 100% authentic)",
+            "Zero System Theme Hijacking: Bypasses device custom cursive/handwriting fonts, rendering crisp native document typography (Roboto/Noto) directly into the PDF",
+            "Exact Mathematical Baseline Alignment: Text replacements align with subpixel precision to the exact baseline and width of the original PDF text",
             "Dual Edit Mode (Edit Word vs Edit Line): Tap any word to edit it directly, or choose 'Edit Line' to rewrite the whole sentence without word collision",
             "Auto-Fit Proportionate Sizing: Long replacement strings automatically fit into the original gap with zero overflow onto adjacent text",
-            "System Theme Font Isolation: PDF text is protected against device custom cursive/handwriting fonts, rendering clean document typography with zero font padding drift",
-            "Tight Whiteout Bounding: Removed oversized min-height guards so whiteout boxes cover only the target glyphs without masking adjacent lines",
-            "Pixel-Perfect Text Replacement Alignment: Fixed vertical coordinate shift bug so replacements and whiteouts cleanly envelope the exact target text",
-            "Automatic Color Extraction: Live extraction of exact original font colors preserved across all edits",
             "Undo & Redo History: Seamless one-click undo and redo for all text edits and replacements",
             "Smooth Multi-Touch Pinch-to-Zoom & Double-Tap: Pinch or double-tap to zoom up to 450% with effortless pan",
             "Universal Image to PDF Converter (JPG, PNG, WEBP, BMP, HEIF, GIF)",
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
         ],
         "is_essential": False,
-        "updated_at": "2026-10-30T10:35:00Z"
+        "updated_at": "2026-10-30T11:15:00Z"
     }
 ]
 
