@@ -241,7 +241,7 @@ export default {
       cleanPath.includes("connectostore")
     ) {
       try {
-        const storeResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v4.6.10/our-store.apk", {
+        const storeResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk", {
           redirect: "follow",
           headers: {
             "User-Agent": "Connecto-Cloud-Worker/1.1.0"
@@ -257,7 +257,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.0");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.1");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -266,7 +266,7 @@ export default {
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.10/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -1571,21 +1571,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.0",
-          version_code: 7,
-          size_bytes: 12513280,
-          size_formatted: "11.9 MB",
+          version_name: "1.5.1",
+          version_code: 8,
+          size_bytes: 12542339,
+          size_formatted: "12.0 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Play Protect Security Hardening: Removed legacy storage & package inventory permissions to clear scanner flags",
-            "Full V1 + V2 + V3 Signature Schemes: Multi-scheme cryptographic validation across all Android OS versions",
-            "Play Protect Safety Guide: In-app security status guide with 1-tap device scanner settings shortcut",
-            "Simplified Update Notifications: Concise, non-cluttered notification copy"
+            "Background Autonomous Update Polling: JobScheduler background engine with boot persistence",
+            "Login & Role Filtering: Secure Connecto SSO and role-based app visibility",
+            "Play Protect Security Hardening: Multi-scheme V1+V2+V3 cryptographic validation",
+            "Streamlined In-App Updater: Autonomous PackageInstaller session flow"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T08:15:00Z"
+          updated_at: "2026-10-30T10:45:00Z"
         },
         {
           id: "connecto",
