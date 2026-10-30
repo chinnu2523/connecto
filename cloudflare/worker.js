@@ -257,7 +257,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.1");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.3");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1571,7 +1571,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.5.0",
+      store_version: "1.5.3",
       total_apps: 4,
       apps: [
         {
