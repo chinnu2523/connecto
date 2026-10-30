@@ -1647,14 +1647,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.4.0",
-          version_code: 5,
+          version_name: "1.4.1",
+          version_code: 6,
           size_bytes: 28348843,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
+            "Clean Document View: Removed all wireframe rectangle and square boxes for pristine viewing",
+            "Exact-Fit Page Bounding: Fixed landscape and portrait aspect ratio alignment eliminating misplaced selections in empty space",
+            "In-Page Text Tap Selection: Directly tap any text on the page to highlight and edit or erase it",
             "WYSIWYG Live Text Editing: Modifications and whiteouts render in real-time directly over the canvas",
             "Undo & Redo History: Seamless one-click undo and redo for all text edits and replacements",
             "Rich Typography & Styling: Choose font color (Black, Navy, Crimson, Emerald, Amber, Violet, Slate, White), Bold, Italic, and font size",
@@ -1664,7 +1667,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
           ],
           is_essential: false,
-          updated_at: "2026-10-29T21:40:00Z"
+          updated_at: "2026-10-30T02:45:00Z"
         }
       ]
     });
