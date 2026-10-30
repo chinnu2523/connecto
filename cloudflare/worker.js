@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.11",
-        version_name: "v4.6.11",
-        version_code: 100,
-        build: 100,
-        sha256: "88824fa271c0bda7d419120390875d9a107c78e49b56e89f95ea19a181747bb0",
+        version: "4.6.12",
+        version_name: "v4.6.12",
+        version_code: 101,
+        build: 101,
+        sha256: "fd5a35b7866915ef181bd4d9b762c3efc09da0e9e820f46ae94ad0453259e3ea",
         filename: "connecto-fun.apk",
-        size_bytes: 37791804,
+        size_bytes: 37792608,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -346,19 +346,18 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.10/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.10/connecto-v4.6.10.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.9/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.10-b99.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.12-b101.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.10");
-          res.headers.set("X-Connecto-Build", "99");
+          res.headers.set("X-Connecto-Version", "v4.6.12");
+          res.headers.set("X-Connecto-Build", "101");
           return res;
         }
 
@@ -371,7 +370,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.10"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.12"
               }
             });
             if (upstreamResp.ok) {
@@ -382,8 +381,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.10");
-              downloadHeaders.set("X-Connecto-Build", "99");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.12");
+              downloadHeaders.set("X-Connecto-Build", "101");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1571,9 +1570,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.1",
-          version_code: 8,
-          size_bytes: 12542339,
+          version_name: "1.5.2",
+          version_code: 9,
+          size_bytes: 12542341,
           size_formatted: "12.0 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
@@ -1595,23 +1594,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Private encrypted messaging, calls & workspaces",
           description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
           category: "Communication",
-          version_name: "4.6.11",
-          version_code: 100,
-          size_bytes: 37791804,
+          version_name: "4.6.12",
+          version_code: 101,
+          size_bytes: 37792608,
           size_formatted: "36.0 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#2563EB",
           changelog: [
+            "Incoming background call push reception and instant locked screen overlay trigger",
+            "FOREGROUND_SERVICE_PHONE_CALL system optimization for continuous audio sync",
             "Native Android System Face ID support via BiometricPrompt with passive glance-to-unlock",
             "Eliminated front camera lock contention (CAMERA_IN_USE) for instant system face biometric matching",
-            "Added dynamic lock screen switcher chip (Face ID / Fingerprint)",
             "Fixed session token synchronization for active profile sessions",
-            "Our Store dynamic integration & updates",
-            "Fixed direct message preview synchronization"
+            "Our Store dynamic integration & updates"
           ],
           is_essential: true,
-          updated_at: "2026-10-29T15:35:00Z"
+          updated_at: "2026-10-30T11:20:00Z"
         },
         {
           id: "jarvis",
@@ -6730,13 +6729,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.11",
-      version_name: "v4.6.11",
-      version_code: 100,
-      build: 100,
-      sha256: "88824fa271c0bda7d419120390875d9a107c78e49b56e89f95ea19a181747bb0",
+      version: "4.6.12",
+      version_name: "v4.6.12",
+      version_code: 101,
+      build: 101,
+      sha256: "fd5a35b7866915ef181bd4d9b762c3efc09da0e9e820f46ae94ad0453259e3ea",
       filename: "connecto-fun.apk",
-      size_bytes: 37791804,
+      size_bytes: 37792608,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
