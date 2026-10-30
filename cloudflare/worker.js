@@ -257,7 +257,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.4");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.5");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1571,7 +1571,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.5.4",
+      store_version: "1.5.5",
       total_apps: 4,
       apps: [
         {
@@ -1582,22 +1582,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.4",
-          version_code: 11,
+          version_name: "1.5.5",
+          version_code: 12,
           size_bytes: 12542506,
           size_formatted: "12.0 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
+            "User Profile Pictures: High-res circular avatar with emerald role status ring in Account tab",
+            "In-App Version Indicator: Live client build badge in Account tab verifying running version",
             "Streamlined Clean Header: Removed Personal Application Hub banner from applications list",
             "Focused Updates Section: Removed redundant search bar from Updates tab",
-            "Refined Navigation: Removed redundant Apps tab for streamlined 3-tab bottom bar",
-            "Account Tab In-App Update Engine: Our Store updates surfaced exclusively in Account section",
-            "Autonomous Background Alarm & WakeLock: Reliable update notifications even when app is swiped away from Recents"
+            "Refined Navigation: Removed redundant Apps tab for streamlined 3-tab bottom bar"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T18:10:00Z"
+          updated_at: "2026-10-30T18:45:00Z"
         },
         {
           id: "connecto",
