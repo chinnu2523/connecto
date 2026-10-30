@@ -257,7 +257,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.5");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.6");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -272,11 +272,12 @@ export default {
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
     if (
       cleanPath === "/downloads/jarvis-ai-official.apk" ||
+      cleanPath === "/downloads/jarvis-ai-v3.1.0.apk" ||
       cleanPath === "/downloads/jarvis-assistant.apk" ||
       cleanPath.includes("jarvis-ai-official") ||
       (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-official.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.1.0.apk", 302);
     }
 
     // 3a-4b. PDF Studio Logo Edge Asset
@@ -1582,22 +1583,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.5",
-          version_code: 12,
-          size_bytes: 12542506,
+          version_name: "1.5.6",
+          version_code: 13,
+          size_bytes: 12558883,
           size_formatted: "12.0 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "User Profile Pictures: High-res circular avatar with emerald role status ring in Account tab",
-            "In-App Version Indicator: Live client build badge in Account tab verifying running version",
-            "Streamlined Clean Header: Removed Personal Application Hub banner from applications list",
-            "Focused Updates Section: Removed redundant search bar from Updates tab",
-            "Refined Navigation: Removed redundant Apps tab for streamlined 3-tab bottom bar"
+            "Strict Unauthenticated Gate: Only Login with Connecto is displayed until signed in",
+            "Real-time Self-Update Notifications: Instant alert banner when Our Store updates are ready",
+            "Direct 1-Tap Account Update: Prominent update card with instant PackageInstaller integration",
+            "Account Deep-Linking: Tap update notification to jump straight to Account update card"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T18:45:00Z"
+          updated_at: "2026-10-30T21:30:00Z"
         },
         {
           id: "connecto",
@@ -1633,22 +1633,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "3.0.0",
-          version_code: 30,
-          size_bytes: 169560525,
+          version_name: "3.1.0",
+          version_code: 31,
+          size_bytes: 169576913,
           size_formatted: "161.7 MB",
-          download_url: "https://connecto.fun/downloads/jarvis-ai-official.apk",
+          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.1.0.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Fixed post-call wake engine recovery: clears lingering Bluetooth SCO and resets audio communication device",
-            "Added 'Use phone microphone for Jarvis even when earbuds are connected' (default ON)",
-            "Dynamic Vosk grammar with user-configurable accepted variants (jarvis, hey jarvis, travis, service, jar vis)",
-            "Near-miss acoustic variant logging and continuous high-noise / excessive input gain warning hint",
-            "Renamed Diagnostics meter to 'Input Sound Level (RMS)' and added live partial/final transcript cards"
+            "Direct WhatsApp & WhatsApp Business Voice and Video Calling: Synced contact MIME-type querying via Contacts Provider (Method A) and conversational chat fallback (Method B)",
+            "Honest Result Verification: Foreground check verifies WhatsApp call activity before confirming, with vivo background restriction diagnostics",
+            "Microphone Handoff & Auto-Resume: Releases mic and pauses wake engine immediately during calls, rebuilding a fresh audio pipeline upon completion",
+            "Natural Conversation Mode ('Chat' style): Chinnu personal assistant persona, continuous 5-8s listening without wake word, first-sentence TTS streaming, and tap-to-interrupt",
+            "User Profile Picture: Custom avatar display and gallery picker in Settings / Account tab with persistent URI storage and initials fallback"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T11:30:00Z"
+          updated_at: "2026-10-30T16:25:00Z"
         },
         {
           id: "pdfstudio",
