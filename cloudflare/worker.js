@@ -323,7 +323,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.4.4");
+          downloadHeaders.set("X-Connecto-Version", "v1.4.5");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1659,31 +1659,28 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.4.4",
-          version_code: 9,
+          version_name: "1.4.5",
+          version_code: 10,
           size_bytes: 28316079,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
-            "Pixel-Perfect Text Replacement Alignment: Fixed vertical coordinate shift bug so replacements and whiteouts cleanly envelope the exact target text without overlapping upper lines",
-            "Automatic Color Extraction: Live extraction of exact original font colors (including custom theme colors) preserved across all edits",
-            "Complete Whiteout Masking: Generous padding envelopes ascenders and descenders with zero underlying text bleed",
-            "Original Formatting Preservation: Font family, size, color, and styles (bold/italic) are automatically locked and preserved from the PDF",
-            "Focused Text Editing: Streamlined interface to edit only the text data without altering typography or colors",
-            "Clean Document View: Removed all wireframe rectangle and square boxes for pristine viewing",
-            "Exact-Fit Page Bounding: Fixed landscape and portrait aspect ratio alignment eliminating misplaced selections in empty space",
-            "In-Page Text Tap Selection: Directly tap any text on the page to highlight and edit or erase it",
-            "WYSIWYG Live Text Editing: Modifications and whiteouts render in real-time directly over the canvas",
+            "Proportional Text Scaling: Font size and metrics in live overlay dynamically scale to match exact PDF canvas scale (no oversized or overflowing text in tables)",
+            "Dual Edit Mode (Edit Word vs Edit Line): Tap any word to edit it directly, or choose 'Edit Line' to rewrite the whole sentence without word collision",
+            "Auto-Fit Proportionate Sizing: Long replacement strings automatically fit into the original gap with zero overflow onto adjacent text",
+            "System Theme Font Isolation: PDF text is protected against device custom cursive/handwriting fonts, rendering clean document typography with zero font padding drift",
+            "Tight Whiteout Bounding: Removed oversized min-height guards so whiteout boxes cover only the target glyphs without masking adjacent lines",
+            "Pixel-Perfect Text Replacement Alignment: Fixed vertical coordinate shift bug so replacements and whiteouts cleanly envelope the exact target text",
+            "Automatic Color Extraction: Live extraction of exact original font colors preserved across all edits",
             "Undo & Redo History: Seamless one-click undo and redo for all text edits and replacements",
-            "1-Tap Erase / Whiteout: Cleanly remove unwanted text, numbers, or names from any page",
             "Smooth Multi-Touch Pinch-to-Zoom & Double-Tap: Pinch or double-tap to zoom up to 450% with effortless pan",
             "Universal Image to PDF Converter (JPG, PNG, WEBP, BMP, HEIF, GIF)",
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
           ],
           is_essential: false,
-          updated_at: "2026-10-30T08:45:00Z"
+          updated_at: "2026-10-30T10:35:00Z"
         }
       ]
     });
