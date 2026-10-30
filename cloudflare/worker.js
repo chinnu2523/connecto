@@ -1621,10 +1621,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "2.8.0",
-          version_code: 28,
-          size_bytes: 131965379,
-          size_formatted: "125.8 MB",
+          version_name: "2.9.0",
+          version_code: 29,
+          size_bytes: 169527201,
+          size_formatted: "161.7 MB",
           download_url: "https://connecto.fun/downloads/jarvis-ai-official.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
@@ -1637,7 +1637,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "Developer Mode real-time telemetry: frames per second, peak input level (dB), and live transcripts"
           ],
           is_essential: true,
-          updated_at: "2026-10-29T17:38:00Z"
+          updated_at: "2026-10-30T05:05:00Z"
         },
         {
           id: "pdfstudio",
@@ -1647,8 +1647,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.4.2",
-          version_code: 7,
+          version_name: "1.4.3",
+          version_code: 8,
           size_bytes: 28316079,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
