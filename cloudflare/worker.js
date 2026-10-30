@@ -276,7 +276,7 @@ export default {
       cleanPath.includes("jarvis-ai-official") ||
       (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.10/jarvis-ai-official.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-official.apk", 302);
     }
 
     // 3a-4b. PDF Studio Logo Edge Asset
@@ -1633,23 +1633,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "2.9.0",
-          version_code: 29,
-          size_bytes: 169527201,
+          version_name: "3.0.0",
+          version_code: 30,
+          size_bytes: 169560525,
           size_formatted: "161.7 MB",
           download_url: "https://connecto.fun/downloads/jarvis-ai-official.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Vosk ASR offline wake engine with restricted grammar ([\"jarvis\", \"hey jarvis\", \"[unk]\"])",
-            "Near 100% trigger reliability on Indian & global accents with zero noise false positives",
-            "Unified WakeWordEngine interface supporting Vosk, openWakeWord, and Off",
-            "Default Digital Assistant integration (ROLE_ASSISTANT) with power-button / swipe gesture launch",
-            "Battery Saver option: Listen only while screen is on or charging (0% drain screen-off)",
-            "Developer Mode real-time telemetry: frames per second, peak input level (dB), and live transcripts"
+            "Fixed post-call wake engine recovery: clears lingering Bluetooth SCO and resets audio communication device",
+            "Added 'Use phone microphone for Jarvis even when earbuds are connected' (default ON)",
+            "Dynamic Vosk grammar with user-configurable accepted variants (jarvis, hey jarvis, travis, service, jar vis)",
+            "Near-miss acoustic variant logging and continuous high-noise / excessive input gain warning hint",
+            "Renamed Diagnostics meter to 'Input Sound Level (RMS)' and added live partial/final transcript cards"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T05:05:00Z"
+          updated_at: "2026-10-30T11:30:00Z"
         },
         {
           id: "pdfstudio",

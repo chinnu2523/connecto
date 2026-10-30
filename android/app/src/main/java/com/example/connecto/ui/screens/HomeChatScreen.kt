@@ -108,6 +108,7 @@ import com.example.connecto.ui.designsystem.ConnectoButton
 import com.example.connecto.ui.designsystem.ConnectoButtonSize
 import com.example.connecto.ui.designsystem.ConnectoButtonVariant
 import com.example.connecto.ui.designsystem.ConnectoCard
+import com.example.connecto.ui.designsystem.ConnectoCardVariant
 import com.example.connecto.ui.designsystem.ConnectoDivider
 import com.example.connecto.ui.designsystem.ConnectoEmptyState
 import com.example.connecto.ui.designsystem.ConnectoPresenceStatus
@@ -1853,20 +1854,16 @@ fun HomeAppUpdateBanner(
     onUpdateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val colors = LocalConnectoColors.current
+
+    ConnectoCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.xs),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1E293B)
-        ),
-        border = BorderStroke(1.dp, Color(0xFF3B82F6).copy(alpha = 0.5f))
+        variant = ConnectoCardVariant.ELEVATED
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(ConnectoSpacing.md)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1879,9 +1876,10 @@ fun HomeAppUpdateBanner(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(38.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF2563EB)),
+                            .background(colors.primaryContainer)
+                            .border(1.dp, colors.borderSubtle, CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -1898,26 +1896,17 @@ fun HomeAppUpdateBanner(
                                 text = "New Update Available",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = colors.textPrimary
                             )
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = Color(0xFF2563EB).copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, Color(0xFF3B82F6))
-                            ) {
-                                Text(
-                                    text = "v${update.latestVersionName}",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF60A5FA),
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                            ConnectoTag(
+                                text = "v${update.latestVersionName}",
+                                variant = ConnectoBadgeVariant.PRIMARY
+                            )
                         }
                         Text(
                             text = if (isStoreInstalled) "Install the latest version via Our Store" else "Update available on connecto.fun",
                             fontSize = 12.sp,
-                            color = Color(0xFF94A3B8)
+                            color = colors.textSecondary
                         )
                     }
                 }
@@ -1928,8 +1917,9 @@ fun HomeAppUpdateBanner(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Color(0xFF0F172A))
+                        .clip(RoundedCornerShape(ConnectoRadius.sm))
+                        .background(colors.surfaceVariant.copy(alpha = if (colors.isGlass) 0.5f else 0.8f))
+                        .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.sm))
                         .padding(ConnectoSpacing.sm),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
@@ -1940,13 +1930,13 @@ fun HomeAppUpdateBanner(
                         ) {
                             Text(
                                 text = "•",
-                                color = Color(0xFF60A5FA),
+                                color = colors.primary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
                             )
                             Text(
                                 text = note,
-                                color = Color(0xFFCBD5E1),
+                                color = colors.textSecondary,
                                 fontSize = 12.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1958,27 +1948,14 @@ fun HomeAppUpdateBanner(
 
             Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
 
-            Button(
+            ConnectoButton(
+                text = if (isStoreInstalled) "Update via Our Store" else "Get Update on connecto.fun",
                 onClick = onUpdateClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2563EB),
-                    contentColor = Color.White
-                ),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = if (isStoreInstalled) "Update via Our Store" else "Get Update on connecto.fun",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+                variant = ConnectoButtonVariant.PRIMARY,
+                size = ConnectoButtonSize.REGULAR,
+                trailingIcon = Icons.AutoMirrored.Filled.ArrowForward,
+                fullWidth = true
+            )
         }
     }
 }
