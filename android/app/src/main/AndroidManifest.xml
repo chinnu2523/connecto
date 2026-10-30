@@ -136,6 +136,12 @@
                 android:value="" />
         </service>
 
+        <!-- Ecosystem SSO ContentProvider for 1-tap authentication into Our Store & apps -->
+        <provider
+            android:name=".sso.ConnectoSSOProvider"
+            android:authorities="com.connecto.app.sso"
+            android:exported="true" />
+
         <!-- Broadcast receiver for incoming VoIP calls and wake-up pushes -->
         <receiver
             android:name=".notifications.ConnectoCallPushReceiver"
