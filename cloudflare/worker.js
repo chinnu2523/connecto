@@ -166,11 +166,11 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.12",
-        version_name: "v4.6.12",
-        version_code: 101,
-        build: 101,
-        sha256: "fd5a35b7866915ef181bd4d9b762c3efc09da0e9e820f46ae94ad0453259e3ea",
+        version: "4.6.13",
+        version_name: "v4.6.13",
+        version_code: 102,
+        build: 102,
+        sha256: "57e5d0b7084fd97daa145222c99aba5bb8a22e2beb36f6d41c65671d00b59e73",
         filename: "connecto-fun.apk",
         size_bytes: 37792608,
         size_display: "36.0 MB",
@@ -397,7 +397,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.9/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -6741,11 +6741,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.12",
-      version_name: "v4.6.12",
-      version_code: 101,
-      build: 101,
-      sha256: "fd5a35b7866915ef181bd4d9b762c3efc09da0e9e820f46ae94ad0453259e3ea",
+      version: "4.6.13",
+      version_name: "v4.6.13",
+      version_code: 102,
+      build: 102,
+      sha256: "57e5d0b7084fd97daa145222c99aba5bb8a22e2beb36f6d41c65671d00b59e73",
       filename: "connecto-fun.apk",
       size_bytes: 37792608,
       size_display: "36.0 MB",
