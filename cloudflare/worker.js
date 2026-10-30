@@ -323,7 +323,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.4.6");
+          downloadHeaders.set("X-Connecto-Version", "v1.4.7");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1658,14 +1658,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.4.6",
-          version_code: 11,
+          version_name: "1.4.7",
+          version_code: 12,
           size_bytes: 28316079,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
+            "Full Coloured Text Preservation: Fixed root cause where PDFBox stripped color operators; added native color operators (SetNonStrokingColor, SetNonStrokingDeviceRGBColor, etc.) and dual-pass high-res glyph stroke sampling so colored text (green, blue, red, cyan, white) is 100% preserved and never converts to black",
+            "Color Preview Indicator: Edit dialog and contextual selection pill now display the exact live color swatch of the selected text",
             "Seamless In-Bitmap Compositing: Text replacements and erasures are rendered directly into the high-resolution page bitmap with exact sampled background color blending (teal, colored tables, shaded cells, and white backgrounds stay 100% authentic)",
             "Zero System Theme Hijacking: Bypasses device custom cursive/handwriting fonts, rendering crisp native document typography (Roboto/Noto) directly into the PDF",
             "Exact Mathematical Baseline Alignment: Text replacements align with subpixel precision to the exact baseline and width of the original PDF text",
@@ -1677,7 +1679,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
           ],
           is_essential: false,
-          updated_at: "2026-10-30T11:15:00Z"
+          updated_at: "2026-10-30T11:45:00Z"
         }
       ]
     });
