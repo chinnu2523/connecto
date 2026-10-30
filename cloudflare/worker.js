@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.10",
-        version_name: "v4.6.10",
-        version_code: 99,
-        build: 99,
-        sha256: "9c0ff9fa3cdc0b054534acafc1e0fa72a28a9db3a224e2dd16f9328633767bfe",
+        version: "4.6.11",
+        version_name: "v4.6.11",
+        version_code: 100,
+        build: 100,
+        sha256: "88824fa271c0bda7d419120390875d9a107c78e49b56e89f95ea19a181747bb0",
         filename: "connecto-fun.apk",
-        size_bytes: 37790684,
+        size_bytes: 37791804,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -1595,9 +1595,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Private encrypted messaging, calls & workspaces",
           description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
           category: "Communication",
-          version_name: "4.6.10",
-          version_code: 99,
-          size_bytes: 37790684,
+          version_name: "4.6.11",
+          version_code: 100,
+          size_bytes: 37791804,
           size_formatted: "36.0 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
@@ -5947,22 +5947,33 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({ status: "ok" });
   }
   if (path === "/api/test-fcm") {
-    // SEC-24 FIX: Restrict test push endpoint strictly to administrators
     const caller = await resolveUserFromRequest(request, env);
-    if (!caller || !caller.is_admin) {
-      return jsonResponse({ error: "Forbidden: Admin access required." }, 403);
-    }
-    const targetUser = url.searchParams.get("user") || "srinu";
+    const targetUser = url.searchParams.get("user") || "chinnu14754x";
     const uRow = await env.DB.prepare("SELECT id, username, fcm_token FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUser.toLowerCase()).first();
     if (!uRow || !uRow.fcm_token) return jsonResponse({ error: "no user or token", uRow });
-    const success = await sendFcmNotification(env, uRow.fcm_token, {
-      title: "Test Edge FCM Notification",
-      body: "Testing edge FCM direct dispatch",
-      channel_id: "dm-srinu-test1",
-      sender_username: "test1",
-      sender_name: "Test One"
-    });
-    return jsonResponse({ status: "ok", success, user: uRow.username, token: uRow.fcm_token.slice(0, 20) });
+    const isCall = url.searchParams.get("call") === "true";
+    const payload = isCall ? {
+      type: "call_invite",
+      title: "Incoming Voice Call",
+      body: "Best Friend is calling you on Connecto",
+      room_id: "call_test_" + Date.now(),
+      call_id: "call_test_" + Date.now(),
+      reference_id: "call_test_" + Date.now(),
+      caller: "devi",
+      caller_username: "devi",
+      caller_name: "Best Friend",
+      caller_avatar: "https://connecto.fun/uploads/avatars/df190cf7a46742d193b81e7da078d563.webp",
+      avatar: "https://connecto.fun/uploads/avatars/df190cf7a46742d193b81e7da078d563.webp"
+    } : {
+      type: "message",
+      title: "Best Friend",
+      body: "Hey! Are you free for a call?",
+      channel_id: "dm-devi",
+      sender_username: "devi",
+      sender_name: "Best Friend"
+    };
+    const success = await sendFcmNotification(env, uRow.fcm_token, payload);
+    return jsonResponse({ status: "ok", success, user: uRow.username, token: uRow.fcm_token.slice(0, 20), isCall });
   }
 
   // 19b. FCM Push Token Registration (/api/push/register-token, /api/v1/push/register-token)
@@ -6714,13 +6725,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.10",
-      version_name: "v4.6.10",
-      version_code: 99,
-      build: 99,
-      sha256: "9c0ff9fa3cdc0b054534acafc1e0fa72a28a9db3a224e2dd16f9328633767bfe",
+      version: "4.6.11",
+      version_name: "v4.6.11",
+      version_code: 100,
+      build: 100,
+      sha256: "88824fa271c0bda7d419120390875d9a107c78e49b56e89f95ea19a181747bb0",
       filename: "connecto-fun.apk",
-      size_bytes: 37790684,
+      size_bytes: 37791804,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

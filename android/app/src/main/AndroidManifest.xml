@@ -29,6 +29,7 @@
     <!-- Foreground service for voice calls and audio playback -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -53,13 +54,13 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:theme="@style/Theme.Connecto">
 
-        <!-- Persistent Voice Call Foreground Service with Microphone support -->
+        <!-- Persistent Voice Call Foreground Service with Microphone and Phone Call support -->
         <service
             android:name=".voice.VoiceCallForegroundService"
             android:enabled="true"
             android:exported="false"
             android:stopWithTask="false"
-            android:foregroundServiceType="microphone" />
+            android:foregroundServiceType="microphone|phoneCall" />
 
         <!-- Real-Time Background Service for Calls & Notifications -->
         <service
@@ -135,6 +136,16 @@
                 android:value="" />
         </service>
 
+        <!-- Broadcast receiver for incoming VoIP calls and wake-up pushes -->
+        <receiver
+            android:name=".notifications.ConnectoCallPushReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.example.connecto.ACTION_INCOMING_CALL" />
+            </intent-filter>
+        </receiver>
+
         <!-- Suppress ProfileInstallReceiver to eliminate signature-level android.permission.DUMP from APK manifest -->
         <receiver
             android:name="androidx.profileinstaller.ProfileInstallReceiver"
@@ -147,6 +158,8 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:showOnLockScreen="true"
+            android:inheritShowWhenLocked="true"
+            android:screenOrientation="portrait"
             android:theme="@style/Theme.Connecto"
             android:excludeFromRecents="true" />
 

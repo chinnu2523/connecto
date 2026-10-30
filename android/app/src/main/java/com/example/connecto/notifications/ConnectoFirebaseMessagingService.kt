@@ -95,6 +95,21 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 val callerUser = data["caller_username"] ?: data["caller"] ?: data["caller_id"] ?: sender.ifBlank { title }
                 val callerDisplayName = data["caller_name"] ?: data["sender_name"] ?: sender.ifBlank { callerUser.ifBlank { title } }
                 Log.d(TAG, "VoIP FCM incoming call received: room=$callRoomId, caller=$callerUser ($callerDisplayName)")
+
+                // 1. Acquire Full WakeLock to turn on display and wake CPU immediately
+                try {
+                    val pm = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                    @Suppress("DEPRECATION")
+                    val wakeLock = pm?.newWakeLock(
+                        android.os.PowerManager.FULL_WAKE_LOCK or android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP or android.os.PowerManager.ON_AFTER_RELEASE,
+                        "connecto:fcm_call_incoming_wake"
+                    )
+                    wakeLock?.acquire(30000L)
+                } catch (e: Exception) {
+                    Log.w(TAG, "WakeLock acquire failed: ${e.message}")
+                }
+
+                // 2. Initialize voice engine and display native call notification with FullScreenIntent
                 VoiceCallManager.init(applicationContext)
                 VoiceCallManager.triggerIncomingCallFromPushOrBackground(
                     roomId = callRoomId,
@@ -103,6 +118,32 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                     callerName = callerDisplayName,
                     callerAvatar = callerAvatar
                 )
+
+                // 3. Directly launch IncomingCallActivity over the current screen
+                try {
+                    val fullScreenIntent = android.content.Intent(applicationContext, com.example.connecto.voice.IncomingCallActivity::class.java).apply {
+                        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, callRoomId)
+                        putExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME, callerDisplayName)
+                        putExtra("extra_caller_username", callerUser)
+                        putExtra("extra_caller_avatar", callerAvatar)
+                    }
+                    applicationContext.startActivity(fullScreenIntent)
+                } catch (e: Exception) {
+                    Log.d(TAG, "Direct activity start attempted: ${e.message}")
+                }
+
+                // 4. Also notify ConnectoCallPushReceiver for secondary wake assurance
+                try {
+                    val broadcastIntent = android.content.Intent(applicationContext, ConnectoCallPushReceiver::class.java).apply {
+                        action = ConnectoCallPushReceiver.ACTION_INCOMING_CALL
+                        putExtra("room_id", callRoomId)
+                        putExtra("caller_username", callerUser)
+                        putExtra("caller_name", callerDisplayName)
+                        putExtra("caller_avatar", callerAvatar)
+                    }
+                    applicationContext.sendBroadcast(broadcastIntent)
+                } catch (_: Exception) {}
             }
             "call_ended", "call_cancelled", "call_declined", "call_hung_up" -> {
                 val callRoomId = referenceId.ifBlank { data["call_id"] ?: data["room_id"] ?: "" }
