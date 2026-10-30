@@ -62,14 +62,17 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Change names in matching fonts, edit text & convert images to PDF",
         "description": "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
         "category": "Productivity",
-        "version_name": "1.4.3",
-        "version_code": 8,
+        "version_name": "1.4.4",
+        "version_code": 9,
         "size_bytes": 28316079,
         "size_formatted": "27.0 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
         "icon_url": "https://connecto.fun/static/pdf_studio_logo.png",
         "accent_color": "#EF4444",
         "changelog": [
+            "Pixel-Perfect Text Replacement Alignment: Fixed vertical coordinate shift bug so replacements and whiteouts cleanly envelope the exact target text without overlapping upper lines",
+            "Automatic Color Extraction: Live extraction of exact original font colors (including custom theme colors) preserved across all edits",
+            "Complete Whiteout Masking: Generous padding envelopes ascenders and descenders with zero underlying text bleed",
             "Original Formatting Preservation: Font family, size, color, and styles (bold/italic) are automatically locked and preserved from the PDF",
             "Focused Text Editing: Streamlined interface to edit only the text data without altering typography or colors",
             "Clean Document View: Removed all wireframe rectangle and square boxes for pristine viewing",
@@ -83,7 +86,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
         ],
         "is_essential": False,
-        "updated_at": "2026-10-30T03:10:00Z"
+        "updated_at": "2026-10-30T08:45:00Z"
     }
 ]
 

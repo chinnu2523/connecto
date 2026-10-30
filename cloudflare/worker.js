@@ -323,7 +323,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.3.0");
+          downloadHeaders.set("X-Connecto-Version", "v1.4.4");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -685,6 +685,10 @@ async function sendFcmNotification(env, fcmToken, payload) {
     const fcmMessage = {
       message: {
         token: fcmToken,
+        notification: {
+          title: String(title),
+          body: String(body)
+        },
         data: {
           type: String(payload.type || "message"),
           title: String(title),
@@ -708,7 +712,15 @@ async function sendFcmNotification(env, fcmToken, payload) {
         },
         android: {
           priority: "high",
-          ttl: isCall ? "60s" : "86400s"
+          ttl: isCall ? "60s" : "86400s",
+          notification: {
+            channel_id: isCall ? "connecto_voice_calls_v2" : "connecto_messages_v4",
+            sound: "default",
+            default_sound: true,
+            default_vibrate_timings: true,
+            notification_priority: "priority_max",
+            visibility: "public"
+          }
         }
       }
     };
@@ -1570,21 +1582,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.2",
-          version_code: 9,
-          size_bytes: 12542341,
+          version_name: "1.5.3",
+          version_code: 10,
+          size_bytes: 12542506,
           size_formatted: "12.0 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Background Autonomous Update Polling: JobScheduler background engine with boot persistence",
-            "Login & Role Filtering: Secure Connecto SSO and role-based app visibility",
-            "Play Protect Security Hardening: Multi-scheme V1+V2+V3 cryptographic validation",
-            "Streamlined In-App Updater: Autonomous PackageInstaller session flow"
+            "Refined Navigation: Removed redundant Apps tab for streamlined 3-tab bottom bar",
+            "Account Tab In-App Update Engine: Our Store updates surfaced exclusively in Account section",
+            "Autonomous Background Alarm & WakeLock: Reliable update notifications even when app is swiped away from Recents",
+            "Modern Android 14+ USE_EXACT_ALARM: Instant background waking without OS throttling",
+            "Play Protect Security Hardening: Multi-scheme V1+V2+V3 cryptographic validation"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T10:45:00Z"
+          updated_at: "2026-10-30T13:40:00Z"
         },
         {
           id: "connecto",
@@ -1646,14 +1659,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Change names in matching fonts, edit text & convert images to PDF",
           description: "Professional PDF editor for Android. Smooth pinch-to-zoom & pan, edit anything on the page, tap any text or area to insert and replace text in matching fonts, and convert images to PDF.",
           category: "Productivity",
-          version_name: "1.4.3",
-          version_code: 8,
+          version_name: "1.4.4",
+          version_code: 9,
           size_bytes: 28316079,
           size_formatted: "27.0 MB",
           download_url: "https://connecto.fun/downloads/pdf-studio.apk",
           icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
           accent_color: "#EF4444",
           changelog: [
+            "Pixel-Perfect Text Replacement Alignment: Fixed vertical coordinate shift bug so replacements and whiteouts cleanly envelope the exact target text without overlapping upper lines",
+            "Automatic Color Extraction: Live extraction of exact original font colors (including custom theme colors) preserved across all edits",
+            "Complete Whiteout Masking: Generous padding envelopes ascenders and descenders with zero underlying text bleed",
             "Original Formatting Preservation: Font family, size, color, and styles (bold/italic) are automatically locked and preserved from the PDF",
             "Focused Text Editing: Streamlined interface to edit only the text data without altering typography or colors",
             "Clean Document View: Removed all wireframe rectangle and square boxes for pristine viewing",
@@ -1667,7 +1683,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "Organize Pages: Reorder, rotate, or delete pages losslessly"
           ],
           is_essential: false,
-          updated_at: "2026-10-30T03:10:00Z"
+          updated_at: "2026-10-30T08:45:00Z"
         }
       ]
     });
