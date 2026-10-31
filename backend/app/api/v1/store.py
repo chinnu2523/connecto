@@ -14,22 +14,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "System",
-        "version_name": "1.6.0",
-        "version_code": 17,
-        "size_bytes": 13350000,
-        "size_formatted": "12.8 MB",
+        "version_name": "1.6.1",
+        "version_code": 18,
+        "size_bytes": 13711561,
+        "size_formatted": "13.1 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#FFFFFF",
         "changelog": [
+            "Legal & Privacy Governance: Added full Terms of Use and Zero-Telemetry Privacy Policy modal and footers",
             "De-Cluttered Catalog Cards: Removed all external diagnostic text, build numbers and version specs for a clean, human-designed aesthetic",
             "Real Application Previews: Replaced synthetic text mockups with authentic, full-resolution app screenshots and tap-to-zoom modal",
             "Interactive Swipe Navigation: Fluid finger-tracking horizontal pager sliding between Store, Updates, and Account screens",
-            "Human-Crafted Spring Physics: Tactile touch scale and specular highlight rim textures on cards and buttons",
             "Enterprise Security Vault: AES-256-GCM hardware key protection and SHA-256 integrity verification"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-31T15:00:00Z"
+        "updated_at": "2026-10-31T16:15:00Z"
     },
     {
         "id": "connecto",
