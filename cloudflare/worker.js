@@ -262,7 +262,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.3");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.8");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1668,21 +1668,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "Services",
-          version_name: "1.6.6",
-          version_code: 23,
-          size_bytes: 13719054,
-          size_formatted: "13.1 MB",
+          version_name: "1.6.8",
+          version_code: 25,
+          size_bytes: 14897949,
+          size_formatted: "14.2 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Account Profile Picture Fix: Resolved avatar resolution root cause across SSO content provider and added edge-backed verified image rendering",
-            "Mandatory Connecto SSO Legal Consent: Terms of Use & Privacy Policy prompt with persistent server-side agreement recording",
-            "Account Tab Redesign: Dedicated Light & Dark theme buttons, Policy button, and bottom-anchored Sign Out and Switch Account actions",
-            "Top Bar Refinement: Removed Play Protect safety button from store header"
+            "App Store-style biometric & password verification for in-store app installations",
+            "Store tab action buttons: Instant 1-tap download & install directly from app cards",
+            "Fingerprint authentication with persistent biometric preference setting",
+            "Real-time download progress bar and installation state indicator on cards"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T18:50:00Z"
+          updated_at: "2026-10-31T21:25:00Z"
         },
         {
           id: "connecto",
