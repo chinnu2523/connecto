@@ -262,7 +262,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.8");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.9");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1668,21 +1668,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "Services",
-          version_name: "1.6.8",
-          version_code: 25,
-          size_bytes: 14897949,
+          version_name: "1.6.9",
+          version_code: 26,
+          size_bytes: 14897951,
           size_formatted: "14.2 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
+            "Self-Update Direct Installer: Resolved self-update stall by bypassing PackageInstaller session IPC and launching OS PackageInstaller activity directly",
+            "Universal OEM Installer Support: Added ColorOS, OxygenOS, MIUI, and OneUI package installer intent resolvers",
             "App Store-style biometric & password verification for in-store app installations",
-            "Store tab action buttons: Instant 1-tap download & install directly from app cards",
-            "Fingerprint authentication with persistent biometric preference setting",
             "Real-time download progress bar and installation state indicator on cards"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T21:25:00Z"
+          updated_at: "2026-10-31T21:55:00Z"
         },
         {
           id: "connecto",
