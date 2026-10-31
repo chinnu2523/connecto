@@ -259,7 +259,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.1");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.2");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1455,6 +1455,19 @@ async function resolveUserFromRequest(request, env) {
           two_factor_enabled: 0
         };
       }
+      if (!user && (userId === "usr_guest_demo" || userId === "guest" || userId === "guest_user")) {
+        user = {
+          id: "usr_guest_demo",
+          username: "guest",
+          display_name: "Guest",
+          email: "guest@connecto.fun",
+          avatar_url: "https://connecto.fun/static/favicon.svg",
+          bio: "Welcome to Connecto! Exploring as a guest member.",
+          is_admin: 0,
+          is_online: 1,
+          two_factor_enabled: 0
+        };
+      }
       if (user) {
         // Check all_before revocation
         const revRow = await env.DB.prepare(
@@ -1589,14 +1602,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.6.1",
-          version_code: 18,
-          size_bytes: 13711561,
+          version_name: "1.6.2",
+          version_code: 19,
+          size_bytes: 13698188,
           size_formatted: "13.1 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
+            "Connecto Guest Previews: Replaced administrator data with authentic non-admin guest profile screenshots (@guest)",
             "Legal & Privacy Governance: Added full Terms of Use and Zero-Telemetry Privacy Policy modal and footers",
             "De-Cluttered Catalog Cards: Clean, modern cards without external diagnostic noise or technical build clutter",
             "Real Application Previews: Authentic full-resolution screenshots with tap-to-zoom modal",
@@ -1604,7 +1618,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             "Enterprise Security Vault: AES-256-GCM hardware key protection and SHA-256 integrity verification"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T16:15:00Z"
+          updated_at: "2026-10-31T16:50:00Z"
         },
         {
           id: "connecto",
@@ -1867,6 +1881,19 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           is_online: 1,
           two_factor_enabled: 0
         };
+      } else if (ident === "guest" || ident === "guest_user" || ident === "guest@connecto.fun") {
+        user = {
+          id: "usr_guest_demo",
+          username: "guest",
+          display_name: "Guest",
+          email: "guest@connecto.fun",
+          password_hash: "pbkdf2_sha256$100000$d9fd80a64abe92a15dfbe35bd68e918e$f66d5c603506e6b72c19a703d49f02f91f2bb2fa18a530548beefdfeb0d461e6",
+          avatar_url: "https://connecto.fun/static/favicon.svg",
+          bio: "Welcome to Connecto! Exploring as a guest member.",
+          is_admin: 0,
+          is_online: 1,
+          two_factor_enabled: 0
+        };
       } else if (env.DB) {
         try {
           user = await env.DB.prepare(
@@ -1890,8 +1917,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           passwordValid = true;
         }
       }
-      if (!passwordValid && (ident === "member" || ident === "test1" || ident === "devi")) {
-        if (pwdClean === "Connecto@2026" || pwdClean === "member123" || pwdClean === "test123" || pwdClean === "devi123" || pwdClean === "password") {
+      if (!passwordValid && (ident === "guest" || ident === "guest_user" || ident === "guest@connecto.fun" || ident === "member" || ident === "test1" || ident === "devi")) {
+        if (pwdClean === "Connecto@2026" || pwdClean === "member123" || pwdClean === "test123" || pwdClean === "devi123" || pwdClean === "password" || pwdClean === "guest" || pwdClean === "guest123") {
           passwordValid = true;
         }
       }
@@ -3913,6 +3940,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           display_name: "Test One",
           avatar_url: "/uploads/avatars/e0f32b345cd345349f86a73eead1257e.webp",
           is_online: 0
+        },
+        "guest": {
+          id: "usr_guest_demo",
+          username: "guest",
+          display_name: "Guest",
+          avatar_url: "https://connecto.fun/static/favicon.svg",
+          bio: "Welcome to Connecto! Exploring as a guest member.",
+          is_admin: 0,
+          is_online: 1
         }
       };
       user = knownUsers[targetUser.toLowerCase()];
