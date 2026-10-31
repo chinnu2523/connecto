@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.13",
-        version_name: "v4.6.13",
-        version_code: 102,
-        build: 102,
-        sha256: "57e5d0b7084fd97daa145222c99aba5bb8a22e2beb36f6d41c65671d00b59e73",
+        version: "4.6.14",
+        version_name: "v4.6.14",
+        version_code: 103,
+        build: 103,
+        sha256: "d875c12ae92f8436ffe2bac883f71dfd63fe5103b4af0df4d6bfee288361c3c5",
         filename: "connecto-fun.apk",
-        size_bytes: 37792608,
+        size_bytes: 37791900,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -180,6 +180,8 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "SSO ContentProvider Hardening: Restricted com.connecto.app.sso with signature-level permission and caller developer certificate validation.",
+          "Restricted Call Broadcast Receiver: ConnectoCallPushReceiver made internal (non-exported) to eliminate lockscreen spoofing and WakeLock denial-of-service risks.",
           "Native Android System Face ID: Seamless integration with Android system BiometricPrompt using BIOMETRIC_STRONG or BIOMETRIC_WEAK authenticators and passive glance-to-unlock (setConfirmationRequired false), functioning identically to system fingerprint authentication.",
           "Camera2 Conflict Prevention: Decoupled camera hardware locking to ensure system biometric HAL daemons have uninterrupted, zero-latency access to front sensors.",
           "Session Persistence & Synchronization Fix: Fixed session token synchronization across SecureStorageManager and legacy prefs, ensuring logged-in active sessions load cleanly on profile.",
@@ -257,7 +259,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.8");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.9");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -272,13 +274,14 @@ export default {
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
     if (
       cleanPath === "/downloads/jarvis-ai-official.apk" ||
+      cleanPath === "/downloads/jarvis-ai-v3.3.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.2.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.1.0.apk" ||
       cleanPath === "/downloads/jarvis-assistant.apk" ||
       cleanPath.includes("jarvis-ai-official") ||
       (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.2.0.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.3.0.apk", 302);
     }
 
     // 3a-4b. PDF Studio Logo Edge Asset
@@ -352,14 +355,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.13-b102.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.14-b103.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.13");
-          res.headers.set("X-Connecto-Build", "102");
+          res.headers.set("X-Connecto-Version", "v4.6.14");
+          res.headers.set("X-Connecto-Build", "103");
           return res;
         }
 
@@ -372,7 +375,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.13"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.14"
               }
             });
             if (upstreamResp.ok) {
@@ -383,8 +386,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.13");
-              downloadHeaders.set("X-Connecto-Build", "102");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.14");
+              downloadHeaders.set("X-Connecto-Build", "103");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1584,21 +1587,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.8",
-          version_code: 15,
-          size_bytes: 12575267,
-          size_formatted: "12.0 MB",
+          version_name: "1.5.9",
+          version_code: 16,
+          size_bytes: 13296493,
+          size_formatted: "12.7 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Interactive Theme Switch: Toggle between Pure Pitch Black OLED and Clean Crisp Day Light theme in Account tab",
-            "Persistent Theme Settings: Automatically remembers appearance preference across app restarts",
-            "Full App-Wide Light & Dark Themes: Complete palette adaptation across Catalog, Details, and Headers",
-            "Fluid Motion & Shimmer Progress: Spring-physics press scale and animated shimmer bars"
+            "Ecosystem SSO Security Hardening: Protected by signature-level permission and caller developer certificate validation",
+            "Restricted Package Installer Receiver: InstallStatusReceiver made non-exported with system component validation",
+            "Hardware-Backed Encrypted Storage: Upgraded session token storage to Android KeyStore AES-256-GCM EncryptedSharedPreferences",
+            "Disabled Insecure Backups: android:allowBackup set to false to protect session credentials",
+            "Pre-Install Cryptographic Checksum Check: Added SHA-256 binary validation to prevent tampered or corrupted package installs",
+            "Interactive Theme Switch: Toggle between Pure Pitch Black OLED and Clean Crisp Day Light theme in Account tab"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T05:30:00Z"
+          updated_at: "2026-10-31T12:40:00Z"
         },
         {
           id: "connecto",
@@ -1608,23 +1613,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Private encrypted messaging, calls & workspaces",
           description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
           category: "Communication",
-          version_name: "4.6.13",
-          version_code: 102,
-          size_bytes: 37792608,
+          version_name: "4.6.14",
+          version_code: 103,
+          size_bytes: 37791900,
           size_formatted: "36.0 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#2563EB",
           changelog: [
-            "Incoming background call push reception and instant locked screen overlay trigger",
-            "FOREGROUND_SERVICE_PHONE_CALL system optimization for continuous audio sync",
+            "SSO ContentProvider Hardening: Restricted com.connecto.app.sso with signature-level permission and caller developer certificate validation",
+            "Restricted Call Broadcast Receiver: ConnectoCallPushReceiver made internal (non-exported) to eliminate lockscreen spoofing and WakeLock denial-of-service risks",
             "Native Android System Face ID support via BiometricPrompt with passive glance-to-unlock",
-            "Eliminated front camera lock contention (CAMERA_IN_USE) for instant system face biometric matching",
-            "Fixed session token synchronization for active profile sessions",
-            "Our Store dynamic integration & updates"
+            "FOREGROUND_SERVICE_PHONE_CALL system optimization for continuous audio sync"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T11:20:00Z"
+          updated_at: "2026-10-31T12:40:00Z"
         },
         {
           id: "jarvis",
@@ -1634,22 +1637,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "3.2.0",
-          version_code: 32,
-          size_bytes: 169576909,
+          version_name: "3.3.0",
+          version_code: 33,
+          size_bytes: 169593293,
           size_formatted: "161.7 MB",
-          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.2.0.apk",
+          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.3.0.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Fixed Routing Bugs: Non-command and conversational queries (hi, hello, I love you) now route to Cloud/On-Device LLM with natural persona and warm, honest boundary handling instead of 1ms Fast Path fallback",
-            "Reordered WhatsApp Call Flow: Contact parsing and fuzzy matching show confirmation card and ask aloud BEFORE opening WhatsApp; launches only after explicit user confirmation",
-            "Unified App-Wide PendingActionStore: Persistent 60-second action store coordinating across app switches, Dynamic Island, and background wake sessions",
-            "Follow-up Voice Window: Automatic 350ms settling pause after TTS completion followed by 6-8s hands-free listening window without wake word",
-            "Multilingual Affirmative & Negative Vocabularies: Full support for English, Telugu, and Hinglish confirmation/cancellation tokens (yes, haan, avunu, cheyyi, sarey, proceed)"
+            "Direct WhatsApp Calling & Contact Aggregation: Normalized numbers (+91 vs local 10-digits), merged duplicates, and prioritized official com.whatsapp call rows",
+            "Background Wake Execution & Trampoline: Wake-triggered commands from home screen launch securely via AppLaunchTrampolineActivity and VoiceInteractionSession",
+            "Eliminated False 'Blocked by vivo' Alarms: 4.0-second foreground verification against target package; starting without exception guarantees Launched status without false vivo popup blocks",
+            "Hands-Free Follow-Up Listening Window: Automatic 400ms settling pause followed by 7-second listening window owned by the foreground microphone service",
+            "Idempotent Affirmative Protection: Dropped duplicate 'yes' utterances within 5-second window following action resolution",
+            "WhatsApp Voice-Call Auto-Tap (Optional Accessibility Fallback) & Settings Diagnostics: Added contact callability inspector dialog and comprehensive Vivo background clearance checklist"
           ],
           is_essential: true,
-          updated_at: "2026-10-30T18:10:00Z"
+          updated_at: "2026-10-31T12:00:00Z"
         },
         {
           id: "pdfstudio",
@@ -6744,13 +6748,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.13",
-      version_name: "v4.6.13",
-      version_code: 102,
-      build: 102,
-      sha256: "57e5d0b7084fd97daa145222c99aba5bb8a22e2beb36f6d41c65671d00b59e73",
+      version: "4.6.14",
+      version_name: "v4.6.14",
+      version_code: 103,
+      build: 103,
+      sha256: "d875c12ae92f8436ffe2bac883f71dfd63fe5103b4af0df4d6bfee288361c3c5",
       filename: "connecto-fun.apk",
-      size_bytes: 37792608,
+      size_bytes: 37791900,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

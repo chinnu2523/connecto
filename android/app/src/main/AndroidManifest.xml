@@ -2,6 +2,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Ecosystem SSO Signature Permission (OWASP MASVS / Android Security Hardening) -->
+    <permission
+        android:name="com.connecto.permission.READ_SSO_CREDENTIALS"
+        android:protectionLevel="signature" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -136,17 +141,18 @@
                 android:value="" />
         </service>
 
-        <!-- Ecosystem SSO ContentProvider for 1-tap authentication into Our Store & apps -->
+        <!-- Ecosystem SSO ContentProvider for 1-tap authentication into Our Store & apps (Protected by Signature Permission) -->
         <provider
             android:name=".sso.ConnectoSSOProvider"
             android:authorities="com.connecto.app.sso"
+            android:readPermission="com.connecto.permission.READ_SSO_CREDENTIALS"
             android:exported="true" />
 
-        <!-- Broadcast receiver for incoming VoIP calls and wake-up pushes -->
+        <!-- Broadcast receiver for incoming VoIP calls and wake-up pushes (Internal Only) -->
         <receiver
             android:name=".notifications.ConnectoCallPushReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="com.example.connecto.ACTION_INCOMING_CALL" />
             </intent-filter>

@@ -41,6 +41,21 @@ class ConnectoSSOProvider : ContentProvider() {
 
         try {
             val ctx = context ?: return cursor
+            val caller = callingPackage
+            if (caller == null) {
+                Log.w(TAG, "SSO Query rejected: callingPackage is null")
+                return cursor
+            }
+
+            // Cryptographic caller verification: caller must be signed with our ecosystem developer key
+            val isCallerVerified = (caller == ctx.packageName) ||
+                (ctx.packageManager.checkSignatures(ctx.packageName, caller) == android.content.pm.PackageManager.SIGNATURE_MATCH)
+
+            if (!isCallerVerified) {
+                Log.w(TAG, "Security Alert: Unauthorized SSO Query rejected from package '$caller' (Signature Mismatch)")
+                return cursor
+            }
+
             ConnectoApiClient.initSessionFromPrefs(ctx)
 
             val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)

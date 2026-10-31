@@ -7,6 +7,31 @@ router = APIRouter(prefix="/api/v1/store", tags=["App Store"])
 
 APPS_CATALOG: List[Dict[str, Any]] = [
     {
+        "id": "ourstore",
+        "package_name": "com.connecto.store",
+        "name": "Our Store",
+        "badge": "App Hub Engine",
+        "tagline": "Autonomous package installer, background updater & security vault",
+        "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
+        "category": "System",
+        "version_name": "1.5.9",
+        "version_code": 16,
+        "size_bytes": 13296493,
+        "size_formatted": "12.7 MB",
+        "download_url": "https://connecto.fun/downloads/our-store.apk",
+        "icon_url": "https://connecto.fun/static/favicon.svg",
+        "accent_color": "#FFFFFF",
+        "changelog": [
+            "Ecosystem SSO Security Hardening: Protected by signature-level permission and caller certificate verification",
+            "Restricted Package Installer Receiver: InstallStatusReceiver made non-exported with system component validation",
+            "Hardware-Backed Encrypted Storage: Upgraded session token storage to Android KeyStore AES-256-GCM EncryptedSharedPreferences",
+            "Disabled Insecure Backups: android:allowBackup set to false to protect session credentials",
+            "Pre-Install Cryptographic Checksum Check: Added SHA-256 binary validation to prevent tampered or corrupted package installs"
+        ],
+        "is_essential": True,
+        "updated_at": "2026-10-31T12:40:00Z"
+    },
+    {
         "id": "connecto",
         "package_name": "com.connecto.app",
         "name": "Connecto",
@@ -14,21 +39,21 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.8",
-        "version_code": 97,
-        "size_bytes": 37888000,
-        "size_formatted": "36.1 MB",
+        "version_name": "4.6.14",
+        "version_code": 103,
+        "size_bytes": 37791900,
+        "size_formatted": "36.0 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "Our Store dynamic integration & updates",
-            "Fixed direct message preview synchronization",
-            "Enhanced biometrics & screen security",
-            "Workspace channel presence optimizations"
+            "SSO ContentProvider Hardening: Restricted com.connecto.app.sso with signature-level permission and caller certificate verification",
+            "Restricted Call Broadcast Receiver: ConnectoCallPushReceiver made internal (non-exported)",
+            "Native Android System Face ID support via BiometricPrompt with passive glance-to-unlock",
+            "FOREGROUND_SERVICE_PHONE_CALL system optimization for continuous audio sync"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-29T13:30:00Z"
+        "updated_at": "2026-10-31T12:40:00Z"
     },
     {
         "id": "jarvis",
