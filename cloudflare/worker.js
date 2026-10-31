@@ -262,7 +262,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.9");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.7.0");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1668,8 +1668,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "Services",
-          version_name: "1.6.9",
-          version_code: 26,
+          version_name: "1.7.0",
+          version_code: 27,
           size_bytes: 14897951,
           size_formatted: "14.2 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
