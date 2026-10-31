@@ -232,6 +232,27 @@ export default {
       return Response.redirect("https://connecto.fun/#ourStoreSection", 302);
     }
 
+    // 3a-2b. Serve /store.html directly from GitHub (always fresh, bypasses Pages CDN cache)
+    if (cleanPath === "/store.html" || cleanPath === "/appstore") {
+      try {
+        const ghRaw = await fetch(
+          "https://raw.githubusercontent.com/chinnu2523/connecto/main/website/static/store.html",
+          { cf: { cacheEverything: false } }
+        );
+        if (ghRaw.ok) {
+          const html = await ghRaw.text();
+          return new Response(html, {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "public, max-age=300, s-maxage=300",
+              "X-Connecto-Store-Version": "v1.7.0",
+              "X-Served-By": "Connecto-Worker-GitHub-Direct"
+            }
+          });
+        }
+      } catch (_) {}
+    }
+
     // 3a-3. Cloudflare Edge Gateway for Our Store APK
     if (
       cleanPath === "/download/store-apk" ||
