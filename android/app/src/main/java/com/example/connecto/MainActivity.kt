@@ -35,6 +35,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -376,10 +377,32 @@ fun ConnectoApp(
         try { ConnectoTab.valueOf(savedTabStr ?: ConnectoTab.HOME.name) } catch (_: Exception) { ConnectoTab.HOME }
     }
     var currentTab by rememberSaveable { mutableStateOf(initialTab) }
+    val tabs = remember { ConnectoTab.values() }
+    val tabPagerState = androidx.compose.foundation.pager.rememberPagerState(
+        initialPage = tabs.indexOf(initialTab).coerceAtLeast(0)
+    ) { tabs.size }
+    val coroutineScope = rememberCoroutineScope()
+
+    androidx.compose.runtime.LaunchedEffect(tabPagerState.currentPage) {
+        val newTab = tabs[tabPagerState.currentPage]
+        if (newTab != currentTab) {
+            currentTab = newTab
+            prefs.edit().putString("last_active_tab", newTab.name).apply()
+        }
+    }
 
     val updateCurrentTab: (ConnectoTab) -> Unit = { tab ->
         currentTab = tab
         prefs.edit().putString("last_active_tab", tab.name).apply()
+        val targetIndex = tabs.indexOf(tab)
+        if (targetIndex != -1 && tabPagerState.currentPage != targetIndex) {
+            coroutineScope.launch {
+                tabPagerState.animateScrollToPage(
+                    page = targetIndex,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                )
+            }
+        }
     }
     var hasUnreadChats by remember { mutableStateOf(false) }
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
@@ -839,42 +862,13 @@ fun ConnectoApp(
                                     .fillMaxWidth()
                                     .weight(1f)
                             ) {
-                            AnimatedContent(
-                                targetState = currentTab,
-                                transitionSpec = {
-                                    val isForward = targetState.ordinal > initialState.ordinal
-                                    val slideSpring = spring<androidx.compose.ui.unit.IntOffset>(
-                                        stiffness = 380f,
-                                        dampingRatio = 0.82f
-                                    )
-                                    val scaleSpring = spring<Float>(
-                                        stiffness = 380f,
-                                        dampingRatio = 0.82f
-                                    )
-                                    (slideInHorizontally(
-                                        animationSpec = slideSpring,
-                                        initialOffsetX = { fullWidth -> if (isForward) (fullWidth * 0.22f).toInt() else (-fullWidth * 0.22f).toInt() }
-                                    ) + scaleIn(
-                                        initialScale = 0.94f,
-                                        animationSpec = scaleSpring
-                                    ) + fadeIn(
-                                        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing)
-                                    )).togetherWith(
-                                        slideOutHorizontally(
-                                            animationSpec = slideSpring,
-                                            targetOffsetX = { fullWidth -> if (isForward) (-fullWidth * 0.22f).toInt() else (fullWidth * 0.22f).toInt() }
-                                        ) + scaleOut(
-                                            targetScale = 0.96f,
-                                            animationSpec = scaleSpring
-                                        ) + fadeOut(
-                                            animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing)
-                                        )
-                                    )
-                                },
-                                label = "tabAnimatedContent",
-                                modifier = Modifier.fillMaxSize()
-                            ) { tab ->
-                                when (tab) {
+                            androidx.compose.foundation.pager.HorizontalPager(
+                                state = tabPagerState,
+                                modifier = Modifier.fillMaxSize(),
+                                userScrollEnabled = !isDirectChatOpen,
+                                beyondViewportPageCount = 1
+                            ) { pageIndex ->
+                                when (tabs[pageIndex]) {
                                     ConnectoTab.HOME -> {
                                         HomeChatScreen(
                                             currentUsername = authenticatedUsername,

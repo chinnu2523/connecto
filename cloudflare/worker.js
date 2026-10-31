@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.14",
-        version_name: "v4.6.14",
-        version_code: 103,
-        build: 103,
-        sha256: "d875c12ae92f8436ffe2bac883f71dfd63fe5103b4af0df4d6bfee288361c3c5",
+        version: "4.6.15",
+        version_name: "v4.6.15",
+        version_code: 104,
+        build: 104,
+        sha256: "d7678514df257764b64076cde9c6f07f506b46e2e2ed5e6c78b301fd7f2f1c95",
         filename: "connecto-fun.apk",
-        size_bytes: 37791900,
+        size_bytes: 37791996,
         size_display: "36.0 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -259,7 +259,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
           downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.5.9");
+          downloadHeaders.set("X-Connecto-Store-Version", "v1.6.0");
           return new Response(storeResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -274,6 +274,7 @@ export default {
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
     if (
       cleanPath === "/downloads/jarvis-ai-official.apk" ||
+      cleanPath === "/downloads/jarvis-ai-v3.5.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.4.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.3.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.2.0.apk" ||
@@ -282,7 +283,7 @@ export default {
       cleanPath.includes("jarvis-ai-official") ||
       (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.4.0.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.5.0.apk", 302);
     }
 
     // 3a-4b. PDF Studio Logo Edge Asset
@@ -356,14 +357,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.14-b103-rev2.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.15-b104.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.14");
-          res.headers.set("X-Connecto-Build", "103");
+          res.headers.set("X-Connecto-Version", "v4.6.15");
+          res.headers.set("X-Connecto-Build", "104");
           return res;
         }
 
@@ -376,7 +377,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.14"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.15"
               }
             });
             if (upstreamResp.ok) {
@@ -387,8 +388,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.14");
-              downloadHeaders.set("X-Connecto-Build", "103");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.15");
+              downloadHeaders.set("X-Connecto-Build", "104");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1588,23 +1589,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.5.9",
-          version_code: 16,
-          size_bytes: 13296493,
-          size_formatted: "12.7 MB",
+          version_name: "1.6.0",
+          version_code: 17,
+          size_bytes: 13695177,
+          size_formatted: "13.1 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Ecosystem SSO Security Hardening: Protected by signature-level permission and caller developer certificate validation",
-            "Restricted Package Installer Receiver: InstallStatusReceiver made non-exported with system component validation",
-            "Hardware-Backed Encrypted Storage: Upgraded session token storage to Android KeyStore AES-256-GCM EncryptedSharedPreferences",
-            "Disabled Insecure Backups: android:allowBackup set to false to protect session credentials",
-            "Pre-Install Cryptographic Checksum Check: Added SHA-256 binary validation to prevent tampered or corrupted package installs",
-            "Interactive Theme Switch: Toggle between Pure Pitch Black OLED and Clean Crisp Day Light theme in Account tab"
+            "De-Cluttered Catalog Cards: Clean, modern cards without external diagnostic noise or technical build clutter",
+            "Real Application Previews: Authentic full-resolution screenshots with tap-to-zoom modal",
+            "Interactive Swipe Navigation: Horizontal pager sliding between Store, Updates, and Account screens tracking finger position",
+            "Human-Crafted Spring Physics: Tactile touch scale and specular highlight rim textures on cards and buttons",
+            "Enterprise Security Vault: AES-256-GCM hardware key protection and SHA-256 integrity verification"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T12:40:00Z"
+          updated_at: "2026-10-31T15:00:00Z"
         },
         {
           id: "connecto",
@@ -1614,21 +1614,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Private encrypted messaging, calls & workspaces",
           description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
           category: "Communication",
-          version_name: "4.6.14",
-          version_code: 103,
-          size_bytes: 37791900,
+          version_name: "4.6.15",
+          version_code: 104,
+          size_bytes: 37791996,
           size_formatted: "36.0 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#2563EB",
           changelog: [
-            "SSO ContentProvider Hardening: Restricted com.connecto.app.sso with signature-level permission and caller developer certificate validation",
-            "Restricted Call Broadcast Receiver: ConnectoCallPushReceiver made internal (non-exported) to eliminate lockscreen spoofing and WakeLock denial-of-service risks",
-            "Native Android System Face ID support via BiometricPrompt with passive glance-to-unlock",
-            "FOREGROUND_SERVICE_PHONE_CALL system optimization for continuous audio sync"
+            "Interactive Horizontal Pager: Fluid finger-tracking swipe transitions across Home, Messages, Channels, Calls, and Profile tabs",
+            "Touch Gestures Isolation: Auto-locks horizontal paging during direct 1-on-1 chats to prevent accidental navigation",
+            "SSO ContentProvider Hardening: Restricted com.connecto.app.sso with signature-level permission and caller certificate verification",
+            "Native Android System Face ID support via BiometricPrompt with passive glance-to-unlock"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T12:40:00Z"
+          updated_at: "2026-10-31T15:00:00Z"
         },
         {
           id: "jarvis",
@@ -1638,23 +1638,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "3.4.0",
-          version_code: 34,
-          size_bytes: 169593613,
+          version_name: "3.5.0",
+          version_code: 35,
+          size_bytes: 169595000,
           size_formatted: "161.7 MB",
-          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.4.0.apk",
+          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.5.0.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Security Hardening: Set JarvisWakeService to unexported (exported=false) preventing unauthorized third-party microphone service control",
-            "Biometric Enforcement & Intent Validation: Defers command queries until biometric authentication succeeds, preventing background lock bypasses",
-            "Sandbox Data Protection: Enforced allowBackup=false with comprehensive cloud and device-transfer data extraction exclusions",
-            "Financial App Shield: Expanded accessibility security blacklist to cover all Indian UPI and banking applications (GPay, PhonePe, BHIM, YONO, HDFC, Axis, etc.)",
-            "Cryptographic Hardening: Enforced fail-closed behavior in AesEncryptionEngine, eliminating plaintext fallbacks",
-            "Privacy & Transport Security: Shifted Gemini API key to x-goog-api-key HTTP header, sanitized Logcat logs, and restricted FileProvider shared directory paths"
+            "Narrowly Scoped Accessibility Service: Restricted XML configuration to WhatsApp and WhatsApp Business packages with zero message content access",
+            "Automated Call Tap: Bilingual (English & Telugu) matching for direct call buttons and single menu call sheets",
+            "Screen Control Safety Indicator: Floating 'Jarvis is controlling the screen' overlay with interactive Stop button and 10s safety watchdog",
+            "Strict Call Screen Verification: Verifies active VoIP calling screen before confirming call initiation with honest fallback messages",
+            "Microphone Handoff & Audio Pipeline Recovery: Releases microphone during WhatsApp VoIP calls and automatically restores passive wake engine on call completion",
+            "Settings Accessibility Status: Added real-time ACTIVE/REQUIRED service status pill and direct system shortcut"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T13:15:00Z"
+          updated_at: "2026-10-31T15:20:00Z"
         },
         {
           id: "pdfstudio",
@@ -6749,13 +6749,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.14",
-      version_name: "v4.6.14",
-      version_code: 103,
-      build: 103,
-      sha256: "d875c12ae92f8436ffe2bac883f71dfd63fe5103b4af0df4d6bfee288361c3c5",
+      version: "4.6.15",
+      version_name: "v4.6.15",
+      version_code: 104,
+      build: 104,
+      sha256: "d7678514df257764b64076cde9c6f07f506b46e2e2ed5e6c78b301fd7f2f1c95",
       filename: "connecto-fun.apk",
-      size_bytes: 37791900,
+      size_bytes: 37791996,
       size_display: "36.0 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
