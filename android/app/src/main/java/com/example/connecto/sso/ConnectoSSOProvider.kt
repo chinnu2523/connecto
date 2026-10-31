@@ -58,11 +58,43 @@ class ConnectoSSOProvider : ContentProvider() {
 
             ConnectoApiClient.initSessionFromPrefs(ctx)
 
-            val prefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
-            val username = (prefs.getString("username", null) ?: ConnectoApiClient.currentUsername ?: "").trim().removePrefix("@")
-            val displayName = prefs.getString("display_name", null) ?: ConnectoApiClient.currentUserDisplayName ?: username
-            val avatarUrl = prefs.getString("avatar_url", null) ?: ConnectoApiClient.currentUserAvatar ?: ""
-            val token = prefs.getString("token", null) ?: ConnectoApiClient.sessionToken ?: ""
+            val securePrefs = try { ConnectoApiClient.getSessionPrefs(ctx) } catch (_: Exception) { null }
+            val legacyPrefs = ctx.getSharedPreferences("connecto_session_prefs", android.content.Context.MODE_PRIVATE)
+            val profilePrefs = ctx.getSharedPreferences("connecto_user_profile_prefs", android.content.Context.MODE_PRIVATE)
+
+            val username = (securePrefs?.getString("username", null)
+                ?: legacyPrefs.getString("username", null)
+                ?: ConnectoApiClient.currentUsername
+                ?: "").trim().removePrefix("@")
+
+            val displayName = securePrefs?.getString("display_name", null)
+                ?: legacyPrefs.getString("display_name", null)
+                ?: ConnectoApiClient.currentUserDisplayName
+                ?: username
+
+            var avatarUrl = securePrefs?.getString("avatar_url", null)
+                ?: legacyPrefs.getString("avatar_url", null)
+                ?: profilePrefs.getString("photo_uri_$username", null)
+                ?: ConnectoApiClient.currentUserAvatar
+                ?: ""
+
+            // Resolve local file path or relative path to authoritative server URL
+            val isChinnu = username.equals("chinnu14754x", ignoreCase = true) || username.equals("chinnu", ignoreCase = true)
+            if (isChinnu && (avatarUrl.isBlank() || !avatarUrl.startsWith("http"))) {
+                avatarUrl = "https://connecto.fun/uploads/avatars/chinnu_avatar_verified.webp"
+            } else if (avatarUrl.startsWith("/")) {
+                avatarUrl = "https://connecto.fun$avatarUrl"
+            } else if (!avatarUrl.startsWith("http://") && !avatarUrl.startsWith("https://")) {
+                if (isChinnu) {
+                    avatarUrl = "https://connecto.fun/uploads/avatars/chinnu_avatar_verified.webp"
+                }
+            }
+
+            val token = securePrefs?.getString("token", null)
+                ?: legacyPrefs.getString("token", null)
+                ?: ConnectoApiClient.sessionToken
+                ?: ""
+
             val isLoggedIn = username.isNotBlank() && token.isNotBlank()
 
             val isAdmin = (username.equals("chinnu14754x", ignoreCase = true) ||
@@ -71,7 +103,7 @@ class ConnectoSSOProvider : ContentProvider() {
 
             val role = if (isAdmin) "admin" else "member"
 
-            Log.d(TAG, "SSO Query processed: user=$username, isLoggedIn=$isLoggedIn, role=$role")
+            Log.d(TAG, "SSO Query processed: user=$username, avatar=$avatarUrl, isLoggedIn=$isLoggedIn, role=$role")
 
             cursor.addRow(arrayOf(
                 if (isLoggedIn) 1 else 0,

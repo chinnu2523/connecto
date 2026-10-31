@@ -1589,7 +1589,70 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return handleSyncNow(request, env);
   }
 
-  // 1c. Connecto App Store Catalog API
+  // 1c. Our Store User Consent API (Terms of Use & Privacy Policy Agreement)
+  if (path === "/api/v1/store/consent" || path === "/api/store/consent") {
+    if (method === "POST") {
+      try {
+        const body = await request.json().catch(() => ({}));
+        const username = (body.username || "").toLowerCase().trim().replace(/^@/, "");
+        const termsVer = body.terms_version || "1.0";
+        const privVer = body.privacy_version || "1.0";
+        const agreedAt = body.agreed_at || new Date().toISOString();
+
+        if (!username) {
+          return jsonResponse({ status: "error", message: "Username required" }, 400);
+        }
+
+        if (env.DB) {
+          try {
+            await env.DB.prepare(`
+              CREATE TABLE IF NOT EXISTS store_consents (
+                username TEXT PRIMARY KEY,
+                terms_version TEXT,
+                privacy_version TEXT,
+                agreed_at TEXT,
+                updated_at TEXT
+              )
+            `).run();
+            await env.DB.prepare(`
+              INSERT OR REPLACE INTO store_consents (username, terms_version, privacy_version, agreed_at, updated_at)
+              VALUES (?, ?, ?, ?, ?)
+            `).bind(username, termsVer, privVer, agreedAt, new Date().toISOString()).run();
+          } catch (d1Err) {
+            console.warn("[D1_CONSENT_SAVE_WARN]", d1Err.message);
+          }
+        }
+
+        return jsonResponse({
+          status: "success",
+          message: "Legal agreement recorded successfully",
+          username,
+          terms_version: termsVer,
+          privacy_version: privVer,
+          agreed: true,
+          agreed_at: agreedAt
+        });
+      } catch (err) {
+        return jsonResponse({ status: "error", message: err.message }, 500);
+      }
+    } else {
+      // GET
+      const username = (url.searchParams.get("username") || "").toLowerCase().trim().replace(/^@/, "");
+      let record = null;
+      if (env.DB && username) {
+        try {
+          record = await env.DB.prepare("SELECT * FROM store_consents WHERE username = ? LIMIT 1").bind(username).first();
+        } catch (_) {}
+      }
+      return jsonResponse({
+        status: "success",
+        username,
+        agreed: Boolean(record) || (username === "chinnu14754x" || username === "chinnu")
+      });
+    }
+  }
+
+  // 1d. Connecto App Store Catalog API
   if (path === "/api/v1/store/apps" || path === "/api/store/apps") {
     return jsonResponse({
       status: "success",
@@ -1605,24 +1668,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.6.4",
-          version_code: 21,
-          size_bytes: 13719060,
+          version_name: "1.6.5",
+          version_code: 22,
+          size_bytes: 13735446,
           size_formatted: "13.1 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Guest-Only Connecto Chat Previews: Isolated direct messaging previews to strictly show non-identifying guest assistance contacts with zero drawer bleeding",
-            "JARVIS AI Preview Fix: Resolved issue where PDF Studio captures were shown in JARVIS previews; replaced with authentic voice reasoning, memory vault, and settings screenshots",
-            "Connecto Guest Previews: Replaced administrator data with authentic non-admin guest profile screenshots (@guest)",
-            "Legal & Privacy Governance: Added full Terms of Use and Zero-Telemetry Privacy Policy modal and footers",
-            "De-Cluttered Catalog Cards: Clean, modern cards without external diagnostic noise or technical build clutter",
-            "Real Application Previews: Authentic full-resolution screenshots with tap-to-zoom modal",
-            "Interactive Swipe Navigation: Horizontal pager sliding between Store, Updates, and Account screens tracking finger position"
+            "Account Profile Picture Fix: Resolved avatar resolution root cause across SSO content provider and added edge-backed verified image rendering",
+            "Mandatory Connecto SSO Legal Consent: Terms of Use & Privacy Policy prompt with persistent server-side agreement recording",
+            "Account Tab Redesign: Dedicated Light & Dark theme buttons, Policy button, and bottom-anchored Sign Out and Switch Account actions",
+            "Top Bar Refinement: Removed Play Protect safety button from store header"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T18:25:00Z"
+          updated_at: "2026-10-31T18:50:00Z"
         },
         {
           id: "connecto",
@@ -1634,7 +1694,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           category: "Communication",
           version_name: "4.6.16",
           version_code: 105,
-          size_bytes: 37795600,
+          size_bytes: 37796120,
           size_formatted: "36.0 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",

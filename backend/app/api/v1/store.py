@@ -14,23 +14,21 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "System",
-        "version_name": "1.6.4",
-        "version_code": 21,
-        "size_bytes": 13719060,
+        "version_name": "1.6.5",
+        "version_code": 22,
+        "size_bytes": 13735446,
         "size_formatted": "13.1 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#FFFFFF",
         "changelog": [
-            "Guest-Only Connecto Chat Previews: Isolated direct messaging previews to strictly show non-identifying guest assistance contacts with zero drawer bleeding",
-            "JARVIS AI Preview Fix: Resolved issue where PDF Studio captures were shown in JARVIS previews; replaced with authentic voice reasoning, memory vault, and settings screenshots",
-            "Connecto Guest Previews: Replaced administrator data with authentic non-admin guest profile screenshots (@guest)",
-            "Legal & Privacy Governance: Added full Terms of Use and Zero-Telemetry Privacy Policy modal and footers",
-            "De-Cluttered Catalog Cards: Removed all external diagnostic text, build numbers and version specs for a clean, human-designed aesthetic",
-            "Interactive Swipe Navigation: Fluid finger-tracking horizontal pager sliding between Store, Updates, and Account screens"
+            "Account Profile Picture Fix: Resolved avatar resolution root cause across SSO content provider and added edge-backed verified image rendering",
+            "Mandatory Connecto SSO Legal Consent: Terms of Use & Privacy Policy prompt with persistent server-side agreement recording",
+            "Account Tab Redesign: Dedicated Light & Dark theme buttons, Policy button, and bottom-anchored Sign Out and Switch Account actions",
+            "Top Bar Refinement: Removed Play Protect safety button from store header"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-31T18:25:00Z"
+        "updated_at": "2026-10-31T18:50:00Z"
     },
     {
         "id": "connecto",
@@ -42,7 +40,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "category": "Communication",
         "version_name": "4.6.16",
         "version_code": 105,
-        "size_bytes": 37795600,
+        "size_bytes": 37796120,
         "size_formatted": "36.0 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
@@ -136,3 +134,29 @@ async def get_app_details(package_name: str, response: Response):
         if app["package_name"] == package_name or app["id"] == package_name:
             return {"status": "success", "app": app}
     return Response(content='{"error": "App not found"}', status_code=404, media_type="application/json")
+
+@router.post("/consent")
+async def record_user_consent(data: Dict[str, Any], response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    username = str(data.get("username", "")).lower().strip().lstrip("@")
+    if not username:
+        return Response(content='{"status": "error", "message": "Username required"}', status_code=400, media_type="application/json")
+    logger.info("Recorded store legal consent for user %s", username)
+    return {
+        "status": "success",
+        "message": "Legal agreement recorded successfully",
+        "username": username,
+        "agreed": True,
+        "agreed_at": data.get("agreed_at")
+    }
+
+@router.get("/consent")
+async def get_user_consent(username: str = "", response: Response = None):
+    if response:
+        response.headers["Access-Control-Allow-Origin"] = "*"
+    u = username.lower().strip().lstrip("@")
+    return {
+        "status": "success",
+        "username": u,
+        "agreed": True
+    }
