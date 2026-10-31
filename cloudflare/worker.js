@@ -274,6 +274,7 @@ export default {
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
     if (
       cleanPath === "/downloads/jarvis-ai-official.apk" ||
+      cleanPath === "/downloads/jarvis-ai-v3.4.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.3.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.2.0.apk" ||
       cleanPath === "/downloads/jarvis-ai-v3.1.0.apk" ||
@@ -281,7 +282,7 @@ export default {
       cleanPath.includes("jarvis-ai-official") ||
       (cleanPath.includes("jarvis") && cleanPath.endsWith(".apk"))
     ) {
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.3.0.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/jarvis-ai-v3.4.0.apk", 302);
     }
 
     // 3a-4b. PDF Studio Logo Edge Asset
@@ -1637,23 +1638,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Multimodal voice, vision & device automation assistant",
           description: "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
           category: "Artificial Intelligence",
-          version_name: "3.3.0",
-          version_code: 33,
-          size_bytes: 169593293,
+          version_name: "3.4.0",
+          version_code: 34,
+          size_bytes: 169593613,
           size_formatted: "161.7 MB",
-          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.3.0.apk",
+          download_url: "https://connecto.fun/downloads/jarvis-ai-v3.4.0.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#06B6D4",
           changelog: [
-            "Direct WhatsApp Calling & Contact Aggregation: Normalized numbers (+91 vs local 10-digits), merged duplicates, and prioritized official com.whatsapp call rows",
-            "Background Wake Execution & Trampoline: Wake-triggered commands from home screen launch securely via AppLaunchTrampolineActivity and VoiceInteractionSession",
-            "Eliminated False 'Blocked by vivo' Alarms: 4.0-second foreground verification against target package; starting without exception guarantees Launched status without false vivo popup blocks",
-            "Hands-Free Follow-Up Listening Window: Automatic 400ms settling pause followed by 7-second listening window owned by the foreground microphone service",
-            "Idempotent Affirmative Protection: Dropped duplicate 'yes' utterances within 5-second window following action resolution",
-            "WhatsApp Voice-Call Auto-Tap (Optional Accessibility Fallback) & Settings Diagnostics: Added contact callability inspector dialog and comprehensive Vivo background clearance checklist"
+            "Security Hardening: Set JarvisWakeService to unexported (exported=false) preventing unauthorized third-party microphone service control",
+            "Biometric Enforcement & Intent Validation: Defers command queries until biometric authentication succeeds, preventing background lock bypasses",
+            "Sandbox Data Protection: Enforced allowBackup=false with comprehensive cloud and device-transfer data extraction exclusions",
+            "Financial App Shield: Expanded accessibility security blacklist to cover all Indian UPI and banking applications (GPay, PhonePe, BHIM, YONO, HDFC, Axis, etc.)",
+            "Cryptographic Hardening: Enforced fail-closed behavior in AesEncryptionEngine, eliminating plaintext fallbacks",
+            "Privacy & Transport Security: Shifted Gemini API key to x-goog-api-key HTTP header, sanitized Logcat logs, and restricted FileProvider shared directory paths"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T12:00:00Z"
+          updated_at: "2026-10-31T13:15:00Z"
         },
         {
           id: "pdfstudio",
