@@ -1657,7 +1657,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.5.5",
+      store_version: "1.7.0",
       total_apps: 4,
       apps: [
         {
