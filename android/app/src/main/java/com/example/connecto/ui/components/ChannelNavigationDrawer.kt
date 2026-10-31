@@ -110,6 +110,7 @@ fun ChannelNavigationDrawer(
     onCloseDrawer: () -> Unit,
     currentUsername: String = ConnectoApiClient.currentUsername ?: "Member",
     onProfileClick: (() -> Unit)? = null,
+    gesturesEnabled: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val gradientColors = getDynamicAccentGradientColors()
@@ -137,6 +138,7 @@ fun ChannelNavigationDrawer(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = gesturesEnabled,
         scrimColor = Color.Black.copy(alpha = 0.65f),
         drawerContent = {
             ModalDrawerSheet(

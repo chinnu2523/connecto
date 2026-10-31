@@ -189,6 +189,7 @@ fun ChannelsWorkspaceScreen(
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
     onNavigateToCalls: (() -> Unit)? = null,
+    onDrawerStateChanged: ((Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -202,6 +203,11 @@ fun ChannelsWorkspaceScreen(
     val sharedPrefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val isDrawerActive = drawerState.isOpen || drawerState.isAnimationRunning
+    LaunchedEffect(isDrawerActive) {
+        onDrawerStateChanged?.invoke(isDrawerActive)
+    }
+
     val savedChannelId = remember { sharedPrefs.getString("last_active_channel", initialChannelId) ?: initialChannelId }
     var selectedChannelId by rememberSaveable { mutableStateOf(savedChannelId) }
 
@@ -286,6 +292,10 @@ fun ChannelsWorkspaceScreen(
     var selectedMessageForAction by remember { mutableStateOf<MessageDto?>(null) }
     var showMoreOptionsMenu by remember { mutableStateOf(false) }
     var editingMessage by remember { mutableStateOf<MessageDto?>(null) }
+
+    BackHandler(enabled = drawerState.isOpen) {
+        coroutineScope.launch { drawerState.close() }
+    }
 
     BackHandler(enabled = selectedMessageForAction != null) {
         selectedMessageForAction = null
@@ -762,7 +772,8 @@ fun ChannelsWorkspaceScreen(
             coroutineScope.launch { drawerState.close() }
         },
         currentUsername = currentUsername,
-        onProfileClick = onOpenProfile
+        onProfileClick = onOpenProfile,
+        gesturesEnabled = false
     ) {
         Box(
             modifier = modifier

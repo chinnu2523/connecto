@@ -391,6 +391,19 @@ fun ConnectoApp(
         }
     }
 
+    // Auto-settlement recovery guard: prevent pager from ever freezing at fractional offset
+    androidx.compose.runtime.LaunchedEffect(tabPagerState.isScrollInProgress) {
+        if (!tabPagerState.isScrollInProgress) {
+            val offset = tabPagerState.currentPageOffsetFraction
+            if (kotlin.math.abs(offset) > 0.005f) {
+                tabPagerState.animateScrollToPage(
+                    page = tabPagerState.targetPage,
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioNoBouncy)
+                )
+            }
+        }
+    }
+
     val updateCurrentTab: (ConnectoTab) -> Unit = { tab ->
         currentTab = tab
         prefs.edit().putString("last_active_tab", tab.name).apply()
@@ -406,6 +419,7 @@ fun ConnectoApp(
     }
     var hasUnreadChats by remember { mutableStateOf(false) }
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
+    var isChannelDrawerOpen by remember { mutableStateOf(false) }
 
     // App-wide screen privacy & blackscreen protection for screenshot, screenshare, and screencast
     val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
@@ -865,7 +879,7 @@ fun ConnectoApp(
                             androidx.compose.foundation.pager.HorizontalPager(
                                 state = tabPagerState,
                                 modifier = Modifier.fillMaxSize(),
-                                userScrollEnabled = !isDirectChatOpen,
+                                userScrollEnabled = !isDirectChatOpen && !isChannelDrawerOpen,
                                 beyondViewportPageCount = 1
                             ) { pageIndex ->
                                 when (tabs[pageIndex]) {
@@ -909,7 +923,8 @@ fun ConnectoApp(
                                             onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,
-                                            onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) }
+                                            onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
+                                            onDrawerStateChanged = { isOpen -> isChannelDrawerOpen = isOpen }
                                         )
                                     }
                                     ConnectoTab.CALLS -> {
