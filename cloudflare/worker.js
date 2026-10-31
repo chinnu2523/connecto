@@ -1605,24 +1605,24 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "System",
-          version_name: "1.6.3",
-          version_code: 20,
-          size_bytes: 13707111,
+          version_name: "1.6.4",
+          version_code: 21,
+          size_bytes: 13719060,
           size_formatted: "13.1 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
+            "Guest-Only Connecto Chat Previews: Isolated direct messaging previews to strictly show non-identifying guest assistance contacts with zero drawer bleeding",
             "JARVIS AI Preview Fix: Resolved issue where PDF Studio captures were shown in JARVIS previews; replaced with authentic voice reasoning, memory vault, and settings screenshots",
             "Connecto Guest Previews: Replaced administrator data with authentic non-admin guest profile screenshots (@guest)",
             "Legal & Privacy Governance: Added full Terms of Use and Zero-Telemetry Privacy Policy modal and footers",
             "De-Cluttered Catalog Cards: Clean, modern cards without external diagnostic noise or technical build clutter",
             "Real Application Previews: Authentic full-resolution screenshots with tap-to-zoom modal",
-            "Interactive Swipe Navigation: Horizontal pager sliding between Store, Updates, and Account screens tracking finger position",
-            "Enterprise Security Vault: AES-256-GCM hardware key protection and SHA-256 integrity verification"
+            "Interactive Swipe Navigation: Horizontal pager sliding between Store, Updates, and Account screens tracking finger position"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T17:15:00Z"
+          updated_at: "2026-10-31T18:25:00Z"
         },
         {
           id: "connecto",
@@ -1634,7 +1634,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           category: "Communication",
           version_name: "4.6.16",
           version_code: 105,
-          size_bytes: 37794168,
+          size_bytes: 37795600,
           size_formatted: "36.0 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",

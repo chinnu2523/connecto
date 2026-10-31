@@ -74,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -136,11 +137,19 @@ fun ChannelNavigationDrawer(
         label = "drawerBackgroundBlur"
     )
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = gesturesEnabled,
-        scrimColor = Color.Black.copy(alpha = 0.65f),
-        drawerContent = {
+    if (!isDrawerOpen && !gesturesEnabled) {
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            content()
+        }
+    } else {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            gesturesEnabled = gesturesEnabled,
+            modifier = Modifier.fillMaxSize().clipToBounds(),
+            scrimColor = Color.Black.copy(alpha = 0.65f),
+            drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = if (colors.isLiquidGlass) {
                     if (colors.glassAlpha <= 0.005f) Color(0x0A000000)
@@ -438,6 +447,7 @@ fun ChannelNavigationDrawer(
             }
         }
     )
+    }
 }
 
 @Composable

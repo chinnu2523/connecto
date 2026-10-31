@@ -1024,51 +1024,124 @@ fun CustomizedChatScreen(
     LaunchedEffect(Unit) {
         val (cachedFriends, cachedGroups) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
-            if (effUser.isNotBlank()) {
-                dbHelper.sanitizeFriendsLastMessages(effUser)
-            }
-            val list = dbHelper.getCachedFriends()
-            val mappedFriends = list.map { f ->
-                val cleanHandle = f.handle.removePrefix("@").trim().lowercase()
-                val latest = if (effUser.isNotBlank()) dbHelper.getLatestMessageInfoForFriend(effUser, cleanHandle) else null
-                val cleanMsg = if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
-                    latest.first
-                } else if (f.lastMessage.isNotBlank() && f.lastMessage != "null" && f.lastMessage != "None" && latest != null) {
-                    f.lastMessage
-                } else {
-                    // Stale preview cleanup: if no direct messages exist, clean SharedPreferences and state
-                    readPrefs.edit()
-                        .remove("last_msg_${f.id}")
-                        .remove("last_msg_${cleanHandle}")
-                        .remove("last_time_${f.id}")
-                        .remove("last_time_${cleanHandle}")
-                        .remove("last_timestamp_${f.id}")
-                        .remove("last_timestamp_${cleanHandle}")
-                        .apply()
-                    "Direct chat active • Tap to message"
-                }
-                val ts = if (latest != null && latest.second > 0L) latest.second else 0L
-                val time = if (latest != null && latest.second > 0L) {
-                    SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(latest.second))
-                } else {
-                    if (cleanMsg == "Direct chat active • Tap to message") "Active" else f.timeAgo
-                }
-                f.copy(lastMessage = cleanMsg, timeAgo = time, lastMessageTimestamp = ts)
-            }
+            val isGuestUser = effUser.trim().lowercase().removePrefix("@") == "guest"
 
-            val groupList = dbHelper.getCachedGroups()
-            val mappedGroups = groupList.map { g ->
-                var ts = g.lastMessageTimestamp
-                if (ts == 0L) {
-                    ts = readPrefs.getLong("last_timestamp_${g.id}", 0L)
+            if (isGuestUser) {
+                // Privacy protection: Guest session strictly shows non-identifying guest assistance contacts
+                val guestFriends = listOf(
+                    FriendItem(
+                        id = "guest_assistant_1",
+                        name = "Connecto Assistant",
+                        handle = "@ai_assistant",
+                        initial = "A",
+                        status = "AI Intelligence Agent",
+                        bio = "Ask me anything about workspace navigation, private messaging & calls",
+                        lastMessage = "Hi Guest! Welcome to Connecto. How can I assist you today?",
+                        timeAgo = "Just now",
+                        unreadCount = 0,
+                        isOnline = true,
+                        avatarUrl = null,
+                        lastMessageTimestamp = System.currentTimeMillis()
+                    ),
+                    FriendItem(
+                        id = "guest_support_2",
+                        name = "Connecto Support",
+                        handle = "@support",
+                        initial = "S",
+                        status = "Official Platform Guide",
+                        bio = "24/7 Official Platform Help Center for Guest Members",
+                        lastMessage = "Welcome! Explore channels or tap any friend to test direct chat.",
+                        timeAgo = "10m ago",
+                        unreadCount = 0,
+                        isOnline = true,
+                        avatarUrl = null,
+                        lastMessageTimestamp = System.currentTimeMillis() - 600000L
+                    ),
+                    FriendItem(
+                        id = "guest_vault_3",
+                        name = "Security Vault",
+                        handle = "@vault_bot",
+                        initial = "V",
+                        status = "System Verified",
+                        bio = "End-to-End Encryption & Zero-Telemetry Hardware Vault",
+                        lastMessage = "Guest sandbox session active • Zero cloud biometric or message leakage",
+                        timeAgo = "45m ago",
+                        unreadCount = 0,
+                        isOnline = false,
+                        avatarUrl = null,
+                        lastMessageTimestamp = System.currentTimeMillis() - 2700000L
+                    )
+                )
+                val guestGroups = listOf(
+                    FriendItem(
+                        id = "grp_guest_lounge",
+                        name = "Guest Community",
+                        handle = "#guest-lounge",
+                        initial = "G",
+                        status = "Public Community",
+                        bio = "Public guest space for team exploration",
+                        lastMessage = "Welcome to Connecto! Feel free to say hello.",
+                        timeAgo = "15m ago",
+                        unreadCount = 0,
+                        isOnline = true,
+                        avatarUrl = null,
+                        isGroup = true,
+                        isCreatedByMe = false,
+                        memberCount = 8,
+                        members = listOf("guest", "support", "assistant"),
+                        admin = "support",
+                        creator = "support",
+                        lastMessageTimestamp = System.currentTimeMillis() - 900000L
+                    )
+                )
+                Pair(guestFriends, guestGroups)
+            } else {
+                if (effUser.isNotBlank()) {
+                    dbHelper.sanitizeFriendsLastMessages(effUser)
                 }
-                val rawMsg = readPrefs.getString("last_msg_${g.id}", null)
-                val lastMsg = if (!rawMsg.isNullOrBlank()) rawMsg else g.lastMessage
-                val rawTime = readPrefs.getString("last_time_${g.id}", null)
-                val time = formatIsoTime(if (!rawTime.isNullOrBlank()) rawTime else g.timeAgo)
-                g.copy(lastMessage = lastMsg, timeAgo = time, lastMessageTimestamp = ts)
+                val list = dbHelper.getCachedFriends()
+                val mappedFriends = list.map { f ->
+                    val cleanHandle = f.handle.removePrefix("@").trim().lowercase()
+                    val latest = if (effUser.isNotBlank()) dbHelper.getLatestMessageInfoForFriend(effUser, cleanHandle) else null
+                    val cleanMsg = if (latest != null && latest.first.isNotBlank() && latest.first != "null" && latest.first != "None") {
+                        latest.first
+                    } else if (f.lastMessage.isNotBlank() && f.lastMessage != "null" && f.lastMessage != "None" && latest != null) {
+                        f.lastMessage
+                    } else {
+                        // Stale preview cleanup: if no direct messages exist, clean SharedPreferences and state
+                        readPrefs.edit()
+                            .remove("last_msg_${f.id}")
+                            .remove("last_msg_${cleanHandle}")
+                            .remove("last_time_${f.id}")
+                            .remove("last_time_${cleanHandle}")
+                            .remove("last_timestamp_${f.id}")
+                            .remove("last_timestamp_${cleanHandle}")
+                            .apply()
+                        "Direct chat active • Tap to message"
+                    }
+                    val ts = if (latest != null && latest.second > 0L) latest.second else 0L
+                    val time = if (latest != null && latest.second > 0L) {
+                        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(latest.second))
+                    } else {
+                        if (cleanMsg == "Direct chat active • Tap to message") "Active" else f.timeAgo
+                    }
+                    f.copy(lastMessage = cleanMsg, timeAgo = time, lastMessageTimestamp = ts)
+                }
+
+                val groupList = dbHelper.getCachedGroups()
+                val mappedGroups = groupList.map { g ->
+                    var ts = g.lastMessageTimestamp
+                    if (ts == 0L) {
+                        ts = readPrefs.getLong("last_timestamp_${g.id}", 0L)
+                    }
+                    val rawMsg = readPrefs.getString("last_msg_${g.id}", null)
+                    val lastMsg = if (!rawMsg.isNullOrBlank()) rawMsg else g.lastMessage
+                    val rawTime = readPrefs.getString("last_time_${g.id}", null)
+                    val time = formatIsoTime(if (!rawTime.isNullOrBlank()) rawTime else g.timeAgo)
+                    g.copy(lastMessage = lastMsg, timeAgo = time, lastMessageTimestamp = ts)
+                }
+                Pair(mappedFriends, mappedGroups)
             }
-            Pair(mappedFriends, mappedGroups)
         }
         if (cachedFriends.isNotEmpty() && friendsList.isEmpty()) {
             friendsList.addAll(cachedFriends)
@@ -1077,7 +1150,9 @@ fun CustomizedChatScreen(
         if (cachedGroups.isNotEmpty() && userGroupsList.isEmpty()) {
             userGroupsList.addAll(cachedGroups)
         }
-        if (userGroupsList.none { !it.isCreatedByMe }) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+        val isGuest = effUser.trim().lowercase().removePrefix("@") == "guest"
+        if (!isGuest && userGroupsList.none { !it.isCreatedByMe }) {
             userGroupsList.add(
                 FriendItem(
                     id = "grp-design-team-joined",
@@ -1246,7 +1321,9 @@ fun CustomizedChatScreen(
             if (effUsername.isNotBlank()) {
                 ConnectoApiClient.currentUsername = effUsername
             }
-            val reqRes = ConnectoApiClient.getReceivedFriendRequests(username = effUsername)
+            val isGuestUser = effUsername.trim().lowercase().removePrefix("@") == "guest"
+            if (!isGuestUser) {
+                val reqRes = ConnectoApiClient.getReceivedFriendRequests(username = effUsername)
             if (reqRes.isSuccess) {
                 pendingRequestsCount = reqRes.getOrThrow().size
             }
@@ -1497,6 +1574,9 @@ fun CustomizedChatScreen(
                     }
                 }
             } catch (_: Exception) {}
+            } else {
+                isFriendsLoadedOnce = true
+            }
         } catch (e: Exception) {
             isFriendsLoadedOnce = true
             // Ignore transient network errors
