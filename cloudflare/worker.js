@@ -233,8 +233,7 @@ export default {
     }
 
     // 3a-2b. Serve /store.html directly from GitHub (always fresh, bypasses Pages CDN cache)
-    if (cleanPath === "/store.html" || cleanPath === "/appstore") {
-      try {
+    if (cleanPath === "/store.html" || cleanPath === "/appstore") {      try {
         const ghRaw = await fetch(
           "https://raw.githubusercontent.com/chinnu2523/connecto/main/website/static/store.html",
           { cf: { cacheEverything: false } }
@@ -252,6 +251,8 @@ export default {
         }
       } catch (_) {}
     }
+
+    // 3a-2c intentionally removed - index.html patched inline at Pages response layer
 
     // 3a-3. Cloudflare Edge Gateway for Our Store APK
     if (
@@ -7956,7 +7957,23 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
       }
       resHeaders.set("CF-Cache-Status", "MISS");
 
-      const responseToReturn = new Response(pagesResponse.body, {
+      // Patch stale Our Store version strings in index.html on-the-fly
+      let responseBody = pagesResponse.body;
+      if (ct.includes("text/html") && (pagesPath === "/" || pagesPath === "/index.html")) {
+        try {
+          const rawHtml = await pagesResponse.text();
+          const patched = rawHtml
+            .replace(/v1\.6\.0<\/span>/g, "v1.7.0</span>")
+            .replace(/v1\.6\.6 \(Build 23\) • Standalone Client/g, "v1.7.0 (Build 27) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.6\.6 • 13\.1 MB\)/g, "Download Our Store APK (v1.7.0 • 14.2 MB)")
+            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.6\.6\)/g,
+                     "Official Verified Store Release • Package: com.connecto.store (v1.7.0)")
+            .replace(/Autonomous Package Manager • v1\.6\.6/g, "Autonomous Package Manager • v1.7.0");
+          responseBody = patched;
+        } catch (_) {}
+      }
+
+      const responseToReturn = new Response(responseBody, {
         status: pagesResponse.status,
         headers: resHeaders
       });
