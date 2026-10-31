@@ -356,7 +356,7 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.14-b103.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.14-b103-rev2.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
