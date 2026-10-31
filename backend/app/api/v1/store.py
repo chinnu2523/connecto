@@ -14,14 +14,15 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "System",
-        "version_name": "1.6.2",
-        "version_code": 19,
-        "size_bytes": 13698188,
+        "version_name": "1.6.3",
+        "version_code": 20,
+        "size_bytes": 13707111,
         "size_formatted": "13.1 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#FFFFFF",
         "changelog": [
+            "JARVIS AI Preview Fix: Resolved issue where PDF Studio captures were shown in JARVIS previews; replaced with authentic voice reasoning, memory vault, and settings screenshots",
             "Connecto Guest Previews: Replaced administrator data with authentic non-admin guest profile screenshots (@guest)",
             "Legal & Privacy Governance: Added full Terms of Use and Zero-Telemetry Privacy Policy modal and footers",
             "De-Cluttered Catalog Cards: Removed all external diagnostic text, build numbers and version specs for a clean, human-designed aesthetic",
@@ -30,7 +31,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Enterprise Security Vault: AES-256-GCM hardware key protection and SHA-256 integrity verification"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-31T16:50:00Z"
+        "updated_at": "2026-10-31T17:15:00Z"
     },
     {
         "id": "connecto",
