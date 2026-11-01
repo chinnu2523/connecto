@@ -7968,7 +7968,9 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Download Our Store APK \(v1\.6\.6 • 13\.1 MB\)/g, "Download Our Store APK (v1.7.0 • 14.2 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.6\.6\)/g,
                      "Official Verified Store Release • Package: com.connecto.store (v1.7.0)")
-            .replace(/Autonomous Package Manager • v1\.6\.6/g, "Autonomous Package Manager • v1.7.0");
+            .replace(/Autonomous Package Manager • v1\.6\.6/g, "Autonomous Package Manager • v1.7.0")
+            .replace(/<span class="android-spec-val" style="color:#38bdf8;">13\.1 MB<\/span>/g,
+                     '<span class="android-spec-val" style="color:#38bdf8;">14.2 MB</span>');
           responseBody = patched;
         } catch (_) {}
       }
