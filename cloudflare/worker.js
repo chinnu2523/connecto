@@ -1837,21 +1837,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           description: "Dedicated high-fidelity voice-over-IP telephone application. Features instant lock-screen incoming call banners via native CallKit & ConnectionService, background push wake-up, encrypted WebRTC audio mesh, live audio wave visualizers, earpiece/speakerphone routing, and multi-user profile dialing.",
           category: "Communication",
           version_name: "1.0.0",
-          version_code: 1,
-          size_bytes: 37791900,
-          size_formatted: "36.0 MB",
+          version_code: 100,
+          size_bytes: 12781423,
+          size_formatted: "12.2 MB",
           download_url: "https://connecto.fun/downloads/voip-call.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#10B981",
           changelog: [
-            "Native Lockscreen CallKit & ConnectionService: Direct incoming call banners over lockscreen with Accept and Decline actions",
-            "High-Priority VoIP Push Wake-Up: Immediate background device wake-up via APNs VoIP and FCM data-only push payloads",
-            "WebRTC HD Audio Mesh: Sub-50ms latency voice calling with adaptive jitter buffer and dynamic audio bitrate management",
-            "Live Audio Visualizer & Hardware Routing: Interactive audio waveform animations, microphone mute, and one-tap earpiece/speakerphone toggling",
-            "Multi-Profile Quick Switcher: Built-in testing profiles (Alice, Bob, Charlie) for seamless multi-party calling simulation"
+            "Native Dialpad with Direct Internet Phone Calling to user phone numbers",
+            "Call History tab with Recents & Missed filters, durations, and one-tap callback",
+            "Account tab with Sign in with Connecto (Connecto SSO verification badge)",
+            "Authentication Gate: Dialpad and Call History unlocked only after Connecto Sign-In",
+            "Cloudflare Anycast Edge VoIP routing & D1 database synchronization"
           ],
           is_essential: false,
-          updated_at: "2026-11-02T10:00:00Z"
+          updated_at: "2026-11-02T10:45:00Z"
         }
       ]
     });
@@ -1863,11 +1863,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     if (env.DB) {
       try {
         const rows = await env.DB.prepare(
-          "SELECT id, username, display_name, avatar_url, updated_at FROM users WHERE is_active = 1 LIMIT 50"
+          "SELECT id, username, display_name, phone_number, avatar_url, updated_at FROM users WHERE is_active = 1 LIMIT 50"
         ).all();
         userList = (rows.results || []).map(u => ({
           id: u.id,
+          username: u.username,
           name: u.display_name || u.username,
+          phoneNumber: u.phone_number || "",
           avatarUrl: u.avatar_url || "",
           isOnline: true,
           platform: "android"
@@ -1876,26 +1878,70 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     }
     if (userList.length === 0) {
       userList = [
-        { id: "alice_user", name: "Alice Johnson", avatarUrl: "", isOnline: true, platform: "android" },
-        { id: "bob_user", name: "Bob Miller", avatarUrl: "", isOnline: true, platform: "android" },
-        { id: "charlie_user", name: "Charlie Davis", avatarUrl: "", isOnline: true, platform: "ios" }
+        { id: "alice_user", username: "alice", name: "Alice Johnson", phoneNumber: "+15550192834", avatarUrl: "", isOnline: true, platform: "android" },
+        { id: "bob_user", username: "bob", name: "Bob Miller", phoneNumber: "+15550148291", avatarUrl: "", isOnline: true, platform: "android" },
+        { id: "charlie_user", username: "charlie", name: "Charlie Davis", phoneNumber: "+15550123984", avatarUrl: "", isOnline: true, platform: "ios" }
       ];
     }
     return jsonResponse({ success: true, users: userList });
   }
 
+  // Lookup user by phone number or username for direct VoIP internet call
+  if (path === "/api/voip/lookup") {
+    const urlObj = new URL(request.url);
+    const query = (urlObj.searchParams.get("query") || urlObj.searchParams.get("phone") || "").trim();
+    if (!query) {
+      return jsonResponse({ success: false, error: "Query or phone number is required" }, 400);
+    }
+    const cleanPhone = query.replace(/[^\d+]/g, "");
+    let match = null;
+    if (env.DB) {
+      try {
+        match = await env.DB.prepare(
+          "SELECT id, username, display_name, phone_number, avatar_url FROM users WHERE (phone_number IS NOT NULL AND phone_number != '' AND (phone_number = ? OR phone_number = ?)) OR lower(username) = ? LIMIT 1"
+        ).bind(query, cleanPhone, query.toLowerCase()).first();
+      } catch (_) {}
+    }
+    if (match) {
+      return jsonResponse({
+        success: true,
+        user: {
+          id: match.id,
+          username: match.username,
+          name: match.display_name || match.username,
+          phoneNumber: match.phone_number || cleanPhone,
+          avatarUrl: match.avatar_url || ""
+        }
+      });
+    }
+    // If not found in DB, return clean internet phone dialer target
+    return jsonResponse({
+      success: true,
+      user: {
+        id: "pstn_" + cleanPhone.replace(/[^\d]/g, ""),
+        username: cleanPhone,
+        name: cleanPhone,
+        phoneNumber: cleanPhone,
+        avatarUrl: ""
+      }
+    });
+  }
+
   if (path === "/api/voip/call/initiate") {
     const body = await request.json().catch(() => ({}));
     const callerId = body.callerId || "caller";
-    const calleeId = body.calleeId || "callee";
+    const calleeId = body.calleeId || body.phoneNumber || "callee";
+    const callerName = body.callerName || callerId;
+    const calleeName = body.calleeName || calleeId;
+    const phoneNumber = body.phoneNumber || body.destination || "";
     const callId = "call_" + Date.now();
     const roomName = `room_${callId.slice(-8)}`;
 
     if (env.DB) {
       ctx.waitUntil(
         env.DB.prepare(
-          "INSERT INTO call_logs (id, user_id, username, caller_name, call_type, room_name, room_code, duration_seconds, is_missed, is_outgoing) VALUES (?, ?, ?, ?, 'Voice Call', ?, ?, 0, 0, 1)"
-        ).bind(callId, calleeId, calleeId, callerId, roomName, roomName).run().catch(() => {})
+          "INSERT INTO call_logs (id, user_id, username, caller_name, call_type, room_name, room_code, duration_seconds, is_missed, is_outgoing) VALUES (?, ?, ?, ?, 'VoIP Internet Call', ?, ?, 0, 0, 1)"
+        ).bind(callId, calleeId, calleeName, callerName, roomName, phoneNumber || roomName).run().catch(() => {})
       );
     }
 
@@ -1905,6 +1951,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       roomName,
       token: "cf_edge_token_" + callId,
       liveKitUrl: "wss://connecto.fun",
+      destination: phoneNumber || calleeId,
+      caller: callerName,
       status: "ringing"
     });
   }
@@ -1933,6 +1981,30 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       );
     }
     return jsonResponse({ success: true, message: "Call session ended" });
+  }
+
+  // Fetch call history for logged-in user
+  if (path === "/api/voip/history") {
+    let history = [];
+    if (env.DB) {
+      try {
+        const rows = await env.DB.prepare(
+          "SELECT id, user_id, username, caller_name, call_type, duration_seconds, is_missed, is_outgoing, created_at FROM call_logs ORDER BY created_at DESC LIMIT 30"
+        ).all();
+        history = (rows.results || []).map(r => ({
+          id: r.id,
+          userId: r.user_id,
+          username: r.username,
+          callerName: r.caller_name,
+          callType: r.call_type,
+          durationSeconds: r.duration_seconds,
+          isMissed: r.is_missed === 1,
+          isOutgoing: r.is_outgoing === 1,
+          createdAt: r.created_at
+        }));
+      } catch (_) {}
+    }
+    return jsonResponse({ success: true, history });
   }
 
   // 1c. Cloudflare Edge Learning Hub & Security Labs API
