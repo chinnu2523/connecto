@@ -233,10 +233,10 @@ export default {
     }
 
     // 3a-2b. Serve /store.html directly from GitHub (always fresh, bypasses Pages CDN cache)
-    if (cleanPath === "/store.html" || cleanPath === "/appstore") {      try {
+    if (cleanPath === "/store.html" || cleanPath === "/appstore") {
+      try {
         const ghRaw = await fetch(
-          "https://raw.githubusercontent.com/chinnu2523/connecto/main/website/static/store.html",
-          { cf: { cacheEverything: false } }
+          "https://raw.githubusercontent.com/chinnu2523/connecto/4064bde1f5fbbc8982d7ea2eb377aabba574a63e/website/static/store.html"
         );
         if (ghRaw.ok) {
           const html = await ghRaw.text();
