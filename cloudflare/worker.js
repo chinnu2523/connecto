@@ -393,7 +393,7 @@ export default {
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.connecto.voip");
           downloadHeaders.set("X-Connecto-App", "VoIP Phone");
-          downloadHeaders.set("X-Connecto-Version", "v1.0.0");
+          downloadHeaders.set("X-Connecto-Version", "v1.1.0");
           return new Response(voipResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -1836,8 +1836,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Ultra-low latency HD VoIP audio calls with CallKit integration",
           description: "Dedicated high-fidelity voice-over-IP telephone application. Features instant lock-screen incoming call banners via native CallKit & ConnectionService, background push wake-up, encrypted WebRTC audio mesh, live audio wave visualizers, earpiece/speakerphone routing, and multi-user profile dialing.",
           category: "Communication",
-          version_name: "1.0.0",
-          version_code: 100,
+          version_name: "1.1.0",
+          version_code: 101,
           size_bytes: 12781423,
           size_formatted: "12.2 MB",
           download_url: "https://connecto.fun/downloads/voip-call.apk",
