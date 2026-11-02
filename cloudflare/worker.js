@@ -367,6 +367,47 @@ export default {
       return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.10/pdf-studio.apk", 302);
     }
 
+    // 3a-6. Cloudflare Edge Gateway for VisionCall APK
+    if (
+      cleanPath === "/download/vision-call" ||
+      cleanPath === "/download/visioncall" ||
+      cleanPath === "/download/video-call" ||
+      cleanPath === "/downloads/vision-call.apk" ||
+      cleanPath === "/downloads/visioncall.apk" ||
+      cleanPath === "/downloads/VisionCall.apk" ||
+      cleanPath === "/vision-call.apk" ||
+      (cleanPath.includes("vision-call") && cleanPath.endsWith(".apk")) ||
+      (cleanPath.includes("visioncall") && cleanPath.endsWith(".apk"))
+    ) {
+      try {
+        const vcResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/vision-call.apk", {
+          redirect: "follow",
+          headers: {
+            "User-Agent": "Connecto-Cloud-Worker/1.1.0"
+          }
+        });
+        if (vcResp.ok) {
+          const downloadHeaders = new Headers();
+          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
+          downloadHeaders.set("Content-Disposition", 'attachment; filename="vision-call.apk"');
+          const cl = vcResp.headers.get("content-length");
+          if (cl) downloadHeaders.set("Content-Length", cl);
+          downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800");
+          downloadHeaders.set("Access-Control-Allow-Origin", "*");
+          downloadHeaders.set("X-Connecto-Package", "com.videocall.app");
+          downloadHeaders.set("X-Connecto-App", "VisionCall");
+          downloadHeaders.set("X-Connecto-Version", "v1.0.0");
+          return new Response(vcResp.body, {
+            status: 200,
+            headers: downloadHeaders
+          });
+        }
+      } catch (err) {
+        console.error("VisionCall download fetch error:", err);
+      }
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/vision-call.apk", 302);
+    }
+
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
@@ -1681,7 +1722,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       store_name: "Our Store",
       store_version: "1.7.0",
-      total_apps: 4,
+      total_apps: 6,
       apps: [
         {
           id: "ourstore",
@@ -1790,6 +1831,58 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           ],
           is_essential: false,
           updated_at: "2026-10-30T11:45:00Z"
+        },
+        {
+          id: "visioncall",
+          package_name: "com.videocall.app",
+          name: "VisionCall",
+          badge: "HD Video Calling",
+          tagline: "Ultra-low latency HD video calling, screen sharing & group conferencing",
+          description: "Dedicated WebRTC video calling and conferencing application. Features dynamic multi-party grids, 1-on-1 direct calls with draggable PIP, real-time camera flip, mic/video toggles, screen sharing with Android 14+ foreground service, virtual background blur, in-call chat with reactions, and system-level Picture-in-Picture mode.",
+          category: "Communication",
+          version_name: "1.0.0",
+          version_code: 1,
+          size_bytes: 56933716,
+          size_formatted: "54.3 MB",
+          download_url: "https://connecto.fun/downloads/vision-call.apk",
+          icon_url: "https://connecto.fun/static/favicon.svg",
+          accent_color: "#00E5FF",
+          changelog: [
+            "Hardware-accelerated H.264 & VP8 WebRTC Video Engine with Acoustic Echo Cancellation & Noise Suppression",
+            "Dynamic Group Video Calling with responsive 1-on-1, 2-peer split, and 2x2 multi-party room grid",
+            "Screen Sharing presentation with Android 14+ compliant Foreground Service (mediaProjection)",
+            "System-Level Picture-in-Picture (PiP) Mode with seamless home-gesture transition",
+            "Visual Background Effects & Portrait Blur (Soft Blur, Deep Bokeh, Studio Glow, Virtual Backdrops)",
+            "Real-Time In-Call Text Chat with quick emoji reaction bar and unread notification badges",
+            "Live audio device switcher for Speakerphone, Earpiece, and Bluetooth audio accessories"
+          ],
+          is_essential: false,
+          updated_at: "2026-11-02T11:45:00Z"
+        },
+        {
+          id: "voipcall",
+          package_name: "com.connecto.voip",
+          name: "VoIP Phone",
+          badge: "VoIP Telephony",
+          tagline: "Ultra-low latency HD VoIP audio calls with CallKit integration",
+          description: "Dedicated high-fidelity voice-over-IP telephone application. Features instant lock-screen incoming call banners via native CallKit & ConnectionService, background push wake-up, encrypted WebRTC audio mesh, live audio wave visualizers, earpiece/speakerphone routing, and multi-user profile dialing.",
+          category: "Communication",
+          version_name: "1.1.0",
+          version_code: 101,
+          size_bytes: 12781423,
+          size_formatted: "12.2 MB",
+          download_url: "https://connecto.fun/downloads/voip-call.apk",
+          icon_url: "https://connecto.fun/static/favicon.svg",
+          accent_color: "#10B981",
+          changelog: [
+            "Native Dialpad with Direct Internet Phone Calling to user phone numbers",
+            "Call History tab with Recents & Missed filters, durations, and one-tap callback",
+            "Account tab with Sign in with Connecto (Connecto SSO verification badge)",
+            "Authentication Gate: Dialpad and Call History unlocked only after Connecto Sign-In",
+            "Cloudflare Anycast Edge VoIP routing & D1 database synchronization"
+          ],
+          is_essential: false,
+          updated_at: "2026-11-02T10:45:00Z"
         }
       ]
     });
