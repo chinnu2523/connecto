@@ -74,7 +74,9 @@ data class StoreThemeColors(
     val textDarkMuted: Color,
     val navBarBackground: Color,
     val dividerColor: Color,
-    val searchBarBg: Color
+    val searchBarBg: Color,
+    val accentColor: Color = Color(0xFF6C5CE7),
+    val accentColorLight: Color = Color(0xFFA29BFE)
 )
 
 val DarkStoreTheme = StoreThemeColors(
@@ -90,14 +92,16 @@ val DarkStoreTheme = StoreThemeColors(
     textDarkMuted = Color(0xFF6B7280),
     navBarBackground = Color(0xFF000000),
     dividerColor = Color(0xFF222226),
-    searchBarBg = Color(0xFF161619)
+    searchBarBg = Color(0xFF161619),
+    accentColor = Color(0xFF6C5CE7),
+    accentColorLight = Color(0xFFA29BFE)
 )
 
 val LightStoreTheme = StoreThemeColors(
     isDark = false,
     background = Color(0xFFF8FAFC),
     surface = Color(0xFFFFFFFF),
-    cardElevated = Color(0xFFFFFFFF),
+    cardElevated = Color(0xFFF1F5F9),
     cardBorder = Color(0xFFE2E8F0),
     borderHighlight = Color(0xFFCBD5E1),
     textPrimary = Color(0xFF0F172A),
@@ -106,10 +110,46 @@ val LightStoreTheme = StoreThemeColors(
     textDarkMuted = Color(0xFF94A3B8),
     navBarBackground = Color(0xFFFFFFFF),
     dividerColor = Color(0xFFE2E8F0),
-    searchBarBg = Color(0xFFF1F5F9)
+    searchBarBg = Color(0xFFF1F5F9),
+    accentColor = Color(0xFF6C5CE7),
+    accentColorLight = Color(0xFF5645CA)
 )
 
 val LocalStoreTheme = staticCompositionLocalOf { DarkStoreTheme }
+
+// ─── Tactile Spring Press Interaction Modifier ────────────────────────────────
+@Composable
+fun Modifier.tactilePress(
+    pressedScale: Float = 0.94f,
+    onClick: (() -> Unit)? = null
+): Modifier {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) pressedScale else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "tactilePressScale"
+    )
+    return this
+        .graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+        }
+        .then(
+            if (onClick != null) {
+                Modifier.clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClick = onClick
+                )
+            } else {
+                Modifier
+            }
+        )
+}
 
 // ─── Theme Persistence Manager ───────────────────────────────────────────────
 object StoreThemeManager {
@@ -198,10 +238,19 @@ fun StoreApp(
         selectedPackageName = null
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = TruePitchBlack
-    ) {
+    var isDarkTheme by remember { mutableStateOf(StoreThemeManager.isDarkTheme(context)) }
+    val currentTheme = if (isDarkTheme) DarkStoreTheme else LightStoreTheme
+    val onToggleTheme: () -> Unit = {
+        val next = !isDarkTheme
+        isDarkTheme = next
+        StoreThemeManager.setDarkTheme(context, next)
+    }
+
+    CompositionLocalProvider(LocalStoreTheme provides currentTheme) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = currentTheme.background
+        ) {
         when (val s = state) {
             is StoreUiState.Loading -> ClassicLoadingState()
             is StoreUiState.Error   -> ClassicErrorState(s.message, onRetry = { vm.loadCatalog() })
@@ -210,6 +259,8 @@ fun StoreApp(
                     // Strictly unauthenticated gate: show NOTHING except the Login with Connecto screen
                     ConnectoLoginGateScreen(
                         loginState = loginState,
+                        isDarkTheme = isDarkTheme,
+                        onToggleTheme = onToggleTheme,
                         onLoginConnecto = { vm.loginWithConnecto(context) },
                         onClearLoginError = { vm.clearLoginError() }
                     )
@@ -235,6 +286,8 @@ fun StoreApp(
                                 onSearchChange = { searchQuery = it },
                                 onRefresh = { vm.loadCatalog() },
                                 onOpenSecurityDialog = { showSecurityDialog = true },
+                                isDarkTheme = isDarkTheme,
+                                onToggleTheme = onToggleTheme,
                                 showSearch = selectedSection == StoreNavSection.OVERVIEW
                             )
 
@@ -285,6 +338,8 @@ fun StoreApp(
                                             currentUser = currentUser,
                                             loginState = loginState,
                                             storeSelfUpdate = s.storeSelfUpdate,
+                                            isDarkTheme = isDarkTheme,
+                                            onToggleTheme = onToggleTheme,
                                             onUpdateOurStore = { s.storeSelfUpdate?.let { vm.downloadAndInstall(context, it) } },
                                             onLoginCredentials = { u, p -> vm.loginWithCredentials(u, p) },
                                             onLoginConnecto = { vm.loginWithConnecto(context) },
@@ -335,6 +390,19 @@ fun StoreApp(
                         )
                     }
 
+                    // Biometric & Password Download Authorization Sheet
+                    pendingAuthApp?.let { pendingApp ->
+                        StoreAppDownloadAuthSheet(
+                            appState = pendingApp,
+                            currentUser = currentUser,
+                            authError = authError,
+                            isVerifying = isVerifyingAuth,
+                            onDismiss = { vm.dismissDownloadAuth() },
+                            onBiometricSuccess = { vm.completeBiometricAuthAndDownload(context, pendingApp) },
+                            onPasswordSubmit = { pass, enableBio -> vm.verifyPasswordAndDownload(context, pendingApp, pass, enableBio) }
+                        )
+                    }
+
                     // Google Play Protect & Safety Status Dialog
                     if (showSecurityDialog) {
                         PlayProtectSecurityDialog(
@@ -346,6 +414,7 @@ fun StoreApp(
             }
         }
     }
+    }
 }
 
 // ─── Classic Executive Top Header ─────────────────────────────────────────────
@@ -355,14 +424,17 @@ private fun ClassicTopHeader(
     onSearchChange: (String) -> Unit,
     onRefresh: () -> Unit,
     onOpenSecurityDialog: () -> Unit,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     showSearch: Boolean = true
 ) {
+    val theme = LocalStoreTheme.current
     val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(TruePitchBlack)
+            .background(theme.surface)
             .statusBarsPadding()
             .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -386,7 +458,7 @@ private fun ClassicTopHeader(
                     ) {
                         Text(
                             text = "OUR STORE",
-                            color = TextPureWhite,
+                            color = theme.textPrimary,
                             fontWeight = FontWeight.Black,
                             fontSize = 17.sp,
                             letterSpacing = 1.sp
@@ -394,13 +466,13 @@ private fun ClassicTopHeader(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(DarkCardElevated)
-                                .border(1.dp, DarkCardBorder, RoundedCornerShape(4.dp))
+                                .background(theme.cardElevated)
+                                .border(1.dp, theme.cardBorder, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "ENTERPRISE HUB",
-                                color = TextMutedSilver,
+                                color = theme.textMuted,
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.6.sp
@@ -409,7 +481,7 @@ private fun ClassicTopHeader(
                     }
                     Text(
                         text = "Native In-App Package Engine • Instant Deployment",
-                        color = TextDarkMuted,
+                        color = theme.textDarkMuted,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -420,13 +492,40 @@ private fun ClassicTopHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                IconButton(
-                    onClick = onOpenSecurityDialog,
+                // Theme Toggle Button with Spring Physics
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(DarkCardElevated)
+                        .background(theme.cardElevated)
+                        .border(1.dp, theme.cardBorder, CircleShape)
+                        .tactilePress(pressedScale = 0.88f) { onToggleTheme() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    val rotation by animateFloatAsState(
+                        targetValue = if (isDarkTheme) 0f else 180f,
+                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+                        label = "themeIconRotation"
+                    )
+                    Icon(
+                        imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                        contentDescription = "Toggle Appearance Theme",
+                        tint = if (isDarkTheme) AmberUpdate else theme.textPrimary,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .graphicsLayer { rotationZ = rotation }
+                    )
+                }
+
+                // Play Protect & Safety Status Button
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(theme.cardElevated)
                         .border(1.dp, EmeraldStatus.copy(alpha = 0.45f), CircleShape)
+                        .tactilePress(pressedScale = 0.88f) { onOpenSecurityDialog() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Security,
@@ -436,18 +535,20 @@ private fun ClassicTopHeader(
                     )
                 }
 
-                IconButton(
-                    onClick = onRefresh,
+                // Refresh Button
+                Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
-                        .background(DarkCardElevated)
-                        .border(1.dp, DarkCardBorder, CircleShape)
+                        .background(theme.cardElevated)
+                        .border(1.dp, theme.cardBorder, CircleShape)
+                        .tactilePress(pressedScale = 0.88f) { onRefresh() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Refresh,
                         contentDescription = "Refresh Catalog",
-                        tint = TextPureWhite,
+                        tint = theme.textPrimary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -465,7 +566,7 @@ private fun ClassicTopHeader(
                 placeholder = {
                     Text(
                         "Search ecosystem applications…",
-                        color = TextDarkMuted,
+                        color = theme.textDarkMuted,
                         fontSize = 12.5.sp
                     )
                 },
@@ -473,7 +574,7 @@ private fun ClassicTopHeader(
                     Icon(
                         imageVector = Icons.Rounded.Search,
                         contentDescription = "Search",
-                        tint = TextDarkMuted,
+                        tint = theme.textDarkMuted,
                         modifier = Modifier.size(18.dp)
                     )
                 },
@@ -483,7 +584,7 @@ private fun ClassicTopHeader(
                             Icon(
                                 imageVector = Icons.Rounded.Close,
                                 contentDescription = "Clear",
-                                tint = TextMutedSilver,
+                                tint = theme.textMuted,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -492,12 +593,12 @@ private fun ClassicTopHeader(
                 singleLine = true,
                 shape = RoundedCornerShape(10.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = DarkGraphiteSurface,
-                    unfocusedContainerColor = DarkGraphiteSurface,
-                    focusedBorderColor = DarkBorderHighlight,
-                    unfocusedBorderColor = DarkCardBorder,
-                    focusedTextColor = TextPureWhite,
-                    unfocusedTextColor = TextSilver
+                    focusedContainerColor = theme.searchBarBg,
+                    unfocusedContainerColor = theme.searchBarBg,
+                    focusedBorderColor = theme.borderHighlight,
+                    unfocusedBorderColor = theme.cardBorder,
+                    focusedTextColor = theme.textPrimary,
+                    unfocusedTextColor = theme.textSecondary
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
@@ -513,14 +614,16 @@ private fun ClassicBottomNavBar(
     onSelect: (StoreNavSection) -> Unit,
     updateCount: Int
 ) {
+    val theme = LocalStoreTheme.current
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding(),
-        color = TruePitchBlack
+        color = theme.navBarBackground
     ) {
         Column {
-            HorizontalDivider(color = DarkCardBorder, thickness = 1.dp)
+            HorizontalDivider(color = theme.dividerColor, thickness = 1.dp)
 
             Row(
                 modifier = Modifier
@@ -552,6 +655,8 @@ private fun ClassicBottomNavTabItem(
     badgeCount: Int,
     onClick: () -> Unit
 ) {
+    val theme = LocalStoreTheme.current
+
     val animatedScale by animateFloatAsState(
         targetValue = if (isSelected) 1.05f else 1.0f,
         animationSpec = spring(
@@ -562,13 +667,13 @@ private fun ClassicBottomNavTabItem(
     )
 
     val animatedContainerColor by animateColorAsState(
-        targetValue = if (isSelected) DarkCardElevated else Color.Transparent,
+        targetValue = if (isSelected) (if (theme.isDark) theme.cardElevated else Color(0xFFF1F5F9)) else Color.Transparent,
         animationSpec = tween(durationMillis = 220),
         label = "tabBg"
     )
 
     val animatedContentColor by animateColorAsState(
-        targetValue = if (isSelected) TextPureWhite else TextDarkMuted,
+        targetValue = if (isSelected) theme.accentColor else theme.textDarkMuted,
         animationSpec = tween(durationMillis = 200),
         label = "tabFg"
     )
@@ -583,14 +688,10 @@ private fun ClassicBottomNavTabItem(
             .background(animatedContainerColor)
             .border(
                 1.dp,
-                if (isSelected) DarkBorderHighlight else Color.Transparent,
+                if (isSelected) theme.borderHighlight else Color.Transparent,
                 RoundedCornerShape(14.dp)
             )
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
+            .tactilePress(pressedScale = 0.92f) { onClick() }
             .padding(horizontal = 14.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -647,6 +748,7 @@ private fun ClassicCatalogBody(
     onUpdateAll: () -> Unit,
     isUpdatesTab: Boolean
 ) {
+    val theme = LocalStoreTheme.current
     val categories = remember(state.apps) {
         listOf("All") + state.apps.map { it.app.category }.distinct()
     }
@@ -667,14 +769,14 @@ private fun ClassicCatalogBody(
                 )
             }
         } else {
-            // Streamlined Background Auto-Update Status Header (Engine card toggle removed)
+            // Streamlined Background Auto-Update Status Header
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(DarkGraphiteSurface)
-                        .border(1.dp, DarkCardBorder, RoundedCornerShape(14.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
                         .padding(18.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -700,34 +802,39 @@ private fun ClassicCatalogBody(
                         }
                         Text(
                             text = "Auto-Update: Autonomous Background Engine Active",
-                            color = TextDarkMuted,
+                            color = theme.textDarkMuted,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace
                         )
                     }
 
                     if (updateCount > 0) {
-                        Button(
-                            onClick = onUpdateAll,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = TextPureWhite,
-                                contentColor = TruePitchBlack
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 7.dp)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(theme.textPrimary)
+                                .tactilePress(pressedScale = 0.92f) { onUpdateAll() }
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.DownloadDone,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "UPDATE ALL",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.5.sp
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.DownloadDone,
+                                    contentDescription = null,
+                                    tint = theme.background,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    text = "UPDATE ALL",
+                                    color = theme.background,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -743,29 +850,29 @@ private fun ClassicCatalogBody(
             ) {
                 Text(
                     text = if (isUpdatesTab) "PENDING SYSTEM UPDATES" else "VERIFIED ECOSYSTEM APPLICATIONS",
-                    color = TextMutedSilver,
+                    color = theme.textMuted,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
                 Text(
                     text = "${filteredApps.size} apps available",
-                    color = TextDarkMuted,
+                    color = theme.textDarkMuted,
                     fontSize = 11.sp,
                     fontFamily = FontFamily.Monospace
                 )
             }
         }
 
-        // App Card Buttons (Tapping opens dedicated App Detail & Preview Screen)
+        // App Card Buttons
         if (filteredApps.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(DarkGraphiteSurface)
-                        .border(1.dp, DarkCardBorder, RoundedCornerShape(14.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
                         .padding(28.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -790,13 +897,13 @@ private fun ClassicCatalogBody(
                         }
                         Text(
                             text = if (isUpdatesTab) "All installed applications are up to date" else "No packages found",
-                            color = TextPureWhite,
+                            color = theme.textPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.5.sp
                         )
                         Text(
                             text = if (isUpdatesTab) "The background engine monitors and syncs new releases continuously." else "Try searching with a different keyword or category.",
-                            color = TextMutedSilver,
+                            color = theme.textMuted,
                             fontSize = 12.sp,
                             textAlign = TextAlign.Center
                         )
@@ -820,8 +927,6 @@ private fun ClassicCatalogBody(
     }
 }
 
-
-
 // ─── Category Pills ───────────────────────────────────────────────────────────
 @Composable
 private fun ClassicCategoryPills(
@@ -829,6 +934,8 @@ private fun ClassicCategoryPills(
     selected: String,
     onSelect: (String) -> Unit
 ) {
+    val theme = LocalStoreTheme.current
+
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(vertical = 4.dp)
@@ -838,18 +945,18 @@ private fun ClassicCategoryPills(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) TextPureWhite else DarkGraphiteSurface)
+                    .background(if (isSelected) theme.textPrimary else theme.surface)
                     .border(
                         1.dp,
-                        if (isSelected) TextPureWhite else DarkCardBorder,
+                        if (isSelected) theme.textPrimary else theme.cardBorder,
                         RoundedCornerShape(8.dp)
                     )
-                    .clickable { onSelect(category) }
+                    .tactilePress(pressedScale = 0.94f) { onSelect(category) }
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
                 Text(
                     text = category,
-                    color = if (isSelected) TruePitchBlack else TextMutedSilver,
+                    color = if (isSelected) theme.background else theme.textMuted,
                     fontSize = 12.sp,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                 )
@@ -865,16 +972,17 @@ private fun ClassicAppCard(
     onClick: () -> Unit,
     onActionClick: () -> Unit
 ) {
+    val theme = LocalStoreTheme.current
     val app = appState.app
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkGraphiteSurface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, DarkCardBorder)
+            .clip(RoundedCornerShape(16.dp))
+            .tactilePress(pressedScale = 0.98f) { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = theme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.dp, theme.cardBorder)
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -890,8 +998,8 @@ private fun ClassicAppCard(
                     modifier = Modifier
                         .size(54.dp)
                         .clip(RoundedCornerShape(13.dp))
-                        .background(DarkCardElevated)
-                        .border(1.dp, DarkBorderHighlight, RoundedCornerShape(13.dp)),
+                        .background(theme.cardElevated)
+                        .border(1.dp, theme.borderHighlight, RoundedCornerShape(13.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     AppIconImage(appId = app.id, appName = app.name)
@@ -910,7 +1018,7 @@ private fun ClassicAppCard(
                         ) {
                             Text(
                                 text = app.name,
-                                color = TextPureWhite,
+                                color = theme.textPrimary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 17.sp,
                                 letterSpacing = (-0.3).sp,
@@ -920,13 +1028,13 @@ private fun ClassicAppCard(
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
-                                    .background(DarkCardElevated)
-                                    .border(1.dp, DarkCardBorder, RoundedCornerShape(4.dp))
+                                    .background(theme.cardElevated)
+                                    .border(1.dp, theme.cardBorder, RoundedCornerShape(4.dp))
                                     .padding(horizontal = 5.dp, vertical = 1.5.dp)
                             ) {
                                 Text(
                                     text = app.badge.uppercase(),
-                                    color = TextMutedSilver,
+                                    color = theme.textMuted,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 0.5.sp
@@ -938,13 +1046,13 @@ private fun ClassicAppCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(DarkCardElevated)
-                                .border(1.dp, DarkBorderHighlight, RoundedCornerShape(6.dp))
+                                .background(theme.cardElevated)
+                                .border(1.dp, theme.borderHighlight, RoundedCornerShape(6.dp))
                                 .padding(horizontal = 7.dp, vertical = 2.5.dp)
                         ) {
                             Text(
                                 text = app.sizeFormatted,
-                                color = TextPureWhite,
+                                color = theme.textPrimary,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace,
@@ -955,7 +1063,7 @@ private fun ClassicAppCard(
 
                     Text(
                         text = app.tagline,
-                        color = TextMutedSilver,
+                        color = theme.textMuted,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -963,7 +1071,7 @@ private fun ClassicAppCard(
 
                     Text(
                         text = app.packageName,
-                        color = TextDarkMuted,
+                        color = theme.textDarkMuted,
                         fontSize = 10.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -977,9 +1085,9 @@ private fun ClassicAppCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DarkCardElevated)
-                    .border(1.dp, DarkBorderHighlight, RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(theme.cardElevated)
+                    .border(1.dp, theme.borderHighlight, RoundedCornerShape(10.dp))
                     .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -989,9 +1097,9 @@ private fun ClassicAppCard(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val (statusColor, statusLabel) = when {
-                        appState.isInstalling -> Pair(TextPureWhite, "Installing into OS…")
-                        appState.isDownloading -> Pair(TextPureWhite, "Downloading ${appState.downloadProgress}%…")
-                        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Pair(TextMutedSilver, "Tap to Install & View Preview")
+                        appState.isInstalling -> Pair(theme.textPrimary, "Installing into OS…")
+                        appState.isDownloading -> Pair(theme.textPrimary, "Downloading ${appState.downloadProgress}%…")
+                        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Pair(theme.textMuted, "Tap to Install & View Preview")
                         appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Pair(AmberUpdate, "Update Available • Tap to View")
                         else -> Pair(EmeraldStatus, "Installed • Tap to Manage / Uninstall")
                     }
@@ -1005,19 +1113,47 @@ private fun ClassicAppCard(
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = "VIEW",
-                        color = TextPureWhite,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
-                    )
+                    val actionLabel = when {
+                        appState.isInstalling -> "INSTALLING…"
+                        appState.isDownloading -> "${appState.downloadProgress}%"
+                        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> "GET"
+                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> "UPDATE"
+                        else -> "OPEN"
+                    }
+                    val actionBg = when {
+                        appState.isDownloading || appState.isInstalling -> theme.cardBorder
+                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> AmberUpdate
+                        else -> theme.textPrimary
+                    }
+                    val actionFg = when {
+                        appState.isDownloading || appState.isInstalling -> theme.textPrimary
+                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Color.Black
+                        else -> theme.background
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(actionBg)
+                            .tactilePress(pressedScale = 0.90f) { onActionClick() }
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = actionLabel,
+                            color = actionFg,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+
                     Icon(
                         imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = null,
-                        tint = TextPureWhite,
+                        contentDescription = "Details",
+                        tint = theme.textMuted,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -1034,13 +1170,14 @@ private fun ClassicAppDetailView(
     onAction: () -> Unit,
     onUninstall: () -> Unit
 ) {
+    val theme = LocalStoreTheme.current
     val app = appState.app
     val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(TruePitchBlack)
+            .background(theme.background)
             .statusBarsPadding()
     ) {
         // Top Back Navigation Bar
@@ -1055,18 +1192,19 @@ private fun ClassicAppDetailView(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                IconButton(
-                    onClick = onBack,
+                Box(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(DarkCardElevated)
-                        .border(1.dp, DarkCardBorder, CircleShape)
+                        .background(theme.cardElevated)
+                        .border(1.dp, theme.cardBorder, CircleShape)
+                        .tactilePress(pressedScale = 0.88f) { onBack() },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = "Back",
-                        tint = TextPureWhite,
+                        tint = theme.textPrimary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -1074,14 +1212,14 @@ private fun ClassicAppDetailView(
                 Column {
                     Text(
                         text = app.name,
-                        color = TextPureWhite,
+                        color = theme.textPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 17.sp,
                         letterSpacing = (-0.3).sp
                     )
                     Text(
                         text = "Ecosystem Application",
-                        color = TextDarkMuted,
+                        color = theme.textDarkMuted,
                         fontSize = 10.sp
                     )
                 }
@@ -1090,13 +1228,13 @@ private fun ClassicAppDetailView(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(DarkCardElevated)
-                    .border(1.dp, DarkBorderHighlight, RoundedCornerShape(6.dp))
+                    .background(theme.cardElevated)
+                    .border(1.dp, theme.borderHighlight, RoundedCornerShape(6.dp))
                     .padding(horizontal = 9.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = app.category.uppercase(),
-                    color = TextMutedSilver,
+                    color = theme.textMuted,
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.6.sp
@@ -1104,7 +1242,7 @@ private fun ClassicAppDetailView(
             }
         }
 
-        HorizontalDivider(color = DarkCardBorder, thickness = 1.dp)
+        HorizontalDivider(color = theme.cardBorder, thickness = 1.dp)
 
         // Scrollable App Detail Content
         Column(
@@ -1124,8 +1262,8 @@ private fun ClassicAppDetailView(
                     modifier = Modifier
                         .size(72.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(DarkCardElevated)
-                        .border(1.5.dp, DarkBorderHighlight, RoundedCornerShape(16.dp)),
+                        .background(theme.cardElevated)
+                        .border(1.5.dp, theme.borderHighlight, RoundedCornerShape(16.dp)),
                     contentAlignment = Alignment.Center
                 ) {
                     AppIconImage(appId = app.id, appName = app.name)
@@ -1142,7 +1280,7 @@ private fun ClassicAppDetailView(
                     ) {
                         Text(
                             text = app.name,
-                            color = TextPureWhite,
+                            color = theme.textPrimary,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp,
                             letterSpacing = (-0.5).sp
@@ -1151,13 +1289,13 @@ private fun ClassicAppDetailView(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(DarkCardElevated)
-                                .border(1.dp, DarkBorderHighlight, RoundedCornerShape(6.dp))
+                                .background(theme.cardElevated)
+                                .border(1.dp, theme.borderHighlight, RoundedCornerShape(6.dp))
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 text = app.sizeFormatted,
-                                color = TextPureWhite,
+                                color = theme.textPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 fontFamily = FontFamily.Monospace
@@ -1167,14 +1305,14 @@ private fun ClassicAppDetailView(
 
                     Text(
                         text = app.tagline,
-                        color = TextMutedSilver,
+                        color = theme.textMuted,
                         fontSize = 12.5.sp,
                         lineHeight = 16.sp
                     )
 
                     Text(
                         text = app.packageName,
-                        color = TextDarkMuted,
+                        color = theme.textDarkMuted,
                         fontSize = 10.5.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -1184,14 +1322,14 @@ private fun ClassicAppDetailView(
             // Specs Row (Version, Device Version, Size Pill, Status)
             ClassicVersionSpecRow(appState = appState)
 
-            // Progress Bar if Downloading or Installing
+            // Progress Bar if Downloading or Installing with Shimmer Sweep
             AnimatedVisibility(visible = appState.isDownloading || appState.isInstalling) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(DarkCardElevated)
-                        .border(1.dp, DarkCardBorder, RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(12.dp))
                         .padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
@@ -1200,10 +1338,10 @@ private fun ClassicAppDetailView(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         val status = if (appState.isInstalling) "Installing directly into Android OS…" else "Downloading package…"
-                        Text(status, color = TextPureWhite, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                        Text(status, color = theme.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             if (appState.isInstalling) "Please wait" else "${appState.downloadProgress}%",
-                            color = TextMutedSilver,
+                            color = theme.textMuted,
                             fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace
                         )
@@ -1211,8 +1349,8 @@ private fun ClassicAppDetailView(
                     LinearProgressIndicator(
                         progress = { if (appState.isInstalling) 1f else appState.downloadProgress / 100f },
                         modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
-                        color = TextPureWhite,
-                        trackColor = DarkGraphiteSurface
+                        color = theme.textPrimary,
+                        trackColor = theme.cardElevated
                     )
                 }
             }
@@ -1231,18 +1369,19 @@ private fun ClassicAppDetailView(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             when {
-                                appState.isDownloading || appState.isInstalling -> DarkCardBorder
-                                appState.installState == StoreApp.InstallState.NOT_INSTALLED -> TextPureWhite
+                                appState.isDownloading || appState.isInstalling -> theme.cardBorder
+                                appState.installState == StoreApp.InstallState.NOT_INSTALLED -> theme.textPrimary
                                 appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> AmberUpdate
-                                else -> TextPureWhite
+                                else -> theme.textPrimary
                             }
                         )
-                        .clickable(enabled = !appState.isDownloading && !appState.isInstalling) {
-                            onAction()
-                        }
+                        .tactilePress(
+                            pressedScale = 0.95f,
+                            onClick = if (!appState.isDownloading && !appState.isInstalling) onAction else null
+                        )
                         .padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -1254,12 +1393,12 @@ private fun ClassicAppDetailView(
                             appState.isDownloading || appState.isInstalling -> {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(16.dp),
-                                    color = TextPureWhite,
+                                    color = theme.textPrimary,
                                     strokeWidth = 2.dp
                                 )
                                 Text(
                                     text = if (appState.isInstalling) "INSTALLING…" else "DOWNLOADING…",
-                                    color = TextPureWhite,
+                                    color = theme.textPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
                                 )
@@ -1268,12 +1407,12 @@ private fun ClassicAppDetailView(
                                 Icon(
                                     imageVector = Icons.Rounded.Download,
                                     contentDescription = null,
-                                    tint = TruePitchBlack,
+                                    tint = theme.background,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
                                     text = "INSTALL (${app.sizeFormatted})",
-                                    color = TruePitchBlack,
+                                    color = theme.background,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     letterSpacing = 0.5.sp
@@ -1283,12 +1422,12 @@ private fun ClassicAppDetailView(
                                 Icon(
                                     imageVector = Icons.Rounded.SystemUpdate,
                                     contentDescription = null,
-                                    tint = TruePitchBlack,
+                                    tint = Color.Black,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
                                     text = "UPDATE (v${app.versionName})",
-                                    color = TruePitchBlack,
+                                    color = Color.Black,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     letterSpacing = 0.5.sp
@@ -1298,12 +1437,12 @@ private fun ClassicAppDetailView(
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Rounded.Launch,
                                     contentDescription = null,
-                                    tint = TruePitchBlack,
+                                    tint = theme.background,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
                                     text = "OPEN APP",
-                                    color = TruePitchBlack,
+                                    color = theme.background,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     letterSpacing = 0.5.sp
@@ -1317,10 +1456,10 @@ private fun ClassicAppDetailView(
                 if (isInstalled && !appState.isDownloading && !appState.isInstalling) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(12.dp))
                             .background(DangerRedBg)
-                            .border(1.dp, DangerRedBorder, RoundedCornerShape(10.dp))
-                            .clickable { onUninstall() }
+                            .border(1.dp, DangerRedBorder, RoundedCornerShape(12.dp))
+                            .tactilePress(pressedScale = 0.94f) { onUninstall() }
                             .padding(horizontal = 18.dp, vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1355,14 +1494,14 @@ private fun ClassicAppDetailView(
                 ) {
                     Text(
                         text = "APPLICATION PREVIEWS",
-                        color = TextPureWhite,
+                        color = theme.textPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 1.sp
                     )
                     Text(
-                        text = "3 screenshots",
-                        color = TextDarkMuted,
+                        text = "3 interactive frames",
+                        color = theme.textDarkMuted,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -1375,7 +1514,7 @@ private fun ClassicAppDetailView(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "ABOUT THIS APPLICATION",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp
@@ -1383,14 +1522,14 @@ private fun ClassicAppDetailView(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkGraphiteSurface)
-                        .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
                         .padding(16.dp)
                 ) {
                     Text(
                         text = app.description,
-                        color = TextSilver,
+                        color = theme.textSecondary,
                         fontSize = 13.sp,
                         lineHeight = 20.sp
                     )
@@ -1402,7 +1541,7 @@ private fun ClassicAppDetailView(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "WHAT'S NEW IN v${app.versionName}",
-                        color = TextPureWhite,
+                        color = theme.textPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 1.sp
@@ -1415,7 +1554,7 @@ private fun ClassicAppDetailView(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "TECHNICAL SPECIFICATIONS",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp
@@ -1423,9 +1562,9 @@ private fun ClassicAppDetailView(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(DarkGraphiteSurface)
-                        .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
                         .padding(16.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1433,7 +1572,10 @@ private fun ClassicAppDetailView(
                         TechSpecRow("Release Version", "v${app.versionName} (build ${app.versionCode})")
                         TechSpecRow("Binary Size", app.sizeFormatted)
                         TechSpecRow("Architecture", "arm64-v8a • universal")
+                        TechSpecRow("Target System", "Android 16+ (API 37 Ready)")
                         TechSpecRow("Minimum System", "Android 8.0 (API 26)+")
+                        TechSpecRow("Signature Schemes", "APK V1 + V2 + V3 + V4 Certified")
+                        TechSpecRow("Installer Engine", "PackageInstaller Session IPC")
                         TechSpecRow("Distribution Edge", "Cloudflare Anycast Global CDN")
                         TechSpecRow("Security Integrity", "SHA-256 Validated • Clean")
                     }
@@ -1512,7 +1654,7 @@ private fun getAppPreviews(appId: String): List<AppPreviewData> = when (appId.lo
         AppPreviewData(
             title = "OFFLINE MESH",
             subtitle = "Direct WiFi Local Chat",
-            icon = Icons.Rounded.Chat,
+            icon = Icons.AutoMirrored.Rounded.Chat,
             headline = "Zero Internet Required",
             highlights = listOf(
                 "Local subnet & hotspot mesh network",
@@ -1524,7 +1666,7 @@ private fun getAppPreviews(appId: String): List<AppPreviewData> = when (appId.lo
         AppPreviewData(
             title = "P2P FILE SHARING",
             subtitle = "Gigabit Local Transfers",
-            icon = Icons.Rounded.Send,
+            icon = Icons.AutoMirrored.Rounded.Send,
             headline = "Blazing Transfer Speeds",
             highlights = listOf(
                 "Direct socket streaming architecture",
@@ -1640,47 +1782,61 @@ private fun getAppPreviews(appId: String): List<AppPreviewData> = when (appId.lo
 
 @Composable
 private fun PhoneMockupCard(preview: AppPreviewData) {
+    val theme = LocalStoreTheme.current
+
     Box(
         modifier = Modifier
-            .width(220.dp)
-            .height(360.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(DarkGraphiteSurface)
-            .border(1.5.dp, DarkBorderHighlight, RoundedCornerShape(22.dp))
+            .width(230.dp)
+            .height(380.dp)
+            .clip(RoundedCornerShape(26.dp))
+            .background(theme.surface)
+            .border(1.5.dp, theme.borderHighlight, RoundedCornerShape(26.dp))
             .padding(14.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Mockup Status Bar
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "9:41",
-                    color = TextMutedSilver,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            // Mockup Status Bar with Dynamic Island / Punch Hole Notch
+            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(5.dp)
-                            .clip(CircleShape)
-                            .background(preview.accentColor)
-                    )
                     Text(
-                        text = "5G",
-                        color = TextDarkMuted,
-                        fontSize = 9.sp,
+                        text = "9:41",
+                        color = theme.textMuted,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
+
+                    // Dynamic Camera Notch
+                    Box(
+                        modifier = Modifier
+                            .width(42.dp)
+                            .height(10.dp)
+                            .clip(CircleShape)
+                            .background(if (theme.isDark) Color(0xFF161619) else Color(0xFFCBD5E1))
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(5.dp)
+                                .clip(CircleShape)
+                                .background(preview.accentColor)
+                        )
+                        Text(
+                            text = "5G",
+                            color = theme.textDarkMuted,
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
@@ -1718,7 +1874,7 @@ private fun PhoneMockupCard(preview: AppPreviewData) {
                     )
                     Text(
                         text = preview.headline,
-                        color = TextPureWhite,
+                        color = theme.textPrimary,
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
                         lineHeight = 19.sp
@@ -1736,11 +1892,11 @@ private fun PhoneMockupCard(preview: AppPreviewData) {
                                 modifier = Modifier
                                     .size(4.dp)
                                     .clip(CircleShape)
-                                    .background(TextMutedSilver)
+                                    .background(theme.textMuted)
                             )
                             Text(
                                 text = highlight,
-                                color = TextMutedSilver,
+                                color = theme.textSecondary,
                                 fontSize = 11.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -1750,22 +1906,33 @@ private fun PhoneMockupCard(preview: AppPreviewData) {
                 }
             }
 
-            // Mockup Bottom Caption Pill
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DarkCardElevated)
-                    .border(1.dp, DarkCardBorder, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 10.dp, vertical = 7.dp)
-            ) {
-                Text(
-                    text = preview.subtitle,
-                    color = TextSilver,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+            // Mockup Bottom Device Pill Bar & Caption
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(theme.cardElevated)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                ) {
+                    Text(
+                        text = preview.subtitle,
+                        color = theme.textSecondary,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Home Bar Pill
+                Box(
+                    modifier = Modifier
+                        .width(48.dp)
+                        .height(3.dp)
+                        .clip(CircleShape)
+                        .background(theme.textDarkMuted.copy(alpha = 0.5f))
                 )
             }
         }
@@ -1775,6 +1942,7 @@ private fun PhoneMockupCard(preview: AppPreviewData) {
 // ─── Technical Specification Row Helper ───────────────────────────────────────
 @Composable
 private fun TechSpecRow(label: String, value: String) {
+    val theme = LocalStoreTheme.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1782,13 +1950,13 @@ private fun TechSpecRow(label: String, value: String) {
     ) {
         Text(
             text = label,
-            color = TextDarkMuted,
+            color = theme.textDarkMuted,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium
         )
         Text(
             text = value,
-            color = TextPureWhite,
+            color = theme.textPrimary,
             fontSize = 11.sp,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.SemiBold
@@ -1799,9 +1967,10 @@ private fun TechSpecRow(label: String, value: String) {
 // ─── Version Spec Row ─────────────────────────────────────────────────────────
 @Composable
 private fun ClassicVersionSpecRow(appState: AppUiState) {
+    val theme = LocalStoreTheme.current
     val (statusBg, statusFg, statusText) = when {
-        appState.isInstalling -> Triple(DarkCardElevated, TextPureWhite, "INSTALLING")
-        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple(DarkCardElevated, TextMutedSilver, "NOT INSTALLED")
+        appState.isInstalling -> Triple(theme.cardElevated, theme.textPrimary, "INSTALLING")
+        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple(theme.cardElevated, theme.textMuted, "NOT INSTALLED")
         appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple(AmberUpdateBg, AmberUpdate, "UPDATE AVAILABLE")
         else -> Triple(EmeraldStatusBg, EmeraldStatus, "UP TO DATE ✓")
     }
@@ -1810,8 +1979,8 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(DarkCardElevated)
-            .border(1.dp, DarkCardBorder, RoundedCornerShape(8.dp))
+            .background(theme.cardElevated)
+            .border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp))
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         Row(
@@ -1820,10 +1989,10 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("CATALOG", color = TextDarkMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text("CATALOG", color = theme.textDarkMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "v${appState.app.versionName}",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
@@ -1832,10 +2001,10 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
 
             if (appState.installedVersionName != null) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("DEVICE", color = TextDarkMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text("DEVICE", color = theme.textDarkMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     Text(
                         "v${appState.installedVersionName}",
-                        color = TextMutedSilver,
+                        color = theme.textMuted,
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace
                     )
@@ -1863,18 +2032,19 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
 // ─── Changelog Box ───────────────────────────────────────────────────────────
 @Composable
 private fun ClassicChangelogBox(changelog: List<String>) {
+    val theme = LocalStoreTheme.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(DarkCardElevated.copy(alpha = 0.6f))
-            .border(1.dp, DarkCardBorder, RoundedCornerShape(8.dp))
-            .padding(12.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(theme.surface)
+            .border(1.dp, theme.cardBorder, RoundedCornerShape(10.dp))
+            .padding(14.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 "CHANGELOG",
-                color = TextDarkMuted,
+                color = theme.textDarkMuted,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.sp
@@ -1884,8 +2054,8 @@ private fun ClassicChangelogBox(changelog: List<String>) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.Top
                 ) {
-                    Text("•", color = TextMutedSilver, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    Text(item, color = TextMutedSilver, fontSize = 11.5.sp, lineHeight = 16.sp)
+                    Text("•", color = theme.accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(item, color = theme.textSecondary, fontSize = 11.5.sp, lineHeight = 16.sp)
                 }
             }
         }
@@ -1946,7 +2116,7 @@ internal fun AppIconImage(appId: String, appName: String, modifier: Modifier = M
                 Icon(
                     imageVector = Icons.Rounded.Apps,
                     contentDescription = appName,
-                    tint = TextPureWhite,
+                    tint = Color.White,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -1957,6 +2127,7 @@ internal fun AppIconImage(appId: String, appName: String, modifier: Modifier = M
 // ─── Footer Info ─────────────────────────────────────────────────────────────
 @Composable
 private fun ClassicFooterInfo() {
+    val theme = LocalStoreTheme.current
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1964,42 +2135,44 @@ private fun ClassicFooterInfo() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Text("OUR STORE • NATIVE PACKAGE HUB", color = TextDarkMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-        Text("Verified Cloudflare Anycast Delivery • targetSdk 37", color = TextDarkMuted, fontSize = 9.5.sp, fontFamily = FontFamily.Monospace)
+        Text("OUR STORE • NATIVE PACKAGE HUB", color = theme.textDarkMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+        Text("Verified Cloudflare Anycast Delivery • targetSdk 37", color = theme.textDarkMuted, fontSize = 9.5.sp, fontFamily = FontFamily.Monospace)
     }
 }
 
 // ─── Loading & Error Views ────────────────────────────────────────────────────
 @Composable
 private fun ClassicLoadingState() {
+    val theme = LocalStoreTheme.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            CircularProgressIndicator(color = TextPureWhite, strokeWidth = 3.dp)
-            Text("SYNCHRONIZING REPOSITORY…", color = TextMutedSilver, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            CircularProgressIndicator(color = theme.textPrimary, strokeWidth = 3.dp)
+            Text("SYNCHRONIZING REPOSITORY…", color = theme.textMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         }
     }
 }
 
 @Composable
 private fun ClassicErrorState(msg: String, onRetry: () -> Unit) {
+    val theme = LocalStoreTheme.current
     Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text("REPOSITORY SYNCHRONIZATION FAILED", color = DangerRed, fontWeight = FontWeight.Black, fontSize = 13.sp, letterSpacing = 1.sp)
-            Text(msg, color = TextMutedSilver, fontSize = 12.sp, textAlign = TextAlign.Center)
+            Text(msg, color = theme.textMuted, fontSize = 12.sp, textAlign = TextAlign.Center)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(TextPureWhite)
-                    .clickable { onRetry() }
+                    .background(theme.textPrimary)
+                    .tactilePress(pressedScale = 0.92f) { onRetry() }
                     .padding(horizontal = 20.dp, vertical = 9.dp)
             ) {
-                Text("RETRY", color = TruePitchBlack, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("RETRY", color = theme.background, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
     }
@@ -2008,16 +2181,21 @@ private fun ClassicErrorState(msg: String, onRetry: () -> Unit) {
 // ─── Master Architectural Our Store Insignia Logo ───────────────────────────
 @Composable
 fun OurStoreLogoMark(modifier: Modifier = Modifier) {
+    val theme = LocalStoreTheme.current
+
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(DarkCardElevated)
-            .border(1.dp, DarkBorderHighlight, RoundedCornerShape(10.dp)),
+            .background(theme.cardElevated)
+            .border(1.dp, theme.borderHighlight, RoundedCornerShape(10.dp)),
         contentAlignment = Alignment.Center
     ) {
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize().padding(7.dp)) {
             val w = size.width
             val h = size.height
+            val primaryColor = if (theme.isDark) Color.White else Color(0xFF0F172A)
+            val secondaryColor = if (theme.isDark) Color(0xFFE5E7EB) else Color(0xFF334155)
+            val mutedColor = if (theme.isDark) Color(0xFF9CA3AF) else Color(0xFF64748B)
 
             // 1. Classical Pediment (Triangle Roof)
             val pathRoof = androidx.compose.ui.graphics.Path().apply {
@@ -2026,11 +2204,11 @@ fun OurStoreLogoMark(modifier: Modifier = Modifier) {
                 lineTo(w * 0.84f, h * 0.34f)
                 close()
             }
-            drawPath(pathRoof, color = Color.White)
+            drawPath(pathRoof, color = primaryColor)
 
             // 2. Entablature / Architrave Beam
             drawRect(
-                color = Color(0xFFE5E7EB),
+                color = secondaryColor,
                 topLeft = Offset(w * 0.14f, h * 0.37f),
                 size = androidx.compose.ui.geometry.Size(w * 0.72f, h * 0.055f)
             )
@@ -2040,42 +2218,14 @@ fun OurStoreLogoMark(modifier: Modifier = Modifier) {
             val pillarHeight = h * 0.32f
             val pillarY = h * 0.45f
 
-            // Pillar 1
-            drawRect(
-                color = Color.White,
-                topLeft = Offset(w * 0.18f, pillarY),
-                size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight)
-            )
-            // Pillar 2
-            drawRect(
-                color = Color.White,
-                topLeft = Offset(w * 0.37f, pillarY),
-                size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight)
-            )
-            // Pillar 3
-            drawRect(
-                color = Color.White,
-                topLeft = Offset(w * 0.54f, pillarY),
-                size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight)
-            )
-            // Pillar 4
-            drawRect(
-                color = Color.White,
-                topLeft = Offset(w * 0.73f, pillarY),
-                size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight)
-            )
+            drawRect(color = primaryColor, topLeft = Offset(w * 0.18f, pillarY), size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight))
+            drawRect(color = primaryColor, topLeft = Offset(w * 0.37f, pillarY), size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight))
+            drawRect(color = primaryColor, topLeft = Offset(w * 0.54f, pillarY), size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight))
+            drawRect(color = primaryColor, topLeft = Offset(w * 0.73f, pillarY), size = androidx.compose.ui.geometry.Size(pillarWidth, pillarHeight))
 
             // 4. Classical Base Plinth (2-step foundation)
-            drawRect(
-                color = Color(0xFFE5E7EB),
-                topLeft = Offset(w * 0.14f, h * 0.79f),
-                size = androidx.compose.ui.geometry.Size(w * 0.72f, h * 0.055f)
-            )
-            drawRect(
-                color = Color(0xFF9CA3AF),
-                topLeft = Offset(w * 0.10f, h * 0.86f),
-                size = androidx.compose.ui.geometry.Size(w * 0.80f, h * 0.055f)
-            )
+            drawRect(color = secondaryColor, topLeft = Offset(w * 0.14f, h * 0.79f), size = androidx.compose.ui.geometry.Size(w * 0.72f, h * 0.055f))
+            drawRect(color = mutedColor, topLeft = Offset(w * 0.10f, h * 0.86f), size = androidx.compose.ui.geometry.Size(w * 0.80f, h * 0.055f))
 
             // 5. Center Diamond Sparkle
             val starPath = androidx.compose.ui.graphics.Path().apply {
@@ -2089,7 +2239,7 @@ fun OurStoreLogoMark(modifier: Modifier = Modifier) {
                 lineTo(w * 0.47f, h * 0.59f)
                 close()
             }
-            drawPath(starPath, color = Color.White)
+            drawPath(starPath, color = primaryColor)
         }
     }
 }
@@ -2101,11 +2251,12 @@ private fun ClassicPermissionDialog(
     onGrant: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val theme = LocalStoreTheme.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkGraphiteSurface,
-        titleContentColor = TextPureWhite,
-        textContentColor = TextMutedSilver,
+        containerColor = theme.surface,
+        titleContentColor = theme.textPrimary,
+        textContentColor = theme.textMuted,
         title = {
             Text("PACKAGE INSTALLATION PERMISSION", fontWeight = FontWeight.Black, fontSize = 14.sp, letterSpacing = 1.sp)
         },
@@ -2113,13 +2264,14 @@ private fun ClassicPermissionDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     "To install and update $appName directly through Our Store, Android requires authorization to install packages from this source.",
+                    color = theme.textSecondary,
                     fontSize = 13.sp,
                     lineHeight = 18.sp
                 )
                 Text(
                     "Tap 'Grant Permission', toggle ON 'Allow from this source', and the installation will proceed immediately.",
                     fontSize = 12.sp,
-                    color = TextMutedSilver,
+                    color = theme.textMuted,
                     lineHeight = 16.sp
                 )
             }
@@ -2128,16 +2280,16 @@ private fun ClassicPermissionDialog(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(TextPureWhite)
-                    .clickable { onGrant() }
+                    .background(theme.textPrimary)
+                    .tactilePress(pressedScale = 0.92f) { onGrant() }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("GRANT PERMISSION", color = TruePitchBlack, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("GRANT PERMISSION", color = theme.background, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("CANCEL", color = TextMutedSilver, fontSize = 12.sp)
+                Text("CANCEL", color = theme.textMuted, fontSize = 12.sp)
             }
         }
     )
@@ -2149,11 +2301,12 @@ private fun PlayProtectSecurityDialog(
     onDismiss: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val theme = LocalStoreTheme.current
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = DarkGraphiteSurface,
-        titleContentColor = TextPureWhite,
-        textContentColor = TextMutedSilver,
+        containerColor = theme.surface,
+        titleContentColor = theme.textPrimary,
+        textContentColor = theme.textMuted,
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -2205,7 +2358,7 @@ private fun PlayProtectSecurityDialog(
 
                 Text(
                     text = "Why does Google Play Protect show warnings?",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -2213,13 +2366,13 @@ private fun PlayProtectSecurityDialog(
                 Text(
                     text = "Our Store is an independent direct-distribution hub. Because it is distributed privately and not through Google's commercial Play Store, Play Protect checks the private signing certificate and flags it as an 'Unrecognized Developer'.",
                     fontSize = 12.sp,
-                    color = TextSilver,
+                    color = theme.textSecondary,
                     lineHeight = 16.sp
                 )
 
                 Text(
                     text = "How to proceed if Play Protect prompts you:",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -2227,7 +2380,7 @@ private fun PlayProtectSecurityDialog(
                 Text(
                     text = "1. When prompted during install, tap 'More details'.\n2. Tap 'Install anyway'.\n3. Tap 'Manage Play Protect' below to configure device scanning preferences.",
                     fontSize = 12.sp,
-                    color = TextSilver,
+                    color = theme.textSecondary,
                     lineHeight = 16.sp
                 )
             }
@@ -2236,19 +2389,19 @@ private fun PlayProtectSecurityDialog(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(TextPureWhite)
-                    .clickable {
+                    .background(theme.textPrimary)
+                    .tactilePress(pressedScale = 0.92f) {
                         onDismiss()
                         onOpenSettings()
                     }
                     .padding(horizontal = 14.dp, vertical = 8.dp)
             ) {
-                Text("MANAGE PLAY PROTECT", color = TruePitchBlack, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                Text("MANAGE PLAY PROTECT", color = theme.background, fontWeight = FontWeight.Bold, fontSize = 11.sp)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("GOT IT", color = TextMutedSilver, fontSize = 12.sp)
+                Text("GOT IT", color = theme.textMuted, fontSize = 12.sp)
             }
         }
     )
@@ -2258,21 +2411,43 @@ private fun PlayProtectSecurityDialog(
 @Composable
 fun ConnectoLoginGateScreen(
     loginState: LoginUiState,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onLoginConnecto: () -> Unit,
     onClearLoginError: () -> Unit
 ) {
     val context = LocalContext.current
+    val theme = LocalStoreTheme.current
     val isLoading = loginState is LoginUiState.Loading
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(TruePitchBlack)
+            .background(theme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Top right theme toggle button
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(38.dp)
+                .clip(CircleShape)
+                .background(theme.cardElevated)
+                .border(1.dp, theme.cardBorder, CircleShape)
+                .tactilePress(pressedScale = 0.88f) { onToggleTheme() },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
+                contentDescription = "Toggle Appearance Theme",
+                tint = if (isDarkTheme) AmberUpdate else theme.textPrimary,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -2289,7 +2464,7 @@ fun ConnectoLoginGateScreen(
             ) {
                 Text(
                     text = "OUR STORE",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.2.sp
@@ -2297,7 +2472,7 @@ fun ConnectoLoginGateScreen(
 
                 Text(
                     text = "Autonomous App Ecosystem Hub",
-                    color = TextMutedSilver,
+                    color = theme.textMuted,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 0.5.sp
@@ -2305,7 +2480,7 @@ fun ConnectoLoginGateScreen(
 
                 Text(
                     text = "Sign in with your Connecto account to access curated applications, tools, and background updates.",
-                    color = TextDarkMuted,
+                    color = theme.textDarkMuted,
                     fontSize = 12.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 17.sp,
@@ -2335,14 +2510,14 @@ fun ConnectoLoginGateScreen(
                         )
                         Text(
                             text = loginState.message,
-                            color = TextPureWhite,
+                            color = Color.White,
                             fontSize = 12.sp,
                             modifier = Modifier.weight(1f)
                         )
                         Icon(
                             imageVector = Icons.Rounded.Close,
                             contentDescription = "Dismiss",
-                            tint = TextMutedSilver,
+                            tint = theme.textMuted,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clickable { onClearLoginError() }
@@ -2356,8 +2531,8 @@ fun ConnectoLoginGateScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DarkCardElevated)
-                    .border(1.dp, DarkCardBorder, RoundedCornerShape(16.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
                     .padding(20.dp)
             ) {
                 Column(
@@ -2370,7 +2545,10 @@ fun ConnectoLoginGateScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(if (isLoading) Color(0xFF4A3E9E) else Color(0xFF6C5CE7))
-                            .clickable(enabled = !isLoading) { onLoginConnecto() }
+                            .tactilePress(
+                                pressedScale = 0.95f,
+                                onClick = if (!isLoading) onLoginConnecto else null
+                            )
                             .padding(vertical = 15.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -2386,7 +2564,7 @@ fun ConnectoLoginGateScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Login,
+                                    imageVector = Icons.AutoMirrored.Rounded.Login,
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(18.dp)
@@ -2429,6 +2607,8 @@ fun ClassicLoginAccountView(
     currentUser: StoreUser?,
     loginState: LoginUiState,
     storeSelfUpdate: AppUiState? = null,
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
     onUpdateOurStore: () -> Unit = {},
     onLoginCredentials: (String, String) -> Unit,
     onLoginConnecto: () -> Unit,
@@ -2441,19 +2621,19 @@ fun ClassicLoginAccountView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(TruePitchBlack)
+            .background(theme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        // Dynamic Our Store In-App Update Card (ONLY shown when an update is available)
+        // Dynamic Our Store In-App Update Card (ONLY shown when update available)
         if (storeSelfUpdate != null && storeSelfUpdate.installState == StoreApp.InstallState.UPDATE_AVAILABLE) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DarkCardElevated)
+                    .background(theme.surface)
                     .border(1.dp, AmberUpdate.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
                     .padding(18.dp)
             ) {
@@ -2477,34 +2657,26 @@ fun ClassicLoginAccountView(
                                     .background(AmberUpdate)
                             )
                             Text(
-                                text = "OUR STORE UPDATE AVAILABLE",
+                                text = "OUR STORE UPDATE READY",
                                 color = AmberUpdate,
-                                fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Black,
+                                fontSize = 12.sp,
                                 letterSpacing = 0.5.sp
                             )
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(AmberUpdateBg)
-                                .border(1.dp, AmberUpdate.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = "v${storeSelfUpdate.app.versionName}",
-                                color = AmberUpdate,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
+                        Text(
+                            text = "v${storeSelfUpdate.app.versionName}",
+                            color = theme.textPrimary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
 
                     Text(
                         text = "A new version of Our Store is available with system stability, installer enhancements, and background optimizations.",
-                        color = TextMutedSilver,
+                        color = theme.textMuted,
                         fontSize = 12.sp,
                         lineHeight = 16.sp
                     )
@@ -2520,13 +2692,13 @@ fun ClassicLoginAccountView(
                             ) {
                                 Text(
                                     text = if (storeSelfUpdate.isInstalling) "Installing directly into OS…" else "Downloading package…",
-                                    color = TextPureWhite,
+                                    color = theme.textPrimary,
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     text = if (storeSelfUpdate.isInstalling) "Please wait" else "${storeSelfUpdate.downloadProgress}%",
-                                    color = TextMutedSilver,
+                                    color = theme.textMuted,
                                     fontSize = 11.5.sp,
                                     fontFamily = FontFamily.Monospace
                                 )
@@ -2534,8 +2706,8 @@ fun ClassicLoginAccountView(
                             LinearProgressIndicator(
                                 progress = { if (storeSelfUpdate.isInstalling) 1f else storeSelfUpdate.downloadProgress / 100f },
                                 modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(3.dp)),
-                                color = TextPureWhite,
-                                trackColor = DarkGraphiteSurface
+                                color = theme.textPrimary,
+                                trackColor = theme.cardElevated
                             )
                         }
                     } else {
@@ -2544,7 +2716,7 @@ fun ClassicLoginAccountView(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(AmberUpdate)
-                                .clickable { onUpdateOurStore() }
+                                .tactilePress(pressedScale = 0.94f) { onUpdateOurStore() }
                                 .padding(vertical = 11.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -2555,12 +2727,12 @@ fun ClassicLoginAccountView(
                                 Icon(
                                     imageVector = Icons.Rounded.SystemUpdate,
                                     contentDescription = null,
-                                    tint = TruePitchBlack,
+                                    tint = Color.Black,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = "UPDATE OUR STORE NOW",
-                                    color = TruePitchBlack,
+                                    color = Color.Black,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 12.sp,
                                     letterSpacing = 0.5.sp
@@ -2571,14 +2743,15 @@ fun ClassicLoginAccountView(
                 }
             }
         }
+
         if (currentUser != null) {
-            // ─── Logged In Account Dashboard ───────────────────────────────────
+            // Logged In Account Dashboard
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(20.dp))
-                    .background(DarkCardElevated)
-                    .border(1.dp, DarkCardBorder, RoundedCornerShape(20.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(20.dp))
                     .padding(24.dp)
             ) {
                 Column(
@@ -2586,7 +2759,6 @@ fun ClassicLoginAccountView(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Profile Avatar with Role Ring & Live Profile Picture
                     val ringColor = if (currentUser.role == StoreRole.ADMIN) Color(0xFF10B981) else Color(0xFF6C5CE7)
                     Box(
                         modifier = Modifier.size(88.dp),
@@ -2618,14 +2790,13 @@ fun ClassicLoginAccountView(
                             }
                         )
 
-                        // Role Verification Shield Badge
                         Box(
                             modifier = Modifier
                                 .size(24.dp)
                                 .align(Alignment.BottomEnd)
                                 .clip(CircleShape)
-                                .background(DarkCardElevated)
-                                .border(1.5.dp, TruePitchBlack, CircleShape),
+                                .background(theme.cardElevated)
+                                .border(1.5.dp, theme.surface, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -2643,13 +2814,13 @@ fun ClassicLoginAccountView(
                     ) {
                         Text(
                             text = currentUser.displayName,
-                            color = TextPureWhite,
+                            color = theme.textPrimary,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Black
                         )
                         Text(
                             text = "@${currentUser.username}",
-                            color = TextMutedSilver,
+                            color = theme.textMuted,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -2698,7 +2869,131 @@ fun ClassicLoginAccountView(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // ─── Theme Preference & Mode Switcher Card ─────────────────────
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(theme.cardElevated)
+                            .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
+                            .padding(16.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Palette,
+                                        contentDescription = null,
+                                        tint = theme.accentColorLight,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "VISUAL THEME & APPEARANCE",
+                                        color = theme.textPrimary,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 0.5.sp
+                                    )
+                                }
+
+                                Text(
+                                    text = if (isDarkTheme) "OLED NOIR" else "CLEAN WHITE",
+                                    color = if (isDarkTheme) AmberUpdate else theme.accentColor,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontFamily = FontFamily.Monospace
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Dark Mode Option Box
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isDarkTheme) Color(0xFF000000) else theme.surface)
+                                        .border(
+                                            width = if (isDarkTheme) 2.dp else 1.dp,
+                                            color = if (isDarkTheme) AmberUpdate else theme.cardBorder,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        .tactilePress(pressedScale = 0.94f) {
+                                            if (!isDarkTheme) onToggleTheme()
+                                        }
+                                        .padding(vertical = 12.dp, horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.DarkMode,
+                                            contentDescription = null,
+                                            tint = if (isDarkTheme) AmberUpdate else theme.textDarkMuted,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "OLED Noir",
+                                            color = if (isDarkTheme) Color.White else theme.textSecondary,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isDarkTheme) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    }
+                                }
+
+                                // Light Mode Option Box
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (!isDarkTheme) Color(0xFFF8FAFC) else theme.cardElevated)
+                                        .border(
+                                            width = if (!isDarkTheme) 2.dp else 1.dp,
+                                            color = if (!isDarkTheme) theme.accentColor else theme.cardBorder,
+                                            shape = RoundedCornerShape(10.dp)
+                                        )
+                                        .tactilePress(pressedScale = 0.94f) {
+                                            if (isDarkTheme) onToggleTheme()
+                                        }
+                                        .padding(vertical = 12.dp, horizontal = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Rounded.LightMode,
+                                            contentDescription = null,
+                                            tint = if (!isDarkTheme) theme.accentColor else theme.textDarkMuted,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "Clean White",
+                                            color = if (!isDarkTheme) Color(0xFF0F172A) else theme.textMuted,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (!isDarkTheme) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     // Logout Button
                     Box(
@@ -2707,7 +3002,7 @@ fun ClassicLoginAccountView(
                             .clip(RoundedCornerShape(12.dp))
                             .background(DangerRedBg)
                             .border(1.dp, DangerRedBorder, RoundedCornerShape(12.dp))
-                            .clickable { onLogout() }
+                            .tactilePress(pressedScale = 0.95f) { onLogout() }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -2716,7 +3011,7 @@ fun ClassicLoginAccountView(
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Logout,
+                                imageVector = Icons.AutoMirrored.Rounded.Logout,
                                 contentDescription = null,
                                 tint = DangerRed,
                                 modifier = Modifier.size(18.dp)
@@ -2738,8 +3033,8 @@ fun ClassicLoginAccountView(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(DarkGraphiteSurface)
-                            .border(1.dp, DarkCardBorder, RoundedCornerShape(12.dp))
+                            .background(theme.cardElevated)
+                            .border(1.dp, theme.cardBorder, RoundedCornerShape(12.dp))
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
                         Row(
@@ -2750,13 +3045,13 @@ fun ClassicLoginAccountView(
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(
                                     text = "Our Store Client",
-                                    color = TextPureWhite,
+                                    color = theme.textPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
                                     text = "v${com.connecto.store.BuildConfig.VERSION_NAME} (Build ${com.connecto.store.BuildConfig.VERSION_CODE})",
-                                    color = TextDarkMuted,
+                                    color = theme.textDarkMuted,
                                     fontSize = 11.sp,
                                     fontFamily = FontFamily.Monospace
                                 )
@@ -2781,7 +3076,7 @@ fun ClassicLoginAccountView(
                 }
             }
         } else {
-            // ─── Login Form View ───────────────────────────────────────────────
+            // Logged Out Connecto SSO View
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -2789,13 +3084,13 @@ fun ClassicLoginAccountView(
             ) {
                 Text(
                     text = "Welcome to Our Store",
-                    color = TextPureWhite,
+                    color = theme.textPrimary,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Black
                 )
                 Text(
                     text = "Sign in to access your curated applications and personalized tools.",
-                    color = TextMutedSilver,
+                    color = theme.textMuted,
                     fontSize = 12.5.sp,
                     textAlign = TextAlign.Center,
                     lineHeight = 17.sp
@@ -2824,14 +3119,14 @@ fun ClassicLoginAccountView(
                         )
                         Text(
                             text = loginState.message,
-                            color = TextPureWhite,
+                            color = Color.White,
                             fontSize = 12.sp,
                             modifier = Modifier.weight(1f)
                         )
                         Icon(
                             imageVector = Icons.Rounded.Close,
                             contentDescription = "Dismiss",
-                            tint = TextMutedSilver,
+                            tint = theme.textMuted,
                             modifier = Modifier
                                 .size(16.dp)
                                 .clickable { onClearLoginError() }
@@ -2846,8 +3141,8 @@ fun ClassicLoginAccountView(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(DarkCardElevated)
-                    .border(1.dp, DarkCardBorder, RoundedCornerShape(16.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
                     .padding(24.dp)
             ) {
                 Column(
@@ -2873,14 +3168,14 @@ fun ClassicLoginAccountView(
 
                     Text(
                         text = "Connecto Single Sign-On",
-                        color = TextPureWhite,
+                        color = theme.textPrimary,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
 
                     Text(
                         text = "Sign in directly with your Connecto profile on this device.",
-                        color = TextMutedSilver,
+                        color = theme.textMuted,
                         fontSize = 12.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 16.sp
@@ -2893,7 +3188,10 @@ fun ClassicLoginAccountView(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .background(if (isLoading) Color(0xFF4A3E9E) else Color(0xFF6C5CE7))
-                            .clickable(enabled = !isLoading) { onLoginConnecto() }
+                            .tactilePress(
+                                pressedScale = 0.95f,
+                                onClick = if (!isLoading) onLoginConnecto else null
+                            )
                             .padding(vertical = 14.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -2909,7 +3207,7 @@ fun ClassicLoginAccountView(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Login,
+                                    imageVector = Icons.AutoMirrored.Rounded.Login,
                                     contentDescription = null,
                                     tint = Color.White,
                                     modifier = Modifier.size(18.dp)

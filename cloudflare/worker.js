@@ -249,7 +249,7 @@ export default {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Cache-Control": "public, max-age=60, s-maxage=60",
-              "X-Connecto-Store-Version": "v1.7.4",
+              "X-Connecto-Store-Version": "v1.7.5",
               "X-Served-By": "Connecto-Worker-GitHub-Direct"
             }
           });
@@ -278,14 +278,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.4-b31.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.5-b32.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.7.4");
-          res.headers.set("X-Connecto-Store-Build", "31");
+          res.headers.set("X-Connecto-Store-Version", "v1.7.5");
+          res.headers.set("X-Connecto-Store-Build", "32");
           return res;
         }
 
@@ -298,7 +298,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/1.7.4"
+                "User-Agent": "Connecto-Cloud-Worker/1.7.5"
               }
             });
             if (upstreamResp.ok) {
@@ -311,8 +311,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.7.4");
-              downloadHeaders.set("X-Connecto-Store-Build", "31");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.7.5");
+              downloadHeaders.set("X-Connecto-Store-Build", "32");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1776,22 +1776,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.7.4",
-        version_code: 31,
-        size_bytes: 14370933,
+        version_name: "1.7.5",
+        version_code: 32,
+        size_bytes: 14370937,
         size_formatted: "13.7 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
-          "Admin-Only App Visibility: Enforced role-based access control (RBAC) ensuring JARVIS AI is strictly visible only within authenticated Administrator accounts",
-          "Native OEM Package Installer Resolution: Fixed system installer intent targeting to reliably display the system install dialog on all Android OEM skins (HyperOS, MIUI, ColorOS, OneUI, OxygenOS, Pixel)",
-          "FileProvider Security & IPC Access: Marked cached APK files world-readable and granted explicit URI read permissions to system package installers, fixing 'Problem parsing the package'",
-          "iOS App Store Password Exemption: Updates install seamlessly without password or biometrics; authentication is requested only for the very first installation",
-          "Universal Queries Declaration: Declared VIEW and INSTALL_PACKAGE mime intent filters in AndroidManifest queries for full targetSdk 35+ package visibility"
+          "Universal Dual Theme Engine: Pitch-Black OLED Noir & Ivory Clean White luxury themes with dynamic composition local provider and instant switching",
+          "Tactile Spring Physics: Fluid physics-based press scaling and spring damping across all action buttons, cards, category chips, and navigation items",
+          "Interactive Device Frame Previews: Elevated PhoneMockupCard featuring realistic OLED bezels, camera punch-hole notch, status bar, and live highlight slides",
+          "Card 1-Tap Action Engine: Direct installation and update actions right from the catalog card with animated download shimmer sweep and PackageInstaller IPC status",
+          "Biometric & Password Authorization: Integrated StoreAppDownloadAuthSheet with fingerprint sensor support and secure credential verification"
         ],
         is_essential: true,
-        updated_at: "2026-11-08T21:55:00Z"
+        updated_at: "2026-11-09T03:55:00Z"
       },
       {
         id: "connecto",
@@ -1915,7 +1915,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.7.4",
+      store_version: "1.7.5",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn
@@ -8125,12 +8125,12 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.4</span>")
-            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.4 (Build 31) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.4 • 13.7 MB)")
+            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.5</span>")
+            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.5 (Build 32) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.5 • 13.7 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[67]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.7.4)")
-            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.4")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.7.5)")
+            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.5")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">13.7 MB</span>');
           responseBody = patched;
