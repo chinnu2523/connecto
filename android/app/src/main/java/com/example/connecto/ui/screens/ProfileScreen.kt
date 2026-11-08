@@ -497,7 +497,7 @@ fun ProfileScreen(
                     val myUsernameLower = username.trim().lowercase().removePrefix("@")
                     val validGroups = serverGroups.filter { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
-                        val isMember = g.isCreatedByMe || g.members.any { it.trim().lowercase().removePrefix("@") == myUsernameLower }
+                        val isMember = (g.members.isNotEmpty() && g.members.any { it.trim().lowercase().removePrefix("@") == myUsernameLower }) || (g.members.isEmpty() && g.isCreatedByMe)
                         if (count <= 0) {
                             coroutineScope.launch {
                                 try { ConnectoApiClient.deleteGroup(g.id) } catch (_: Exception) {}

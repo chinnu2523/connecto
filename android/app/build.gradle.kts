@@ -14,8 +14,8 @@ android {
         applicationId = "com.connecto.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 105
-        versionName = "4.6.16"
+        versionCode = 108
+        versionName = "4.6.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -29,6 +29,10 @@ android {
             storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "connecto2026"
             keyAlias = System.getenv("KEY_ALIAS") ?: "connecto"
             keyPassword = System.getenv("KEY_PASSWORD") ?: "connecto2026"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = true
         }
     }
 

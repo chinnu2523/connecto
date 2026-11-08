@@ -55,6 +55,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
 
   // 1:1 Voice Call State
   const [callState, setCallState] = useState<'IDLE' | 'OUTGOING_RINGING' | 'INCOMING_RINGING' | 'CONNECTED'>('IDLE');
+  const [isRemoteRinging, setIsRemoteRinging] = useState(false);
   const [activeCallPartner, setActiveCallPartner] = useState<{ username: string; displayName: string; roomId: string; avatar?: string } | null>(null);
   const [incomingCallData, setIncomingCallData] = useState<{ roomId: string; callerId: string; callerUsername: string; callerName: string; callerAvatar?: string } | null>(null);
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
@@ -235,9 +236,11 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
         setIsCallInitiator(false);
         playRingtone();
       } else if (event.type === 'call_ringing' || event.type === 'call:ringing') {
+        setIsRemoteRinging(true);
         setCallState('OUTGOING_RINGING');
       } else if (event.type === 'call_connected' || event.type === 'call:connected' || event.type === 'call:accepted') {
         const rId = event.room_id || event.call_id || activeCallPartner?.roomId;
+        setIsRemoteRinging(false);
         setCallState('CONNECTED');
         setIncomingCallData(null);
         voiceManager.unlockAudio();
@@ -253,6 +256,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
         event.type === 'call:ended'
       ) {
         voiceManager.leaveVoiceChannel();
+        setIsRemoteRinging(false);
         setCallState('IDLE');
         setActiveCallPartner(null);
         setIncomingCallData(null);
@@ -476,6 +480,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
     const cleanTarget = targetUsername.replace('@', '').trim();
     const roomId = `call_${currentUser.username}_${Date.now()}`;
     setIsCallInitiator(true);
+    setIsRemoteRinging(false);
     voiceManager.unlockAudio();
     setActiveCallPartner({
       username: cleanTarget,
@@ -551,6 +556,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
       });
     }
     voiceManager.leaveVoiceChannel();
+    setIsRemoteRinging(false);
     setCallState('IDLE');
     setActiveCallPartner(null);
     setIncomingCallData(null);
@@ -1686,7 +1692,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
           <div className="w-full max-w-sm rounded-3xl p-6 glass-card border border-electric/50 bg-slate-900/95 shadow-2xl text-center space-y-6">
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold tracking-widest text-cyanglow uppercase bg-electric/10 px-3 py-1 rounded-full border border-electric/20 inline-block">
-                Calling Shinobi...
+                {isRemoteRinging ? 'Connected but not answering' : 'Not connected'}
               </span>
             </div>
 

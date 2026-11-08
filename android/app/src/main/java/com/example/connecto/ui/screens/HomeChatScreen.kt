@@ -478,7 +478,7 @@ fun HomeChatScreen(
                     val myU = currentUsername.trim().lowercase().removePrefix("@")
                     val groupConvos = groupsList.filter { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
-                        val isMember = g.isCreatedByMe || g.members.any { it.trim().lowercase().removePrefix("@") == myU }
+                        val isMember = (g.members.isNotEmpty() && g.members.any { it.trim().lowercase().removePrefix("@") == myU }) || (g.members.isEmpty() && g.isCreatedByMe)
                         count > 0 && isMember
                     }.map { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size

@@ -133,6 +133,9 @@ object VoiceCallManager {
     private val _activeCallRoomCode = MutableStateFlow<String?>(null)
     val activeCallRoomCode: StateFlow<String?> = _activeCallRoomCode.asStateFlow()
 
+    private val _isRemoteRinging = MutableStateFlow(false)
+    val isRemoteRinging: StateFlow<Boolean> = _isRemoteRinging.asStateFlow()
+
     private val _incomingCall = MutableStateFlow<IncomingCallData?>(null)
     val incomingCall: StateFlow<IncomingCallData?> = _incomingCall.asStateFlow()
 
@@ -385,6 +388,12 @@ object VoiceCallManager {
     private var localAudioTrack: RtcAudioTrack? = null
     private val peerConnections = ConcurrentHashMap<String, PeerConnection>()
 
+    // Audio relay batching & playback executor for reliable inter-city audio
+    private val audioRelayLock = Any()
+    private val audioRelayBuffer = java.io.ByteArrayOutputStream()
+    private var lastRelaySendTimeMs = 0L
+    private val audioPlayExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
     // ICE servers: Resilient public STUN servers for NAT traversal.
     // Removed unreachable connecto.fun:3478 which caused candidate gathering timeouts.
     private val iceServers by lazy {
@@ -431,7 +440,7 @@ object VoiceCallManager {
                 else -> result.add(line)
             }
         }
-        return result.joinToString("\n")
+        return result.joinToString("\r\n") + "\r\n"
     }
 
     private fun initWebRtcFactory(context: Context) {
@@ -508,16 +517,31 @@ object VoiceCallManager {
                                 } catch (_: Throwable) { false }
                             }
                             if (_callState.value == CallState.CONNECTED && !roomId.isNullOrBlank() && !hasConnectedPeer) {
-                                val base64Str = Base64.encodeToString(data, 0, data.size, Base64.NO_WRAP)
-                                val packet = JSONObject().apply {
-                                    put("action", "voice_data")
-                                    put("type", "voice_data")
-                                    put("room_id", roomId)
-                                    put("channel_id", roomId)
-                                    put("audio", base64Str)
-                                    put("sample_rate", samples.sampleRate)
+                                synchronized(audioRelayLock) {
+                                    audioRelayBuffer.write(data, 0, data.size)
+                                    val now = System.currentTimeMillis()
+                                    val minBatchBytes = (samples.sampleRate * 2 * 40) / 1000 // 40ms buffer
+                                    if (audioRelayBuffer.size() >= minBatchBytes || (now - lastRelaySendTimeMs >= 50L && audioRelayBuffer.size() > 0)) {
+                                        val chunk = audioRelayBuffer.toByteArray()
+                                        audioRelayBuffer.reset()
+                                        lastRelaySendTimeMs = now
+                                        val base64Str = Base64.encodeToString(chunk, 0, chunk.size, Base64.NO_WRAP)
+                                        val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
+                                        val packet = JSONObject().apply {
+                                            put("action", "voice_data")
+                                            put("type", "voice_data")
+                                            put("room_id", roomId)
+                                            put("channel_id", roomId)
+                                            put("audio", base64Str)
+                                            put("sample_rate", samples.sampleRate)
+                                            if (!partner.isNullOrBlank()) {
+                                                put("target", partner)
+                                                put("target_user", partner)
+                                            }
+                                        }
+                                        sendWsMessage(packet)
+                                    }
                                 }
-                                sendWsMessage(packet)
                             }
                         } else {
                             _liveAudioAmplitude.value = 0f
@@ -1782,6 +1806,33 @@ object VoiceCallManager {
                             referenceId = roomId
                         )
                     )
+
+                    // Immediately acknowledge ringing back to caller so caller knows call reached recipient
+                    val ringingAck = JSONObject().apply {
+                        put("type", "call:ringing")
+                        put("action", "call:ringing")
+                        put("room_id", roomId)
+                        put("call_id", roomId)
+                        put("target", callerUsername)
+                        put("target_user", callerUsername)
+                    }
+                    sendWsMessage(ringingAck)
+
+                    // Launch full-screen incoming call UI
+                    appContext?.let { ctx ->
+                        try {
+                            val fullScreenIntent = Intent(ctx, IncomingCallActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, roomId)
+                                putExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME, callerName)
+                                putExtra("extra_caller_username", callerUsername)
+                                putExtra("extra_caller_avatar", callerAvatar)
+                            }
+                            ctx.startActivity(fullScreenIntent)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "Could not launch IncomingCallActivity from WS: ${e.message}")
+                        }
+                    }
                 }
 
                 "call_ringing", "call:ringing" -> {
@@ -1791,6 +1842,7 @@ object VoiceCallManager {
                         return
                     }
                     Log.d(TAG, "Call ringing on remote party")
+                    _isRemoteRinging.value = true
                     _callState.value = CallState.OUTGOING_RINGING
                 }
 
@@ -1801,6 +1853,7 @@ object VoiceCallManager {
                         return
                     }
                     Log.d(TAG, "Call connected! Room: $roomId")
+                    _isRemoteRinging.value = false
                     _callState.value = CallState.CONNECTED
                     _incomingCall.value = null
                     _participantCount.value = 2
@@ -2282,6 +2335,33 @@ object VoiceCallManager {
                 referenceId = roomId
             )
         )
+
+        // Immediately acknowledge ringing back to caller
+        val ringingAck = JSONObject().apply {
+            put("type", "call:ringing")
+            put("action", "call:ringing")
+            put("room_id", roomId)
+            put("call_id", roomId)
+            put("target", callerUsername)
+            put("target_user", callerUsername)
+        }
+        sendWsMessage(ringingAck)
+
+        // Launch full-screen incoming call UI
+        appContext?.let { ctx ->
+            try {
+                val fullScreenIntent = Intent(ctx, IncomingCallActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra(ConnectoNotificationManager.EXTRA_ROOM_ID, roomId)
+                    putExtra(ConnectoNotificationManager.EXTRA_CALLER_NAME, callerName)
+                    putExtra("extra_caller_username", callerUsername)
+                    putExtra("extra_caller_avatar", callerAvatar)
+                }
+                ctx.startActivity(fullScreenIntent)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not launch IncomingCallActivity from background trigger: ${e.message}")
+            }
+        }
     }
 
     // ----------------------------------------------------
@@ -2349,6 +2429,7 @@ object VoiceCallManager {
         }
 
         _callState.value = CallState.OUTGOING_RINGING
+        _isRemoteRinging.value = false
         appContext?.let {
             VoiceCallForegroundService.startService(it, _activeCallTitle.value, cleanDisplayName, _isMuted.value)
         }
@@ -2716,6 +2797,7 @@ object VoiceCallManager {
 
         // 1. Instantly switch call state to IDLE so UI dismisses in 0ms (never sticks or freezes)
         _callState.value = CallState.IDLE
+        _isRemoteRinging.value = false
         isCallCaller = false
         _activeRoomId.value = null
         _activeCallPartner.value = null
@@ -3292,6 +3374,11 @@ object VoiceCallManager {
             audioTrack = null
         }
 
+        synchronized(audioRelayLock) {
+            audioRelayBuffer.reset()
+            lastRelaySendTimeMs = 0L
+        }
+
         scope.launch(Dispatchers.IO) {
             try {
                 if (recordToRelease?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
@@ -3399,6 +3486,9 @@ object VoiceCallManager {
                 .build()
 
             audioTrack?.play()
+            try {
+                audioTrack?.setVolume(1.0f)
+            } catch (_: Throwable) {}
             Log.d(TAG, "AudioTrack initialized and playing at $effectiveRate Hz")
         } catch (t: Throwable) {
             Log.e(TAG, "Failed initializing AudioTrack: ${t.message}", t)
@@ -3406,17 +3496,29 @@ object VoiceCallManager {
     }
 
     private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
-        try {
-            val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
-            if (bytes.isNotEmpty()) {
-                val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
-                if (audioTrack == null || audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING || currentTrackSampleRate != effectiveRate) {
-                    initAudioTrack(effectiveRate)
+        audioPlayExecutor.execute {
+            try {
+                val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
+                if (bytes.isNotEmpty()) {
+                    val effectiveRate = if (sampleRate in 8000..48000) sampleRate else SAMPLE_RATE
+                    synchronized(audioHardwareLock) {
+                        if (audioTrack == null || audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING || currentTrackSampleRate != effectiveRate) {
+                            initAudioTrack(effectiveRate)
+                        }
+                    }
+                    var offset = 0
+                    while (offset < bytes.size && audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING) {
+                        val written = audioTrack?.write(bytes, offset, bytes.size - offset, AudioTrack.WRITE_BLOCKING) ?: -1
+                        if (written > 0) {
+                            offset += written
+                        } else {
+                            break
+                        }
+                    }
                 }
-                audioTrack?.write(bytes, 0, bytes.size, AudioTrack.WRITE_NON_BLOCKING)
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error playing audio chunk: ${t.message}")
             }
-        } catch (t: Throwable) {
-            Log.e(TAG, "Error playing audio chunk: ${t.message}")
         }
     }
 
@@ -3539,12 +3641,17 @@ object VoiceCallManager {
                                 }
                                 if (!roomId.isNullOrBlank()) {
                                     val base64Str = Base64.encodeToString(buffer, 0, read, Base64.NO_WRAP)
+                                    val partner = _activeCallPartnerUsername.value ?: _activeCallPartner.value
                                     val packet = JSONObject().apply {
                                         put("action", "voice_data")
                                         put("type", "voice_data")
                                         put("room_id", roomId)
                                         put("channel_id", roomId)
                                         put("audio", base64Str)
+                                        if (!partner.isNullOrBlank()) {
+                                            put("target", partner)
+                                            put("target_user", partner)
+                                        }
                                     }
                                     sendWsMessage(packet)
                                 }

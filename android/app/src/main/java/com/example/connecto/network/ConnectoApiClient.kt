@@ -1919,8 +1919,8 @@ object ConnectoApiClient {
                             item.optBoolean("is_creator", false) ||
                             gAdmin.lowercase().removePrefix("@") == myUser ||
                             item.optString("owner_id") == currentUserId
-                        val isMember = isCreated || (myUser.isNotBlank() && mList.any { it.trim().lowercase().removePrefix("@") == myUser })
-                        if (myUser.isNotBlank() && !isMember && mList.isNotEmpty()) {
+                        val isMember = (myUser.isNotBlank() && mList.any { it.trim().lowercase().removePrefix("@") == myUser }) || (mList.isEmpty() && isCreated)
+                        if (myUser.isNotBlank() && !isMember) {
                             continue
                         }
                         list.add(
@@ -1957,8 +1957,8 @@ object ConnectoApiClient {
                             item.optBoolean("is_creator", false) ||
                             gAdmin.lowercase().removePrefix("@") == myUser ||
                             item.optString("owner_id") == currentUserId
-                        val isMember = isCreated || (myUser.isNotBlank() && mList.any { it.trim().lowercase().removePrefix("@") == myUser })
-                        if (myUser.isNotBlank() && !isMember && mList.isNotEmpty()) {
+                        val isMember = (myUser.isNotBlank() && mList.any { it.trim().lowercase().removePrefix("@") == myUser }) || (mList.isEmpty() && isCreated)
+                        if (myUser.isNotBlank() && !isMember) {
                             continue
                         }
                         list.add(

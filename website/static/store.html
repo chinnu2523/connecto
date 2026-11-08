@@ -85,7 +85,7 @@
           <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
-          <span>Get Store App (v1.7.0)</span>
+          <span>Get Store App (v1.7.3)</span>
         </a>
       </div>
     </div>
@@ -113,7 +113,7 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-white font-bold text-base">Install Our Store on Android (v1.7.0 Live)</h3>
+          <h3 class="text-white font-bold text-base">Install Our Store on Android (v1.7.3 Live)</h3>
           <p class="text-slate-400 text-xs sm:text-sm">Never visit the website to update again. 1-tap updates directly inside the phone app with auto-update engine.</p>
         </div>
       </div>
@@ -121,7 +121,7 @@
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
         </svg>
-        <span>Download Store APK (14.2 MB)</span>
+        <span>Download Store APK (13.7 MB)</span>
       </a>
     </div>
   </section>
@@ -133,7 +133,7 @@
         <span>Featured Applications</span>
         <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">4 Verified Apps</span>
       </h2>
-      <div class="text-xs text-slate-500 font-mono">Live Edge Catalog v1.7.0</div>
+      <div class="text-xs text-slate-500 font-mono">Live Edge Catalog v1.7.3</div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="appsContainer">
@@ -154,11 +154,11 @@
                   <h3 class="text-2xl font-bold text-white">Our Store</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white border border-white/30 uppercase tracking-wider">App Hub</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.store • v1.7.2 (29)</p>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.store • v1.7.3 (30)</p>
                 <div class="flex items-center space-x-2 mt-1">
                   <span class="text-xs text-emerald-400 font-medium">● Auto-Update Engine</span>
                   <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-white font-mono font-bold">14.3 MB</span>
+                  <span class="text-xs text-white font-mono font-bold">13.7 MB</span>
                 </div>
               </div>
             </div>
@@ -169,31 +169,27 @@
           </p>
 
           <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v1.7.0</h4>
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v1.7.3</h4>
             <ul class="text-xs text-slate-300 space-y-1">
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Self-Update Direct Installer: Resolved self-update stall by bypassing PackageInstaller session IPC and launching OS PackageInstaller activity directly</span>
+                <span>Native OEM Package Installer: Fixed system installer intent targeting to reliably display system install prompt across HyperOS, ColorOS, OneUI, OxygenOS, Pixel</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Universal OEM Installer Support: Added ColorOS, OxygenOS, MIUI, and OneUI package installer intent resolvers</span>
+                <span>FileProvider Security &amp; IPC Access: Granted explicit read permissions to package installers with world-readable cache storage to fix 'Problem parsing the package'</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>App Store-style biometric &amp; password verification for in-store app installations</span>
+                <span>iOS App Store-Style Exemption: Updates install directly without password or biometrics; authentication requested only on very first install</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Universal Queries Declaration: Declared VIEW and INSTALL_PACKAGE mime intent filters in AndroidManifest queries for full targetSdk 35+ package visibility</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
                 <span>Real-time download progress bar and installation state indicator on cards</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-emerald-400">✓</span>
-                <span>Focused Updates Section: Search query no longer filters the Updates tab — all pending updates always visible</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-emerald-400">✓</span>
-                <span>Refined Navigation: Seamless 3-tab experience with in-app update checks</span>
               </li>
             </ul>
           </div>
@@ -230,11 +226,11 @@
                   <h3 class="text-2xl font-bold text-white">Connecto</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider">Official</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.app • v4.6.18 (b107)</p>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.app • v4.6.19 (b108)</p>
                 <div class="flex items-center space-x-2 mt-1">
                   <span class="text-xs text-emerald-400 font-medium">● Stable Release</span>
                   <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-slate-400">36.0 MB</span>
+                  <span class="text-xs text-slate-400">36.1 MB</span>
                 </div>
               </div>
             </div>
@@ -245,15 +241,19 @@
           </p>
 
           <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v4.6.18</h4>
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v4.6.19</h4>
             <ul class="text-xs text-slate-300 space-y-1">
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Inter-City Voice Call Audio: Fixed Cloudflare audio packet relay & RFC 4566 CRLF SDP formatting for uninterrupted voice audio across cities</span>
+                <span>Call Status Transparency: Real-time status states displaying 'Not connected...' before answer and 'Connected but not answering...' during ringing</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Call Status Transparency: Clear user states displaying 'Not connected...' before remote device is reached and 'Connected but not answering...' while ringing</span>
+                <span>Multi-Scheme Cryptographic Signing: Simultaneous V1 (JAR), V2 (APK), V3, and V4 signing for seamless updates without parsing errors</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Inter-City Voice Call Audio: Fixed Cloudflare audio packet relay & RFC 4566 CRLF SDP formatting for uninterrupted voice audio across cities</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>

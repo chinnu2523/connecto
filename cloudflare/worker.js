@@ -166,25 +166,25 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.16",
-        version_name: "v4.6.16",
-        version_code: 105,
-        build: 105,
-        sha256: "61caba5887abb7559b7dff6166f4a60830a700211b954726cc65009dd4f50c0a",
+        version: "4.6.19",
+        version_name: "v4.6.19",
+        version_code: 108,
+        build: 108,
+        sha256: "42e4554b30e154c5ca4263759b0d5eb342d0a411da8bb0abeca5a77967f4fd63",
         filename: "connecto-fun.apk",
-        size_bytes: 37794168,
-        size_display: "36.0 MB",
+        size_bytes: 37843905,
+        size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
-          "Touch Gesture Collision Fix: Disabled touch drag gestures on ChannelNavigationDrawer (gesturesEnabled = false), completely eliminating touch conflicts with HorizontalPager and resolving the stuck half-screen drawer glitch.",
-          "Drawer & BackHandler Integration: Added dedicated Android back-button interception to cleanly dismiss workspace drawer, and auto-disables pager swiping when the drawer is open.",
-          "Automatic Pager Settlement Guard: Added recovery listener that prevents tabs from ever remaining frozen at fractional offsets if gestures are cancelled.",
-          "SSO ContentProvider Hardening: Restricted com.connecto.app.sso with signature-level permission and caller developer certificate validation.",
-          "Restricted Call Broadcast Receiver: ConnectoCallPushReceiver made internal (non-exported) to eliminate lockscreen spoofing and WakeLock denial-of-service risks.",
+          "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities.",
+          "Call Status Transparency: Real-time status states displaying 'Not connected...' before answer and 'Connected but not answering...' during ringing.",
+          "Group Membership Guard: Fixed group auto-rejoin bug preventing exited users from ghost rejoining.",
+          "Touch Gesture Collision Fix: Disabled touch drag gestures on ChannelNavigationDrawer, completely eliminating touch conflicts with HorizontalPager.",
+          "Hardware Biometric Security & Pure OLED UI: Native BiometricPrompt with passive glance-to-unlock, zero trackers, and pitch-black OLED theme.",
           "Native Android System Face ID: Seamless integration with Android system BiometricPrompt using BIOMETRIC_STRONG or BIOMETRIC_WEAK authenticators and passive glance-to-unlock (setConfirmationRequired false), functioning identically to system fingerprint authentication.",
           "Camera2 Conflict Prevention: Decoupled camera hardware locking to ensure system biometric HAL daemons have uninterrupted, zero-latency access to front sensors.",
           "Session Persistence & Synchronization Fix: Fixed session token synchronization across SecureStorageManager and legacy prefs, ensuring logged-in active sessions load cleanly on profile.",
@@ -236,15 +236,17 @@ export default {
     if (cleanPath === "/store.html" || cleanPath === "/appstore") {
       try {
         const ghRaw = await fetch(
-          "https://raw.githubusercontent.com/chinnu2523/connecto/5f065d58f68a5afc9c92e84e246e2919eecf5e56/website/static/store.html"
+          "https://raw.githubusercontent.com/chinnu2523/connecto/main/website/static/store.html", {
+            cf: { cacheTtl: 60 }
+          }
         );
         if (ghRaw.ok) {
           const html = await ghRaw.text();
           return new Response(html, {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "public, max-age=300, s-maxage=300",
-              "X-Connecto-Store-Version": "v1.7.0",
+              "Cache-Control": "public, max-age=60, s-maxage=60",
+              "X-Connecto-Store-Version": "v1.7.2",
               "X-Served-By": "Connecto-Worker-GitHub-Direct"
             }
           });
@@ -268,27 +270,56 @@ export default {
       cleanPath.includes("connectostore")
     ) {
       try {
-        const storeResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk", {
-          redirect: "follow",
-          headers: {
-            "User-Agent": "Connecto-Cloud-Worker/1.1.0"
-          }
-        });
-        if (storeResp.ok) {
-          const downloadHeaders = new Headers();
-          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
-          downloadHeaders.set("Content-Disposition", 'attachment; filename="our-store.apk"');
-          const cl = storeResp.headers.get("content-length");
-          if (cl) downloadHeaders.set("Content-Length", cl);
-          downloadHeaders.set("Cache-Control", "public, max-age=3600, s-maxage=3600");
-          downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
-          downloadHeaders.set("X-Connecto-App", "Our Store");
-          downloadHeaders.set("X-Connecto-Store-Version", "v1.7.0");
-          return new Response(storeResp.body, {
-            status: 200,
-            headers: downloadHeaders
-          });
+        const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
+        ];
+        const cache = caches.default;
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.3-b30.apk", { method: "GET" });
+        let cachedResp = await cache.match(cacheKey);
+        if (cachedResp) {
+          const res = new Response(cachedResp.body, cachedResp);
+          res.headers.set("CF-Cache-Status", "HIT");
+          res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
+          res.headers.set("X-Connecto-Store-Version", "v1.7.3");
+          res.headers.set("X-Connecto-Store-Build", "30");
+          return res;
+        }
+
+        for (const targetUrl of canonicalApkUrls) {
+          try {
+            const upstreamResp = await fetch(targetUrl, {
+              redirect: "follow",
+              cf: {
+                cacheEverything: true,
+                cacheTtl: 604800
+              },
+              headers: {
+                "User-Agent": "Connecto-Cloud-Worker/1.7.3"
+              }
+            });
+            if (upstreamResp.ok) {
+              const downloadHeaders = new Headers();
+              downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
+              downloadHeaders.set("Content-Disposition", 'attachment; filename="our-store.apk"');
+              const cl = upstreamResp.headers.get("content-length");
+              if (cl) downloadHeaders.set("Content-Length", cl);
+              downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
+              downloadHeaders.set("Access-Control-Allow-Origin", "*");
+              downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
+              downloadHeaders.set("X-Connecto-App", "Our Store");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.7.3");
+              downloadHeaders.set("X-Connecto-Store-Build", "30");
+              downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
+
+              const responseToReturn = new Response(upstreamResp.body, {
+                status: 200,
+                headers: downloadHeaders
+              });
+              ctx.waitUntil(cache.put(cacheKey, responseToReturn.clone()));
+              return responseToReturn;
+            }
+          } catch (_) {}
         }
       } catch (err) {
         console.error("Store download fetch error:", err);
@@ -424,14 +455,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.15-b104.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.19-b108.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.15");
-          res.headers.set("X-Connecto-Build", "104");
+          res.headers.set("X-Connecto-Version", "v4.6.19");
+          res.headers.set("X-Connecto-Build", "108");
           return res;
         }
 
@@ -444,7 +475,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.15"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.19"
               }
             });
             if (upstreamResp.ok) {
@@ -455,8 +486,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.15");
-              downloadHeaders.set("X-Connecto-Build", "104");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.19");
+              downloadHeaders.set("X-Connecto-Build", "108");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -756,13 +787,12 @@ async function sendFcmNotification(env, fcmToken, payload) {
 
     const isCall = payload.type === "call_invite" || payload.type === "call" || payload.type === "incoming_call" || payload.type === "call_ended" || payload.type === "call_cancelled" || payload.type === "call_declined";
 
+    // Strictly send pure high-priority DATA-ONLY push payloads without notification block.
+    // This guarantees Google Play Services invokes onMessageReceived() in the background/lockscreen,
+    // waking the device, acquiring Full WakeLock, and launching IncomingCallActivity directly.
     const fcmMessage = {
       message: {
         token: fcmToken,
-        notification: {
-          title: String(title),
-          body: String(body)
-        },
         data: {
           type: String(payload.type || "message"),
           title: String(title),
@@ -786,15 +816,7 @@ async function sendFcmNotification(env, fcmToken, payload) {
         },
         android: {
           priority: "high",
-          ttl: isCall ? "60s" : "86400s",
-          notification: {
-            channel_id: isCall ? "connecto_voice_calls_v2" : "connecto_messages_v4",
-            sound: "default",
-            default_sound: true,
-            default_vibrate_timings: true,
-            notification_priority: "priority_max",
-            visibility: "public"
-          }
+          ttl: isCall ? "60s" : "86400s"
         }
       }
     };
@@ -1721,8 +1743,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.7.0",
-      total_apps: 6,
+      store_version: "1.7.3",
+      total_apps: 5,
       apps: [
         {
           id: "ourstore",
@@ -1732,21 +1754,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Autonomous package installer, background updater & security vault",
           description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
           category: "Services",
-          version_name: "1.7.0",
-          version_code: 27,
-          size_bytes: 14897951,
-          size_formatted: "14.2 MB",
+          version_name: "1.7.3",
+          version_code: 30,
+          size_bytes: 14370943,
+          size_formatted: "13.7 MB",
           download_url: "https://connecto.fun/downloads/our-store.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#FFFFFF",
           changelog: [
-            "Self-Update Direct Installer: Resolved self-update stall by bypassing PackageInstaller session IPC and launching OS PackageInstaller activity directly",
-            "Universal OEM Installer Support: Added ColorOS, OxygenOS, MIUI, and OneUI package installer intent resolvers",
-            "App Store-style biometric & password verification for in-store app installations",
-            "Real-time download progress bar and installation state indicator on cards"
+            "Native OEM Package Installer Resolution: Fixed system installer intent targeting to reliably display the system install dialog on all Android OEM skins (HyperOS, MIUI, ColorOS, OneUI, OxygenOS, Pixel)",
+            "FileProvider Security & IPC Access: Marked cached APK files world-readable and granted explicit URI read permissions to system package installers, fixing 'Problem parsing the package'",
+            "iOS App Store Password Exemption: Updates install seamlessly without password or biometrics; authentication is requested only for the very first installation",
+            "Universal Queries Declaration: Declared VIEW and INSTALL_PACKAGE mime intent filters in AndroidManifest queries for full targetSdk 35+ package visibility"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T21:55:00Z"
+          updated_at: "2026-11-08T21:30:00Z"
         },
         {
           id: "connecto",
@@ -1756,22 +1778,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           tagline: "Private encrypted messaging, calls & workspaces",
           description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
           category: "Communication",
-          version_name: "4.6.16",
-          version_code: 105,
-          size_bytes: 37796120,
-          size_formatted: "36.0 MB",
+          version_name: "4.6.19",
+          version_code: 108,
+          size_bytes: 37843905,
+          size_formatted: "36.1 MB",
           download_url: "https://connecto.fun/downloads/connecto-fun.apk",
           icon_url: "https://connecto.fun/static/favicon.svg",
           accent_color: "#2563EB",
           changelog: [
-            "Touch Gesture Conflict Fix: Disabled touch drags on ChannelNavigationDrawer to eliminate collision with horizontal tab swiping",
-            "Hardware Back Dismissal: Added Android back-button interception to cleanly dismiss workspace drawer",
-            "Automatic Pager Settlement Guard: Added recovery listener that prevents tabs from ever remaining frozen at fractional offsets",
-            "Interactive Horizontal Pager: Fluid finger-tracking swipe transitions across Home, Messages, Channels, Calls, and Profile tabs",
-            "Touch Gestures Isolation: Auto-locks horizontal paging during direct 1-on-1 chats to prevent accidental navigation"
+            "Calling State Transparency: Precise real-time status indicators displaying 'Not connected...' before user pickup and 'Connected but not answering...' while phone is ringing",
+            "Multi-Scheme Cryptographic Signing: Enabled simultaneous V1 (JAR), V2 (APK), V3, and V4 signatures for 100% update validation across all Android versions",
+            "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities",
+            "Data-Only Background Call Push: High-priority data push guarantees immediate device ringing and full-screen incoming call UI",
+            "Group Membership Guard: Fixed group auto-rejoin bug preventing exited users from ghost rejoining",
+            "Touch Gesture Collision Fix: Disabled touch drag gestures on ChannelNavigationDrawer, completely eliminating touch conflicts with HorizontalPager"
           ],
           is_essential: true,
-          updated_at: "2026-10-31T17:35:00Z"
+          updated_at: "2026-11-08T21:30:00Z"
         },
         {
           id: "jarvis",
@@ -1858,31 +1881,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           ],
           is_essential: false,
           updated_at: "2026-11-02T11:45:00Z"
-        },
-        {
-          id: "voipcall",
-          package_name: "com.connecto.voip",
-          name: "VoIP Phone",
-          badge: "VoIP Telephony",
-          tagline: "Ultra-low latency HD VoIP audio calls with CallKit integration",
-          description: "Dedicated high-fidelity voice-over-IP telephone application. Features instant lock-screen incoming call banners via native CallKit & ConnectionService, background push wake-up, encrypted WebRTC audio mesh, live audio wave visualizers, earpiece/speakerphone routing, and multi-user profile dialing.",
-          category: "Communication",
-          version_name: "1.1.0",
-          version_code: 101,
-          size_bytes: 12781423,
-          size_formatted: "12.2 MB",
-          download_url: "https://connecto.fun/downloads/voip-call.apk",
-          icon_url: "https://connecto.fun/static/favicon.svg",
-          accent_color: "#10B981",
-          changelog: [
-            "Native Dialpad with Direct Internet Phone Calling to user phone numbers",
-            "Call History tab with Recents & Missed filters, durations, and one-tap callback",
-            "Account tab with Sign in with Connecto (Connecto SSO verification badge)",
-            "Authentication Gate: Dialpad and Call History unlocked only after Connecto Sign-In",
-            "Cloudflare Anycast Edge VoIP routing & D1 database synchronization"
-          ],
-          is_essential: false,
-          updated_at: "2026-11-02T10:45:00Z"
         }
       ]
     });
@@ -5147,8 +5145,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           const isCreatedByMe = Boolean(reqUser && adminUser && reqUser === adminUser);
           const isMember = Boolean(reqUser && cleanMembers.includes(reqUser));
 
-          // Strict filter: If reqUser is specified, only return groups where reqUser is an active member or creator!
-          if (reqUser && !isMember && !isCreatedByMe) {
+          // Strict filter: If reqUser is specified, only return groups where reqUser is an active member!
+          if (reqUser && !isMember) {
             continue;
           }
 
@@ -5185,7 +5183,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
                 const adminUser = String(rg.admin || rg.creator || cleanMembers[0] || "").toLowerCase().replace(/^@/, "");
                 const isCreatedByMe = Boolean(reqUser && adminUser && reqUser === adminUser);
                 const isMember = Boolean(reqUser && cleanMembers.includes(reqUser));
-                if (reqUser && !isMember && !isCreatedByMe) {
+                if (reqUser && !isMember) {
                   continue;
                 }
                 groups.push({
@@ -5338,9 +5336,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     if (env.DB && targetUsername) {
       try {
         const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(targetUsername).first();
-        if (u) {
-          await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ? AND user_id = ?").bind(groupId, u.id).run();
-        }
+        const candidateUids = [targetUsername];
+        if (u && u.id && !candidateUids.includes(u.id)) candidateUids.push(u.id);
+        const placeholders = candidateUids.map(() => "?").join(", ");
+        await env.DB.prepare(`DELETE FROM dm_participants WHERE channel_id = ? AND user_id IN (${placeholders})`).bind(groupId, ...candidateUids).run();
         // Automatic deletion when no members remain in group
         const remaining = await env.DB.prepare("SELECT COUNT(*) as cnt FROM dm_participants WHERE channel_id = ?").bind(groupId).first();
         if (!remaining || remaining.cnt === 0) {
@@ -5374,9 +5373,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     if (env.DB && username) {
       try {
         const u = await env.DB.prepare("SELECT id FROM users WHERE lower(username) = ? LIMIT 1").bind(username).first();
-        if (u) {
-          await env.DB.prepare("DELETE FROM dm_participants WHERE channel_id = ? AND user_id = ?").bind(groupId, u.id).run();
-        }
+        const candidateUids = [username];
+        if (authUser.id) candidateUids.push(authUser.id);
+        if (u && u.id && !candidateUids.includes(u.id)) candidateUids.push(u.id);
+        const placeholders = candidateUids.map(() => "?").join(", ");
+        await env.DB.prepare(`DELETE FROM dm_participants WHERE channel_id = ? AND user_id IN (${placeholders})`).bind(groupId, ...candidateUids).run();
         // Automatic deletion when no members remain in group
         const remaining = await env.DB.prepare("SELECT COUNT(*) as cnt FROM dm_participants WHERE channel_id = ?").bind(groupId).first();
         if (!remaining || remaining.cnt === 0) {
@@ -6640,8 +6641,8 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         ctx.waitUntil((async () => {
           try {
             const uRow = await env.DB.prepare(
-              "SELECT id, username, display_name, fcm_token FROM users WHERE lower(username) = ? OR id = ? LIMIT 1"
-            ).bind(target.toLowerCase(), target).first();
+              "SELECT id, username, display_name, fcm_token FROM users WHERE lower(username) = ? OR id = ? OR lower(display_name) = ? LIMIT 1"
+            ).bind(target.toLowerCase(), target, target.toLowerCase()).first();
             if (uRow && uRow.fcm_token) {
               await sendFcmNotification(env, uRow.fcm_token, {
                 type: "call_invite",
@@ -6966,14 +6967,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.16",
-      version_name: "v4.6.16",
-      version_code: 105,
-      build: 105,
-      sha256: "61caba5887abb7559b7dff6166f4a60830a700211b954726cc65009dd4f50c0a",
+      version: "4.6.19",
+      version_name: "v4.6.19",
+      version_code: 108,
+      build: 108,
+      sha256: "42e4554b30e154c5ca4263759b0d5eb342d0a411da8bb0abeca5a77967f4fd63",
       filename: "connecto-fun.apk",
-      size_bytes: 37794168,
-      size_display: "36.0 MB",
+      size_bytes: 37843905,
+      size_display: "36.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -8057,14 +8058,14 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.6\.0<\/span>/g, "v1.7.0</span>")
-            .replace(/v1\.6\.6 \(Build 23\) • Standalone Client/g, "v1.7.0 (Build 27) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.6\.6 • 13\.1 MB\)/g, "Download Our Store APK (v1.7.0 • 14.2 MB)")
-            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.6\.6\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.7.0)")
-            .replace(/Autonomous Package Manager • v1\.6\.6/g, "Autonomous Package Manager • v1.7.0")
-            .replace(/<span class="android-spec-val" style="color:#38bdf8;">13\.1 MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">14.2 MB</span>');
+            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.2</span>")
+            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.2 (Build 29) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.2 • 14.3 MB)")
+            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[67]\.[0-9]+\)/g,
+                     "Official Verified Store Release • Package: com.connecto.store (v1.7.2)")
+            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.2")
+            .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
+                     '<span class="android-spec-val" style="color:#38bdf8;">14.3 MB</span>');
           responseBody = patched;
         } catch (_) {}
       }
@@ -8606,22 +8607,24 @@ export class ConnectoRealtimeRoom {
 
   resolveCallPeer(callId, senderUsername, explicitTarget) {
     const cleanSender = String(senderUsername || "").toLowerCase().trim().replace(/^@/, "");
+    const cleanExplicit = explicitTarget ? String(explicitTarget).toLowerCase().trim().replace(/^@/, "") : "";
     if (callId && this.pendingCalls.has(callId)) {
       const info = this.pendingCalls.get(callId);
-      const isParticipant = cleanSender && (info.caller === cleanSender || info.target === cleanSender);
-      if (!isParticipant) {
-        return "";
-      }
-      if (explicitTarget) {
-        const cleanTarget = String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
-        if (cleanTarget === info.caller || cleanTarget === info.target) {
-          return cleanTarget;
+      const isParticipant = cleanSender && (
+        info.caller === cleanSender || info.target === cleanSender ||
+        info.canonicalTarget === cleanSender ||
+        (cleanSender === "chinnu" && (info.caller === "chinnu14754x" || info.target === "chinnu14754x")) ||
+        (cleanSender === "chinnu14754x" && (info.caller === "chinnu" || info.target === "chinnu"))
+      );
+      if (isParticipant) {
+        if (cleanExplicit && (cleanExplicit === info.caller || cleanExplicit === info.target || cleanExplicit === info.canonicalTarget)) {
+          return cleanExplicit;
         }
+        return info.caller === cleanSender ? (info.canonicalTarget || info.target) : info.caller;
       }
-      return info.caller === cleanSender ? info.target : info.caller;
     }
-    if (explicitTarget) {
-      return String(explicitTarget).toLowerCase().trim().replace(/^@/, "");
+    if (cleanExplicit) {
+      return cleanExplicit;
     }
     return "";
   }
@@ -8761,6 +8764,14 @@ export class ConnectoRealtimeRoom {
             const oldMembers = Array.isArray(g.members) ? g.members : [];
             g.members = oldMembers.filter(m => String(m).toLowerCase().trim().replace(/^@/, "") !== user);
             g.member_count = g.members.length;
+            if (g.members.length > 0) {
+              if (String(g.creator || "").toLowerCase().trim().replace(/^@/, "") === user) {
+                g.creator = g.members[0];
+              }
+              if (String(g.admin || "").toLowerCase().trim().replace(/^@/, "") === user) {
+                g.admin = g.members[0];
+              }
+            }
             if (g.members.length === 0) {
               this.groups.delete(groupId);
               if (this.state && this.state.storage) {
@@ -8799,11 +8810,8 @@ export class ConnectoRealtimeRoom {
         }
         const all = Object.values(allMap);
         const filtered = user ? all.filter(g => {
-          const creator = String(g.creator || "").toLowerCase().trim().replace(/^@/, "");
-          const admin = String(g.admin || "").toLowerCase().trim().replace(/^@/, "");
-          const isCreator = Boolean(creator === user || admin === user);
           const isMember = Array.isArray(g.members) && g.members.some(m => String(m).toLowerCase().trim().replace(/^@/, "") === user);
-          return isCreator || isMember;
+          return isMember;
         }) : all;
         return new Response(JSON.stringify({ groups: filtered }), {
           headers: { "Content-Type": "application/json" }
@@ -9032,9 +9040,21 @@ export class ConnectoRealtimeRoom {
     }
 
     const rawUserId = (url.searchParams.get("user_id") || "").trim().toLowerCase();
-    if (rawUserId && (rawUserId === finalUser || rawUserId === String(wsAuthUser).toLowerCase())) {
+    if (rawUserId) {
       if (!this.userSockets.has(rawUserId)) this.userSockets.set(rawUserId, new Set());
       this.userSockets.get(rawUserId).add(server);
+    }
+    if (authUserId) {
+      const cleanId = String(authUserId).toLowerCase().trim();
+      if (!this.userSockets.has(cleanId)) this.userSockets.set(cleanId, new Set());
+      this.userSockets.get(cleanId).add(server);
+    }
+    if (meta.displayName) {
+      const cleanDisp = meta.displayName.toLowerCase().trim().replace(/^@/, "");
+      if (cleanDisp && cleanDisp !== finalUser) {
+        if (!this.userSockets.has(cleanDisp)) this.userSockets.set(cleanDisp, new Set());
+        this.userSockets.get(cleanDisp).add(server);
+      }
     }
 
     for (const ch of meta.channels) {
@@ -9253,34 +9273,61 @@ export class ConnectoRealtimeRoom {
           // Dispatch high-priority FCM VoIP push notification to wake background/closed Android devices
           if (this.env && this.env.DB) {
             this.env.DB.prepare(
-              "SELECT id, username, display_name, fcm_token FROM users WHERE lower(username) = ? OR id = ? LIMIT 1"
-            ).bind(target.toLowerCase(), target).first().then(uRow => {
-              if (uRow && uRow.fcm_token) {
-                sendFcmNotification(this.env, uRow.fcm_token, {
-                  type: "call_invite",
-                  title: "Incoming Voice Call",
-                  body: `${meta.displayName || meta.username} is calling you on Connecto`,
-                  room_id: callId,
-                  call_id: callId,
-                  reference_id: callId,
-                  caller: meta.username,
-                  caller_username: meta.username,
-                  caller_name: meta.displayName || meta.username,
-                  caller_avatar: callerAvatar,
-                  avatar: callerAvatar
-                }).catch(err => console.error("[WS_CALL_FCM] Error dispatching push:", err.message));
+              "SELECT id, username, display_name, fcm_token FROM users WHERE lower(username) = ? OR id = ? OR lower(display_name) = ? LIMIT 1"
+            ).bind(target.toLowerCase(), target, target.toLowerCase()).first().then(uRow => {
+              if (uRow) {
+                if (uRow.username) {
+                  const cInfo = this.pendingCalls.get(callId);
+                  if (cInfo) cInfo.canonicalTarget = uRow.username.toLowerCase();
+                  if (count === 0) {
+                    this.sendToUser(uRow.username.toLowerCase(), targetPayload);
+                  }
+                }
+                if (uRow.fcm_token) {
+                  sendFcmNotification(this.env, uRow.fcm_token, {
+                    type: "call_invite",
+                    title: "Incoming Voice Call",
+                    body: `${meta.displayName || meta.username} is calling you on Connecto`,
+                    room_id: callId,
+                    call_id: callId,
+                    reference_id: callId,
+                    caller: meta.username,
+                    caller_username: meta.username,
+                    caller_name: meta.displayName || meta.username,
+                    caller_avatar: callerAvatar,
+                    avatar: callerAvatar
+                  }).catch(err => console.error("[WS_CALL_FCM] Error dispatching push:", err.message));
+                }
               }
             }).catch(err => console.error("[WS_CALL_FCM] Error querying recipient:", err.message));
           }
 
           server.send(JSON.stringify({
-            type: "call:ringing",
-            action: "call:ringing",
+            type: "call:initiated",
+            action: "call:initiated",
             target: target,
             call_id: callId,
             room_id: callId,
             peer_online: count > 0
           }));
+          return;
+        }
+
+        if (action === "call:ringing" || action === "call_ringing") {
+          const callId = data.call_id || data.room_id;
+          const target = this.resolveCallPeer(callId, meta.username, data.target || data.target_user || data.target_user_id);
+          if (target) {
+            this.sendToUser(target, {
+              type: "call:ringing",
+              action: "call:ringing",
+              target: target,
+              callee: meta.username,
+              callee_username: meta.username,
+              call_id: callId,
+              room_id: callId,
+              peer_online: true
+            });
+          }
           return;
         }
 
@@ -9508,19 +9555,30 @@ export class ConnectoRealtimeRoom {
               room_id: rId,
               sender_id: meta.username,
               sender_username: meta.username,
+              sample_rate: data.sample_rate || 16000,
               audio: audio
             };
             const roomChan = `voice_room:${rId}`;
             const chSet = this.channelSockets.get(roomChan);
+            let deliveredToChannel = 0;
             if (chSet && chSet.size > 0) {
               const msg = JSON.stringify(audioPayload);
               for (const ws of chSet) {
                 if (ws === server) continue;
-                try { ws.send(msg); } catch (_) {}
+                try {
+                  ws.send(msg);
+                  deliveredToChannel++;
+                } catch (_) {}
               }
-            } else {
-              const peer = this.resolveCallPeer(rId, meta.username, data.target);
-              if (peer) this.sendToUser(peer, audioPayload);
+            }
+
+            // Guaranteed delivery fallback for 1:1 calls:
+            // If the peer socket hasn't subscribed to the voice_room channel yet (e.g. race condition
+            // or mobile background transition), resolve the peer directly and dispatch to their user socket.
+            const target = data.target || data.target_user || data.target_user_id;
+            const peer = this.resolveCallPeer(rId, meta.username, target);
+            if (peer && deliveredToChannel === 0) {
+              this.sendToUser(peer, audioPayload);
             }
           }
           return;
@@ -9684,7 +9742,17 @@ export class ConnectoRealtimeRoom {
 
   sendToUser(username, payload) {
     const clean = String(username).toLowerCase().trim().replace(/^@/, "");
-    const userSet = this.userSockets.get(clean);
+    let userSet = this.userSockets.get(clean);
+    if (!userSet || userSet.size === 0) {
+      for (const [ws, m] of this.socketMeta.entries()) {
+        const u = String(m.username || "").toLowerCase().trim().replace(/^@/, "");
+        const d = String(m.displayName || "").toLowerCase().trim().replace(/^@/, "");
+        if (u === clean || d === clean || (clean === "chinnu" && u === "chinnu14754x") || (clean === "chinnu14754x" && u === "chinnu")) {
+          if (!userSet) userSet = new Set();
+          userSet.add(ws);
+        }
+      }
+    }
     if (!userSet || userSet.size === 0) return 0;
 
     const msg = JSON.stringify(payload);

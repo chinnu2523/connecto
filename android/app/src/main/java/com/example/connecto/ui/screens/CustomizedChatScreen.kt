@@ -1148,33 +1148,7 @@ fun CustomizedChatScreen(
             isFriendsLoadedOnce = true
         }
         if (cachedGroups.isNotEmpty() && userGroupsList.isEmpty()) {
-            userGroupsList.addAll(cachedGroups)
-        }
-        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
-        val isGuest = effUser.trim().lowercase().removePrefix("@") == "guest"
-        if (!isGuest && userGroupsList.none { !it.isCreatedByMe }) {
-            userGroupsList.add(
-                FriendItem(
-                    id = "grp-design-team-joined",
-                    name = "Design Team",
-                    handle = "#design-team",
-                    initial = "D",
-                    status = "4 members • Joined Group",
-                    bio = "Design Team Discussions • Admin: @devi",
-                    lastMessage = "Hey team, welcome to the design channel!",
-                    timeAgo = "1h ago",
-                    unreadCount = 0,
-                    isOnline = false,
-                    avatarUrl = null,
-                    isGroup = true,
-                    isCreatedByMe = false,
-                    memberCount = 4,
-                    members = listOf("devi", "srinu", "chinnu14754x", "test1"),
-                    admin = "devi",
-                    creator = "devi",
-                    lastMessageTimestamp = System.currentTimeMillis() - 3600000L
-                )
-            )
+            userGroupsList.addAll(cachedGroups.filter { it.id != "grp-design-team-joined" })
         }
     }
 
@@ -1479,7 +1453,7 @@ fun CustomizedChatScreen(
                     val myUsernameLower = effUsername.trim().lowercase().removePrefix("@")
                     val validGroups = serverGroups.filter { g ->
                         val count = if (g.memberCount > 0) g.memberCount else g.members.size
-                        val isMember = g.isCreatedByMe || g.members.any { it.trim().lowercase().removePrefix("@") == myUsernameLower }
+                        val isMember = (g.members.isNotEmpty() && g.members.any { it.trim().lowercase().removePrefix("@") == myUsernameLower }) || (g.members.isEmpty() && g.isCreatedByMe)
                         if (count <= 0) {
                             coroutineScope.launch {
                                 try { ConnectoApiClient.deleteGroup(g.id) } catch (_: Exception) {}
@@ -1523,8 +1497,8 @@ fun CustomizedChatScreen(
                         )
                     }
                     val gIds = mappedGroups.map { it.id }.toSet()
-                    val removed = userGroupsList.filter { it.id !in gIds && it.id != "grp-design-team-joined" }
-                    userGroupsList.removeAll { it.id !in gIds && it.id != "grp-design-team-joined" }
+                    val removed = userGroupsList.filter { it.id !in gIds }
+                    userGroupsList.removeAll { it.id !in gIds }
                     for (item in mappedGroups) {
                         val idx = userGroupsList.indexOfFirst { it.id == item.id }
                         if (idx == -1) {
@@ -1534,30 +1508,6 @@ fun CustomizedChatScreen(
                             val effectiveTs = maxOf(existingTs, item.lastMessageTimestamp)
                             userGroupsList[idx] = item.copy(lastMessageTimestamp = effectiveTs)
                         }
-                    }
-                    if (userGroupsList.none { !it.isCreatedByMe }) {
-                        userGroupsList.add(
-                            FriendItem(
-                                id = "grp-design-team-joined",
-                                name = "Design Team",
-                                handle = "#design-team",
-                                initial = "D",
-                                status = "4 members • Joined Group",
-                                bio = "Design Team Discussions • Admin: @devi",
-                                lastMessage = "Hey team, welcome to the design channel!",
-                                timeAgo = "1h ago",
-                                unreadCount = 0,
-                                isOnline = false,
-                                avatarUrl = null,
-                                isGroup = true,
-                                isCreatedByMe = false,
-                                memberCount = 4,
-                                members = listOf("devi", "srinu", "chinnu14754x", "test1"),
-                                admin = "devi",
-                                creator = "devi",
-                                lastMessageTimestamp = System.currentTimeMillis() - 3600000L
-                            )
-                        )
                     }
                     coroutineScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                         try {
