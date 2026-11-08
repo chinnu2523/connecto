@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.connecto.network.AuthResult
+import com.example.connecto.ui.designsystem.ConnectoOtpCodeField
 import com.example.connecto.network.ConnectoApiClient
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
@@ -205,40 +206,32 @@ fun TwoFactorLoginDialog(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // 6-digit OTP Input
-                OutlinedTextField(
-                    value = otpCode,
-                    onValueChange = {
-                        if (it.length <= 6 && it.all { ch -> ch.isDigit() }) {
-                            otpCode = it
-                            errorMessage = null
+                // 6-digit OTP Input with Mint Wave Animation
+                ConnectoOtpCodeField(
+                    otpCode = otpCode,
+                    onOtpChange = {
+                        otpCode = it
+                        errorMessage = null
+                    },
+                    isError = errorMessage != null,
+                    enabled = !isVerifying,
+                    onComplete = { code ->
+                        // Auto-verify on completion!
+                        isVerifying = true
+                        errorMessage = null
+                        coroutineScope.launch {
+                            val res = ConnectoApiClient.verifyLogin2Fa(
+                                loginIdentifier = loginIdentifier,
+                                otpCode = code.trim()
+                            )
+                            isVerifying = false
+                            if (res.isSuccess) {
+                                onSuccess(res.getOrThrow())
+                            } else {
+                                errorMessage = res.exceptionOrNull()?.message ?: "2FA verification failed."
+                            }
                         }
-                    },
-                    placeholder = { Text("000000", fontSize = 22.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.Security, contentDescription = null, tint = gradientColors.first())
-                    },
-                    trailingIcon = {
-                        if (isVerifying) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = gradientColors.first())
-                        }
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                    modifier = Modifier.fillMaxWidth(),
-                    textStyle = androidx.compose.ui.text.TextStyle(
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace,
-                        textAlign = TextAlign.Center,
-                        letterSpacing = 6.sp,
-                        color = textColor
-                    ),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = gradientColors.first(),
-                        unfocusedBorderColor = cardBorder
-                    )
+                    }
                 )
 
                 Spacer(modifier = Modifier.height(20.dp))

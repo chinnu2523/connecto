@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.20",
-        version_name: "v4.6.20",
-        version_code: 109,
-        build: 109,
-        sha256: "62f1755e84a88e3b6aa7b5bdae01fa211a8148a7a55981844487fcf37a870829",
+        version: "4.6.21",
+        version_name: "v4.6.21",
+        version_code: 110,
+        build: 110,
+        sha256: "afe504f1689ed20fa3d0d70132c683911964c2c60e7750186805f1961c304ab1",
         filename: "connecto-fun.apk",
-        size_bytes: 37847683,
+        size_bytes: 37863950,
         size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -180,6 +180,7 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash.",
           "Particle Gather Bottom Bar Animation: High-performance physics-based particle suction and coalescence animation when switching navigation tabs with ambient orbital micro-sparkles.",
           "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities.",
           "Call Status Transparency: Real-time status states displaying 'Not connected...' before answer and 'Connected but not answering...' during ringing.",
@@ -456,14 +457,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.20-b109.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.21-b110.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.20");
-          res.headers.set("X-Connecto-Build", "109");
+          res.headers.set("X-Connecto-Version", "v4.6.21");
+          res.headers.set("X-Connecto-Build", "110");
           return res;
         }
 
@@ -476,7 +477,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.20"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.21"
               }
             });
             if (upstreamResp.ok) {
@@ -487,8 +488,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.20");
-              downloadHeaders.set("X-Connecto-Build", "109");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.21");
+              downloadHeaders.set("X-Connecto-Build", "110");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1799,14 +1800,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.20",
-        version_code: 109,
-        size_bytes: 37847683,
+        version_name: "4.6.21",
+        version_code: 110,
+        size_bytes: 37863950,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash",
           "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
           "Calling State Transparency: Precise real-time status indicators displaying 'Not connected...' before user pickup and 'Connected but not answering...' while phone is ringing",
           "Multi-Scheme Cryptographic Signing: Enabled simultaneous V1 (JAR), V2 (APK), V3, and V4 signatures for 100% update validation across all Android versions",
@@ -6999,13 +7001,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.20",
-      version_name: "v4.6.20",
-      version_code: 109,
-      build: 109,
-      sha256: "62f1755e84a88e3b6aa7b5bdae01fa211a8148a7a55981844487fcf37a870829",
+      version: "4.6.21",
+      version_name: "v4.6.21",
+      version_code: 110,
+      build: 110,
+      sha256: "afe504f1689ed20fa3d0d70132c683911964c2c60e7750186805f1961c304ab1",
       filename: "connecto-fun.apk",
-      size_bytes: 37847683,
+      size_bytes: 37863950,
       size_display: "36.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

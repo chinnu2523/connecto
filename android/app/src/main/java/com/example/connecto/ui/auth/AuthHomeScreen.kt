@@ -48,6 +48,9 @@ import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import com.example.connecto.ui.designsystem.ConnectoEmailGhostField
+import com.example.connecto.ui.designsystem.ConnectoOtpCodeField
+import com.example.connecto.ui.designsystem.ConnectoPasswordStrengthMeter
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -436,8 +439,8 @@ fun AuthHomeScreen(
             Crossfade(targetState = isSignUp, animationSpec = tween(300), label = "authFormCrossfade") { signUpMode ->
                 if (signUpMode) {
                     Column {
-                        // Email Field
-                        AuthTextField(
+                        // Email Field with Interactive Ghost Completion (tap to fill in white)
+                        ConnectoEmailGhostField(
                             value = email,
                             onValueChange = {
                                 email = it
@@ -451,7 +454,6 @@ fun AuthHomeScreen(
                             },
                             placeholder = "Email Address",
                             icon = Icons.Outlined.Email,
-                            keyboardType = KeyboardType.Email,
                             validationStatus = emailValidation
                         )
                         ValidationStatusBadge(
@@ -527,33 +529,46 @@ fun AuthHomeScreen(
                             }
                         }
 
-                        // OTP Code Input Field (when OTP sent)
+                        // Six-Box OTP Code Field with Mint Wave Animation
                         if (isEmailOtpSent && !isEmailOtpVerified) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(modifier = Modifier.weight(1f)) {
-                                    AuthTextField(
-                                        value = emailOtpCode,
-                                        onValueChange = {
-                                            if (it.length <= 6) emailOtpCode = it.filter { ch -> ch.isDigit() }
-                                        },
-                                        placeholder = "6-digit OTP Code",
-                                        icon = Icons.Outlined.MarkEmailRead,
-                                        keyboardType = KeyboardType.Number
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Enter 6-digit verification code:",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Button(
-                                    onClick = {
-                                        val code = emailOtpCode.trim()
-                                        if (code.length != 6) {
-                                            otpStatusIsError = true
-                                            otpStatusMessage = "Please enter the 6-digit code."
-                                            return@Button
+                                    if (isVerifyingOtp) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(12.dp),
+                                                strokeWidth = 1.5.dp,
+                                                color = Color(0xFF10B981)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Verifying...", fontSize = 11.sp, color = Color(0xFF10B981))
                                         }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                ConnectoOtpCodeField(
+                                    otpCode = emailOtpCode,
+                                    onOtpChange = {
+                                        emailOtpCode = it
+                                        otpStatusMessage = null
+                                    },
+                                    isError = otpStatusIsError,
+                                    enabled = !isVerifyingOtp,
+                                    onComplete = { code ->
+                                        // Auto-verify on completion!
                                         isVerifyingOtp = true
                                         otpStatusMessage = null
                                         coroutineScope.launch {
@@ -568,24 +583,56 @@ fun AuthHomeScreen(
                                                 otpStatusMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code"
                                             }
                                         }
-                                    },
-                                    enabled = !isVerifyingOtp && emailOtpCode.length == 6,
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = ConnectoTheme.colors.success,
-                                        contentColor = Color.White
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                                    modifier = Modifier.height(48.dp)
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
                                 ) {
-                                    if (isVerifyingOtp) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(16.dp),
-                                            strokeWidth = 2.dp,
-                                            color = Color.White
-                                        )
-                                    } else {
-                                        Text("Verify", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    Button(
+                                        onClick = {
+                                            val code = emailOtpCode.trim()
+                                            if (code.length != 6) {
+                                                otpStatusIsError = true
+                                                otpStatusMessage = "Please enter the 6-digit code."
+                                                return@Button
+                                            }
+                                            isVerifyingOtp = true
+                                            otpStatusMessage = null
+                                            coroutineScope.launch {
+                                                val res = ConnectoApiClient.verifySignupOtp(email.trim(), code)
+                                                isVerifyingOtp = false
+                                                if (res.isSuccess && res.getOrNull() == true) {
+                                                    isEmailOtpVerified = true
+                                                    otpStatusIsError = false
+                                                    otpStatusMessage = "Email verified successfully ✓"
+                                                } else {
+                                                    otpStatusIsError = true
+                                                    otpStatusMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code"
+                                                }
+                                            }
+                                        },
+                                        enabled = !isVerifyingOtp && emailOtpCode.length == 6,
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = ConnectoTheme.colors.success,
+                                            contentColor = Color.White
+                                        ),
+                                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        if (isVerifyingOtp) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(14.dp),
+                                                strokeWidth = 2.dp,
+                                                color = Color.White
+                                            )
+                                        } else {
+                                            Text("Verify Code", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
@@ -695,6 +742,14 @@ fun AuthHomeScreen(
                             isPassword = true,
                             passwordVisible = passwordVisible,
                             onTogglePassword = { passwordVisible = !passwordVisible }
+                        )
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Four-Step Password Strength Meter (fills and recolours as password grows)
+                        ConnectoPasswordStrengthMeter(
+                            password = password,
+                            modifier = Modifier.padding(horizontal = 2.dp)
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))

@@ -39,6 +39,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import com.example.connecto.ui.designsystem.ConnectoEmailGhostField
+import com.example.connecto.ui.designsystem.ConnectoOtpCodeField
+import com.example.connecto.ui.designsystem.ConnectoPasswordStrengthMeter
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -265,23 +268,14 @@ fun ForgotPasswordDialog(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
-                    OutlinedTextField(
+                    ConnectoEmailGhostField(
                         value = identifier,
                         onValueChange = {
                             identifier = it
                             errorMessage = null
                         },
-                        placeholder = { Text("Username or Email", fontSize = 14.sp) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Email, contentDescription = null, tint = subtitleColor)
-                        },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = gradientColors.first(),
-                            unfocusedBorderColor = cardBorder
-                        )
+                        placeholder = "Username or Email Address",
+                        icon = Icons.Outlined.Email
                     )
 
                     Spacer(modifier = Modifier.height(14.dp))
@@ -381,41 +375,34 @@ fun ForgotPasswordDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    OutlinedTextField(
-                        value = otpCode,
-                        onValueChange = {
-                            if (it.length <= 6 && it.all { ch -> ch.isDigit() }) {
-                                otpCode = it
-                                errorMessage = null
+                    // Six-box OTP Code Field with Mint Wave Animation
+                    ConnectoOtpCodeField(
+                        otpCode = otpCode,
+                        onOtpChange = {
+                            otpCode = it
+                            errorMessage = null
+                        },
+                        isError = errorMessage != null,
+                        enabled = !isVerifyingOtp && !isOtpVerified,
+                        onComplete = { code ->
+                            // Auto-verify when 6 digits are complete!
+                            isVerifyingOtp = true
+                            errorMessage = null
+                            coroutineScope.launch {
+                                val res = ConnectoApiClient.verifyForgotPasswordOtp(
+                                    identifier = identifier.trim(),
+                                    otpCode = code.trim()
+                                )
+                                isVerifyingOtp = false
+                                if (res.isSuccess && res.getOrNull()?.verified == true) {
+                                    isOtpVerified = true
+                                    statusMessage = "✓ Verification code verified! Please enter your new password."
+                                    currentStep = ForgotPasswordStep.NEW_PASSWORD
+                                } else {
+                                    errorMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code."
+                                }
                             }
-                        },
-                        placeholder = { Text("000000", fontSize = 22.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Security, contentDescription = null, tint = gradientColors.first())
-                        },
-                        trailingIcon = {
-                            if (isVerifyingOtp) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = gradientColors.first())
-                            } else if (isOtpVerified) {
-                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ConnectoTheme.colors.success)
-                            }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            textAlign = TextAlign.Center,
-                            letterSpacing = 6.sp,
-                            color = textColor
-                        ),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = gradientColors.first(),
-                            unfocusedBorderColor = cardBorder
-                        )
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -550,6 +537,14 @@ fun ForgotPasswordDialog(
                             focusedPlaceholderColor = subtitleColor,
                             unfocusedPlaceholderColor = subtitleColor
                         )
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Four-Step Password Strength Meter (fills and recolours as password grows)
+                    ConnectoPasswordStrengthMeter(
+                        password = newPassword,
+                        modifier = Modifier.padding(horizontal = 2.dp)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
