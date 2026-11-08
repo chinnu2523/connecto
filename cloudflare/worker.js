@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.19",
-        version_name: "v4.6.19",
-        version_code: 108,
-        build: 108,
-        sha256: "42e4554b30e154c5ca4263759b0d5eb342d0a411da8bb0abeca5a77967f4fd63",
+        version: "4.6.20",
+        version_name: "v4.6.20",
+        version_code: 109,
+        build: 109,
+        sha256: "62f1755e84a88e3b6aa7b5bdae01fa211a8148a7a55981844487fcf37a870829",
         filename: "connecto-fun.apk",
-        size_bytes: 37843905,
+        size_bytes: 37847683,
         size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -180,6 +180,7 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Particle Gather Bottom Bar Animation: High-performance physics-based particle suction and coalescence animation when switching navigation tabs with ambient orbital micro-sparkles.",
           "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities.",
           "Call Status Transparency: Real-time status states displaying 'Not connected...' before answer and 'Connected but not answering...' during ringing.",
           "Group Membership Guard: Fixed group auto-rejoin bug preventing exited users from ghost rejoining.",
@@ -455,14 +456,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.19-b108.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.20-b109.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.19");
-          res.headers.set("X-Connecto-Build", "108");
+          res.headers.set("X-Connecto-Version", "v4.6.20");
+          res.headers.set("X-Connecto-Build", "109");
           return res;
         }
 
@@ -475,7 +476,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.19"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.20"
               }
             });
             if (upstreamResp.ok) {
@@ -486,8 +487,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.19");
-              downloadHeaders.set("X-Connecto-Build", "108");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.20");
+              downloadHeaders.set("X-Connecto-Build", "109");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1798,14 +1799,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.19",
-        version_code: 108,
-        size_bytes: 37843905,
+        version_name: "4.6.20",
+        version_code: 109,
+        size_bytes: 37847683,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
           "Calling State Transparency: Precise real-time status indicators displaying 'Not connected...' before user pickup and 'Connected but not answering...' while phone is ringing",
           "Multi-Scheme Cryptographic Signing: Enabled simultaneous V1 (JAR), V2 (APK), V3, and V4 signatures for 100% update validation across all Android versions",
           "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities",
@@ -6997,13 +6999,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.19",
-      version_name: "v4.6.19",
-      version_code: 108,
-      build: 108,
-      sha256: "42e4554b30e154c5ca4263759b0d5eb342d0a411da8bb0abeca5a77967f4fd63",
+      version: "4.6.20",
+      version_name: "v4.6.20",
+      version_code: 109,
+      build: 109,
+      sha256: "62f1755e84a88e3b6aa7b5bdae01fa211a8148a7a55981844487fcf37a870829",
       filename: "connecto-fun.apk",
-      size_bytes: 37843905,
+      size_bytes: 37847683,
       size_display: "36.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
