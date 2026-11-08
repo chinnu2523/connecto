@@ -4917,6 +4917,9 @@ fun CustomizedChatScreen(
                             }
 
                             SwipeableConversationRow(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem(),
                                 chatId = friend.id,
                                 chatName = friend.name,
                                 isPinned = isPinned,
@@ -4933,14 +4936,14 @@ fun CustomizedChatScreen(
                                 onDeleteInitiated = {
                                     pendingDeleteChatIds = pendingDeleteChatIds + friend.id
                                 },
-                                onUndoDelete = {
-                                    pendingDeleteChatIds = pendingDeleteChatIds - friend.id
-                                    deletedChatIds = deletedChatIds - friend.id
-                                    friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
-                                },
                                 onDeleteFinalized = {
                                     pendingDeleteChatIds = pendingDeleteChatIds - friend.id
                                     deletedChatIds = deletedChatIds + friend.id
+                                    friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
+                                },
+                                onUndoDelete = {
+                                    pendingDeleteChatIds = pendingDeleteChatIds - friend.id
+                                    deletedChatIds = deletedChatIds - friend.id
                                     friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
                                 },
                                 onPeekHintDone = {
@@ -4972,9 +4975,7 @@ fun CustomizedChatScreen(
                                             openFriendChat()
                                         }
                                     },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateItem(),
+                                    modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)

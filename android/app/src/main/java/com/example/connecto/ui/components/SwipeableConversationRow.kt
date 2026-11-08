@@ -53,6 +53,7 @@ fun SwipeableConversationRow(
     chatName: String,
     isPinned: Boolean,
     isPendingDelete: Boolean,
+    modifier: Modifier = Modifier,
     triggerInitialPeekHint: Boolean = false,
     onTogglePin: () -> Unit,
     onDeleteInitiated: () -> Unit,
@@ -72,12 +73,12 @@ fun SwipeableConversationRow(
     val deleteThresholdPx = with(density) { 95.dp.toPx() }
     val maxLeftDragPx = with(density) { 160.dp.toPx() }
 
-    val offsetX = remember { Animatable(0f) }
-    var hasHapticFiredForPin by remember { mutableStateOf(false) }
-    var hasHapticFiredForDelete by remember { mutableStateOf(false) }
+    val offsetX = remember(chatId) { Animatable(0f) }
+    var hasHapticFiredForPin by remember(chatId) { mutableStateOf(false) }
+    var hasHapticFiredForDelete by remember(chatId) { mutableStateOf(false) }
 
     // Liquid deletion visual collapse progress (0f = normal, 1f = fully collapsed)
-    val liquidCollapseAlpha = remember { Animatable(1f) }
+    val liquidCollapseAlpha = remember(chatId) { Animatable(1f) }
 
     // Initial Peek Hint Nudge (shows first-time subtle peek to educate user)
     LaunchedEffect(triggerInitialPeekHint) {
@@ -110,6 +111,7 @@ fun SwipeableConversationRow(
     if (isPendingDelete) {
         // ================= INLINE UNDO STRIP =================
         InlineUndoStrip(
+            modifier = modifier,
             chatName = chatName,
             onUndo = {
                 coroutineScope.launch {
@@ -131,7 +133,7 @@ fun SwipeableConversationRow(
     } else {
         // ================= SWIPEABLE CHAT ROW =================
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
                 .graphicsLayer {
                     alpha = liquidCollapseAlpha.value
@@ -226,11 +228,12 @@ fun SwipeableConversationRow(
                                 hasHapticFiredForDelete = false
                             },
                             onDragEnd = {
-                                val finalOffset = offsetX.value
+                                val finalOffset = offsetX.targetValue
                                 coroutineScope.launch {
                                     if (finalOffset >= pinThresholdPx) {
-                                        // Pinned / Unpinned!
+                                        // Pinned / Unpinned: Fire haptic & execute onTogglePin immediately!
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onTogglePin()
                                         offsetX.animateTo(
                                             targetValue = 0f,
                                             animationSpec = spring(
@@ -238,7 +241,6 @@ fun SwipeableConversationRow(
                                                 stiffness = Spring.StiffnessMedium
                                             )
                                         )
-                                        onTogglePin()
                                     } else if (finalOffset <= -deleteThresholdPx) {
                                         // Liquid Deletion Animation Triggered!
                                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -285,42 +287,43 @@ fun SwipeableConversationRow(
                                     )
                                 }
                             },
-                            onHorizontalDrag = { _, dragAmount ->
-                                coroutineScope.launch {
-                                    val currentVal = offsetX.value
-                                    val newVal = if (dragAmount > 0) {
-                                        // Swiping Right (Pin)
-                                        if (currentVal >= pinThresholdPx) {
-                                            currentVal + dragAmount * 0.35f // Resistance dampening
-                                        } else {
-                                            currentVal + dragAmount
-                                        }
+                            onHorizontalDrag = { change, dragAmount ->
+                                change.consume()
+                                val currentVal = offsetX.targetValue
+                                val newVal = if (dragAmount > 0) {
+                                    // Swiping Right (Pin)
+                                    if (currentVal >= pinThresholdPx) {
+                                        currentVal + dragAmount * 0.35f // Resistance dampening
                                     } else {
-                                        // Swiping Left (Delete)
-                                        if (currentVal <= -deleteThresholdPx) {
-                                            currentVal + dragAmount * 0.35f // Resistance dampening
-                                        } else {
-                                            currentVal + dragAmount
-                                        }
+                                        currentVal + dragAmount
                                     }
+                                } else {
+                                    // Swiping Left (Delete)
+                                    if (currentVal <= -deleteThresholdPx) {
+                                        currentVal + dragAmount * 0.35f // Resistance dampening
+                                    } else {
+                                        currentVal + dragAmount
+                                    }
+                                }
 
-                                    val clamped = newVal.coerceIn(-maxLeftDragPx, maxRightDragPx)
+                                val clamped = newVal.coerceIn(-maxLeftDragPx, maxRightDragPx)
+                                coroutineScope.launch {
                                     offsetX.snapTo(clamped)
+                                }
 
-                                    // Haptic feedback when threshold reached during continuous drag
-                                    if (clamped >= pinThresholdPx && !hasHapticFiredForPin) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        hasHapticFiredForPin = true
-                                    } else if (clamped < pinThresholdPx) {
-                                        hasHapticFiredForPin = false
-                                    }
+                                // Haptic feedback when threshold reached during continuous drag
+                                if (clamped >= pinThresholdPx && !hasHapticFiredForPin) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    hasHapticFiredForPin = true
+                                } else if (clamped < pinThresholdPx) {
+                                    hasHapticFiredForPin = false
+                                }
 
-                                    if (clamped <= -deleteThresholdPx && !hasHapticFiredForDelete) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                        hasHapticFiredForDelete = true
-                                    } else if (clamped > -deleteThresholdPx) {
-                                        hasHapticFiredForDelete = false
-                                    }
+                                if (clamped <= -deleteThresholdPx && !hasHapticFiredForDelete) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    hasHapticFiredForDelete = true
+                                } else if (clamped > -deleteThresholdPx) {
+                                    hasHapticFiredForDelete = false
                                 }
                             }
                         )
@@ -346,7 +349,8 @@ fun SwipeableConversationRow(
 fun InlineUndoStrip(
     chatName: String,
     onUndo: () -> Unit,
-    onTimeout: () -> Unit
+    onTimeout: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val totalSeconds = 5
     var remainingSeconds by remember { mutableIntStateOf(totalSeconds) }
@@ -371,7 +375,7 @@ fun InlineUndoStrip(
     }
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(72.dp),
         shape = RoundedCornerShape(16.dp),
