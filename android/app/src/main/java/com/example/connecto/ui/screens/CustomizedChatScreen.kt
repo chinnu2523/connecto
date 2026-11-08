@@ -134,6 +134,7 @@ import androidx.fragment.app.FragmentActivity
 import android.content.ContextWrapper
 import com.example.connecto.security.BiometricAuthManager
 import com.example.connecto.ui.components.PhotoLightboxDialog
+import com.example.connecto.ui.components.SwipeableConversationRow
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -607,6 +608,17 @@ fun CustomizedChatScreen(
     val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
     val myUsername = (ConnectoApiClient.currentUsername ?: currentUsername).trim().removePrefix("@").lowercase()
     val chatActivity = remember(context) { context.findFragmentActivity() }
+    val userPrefix = myUsername.lowercase()
+    var pinnedChatIds by remember(myUsername) {
+        mutableStateOf(friendPrefs.getStringSet("${userPrefix}_pinned_chat_ids", emptySet())?.toSet() ?: emptySet())
+    }
+    var deletedChatIds by remember(myUsername) {
+        mutableStateOf(friendPrefs.getStringSet("${userPrefix}_deleted_chat_ids", emptySet())?.toSet() ?: emptySet())
+    }
+    var pendingDeleteChatIds by remember { mutableStateOf(emptySet<String>()) }
+    var hasSeenSwipePeekHint by remember(myUsername) {
+        mutableStateOf(friendPrefs.getBoolean("${userPrefix}_has_seen_swipe_peek_hint", false))
+    }
     androidx.compose.runtime.LaunchedEffect(myUsername) {
         com.example.connecto.security.ScreenSecurityManager.applySecurityPolicy(chatActivity)
     }
@@ -1608,8 +1620,11 @@ fun CustomizedChatScreen(
                 "ADDED_GROUPS" -> userGroupsList.filter { !it.isCreatedByMe }
                 else -> friendsList.toList() + userGroupsList.toList()
             }
-            val sortedList = baseList.sortedWith(
-                compareByDescending<FriendItem> { it.lastMessageTimestamp }
+            // Filter out deleted chats unless currently in undo strip state
+            val activeList = baseList.filter { it.id !in deletedChatIds || it.id in pendingDeleteChatIds }
+            val sortedList = activeList.sortedWith(
+                compareByDescending<FriendItem> { pinnedChatIds.contains(it.id) }
+                    .thenByDescending { it.lastMessageTimestamp }
                     .thenBy { it.name.lowercase() }
             )
             if (friendSearchQuery.isBlank()) sortedList
@@ -4867,6 +4882,8 @@ fun CustomizedChatScreen(
                             val userPrefix = myUsername.lowercase()
                             val isFriendLocked = friendPrefs.getBoolean("${userPrefix}_chat_locked_${friend.id}", false) || friendPrefs.getBoolean("${userPrefix}_chat_locked_${friend.handle.trim().lowercase().removePrefix("@")}", false)
                             val isUnlocked = unlockedLockedFriends.contains(friend.id)
+                            val isPinned = pinnedChatIds.contains(friend.id)
+                            val isPendingDelete = pendingDeleteChatIds.contains(friend.id)
 
                             val openFriendChat = {
                                 val cleanTarget = friend.handle.removePrefix("@").trim()
@@ -4899,200 +4916,261 @@ fun CustomizedChatScreen(
                                 }
                             }
 
-                            Card(
-                                onClick = {
-                                    if (isFriendLocked && !isUnlocked) {
-                                        val activity = context.findFragmentActivity()
-                                        if (activity != null) {
-                                            BiometricAuthManager.authenticate(
-                                                activity = activity,
-                                                title = "Unlock Chat with ${friend.name}",
-                                                subtitle = "Authenticate to view private chat history",
-                                                onSuccess = {
-                                                    unlockedLockedFriends.add(friend.id)
-                                                    openFriendChat()
-                                                },
-                                                onError = { _, err ->
-                                                    Toast.makeText(context, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
-                                                }
-                                            )
+                            SwipeableConversationRow(
+                                chatId = friend.id,
+                                chatName = friend.name,
+                                isPinned = isPinned,
+                                isPendingDelete = isPendingDelete,
+                                triggerInitialPeekHint = index == 0 && !hasSeenSwipePeekHint && filteredFriends.isNotEmpty(),
+                                onTogglePin = {
+                                    if (isPinned) {
+                                        pinnedChatIds = pinnedChatIds - friend.id
+                                    } else {
+                                        pinnedChatIds = pinnedChatIds + friend.id
+                                    }
+                                    friendPrefs.edit().putStringSet("${userPrefix}_pinned_chat_ids", pinnedChatIds).apply()
+                                },
+                                onDeleteInitiated = {
+                                    pendingDeleteChatIds = pendingDeleteChatIds + friend.id
+                                },
+                                onUndoDelete = {
+                                    pendingDeleteChatIds = pendingDeleteChatIds - friend.id
+                                    deletedChatIds = deletedChatIds - friend.id
+                                    friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
+                                },
+                                onDeleteFinalized = {
+                                    pendingDeleteChatIds = pendingDeleteChatIds - friend.id
+                                    deletedChatIds = deletedChatIds + friend.id
+                                    friendPrefs.edit().putStringSet("${userPrefix}_deleted_chat_ids", deletedChatIds).apply()
+                                },
+                                onPeekHintDone = {
+                                    hasSeenSwipePeekHint = true
+                                    friendPrefs.edit().putBoolean("${userPrefix}_has_seen_swipe_peek_hint", true).apply()
+                                }
+                            ) {
+                                Card(
+                                    onClick = {
+                                        if (isFriendLocked && !isUnlocked) {
+                                            val activity = context.findFragmentActivity()
+                                            if (activity != null) {
+                                                BiometricAuthManager.authenticate(
+                                                    activity = activity,
+                                                    title = "Unlock Chat with ${friend.name}",
+                                                    subtitle = "Authenticate to view private chat history",
+                                                    onSuccess = {
+                                                        unlockedLockedFriends.add(friend.id)
+                                                        openFriendChat()
+                                                    },
+                                                    onError = { _, err ->
+                                                        Toast.makeText(context, "Authentication failed: $err", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                )
+                                            } else {
+                                                openFriendChat()
+                                            }
                                         } else {
                                             openFriendChat()
                                         }
-                                    } else {
-                                        openFriendChat()
-                                    }
-                                },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .animateItem(),
-                                shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                            ) {
-                                Row(
+                                    },
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .animateItem(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                                 ) {
-                                    if (friend.isGroup) {
-                                        if (!friend.avatarUrl.isNullOrBlank()) {
-                                            ConnectoAvatar(
-                                                name = friend.name,
-                                                avatarUrl = friend.avatarUrl,
-                                                customSizeDp = 48.dp,
-                                                customFontSizeSp = 18,
-                                                borderWidth = 1.5.dp,
-                                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                            )
-                                        } else {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(48.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                    .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Groups,
-                                                    contentDescription = "Group",
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(24.dp)
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        // Avatar with online status ring (clickable to open dedicated friend profile UI tab)
-                                        Box(
-                                            modifier = Modifier.clickable {
-                                                val clean = friend.handle.removePrefix("@").trim().lowercase()
-                                                selectedFriend = friend
-                                                selectedFriendProfileData = friendProfilesCache[clean]
-                                                isFriendProfileOpen = true
-                                                friendProfileSubPage = null
-                                                openedProfileFromChatList = true
-                                            }
-                                        ) {
-                                            ConnectoAvatar(
-                                                name = friend.name,
-                                                avatarUrl = friend.avatarUrl,
-                                                customSizeDp = 48.dp,
-                                                customFontSizeSp = 18,
-                                                status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
-                                                borderWidth = 1.5.dp,
-                                                borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    // Center Info: Name, Handle, and Last Message
-                                    Column(
-                                        modifier = Modifier.weight(1f)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text(
-                                                text = if (friend.isGroup) "#${friend.name}" else friend.name,
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f, fill = false)
-                                            )
-                                            if (friend.isGroup) {
-                                                Spacer(modifier = Modifier.width(6.dp))
+                                        if (friend.isGroup) {
+                                            if (!friend.avatarUrl.isNullOrBlank()) {
+                                                ConnectoAvatar(
+                                                    name = friend.name,
+                                                    avatarUrl = friend.avatarUrl,
+                                                    customSizeDp = 48.dp,
+                                                    customFontSizeSp = 18,
+                                                    borderWidth = 1.5.dp,
+                                                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                                )
+                                            } else {
                                                 Box(
                                                     modifier = Modifier
-                                                        .clip(RoundedCornerShape(6.dp))
-                                                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                                        .size(48.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                        .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f), CircleShape),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
-                                                    Text(
-                                                        text = "${friend.memberCount} members",
-                                                        fontSize = 10.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                        fontWeight = FontWeight.Medium
+                                                    Icon(
+                                                        imageVector = Icons.Default.Groups,
+                                                        contentDescription = "Group",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(24.dp)
                                                     )
                                                 }
                                             }
-                                            if (isFriendLocked) {
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Icon(
-                                                    imageVector = Icons.Default.Lock,
-                                                    contentDescription = "Chat Locked",
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(13.dp)
+                                        } else {
+                                            // Avatar with online status ring (clickable to open dedicated friend profile UI tab)
+                                            Box(
+                                                modifier = Modifier.clickable {
+                                                    val clean = friend.handle.removePrefix("@").trim().lowercase()
+                                                    selectedFriend = friend
+                                                    selectedFriendProfileData = friendProfilesCache[clean]
+                                                    isFriendProfileOpen = true
+                                                    friendProfileSubPage = null
+                                                    openedProfileFromChatList = true
+                                                }
+                                            ) {
+                                                ConnectoAvatar(
+                                                    name = friend.name,
+                                                    avatarUrl = friend.avatarUrl,
+                                                    customSizeDp = 48.dp,
+                                                    customFontSizeSp = 18,
+                                                    status = if (friend.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE,
+                                                    borderWidth = 1.5.dp,
+                                                    borderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                                                 )
                                             }
-                                            Spacer(modifier = Modifier.width(6.dp))
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        // Center Info: Name, Handle, and Last Message
+                                        Column(
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = if (friend.isGroup) "#${friend.name}" else friend.name,
+                                                    fontSize = 15.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.weight(1f, fill = false)
+                                                )
+                                                if (isPinned) {
+                                                    Spacer(modifier = Modifier.width(5.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(Color(0xFFF59E0B).copy(alpha = 0.16f))
+                                                            .border(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
+                                                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Filled.PushPin,
+                                                                contentDescription = "Pinned",
+                                                                tint = Color(0xFFF59E0B),
+                                                                modifier = Modifier.size(10.dp)
+                                                            )
+                                                            Text(
+                                                                text = "Pinned",
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color(0xFFF59E0B)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                if (friend.isGroup) {
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "${friend.memberCount} members",
+                                                            fontSize = 10.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                            fontWeight = FontWeight.Medium
+                                                        )
+                                                    }
+                                                }
+                                                if (isFriendLocked) {
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Icon(
+                                                        imageVector = Icons.Default.Lock,
+                                                        contentDescription = "Chat Locked",
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(13.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = friend.handle,
+                                                    fontSize = 12.sp,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+
+                                            Spacer(modifier = Modifier.height(3.dp))
+
+                                            val displayMsg = if (friend.lastMessage.isBlank() || friend.lastMessage == "null" || friend.lastMessage == "None") {
+                                                "Direct chat active • Tap to message"
+                                            } else friend.lastMessage
+
                                             Text(
-                                                text = friend.handle,
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.primary,
-                                                fontWeight = FontWeight.SemiBold,
+                                                text = displayMsg,
+                                                fontSize = 13.sp,
+                                                color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
                                         }
 
-                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Spacer(modifier = Modifier.width(10.dp))
 
-                                        val displayMsg = if (friend.lastMessage.isBlank() || friend.lastMessage == "null" || friend.lastMessage == "None") {
-                                            "Direct chat active • Tap to message"
-                                        } else friend.lastMessage
+                                        // Right column: formatted timestamp & unread badge
+                                        Column(
+                                            horizontalAlignment = Alignment.End,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            val displayTime = if (friend.timeAgo.isBlank() || friend.timeAgo == "null" || friend.timeAgo == "None") {
+                                                "Active"
+                                            } else formatIsoTime(friend.timeAgo)
 
-                                        Text(
-                                            text = displayMsg,
-                                            fontSize = 13.sp,
-                                            color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
+                                            Text(
+                                                text = displayTime,
+                                                fontSize = 11.sp,
+                                                fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
+                                                color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1
+                                            )
 
-                                    Spacer(modifier = Modifier.width(10.dp))
-
-                                    // Right column: formatted timestamp & unread badge
-                                    Column(
-                                        horizontalAlignment = Alignment.End,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        val displayTime = if (friend.timeAgo.isBlank() || friend.timeAgo == "null" || friend.timeAgo == "None") {
-                                            "Active"
-                                        } else formatIsoTime(friend.timeAgo)
-
-                                        Text(
-                                            text = displayTime,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (friend.unreadCount > 0) FontWeight.Bold else FontWeight.Medium,
-                                            color = if (friend.unreadCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1
-                                        )
-
-                                        if (friend.unreadCount > 0) {
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.primary)
-                                                    .padding(horizontal = 5.dp, vertical = 2.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "${friend.unreadCount}",
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onPrimary
-                                                )
+                                            if (friend.unreadCount > 0) {
+                                                Spacer(modifier = Modifier.height(4.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primary)
+                                                        .padding(horizontal = 5.dp, vertical = 2.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "${friend.unreadCount}",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onPrimary
+                                                    )
+                                                }
                                             }
                                         }
                                     }

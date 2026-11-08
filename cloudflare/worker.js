@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.21",
-        version_name: "v4.6.21",
-        version_code: 110,
-        build: 110,
-        sha256: "afe504f1689ed20fa3d0d70132c683911964c2c60e7750186805f1961c304ab1",
+        version: "4.6.22",
+        version_name: "v4.6.22",
+        version_code: 111,
+        build: 111,
+        sha256: "7cca5f43c7defe12c620be41871f17e77fd77ee54b62b11bdf96feb43b0616dd",
         filename: "connecto-fun.apk",
-        size_bytes: 37863950,
+        size_bytes: 37883554,
         size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -180,6 +180,7 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly.",
           "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash.",
           "Particle Gather Bottom Bar Animation: High-performance physics-based particle suction and coalescence animation when switching navigation tabs with ambient orbital micro-sparkles.",
           "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities.",
@@ -457,14 +458,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.21-b110.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.22-b111.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.21");
-          res.headers.set("X-Connecto-Build", "110");
+          res.headers.set("X-Connecto-Version", "v4.6.22");
+          res.headers.set("X-Connecto-Build", "111");
           return res;
         }
 
@@ -477,7 +478,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.21"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.22"
               }
             });
             if (upstreamResp.ok) {
@@ -488,8 +489,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.21");
-              downloadHeaders.set("X-Connecto-Build", "110");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.22");
+              downloadHeaders.set("X-Connecto-Build", "111");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1800,14 +1801,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.21",
-        version_code: 110,
-        size_bytes: 37863950,
+        version_name: "4.6.22",
+        version_code: 111,
+        size_bytes: 37883554,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly",
           "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash",
           "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
           "Calling State Transparency: Precise real-time status indicators displaying 'Not connected...' before user pickup and 'Connected but not answering...' while phone is ringing",
@@ -7001,13 +7003,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.21",
-      version_name: "v4.6.21",
-      version_code: 110,
-      build: 110,
-      sha256: "afe504f1689ed20fa3d0d70132c683911964c2c60e7750186805f1961c304ab1",
+      version: "4.6.22",
+      version_name: "v4.6.22",
+      version_code: 111,
+      build: 111,
+      sha256: "7cca5f43c7defe12c620be41871f17e77fd77ee54b62b11bdf96feb43b0616dd",
       filename: "connecto-fun.apk",
-      size_bytes: 37863950,
+      size_bytes: 37883554,
       size_display: "36.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7020,6 +7022,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.6.22",
+          date: "Nov 08, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.22: Message Tab Swipe Actions, Pinning & Inline Undo Suite",
+          summary: "Connecto v4.6.22 introduces interactive swipe gestures to the conversation list: peek hint micro-interactions, right swipe to pin chats with an amber badge, left swipe to delete with fluid liquid collapse physics, and an inline undo strip with a live 5-second countdown timer.",
+          highlights: [
+            "Peek Hint Affordance: Micro-scaling visual peek hint showing Pin on the left and Delete on the right as the user drags horizontally.",
+            "Right Swipe to Pin Chat: Toggles conversation pin status with haptic feedback, keeping pinned chats at the top with an amber pin badge.",
+            "Left Swipe with Liquid Deletion Animation: Smooth fluid slide-off and dissolve animation replacing deleted chats with an inline undo strip.",
+            "Inline Undo Strip: In-place capsule with live 5-second countdown timer and instant Undo button that smoothly springs the row back into view.",
+            "Android Native App v4.6.22 (Build 111 • 36.1 MB • Multi-Scheme Signed): SHA-256 7cca5f43c7defe12c620be41871f17e77fd77ee54b62b11bdf96feb43b0616dd."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v4.6.10",
           date: "Oct 29, 2026",
