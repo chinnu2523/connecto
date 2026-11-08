@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Subtle luxury graphite hexagon / shield backplate -->
+    <path
+        android:fillColor="#121212"
+        android:strokeColor="#2A2A2A"
+        android:strokeWidth="1.2"
+        android:pathData="M54,26 L76,38 L76,70 L54,82 L32,70 L32,38 Z" />
+
+    <!-- Pure Platinum Classic Store Monogram / Architecture Base -->
+    <!-- Store Roof / Pediment -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,34 L38,43 L70,43 Z" />
+
+    <!-- Entablature / Beam -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M38,44 H70 V46.5 H38 Z" />
+
+    <!-- Classical Pillars / Ionic Columns (4 Columns) -->
+    <!-- Column 1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40.5,48 H44 V65 H40.5 Z" />
+    <!-- Column 2 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M47.5,48 H51 V65 H47.5 Z" />
+    <!-- Column 3 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57,48 H60.5 V65 H57 Z" />
+    <!-- Column 4 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M64,48 H67.5 V65 H64 Z" />
+
+    <!-- Classical Base Plinth / Steps -->
+    <path
+        android:fillColor="#E5E7EB"
+        android:pathData="M37,66 H71 V68.5 H37 Z" />
+    <path
+        android:fillColor="#9CA3AF"
+        android:pathData="M35,69 H73 V71.5 H35 Z" />
+
+    <!-- Center Jewel: Subtle 4-point Diamond Star symbolizing Enterprise Store Engine -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,52 L55.5,56.5 L60,58 L55.5,59.5 L54,64 L52.5,59.5 L48,58 L52.5,56.5 Z" />
+</vector>
