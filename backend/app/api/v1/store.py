@@ -14,21 +14,21 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "1.6.6",
-        "version_code": 23,
-        "size_bytes": 13719054,
-        "size_formatted": "13.1 MB",
+        "version_name": "1.7.4",
+        "version_code": 31,
+        "size_bytes": 14370933,
+        "size_formatted": "13.7 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#FFFFFF",
         "changelog": [
-            "Account Profile Picture Fix: Resolved avatar resolution root cause across SSO content provider and added edge-backed verified image rendering",
-            "Mandatory Connecto SSO Legal Consent: Terms of Use & Privacy Policy prompt with persistent server-side agreement recording",
-            "Account Tab Redesign: Dedicated Light & Dark theme buttons, Policy button, and bottom-anchored Sign Out and Switch Account actions",
-            "Top Bar Refinement: Removed Play Protect safety button from store header"
+            "Role-based visibility: Restricted JARVIS AI strictly to authenticated Administrators",
+            "Native OEM Installer: Direct targeting for HyperOS, ColorOS, OneUI, OxygenOS, Pixel",
+            "FileProvider Security: Eliminated 'Problem parsing the package' with world-readable cache flags",
+            "Autonomous background update engine and KeyStore encryption"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-31T18:50:00Z"
+        "updated_at": "2026-11-09T03:30:00Z"
     },
     {
         "id": "connecto",
@@ -38,22 +38,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.16",
-        "version_code": 105,
-        "size_bytes": 37796120,
-        "size_formatted": "36.0 MB",
+        "version_name": "4.6.23",
+        "version_code": 112,
+        "size_bytes": 37886915,
+        "size_formatted": "36.1 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "Touch Gesture Conflict Fix: Disabled touch drags on ChannelNavigationDrawer to eliminate collision with horizontal tab swiping",
-            "Hardware Back Dismissal: Added Android back-button interception to cleanly dismiss workspace drawer",
-            "Automatic Pager Settlement Guard: Added recovery listener that prevents tabs from ever remaining frozen at fractional offsets",
-            "Interactive Horizontal Pager: Fluid finger-tracking swipe transitions across Home, Messages, Channels, Calls, and Profile tabs",
-            "Touch Gestures Isolation: Auto-locks horizontal paging during direct 1-on-1 chats to prevent accidental navigation"
+            "Blur Validation: Errors trigger only on field departure (blur), removing noisy typing interruptions",
+            "Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography",
+            "Pure Black OLED #000000 true black background and battery conservation",
+            "Thread-synchronized WebRTC teardown mutex and dynamic ICE gathering",
+            "Touch Gesture Isolation: Fluid finger-tracking swipe transitions across Home, Messages, Channels, Calls, and Profile tabs"
         ],
         "is_essential": True,
-        "updated_at": "2026-10-31T17:35:00Z"
+        "updated_at": "2026-11-09T03:30:00Z"
     },
     {
         "id": "jarvis",

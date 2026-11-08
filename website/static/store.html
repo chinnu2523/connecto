@@ -1,22 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-type="software">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Our Store | Official Ecosystem Hub</title>
+  <meta name="page-type" content="software">
+  <meta name="site-kind" content="software">
+  <title>Our Store • Official Connecto Ecosystem Hub</title>
+  
+  <!-- Primary Meta Tags & SEO -->
+  <meta name="title" content="Our Store • Official Connecto Ecosystem Hub">
+  <meta name="description" content="Direct verified downloads, cryptographic integrity checks, and 1-tap auto-updates for Connecto, Our Store, and companion applications.">
+  <meta name="author" content="Connecto Network">
+
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+
   <script>
+    (function initStoreTheme() {
+      try {
+        const stored = localStorage.getItem('connecto_home_theme') || localStorage.getItem('connecto_store_theme') || 'noir';
+        const isDark = (stored === 'noir' || stored === 'dark' || stored === 'black');
+        document.documentElement.setAttribute('data-theme', isDark ? 'noir' : 'parchment');
+      } catch (_) {}
+    })();
+
     tailwind.config = {
-      darkMode: 'class',
+      darkMode: ['class', '[data-theme="noir"]'],
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace']
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
           },
           colors: {
             brand: {
@@ -25,509 +42,954 @@
               600: '#2563eb',
               700: '#1d4ed8'
             },
-            cyanBrand: {
-              500: '#06b6d4',
-              600: '#0891b2'
+            accent: {
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              purple: '#8b5cf6'
             }
           }
         }
       }
-    }
+    };
   </script>
+
   <style>
+    /* ==================== PREMIUM UI MOTION & AFTER EFFECTS SYSTEM ==================== */
+    :root {
+      --bg-canvas: #07090e;
+      --bg-surface: rgba(14, 18, 29, 0.78);
+      --bg-surface-elevated: rgba(20, 26, 41, 0.85);
+      --border-hairline: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(255, 255, 255, 0.22);
+      --text-heading: #f8fafc;
+      --text-body: #cbd5e1;
+      --text-subtle: #64748b;
+      --glow-color: rgba(59, 130, 246, 0.16);
+      --mouse-x: 50%;
+      --mouse-y: 50%;
+      --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html[data-theme="parchment"] {
+      --bg-canvas: #faf8f5;
+      --bg-surface: rgba(255, 255, 255, 0.85);
+      --bg-surface-elevated: #f4efe6;
+      --border-hairline: rgba(68, 64, 60, 0.12);
+      --border-highlight: rgba(68, 64, 60, 0.32);
+      --text-heading: #141312;
+      --text-body: #44403c;
+      --text-subtle: #78716c;
+      --glow-color: rgba(37, 99, 235, 0.08);
+    }
+
+    /* Native View Transitions API support for smooth theme switches */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.32s;
+      animation-timing-function: var(--ease-snappy);
+    }
+
     body {
-      background-color: #090d16;
-      color: #f1f5f9;
+      background-color: var(--bg-canvas);
+      color: var(--text-body);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+      transition: background-color 0.3s var(--ease-snappy), color 0.3s var(--ease-snappy);
     }
-    .glass-card {
-      background: #0f1523;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+
+    /* Atmospheric After Effects: Floating Radial Lighting Mesh */
+    .aurora-mesh {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
     }
-    .glass-card:hover {
-      border-color: rgba(59, 130, 246, 0.35);
-      transition: border-color 0.2s ease-out;
+    .aurora-mote-1 {
+      position: absolute;
+      top: -150px;
+      left: 10%;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(6, 182, 212, 0.05) 50%, transparent 70%);
+      filter: blur(90px);
+      animation: floatAurora1 18s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    .aurora-mote-2 {
+      position: absolute;
+      top: 30%;
+      right: -100px;
+      width: 650px;
+      height: 650px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.10) 0%, rgba(16, 185, 129, 0.04) 50%, transparent 70%);
+      filter: blur(100px);
+      animation: floatAurora2 22s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+
+    @keyframes floatAurora1 {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(80px, 60px) scale(1.12); }
+      100% { transform: translate(-40px, 120px) scale(0.95); }
+    }
+    @keyframes floatAurora2 {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-100px, -40px) scale(1.15); }
+      100% { transform: translate(40px, -80px) scale(0.9); }
+    }
+
+    /* Interactive Cursor Spotlight Track (After Effect) */
+    .cursor-spotlight-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(700px circle at var(--mouse-x) var(--mouse-y), var(--glow-color), transparent 60%);
+      transition: opacity 0.3s ease;
+    }
+
+    /* Container Alignment */
+    .taste-container {
+      max-width: 1200px;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: clamp(16px, 3.5vw, 32px);
+      padding-right: clamp(16px, 3.5vw, 32px);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Bento Cards with Specular Rim Lighting & Spring Lift */
+    .taste-card {
+      position: relative;
+      background-color: var(--bg-surface);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-hairline);
+      border-radius: 20px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 4px 12px rgba(0, 0, 0, 0.25),
+        0 16px 36px -8px rgba(0, 0, 0, 0.4);
+      transition:
+        transform 0.26s var(--ease-snappy),
+        border-color 0.22s ease,
+        box-shadow 0.26s var(--ease-snappy);
+      will-change: transform, box-shadow;
+      overflow: hidden;
+    }
+
+    /* Specular Interactive Border Lighting (Mouse Proximity Reaction) */
+    .taste-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: radial-gradient(
+        350px circle at calc(var(--mouse-x) - var(--card-left, 0px)) calc(var(--mouse-y) - var(--card-top, 0px)),
+        rgba(59, 130, 246, 0.45),
+        transparent 60%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+    }
+    .taste-card:hover::before {
+      opacity: 1;
+    }
+
+    .taste-card:hover {
+      transform: translateY(-4px) scale(1.006);
+      border-color: var(--border-highlight);
+      box-shadow:
+        0 0 0 1px var(--border-highlight),
+        0 12px 28px -4px rgba(0, 0, 0, 0.45),
+        0 24px 56px -12px rgba(0, 0, 0, 0.6),
+        0 0 32px -4px rgba(59, 130, 246, 0.15);
+    }
+
+    html[data-theme="parchment"] .taste-card {
+      box-shadow:
+        0 0 0 1px rgba(68, 64, 60, 0.08),
+        0 2px 6px rgba(68, 64, 60, 0.04),
+        0 12px 28px -6px rgba(68, 64, 60, 0.08);
+    }
+    html[data-theme="parchment"] .taste-card:hover {
+      box-shadow:
+        0 0 0 1px var(--border-highlight),
+        0 16px 36px -6px rgba(68, 64, 60, 0.14),
+        0 0 28px -4px rgba(37, 99, 235, 0.12);
+    }
+
+    /* Tactile Buttons with Shimmer Light Beam (After Effect) */
+    .taste-btn {
+      position: relative;
+      overflow: hidden;
+      transition:
+        transform 0.15s var(--ease-spring),
+        box-shadow 0.2s ease,
+        background-color 0.2s ease;
+      user-select: none;
+    }
+    .taste-btn:hover {
+      transform: translateY(-1.5px);
+    }
+    .taste-btn:active {
+      transform: scale(0.96) translateY(0);
+      transition-duration: 0.08s;
+    }
+
+    /* Shimmer Sweep Animation */
+    .shimmer-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -120%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.25) 50%,
+        transparent 100%
+      );
+      transform: skewX(-20deg);
+      transition: none;
+    }
+    .shimmer-btn:hover::after {
+      animation: shimmerSweep 0.85s var(--ease-snappy) forwards;
+    }
+
+    @keyframes shimmerSweep {
+      0% { left: -100%; }
+      100% { left: 200%; }
+    }
+
+    /* Staggered Scroll & Filter Entry Animations */
+    .app-item {
+      opacity: 0;
+      transform: translateY(18px) scale(0.98);
+      filter: blur(4px);
+      transition:
+        opacity 0.4s var(--ease-snappy),
+        transform 0.4s var(--ease-snappy),
+        filter 0.4s var(--ease-snappy);
+    }
+    .app-item.revealed {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0px);
+    }
+
+    /* Filter Chips */
+    .filter-chip {
+      background-color: var(--bg-surface);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-hairline);
+      color: var(--text-subtle);
+      transition: all 0.2s var(--ease-snappy);
+    }
+    .filter-chip:hover {
+      color: var(--text-heading);
+      border-color: var(--border-highlight);
+      transform: translateY(-1px);
+    }
+    .filter-chip.active {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      border-color: #3b82f6;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+
+    /* Pulse Glow Dot */
+    @keyframes pulseGlow {
+      0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+      70% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .pulse-dot {
+      animation: pulseGlow 2.2s infinite var(--ease-smooth);
+    }
+
+    /* Verification Dropdown Transition */
+    .checksum-details {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.28s var(--ease-snappy), opacity 0.25s ease, margin-top 0.2s ease;
+    }
+    .checksum-details.open {
+      max-height: 140px;
+      opacity: 1;
+      margin-top: 10px;
+    }
+
+    /* Accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .aurora-mote-1, .aurora-mote-2, .cursor-spotlight-layer {
+        display: none !important;
+      }
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+<body class="selection:bg-blue-600 selection:text-white flex flex-col">
 
-  <!-- Navigation -->
-  <header class="sticky top-0 z-50 backdrop-blur-md bg-slate-950/80 border-b border-slate-800/80">
-    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+  <!-- Atmospheric Background & Aurora Light Motifs (After Effects Layer) -->
+  <div class="aurora-mesh" aria-hidden="true">
+    <div class="aurora-mote-1"></div>
+    <div class="aurora-mote-2"></div>
+  </div>
+  <div class="cursor-spotlight-layer" id="cursorSpotlight" aria-hidden="true"></div>
+
+  <!-- Sticky Top Navigation Bar -->
+  <header class="sticky top-0 z-50 backdrop-blur-2xl border-b transition-colors duration-200" style="background-color: rgba(7, 9, 14, 0.75); border-color: var(--border-hairline);">
+    <div class="taste-container h-16 flex items-center justify-between">
+      
+      <!-- Logo + Official Hub Branding -->
       <div class="flex items-center space-x-3">
-        <a href="/" class="flex items-center space-x-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyanBrand-500 flex items-center justify-center shadow-lg shadow-brand-500/20">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+        <a href="/" class="flex items-center space-x-3 taste-btn">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25 text-white font-black text-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
             </svg>
           </div>
           <div>
-            <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">Our Store</span>
-            <span class="text-xs px-2 py-0.5 ml-2 rounded-full font-mono font-medium bg-brand-500/10 text-brand-400 border border-brand-500/20">Official Hub</span>
+            <div class="flex items-center space-x-2">
+              <span class="text-lg font-bold tracking-tight" style="color: var(--text-heading);">Our Store</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full font-mono font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30 uppercase tracking-wider">Official Hub</span>
+            </div>
           </div>
         </a>
       </div>
 
-      <div class="flex items-center space-x-3">
-        <a href="https://connecto.fun" class="text-sm font-medium text-slate-400 hover:text-white transition">Main Portal</a>
-        <a href="https://news.connecto.fun" class="text-sm font-medium text-slate-400 hover:text-white transition">News Wire</a>
-        <a href="/downloads/our-store.apk" download="our-store.apk" class="inline-flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 transition">
-          <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+      <!-- Center Links + Theme Switcher + Direct Download -->
+      <div class="flex items-center space-x-3 sm:space-x-4">
+        <a href="https://connecto.fun" class="hidden sm:inline-block text-xs font-semibold hover:text-white transition px-2 py-1" style="color: var(--text-subtle);">Connecto Web</a>
+        <a href="https://news.connecto.fun" class="hidden sm:inline-block text-xs font-semibold hover:text-white transition px-2 py-1" style="color: var(--text-subtle);">News Wire</a>
+        
+        <!-- Dual Theme Toggle (Noir / Parchment) with View Transitions -->
+        <button id="themeToggleBtn" onclick="toggleStoreTheme()" class="taste-btn p-2 rounded-xl text-xs flex items-center justify-center border shadow-sm" style="background-color: var(--bg-surface); border-color: var(--border-hairline); color: var(--text-body);" title="Toggle Editorial Theme">
+          <svg id="themeIconSun" class="w-4 h-4 hidden text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
           </svg>
-          <span>Get Store App (v1.7.4)</span>
+          <svg id="themeIconMoon" class="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+          </svg>
+        </button>
+
+        <!-- Get Store App Header Button with Shimmer Sweep -->
+        <a href="/downloads/our-store.apk" download="our-store.apk" class="taste-btn shimmer-btn inline-flex items-center space-x-1.5 text-xs font-bold px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          <span>Store App v1.7.4</span>
         </a>
       </div>
     </div>
   </header>
 
   <!-- Hero Section -->
-  <section class="max-w-6xl mx-auto px-4 pt-12 pb-6 text-center">
-    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs font-medium mb-4">
-      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-      <span>Direct Downloads • 1-Tap Updates</span>
+  <section class="taste-container pt-12 pb-8 text-center">
+    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full border text-xs font-medium mb-4 backdrop-blur-md" style="background-color: var(--bg-surface); border-color: var(--border-hairline); color: var(--text-body);">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>
+      <span class="font-mono text-[11px]">Direct Edge Delivery • Cryptographically Signed V1–V4</span>
     </div>
-    <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-4 leading-tight">
-      Your Dedicated App Ecosystem
+    
+    <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4 leading-tight" style="color: var(--text-heading);">
+      Verified Applications. Direct from the Source.
     </h1>
-    <p class="max-w-2xl mx-auto text-slate-400 text-base sm:text-lg mb-8 leading-relaxed">
-      Browse, install, and instantly update official applications directly without store delays.
+    <p class="max-w-2xl mx-auto text-sm sm:text-base mb-8 leading-relaxed" style="color: var(--text-subtle);">
+      Install, update, and manage official ecosystem applications directly on Android. Free from store review delays, tracking bloat, or third-party wrappers.
     </p>
 
-    <!-- Native App Store Banner -->
-    <div class="max-w-3xl mx-auto p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
-      <div class="flex items-center space-x-4">
-        <div class="w-12 h-12 rounded-xl bg-brand-600/30 border border-brand-500/40 flex items-center justify-center shrink-0">
-          <svg class="w-7 h-7 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+    <!-- Native Ecosystem Spotlight Banner with Specular Border Track -->
+    <div class="taste-card p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5 text-left mb-8 max-w-4xl mx-auto">
+      <div class="flex items-center space-x-4 min-w-0">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-black flex items-center justify-center shrink-0 border border-white/20 shadow-xl">
+          <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
           </svg>
         </div>
-        <div>
-          <h3 class="text-white font-bold text-base">Install Our Store on Android (v1.7.4 Live)</h3>
-          <p class="text-slate-400 text-xs sm:text-sm">Never visit the website to update again. 1-tap updates directly inside the phone app with auto-update engine.</p>
+        <div class="min-w-0">
+          <div class="flex items-center space-x-2">
+            <h3 class="text-white font-bold text-base sm:text-lg">Our Store for Android</h3>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">v1.7.4 Live</span>
+          </div>
+          <p class="text-xs sm:text-sm mt-0.5" style="color: var(--text-subtle);">
+            Background auto-updates, 1-tap system package installer sessions, and encrypted KeyStore storage.
+          </p>
         </div>
       </div>
-      <a href="/downloads/our-store.apk" download="our-store.apk" class="whitespace-nowrap px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs sm:text-sm shadow-md transition flex items-center space-x-2">
+      <a href="/downloads/our-store.apk" download="our-store.apk" class="taste-btn shimmer-btn whitespace-nowrap px-5 py-3 rounded-xl bg-white hover:bg-slate-100 text-black font-bold text-xs sm:text-sm shadow-xl flex items-center space-x-2 shrink-0">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
         </svg>
-        <span>Download Store APK (13.7 MB)</span>
+        <span>Download APK (13.7 MB)</span>
       </a>
+    </div>
+
+    <!-- Live Search & Category Filter Controls -->
+    <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+      <!-- Search Input with Focus Ring -->
+      <div class="taste-card px-3.5 py-2 flex items-center space-x-2.5 flex-1">
+        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input 
+          id="storeSearchInput"
+          type="text" 
+          placeholder="Search by name, package ID, or feature..." 
+          oninput="handleAppFilter()" 
+          class="bg-transparent border-none outline-none text-xs sm:text-sm w-full font-medium"
+          style="color: var(--text-heading);"
+        >
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center space-x-1.5 overflow-x-auto pb-1 sm:pb-0" id="filterPillsRow">
+        <button class="filter-chip active text-xs px-3 py-1.5 rounded-lg taste-btn whitespace-nowrap" onclick="setCategoryFilter('all', this)">All Apps</button>
+        <button class="filter-chip text-xs px-3 py-1.5 rounded-lg taste-btn whitespace-nowrap" onclick="setCategoryFilter('ecosystem', this)">Ecosystem</button>
+        <button class="filter-chip text-xs px-3 py-1.5 rounded-lg taste-btn whitespace-nowrap" onclick="setCategoryFilter('tools', this)">Productivity</button>
+        <button class="filter-chip text-xs px-3 py-1.5 rounded-lg taste-btn whitespace-nowrap" onclick="setCategoryFilter('media', this)">Voice &amp; Video</button>
+      </div>
     </div>
   </section>
 
-  <!-- Apps Grid -->
-  <main class="max-w-6xl mx-auto px-4 py-8 flex-1">
+  <!-- Applications Catalog Grid -->
+  <main class="taste-container pb-16 flex-1">
     <div class="flex items-center justify-between mb-6">
-      <h2 class="text-xl font-bold text-white flex items-center space-x-2">
-        <span>Featured Applications</span>
-        <span id="appCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">4 Verified Apps</span>
+      <h2 class="text-lg font-bold flex items-center space-x-2" style="color: var(--text-heading);">
+        <span>Catalog Applications</span>
+        <span id="appCountBadge" class="text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold" style="background-color: var(--bg-surface); border: 1px solid var(--border-hairline); color: var(--text-subtle);">4 Apps Available</span>
       </h2>
-      <div class="text-xs text-slate-500 font-mono">Live Edge Catalog v1.7.4</div>
+      <div class="text-xs font-mono" style="color: var(--text-subtle);">Edge Relay: Anycast Global</div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="appsContainer">
       
       <!-- 0. OUR STORE CLIENT APP CARD -->
-      <div class="glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative overflow-hidden border border-slate-700/80">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="ecosystem" data-name="our store" data-package="com.connecto.store">
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-900 to-black flex items-center justify-center shadow-lg shadow-white/5 border border-white/20">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-900 to-black flex items-center justify-center shadow-lg border border-white/20 shrink-0">
                 <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                 </svg>
               </div>
               <div>
                 <div class="flex items-center space-x-2">
-                  <h3 class="text-2xl font-bold text-white">Our Store</h3>
+                  <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">Our Store</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white border border-white/30 uppercase tracking-wider">App Hub</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.store • v1.7.4 (31)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.connecto.store • v1.7.4 (b31)</p>
                 <div class="flex items-center space-x-2 mt-1">
-                  <span class="text-xs text-emerald-400 font-medium">● Auto-Update Engine</span>
-                  <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-white font-mono font-bold">13.7 MB</span>
+                  <span class="text-xs text-emerald-400 font-semibold">● Auto-Update Engine</span>
+                  <span class="text-xs" style="color: var(--text-subtle);">•</span>
+                  <span class="text-xs font-mono font-bold" style="color: var(--text-heading);">13.7 MB</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
-            Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, hardware KeyStore encrypted storage, and light/dark theme switcher.
+          <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
+            Official Android ecosystem client. Features 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, hardware KeyStore encrypted storage, and dual theme engine.
           </p>
 
-          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v1.7.4</h4>
-            <ul class="text-xs text-slate-300 space-y-1">
+          <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v1.7.4</h4>
+            <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Admin-Only App Visibility: Enforced role-based access control (RBAC) ensuring JARVIS AI is strictly visible only within authenticated Administrator accounts</span>
+                <span>Role-based visibility: Restricted JARVIS AI strictly to authenticated Administrators</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Native OEM Package Installer: Fixed system installer intent targeting to reliably display system install prompt across HyperOS, ColorOS, OneUI, OxygenOS, Pixel</span>
+                <span>Native OEM Installer: Direct targeting for HyperOS, ColorOS, OneUI, OxygenOS, Pixel</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>FileProvider Security &amp; IPC Access: Granted explicit read permissions to package installers with world-readable cache storage to fix 'Problem parsing the package'</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-emerald-400">✓</span>
-                <span>iOS App Store-Style Exemption: Updates install directly without password or biometrics; authentication requested only on very first install</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-emerald-400">✓</span>
-                <span>Universal Queries Declaration: Declared VIEW and INSTALL_PACKAGE mime intent filters in AndroidManifest queries for full targetSdk 35+ package visibility</span>
+                <span>FileProvider Security: Eliminated 'Problem parsing the package' with world-readable cache flags</span>
               </li>
             </ul>
           </div>
+
+          <!-- Interactive Cryptographic Checksum Accordion -->
+          <div class="mb-4">
+            <button onclick="toggleChecksum('chk-store', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <span>🔒 Cryptographic Signatures (V1, V2, V3, V4)</span>
+              <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="chk-store" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <div class="truncate">SHA256: 8f42d...e71c9 (Verified 2026-11-09)</div>
+              <div class="text-[10px] mt-1 text-emerald-400 font-semibold">Architectures: arm64-v8a, armeabi-v7a, x86_64</div>
+            </div>
+          </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div class="text-[11px] text-slate-500 font-mono">
-            Requires Android 8.0+
+        <div class="pt-4 border-t flex items-center justify-between gap-3" style="border-color: var(--border-hairline);">
+          <div class="text-[11px] font-mono" style="color: var(--text-subtle);">
+            Target: Android 8.0+
           </div>
-          <div class="flex items-center space-x-2">
-            <a href="/downloads/our-store.apk" download="our-store.apk" class="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-black font-bold text-sm shadow-lg shadow-white/20 transition flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-              </svg>
-              <span>Download Store APK</span>
-            </a>
-          </div>
+          <a href="/downloads/our-store.apk" download="our-store.apk" class="taste-btn shimmer-btn px-4 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-black font-bold text-xs sm:text-sm shadow-md flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Download Store APK</span>
+          </a>
         </div>
       </div>
       
-      <!-- 1. CONNECTO APP CARD -->
-      <div class="glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <!-- 1. CONNECTO CHAT APP CARD -->
+      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="ecosystem" data-name="connecto" data-package="com.connecto.app">
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/20 border border-blue-400/30">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center shadow-lg shadow-blue-500/25 border border-blue-400/30 shrink-0">
                 <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                 </svg>
               </div>
               <div>
                 <div class="flex items-center space-x-2">
-                  <h3 class="text-2xl font-bold text-white">Connecto</h3>
+                  <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">Connecto</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider">Official</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.app • v4.6.23 (b112)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.connecto.app • v4.6.23 (b112)</p>
                 <div class="flex items-center space-x-2 mt-1">
-                  <span class="text-xs text-emerald-400 font-medium">● Stable Release</span>
-                  <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-slate-400">36.1 MB</span>
+                  <span class="text-xs text-emerald-400 font-semibold">● Stable Release</span>
+                  <span class="text-xs" style="color: var(--text-subtle);">•</span>
+                  <span class="text-xs font-mono font-bold" style="color: var(--text-heading);">36.1 MB</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
-            Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, workspace channels, and offline data sync.
+          <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
+            End-to-end encrypted direct messaging, crystal-clear WebRTC audio/video rooms, clan channels, and multi-scheme signed updates for verified security.
           </p>
 
-          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v4.6.23</h4>
-            <ul class="text-xs text-slate-300 space-y-1">
+          <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v4.6.23</h4>
+            <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Blur Validation & Focus Error Detection: Form fields reveal validation errors only when leaving the field (blur), eliminating premature error noise</span>
+                <span>Blur Validation: Errors trigger only on field departure (blur), removing noisy typing interruptions</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Unslop Design Optimization: Minimalist pinned chat icon, decluttered chat UI, stripped emoji button prefixes, and polished typography</span>
+                <span>Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Message Tab Swipe Actions: Peek hint micro-interaction on drag, right swipe to pin chats with amber badge, left swipe to delete with liquid collapse</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Inline Undo Strip: Swiping to delete leaves an inline undo strip with live 5s countdown timer; tap Undo to smoothly slide row back into place</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter, and email ghost completion</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Particle Gather Navigation Animation: Physics-based particle suction and coalescence animation on tab switch</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Multi-Scheme Cryptographic Signing: Simultaneous V1 (JAR), V2 (APK), V3, and V4 signing for seamless updates without parsing errors</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Inter-City Voice Call Audio: Fixed Cloudflare audio packet relay & RFC 4566 CRLF SDP formatting for uninterrupted voice audio across cities</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Group Membership Guard: Fixed group auto-rejoin bug preventing exited users from ghost rejoining</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-blue-400">✓</span>
-                <span>Hardware Biometrics & Security: Integrated Android BiometricPrompt with passive glance-to-unlock and zero trackers</span>
+                <span>Liquid Gesture Actions: Right-swipe to pin with amber badge, left-swipe liquid delete with 5s undo</span>
               </li>
             </ul>
           </div>
+
+          <!-- Interactive Cryptographic Checksum Accordion -->
+          <div class="mb-4">
+            <button onclick="toggleChecksum('chk-connecto', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <span>🔒 Cryptographic Signatures (V1, V2, V3, V4)</span>
+              <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="chk-connecto" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <div class="truncate">SHA256: 4b19c...2f08a (Verified 2026-11-09)</div>
+              <div class="text-[10px] mt-1 text-blue-400 font-semibold">Architectures: universal, arm64-v8a, armeabi-v7a</div>
+            </div>
+          </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div class="text-[11px] text-slate-500 font-mono">
-            Requires Android 7.0+
+        <div class="pt-4 border-t flex items-center justify-between gap-3" style="border-color: var(--border-hairline);">
+          <div class="text-[11px] font-mono" style="color: var(--text-subtle);">
+            Target: Android 7.0+
           </div>
-          <div class="flex items-center space-x-2">
-            <a href="/downloads/connecto-fun.apk" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-              </svg>
-              <span>Download APK</span>
-            </a>
-          </div>
+          <a href="/downloads/connecto-fun.apk" download="connecto-fun.apk" class="taste-btn shimmer-btn px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-600/30 flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Download Connecto APK</span>
+          </a>
         </div>
       </div>
 
       <!-- 2. JARVIS AI APP CARD (Admin Accounts Only) -->
-      <div id="jarvisAppCard" style="display: none;" class="glass-card rounded-2xl p-6 sm:p-7 flex-col justify-between transition-all relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-cyanBrand-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div id="jarvisAppCard" style="display: none;" class="taste-card p-6 sm:p-7 flex-col justify-between app-item" data-category="tools" data-name="jarvis ai" data-package="com.omni.assistant">
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-700 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-cyan-400/30">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-700 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/30 shrink-0">
                 <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
               </div>
               <div>
                 <div class="flex items-center space-x-2">
-                  <h3 class="text-2xl font-bold text-white">JARVIS AI</h3>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">AI Assistant</span>
+                  <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">JARVIS AI</h3>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">Admin Exclusive</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.omni.assistant • v2.0.0 (b2)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.omni.assistant • v2.0.0 (b2)</p>
                 <div class="flex items-center space-x-2 mt-1">
-                  <span class="text-xs text-cyan-400 font-medium">● Multimodal Agent</span>
-                  <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-slate-400">126 MB</span>
+                  <span class="text-xs text-cyan-400 font-semibold">● Multimodal Engine</span>
+                  <span class="text-xs" style="color: var(--text-subtle);">•</span>
+                  <span class="text-xs font-mono font-bold" style="color: var(--text-heading);">126 MB</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
-            Autonomous multimodal AI assistant powered by Gemini. Features conversational voice, computer vision, camera analysis, and automated device actions.
+          <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
+            Autonomous multimodal companion powered by Gemini. Features real-time voice synthesis, computer vision, camera object recognition, and automated system task execution.
           </p>
 
-          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v2.0.0</h4>
-            <ul class="text-xs text-slate-300 space-y-1">
+          <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v2.0.0</h4>
+            <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-cyan-400">✓</span>
-                <span>Full multimodal voice reasoning engine</span>
+                <span>Multimodal conversational reasoning with low-latency audio</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-cyan-400">✓</span>
-                <span>Live camera vision intelligence and object recognition</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-cyan-400">✓</span>
-                <span>Biometric face/fingerprint security and system alarms</span>
+                <span>Real-time camera lens analysis and spatial environment understanding</span>
               </li>
             </ul>
           </div>
+
+          <!-- Interactive Cryptographic Checksum Accordion -->
+          <div class="mb-4">
+            <button onclick="toggleChecksum('chk-jarvis', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <span>🔒 Cryptographic Signatures (V1, V2, V3)</span>
+              <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="chk-jarvis" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <div class="truncate">SHA256: 7d81a...3c99f (Admin Verified)</div>
+              <div class="text-[10px] mt-1 text-cyan-400 font-semibold">Architectures: arm64-v8a</div>
+            </div>
+          </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div class="text-[11px] text-slate-500 font-mono">
-            Requires Android 7.0+
+        <div class="pt-4 border-t flex items-center justify-between gap-3" style="border-color: var(--border-hairline);">
+          <div class="text-[11px] font-mono" style="color: var(--text-subtle);">
+            Target: Android 7.0+
           </div>
-          <div class="flex items-center space-x-2">
-            <a href="/downloads/jarvis-ai-official.apk" class="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/30 transition flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-              </svg>
-              <span>Download APK</span>
-            </a>
-          </div>
+          <a href="/downloads/jarvis-ai-official.apk" download="jarvis-ai-official.apk" class="taste-btn shimmer-btn px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-cyan-600/30 flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Download JARVIS APK</span>
+          </a>
         </div>
       </div>
 
       <!-- 3. PDF STUDIO APP CARD -->
-      <div class="glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="tools" data-name="pdf studio" data-package="com.app.pdfstudio">
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-red-500/20 border border-red-400/30 shrink-0">
+              <div class="w-16 h-16 rounded-2xl overflow-hidden shadow-lg border border-red-500/30 shrink-0 bg-slate-900">
                 <img src="/static/pdf_studio_logo.png" alt="PDF Studio Logo" class="w-full h-full object-cover">
               </div>
               <div>
                 <div class="flex items-center space-x-2">
-                  <h3 class="text-2xl font-bold text-white">PDF Studio</h3>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider">Editor &amp; Converter</span>
+                  <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">PDF Studio</h3>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 uppercase tracking-wider">Editor</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.app.pdfstudio • v1.1.0 (b2)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.app.pdfstudio • v1.1.0 (b2)</p>
                 <div class="flex items-center space-x-2 mt-1">
-                  <span class="text-xs text-emerald-400 font-medium">● Updated Release</span>
-                  <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-slate-400">27.0 MB</span>
+                  <span class="text-xs text-emerald-400 font-semibold">● Production Verified</span>
+                  <span class="text-xs" style="color: var(--text-subtle);">•</span>
+                  <span class="text-xs font-mono font-bold" style="color: var(--text-heading);">27.0 MB</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
-            Professional PDF editor for Android. Find &amp; replace names in the exact same font and size, tap to edit text in-place, convert JPG/PNG/WEBP to PDF, merge multiple PDF files losslessly, and draw or annotate directly on documents.
+          <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
+            Professional PDF editor for mobile. Find and change names in matching fonts, edit text in-place, convert JPG/PNG/WEBP to PDF, and merge documents losslessly.
           </p>
 
-          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v1.1.0</h4>
-            <ul class="text-xs text-slate-300 space-y-1">
+          <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v1.1.0</h4>
+            <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-red-400">✓</span>
-                <span>Same-Font Name Replacement: Find &amp; change names in matching fonts and sizes</span>
+                <span>Same-Font Name Replacement: Intelligent typography size and family matching</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-red-400">✓</span>
-                <span>Visual Tap-to-Edit: Tap any text line on the PDF page to edit information in-place</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-red-400">✓</span>
-                <span>Universal Image to PDF: Convert JPG, PNG, WEBP, BMP, HEIF or photos to PDF</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-red-400">✓</span>
-                <span>Formatting controls: A4, Letter, Auto-orientation, margins, and compression</span>
+                <span>Visual In-Place Editing: Tap any text line directly on the PDF canvas to edit</span>
               </li>
             </ul>
           </div>
+
+          <!-- Interactive Cryptographic Checksum Accordion -->
+          <div class="mb-4">
+            <button onclick="toggleChecksum('chk-pdf', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <span>🔒 Cryptographic Signatures (V1, V2)</span>
+              <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="chk-pdf" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <div class="truncate">SHA256: 3a08d...9b11e (Verified)</div>
+              <div class="text-[10px] mt-1 text-red-400 font-semibold">Architectures: universal, arm64-v8a</div>
+            </div>
+          </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div class="text-[11px] text-slate-500 font-mono">
-            Requires Android 7.0+
+        <div class="pt-4 border-t flex items-center justify-between gap-3" style="border-color: var(--border-hairline);">
+          <div class="text-[11px] font-mono" style="color: var(--text-subtle);">
+            Target: Android 7.0+
           </div>
-          <div class="flex items-center space-x-2">
-            <a href="/downloads/pdf-studio.apk" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-sm shadow-lg shadow-red-600/30 transition flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-              </svg>
-              <span>Download APK</span>
-            </a>
-          </div>
+          <a href="/downloads/pdf-studio.apk" download="pdf-studio.apk" class="taste-btn shimmer-btn px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-red-600/30 flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Download PDF Studio</span>
+          </a>
         </div>
       </div>
 
       <!-- 4. VISIONCALL APP CARD -->
-      <div class="glass-card rounded-2xl p-6 sm:p-7 flex flex-col justify-between transition-all relative overflow-hidden">
-        <div class="absolute -top-12 -right-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="media" data-name="visioncall" data-package="com.videocall.app">
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 rounded-2xl overflow-hidden shadow-lg shadow-cyan-500/20 border border-cyan-400/30 shrink-0 bg-slate-900 flex items-center justify-center">
-                <svg class="w-9 h-9 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-cyan-700 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/30 shrink-0">
+                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
                 </svg>
               </div>
               <div>
                 <div class="flex items-center space-x-2">
-                  <h3 class="text-2xl font-bold text-white">VisionCall</h3>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">WebRTC HD Video</span>
+                  <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">VisionCall</h3>
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">WebRTC HD</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.videocall.app • v1.0.0 (b1)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.videocall.app • v1.0.0 (b1)</p>
                 <div class="flex items-center space-x-2 mt-1">
-                  <span class="text-xs text-cyan-400 font-medium">● New Release</span>
-                  <span class="text-xs text-slate-500">•</span>
-                  <span class="text-xs text-slate-400">54.3 MB</span>
+                  <span class="text-xs text-cyan-400 font-semibold">● Hardware VP8/H.264</span>
+                  <span class="text-xs" style="color: var(--text-subtle);">•</span>
+                  <span class="text-xs font-mono font-bold" style="color: var(--text-heading);">54.3 MB</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <p class="text-slate-300 text-sm mb-4 leading-relaxed">
-            Ultra-low latency HD video calling and conferencing application. Features dynamic multi-party grids, 1-on-1 direct calls with draggable PIP, real-time camera flip, screen sharing with Android 14+ foreground service, virtual background blur, in-call chat with reactions, and system-level Picture-in-Picture mode.
+          <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
+            Ultra low-latency HD video calling and group conferencing application. Features hardware encoders, Android 14+ screen sharing, virtual background bokeh, and Picture-in-Picture mode.
           </p>
 
-          <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v1.0.0</h4>
-            <ul class="text-xs text-slate-300 space-y-1">
+          <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v1.0.0</h4>
+            <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-cyan-400">✓</span>
-                <span>WebRTC HD Video &amp; Audio: Hardware H.264 &amp; VP8 encoders with echo cancellation</span>
+                <span>WebRTC HD Video: Hardware-accelerated H.264 with dynamic bitrate scaling</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-cyan-400">✓</span>
-                <span>Dynamic Group Grid: Responsive multi-party room conferencing &amp; active speaker glow</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-cyan-400">✓</span>
-                <span>Android 14+ Screen Sharing: MediaProjection foreground streaming with zero background crash</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-cyan-400">✓</span>
-                <span>Virtual Background &amp; Blur: Soft Blur, Deep Bokeh, Studio Glow &amp; Scenery Backdrops</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-cyan-400">✓</span>
-                <span>Picture-in-Picture &amp; In-Call Chat: Floating OS window and instant text messaging</span>
+                <span>MediaProjection: Android 14+ screen sharing with foreground service continuity</span>
               </li>
             </ul>
           </div>
+
+          <!-- Interactive Cryptographic Checksum Accordion -->
+          <div class="mb-4">
+            <button onclick="toggleChecksum('chk-vision', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <span>🔒 Cryptographic Signatures (V1, V2, V3, V4)</span>
+              <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div id="chk-vision" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
+              <div class="truncate">SHA256: 9e55b...10cf4 (Verified)</div>
+              <div class="text-[10px] mt-1 text-cyan-400 font-semibold">Architectures: arm64-v8a, armeabi-v7a</div>
+            </div>
+          </div>
         </div>
 
-        <div class="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-          <div class="text-[11px] text-slate-500 font-mono">
-            Requires Android 8.0+
+        <div class="pt-4 border-t flex items-center justify-between gap-3" style="border-color: var(--border-hairline);">
+          <div class="text-[11px] font-mono" style="color: var(--text-subtle);">
+            Target: Android 8.0+
           </div>
-          <div class="flex items-center space-x-2">
-            <a href="/downloads/vision-call.apk" class="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm shadow-lg shadow-cyan-600/30 transition flex items-center space-x-2">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-              </svg>
-              <span>Download APK</span>
-            </a>
-          </div>
+          <a href="/downloads/vision-call.apk" download="vision-call.apk" class="taste-btn shimmer-btn px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-cyan-600/30 flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            <span>Download VisionCall APK</span>
+          </a>
         </div>
       </div>
 
     </div>
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/80 py-8 bg-slate-950/60">
-    <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      <p>© 2026 Our Store. Verified secure, direct edge delivery via Cloudflare Anycast.</p>
-      <div class="flex justify-center space-x-4 mt-2">
-        <a href="https://connecto.fun/privacy.html" class="hover:text-slate-400">Privacy Policy</a>
+  <!-- Editorial Footer -->
+  <footer class="border-t py-8 transition-colors duration-200 relative z-10" style="background-color: var(--bg-surface); border-color: var(--border-hairline);">
+    <div class="taste-container text-center text-xs" style="color: var(--text-subtle);">
+      <p>© 2026 Connecto Network • Our Store Official Ecosystem. Cryptographically signed and verified.</p>
+      <div class="flex justify-center space-x-4 mt-2 font-medium">
+        <a href="https://connecto.fun/privacy.html" class="hover:underline">Privacy Policy</a>
         <span>•</span>
-        <a href="https://connecto.fun/terms.html" class="hover:text-slate-400">Terms of Service</a>
+        <a href="https://connecto.fun/terms.html" class="hover:underline">Terms of Service</a>
         <span>•</span>
-        <a href="/api/v1/store/apps" class="hover:text-slate-400 font-mono">Catalog API</a>
+        <a href="/api/v1/store/apps" class="hover:underline font-mono">Catalog API</a>
       </div>
     </div>
   </footer>
 
+  <!-- Interactive Motion & Lighting Engine -->
   <script>
-    (function() {
+    let activeCategory = 'all';
+
+    // Interactive Cursor Spotlight & Card Specular Lighting Engine (After Effects Layer)
+    (function initSpotlightMotion() {
+      const root = document.documentElement;
+      let rafId = null;
+
+      window.addEventListener('pointermove', (e) => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          root.style.setProperty('--mouse-x', `${e.clientX}px`);
+          root.style.setProperty('--mouse-y', `${e.clientY}px`);
+
+          // Update card relative offsets for border specular glow
+          document.querySelectorAll('.taste-card').forEach(card => {
+            const rect = card.getBoundingClientRect();
+            card.style.setProperty('--card-left', `${rect.left}px`);
+            card.style.setProperty('--card-top', `${rect.top}px`);
+          });
+        });
+      }, { passive: true });
+    })();
+
+    // Staggered Entrance Reveal Engine
+    function triggerStaggeredReveal() {
+      const items = document.querySelectorAll('.app-item');
+      items.forEach((item, index) => {
+        item.classList.remove('revealed');
+        setTimeout(() => {
+          item.classList.add('revealed');
+        }, 60 * index);
+      });
+    }
+
+    function toggleChecksum(id, btn) {
+      const el = document.getElementById(id);
+      const icon = btn.querySelector('.chevron-icon');
+      if (!el) return;
+      const isOpen = el.classList.contains('open');
+      if (isOpen) {
+        el.classList.remove('open');
+        if (icon) icon.style.transform = 'rotate(0deg)';
+      } else {
+        el.classList.add('open');
+        if (icon) icon.style.transform = 'rotate(180deg)';
+      }
+    }
+
+    function setCategoryFilter(category, buttonEl) {
+      activeCategory = category;
+      document.querySelectorAll('#filterPillsRow .filter-chip').forEach(btn => btn.classList.remove('active'));
+      if (buttonEl) buttonEl.classList.add('active');
+      handleAppFilter();
+    }
+
+    function handleAppFilter() {
+      const searchVal = (document.getElementById('storeSearchInput')?.value || '').toLowerCase().trim();
+      const appCards = document.querySelectorAll('.app-item');
+      let visibleCount = 0;
+
+      appCards.forEach(card => {
+        const cat = card.getAttribute('data-category') || 'all';
+        const name = (card.getAttribute('data-name') || '').toLowerCase();
+        const pkg = (card.getAttribute('data-package') || '').toLowerCase();
+        const cardText = card.innerText.toLowerCase();
+
+        const matchesCategory = (activeCategory === 'all' || cat === activeCategory);
+        const matchesSearch = !searchVal || name.includes(searchVal) || pkg.includes(searchVal) || cardText.includes(searchVal);
+
+        if (matchesCategory && matchesSearch) {
+          card.style.display = 'flex';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+
+      const countBadge = document.getElementById('appCountBadge');
+      if (countBadge) {
+        countBadge.textContent = `${visibleCount} App${visibleCount === 1 ? '' : 's'} Available`;
+      }
+      triggerStaggeredReveal();
+    }
+
+    function toggleStoreTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'noir';
+      const target = (current === 'noir') ? 'parchment' : 'noir';
+      
+      // If View Transitions API is supported, animate smoothly
+      if (document.startViewTransition) {
+        document.startViewTransition(() => {
+          applyTheme(target);
+        });
+      } else {
+        applyTheme(target);
+      }
+    }
+
+    function applyTheme(target) {
+      document.documentElement.setAttribute('data-theme', target);
+      try {
+        localStorage.setItem('connecto_home_theme', target);
+        localStorage.setItem('connecto_store_theme', target);
+      } catch (_) {}
+      updateThemeIcons(target);
+    }
+
+    function updateThemeIcons(theme) {
+      const sun = document.getElementById('themeIconSun');
+      const moon = document.getElementById('themeIconMoon');
+      if (theme === 'parchment') {
+        sun?.classList.remove('hidden');
+        moon?.classList.add('hidden');
+      } else {
+        sun?.classList.add('hidden');
+        moon?.classList.remove('hidden');
+      }
+    }
+
+    // Initialize Admin Verification, Reveal & Theme Icons
+    (function initStoreExperience() {
       try {
         const user = (localStorage.getItem('connecto_user') || '').toLowerCase().trim();
         const isAdmin = user === 'chinnu14754x' || user === 'chinnu' || user === 'admin' || localStorage.getItem('connecto_is_admin') === 'true';
         const jarvisCard = document.getElementById('jarvisAppCard');
-        const countBadge = document.getElementById('appCountBadge');
         if (jarvisCard) {
           if (isAdmin) {
             jarvisCard.style.display = 'flex';
-            if (countBadge) countBadge.textContent = '5 Verified Apps';
           } else {
             jarvisCard.remove();
-            if (countBadge) countBadge.textContent = '4 Verified Apps';
           }
         }
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'noir';
+        updateThemeIcons(currentTheme);
+        handleAppFilter();
       } catch (_) {}
     })();
   </script>

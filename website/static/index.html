@@ -356,6 +356,8 @@
       --hero-glow-2: transparent;
       --hero-grad-start: #ffffff;
       --hero-grad-end: #a1a1aa;
+      --card-spotlight-rim: rgba(255, 255, 255, 0.28);
+      --glow-color: rgba(255, 255, 255, 0.04);
       --theme-name: "Pure Black OLED";
     }
 
@@ -386,6 +388,8 @@
       --hero-glow-2: rgba(251, 146, 60, 0.08);
       --hero-grad-start: #ea580c;
       --hero-grad-end: #f97316;
+      --card-spotlight-rim: rgba(249, 115, 22, 0.24);
+      --glow-color: rgba(249, 115, 22, 0.05);
       --theme-name: "Ivory Paper";
     }
 
@@ -514,6 +518,66 @@
       color: var(--accent) !important;
     }
 
+    /* Native View Transitions API support for seamless theme switches */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.32s;
+      animation-timing-function: var(--ease-snappy);
+    }
+
+    /* Atmospheric After Effects: Ambient Aurora Depth Mesh */
+    .aurora-mesh {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .aurora-mote-1 {
+      position: absolute;
+      top: -150px;
+      left: 10%;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(99, 102, 241, 0.04) 50%, transparent 70%);
+      filter: blur(90px);
+      animation: floatAurora1 18s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    .aurora-mote-2 {
+      position: absolute;
+      top: 35%;
+      right: -100px;
+      width: 650px;
+      height: 650px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.06) 0%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+      filter: blur(100px);
+      animation: floatAurora2 22s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    @keyframes floatAurora1 {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(70px, 50px) scale(1.10); }
+      100% { transform: translate(-30px, 100px) scale(0.95); }
+    }
+    @keyframes floatAurora2 {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-80px, -30px) scale(1.12); }
+      100% { transform: translate(30px, -60px) scale(0.92); }
+    }
+
+    /* Interactive Cursor Spotlight Track (After Effect) */
+    .cursor-spotlight-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(700px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh), var(--glow-color, rgba(255, 255, 255, 0.04)), transparent 60%);
+      transition: opacity 0.3s ease;
+    }
+
     /* Card and Component Transitions Across Themes */
     .ecosystem-card,
     .comparison-card,
@@ -550,6 +614,61 @@
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.05) !important;
     }
 
+    /* Bento & Feature Cards Specular Rim Lighting & Spring Transitions */
+    [data-theme] .ecosystem-card,
+    [data-theme] .usecase-card,
+    [data-theme] .step-card-custom,
+    [data-theme] .comparison-card,
+    [data-theme] .bento-card,
+    [data-theme] .arch-node,
+    [data-theme] .final-cta-card {
+      position: relative;
+      overflow: hidden;
+      will-change: transform, box-shadow;
+      transition:
+        transform 0.26s var(--ease-snappy),
+        border-color 0.22s ease,
+        box-shadow 0.26s var(--ease-snappy),
+        background-color 0.35s ease !important;
+    }
+
+    /* Specular Interactive Border Lighting (Mouse Proximity Reaction) */
+    [data-theme] .ecosystem-card::before,
+    [data-theme] .usecase-card::before,
+    [data-theme] .step-card-custom::before,
+    [data-theme] .comparison-card::before,
+    [data-theme] .bento-card::before,
+    [data-theme] .arch-node::before,
+    [data-theme] .final-cta-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: radial-gradient(
+        360px circle at calc(var(--mouse-x, 50vw) - var(--card-left, 0px)) calc(var(--mouse-y, 50vh) - var(--card-top, 0px)),
+        var(--card-spotlight-rim, rgba(255, 255, 255, 0.28)),
+        transparent 65%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    [data-theme] .ecosystem-card:hover::before,
+    [data-theme] .usecase-card:hover::before,
+    [data-theme] .step-card-custom:hover::before,
+    [data-theme] .comparison-card:hover::before,
+    [data-theme] .bento-card:hover::before,
+    [data-theme] .arch-node:hover::before,
+    [data-theme] .final-cta-card:hover::before {
+      opacity: 1;
+    }
+
     /* Neutralize legacy neon glow strips & laser lines across all themes */
     [data-theme] .stats-section-asym::after,
     [data-theme] .android-showcase-card-left::before,
@@ -568,8 +687,51 @@
     [data-theme] .comparison-card:hover,
     [data-theme] .final-cta-card:hover {
       border-color: var(--accent-border) !important;
-      box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.12) !important;
-      transform: translateY(-2px) !important;
+      box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--accent-border) !important;
+      transform: translateY(-3.5px) scale(1.004) !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-card:hover,
+    html[data-theme="parchment"] .usecase-card:hover,
+    html[data-theme="parchment"] .step-card-custom:hover,
+    html[data-theme="parchment"] .bento-card:hover,
+    html[data-theme="parchment"] .faq-item:hover,
+    html[data-theme="parchment"] .comparison-card:hover,
+    html[data-theme="parchment"] .final-cta-card:hover {
+      box-shadow: 0 14px 30px -8px rgba(20, 19, 18, 0.10), 0 0 0 1px var(--accent-border) !important;
+    }
+
+    /* Tactile Spring Press Physics on Interactive Buttons & CTAs */
+    .btn,
+    .hero-cta-btn-primary,
+    .hero-cta-btn-secondary,
+    .landing-link-btn,
+    .nav-signup-cta-btn,
+    .nav-theme-toggle-btn,
+    .nav-ai-support-btn,
+    .android-primary-download-btn,
+    .android-secondary-action-btn,
+    .editorial-theme-btn {
+      transition: transform 0.2s var(--ease-snappy), box-shadow 0.2s var(--ease-snappy), background-color 0.2s ease, border-color 0.2s ease !important;
+      will-change: transform;
+    }
+    .btn:hover,
+    .hero-cta-btn-primary:hover,
+    .hero-cta-btn-secondary:hover,
+    .nav-signup-cta-btn:hover,
+    .android-primary-download-btn:hover,
+    .android-secondary-action-btn:hover {
+      transform: translateY(-1.5px) !important;
+    }
+    .btn:active,
+    .hero-cta-btn-primary:active,
+    .hero-cta-btn-secondary:active,
+    .landing-link-btn:active,
+    .nav-signup-cta-btn:active,
+    .android-primary-download-btn:active,
+    .android-secondary-action-btn:active,
+    .editorial-theme-btn:active {
+      transform: scale(0.96) !important;
     }
 
     /* Minimal Editorial Card Typography (Universally Themed) */
@@ -26271,6 +26433,13 @@ html[data-theme="dark"] #saveProfileBtn {
     <!-- Primary Default View: Complete Landing Homepage -->
     <div class="view-panel active" id="heroView" onscroll="handleHeroParallax(this)">
       
+      <!-- Atmospheric After Effects: Floating Ambient Depth Mesh & Cursor Spotlight -->
+      <div class="aurora-mesh" aria-hidden="true">
+        <div class="aurora-mote-1"></div>
+        <div class="aurora-mote-2"></div>
+      </div>
+      <div class="cursor-spotlight-layer" id="cursorSpotlightLayer" aria-hidden="true"></div>
+      
       <!-- PUBLIC BETA TESTING ANNOUNCEMENT BANNER -->
       <div class="public-beta-banner" style="background:linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(6, 182, 212, 0.12)); border-bottom:1px solid rgba(245, 158, 11, 0.25); color:#fbbf24; font-size:12.5px; font-weight:600; padding:8px 16px; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; z-index:100; position:relative;">
         <span style="background:#f59e0b; color:#020617; font-size:10px; font-weight:900; padding:1.5px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px;">Public Beta</span>
@@ -42651,8 +42820,14 @@ function selectSettingsAvatar(emoji, el) {
         }
       };
 
-      // Instant theme application without DOM snapshot rasterization lag
-      applyTheme();
+      // Native View Transitions API for buttery smooth cross-fade theme switches
+      if (document.startViewTransition && updateUrl) {
+        document.startViewTransition(() => {
+          applyTheme();
+        });
+      } else {
+        applyTheme();
+      }
     }
 
     // Quick toggle helper between the two editorial themes
@@ -45878,6 +46053,27 @@ function hangupVoiceLounge() {
         return false;
       }
     }, true);
+
+    // Interactive Cursor Spotlight & Card Specular Lighting Engine (After Effects Layer)
+    (function initSpotlightMotion() {
+      const root = document.documentElement;
+      let rafId = null;
+
+      window.addEventListener('pointermove', (e) => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          root.style.setProperty('--mouse-x', `${e.clientX}px`);
+          root.style.setProperty('--mouse-y', `${e.clientY}px`);
+
+          const targetCard = e.target.closest('.ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .arch-node, .final-cta-card');
+          if (targetCard) {
+            const rect = targetCard.getBoundingClientRect();
+            targetCard.style.setProperty('--card-left', `${rect.left}px`);
+            targetCard.style.setProperty('--card-top', `${rect.top}px`);
+          }
+        });
+      }, { passive: true });
+    })();
   })();
   </script>
 </body>

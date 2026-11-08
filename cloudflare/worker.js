@@ -249,7 +249,7 @@ export default {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Cache-Control": "public, max-age=60, s-maxage=60",
-              "X-Connecto-Store-Version": "v1.7.2",
+              "X-Connecto-Store-Version": "v1.7.4",
               "X-Served-By": "Connecto-Worker-GitHub-Direct"
             }
           });

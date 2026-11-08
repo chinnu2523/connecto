@@ -463,6 +463,24 @@ else:
     static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 os.makedirs(os.path.join(static_dir, "downloads"), exist_ok=True)
 os.makedirs(os.path.join(static_dir, "_next"), exist_ok=True)
+
+# Deploy latest production release APKs directly to static downloads directory
+try:
+    import shutil
+    downloads_target = os.path.join(static_dir, "downloads")
+    connecto_apk_src = "/Users/madarauchiha/connecto/android/app/build/outputs/apk/release/app-release.apk"
+    store_apk_src = "/Users/madarauchiha/.gemini/antigravity/scratch/connecto-store/app/build/outputs/apk/release/app-release.apk"
+    if os.path.exists(connecto_apk_src):
+        connecto_target = os.path.join(downloads_target, "connecto-fun.apk")
+        if not os.path.exists(connecto_target) or os.path.getsize(connecto_target) != os.path.getsize(connecto_apk_src):
+            shutil.copyfile(connecto_apk_src, connecto_target)
+    if os.path.exists(store_apk_src):
+        store_target = os.path.join(downloads_target, "our-store.apk")
+        if not os.path.exists(store_target) or os.path.getsize(store_target) != os.path.getsize(store_apk_src):
+            shutil.copyfile(store_apk_src, store_target)
+except Exception:
+    pass
+
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.mount("/_next", StaticFiles(directory=os.path.join(static_dir, "_next")), name="nextjs")
 
@@ -5942,14 +5960,15 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 @app.api_route("/downloads/connecto-v4.0.0.apk", methods=["GET", "HEAD"])
 @app.api_route("/connecto-v4.0.0.apk", methods=["GET", "HEAD"])
 async def download_apk_direct():
-    apk_path = os.path.join(static_dir, "downloads", "connecto-fun.apk")
-    if not os.path.exists(apk_path):
-        apk_path = os.path.join(static_dir, "downloads", "connecto-release.apk")
-    if not os.path.exists(apk_path):
-        apk_path = os.path.join(static_dir, "downloads", "connecto-latest.apk")
-    if not os.path.exists(apk_path):
-        apk_path = os.path.join(static_dir, "downloads", "connecto.apk")
-    if os.path.exists(apk_path):
+    candidates = [
+        os.path.join(static_dir, "downloads", "connecto-fun.apk"),
+        "/Users/madarauchiha/connecto/android/app/build/outputs/apk/release/app-release.apk",
+        os.path.join(static_dir, "downloads", "connecto-release.apk"),
+        os.path.join(static_dir, "downloads", "connecto-latest.apk"),
+        os.path.join(static_dir, "downloads", "connecto.apk")
+    ]
+    apk_path = next((p for p in candidates if os.path.exists(p)), None)
+    if apk_path and os.path.exists(apk_path):
         return FileResponse(
             path=apk_path,
             filename="connecto-fun.apk",
@@ -5974,8 +5993,8 @@ async def download_apk_direct():
 async def download_store_apk_direct():
     candidates = [
         os.path.join(static_dir, "downloads", "our-store.apk"),
-        os.path.join(static_dir, "downloads", "ConnectoStore.apk"),
-        "/Users/madarauchiha/.gemini/antigravity/scratch/connecto-store/app/build/outputs/apk/release/app-release.apk"
+        "/Users/madarauchiha/.gemini/antigravity/scratch/connecto-store/app/build/outputs/apk/release/app-release.apk",
+        os.path.join(static_dir, "downloads", "ConnectoStore.apk")
     ]
     apk_path = next((p for p in candidates if os.path.exists(p)), None)
     if apk_path and os.path.exists(apk_path):
@@ -6011,15 +6030,16 @@ async def download_qr_direct():
 @app.get("/api/app/version")
 async def get_app_version_endpoint(response: Response = None):
     candidates = [
+        os.path.join(static_dir, "downloads", "connecto-fun.apk"),
+        "/Users/madarauchiha/connecto/android/app/build/outputs/apk/release/app-release.apk",
         os.path.join(os.path.dirname(static_dir), "downloads", "connecto-fun.apk"),
         os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "downloads", "connecto-fun.apk"),
-        os.path.join(static_dir, "downloads", "connecto-fun.apk"),
         os.path.join(static_dir, "downloads", "connecto-latest.apk")
     ]
     apk_path = next((p for p in candidates if os.path.exists(p)), None)
-    size_bytes = 57416889
-    size_mb = "54.8 MB"
-    last_modified = "2026-10-18T02:34:00Z"
+    size_bytes = 37886915
+    size_mb = "36.1 MB"
+    last_modified = "2026-11-09T03:30:00Z"
     if apk_path and os.path.exists(apk_path):
         stat = os.stat(apk_path)
         size_bytes = stat.st_size
@@ -6033,13 +6053,13 @@ async def get_app_version_endpoint(response: Response = None):
         "status": "success",
         "app_name": "Connecto",
         "package_name": "com.connecto.app",
-        "version": "4.6.8",
-        "version_name": "v4.6.8",
-        "version_code": 97,
-        "release_tag": "v4.6.8",
-        "sha256": "c98b162d4aaf1aee39db7ba0a51f15bcc80deeee68f2b8609baf6290647fc6bc",
-        "md5": "5079b44019478e109e40c8c675b45a22",
-        "size_bytes": size_bytes if size_bytes else 37888000,
+        "version": "4.6.23",
+        "version_name": "v4.6.23",
+        "version_code": 112,
+        "release_tag": "v4.6.23",
+        "sha256": "8f42d8e402d8bab235a0079fbfbe669571010073df9f18dd7e55219f8eada0ec",
+        "md5": "222eeaef957e8251f35864eb3ebb595b",
+        "size_bytes": size_bytes if size_bytes else 37886915,
         "size_display": size_mb if size_mb else "36.1 MB",
         "min_android": "Android 7.0 (API 24)",
         "target_android": "Android 16+ (API 37 / HyperOS Verified)",
