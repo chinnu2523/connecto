@@ -554,19 +554,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "1.6.9",
-            versionCode = 26,
-            sizeFormatted = "13.1 MB",
+            versionName = "1.7.4",
+            versionCode = 31,
+            sizeFormatted = "13.7 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#FFFFFF",
             changelog = listOf(
-                "Play Protect Security Hardening: Removed legacy storage & package inventory permissions to clear scanner flags",
-                "Full V1 + V2 + V3 Signature Schemes: Multi-scheme cryptographic validation across all Android OS versions",
-                "Play Protect Safety Guide: In-app security status guide with 1-tap device scanner settings shortcut",
-                "Simplified Update Notifications: Concise, non-cluttered notification copy"
+                "Admin-Only App Visibility: Enforced role-based access control (RBAC) ensuring JARVIS AI is strictly visible only within authenticated Administrator accounts",
+                "Native OEM Package Installer Resolution: Fixed system installer intent targeting to reliably display the system install dialog on all Android OEM skins",
+                "FileProvider Security & IPC Access: Granted explicit URI read permissions to system package installers, fixing parsing errors",
+                "iOS App Store Password Exemption: Updates install seamlessly without password or biometrics",
+                "Universal Queries Declaration: Declared VIEW and INSTALL_PACKAGE mime intent filters in AndroidManifest queries for full targetSdk 35+ package visibility"
             ),
             isEssential = true,
-            updatedAt = "2026-10-30T08:15:00Z"
+            updatedAt = "2026-11-08T21:55:00Z"
         ),
         StoreApp(
             id = "connecto",
@@ -576,13 +577,21 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Private encrypted messaging, calls & workspaces",
             description = "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
             category = "Communication",
-            versionName = "4.6.9",
-            versionCode = 98,
-            sizeFormatted = "36.0 MB",
+            versionName = "4.6.23",
+            versionCode = 112,
+            sizeFormatted = "36.1 MB",
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
-                "Camera2 Front-Facing Face Scanner with animated laser reticle",
+                "Blur Validation & Focus Error Detection: Interactive email and credentials validation dynamically reveals error state and messages only when leaving the field (blur), eliminating premature error noise",
+                "Unslop Redline Optimization: Refined push-pin minimalist badge in chat screen, removed visual clutter, stripped decorative emoji from buttons, and polished typography",
+                "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly",
+                "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash",
+                "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
+                "Multi-Scheme Cryptographic Signing: Simultaneous V1 (JAR), V2 (APK), V3, and V4 signing for seamless updates without parsing errors"
+            ),
+            isEssential = true,
+            updatedAt = "2026-11-08T23:55:00Z"
                 "Fixed session token synchronization for active profile sessions",
                 "Our Store dynamic integration & updates",
                 "Fixed direct message preview synchronization"

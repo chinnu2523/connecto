@@ -1,6 +1,8 @@
 package com.example.connecto.ui.designsystem
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -66,6 +68,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -489,11 +492,29 @@ fun ConnectoEmailGhostField(
     modifier: Modifier = Modifier,
     placeholder: String = "Email Address",
     icon: ImageVector = Icons.Outlined.Mail,
-    validationStatus: FieldValidationStatus = FieldValidationStatus.IDLE
+    validationStatus: FieldValidationStatus = FieldValidationStatus.IDLE,
+    errorMessage: String? = null,
+    forceShowError: Boolean = false,
+    onBlur: (() -> Unit)? = null
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
+
+    var hasEverBeenFocused by remember { mutableStateOf(false) }
+    var hasLeftField by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isFocused) {
+        if (isFocused) {
+            hasEverBeenFocused = true
+        } else if (hasEverBeenFocused) {
+            hasLeftField = true
+            onBlur?.invoke()
+        }
+    }
+
+    val isErrorState = validationStatus == FieldValidationStatus.TAKEN || validationStatus == FieldValidationStatus.INVALID_FORMAT
+    val shouldShowError = (hasLeftField || forceShowError) && isErrorState
 
     // Determine the active ghost suggestion
     val ghostCompletion = remember(value) {
@@ -543,11 +564,12 @@ fun ConnectoEmailGhostField(
         }
     }
 
-    val dynamicBorderColor = when (validationStatus) {
-        FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
-        FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
-        FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
-        FieldValidationStatus.IDLE -> if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+    val dynamicBorderColor = when {
+        shouldShowError -> Color(0xFFEF4444)
+        validationStatus == FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
+        validationStatus == FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
+        isFocused -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outline
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -557,7 +579,7 @@ fun ConnectoEmailGhostField(
                 .clip(RoundedCornerShape(14.dp))
                 .background(MaterialTheme.colorScheme.surface)
                 .border(
-                    width = if (isFocused) 1.6.dp else 1.dp,
+                    width = if (isFocused || shouldShowError) 1.6.dp else 1.dp,
                     color = dynamicBorderColor,
                     shape = RoundedCornerShape(14.dp)
                 )
@@ -571,10 +593,11 @@ fun ConnectoEmailGhostField(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = when (validationStatus) {
-                        FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
-                        FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
-                        else -> if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = when {
+                        shouldShowError -> Color(0xFFEF4444)
+                        validationStatus == FieldValidationStatus.VALID_AVAILABLE -> Color(0xFF10B981)
+                        isFocused -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
                     },
                     modifier = Modifier.size(20.dp)
                 )
@@ -672,15 +695,15 @@ fun ConnectoEmailGhostField(
                 }
 
                 // Validation Status Indicators
-                when (validationStatus) {
-                    FieldValidationStatus.CHECKING -> {
+                when {
+                    validationStatus == FieldValidationStatus.CHECKING -> {
                         CircularProgressIndicator(
                             color = Color(0xFF38BDF8),
                             strokeWidth = 2.dp,
                             modifier = Modifier.size(16.dp)
                         )
                     }
-                    FieldValidationStatus.VALID_AVAILABLE -> {
+                    validationStatus == FieldValidationStatus.VALID_AVAILABLE -> {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = "Verified",
@@ -688,7 +711,7 @@ fun ConnectoEmailGhostField(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                    FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> {
+                    shouldShowError -> {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Error",
@@ -696,8 +719,34 @@ fun ConnectoEmailGhostField(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                    FieldValidationStatus.IDLE -> Unit
+                    else -> Unit
                 }
+            }
+        }
+
+        // Error message displayed when leaving the field
+        AnimatedVisibility(
+            visible = shouldShowError && !errorMessage.isNullOrBlank(),
+            enter = fadeIn(tween(180)) + expandVertically(tween(180)),
+            exit = fadeOut(tween(150)) + shrinkVertically(tween(150))
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = null,
+                    tint = Color(0xFFEF4444),
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = errorMessage ?: "",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFEF4444)
+                )
             }
         }
     }

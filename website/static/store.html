@@ -36,26 +36,17 @@
   </script>
   <style>
     body {
-      background-color: #0b0f17;
+      background-color: #090d16;
       color: #f1f5f9;
-      background-image: 
-        radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.12) 0%, transparent 40%),
-        radial-gradient(circle at 85% 80%, rgba(6, 182, 212, 0.10) 0%, transparent 40%);
-      background-attachment: fixed;
     }
     .glass-card {
-      background: rgba(17, 24, 39, 0.75);
-      backdrop-filter: blur(16px);
+      background: #0f1523;
       border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
     }
     .glass-card:hover {
-      border-color: rgba(59, 130, 246, 0.4);
-      transform: translateY(-2px);
-      transition: all 0.25s ease-out;
-    }
-    .glow-btn {
-      box-shadow: 0 0 20px rgba(37, 99, 235, 0.4);
+      border-color: rgba(59, 130, 246, 0.35);
+      transition: border-color 0.2s ease-out;
     }
   </style>
 </head>
@@ -93,19 +84,19 @@
 
   <!-- Hero Section -->
   <section class="max-w-6xl mx-auto px-4 pt-12 pb-6 text-center">
-    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-brand-950/60 border border-brand-800/50 text-brand-400 text-xs font-semibold mb-4">
-      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-      <span>Direct Fast Downloads • Instant 1-Tap Updates</span>
+    <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs font-medium mb-4">
+      <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+      <span>Direct Downloads • 1-Tap Updates</span>
     </div>
-    <h1 class="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4 leading-tight">
-      Your Dedicated <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">App Ecosystem</span>
+    <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-tight mb-4 leading-tight">
+      Your Dedicated App Ecosystem
     </h1>
     <p class="max-w-2xl mx-auto text-slate-400 text-base sm:text-lg mb-8 leading-relaxed">
-      Browse, install, and instantly update your official applications directly without Play Store delays or manual web browsing.
+      Browse, install, and instantly update official applications directly without store delays.
     </p>
 
     <!-- Native App Store Banner -->
-    <div class="max-w-3xl mx-auto p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-brand-900/40 to-cyanBrand-900/30 border border-brand-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+    <div class="max-w-3xl mx-auto p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
       <div class="flex items-center space-x-4">
         <div class="w-12 h-12 rounded-xl bg-brand-600/30 border border-brand-500/40 flex items-center justify-center shrink-0">
           <svg class="w-7 h-7 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -226,7 +217,7 @@
                   <h3 class="text-2xl font-bold text-white">Connecto</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider">Official</span>
                 </div>
-                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.app • v4.6.22 (b111)</p>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">com.connecto.app • v4.6.23 (b112)</p>
                 <div class="flex items-center space-x-2 mt-1">
                   <span class="text-xs text-emerald-400 font-medium">● Stable Release</span>
                   <span class="text-xs text-slate-500">•</span>
@@ -241,8 +232,16 @@
           </p>
 
           <div class="bg-slate-900/60 rounded-xl p-3.5 border border-slate-800/80 mb-5">
-            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v4.6.22</h4>
+            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">What's New in v4.6.23</h4>
             <ul class="text-xs text-slate-300 space-y-1">
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Blur Validation & Focus Error Detection: Form fields reveal validation errors only when leaving the field (blur), eliminating premature error noise</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Unslop Design Optimization: Minimalist pinned chat icon, decluttered chat UI, stripped emoji button prefixes, and polished typography</span>
+              </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
                 <span>Message Tab Swipe Actions: Peek hint micro-interaction on drag, right swipe to pin chats with amber badge, left swipe to delete with liquid collapse</span>

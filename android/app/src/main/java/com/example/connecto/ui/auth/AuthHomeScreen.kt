@@ -69,6 +69,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -190,6 +191,7 @@ fun AuthHomeScreen(
     var pending2FaMethod by remember { mutableStateOf("email") }
     var showLegalTermsDialog by remember { mutableStateOf(false) }
     var legalTermsInitialTab by remember { mutableIntStateOf(0) }
+    var forceShowValidationErrors by remember { mutableStateOf(false) }
 
     val emailPattern = Regex("^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$")
 
@@ -394,6 +396,7 @@ fun AuthHomeScreen(
                             .clickable {
                                 isSignUp = true
                                 errorMessage = null
+                                forceShowValidationErrors = false
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -419,6 +422,7 @@ fun AuthHomeScreen(
                             .clickable {
                                 isSignUp = false
                                 errorMessage = null
+                                forceShowValidationErrors = false
                             },
                         contentAlignment = Alignment.Center
                     ) {
@@ -454,11 +458,9 @@ fun AuthHomeScreen(
                             },
                             placeholder = "Email Address",
                             icon = Icons.Outlined.Email,
-                            validationStatus = emailValidation
-                        )
-                        ValidationStatusBadge(
-                            status = emailValidation,
-                            message = emailMessage
+                            validationStatus = emailValidation,
+                            errorMessage = emailMessage,
+                            forceShowError = forceShowValidationErrors
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -520,7 +522,7 @@ fun AuthHomeScreen(
                                         )
                                     } else {
                                         Text(
-                                            text = if (isEmailOtpSent) "Resend OTP" else "Send OTP ⚡",
+                                            text = if (isEmailOtpSent) "Resend OTP" else "Send OTP",
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -660,11 +662,9 @@ fun AuthHomeScreen(
                             },
                             placeholder = "Username (3-32 chars)",
                             icon = Icons.Outlined.Person,
-                            validationStatus = usernameValidation
-                        )
-                        ValidationStatusBadge(
-                            status = usernameValidation,
-                            message = usernameMessage
+                            validationStatus = usernameValidation,
+                            errorMessage = usernameMessage,
+                            forceShowError = forceShowValidationErrors
                         )
 
                         Spacer(modifier = Modifier.height(14.dp))
@@ -699,32 +699,26 @@ fun AuthHomeScreen(
                             },
                             placeholder = "Date of Birth (YYYY-MM-DD)",
                             icon = Icons.Outlined.DateRange,
-                            keyboardType = KeyboardType.Number
+                            keyboardType = KeyboardType.Number,
+                            validationStatus = if (dobErrorMessage != null) FieldValidationStatus.INVALID_FORMAT else if (calculatedAge != null && (calculatedAge ?: 0) >= 18) FieldValidationStatus.VALID_AVAILABLE else FieldValidationStatus.IDLE,
+                            errorMessage = dobErrorMessage,
+                            forceShowError = forceShowValidationErrors
                         )
 
-                        // Date of Birth / Age Verification feedback
-                        if (calculatedAge != null || dobErrorMessage != null) {
+                        // Date of Birth / Age Verification feedback (Verified status)
+                        if (calculatedAge != null && (calculatedAge ?: 0) >= 18) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (dobErrorMessage != null) {
-                                    Text(
-                                        text = dobErrorMessage ?: "",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFFEF4444)
-                                    )
-                                } else if (calculatedAge != null) {
-                                    Text(
-                                        text = "Age: $calculatedAge years old (18+ Verified ✓)",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = ConnectoTheme.colors.success
-                                    )
-                                }
+                                Text(
+                                    text = "Age: $calculatedAge years old (18+ Verified ✓)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = ConnectoTheme.colors.success
+                                )
                             }
                         }
 
@@ -741,7 +735,10 @@ fun AuthHomeScreen(
                             icon = Icons.Outlined.Lock,
                             isPassword = true,
                             passwordVisible = passwordVisible,
-                            onTogglePassword = { passwordVisible = !passwordVisible }
+                            onTogglePassword = { passwordVisible = !passwordVisible },
+                            validationStatus = if (password.isNotEmpty() && password.length < 4) FieldValidationStatus.INVALID_FORMAT else if (password.length >= 4) FieldValidationStatus.VALID_AVAILABLE else FieldValidationStatus.IDLE,
+                            errorMessage = if (password.isNotEmpty() && password.length < 4) "Password must be at least 4 characters" else null,
+                            forceShowError = forceShowValidationErrors
                         )
 
                         Spacer(modifier = Modifier.height(6.dp))
@@ -829,7 +826,10 @@ fun AuthHomeScreen(
                             },
                             placeholder = "Username or Email",
                             icon = Icons.Outlined.Person,
-                            keyboardType = KeyboardType.Email
+                            keyboardType = KeyboardType.Email,
+                            validationStatus = if (loginUsernameOrEmail.isNotBlank() && loginUsernameOrEmail.trim().length < 3) FieldValidationStatus.INVALID_FORMAT else FieldValidationStatus.IDLE,
+                            errorMessage = if (loginUsernameOrEmail.isNotBlank() && loginUsernameOrEmail.trim().length < 3) "Enter a valid username or email" else null,
+                            forceShowError = forceShowValidationErrors
                         )
                         Spacer(modifier = Modifier.height(14.dp))
 
@@ -844,7 +844,10 @@ fun AuthHomeScreen(
                             keyboardType = KeyboardType.Password,
                             isPassword = true,
                             passwordVisible = passwordVisible,
-                            onTogglePassword = { passwordVisible = !passwordVisible }
+                            onTogglePassword = { passwordVisible = !passwordVisible },
+                            validationStatus = if (loginPassword.isNotEmpty() && loginPassword.length < 4) FieldValidationStatus.INVALID_FORMAT else FieldValidationStatus.IDLE,
+                            errorMessage = if (loginPassword.isNotEmpty() && loginPassword.length < 4) "Password must be at least 4 characters" else null,
+                            forceShowError = forceShowValidationErrors
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -917,6 +920,7 @@ fun AuthHomeScreen(
                 onClick = {
                     if (isLoading) return@Button
                     errorMessage = null
+                    forceShowValidationErrors = true
 
                     if (isSignUp) {
                         val cleanEmail = email.trim()
@@ -1242,92 +1246,137 @@ private fun AuthTextField(
     isPassword: Boolean = false,
     passwordVisible: Boolean = false,
     onTogglePassword: (() -> Unit)? = null,
-    validationStatus: FieldValidationStatus = FieldValidationStatus.IDLE
+    validationStatus: FieldValidationStatus = FieldValidationStatus.IDLE,
+    errorMessage: String? = null,
+    forceShowError: Boolean = false,
+    onBlur: (() -> Unit)? = null
 ) {
-    val dynamicBorderColor = when (validationStatus) {
-        FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
-        FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
-        FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
-        FieldValidationStatus.IDLE -> MaterialTheme.colorScheme.outline
+    var hasEverBeenFocused by remember { mutableStateOf(false) }
+    var hasLeftField by remember { mutableStateOf(false) }
+
+    val isErrorState = validationStatus == FieldValidationStatus.TAKEN || validationStatus == FieldValidationStatus.INVALID_FORMAT
+    val shouldShowError = (hasLeftField || forceShowError) && isErrorState
+
+    val dynamicBorderColor = when {
+        shouldShowError -> Color(0xFFEF4444)
+        validationStatus == FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
+        validationStatus == FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
+        else -> MaterialTheme.colorScheme.outline
     }
 
-    val dynamicFocusedBorderColor = when (validationStatus) {
-        FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
-        FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
-        FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
-        FieldValidationStatus.IDLE -> MaterialTheme.colorScheme.primary
+    val dynamicFocusedBorderColor = when {
+        shouldShowError -> Color(0xFFEF4444)
+        validationStatus == FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
+        validationStatus == FieldValidationStatus.CHECKING -> Color(0xFF38BDF8)
+        else -> MaterialTheme.colorScheme.primary
     }
 
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = {
-            Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-        },
-        leadingIcon = {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = when (validationStatus) {
-                    FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
-                    FieldValidationStatus.TAKEN, FieldValidationStatus.INVALID_FORMAT -> Color(0xFFEF4444)
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+    Column(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused) {
+                        hasEverBeenFocused = true
+                    } else if (hasEverBeenFocused) {
+                        hasLeftField = true
+                        onBlur?.invoke()
+                    }
                 },
-                modifier = Modifier.size(20.dp)
-            )
-        },
-        trailingIcon = if (isPassword) {
-            {
-                IconButton(onClick = { onTogglePassword?.invoke() }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+            placeholder = {
+                Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+            },
+            leadingIcon = {
+                Icon(
+                    icon,
+                    contentDescription = null,
+                    tint = when {
+                        shouldShowError -> Color(0xFFEF4444)
+                        validationStatus == FieldValidationStatus.VALID_AVAILABLE -> ConnectoTheme.colors.success
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = if (isPassword) {
+                {
+                    IconButton(onClick = { onTogglePassword?.invoke() }) {
+                        Icon(
+                            imageVector = if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else if (validationStatus == FieldValidationStatus.CHECKING) {
+                {
+                    CircularProgressIndicator(
+                        color = Color(0xFF38BDF8),
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(16.dp)
                     )
                 }
-            }
-        } else if (validationStatus == FieldValidationStatus.CHECKING) {
-            {
-                CircularProgressIndicator(
-                    color = Color(0xFF38BDF8),
-                    strokeWidth = 2.dp,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-        } else if (validationStatus == FieldValidationStatus.VALID_AVAILABLE) {
-            {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Verified",
-                    tint = ConnectoTheme.colors.success,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        } else if (validationStatus == FieldValidationStatus.TAKEN || validationStatus == FieldValidationStatus.INVALID_FORMAT) {
-            {
+            } else if (validationStatus == FieldValidationStatus.VALID_AVAILABLE) {
+                {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = "Verified",
+                        tint = ConnectoTheme.colors.success,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            } else if (shouldShowError) {
+                {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Error",
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            } else null,
+            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = dynamicFocusedBorderColor,
+                unfocusedBorderColor = dynamicBorderColor,
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+            )
+        )
+
+        AnimatedVisibility(
+            visible = shouldShowError && !errorMessage.isNullOrBlank(),
+            enter = fadeIn(tween(180)) + expandVertically(tween(180)),
+            exit = fadeOut(tween(150)) + shrinkVertically(tween(150))
+        ) {
+            Row(
+                modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Error",
+                    contentDescription = null,
                     tint = Color(0xFFEF4444),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = errorMessage ?: "",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFFEF4444)
                 )
             }
-        } else null,
-        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        singleLine = true,
-        shape = RoundedCornerShape(14.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = dynamicFocusedBorderColor,
-            unfocusedBorderColor = dynamicBorderColor,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            cursorColor = MaterialTheme.colorScheme.primary,
-            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-        )
-    )
+        }
+    }
 }
 
 @Composable

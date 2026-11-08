@@ -5056,32 +5056,13 @@ fun CustomizedChatScreen(
                                                     modifier = Modifier.weight(1f, fill = false)
                                                 )
                                                 if (isPinned) {
-                                                    Spacer(modifier = Modifier.width(5.dp))
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(6.dp))
-                                                            .background(Color(0xFFF59E0B).copy(alpha = 0.16f))
-                                                            .border(0.8.dp, Color(0xFFF59E0B).copy(alpha = 0.5f), RoundedCornerShape(6.dp))
-                                                            .padding(horizontal = 4.dp, vertical = 1.dp)
-                                                    ) {
-                                                        Row(
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                                        ) {
-                                                            Icon(
-                                                                imageVector = Icons.Filled.PushPin,
-                                                                contentDescription = "Pinned",
-                                                                tint = Color(0xFFF59E0B),
-                                                                modifier = Modifier.size(10.dp)
-                                                            )
-                                                            Text(
-                                                                text = "Pinned",
-                                                                fontSize = 9.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = Color(0xFFF59E0B)
-                                                            )
-                                                        }
-                                                    }
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Icon(
+                                                        imageVector = Icons.Filled.PushPin,
+                                                        contentDescription = "Pinned",
+                                                        tint = Color(0xFFF59E0B),
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
                                                 }
                                                 if (friend.isGroup) {
                                                     Spacer(modifier = Modifier.width(6.dp))

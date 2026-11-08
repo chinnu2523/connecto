@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.22",
-        version_name: "v4.6.22",
-        version_code: 111,
-        build: 111,
-        sha256: "7cca5f43c7defe12c620be41871f17e77fd77ee54b62b11bdf96feb43b0616dd",
+        version: "4.6.23",
+        version_name: "v4.6.23",
+        version_code: 112,
+        build: 112,
+        sha256: "aa1edf1cec5df45df96d12549f3136c695c78db81966edf7261b69a1e0c48da9",
         filename: "connecto-fun.apk",
-        size_bytes: 37883554,
+        size_bytes: 37886915,
         size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -230,9 +230,9 @@ export default {
 
     const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
 
-    // 3a-2. Redirect /store to the main website's Our Store section
+    // 3a-2. Redirect /store to the dedicated Our Store page
     if (cleanPath === "/store" || cleanPath === "/store/") {
-      return Response.redirect("https://connecto.fun/#ourStoreSection", 302);
+      return Response.redirect("https://connecto.fun/store.html", 302);
     }
 
     // 3a-2b. Serve /store.html directly from GitHub (always fresh, bypasses Pages CDN cache)
@@ -458,14 +458,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.22-b111.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.23-b112.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.22");
-          res.headers.set("X-Connecto-Build", "111");
+          res.headers.set("X-Connecto-Version", "v4.6.23");
+          res.headers.set("X-Connecto-Build", "112");
           return res;
         }
 
@@ -478,7 +478,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.22"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.23"
               }
             });
             if (upstreamResp.ok) {
@@ -489,8 +489,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.22");
-              downloadHeaders.set("X-Connecto-Build", "111");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.23");
+              downloadHeaders.set("X-Connecto-Build", "112");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1801,26 +1801,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.22",
-        version_code: 111,
+        version_name: "4.6.23",
+        version_code: 112,
         size_bytes: 37883554,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Blur Validation & Focus Error Detection: Interactive email and credentials validation dynamically reveals error state and messages only when leaving the field (blur), eliminating premature error noise",
+          "Unslop Redline Optimization: Refined push-pin minimalist badge in chat screen, removed visual clutter, stripped decorative emoji from buttons, and polished typography",
           "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly",
           "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash",
           "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
           "Calling State Transparency: Precise real-time status indicators displaying 'Not connected...' before user pickup and 'Connected but not answering...' while phone is ringing",
           "Multi-Scheme Cryptographic Signing: Enabled simultaneous V1 (JAR), V2 (APK), V3, and V4 signatures for 100% update validation across all Android versions",
           "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities",
-          "Data-Only Background Call Push: High-priority data push guarantees immediate device ringing and full-screen incoming call UI",
-          "Group Membership Guard: Fixed group auto-rejoin bug preventing exited users from ghost rejoining",
-          "Touch Gesture Collision Fix: Disabled touch drag gestures on ChannelNavigationDrawer, completely eliminating touch conflicts with HorizontalPager"
+          "Data-Only Background Call Push: High-priority data push guarantees immediate device ringing and full-screen incoming call UI"
         ],
         is_essential: true,
-        updated_at: "2026-11-08T21:30:00Z"
+        updated_at: "2026-11-08T23:55:00Z"
       },
       {
         id: "jarvis",
@@ -7003,13 +7003,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.22",
-      version_name: "v4.6.22",
-      version_code: 111,
-      build: 111,
-      sha256: "7cca5f43c7defe12c620be41871f17e77fd77ee54b62b11bdf96feb43b0616dd",
+      version: "4.6.23",
+      version_name: "v4.6.23",
+      version_code: 112,
+      build: 112,
+      sha256: "aa1edf1cec5df45df96d12549f3136c695c78db81966edf7261b69a1e0c48da9",
       filename: "connecto-fun.apk",
-      size_bytes: 37883554,
+      size_bytes: 37886915,
       size_display: "36.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7022,6 +7022,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.6.23",
+          date: "Nov 09, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.23: Blur Error Validation & Unslop Redline Optimization",
+          summary: "Connecto v4.6.23 implements blur error validation across authentication screens so errors only appear when leaving a field, alongside clean unslop UI enhancements, minimalist chat pinning, and responsive swipe gestures.",
+          highlights: [
+            "Blur Error Validation: Form validation errors only appear after a user focuses and blurs (leaves) a field, preventing premature error indicators while actively typing.",
+            "Unslop Redline Design: Minimalist push-pin icon in chat headers, stripped button emoji prefixes, refined OTP mint wave animation, and 4-step password strength meter.",
+            "Message Tab Swipe Suite: Peek hint micro-interaction, right swipe to pin chats, left swipe to delete with liquid collapse physics, and inline undo strip with 5s countdown timer.",
+            "Android Native App v4.6.23 (Build 112 • 36.1 MB • Multi-Scheme Signed): SHA-256 aa1edf1cec5df45df96d12549f3136c695c78db81966edf7261b69a1e0c48da9."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v4.6.22",
           date: "Nov 08, 2026",
@@ -8110,14 +8125,14 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.2</span>")
-            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.2 (Build 29) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.2 • 14.3 MB)")
+            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.4</span>")
+            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.4 (Build 31) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.4 • 13.7 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[67]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.7.2)")
-            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.2")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.7.4)")
+            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.4")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">14.3 MB</span>');
+                     '<span class="android-spec-val" style="color:#38bdf8;">13.7 MB</span>');
           responseBody = patched;
         } catch (_) {}
       }
