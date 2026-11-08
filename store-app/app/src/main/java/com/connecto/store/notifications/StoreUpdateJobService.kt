@@ -74,24 +74,19 @@ class StoreUpdateJobService : JobService() {
 
         serviceScope.launch {
             try {
-                // 1. Fetch live catalog from edge API
-                val apps = StoreApiClient.fetchApps()
-                if (apps.isNotEmpty()) {
-                    val sessionManager = StoreSessionManager(applicationContext)
-                    val user = sessionManager.getUser()
-                    val role = user?.role ?: StoreRole.MEMBER
+                val sessionManager = StoreSessionManager(applicationContext)
+                val user = sessionManager.getUser()
+                val role = user?.role ?: StoreRole.GUEST
 
-                    // 2. Filter apps according to user role
+                // 1. Fetch live catalog from edge API with user authentication
+                val apps = StoreApiClient.fetchApps(user?.token, user?.username)
+                if (apps.isNotEmpty()) {
+                    // 2. Strict RBAC: JARVIS AI is strictly visible only for Admin accounts
                     val roleFiltered = if (role == StoreRole.ADMIN) {
                         apps
                     } else {
                         apps.filter { app ->
-                            app.packageName == "com.connecto.store" ||
-                            app.packageName == "com.app.pdfstudio" ||
-                            app.packageName == "com.connecto.app" ||
-                            app.id == "ourstore" ||
-                            app.id == "connecto" ||
-                            app.id == "pdfstudio"
+                            app.id != "jarvis" && app.packageName != "com.omni.assistant"
                         }
                     }
 

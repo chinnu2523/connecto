@@ -118,6 +118,7 @@ object StoreApiClient {
             val avatarUrl = userObj.optString("avatar_url", "")
             val isAdmin = userObj.optBoolean("is_admin", false) ||
                           username.equals("chinnu14754x", ignoreCase = true) ||
+                          username.equals("chinnu", ignoreCase = true) ||
                           username.equals("admin", ignoreCase = true)
             val token = json.optString("token", "")
 
@@ -139,10 +140,27 @@ object StoreApiClient {
         }
     }
 
-    fun fetchApps(): List<StoreApp> {
-        val conn = URL(CATALOG_URL).openConnection() as HttpURLConnection
+    fun fetchApps(token: String? = null, username: String? = null): List<StoreApp> {
+        val urlStr = buildString {
+            append(CATALOG_URL)
+            val params = mutableListOf<String>()
+            if (!token.isNullOrBlank()) {
+                params.add("token=${java.net.URLEncoder.encode(token, "UTF-8")}")
+            }
+            if (!username.isNullOrBlank()) {
+                params.add("username=${java.net.URLEncoder.encode(username.trim().lowercase().removePrefix("@"), "UTF-8")}")
+            }
+            if (params.isNotEmpty()) {
+                append("?")
+                append(params.joinToString("&"))
+            }
+        }
+        val conn = URL(urlStr).openConnection() as HttpURLConnection
         conn.requestMethod = "GET"
         conn.setRequestProperty("Accept", "application/json")
+        if (!token.isNullOrBlank()) {
+            conn.setRequestProperty("Authorization", "Bearer $token")
+        }
         conn.connectTimeout = 10_000
         conn.readTimeout = 15_000
 
