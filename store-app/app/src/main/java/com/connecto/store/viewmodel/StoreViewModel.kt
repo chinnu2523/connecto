@@ -189,10 +189,11 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         val uiApps = catalogApps.map { resolveInstallState(ctx, it) }
+        val selfUpdate = uiApps.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
         _uiState.value = StoreUiState.Success(
             apps = uiApps,
             lastRefreshed = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault()).format(java.util.Date()),
-            storeSelfUpdate = null
+            storeSelfUpdate = selfUpdate
         )
         StoreNotificationHelper.checkAndNotifyUpdates(ctx, uiApps)
     }
@@ -498,7 +499,8 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                 }
-                _uiState.value = current.copy(apps = refreshed, storeSelfUpdate = null)
+                val selfUpdate = refreshed.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
+                _uiState.value = current.copy(apps = refreshed, storeSelfUpdate = selfUpdate)
                 StoreNotificationHelper.checkAndNotifyUpdates(ctx, refreshed)
             }
         }
@@ -528,8 +530,11 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun updateAppState(packageName: String, transform: (AppUiState) -> AppUiState) {
         val current = _uiState.value as? StoreUiState.Success ?: return
+        val updatedApps = current.apps.map { if (it.app.packageName == packageName) transform(it) else it }
+        val selfUpdate = updatedApps.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && (it.installState == StoreApp.InstallState.UPDATE_AVAILABLE || it.isDownloading || it.isInstalling) }
         _uiState.value = current.copy(
-            apps = current.apps.map { if (it.app.packageName == packageName) transform(it) else it }
+            apps = updatedApps,
+            storeSelfUpdate = selfUpdate
         )
     }
 
@@ -554,20 +559,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "1.7.4",
-            versionCode = 31,
+            versionName = "1.7.5",
+            versionCode = 32,
             sizeFormatted = "13.7 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#FFFFFF",
             changelog = listOf(
-                "Admin-Only App Visibility: Enforced role-based access control (RBAC) ensuring JARVIS AI is strictly visible only within authenticated Administrator accounts",
-                "Native OEM Package Installer Resolution: Fixed system installer intent targeting to reliably display the system install dialog on all Android OEM skins",
-                "FileProvider Security & IPC Access: Granted explicit URI read permissions to system package installers, fixing parsing errors",
-                "iOS App Store Password Exemption: Updates install seamlessly without password or biometrics",
-                "Universal Queries Declaration: Declared VIEW and INSTALL_PACKAGE mime intent filters in AndroidManifest queries for full targetSdk 35+ package visibility"
+                "UI Elevation: Dual luxury themes (OLED Noir & Ivory White) with dynamic contrast",
+                "Tactile Spring Physics: Natural pressure responses on cards, action buttons and tabs",
+                "Phone Mockup Previews: Realistic OLED device bezels with interactive screen slides",
+                "1-Tap In-Card Actions: Direct installation and update sessions with progress feedback",
+                "Biometric & Keystore Security: Seamless download authorization with device credentials"
             ),
             isEssential = true,
-            updatedAt = "2026-11-08T21:55:00Z"
+            updatedAt = "2026-11-09T04:30:00Z"
         ),
         StoreApp(
             id = "connecto",
@@ -583,21 +588,13 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
-                "Blur Validation & Focus Error Detection: Interactive email and credentials validation dynamically reveals error state and messages only when leaving the field (blur), eliminating premature error noise",
-                "Unslop Redline Optimization: Refined push-pin minimalist badge in chat screen, removed visual clutter, stripped decorative emoji from buttons, and polished typography",
-                "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly",
-                "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash",
-                "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
-                "Multi-Scheme Cryptographic Signing: Simultaneous V1 (JAR), V2 (APK), V3, and V4 signing for seamless updates without parsing errors"
+                "Blur Validation: Errors trigger only on field departure (blur), removing noisy typing interruptions",
+                "Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography",
+                "Pure Black OLED #000000 true black background and battery conservation",
+                "Thread-synchronized WebRTC teardown mutex and dynamic ICE gathering"
             ),
             isEssential = true,
-            updatedAt = "2026-11-08T23:55:00Z"
-                "Fixed session token synchronization for active profile sessions",
-                "Our Store dynamic integration & updates",
-                "Fixed direct message preview synchronization"
-            ),
-            isEssential = true,
-            updatedAt = "2026-10-29T15:35:00Z"
+            updatedAt = "2026-11-09T03:30:00Z"
         ),
         StoreApp(
             id = "jarvis",
