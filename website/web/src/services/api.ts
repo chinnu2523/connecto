@@ -9,13 +9,41 @@ const API_BASE = '/api/v1';
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    let errorDetail = 'An error occurred';
+    let errorDetail = res.statusText || 'Request failed';
     try {
       const data = await res.json();
-      errorDetail = data.detail || JSON.stringify(data);
+      if (typeof data === 'string' && data.trim()) {
+        errorDetail = data.trim();
+      } else if (data && typeof data === 'object') {
+        if (typeof data.detail === 'string' && data.detail.trim()) {
+          errorDetail = data.detail.trim();
+        } else if (Array.isArray(data.detail)) {
+          const msgs = data.detail
+            .map((item: any) => {
+              if (typeof item === 'string') return item;
+              const field = Array.isArray(item.loc) && item.loc.length > 1 ? item.loc[item.loc.length - 1] : null;
+              const msg = item.msg || item.message || '';
+              if (field && msg) {
+                const cleanField = String(field).replace(/_/g, ' ');
+                return `${cleanField.charAt(0).toUpperCase() + cleanField.slice(1)}: ${msg}`;
+              }
+              return msg;
+            })
+            .filter(Boolean);
+          if (msgs.length > 0) {
+            errorDetail = msgs.join(', ');
+          }
+        } else if (typeof data.error === 'string' && data.error.trim()) {
+          errorDetail = data.error.trim();
+        } else if (typeof data.message === 'string' && data.message.trim()) {
+          errorDetail = data.message.trim();
+        }
+      }
     } catch {
-      errorDetail = res.statusText;
+      // Keep res.statusText fallback
     }
+    // Strip any raw HTML tags if an edge error page was returned
+    errorDetail = errorDetail.replace(/<[^>]*>?/gm, '').trim() || 'Request failed. Please try again.';
     throw new Error(errorDetail);
   }
   return res.json();

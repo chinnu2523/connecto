@@ -266,6 +266,64 @@ private fun formatIsoTime(isoString: String): String {
     }
 }
 
+fun cleanMessageContentForDisplay(rawText: String?, defaultPlaceholder: String = ""): String {
+    if (rawText.isNullOrBlank() || rawText == "null" || rawText == "None") {
+        return defaultPlaceholder
+    }
+    val trimmed = rawText.trim()
+
+    // 1. Never leak raw ENC: or __E2E_AES_GCM__: ciphertext in UI
+    if (ConnectoE2EEncryption.isEncrypted(trimmed) || trimmed.startsWith("__E2E_AES_GCM__:")) {
+        return "🔒 Encrypted message"
+    }
+
+    // 2. Parse structured JSON payloads (attachments, images, audio, polls, calls)
+    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        try {
+            val obj = org.json.JSONObject(trimmed)
+            val type = obj.optString("type").lowercase()
+            val fileUrl = obj.optString("file_url").ifEmpty { obj.optString("image_url").ifEmpty { obj.optString("url") } }
+            val fileName = obj.optString("file_name").ifEmpty { obj.optString("filename").ifEmpty { obj.optString("name") } }
+            val caption = obj.optString("caption").ifEmpty { obj.optString("text").ifEmpty { obj.optString("content") } }
+
+            if (type == "image" || (!fileUrl.isNullOrBlank() && (fileUrl.endsWith(".jpg", true) || fileUrl.endsWith(".png", true) || fileUrl.endsWith(".jpeg", true) || fileUrl.endsWith(".webp", true)))) {
+                return if (caption.isNotBlank()) "📷 Photo: $caption" else "📷 Photo"
+            }
+            if (type == "audio" || obj.has("audio_url")) {
+                return "🎤 Voice message"
+            }
+            if (type == "poll" || obj.has("poll") || obj.has("question")) {
+                val q = obj.optString("question").ifEmpty { obj.optJSONObject("poll")?.optString("question") ?: "Community Poll" }
+                return "📊 Poll: $q"
+            }
+            if (type == "call" || obj.optString("action").startsWith("call:")) {
+                return "📞 Voice call"
+            }
+            if (fileUrl.isNotBlank()) {
+                val cleanName = if (fileName.isNotBlank()) fileName else "Attachment"
+                return "📎 $cleanName"
+            }
+            if (caption.isNotBlank()) {
+                return caption
+            }
+            if (obj.has("message") && obj.optString("message").isNotBlank()) {
+                return obj.optString("message")
+            }
+            if (obj.has("title") && obj.optString("title").isNotBlank()) {
+                return obj.optString("title")
+            }
+        } catch (_: Exception) {
+            // Not valid JSON, continue with text sanitization
+        }
+    }
+
+    // 3. Strip any raw HTML or server error page markup
+    if (trimmed.startsWith("<!DOCTYPE", ignoreCase = true) || trimmed.contains("<html", ignoreCase = true)) {
+        return "Server communication notice"
+    }
+    return trimmed
+}
+
 private fun Context.findFragmentActivity(): FragmentActivity? {
     var currentContext = this
     while (currentContext is ContextWrapper) {
@@ -1969,6 +2027,7 @@ fun CustomizedChatScreen(
 
                 // Update friends list entry — current chat always has 0 unread
                 val currentTs = System.currentTimeMillis()
+                val safeInChatPreview = cleanMessageContentForDisplay(decryptedContent, "Direct chat active • Tap to message")
                 val fIdx = friendsList.indexOfFirst {
                     it.id == currentFriend!!.id || it.handle.removePrefix("@").equals(currentFriend!!.handle.removePrefix("@"), ignoreCase = true)
                 }
@@ -1976,7 +2035,7 @@ fun CustomizedChatScreen(
                     val target = friendsList[fIdx]
                     val cleanHandle = target.handle.removePrefix("@").trim().lowercase()
                     val updated = target.copy(
-                        lastMessage = dto.content,
+                        lastMessage = safeInChatPreview,
                         timeAgo = formatIsoTime(dto.createdAt),
                         unreadCount = 0,
                         lastMessageTimestamp = currentTs
@@ -1984,8 +2043,8 @@ fun CustomizedChatScreen(
                     friendsList.removeAt(fIdx)
                     friendsList.add(0, updated)
                     readPrefs.edit()
-                        .putString("last_msg_${updated.id}", dto.content)
-                        .putString("last_msg_${cleanHandle}", dto.content)
+                        .putString("last_msg_${updated.id}", safeInChatPreview)
+                        .putString("last_msg_${cleanHandle}", safeInChatPreview)
                         .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
                         .putString("last_time_${cleanHandle}", formatIsoTime(dto.createdAt))
                         .putLong("last_timestamp_${updated.id}", currentTs)
@@ -1993,7 +2052,7 @@ fun CustomizedChatScreen(
                         .apply()
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-                            dbHelper.updateFriendLastMessageAndUnread(updated.id, dto.content, formatIsoTime(dto.createdAt), 0, currentTs)
+                            dbHelper.updateFriendLastMessageAndUnread(updated.id, safeInChatPreview, formatIsoTime(dto.createdAt), 0, currentTs)
                         } catch (_: Exception) {}
                     }
                     markFriendChatAsReadLocallyAndRemotely(updated)
@@ -2001,7 +2060,7 @@ fun CustomizedChatScreen(
                     val gIdx = userGroupsList.indexOfFirst { it.id == currentFriend!!.id }
                     if (gIdx != -1) {
                         val updated = userGroupsList[gIdx].copy(
-                            lastMessage = dto.content,
+                            lastMessage = safeInChatPreview,
                             timeAgo = formatIsoTime(dto.createdAt),
                             unreadCount = 0,
                             lastMessageTimestamp = currentTs
@@ -2009,13 +2068,13 @@ fun CustomizedChatScreen(
                         userGroupsList.removeAt(gIdx)
                         userGroupsList.add(0, updated)
                         readPrefs.edit()
-                            .putString("last_msg_${updated.id}", dto.content)
+                            .putString("last_msg_${updated.id}", safeInChatPreview)
                             .putString("last_time_${updated.id}", formatIsoTime(dto.createdAt))
                             .putLong("last_timestamp_${updated.id}", currentTs)
                             .apply()
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
-                                dbHelper.updateGroupLastMessage(updated.id, dto.content, formatIsoTime(dto.createdAt), currentTs)
+                                dbHelper.updateGroupLastMessage(updated.id, safeInChatPreview, formatIsoTime(dto.createdAt), currentTs)
                             } catch (_: Exception) {}
                         }
                     }
@@ -2044,12 +2103,13 @@ fun CustomizedChatScreen(
                     dtoChannelClean == canonDash || dtoChannelClean == canonUnder
                 }
 
+                val safeBgPreview = cleanMessageContentForDisplay(decContent, "New message")
                 if (fIdx != -1) {
                     val targetFriend = friendsList[fIdx]
                     val cleanHandle = targetFriend.handle.removePrefix("@").trim().lowercase()
                     val newUnread = targetFriend.unreadCount + 1
                     val updated = targetFriend.copy(
-                        lastMessage = decContent,
+                        lastMessage = safeBgPreview,
                         timeAgo = formatIsoTime(dto.createdAt),
                         unreadCount = newUnread,
                         lastMessageTimestamp = currentTs
@@ -2057,8 +2117,8 @@ fun CustomizedChatScreen(
                     friendsList.removeAt(fIdx)
                     friendsList.add(0, updated)
                     readPrefs.edit()
-                        .putString("last_msg_${targetFriend.id}", decContent)
-                        .putString("last_msg_${cleanHandle}", decContent)
+                        .putString("last_msg_${targetFriend.id}", safeBgPreview)
+                        .putString("last_msg_${cleanHandle}", safeBgPreview)
                         .putString("last_time_${targetFriend.id}", formatIsoTime(dto.createdAt))
                         .putString("last_time_${cleanHandle}", formatIsoTime(dto.createdAt))
                         .putInt("unread_${targetFriend.id}", newUnread)
@@ -2068,7 +2128,7 @@ fun CustomizedChatScreen(
                         .apply()
                     coroutineScope.launch(Dispatchers.IO) {
                         try {
-                            dbHelper.updateFriendLastMessageAndUnread(targetFriend.id, decContent, formatIsoTime(dto.createdAt), newUnread, currentTs)
+                            dbHelper.updateFriendLastMessageAndUnread(targetFriend.id, safeBgPreview, formatIsoTime(dto.createdAt), newUnread, currentTs)
                         } catch (_: Exception) {}
                     }
                     onUnreadStatusChanged(true)
@@ -2080,7 +2140,7 @@ fun CustomizedChatScreen(
                         val targetGroup = userGroupsList[gIdx]
                         val newUnread = targetGroup.unreadCount + 1
                         val updated = targetGroup.copy(
-                            lastMessage = decContent,
+                            lastMessage = safeBgPreview,
                             timeAgo = formatIsoTime(dto.createdAt),
                             unreadCount = newUnread,
                             lastMessageTimestamp = currentTs
@@ -2088,14 +2148,14 @@ fun CustomizedChatScreen(
                         userGroupsList.removeAt(gIdx)
                         userGroupsList.add(0, updated)
                         readPrefs.edit()
-                            .putString("last_msg_${targetGroup.id}", decContent)
+                            .putString("last_msg_${targetGroup.id}", safeBgPreview)
                             .putString("last_time_${targetGroup.id}", formatIsoTime(dto.createdAt))
                             .putInt("unread_${targetGroup.id}", newUnread)
                             .putLong("last_timestamp_${targetGroup.id}", currentTs)
                             .apply()
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
-                                dbHelper.updateGroupLastMessage(targetGroup.id, decContent, formatIsoTime(dto.createdAt), currentTs)
+                                dbHelper.updateGroupLastMessage(targetGroup.id, safeBgPreview, formatIsoTime(dto.createdAt), currentTs)
                             } catch (_: Exception) {}
                         }
                         onUnreadStatusChanged(true)
@@ -2107,14 +2167,14 @@ fun CustomizedChatScreen(
                                 val cleanH = cachedFriend.handle.removePrefix("@").trim().lowercase()
                                 val newUnread = cachedFriend.unreadCount + 1
                                 val updated = cachedFriend.copy(
-                                    lastMessage = decContent,
+                                    lastMessage = safeBgPreview,
                                     timeAgo = formatIsoTime(dto.createdAt),
                                     unreadCount = newUnread,
                                     lastMessageTimestamp = currentTs
                                 )
                                 readPrefs.edit()
-                                    .putString("last_msg_${cachedFriend.id}", decContent)
-                                    .putString("last_msg_${cleanH}", decContent)
+                                    .putString("last_msg_${cachedFriend.id}", safeBgPreview)
+                                    .putString("last_msg_${cleanH}", safeBgPreview)
                                     .putString("last_time_${cachedFriend.id}", formatIsoTime(dto.createdAt))
                                     .putString("last_time_${cleanH}", formatIsoTime(dto.createdAt))
                                     .putInt("unread_${cachedFriend.id}", newUnread)
@@ -2123,7 +2183,7 @@ fun CustomizedChatScreen(
                                     .putLong("last_timestamp_${cleanH}", currentTs)
                                     .apply()
                                 try {
-                                    dbHelper.updateFriendLastMessageAndUnread(cachedFriend.id, decContent, formatIsoTime(dto.createdAt), newUnread, currentTs)
+                                    dbHelper.updateFriendLastMessageAndUnread(cachedFriend.id, safeBgPreview, formatIsoTime(dto.createdAt), newUnread, currentTs)
                                 } catch (_: Exception) {}
                                 withContext(Dispatchers.Main) {
                                     val existingIdx = friendsList.indexOfFirst { it.id == updated.id }
@@ -2474,18 +2534,19 @@ fun CustomizedChatScreen(
                                 // Update last message in friends list and persist
                                 if (merged.isNotEmpty()) {
                                     val last = merged.last()
+                                    val safeLastPreview = cleanMessageContentForDisplay(last.content, "Direct chat active • Tap to message")
                                     val fIdx = friendsList.indexOfFirst { it.id == friend.id || it.handle.removePrefix("@").equals(friend.handle.removePrefix("@"), ignoreCase = true) }
                                     if (fIdx != -1) {
                                         val updated = friendsList[fIdx].copy(
-                                            lastMessage = last.content,
+                                            lastMessage = safeLastPreview,
                                             timeAgo = last.time,
                                             lastMessageTimestamp = last.timestampMillis
                                         )
                                         friendsList[fIdx] = updated
                                         val cleanH = updated.handle.removePrefix("@").trim().lowercase()
                                         readPrefs.edit()
-                                            .putString("last_msg_${updated.id}", last.content)
-                                            .putString("last_msg_${cleanH}", last.content)
+                                            .putString("last_msg_${updated.id}", safeLastPreview)
+                                            .putString("last_msg_${cleanH}", safeLastPreview)
                                             .putString("last_time_${updated.id}", last.time)
                                             .putString("last_time_${cleanH}", last.time)
                                             .putLong("last_timestamp_${updated.id}", last.timestampMillis)
@@ -2493,7 +2554,7 @@ fun CustomizedChatScreen(
                                             .apply()
                                         coroutineScope.launch(Dispatchers.IO) {
                                             try {
-                                                dbHelper.updateFriendLastMessageAndUnread(updated.id, last.content, last.time, updated.unreadCount, last.timestampMillis)
+                                                dbHelper.updateFriendLastMessageAndUnread(updated.id, safeLastPreview, last.time, updated.unreadCount, last.timestampMillis)
                                             } catch (_: Exception) {}
                                         }
                                     }
@@ -5105,7 +5166,18 @@ fun CustomizedChatScreen(
 
                                             val displayMsg = if (friend.lastMessage.isBlank() || friend.lastMessage == "null" || friend.lastMessage == "None") {
                                                 "Direct chat active • Tap to message"
-                                            } else friend.lastMessage
+                                            } else {
+                                                if (ConnectoE2EEncryption.isEncrypted(friend.lastMessage)) {
+                                                    val cleanFriendHandle = friend.handle.removePrefix("@").trim().lowercase()
+                                                    val e2eSecret = ConnectoApiClient.getE2ESecret()
+                                                    val key = ConnectoE2EEncryption.deriveConversationKey(myUsername, cleanFriendHandle, e2eSecret)
+                                                    val fallbackKey = ConnectoE2EEncryption.deriveConversationKey(myUsername, cleanFriendHandle, null)
+                                                    val dec = ConnectoE2EEncryption.decryptMessage(friend.lastMessage, key, fallbackKey)
+                                                    cleanMessageContentForDisplay(dec, "Direct chat active • Tap to message")
+                                                } else {
+                                                    cleanMessageContentForDisplay(friend.lastMessage, "Direct chat active • Tap to message")
+                                                }
+                                            }
 
                                             Text(
                                                 text = displayMsg,
@@ -5563,7 +5635,7 @@ fun CustomizedChatScreen(
                                                     }
                                                 }
                                                 Text(
-                                                    text = pinned.content,
+                                                    text = cleanMessageContentForDisplay(pinned.content, "Pinned message"),
                                                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.5.sp),
                                                     color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
@@ -6075,7 +6147,7 @@ fun CustomizedChatScreen(
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
-                                                text = replyTarget.content,
+                                                text = cleanMessageContentForDisplay(replyTarget.content, "Replying to message"),
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -6151,7 +6223,7 @@ fun CustomizedChatScreen(
                                                 color = MaterialTheme.colorScheme.primary
                                             )
                                             Text(
-                                                text = editTarget.content,
+                                                text = cleanMessageContentForDisplay(editTarget.content, "Editing message"),
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 maxLines = 1,
@@ -6850,7 +6922,7 @@ fun CustomChatBubble(
                                     )
                                 }
                                 Text(
-                                    text = message.replyToContent,
+                                    text = cleanMessageContentForDisplay(message.replyToContent, ""),
                                     fontSize = 11.sp,
                                     color = if (message.isMe) {
                                         if (isWhiteBubble) Color(0xBB000000) else effectiveOwnText.copy(alpha = 0.75f)
@@ -6862,13 +6934,30 @@ fun CustomChatBubble(
                         }
                     }
 
-                    Text(
-                        text = message.content,
-                        color = if (message.isMe) effectiveOwnText else friendText,
-                        fontWeight = FontWeight.Normal,
-                        fontSize = 14.sp,
-                        lineHeight = 20.sp
-                    )
+                    val trimmedContent = message.content.trim()
+                    val isDirectImageUrl = trimmedContent.startsWith("http", ignoreCase = true) &&
+                        (trimmedContent.endsWith(".jpg", true) || trimmedContent.endsWith(".png", true) || trimmedContent.endsWith(".jpeg", true) || trimmedContent.endsWith(".webp", true))
+
+                    if (isDirectImageUrl) {
+                        AsyncImage(
+                            model = trimmedContent,
+                            contentDescription = "Photo",
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 240.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                    } else {
+                        val safeBubbleContent = cleanMessageContentForDisplay(message.content, "")
+                        Text(
+                            text = safeBubbleContent,
+                            color = if (message.isMe) effectiveOwnText else friendText,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 14.sp,
+                            lineHeight = 20.sp
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(4.dp))
 

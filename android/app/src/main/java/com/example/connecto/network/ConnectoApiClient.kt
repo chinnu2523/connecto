@@ -4745,7 +4745,8 @@ object ConnectoApiClient {
                 } else {
                     // 429 (rate/quota limited) or 5xx: fall through to check next server base if multiple are configured
                     android.util.Log.w("ConnectoSync", "Server base $base returned $responseCode, trying next candidate server...")
-                    lastException = Exception("Server returned code $responseCode: $responseText")
+                    val cleanErr = parseErrorMessage(responseText, responseCode)
+                    lastException = Exception(cleanErr)
                 }
             } catch (e: Exception) {
                 android.util.Log.e("ConnectoSync", "executeRequest: FAILED $method $fullUrl: ${e.javaClass.name}: ${e.message}", e)
@@ -4760,6 +4761,15 @@ object ConnectoApiClient {
 
     private fun parseErrorMessage(responseText: String, responseCode: Int): String {
         if (responseText.isBlank()) return "Server error ($responseCode)"
+        // If response is raw HTML (e.g. 502/503 Cloudflare gateway page), never leak raw HTML markup into user UI
+        if (responseText.contains("<html", ignoreCase = true) || responseText.contains("<!DOCTYPE", ignoreCase = true)) {
+            return when (responseCode) {
+                502 -> "Server gateway is temporarily busy. Please try again."
+                503 -> "Server maintenance in progress. Please try again shortly."
+                504 -> "Server request timed out. Please try again."
+                else -> "Temporary server error ($responseCode). Please try again."
+            }
+        }
         return try {
             val errorJson = JSONObject(responseText)
             when {
@@ -4788,18 +4798,18 @@ object ConnectoApiClient {
                                     if (strVal.isNotBlank()) messages.add(strVal)
                                 }
                             }
-                            messages.joinToString("\n").ifBlank { responseText }
+                            messages.joinToString("\n").ifBlank { "Request validation error ($responseCode)" }
                         }
-                        is JSONObject -> detailObj.toString()
+                        is JSONObject -> errorJson.optString("message", "Request validation failed")
                         else -> detailObj.toString()
                     }
                 }
-                errorJson.has("message") -> errorJson.optString("message", responseText)
-                errorJson.has("error") -> errorJson.optString("error", responseText)
-                else -> responseText
+                errorJson.has("message") -> errorJson.optString("message", "Server error ($responseCode)")
+                errorJson.has("error") -> errorJson.optString("error", "Server error ($responseCode)")
+                else -> "Server error ($responseCode)"
             }
         } catch (e: Exception) {
-            responseText.ifBlank { "HTTP Error $responseCode" }
+            "Server error ($responseCode). Please try again."
         }
     }
 

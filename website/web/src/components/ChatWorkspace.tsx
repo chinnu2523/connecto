@@ -12,7 +12,7 @@ import { voiceManager } from '../services/webrtc';
 import {
   Hash, Volume2, Plus, Users, Send, ShieldAlert,
   MessageSquare, Clock, UserPlus, Mic, MicOff, PhoneOff, Phone, Radio,
-  Check, X, Sparkles, Bell, Trash2, CheckCheck
+  Check, X, Sparkles, Bell, Trash2, CheckCheck, Lock, FileText, Music, BarChart2
 } from 'lucide-react';
 
 interface ChatWorkspaceProps {
@@ -26,6 +26,124 @@ const OFFICIAL_HUB_SERVER: Server = {
   icon_url: null,
   owner_id: 'system',
   created_at: '',
+};
+
+const renderCleanMessageContent = (raw: string, isOwn: boolean) => {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+
+  // 1. End-to-end encrypted message badge (never show raw ENC: ciphertext)
+  if (trimmed.startsWith('ENC:')) {
+    return (
+      <div className={`flex items-center space-x-2 text-xs py-1 px-2.5 rounded-xl border ${
+        isOwn
+          ? 'bg-blue-700/40 border-blue-400/30 text-blue-100'
+          : 'bg-slate-700/50 border-slate-600/40 text-slate-300'
+      }`}>
+        <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+        <span>End-to-end encrypted message • Open in Connecto App</span>
+      </div>
+    );
+  }
+
+  // 2. Structured JSON attachments / media / polls / calls
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const data = JSON.parse(trimmed);
+      if (data && typeof data === 'object') {
+        const fileUrl = data.file_url || data.image_url || data.url || data.audio_url;
+        const fileName = data.file_name || data.filename || data.name || 'Attachment';
+        const type = String(data.type || '').toLowerCase();
+        const caption = data.caption || data.text || data.content;
+
+        // Image attachment preview
+        if (type === 'image' || (fileUrl && /\.(png|jpe?g|webp|gif|svg)$/i.test(fileUrl))) {
+          const resolvedUrl = fileUrl.startsWith('http') || fileUrl.startsWith('/') ? fileUrl : `https://connecto.fun/${fileUrl.replace(/^\/+/, '')}`;
+          return (
+            <div className="space-y-1.5 max-w-sm">
+              <a href={resolvedUrl} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-white/10 hover:opacity-95 transition-opacity">
+                <img src={resolvedUrl} alt={fileName} className="max-h-64 w-full object-cover rounded-xl" />
+              </a>
+              {caption && <p className="text-sm leading-relaxed break-words">{caption}</p>}
+            </div>
+          );
+        }
+
+        // Audio voice note
+        if (type === 'audio' || (fileUrl && /\.(mp3|m4a|wav|ogg|aac)$/i.test(fileUrl))) {
+          const resolvedUrl = fileUrl.startsWith('http') || fileUrl.startsWith('/') ? fileUrl : `https://connecto.fun/${fileUrl.replace(/^\/+/, '')}`;
+          return (
+            <div className="flex items-center space-x-2 py-1">
+              <Music className="w-4 h-4 text-cyanglow shrink-0" />
+              <audio controls src={resolvedUrl} className="h-8 max-w-[200px]" />
+            </div>
+          );
+        }
+
+        // Generic File attachment
+        if (fileUrl) {
+          const resolvedUrl = fileUrl.startsWith('http') || fileUrl.startsWith('/') ? fileUrl : `https://connecto.fun/${fileUrl.replace(/^\/+/, '')}`;
+          return (
+            <a
+              href={resolvedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center space-x-2.5 p-2 rounded-xl text-xs font-medium border transition-colors ${
+                isOwn ? 'bg-blue-700/40 border-blue-400/30 text-white hover:bg-blue-700/60' : 'bg-slate-700/60 border-slate-600/50 text-slate-200 hover:bg-slate-700'
+              }`}
+            >
+              <FileText className="w-4 h-4 text-cyanglow shrink-0" />
+              <span className="truncate max-w-[180px]">{fileName}</span>
+            </a>
+          );
+        }
+
+        // Poll card
+        if (type === 'poll' || data.poll || data.question) {
+          const question = data.question || data.poll?.question || 'Community Poll';
+          return (
+            <div className={`p-2.5 rounded-xl border space-y-1.5 ${isOwn ? 'bg-blue-700/30 border-blue-400/30 text-white' : 'bg-slate-700/50 border-slate-600/40 text-slate-200'}`}>
+              <div className="flex items-center space-x-1.5 text-xs font-bold text-amber-300">
+                <BarChart2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Poll</span>
+              </div>
+              <p className="text-xs font-medium">{question}</p>
+            </div>
+          );
+        }
+
+        // Extracted clean text if present
+        if (data.text || data.content || data.message || data.title) {
+          return <p className="text-sm leading-relaxed break-words">{data.text || data.content || data.message || data.title}</p>;
+        }
+      }
+    } catch {
+      // Fall through to plain text rendering
+    }
+  }
+
+  // 3. Clean plain text
+  return <p className="text-sm leading-relaxed break-words">{raw}</p>;
+};
+
+const formatNotificationContent = (content: string) => {
+  if (!content) return '';
+  const trimmed = content.trim();
+  if (trimmed.startsWith('ENC:')) return '🔒 Encrypted message';
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      const data = JSON.parse(trimmed);
+      if (data.type === 'image' || data.image_url) return '📷 Photo';
+      if (data.type === 'audio' || data.audio_url) return '🎤 Voice message';
+      if (data.type === 'poll' || data.question) return `📊 Poll: ${data.question || 'Poll'}`;
+      if (data.text || data.content || data.message) return data.text || data.content || data.message;
+      if (data.file_url) return `📎 Attachment: ${data.file_name || 'File'}`;
+      return 'Attachment';
+    } catch {
+      return content;
+    }
+  }
+  return content;
 };
 
 export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpenProfile }) => {
@@ -1326,7 +1444,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
                             <span className="font-bold text-electric">You</span>
                           </div>
                           <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl rounded-tr-none px-4 py-2.5 shadow-lg border border-blue-500/30">
-                            <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+                            {renderCleanMessageContent(msg.content, true)}
                           </div>
                         </div>
                       </div>
@@ -1363,7 +1481,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
                         </div>
 
                         <div className="bg-slate-800/80 border border-slate-700/60 text-slate-200 rounded-2xl rounded-tl-none px-4 py-2.5 shadow">
-                          <p className="text-sm leading-relaxed break-words">{msg.content}</p>
+                          {renderCleanMessageContent(msg.content, false)}
                         </div>
                       </div>
                     </div>
@@ -1612,7 +1730,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
                                 <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400"></span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{notif.content}</p>
+                            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">{formatNotificationContent(notif.content)}</p>
                             <span className="text-[10px] text-slate-500 mt-1 block">
                               {new Date(notif.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>

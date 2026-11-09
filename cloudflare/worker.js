@@ -767,6 +767,30 @@ async function getFcmAccessToken(env) {
   }
 }
 
+function sanitizeMessagePreviewForDisplay(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("ENC:") || trimmed.startsWith("__E2E_AES_GCM__:")) {
+    return "🔒 Encrypted message";
+  }
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      const obj = JSON.parse(trimmed);
+      if (obj && typeof obj === "object") {
+        const type = String(obj.type || "").toLowerCase();
+        if (type === "image" || obj.image_url) return "📷 Photo";
+        if (type === "audio" || obj.audio_url) return "🎤 Voice message";
+        if (type === "poll" || obj.question || obj.poll) return `📊 Poll: ${obj.question || "Poll"}`;
+        if (type === "call" || (obj.action && String(obj.action).startsWith("call:"))) return "📞 Voice call";
+        if (obj.file_url) return `📎 Attachment: ${obj.file_name || "File"}`;
+        if (obj.text || obj.content || obj.message) return obj.text || obj.content || obj.message;
+        return "[Attachment]";
+      }
+    } catch (_) {}
+  }
+  return trimmed;
+}
+
 async function sendFcmNotification(env, fcmToken, payload) {
   if (!fcmToken) return false;
   try {
@@ -1803,12 +1827,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         category: "Communication",
         version_name: "4.6.23",
         version_code: 112,
-        size_bytes: 37883554,
+        size_bytes: 37889327,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Raw Content Elimination: Sanitized all message streams, notifications, conversation previews, and error responses across web and native app tiers, preventing raw encrypted ciphertext, JSON payloads, and stack traces from leaking to the UI",
           "Blur Validation & Focus Error Detection: Interactive email and credentials validation dynamically reveals error state and messages only when leaving the field (blur), eliminating premature error noise",
           "Unslop Redline Optimization: Refined push-pin minimalist badge in chat screen, removed visual clutter, stripped decorative emoji from buttons, and polished typography",
           "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly",
@@ -1820,7 +1845,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Data-Only Background Call Push: High-priority data push guarantees immediate device ringing and full-screen incoming call UI"
         ],
         is_essential: true,
-        updated_at: "2026-11-08T23:55:00Z"
+        updated_at: "2026-11-09T05:45:00Z"
       },
       {
         id: "jarvis",
@@ -5770,22 +5795,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           if (recUser) {
             const notifId = "notif_" + newMsgId;
             const recUserId = recUser.id;
+            const safePreview = sanitizeMessagePreviewForDisplay(content);
             await env.DB.prepare(`
               INSERT INTO notifications (id, user_id, type, title, content, sender_username, sender_avatar, reference_id, is_read, created_at)
               VALUES (?, ?, 'message', ?, ?, ?, ?, ?, 0, datetime('now'))
-            `).bind(notifId, recUserId, sender.display_name || sender.username, content, sender.username, sender.avatar_url || "👾", sender.username).run().catch(() => {});
+            `).bind(notifId, recUserId, sender.display_name || sender.username, safePreview, sender.username, sender.avatar_url || "👾", sender.username).run().catch(() => {});
 
             if (recUser.fcm_token && ctx) {
               ctx.waitUntil(sendFcmNotification(env, recUser.fcm_token, {
                 type: "message",
                 title: sender.display_name || sender.username,
-                body: content,
+                body: safePreview,
                 channel_id: canonicalChannel,
                 sender_username: sender.username,
                 sender_name: sender.display_name || sender.username,
                 sender_avatar: sender.avatar_url || "👾",
                 message_id: newMsgId,
-                content: content
+                content: safePreview
               }));
             }
           }

@@ -30809,7 +30809,13 @@ html[data-theme="dark"] #saveProfileBtn {
     // ==================== UNIVERSAL HELPERS ====================
     function escapeHTML(str) {
       if (str === null || str === undefined) return '';
-      return String(str).replace(/[&<>'"]/g, tag => ({
+      let text = str;
+      if (Array.isArray(text)) {
+        text = text.map(item => (item && typeof item === 'object') ? (item.msg || item.message || '') : String(item)).filter(Boolean).join(', ');
+      } else if (typeof text === 'object') {
+        text = text.detail || text.error || text.message || text.msg || '';
+      }
+      return String(text).replace(/[&<>'"]/g, tag => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
       }[tag] || tag));
     }
@@ -32650,6 +32656,42 @@ html[data-theme="dark"] #saveProfileBtn {
 
     function formatMessageContent(rawText) {
       if (!rawText) return '';
+      const trimmed = String(rawText).trim();
+
+      // Never show raw ciphertext in web chat
+      if (trimmed.startsWith('ENC:') || trimmed.startsWith('__E2E_AES_GCM__:')) {
+        return `<span class="e2ee-encrypted-badge" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:4px 10px; border-radius:8px;">🔒 <span>End-to-end encrypted message</span></span>`;
+      }
+
+      // Handle structured JSON data gracefully
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === 'object') {
+            const fileUrl = parsed.file_url || parsed.image_url || parsed.url;
+            const fileName = parsed.file_name || parsed.filename || parsed.name || 'Attachment';
+            const type = String(parsed.type || '').toLowerCase();
+            const caption = parsed.caption || parsed.text || parsed.content;
+
+            if (type === 'image' || (fileUrl && /\.(png|jpe?g|webp|gif|svg)$/i.test(fileUrl))) {
+              const fullUrl = (fileUrl.startsWith('http') || fileUrl.startsWith('/')) ? fileUrl : ('https://connecto.fun/' + fileUrl.replace(/^\/+/, ''));
+              return `<div style="margin:4px 0;"><img src="${escapeHTML(fullUrl)}" alt="${escapeHTML(fileName)}" style="max-width:280px; max-height:220px; border-radius:10px; display:block; cursor:pointer;" onclick="handleAttachmentImgClick(this)">${caption ? `<div style="font-size:13px; margin-top:4px;">${escapeHTML(caption)}</div>` : ''}</div>`;
+            }
+            if (fileUrl) {
+              const fullUrl = (fileUrl.startsWith('http') || fileUrl.startsWith('/')) ? fileUrl : ('https://connecto.fun/' + fileUrl.replace(/^\/+/, ''));
+              return `<a href="${escapeHTML(fullUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; font-size:12px; color:var(--text-header,#fff); text-decoration:none;">📎 <span>${escapeHTML(fileName)}</span></a>`;
+            }
+            if (type === 'audio' || parsed.audio_url) {
+              const fullUrl = ((parsed.audio_url || '').startsWith('http') || (parsed.audio_url || '').startsWith('/')) ? parsed.audio_url : ('https://connecto.fun/' + (parsed.audio_url || '').replace(/^\/+/, ''));
+              return `<div style="margin:4px 0;"><audio controls src="${escapeHTML(fullUrl)}" style="max-height:36px; max-width:240px;"></audio></div>`;
+            }
+            if (parsed.text || parsed.content || parsed.message) {
+              return escapeHTML(parsed.text || parsed.content || parsed.message);
+            }
+          }
+        } catch (_) {}
+      }
+
       let text = rawText;
 
       const knownLangs = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'css', 'json', 'bash', 'sh', 'cpp', 'c', 'rust', 'rs', 'go', 'sql', 'yaml', 'yml', 'markdown', 'md', 'xml'];

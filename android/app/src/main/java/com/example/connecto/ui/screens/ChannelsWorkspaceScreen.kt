@@ -1061,7 +1061,7 @@ fun ChannelsWorkspaceScreen(
                                         }
                                     }
                                     Text(
-                                        text = pinned.content,
+                                        text = cleanMessageContentForDisplay(pinned.content, "Pinned message"),
                                         fontSize = 12.5.sp,
                                         color = colors.textPrimary,
                                         maxLines = 1,
@@ -2207,7 +2207,7 @@ private fun ChannelMessageCard(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = message.replyToContent,
+                                            text = cleanMessageContentForDisplay(message.replyToContent, ""),
                                             fontSize = 11.5.sp,
                                             color = if (isMe) {
                                                 if (isWhiteBubble) Color(0xBB000000) else Color.White.copy(alpha = 0.80f)
@@ -2235,7 +2235,7 @@ private fun ChannelMessageCard(
                             )
                         } else {
                             Text(
-                                text = message.content,
+                                text = cleanMessageContentForDisplay(message.content, ""),
                                 fontSize = 13.5.sp,
                                 color = if (isMe) ownBubbleText else friendBubbleText,
                                 lineHeight = 19.sp

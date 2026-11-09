@@ -525,7 +525,7 @@ private fun NotificationItemRow(
                 Spacer(modifier = Modifier.height(3.dp))
 
                 Text(
-                    text = item.content,
+                    text = com.example.connecto.ui.screens.cleanMessageContentForDisplay(item.content, ""),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     lineHeight = 16.sp,

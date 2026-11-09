@@ -160,6 +160,8 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 val createdAt = data["created_at"]?.ifBlank { null }
                     ?: SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
 
+                val safeBodyPreview = com.example.connecto.ui.screens.cleanMessageContentForDisplay(body, "New message")
+
                 // 1. Build MessageDto and persist to local SQLite database so history is cached when opened
                 val msgDto = MessageDto(
                     id = messageId,
@@ -193,12 +195,12 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                     val currentTs = System.currentTimeMillis()
 
                     if (isGrp) {
-                        dbHelper.updateGroupLastMessage(channelId, body, timeStr, currentTs)
+                        dbHelper.updateGroupLastMessage(channelId, safeBodyPreview, timeStr, currentTs)
                         for (prefName in listOf("connecto_chat_read_prefs", "connecto_chat_prefs")) {
                             val rPrefs = getSharedPreferences(prefName, Context.MODE_PRIVATE)
                             val curUnread = rPrefs.getInt("unread_$channelId", 0) + 1
                             rPrefs.edit()
-                                .putString("last_msg_$channelId", body)
+                                .putString("last_msg_$channelId", safeBodyPreview)
                                 .putString("last_time_$channelId", timeStr)
                                 .putInt("unread_$channelId", curUnread)
                                 .putLong("last_timestamp_$channelId", currentTs)
@@ -210,7 +212,7 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                             // 2. Increment unread count & last message in SQLite
                             dbHelper.incrementFriendUnreadCount(
                                 friendIdOrHandle = cleanSender,
-                                lastMessage = body,
+                                lastMessage = safeBodyPreview,
                                 timeAgo = timeStr,
                                 lastMessageTimestamp = currentTs
                             )
@@ -222,16 +224,16 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                                 val rPrefs = getSharedPreferences(prefName, Context.MODE_PRIVATE)
                                 val curUnread = maxOf(rPrefs.getInt("unread_$fid", 0), rPrefs.getInt("unread_$cleanSender", 0)) + 1
                                 val editor = rPrefs.edit()
-                                    .putString("last_msg_$fid", body)
+                                    .putString("last_msg_$fid", safeBodyPreview)
                                     .putString("last_time_$fid", timeStr)
                                     .putInt("unread_$fid", curUnread)
                                     .putLong("last_timestamp_$fid", currentTs)
-                                    .putString("last_msg_$cleanSender", body)
+                                    .putString("last_msg_$cleanSender", safeBodyPreview)
                                     .putString("last_time_$cleanSender", timeStr)
                                     .putInt("unread_$cleanSender", curUnread)
                                     .putLong("last_timestamp_$cleanSender", currentTs)
                                 if (fHandle != cleanSender && fHandle.isNotBlank()) {
-                                    editor.putString("last_msg_$fHandle", body)
+                                    editor.putString("last_msg_$fHandle", safeBodyPreview)
                                         .putString("last_time_$fHandle", timeStr)
                                         .putInt("unread_$fHandle", curUnread)
                                         .putLong("last_timestamp_$fHandle", currentTs)
@@ -250,7 +252,7 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 // 5. Display Android system notification
                 ConnectoNotificationManager.showMessageNotification(
                     senderName = sender.ifBlank { title },
-                    messageText = body.ifBlank { "New message" },
+                    messageText = safeBodyPreview,
                     channelOrDmId = channelId,
                     senderAvatar = senderAvatar,
                     senderUsername = senderUser
