@@ -249,7 +249,7 @@ export default {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Cache-Control": "public, max-age=60, s-maxage=60",
-              "X-Connecto-Store-Version": "v1.7.5",
+              "X-Connecto-Store-Version": "v1.7.6",
               "X-Served-By": "Connecto-Worker-GitHub-Direct"
             }
           });
@@ -277,14 +277,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.5-b32-rev2-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.6-b33-live.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.7.5");
-          res.headers.set("X-Connecto-Store-Build", "32");
+          res.headers.set("X-Connecto-Store-Version", "v1.7.6");
+          res.headers.set("X-Connecto-Store-Build", "33");
           return res;
         }
 
@@ -297,7 +297,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/1.7.5"
+                "User-Agent": "Connecto-Cloud-Worker/1.7.6"
               }
             });
             if (upstreamResp.ok) {
@@ -310,8 +310,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.7.5");
-              downloadHeaders.set("X-Connecto-Store-Build", "32");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.7.6");
+              downloadHeaders.set("X-Connecto-Store-Build", "33");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1799,14 +1799,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.7.5",
-        version_code: 32,
-        size_bytes: 17993017,
+        version_name: "1.7.6",
+        version_code: 33,
+        size_bytes: 17993016,
         size_formatted: "17.2 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
+          "Ecosystem Live Sync v1.7.6: Live synchronization with Connecto v4.6.24 voice audio capture pipeline",
           "Fluid Spring Transition Animations: Tactile modal slide and scale spring physics when opening application details from the catalog",
           "Original Guest UI Previews: Integrated real emulator application screenshots captured cleanly in guest mode across all applications",
           "Streamlined Technical Specifications: Removed technical clutter and low-level jargon, presenting clean version, size, category, and compatibility",
@@ -1814,7 +1815,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Tactile Spring Physics: Fluid physics-based press scaling and spring damping across all action buttons, cards, category chips, and navigation items"
         ],
         is_essential: true,
-        updated_at: "2026-11-09T06:15:00Z"
+        updated_at: "2026-11-09T08:30:00Z"
       },
       {
         id: "connecto",
@@ -8168,14 +8169,14 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.5</span>")
-            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.5 (Build 32) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.5 • 13.7 MB)")
+            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.6</span>")
+            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.6 (Build 33) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.6 • 17.2 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[67]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.7.5)")
-            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.5")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.7.6)")
+            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.6")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">13.7 MB</span>')
+                     '<span class="android-spec-val" style="color:#38bdf8;">17.2 MB</span>')
             .replace(/v4\.6\.23/g, "v4.6.24")
             .replace(/Build 112/g, "Build 113")
             .replace(/BUILD 112/g, "BUILD 113")
