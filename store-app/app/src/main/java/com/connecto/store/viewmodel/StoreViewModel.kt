@@ -582,19 +582,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Private encrypted messaging, calls & workspaces",
             description = "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
             category = "Communication",
-            versionName = "4.6.23",
-            versionCode = 112,
+            versionName = "4.6.24",
+            versionCode = 113,
             sizeFormatted = "36.1 MB",
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
+                "Voice Call Audio & Mic Capture Fix: Continuous hardware AudioRecord fallback during WebRTC ICE negotiation",
+                "Audio Focus & Routing: Transient audio focus acquisition, unmuted mic pipeline, and speakerphone fallback",
+                "Echo Audio Test Suite: Integrated local loopback diagnostics directly into Calls Screen",
                 "Blur Validation: Errors trigger only on field departure (blur), removing noisy typing interruptions",
-                "Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography",
-                "Pure Black OLED #000000 true black background and battery conservation",
-                "Thread-synchronized WebRTC teardown mutex and dynamic ICE gathering"
+                "Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography"
             ),
             isEssential = true,
-            updatedAt = "2026-11-09T03:30:00Z"
+            updatedAt = "2026-11-09T08:00:00Z"
         ),
         StoreApp(
             id = "jarvis",

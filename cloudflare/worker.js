@@ -8175,7 +8175,11 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
                      "Official Verified Store Release • Package: com.connecto.store (v1.7.5)")
             .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.5")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">13.7 MB</span>');
+                     '<span class="android-spec-val" style="color:#38bdf8;">13.7 MB</span>')
+            .replace(/v4\.6\.23/g, "v4.6.24")
+            .replace(/Build 112/g, "Build 113")
+            .replace(/BUILD 112/g, "BUILD 113")
+            .replace(/\(b112\)/g, "(b113)");
           responseBody = patched;
         } catch (_) {}
       }
