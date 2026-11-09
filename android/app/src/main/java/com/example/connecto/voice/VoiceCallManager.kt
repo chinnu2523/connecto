@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
+import android.media.AudioFocusRequest
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
@@ -485,6 +486,9 @@ object VoiceCallManager {
             try {
                 admBuilder.setSamplesReadyCallback { samples ->
                     try {
+                        if (isRecordingActive && audioRecord != null) {
+                            return@setSamplesReadyCallback
+                        }
                         val data = samples.data
                         if (data.isNotEmpty() && !_isMuted.value) {
                             if (_isVoiceIsolationEnabled.value) {
@@ -645,9 +649,15 @@ object VoiceCallManager {
                         newState == PeerConnection.IceConnectionState.COMPLETED) {
                         _callState.value = CallState.CONNECTED
                         startStatsPolling(peerId)
+                        if (!_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
+                            stopFallbackAudioRecordOnly()
+                        }
                     } else if (newState == PeerConnection.IceConnectionState.DISCONNECTED ||
                         newState == PeerConnection.IceConnectionState.FAILED) {
                         Log.w(TAG, "WebRTC ICE state for peer $peerId: $newState. Seamlessly falling back to WebSocket audio relay.")
+                        if (_callState.value == CallState.CONNECTED) {
+                            startAudioHardware()
+                        }
                     } else if (newState == PeerConnection.IceConnectionState.CLOSED) {
                         Log.d(TAG, "WebRTC ICE connection closed for peer $peerId")
                     }
@@ -2989,9 +2999,17 @@ object VoiceCallManager {
     private var lpY2 = 0f
 
     // Adaptive noise floor and voice gate state
-    private var dspNoiseFloor = 180.0
-    private var dspSmoothedGain = 0.0f
+    private var dspNoiseFloor = 140.0
+    private var dspSmoothedGain = 1.0f
     private var voiceHangoverFrames = 0
+
+    fun resetVoiceIsolationDsp() {
+        hpX1 = 0f; hpX2 = 0f; hpY1 = 0f; hpY2 = 0f
+        lpX1 = 0f; lpX2 = 0f; lpY1 = 0f; lpY2 = 0f
+        dspNoiseFloor = 140.0
+        dspSmoothedGain = 1.0f
+        voiceHangoverFrames = 0
+    }
 
     // Filter coefficients precomputed for 16kHz audio:
     // HPF: fc = 140Hz, Q = 0.7071
@@ -3055,13 +3073,13 @@ object VoiceCallManager {
             dspNoiseFloor = dspNoiseFloor * 0.998 + frameRms * 0.002
         }
 
-        val safeNoiseFloor = maxOf(dspNoiseFloor, 120.0)
-        val speechThreshold = safeNoiseFloor * 2.3
-        val silenceFloor = safeNoiseFloor * 1.2
+        val safeNoiseFloor = dspNoiseFloor.coerceIn(50.0, 400.0)
+        val speechThreshold = safeNoiseFloor * 2.0
+        val silenceFloor = safeNoiseFloor * 1.1
 
         val targetGain = when {
             frameRms > speechThreshold -> {
-                voiceHangoverFrames = 12 // ~240ms hold time prevents dropping word endings
+                voiceHangoverFrames = 14 // ~280ms hold time prevents dropping word endings
                 1.15f
             }
             voiceHangoverFrames > 0 -> {
@@ -3069,11 +3087,11 @@ object VoiceCallManager {
                 1.0f
             }
             frameRms < silenceFloor -> {
-                0.0f // Complete studio black silence when user is not speaking
+                0.15f // Gentle ambient suppression instead of dead muting speech onset
             }
             else -> {
                 val ratio = ((frameRms - silenceFloor) / (speechThreshold - silenceFloor)).coerceIn(0.0, 1.0).toFloat()
-                ratio * ratio // Soft-knee expansion curve
+                0.15f + ratio * 0.85f
             }
         }
 
@@ -3087,7 +3105,7 @@ object VoiceCallManager {
         // Apply gain, noise floor reduction, and soft saturation limiter
         for (i in 0 until shortsCount) {
             val sample = filtered[i]
-            var isolated = sample * dspSmoothedGain
+            var isolated = if (sample.isNaN() || sample.isInfinite()) 0f else sample * dspSmoothedGain
 
             // Soft saturation limiter to preserve vocal warmth without digital clipping
             if (isolated > 30000f) {
@@ -3219,8 +3237,13 @@ object VoiceCallManager {
                         if (earpiece != null) {
                             am.setCommunicationDevice(earpiece)
                         } else {
-                            @Suppress("DEPRECATION")
-                            am.isSpeakerphoneOn = false
+                            val spk = devices.firstOrNull { it.type == AudioDeviceInfo.TYPE_BUILTIN_SPEAKER }
+                            if (spk != null) {
+                                am.setCommunicationDevice(spk)
+                            } else {
+                                @Suppress("DEPRECATION")
+                                am.isSpeakerphoneOn = true
+                            }
                         }
                         try {
                             am.stopBluetoothSco()
@@ -3293,9 +3316,47 @@ object VoiceCallManager {
         }
     }
 
+    private var activeAudioFocusRequest: Any? = null
+
     fun applyAudioSettingsForCall() {
         try {
-            audioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
+            val am = audioManager ?: return
+            am.mode = AudioManager.MODE_IN_COMMUNICATION
+            am.isMicrophoneMute = false
+
+            // Explicitly request audio focus for voice communication
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val focusReq = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                        .setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                .build()
+                        )
+                        .setOnAudioFocusChangeListener { focusChange ->
+                            Log.d(TAG, "Audio focus changed: $focusChange")
+                        }
+                        .build()
+                    activeAudioFocusRequest = focusReq
+                    am.requestAudioFocus(focusReq)
+                } else {
+                    @Suppress("DEPRECATION")
+                    am.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                }
+            } catch (fe: Throwable) {
+                Log.w(TAG, "Failed requesting audio focus: ${fe.message}")
+            }
+
+            // Ensure voice call volume is audible (minimum 70% if 0)
+            try {
+                val currVol = am.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+                val maxVol = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL)
+                if (currVol == 0 && maxVol > 0) {
+                    am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, (maxVol * 0.75).toInt().coerceAtLeast(1), 0)
+                }
+            } catch (_: Throwable) {}
+
             setAudioRoute(_currentAudioRoute.value)
         } catch (e: Exception) {
             Log.e(TAG, "Error setting AudioManager mode: ${e.message}")
@@ -3322,13 +3383,14 @@ object VoiceCallManager {
 
     private fun startAudioHardware() {
         applyAudioSettingsForCall()
+        resetVoiceIsolationDsp()
         val context = appContext ?: return
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Log.w(TAG, "Cannot start audio capture: RECORD_AUDIO permission not granted")
             return
         }
 
-        // Ensure WebRTC local audio track is created
+        // Ensure WebRTC local audio track is created for P2P negotiation
         try {
             startLocalAudio()
         } catch (t: Throwable) {
@@ -3336,17 +3398,23 @@ object VoiceCallManager {
         }
 
         synchronized(audioHardwareLock) {
-            // Always initialize AudioTrack so incoming voice_data packets can play immediately
-            initAudioTrack()
+            val isEchoCall = _activeCallTitle.value.contains("Echo", ignoreCase = true)
+            if (isEchoCall) {
+                initAudioTrack(SAMPLE_RATE)
+            }
 
-            // CRITICAL BUG FIX FOR OLDER ANDROID (API 24-29):
-            // When WebRTC's localAudioTrack is active, WebRTC's JavaAudioDeviceModule has
-            // exclusive ownership of the microphone. Opening a second concurrent AudioRecord
-            // in startAudioRecordLoop() will fail or cause the HAL to cancel the recording,
-            // which in turn triggers a fatal WebRTC AssertionError (assertTrue(!list.isEmpty()))
-            // that bypasses standard Exception catches and force quits the application.
-            if (localAudioTrack != null) {
-                Log.d(TAG, "WebRTC audio track is active; exclusive mic ownership delegated to WebRTC.")
+            // Check if WebRTC P2P ICE is already CONNECTED or COMPLETED
+            val hasConnectedP2PPeer = peerConnections.values.any { pc ->
+                try {
+                    val s = pc.iceConnectionState()
+                    s == PeerConnection.IceConnectionState.CONNECTED || s == PeerConnection.IceConnectionState.COMPLETED
+                } catch (_: Throwable) { false }
+            }
+
+            // If WebRTC P2P is already connected and not an Echo call,
+            // WebRTC's JavaAudioDeviceModule has exclusive mic ownership.
+            if (hasConnectedP2PPeer && !isEchoCall) {
+                Log.d(TAG, "WebRTC P2P ICE is already active; exclusive mic ownership delegated to WebRTC P2P.")
                 return
             }
 
@@ -3356,6 +3424,36 @@ object VoiceCallManager {
             }
 
             startAudioRecordLoop()
+        }
+    }
+
+    private fun stopFallbackAudioRecordOnly() {
+        val jobToCancel: Job?
+        val recordToRelease: AudioRecord?
+        synchronized(audioHardwareLock) {
+            isRecordingActive = false
+            jobToCancel = recordingJob
+            recordingJob = null
+            recordToRelease = audioRecord
+            audioRecord = null
+        }
+        scope.launch(Dispatchers.IO) {
+            try {
+                if (recordToRelease?.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                    recordToRelease.stop()
+                }
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error stopping fallback AudioRecord: ${t.message}")
+            }
+            try {
+                jobToCancel?.cancel()
+            } catch (_: Throwable) {}
+            try {
+                recordToRelease?.release()
+            } catch (t: Throwable) {
+                Log.e(TAG, "Error releasing fallback AudioRecord: ${t.message}")
+            }
+            Log.d(TAG, "Fallback AudioRecord paused; mic ownership transferred to WebRTC P2P")
         }
     }
 
@@ -3432,6 +3530,17 @@ object VoiceCallManager {
                     Log.e(TAG, "Error clearing communication device: ${t.message}")
                 }
             }
+
+            try {
+                val am = audioManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && activeAudioFocusRequest is AudioFocusRequest) {
+                    am?.abandonAudioFocusRequest(activeAudioFocusRequest as AudioFocusRequest)
+                    activeAudioFocusRequest = null
+                } else {
+                    @Suppress("DEPRECATION")
+                    am?.abandonAudioFocus(null)
+                }
+            } catch (_: Throwable) {}
 
             try {
                 audioManager?.mode = AudioManager.MODE_NORMAL
@@ -3637,6 +3746,9 @@ object VoiceCallManager {
                             val roomId = _activeRoomId.value
                             if (!_isMuted.value && _callState.value == CallState.CONNECTED) {
                                 if (_activeCallTitle.value.contains("Echo", ignoreCase = true)) {
+                                    if (audioTrack == null || audioTrack?.playState != AudioTrack.PLAYSTATE_PLAYING) {
+                                        initAudioTrack(SAMPLE_RATE)
+                                    }
                                     audioTrack?.write(buffer, 0, read, AudioTrack.WRITE_NON_BLOCKING)
                                 }
                                 if (!roomId.isNullOrBlank()) {
@@ -3648,6 +3760,7 @@ object VoiceCallManager {
                                         put("room_id", roomId)
                                         put("channel_id", roomId)
                                         put("audio", base64Str)
+                                        put("sample_rate", SAMPLE_RATE)
                                         if (!partner.isNullOrBlank()) {
                                             put("target", partner)
                                             put("target_user", partner)

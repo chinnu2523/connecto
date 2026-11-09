@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.23",
-        version_name: "v4.6.23",
-        version_code: 112,
-        build: 112,
-        sha256: "aa1edf1cec5df45df96d12549f3136c695c78db81966edf7261b69a1e0c48da9",
+        version: "4.6.24",
+        version_name: "v4.6.24",
+        version_code: 113,
+        build: 113,
+        sha256: "ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06",
         filename: "connecto-fun.apk",
-        size_bytes: 37886915,
+        size_bytes: 37890849,
         size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -274,11 +274,10 @@ export default {
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.5-b32-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.5-b32-rev2-live.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -458,14 +457,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.23-b112.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.24-b113.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.23");
-          res.headers.set("X-Connecto-Build", "112");
+          res.headers.set("X-Connecto-Version", "v4.6.24");
+          res.headers.set("X-Connecto-Build", "113");
           return res;
         }
 
@@ -478,7 +477,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.23"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.24"
               }
             });
             if (upstreamResp.ok) {
@@ -489,8 +488,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.23");
-              downloadHeaders.set("X-Connecto-Build", "112");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.24");
+              downloadHeaders.set("X-Connecto-Build", "113");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1825,14 +1824,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.23",
-        version_code: 112,
-        size_bytes: 37889327,
+        version_name: "4.6.24",
+        version_code: 113,
+        size_bytes: 37890849,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Voice Call Audio & Mic Capture Fix: Resolved root cause of silent/inaudible calls. Removed premature AudioRecord capture return, implemented seamless AudioRecord fallback during WebRTC ICE negotiation, added explicit microphone unmute and audio focus acquisition, fixed device communication routing fallbacks, and stabilized voice isolation DSP with Echo loopback testing.",
           "Raw Content Elimination: Sanitized all message streams, notifications, conversation previews, and error responses across web and native app tiers, preventing raw encrypted ciphertext, JSON payloads, and stack traces from leaking to the UI",
           "Blur Validation & Focus Error Detection: Interactive email and credentials validation dynamically reveals error state and messages only when leaving the field (blur), eliminating premature error noise",
           "Unslop Redline Optimization: Refined push-pin minimalist badge in chat screen, removed visual clutter, stripped decorative emoji from buttons, and polished typography",
@@ -7029,13 +7029,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.23",
-      version_name: "v4.6.23",
-      version_code: 112,
-      build: 112,
-      sha256: "aa1edf1cec5df45df96d12549f3136c695c78db81966edf7261b69a1e0c48da9",
+      version: "4.6.24",
+      version_name: "v4.6.24",
+      version_code: 113,
+      build: 113,
+      sha256: "ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06",
       filename: "connecto-fun.apk",
-      size_bytes: 37886915,
+      size_bytes: 37890849,
       size_display: "36.1 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7048,6 +7048,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v4.6.24",
+          date: "Nov 09, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v4.6.24: Voice Call Audio Hardware Pipeline & Mic Relay Fix",
+          summary: "Connecto v4.6.24 resolves the inaudible/silent voice call issue during 1:1 calls. Implements continuous AudioRecord hardware capture fallback during WebRTC ICE negotiation, explicit microphone unmute and audio focus acquisition, fixed device communication routing fallbacks, and stabilized voice isolation DSP with Echo loopback testing.",
+          highlights: [
+            "Voice Audio Capture Fix: Removed premature return in startAudioHardware(), guaranteeing hardware microphone capture runs and streams voice_data packets immediately upon call establishment.",
+            "WebRTC ICE & Relay Bridge: Seamless transition between WebRTC P2P direct RTP and WebSocket PCM audio relay, ensuring crystal-clear voice transmission even across restricted NAT and mobile cellular networks.",
+            "Audio Focus & Unmute: Explicitly acquires AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE and clears isMicrophoneMute, preventing OS-level silence on Android 10+.",
+            "Communication Device Routing: Added robust fallback from EARPIECE to built-in speaker on devices without physical earpiece receiver (emulators, tablets, foldables).",
+            "Echo Audio Test Suite: Added self-loopback audio testing directly in CallsScreen to verify microphone and speaker hardware in real time.",
+            "Android Native App v4.6.24 (Build 113 • 36.1 MB • Multi-Scheme Signed): SHA-256 ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v4.6.23",
           date: "Nov 09, 2026",

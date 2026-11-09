@@ -50,6 +50,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -861,6 +862,21 @@ fun CallsScreen(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Group Voice Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedButton(
+                                        onClick = {
+                                            VoiceCallManager.start1on1Call("echo", "Echo Audio Test (Self)")
+                                        },
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Mic,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Echo Audio Test (Self)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
