@@ -1,5 +1,6 @@
 package com.connecto.store.ui
 
+import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -269,106 +270,152 @@ fun StoreApp(
                         s.apps.find { it.app.packageName == pkg }
                     }
 
-                    if (detailApp != null) {
-                        // Dedicated Full-Screen Application Detail & Preview View
-                        ClassicAppDetailView(
-                            appState = detailApp,
-                            onBack = { selectedPackageName = null },
-                            onAction = { vm.handleAppAction(context, detailApp) },
-                            onUninstall = { vm.uninstallApp(context, detailApp) }
-                        )
-                    } else {
-                        // Catalog Browsing View with Header, Filter & Footer Navigation
-                        Column(modifier = Modifier.fillMaxSize()) {
-                            // Executive Top Header
-                            ClassicTopHeader(
-                                searchQuery = searchQuery,
-                                onSearchChange = { searchQuery = it },
-                                onRefresh = { vm.loadCatalog() },
-                                onOpenSecurityDialog = { showSecurityDialog = true },
-                                isDarkTheme = isDarkTheme,
-                                onToggleTheme = onToggleTheme,
-                                showSearch = selectedSection == StoreNavSection.OVERVIEW
-                            )
-
-                            // Content Stage with Navigation Section Transition
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                            ) {
-                                val filteredApps = remember(s.apps, searchQuery, selectedCategory, selectedSection) {
-                                    s.apps.filter { appState ->
-                                        val matchesSearch = searchQuery.isBlank() ||
-                                            appState.app.name.contains(searchQuery, ignoreCase = true) ||
-                                            appState.app.tagline.contains(searchQuery, ignoreCase = true) ||
-                                            appState.app.packageName.contains(searchQuery, ignoreCase = true)
-
-                                        val matchesCategory = (selectedSection != StoreNavSection.OVERVIEW) || selectedCategory == "All" ||
-                                            appState.app.category.equals(selectedCategory, ignoreCase = true)
-
-                                        val matchesSection = when (selectedSection) {
-                                            StoreNavSection.OVERVIEW -> true
-                                            StoreNavSection.UPDATES -> appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE
-                                            StoreNavSection.LOGIN -> true
-                                        }
-
-                                        matchesSearch && matchesCategory && matchesSection
-                                    }
-                                }
-
-                                AnimatedContent(
-                                    targetState = selectedSection,
-                                    transitionSpec = {
-                                        (fadeIn(animationSpec = tween(220)) +
-                                            slideInHorizontally(
-                                                initialOffsetX = { fullWidth -> if (targetState.ordinal > initialState.ordinal) fullWidth / 4 else -fullWidth / 4 },
-                                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                            )) togetherWith
-                                        (fadeOut(animationSpec = tween(180)) +
-                                            slideOutHorizontally(
-                                                targetOffsetX = { fullWidth -> if (targetState.ordinal > initialState.ordinal) -fullWidth / 4 else fullWidth / 4 },
-                                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                                            ))
-                                    },
-                                    label = "navSectionTransition"
-                                ) { currentSection ->
-                                    if (currentSection == StoreNavSection.LOGIN) {
-                                        ClassicLoginAccountView(
-                                            currentUser = currentUser,
-                                            loginState = loginState,
-                                            storeSelfUpdate = s.storeSelfUpdate,
-                                            isDarkTheme = isDarkTheme,
-                                            onToggleTheme = onToggleTheme,
-                                            onUpdateOurStore = { s.storeSelfUpdate?.let { vm.downloadAndInstall(context, it) } },
-                                            onLoginCredentials = { u, p -> vm.loginWithCredentials(u, p) },
-                                            onLoginConnecto = { vm.loginWithConnecto(context) },
-                                            onLogout = { vm.logout() },
-                                            onClearLoginError = { vm.clearLoginError() }
+                    AnimatedContent(
+                        targetState = detailApp,
+                        transitionSpec = {
+                            if (targetState != null) {
+                                // Opening App Detail: fluid spring slide up + scale in + fade in
+                                (slideInVertically(
+                                    initialOffsetY = { it / 5 },
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                ) + fadeIn(animationSpec = tween(220)) +
+                                scaleIn(
+                                    initialScale = 0.94f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                )) togetherWith (
+                                    fadeOut(animationSpec = tween(180)) +
+                                    scaleOut(targetScale = 0.96f, animationSpec = tween(180))
+                                )
+                            } else {
+                                // Returning to Catalog: fluid spring slide down + scale in + fade in
+                                (fadeIn(animationSpec = tween(220)) +
+                                scaleIn(
+                                    initialScale = 0.96f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                        stiffness = Spring.StiffnessMediumLow
+                                    )
+                                )) togetherWith (
+                                    slideOutVertically(
+                                        targetOffsetY = { it / 5 },
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                            stiffness = Spring.StiffnessMediumLow
                                         )
-                                    } else {
-                                        ClassicCatalogBody(
-                                            state = s,
-                                            filteredApps = filteredApps,
-                                            selectedCategory = selectedCategory,
-                                            onSelectCategory = { selectedCategory = it },
-                                            onAppClick = { selectedPackageName = it.app.packageName },
-                                            onAppAction = { appState -> vm.handleAppAction(context, appState) },
-                                            onUpdateAll = { vm.updateAll(context) },
-                                            isUpdatesTab = currentSection == StoreNavSection.UPDATES
-                                        )
-                                    }
-                                }
+                                    ) + fadeOut(animationSpec = tween(180)) +
+                                    scaleOut(targetScale = 0.94f, animationSpec = tween(180))
+                                )
                             }
-
-                            // Interactive Modern Footer Navigation Bar
-                            ClassicBottomNavBar(
-                                selected = selectedSection,
-                                onSelect = { selectedSection = it },
-                                updateCount = s.apps.count {
-                                    it.installState == StoreApp.InstallState.UPDATE_AVAILABLE
-                                }
+                        },
+                        label = "appDetailModalTransition"
+                    ) { activeDetailApp ->
+                        if (activeDetailApp != null) {
+                            // Dedicated Full-Screen Application Detail & Preview View
+                            ClassicAppDetailView(
+                                appState = activeDetailApp,
+                                onBack = { selectedPackageName = null },
+                                onAction = { vm.handleAppAction(context, activeDetailApp) },
+                                onUninstall = { vm.uninstallApp(context, activeDetailApp) }
                             )
+                        } else {
+                            // Catalog Browsing View with Header, Filter & Footer Navigation
+                            Column(modifier = Modifier.fillMaxSize()) {
+                                // Executive Top Header
+                                ClassicTopHeader(
+                                    searchQuery = searchQuery,
+                                    onSearchChange = { searchQuery = it },
+                                    onRefresh = { vm.loadCatalog() },
+                                    onOpenSecurityDialog = { showSecurityDialog = true },
+                                    isDarkTheme = isDarkTheme,
+                                    onToggleTheme = onToggleTheme,
+                                    showSearch = selectedSection == StoreNavSection.OVERVIEW
+                                )
+
+                                // Content Stage with Navigation Section Transition
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxWidth()
+                                ) {
+                                    val filteredApps = remember(s.apps, searchQuery, selectedCategory, selectedSection) {
+                                        s.apps.filter { appState ->
+                                            val matchesSearch = searchQuery.isBlank() ||
+                                                appState.app.name.contains(searchQuery, ignoreCase = true) ||
+                                                appState.app.tagline.contains(searchQuery, ignoreCase = true) ||
+                                                appState.app.packageName.contains(searchQuery, ignoreCase = true)
+
+                                            val matchesCategory = (selectedSection != StoreNavSection.OVERVIEW) || selectedCategory == "All" ||
+                                                appState.app.category.equals(selectedCategory, ignoreCase = true)
+
+                                            val matchesSection = when (selectedSection) {
+                                                StoreNavSection.OVERVIEW -> true
+                                                StoreNavSection.UPDATES -> appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE
+                                                StoreNavSection.LOGIN -> true
+                                            }
+
+                                            matchesSearch && matchesCategory && matchesSection
+                                        }
+                                    }
+
+                                    AnimatedContent(
+                                        targetState = selectedSection,
+                                        transitionSpec = {
+                                            (fadeIn(animationSpec = tween(220)) +
+                                                slideInHorizontally(
+                                                    initialOffsetX = { fullWidth -> if (targetState.ordinal > initialState.ordinal) fullWidth / 4 else -fullWidth / 4 },
+                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                                )) togetherWith
+                                            (fadeOut(animationSpec = tween(180)) +
+                                                slideOutHorizontally(
+                                                    targetOffsetX = { fullWidth -> if (targetState.ordinal > initialState.ordinal) -fullWidth / 4 else fullWidth / 4 },
+                                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                                ))
+                                        },
+                                        label = "navSectionTransition"
+                                    ) { currentSection ->
+                                        if (currentSection == StoreNavSection.LOGIN) {
+                                            ClassicLoginAccountView(
+                                                currentUser = currentUser,
+                                                loginState = loginState,
+                                                storeSelfUpdate = s.storeSelfUpdate,
+                                                isDarkTheme = isDarkTheme,
+                                                onToggleTheme = onToggleTheme,
+                                                onUpdateOurStore = { s.storeSelfUpdate?.let { vm.downloadAndInstall(context, it) } },
+                                                onLoginCredentials = { u, p -> vm.loginWithCredentials(u, p) },
+                                                onLoginConnecto = { vm.loginWithConnecto(context) },
+                                                onLogout = { vm.logout() },
+                                                onClearLoginError = { vm.clearLoginError() }
+                                            )
+                                        } else {
+                                            ClassicCatalogBody(
+                                                state = s,
+                                                filteredApps = filteredApps,
+                                                selectedCategory = selectedCategory,
+                                                onSelectCategory = { selectedCategory = it },
+                                                onAppClick = { selectedPackageName = it.app.packageName },
+                                                onAppAction = { appState -> vm.handleAppAction(context, appState) },
+                                                onUpdateAll = { vm.updateAll(context) },
+                                                isUpdatesTab = currentSection == StoreNavSection.UPDATES
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // Interactive Modern Footer Navigation Bar
+                                ClassicBottomNavBar(
+                                    selected = selectedSection,
+                                    onSelect = { selectedSection = it },
+                                    updateCount = s.apps.count {
+                                        it.installState == StoreApp.InstallState.UPDATE_AVAILABLE
+                                    }
+                                )
+                            }
                         }
                     }
 
@@ -1500,7 +1547,7 @@ private fun ClassicAppDetailView(
                         letterSpacing = 1.sp
                     )
                     Text(
-                        text = "3 interactive frames",
+                        text = "${remember(app.id) { getAppPreviews(app.id).size }} screens",
                         color = theme.textDarkMuted,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace
@@ -1568,16 +1615,10 @@ private fun ClassicAppDetailView(
                         .padding(16.dp)
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TechSpecRow("Package ID", app.packageName)
-                        TechSpecRow("Release Version", "v${app.versionName} (build ${app.versionCode})")
-                        TechSpecRow("Binary Size", app.sizeFormatted)
-                        TechSpecRow("Architecture", "arm64-v8a • universal")
-                        TechSpecRow("Target System", "Android 16+ (API 37 Ready)")
-                        TechSpecRow("Minimum System", "Android 8.0 (API 26)+")
-                        TechSpecRow("Signature Schemes", "APK V1 + V2 + V3 + V4 Certified")
-                        TechSpecRow("Installer Engine", "PackageInstaller Session IPC")
-                        TechSpecRow("Distribution Edge", "Cloudflare Anycast Global CDN")
-                        TechSpecRow("Security Integrity", "SHA-256 Validated • Clean")
+                        TechSpecRow("Version", "v${app.versionName}")
+                        TechSpecRow("Download Size", app.sizeFormatted)
+                        TechSpecRow("Category", app.category)
+                        TechSpecRow("Compatibility", "Android 8.0+")
                     }
                 }
             }
@@ -1602,337 +1643,149 @@ private fun AppPreviewCarousel(appId: String) {
     }
 }
 
-data class AppPreviewData(
-    val title: String,
-    val subtitle: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val headline: String,
-    val highlights: List<String>,
-    val accentColor: Color
+data class AppScreenshotPreview(
+    val assetPath: String,
+    val caption: String,
+    val tag: String
 )
 
-private fun getAppPreviews(appId: String): List<AppPreviewData> = when (appId.lowercase()) {
+private fun getAppPreviews(appId: String): List<AppScreenshotPreview> = when (appId.lowercase()) {
     "ourstore" -> listOf(
-        AppPreviewData(
-            title = "ECOSYSTEM HUB",
-            subtitle = "Native In-App 1-Tap Installs",
-            icon = Icons.Rounded.Storefront,
-            headline = "Autonomous Store Architecture",
-            highlights = listOf(
-                "Direct PackageInstaller session IPC",
-                "Instant installation without browser redirect",
-                "Prominent package size indicators"
-            ),
-            accentColor = Color(0xFFFFFFFF)
-        ),
-        AppPreviewData(
-            title = "AUTO-UPDATE",
-            subtitle = "Silent Background Sync",
-            icon = Icons.Rounded.Autorenew,
-            headline = "Zero-Interruption Engine",
-            highlights = listOf(
-                "Continuous release monitoring",
-                "1-Tap 'Update All' batch engine",
-                "Autonomous background execution"
-            ),
-            accentColor = EmeraldStatus
-        ),
-        AppPreviewData(
-            title = "SECURITY VAULT",
-            subtitle = "Cryptographic Verification",
-            icon = Icons.Rounded.Security,
-            headline = "Pure Obsidian OLED",
-            highlights = listOf(
-                "SHA-256 signature verification",
-                "Native system uninstallation support",
-                "Zero telemetry, tracking, or ads"
-            ),
-            accentColor = Color(0xFF60A5FA)
-        )
+        AppScreenshotPreview("previews/ourstore_1.png", "Curated Ecosystem Catalog", "STOREFRONT"),
+        AppScreenshotPreview("previews/ourstore_2.png", "Autonomous 1-Tap Updates", "UPDATES"),
+        AppScreenshotPreview("previews/ourstore_3.png", "Profile & Security Vault", "ACCOUNT"),
+        AppScreenshotPreview("previews/ourstore_4.png", "Native In-App Installations", "DETAILS")
     )
     "connecto" -> listOf(
-        AppPreviewData(
-            title = "OFFLINE MESH",
-            subtitle = "Direct WiFi Local Chat",
-            icon = Icons.AutoMirrored.Rounded.Chat,
-            headline = "Zero Internet Required",
-            highlights = listOf(
-                "Local subnet & hotspot mesh network",
-                "Instant peer auto-discovery",
-                "End-to-end encrypted messaging"
-            ),
-            accentColor = Color(0xFF3B82F6)
-        ),
-        AppPreviewData(
-            title = "P2P FILE SHARING",
-            subtitle = "Gigabit Local Transfers",
-            icon = Icons.AutoMirrored.Rounded.Send,
-            headline = "Blazing Transfer Speeds",
-            highlights = listOf(
-                "Direct socket streaming architecture",
-                "Lossless photo & video transmission",
-                "Zero file size restriction"
-            ),
-            accentColor = EmeraldStatus
-        ),
-        AppPreviewData(
-            title = "HARDWARE VAULT",
-            subtitle = "Biometric Security",
-            icon = Icons.Rounded.Fingerprint,
-            headline = "Hardware KeyStore Enclave",
-            highlights = listOf(
-                "Biometric fingerprint authentication",
-                "Anti-screenshot FLAG_SECURE shielding",
-                "Secure multi-profile partition"
-            ),
-            accentColor = AmberUpdate
-        )
-    )
-    "jarvis" -> listOf(
-        AppPreviewData(
-            title = "VOICE INTELLIGENCE",
-            subtitle = "Neural Speech Interaction",
-            icon = Icons.Rounded.Mic,
-            headline = "Conversational Voice AI",
-            highlights = listOf(
-                "Continuous speech recognition",
-                "Real-time voice activity detection",
-                "Low-latency natural audio synthesis"
-            ),
-            accentColor = Color(0xFF8B5CF6)
-        ),
-        AppPreviewData(
-            title = "AUTONOMOUS SHELL",
-            subtitle = "System Execution Engine",
-            icon = Icons.Rounded.Terminal,
-            headline = "Real-Time Terminal Control",
-            highlights = listOf(
-                "Direct Android shell command processing",
-                "Subprocess monitoring & telemetry",
-                "Self-correcting execution pipelines"
-            ),
-            accentColor = EmeraldStatus
-        ),
-        AppPreviewData(
-            title = "WORKFLOW AGENT",
-            subtitle = "Smart Task Automation",
-            icon = Icons.Rounded.SmartToy,
-            headline = "Multi-Step Orchestration",
-            highlights = listOf(
-                "Background automation & timers",
-                "Context-aware memory retention",
-                "Tool-calling neural integration"
-            ),
-            accentColor = Color(0xFFEC4899)
-        )
+        AppScreenshotPreview("previews/connecto_1.png", "Private End-to-End Chat", "MESSAGES"),
+        AppScreenshotPreview("previews/connecto_2.png", "Channels & Communities", "DISCOVER"),
+        AppScreenshotPreview("previews/connecto_3.png", "Guest Sandbox Profile", "GUEST MODE"),
+        AppScreenshotPreview("previews/connecto_4.png", "Offline Direct Mesh Hub", "LOCAL MESH")
     )
     "pdfstudio" -> listOf(
-        AppPreviewData(
-            title = "IN-PLACE EDITOR",
-            subtitle = "Matching Font Replacement",
-            icon = Icons.Rounded.Edit,
-            headline = "Same-Font Text Replacement",
-            highlights = listOf(
-                "Find & replace names in matching fonts",
-                "Tap-to-edit text anywhere on page",
-                "Preserves document layout & geometry"
-            ),
-            accentColor = DangerRed
-        ),
-        AppPreviewData(
-            title = "IMAGE TO PDF",
-            subtitle = "Instant Multi-Format Compiler",
-            icon = Icons.Rounded.PhotoCamera,
-            headline = "Universal Photo Converter",
-            highlights = listOf(
-                "Convert JPG, PNG, WEBP, BMP to PDF",
-                "Auto-page rotation & margin scaling",
-                "High-resolution lossless compression"
-            ),
-            accentColor = AmberUpdate
-        ),
-        AppPreviewData(
-            title = "PDF MERGER",
-            subtitle = "Multi-Document Assembly",
-            icon = Icons.Rounded.PictureAsPdf,
-            headline = "Lossless File Reordering",
-            highlights = listOf(
-                "Merge unlimited documents into one",
-                "Visual page reordering & rotation",
-                "Interactive pen drawing & highlight tools"
-            ),
-            accentColor = Color(0xFF3B82F6)
-        )
+        AppScreenshotPreview("previews/pdfstudio_1.png", "Same-Font In-Place Editor", "EDITOR"),
+        AppScreenshotPreview("previews/pdfstudio_2.png", "Photo & Image to PDF", "CONVERTER"),
+        AppScreenshotPreview("previews/pdfstudio_3.png", "Lossless Multi-Document Merge", "MERGER")
+    )
+    "visioncall" -> listOf(
+        AppScreenshotPreview("previews/visioncall_1.png", "Ultra-Low Latency Video Calls", "CONFERENCE"),
+        AppScreenshotPreview("previews/visioncall_2.png", "Instant Room Generator", "CONNECT")
     )
     else -> listOf(
-        AppPreviewData(
-            title = "VERIFIED APP",
-            subtitle = "Official Package",
-            icon = Icons.Rounded.Apps,
-            headline = "Official Ecosystem Client",
-            highlights = listOf(
-                "Optimized for Android targetSdk 37",
-                "High-speed binary distribution",
-                "Zero adware or tracking"
-            ),
-            accentColor = TextPureWhite
-        )
+        AppScreenshotPreview("previews/ourstore_1.png", "Curated Ecosystem Experience", "ECOSYSTEM")
     )
 }
 
 @Composable
-private fun PhoneMockupCard(preview: AppPreviewData) {
+private fun rememberAssetBitmap(assetPath: String): ImageBitmap? {
+    val context = LocalContext.current
+    return produceState<ImageBitmap?>(initialValue = null, key1 = assetPath) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                context.assets.open(assetPath).use { inputStream ->
+                    val options = BitmapFactory.Options().apply {
+                        inSampleSize = 2 // Downsampled to 540x1200 for lightning-fast memory & silky 120Hz scrolling
+                        inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                    }
+                    BitmapFactory.decodeStream(inputStream, null, options)?.asImageBitmap()
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }.value
+}
+
+@Composable
+private fun PhoneMockupCard(preview: AppScreenshotPreview) {
     val theme = LocalStoreTheme.current
+    val bitmap = rememberAssetBitmap(preview.assetPath)
 
     Box(
         modifier = Modifier
-            .width(230.dp)
-            .height(380.dp)
-            .clip(RoundedCornerShape(26.dp))
+            .width(200.dp)
+            .height(410.dp)
+            .clip(RoundedCornerShape(24.dp))
             .background(theme.surface)
-            .border(1.5.dp, theme.borderHighlight, RoundedCornerShape(26.dp))
-            .padding(14.dp)
+            .border(1.5.dp, theme.borderHighlight, RoundedCornerShape(24.dp))
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Mockup Status Bar with Dynamic Island / Punch Hole Notch
-            Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "9:41",
-                        color = theme.textMuted,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = preview.caption,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(24.dp)),
+                contentScale = ContentScale.Crop
+            )
 
-                    // Dynamic Camera Notch
-                    Box(
-                        modifier = Modifier
-                            .width(42.dp)
-                            .height(10.dp)
-                            .clip(CircleShape)
-                            .background(if (theme.isDark) Color(0xFF161619) else Color(0xFFCBD5E1))
-                    )
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(5.dp)
-                                .clip(CircleShape)
-                                .background(preview.accentColor)
+            // Gloss & Frame gradient overlay at bottom
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.85f)
+                            )
                         )
-                        Text(
-                            text = "5G",
-                            color = theme.textDarkMuted,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
+                    )
+            )
 
-            // Mockup Visual Core
+            // Subtle Simulated Camera Notch
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 10.dp)
+                    .width(40.dp)
+                    .height(9.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.7f))
+            )
+
+            // Bottom Tag & Caption
             Column(
                 modifier = Modifier
+                    .align(Alignment.BottomStart)
                     .fillMaxWidth()
-                    .padding(vertical = 10.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                // Accent Icon Badge
                 Box(
                     modifier = Modifier
-                        .size(46.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(preview.accentColor.copy(alpha = 0.15f))
-                        .border(1.dp, preview.accentColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color(0xFF2563EB))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
-                    Icon(
-                        imageVector = preview.icon,
-                        contentDescription = null,
-                        tint = preview.accentColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                        text = preview.title,
-                        color = preview.accentColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = preview.headline,
-                        color = theme.textPrimary,
+                        text = preview.tag,
+                        color = Color.White,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        lineHeight = 19.sp
+                        letterSpacing = 0.5.sp
                     )
                 }
-
-                // Feature Highlights Inside Screen Mockup
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    preview.highlights.forEach { highlight ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(4.dp)
-                                    .clip(CircleShape)
-                                    .background(theme.textMuted)
-                            )
-                            Text(
-                                text = highlight,
-                                color = theme.textSecondary,
-                                fontSize = 11.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
+                Text(
+                    text = preview.caption,
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 11.5.sp,
+                    lineHeight = 15.sp,
+                    maxLines = 2
+                )
             }
-
-            // Mockup Bottom Device Pill Bar & Caption
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(theme.cardElevated)
-                        .border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 10.dp, vertical = 7.dp)
-                ) {
-                    Text(
-                        text = preview.subtitle,
-                        color = theme.textSecondary,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                // Home Bar Pill
-                Box(
-                    modifier = Modifier
-                        .width(48.dp)
-                        .height(3.dp)
-                        .clip(CircleShape)
-                        .background(theme.textDarkMuted.copy(alpha = 0.5f))
+        } else {
+            // Elegant loading placeholder
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(24.dp),
+                    color = theme.accentColor,
+                    strokeWidth = 2.dp
                 )
             }
         }

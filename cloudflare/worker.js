@@ -1802,20 +1802,20 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         category: "Services",
         version_name: "1.7.5",
         version_code: 32,
-        size_bytes: 14371183,
-        size_formatted: "13.7 MB",
+        size_bytes: 17993017,
+        size_formatted: "17.2 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
-          "Universal Dual Theme Engine: Pitch-Black OLED Noir & Ivory Clean White luxury themes with dynamic composition local provider and instant switching",
-          "Tactile Spring Physics: Fluid physics-based press scaling and spring damping across all action buttons, cards, category chips, and navigation items",
-          "Interactive Device Frame Previews: Elevated PhoneMockupCard featuring realistic OLED bezels, camera punch-hole notch, status bar, and live highlight slides",
-          "Card 1-Tap Action Engine: Direct installation and update actions right from the catalog card with animated download shimmer sweep and PackageInstaller IPC status",
-          "Biometric & Password Authorization: Integrated StoreAppDownloadAuthSheet with fingerprint sensor support and secure credential verification"
+          "Fluid Spring Transition Animations: Tactile modal slide and scale spring physics when opening application details from the catalog",
+          "Original Guest UI Previews: Integrated real emulator application screenshots captured cleanly in guest mode across all applications",
+          "Streamlined Technical Specifications: Removed technical clutter and low-level jargon, presenting clean version, size, category, and compatibility",
+          "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White luxury themes with dynamic composition local provider and instant switching",
+          "Tactile Spring Physics: Fluid physics-based press scaling and spring damping across all action buttons, cards, category chips, and navigation items"
         ],
         is_essential: true,
-        updated_at: "2026-11-09T03:55:00Z"
+        updated_at: "2026-11-09T06:15:00Z"
       },
       {
         id: "connecto",
