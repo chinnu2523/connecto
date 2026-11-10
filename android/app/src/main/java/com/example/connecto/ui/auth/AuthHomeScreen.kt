@@ -1,7 +1,15 @@
 package com.example.connecto.ui.auth
 
+import android.content.Context
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -13,10 +21,12 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -38,15 +48,19 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Email
+import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Login
 import androidx.compose.material.icons.outlined.MarkEmailRead
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Checkbox
 import com.example.connecto.ui.designsystem.ConnectoEmailGhostField
 import com.example.connecto.ui.designsystem.ConnectoOtpCodeField
@@ -74,6 +88,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -83,14 +100,42 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.fragment.app.FragmentActivity
 import com.example.connecto.R
 import com.example.connecto.network.ConnectoApiClient
+import com.example.connecto.security.BiometricAuthManager
 import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import com.example.connecto.ui.theme.isAppInLightTheme
 import com.example.connecto.ui.designsystem.ConnectoTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+fun sanitizeAuthError(raw: String?): String {
+    if (raw.isNullOrBlank()) return "An unexpected issue occurred. Please try again."
+    val lower = raw.lowercase()
+    return when {
+        lower.contains("failed to connect") || lower.contains("connectexception") || lower.contains("network") || lower.contains("timeout") || lower.contains("unable to resolve host") || lower.contains("connection refused") ->
+            "Unable to reach the server. Please check your internet connection."
+        lower.contains("invalid username") || lower.contains("invalid password") || lower.contains("incorrect password") || lower.contains("credentials") || lower.contains("401") || lower.contains("unauthorized") || lower.contains("invalid login") ->
+            "Incorrect username/email or password. Please verify your credentials."
+        lower.contains("already exists") || lower.contains("already registered") || lower.contains("taken") ->
+            "This account or username is already taken. Please sign in or choose another."
+        lower.contains("otp") && (lower.contains("invalid") || lower.contains("expired") || lower.contains("incorrect") || lower.contains("mismatch")) ->
+            "Invalid or expired verification code. Please request a new OTP code."
+        lower.contains("rate limit") || lower.contains("too many") || lower.contains("429") ->
+            "Too many attempts. Please wait a moment before trying again."
+        lower.contains("age") || lower.contains("18") ->
+            "You must be 18 years or older to register on Connecto."
+        lower.contains("terms") ->
+            "Please agree to the Terms of Use and Privacy Policy to continue."
+        lower.contains("500") || lower.contains("server error") || lower.contains("internal") || lower.contains("json") || lower.contains("exception") || lower.contains("sqlite") ->
+            "Service temporarily unavailable. Please try again shortly."
+        raw.length > 80 ->
+            "Unable to process request. Please check your details and try again."
+        else -> raw
+    }
+}
 
 enum class FieldValidationStatus {
     IDLE,
@@ -150,6 +195,22 @@ fun AuthHomeScreen(
     var loginPassword by remember { mutableStateOf("") }
 
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val isBiometricAvailable = remember { BiometricAuthManager.isBiometricEnrolled(context) }
+    val isFaceId = remember { BiometricAuthManager.isFaceIdPrimary(context) }
+
+    val lastLoginUser = remember {
+        context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE)
+            .getString("last_logged_in_username", "") ?: ""
+    }
+
+    LaunchedEffect(Unit) {
+        if (loginUsernameOrEmail.isBlank() && lastLoginUser.isNotBlank()) {
+            loginUsernameOrEmail = lastLoginUser
+        }
+    }
 
     // Helper function to calculate age and validate 18+
     fun validateAndCalculateAge(dobStr: String) {
@@ -369,78 +430,170 @@ fun AuthHomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
+                    .clip(RoundedCornerShape(26.dp))
                     .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(24.dp))
-                    .padding(6.dp)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(26.dp))
+                    .padding(8.dp)
             ) {
-                // Tab Switcher Pill
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(20.dp))
-                        .padding(4.dp)
-                ) {
-                    // Sign Up Tab
-                    Box(
+                Column {
+                    // Modern Fluid Tab Switcher Pill with Spring Physics Indicator
+                    BoxWithConstraints(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (isSignUp) Brush.horizontalGradient(gradientColors)
-                                else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                            )
-                            .clickable {
-                                isSignUp = true
-                                errorMessage = null
-                                forceShowValidationErrors = false
-                            },
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+                            .padding(4.dp)
                     ) {
-                        Text(
-                            text = "SIGN UP",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.5.sp
+                        val pillWidth = maxWidth / 2
+                        val indicatorOffset by animateDpAsState(
+                            targetValue = if (isSignUp) 0.dp else pillWidth,
+                            animationSpec = spring(
+                                dampingRatio = 0.82f,
+                                stiffness = Spring.StiffnessMediumLow
+                            ),
+                            label = "authTabPillOffset"
                         )
+
+                        // Sliding Active Pill Background
+                        Box(
+                            modifier = Modifier
+                                .offset(x = indicatorOffset)
+                                .width(pillWidth)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Brush.horizontalGradient(gradientColors))
+                        )
+
+                        // Tab Buttons
+                        Row(modifier = Modifier.fillMaxSize()) {
+                            // SIGN UP TAB
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        if (!isSignUp) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            isSignUp = true
+                                            errorMessage = null
+                                            forceShowValidationErrors = false
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.PersonAdd,
+                                        contentDescription = null,
+                                        tint = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "SIGN UP",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        letterSpacing = 0.6.sp
+                                    )
+                                }
+                            }
+
+                            // SIGN IN TAB
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        if (isSignUp) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            isSignUp = false
+                                            errorMessage = null
+                                            forceShowValidationErrors = false
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Login,
+                                        contentDescription = null,
+                                        tint = if (!isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "SIGN IN",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (!isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        letterSpacing = 0.6.sp
+                                    )
+                                }
+                            }
+                        }
                     }
 
-                    // Sign In Tab
-                    Box(
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Contextual Security & Ease-of-use Micro-Badge
+                    Row(
                         modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (!isSignUp) Brush.horizontalGradient(gradientColors)
-                                else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                            )
-                            .clickable {
-                                isSignUp = false
-                                errorMessage = null
-                                forceShowValidationErrors = false
-                            },
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(horizontal = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "SIGN IN",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (!isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.5.sp
+                            text = if (isSignUp) "Fast 30-sec Setup" else "Instant & Secure",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Outlined.Shield,
+                                contentDescription = null,
+                                tint = gradientColors.first(),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "End-to-End Encrypted",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = gradientColors.first()
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // ===== INPUT FIELDS =====
-            Crossfade(targetState = isSignUp, animationSpec = tween(300), label = "authFormCrossfade") { signUpMode ->
+            // ===== INPUT FIELDS WITH HORIZONTAL TRANSITION =====
+            AnimatedContent(
+                targetState = isSignUp,
+                transitionSpec = {
+                    if (targetState) {
+                        (slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
+                            .togetherWith(slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
+                    } else {
+                        (slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
+                            .togetherWith(slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
+                    }
+                },
+                label = "authFormAnimatedContent"
+            ) { signUpMode ->
                 if (signUpMode) {
                     Column {
                         // Email Field with Interactive Ghost Completion (tap to fill in white)
@@ -501,7 +654,7 @@ fun AuthHomeScreen(
                                                 otpStatusMessage = "OTP sent to $clean. Check your inbox!"
                                             } else {
                                                 otpStatusIsError = true
-                                                otpStatusMessage = res.exceptionOrNull()?.message ?: "Failed to send OTP code"
+                                                otpStatusMessage = sanitizeAuthError(res.exceptionOrNull()?.message ?: "Failed to send OTP code")
                                             }
                                         }
                                     },
@@ -582,7 +735,7 @@ fun AuthHomeScreen(
                                                 otpStatusMessage = "Email verified successfully ✓"
                                             } else {
                                                 otpStatusIsError = true
-                                                otpStatusMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code"
+                                                otpStatusMessage = sanitizeAuthError(res.exceptionOrNull()?.message ?: "Invalid OTP verification code")
                                             }
                                         }
                                     }
@@ -613,7 +766,7 @@ fun AuthHomeScreen(
                                                     otpStatusMessage = "Email verified successfully ✓"
                                                 } else {
                                                     otpStatusIsError = true
-                                                    otpStatusMessage = res.exceptionOrNull()?.message ?: "Invalid OTP verification code"
+                                                    otpStatusMessage = sanitizeAuthError(res.exceptionOrNull()?.message ?: "Invalid OTP verification code")
                                                 }
                                             }
                                         },
@@ -818,6 +971,75 @@ fun AuthHomeScreen(
                 } else {
                     // SIGN IN FIELDS
                     Column {
+                        // Quick Biometric Sign In (if enrolled on this device)
+                        if (isBiometricAvailable) {
+                            OutlinedButton(
+                                onClick = {
+                                    val activity = context as? FragmentActivity
+                                    if (activity != null) {
+                                        BiometricAuthManager.authenticate(
+                                            activity = activity,
+                                            title = if (isFaceId) "Sign In with Face ID" else "Sign In with Fingerprint",
+                                            subtitle = if (loginUsernameOrEmail.isNotBlank()) "Authenticate as $loginUsernameOrEmail" else "Biometric verification",
+                                            isFaceId = isFaceId,
+                                            onSuccess = { _ ->
+                                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                val targetUser = loginUsernameOrEmail.ifBlank { lastLoginUser }
+                                                if (targetUser.isNotBlank()) {
+                                                    onAuthSuccess(targetUser)
+                                                } else {
+                                                    errorMessage = "Please enter your username to complete biometric login."
+                                                }
+                                            },
+                                            onError = { _, errString ->
+                                                errorMessage = sanitizeAuthError(errString.toString())
+                                            }
+                                        )
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Fingerprint,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isFaceId) "Instant Face ID Sign In" else "Instant Biometric Sign In",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)))
+                                Text(
+                                    text = "OR SIGN IN WITH PASSWORD",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(horizontal = 10.dp),
+                                    letterSpacing = 0.5.sp
+                                )
+                                Box(modifier = Modifier.weight(1f).height(1.dp).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)))
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                        }
+
                         AuthTextField(
                             value = loginUsernameOrEmail,
                             onValueChange = {
@@ -853,8 +1075,24 @@ fun AuthHomeScreen(
                         Spacer(modifier = Modifier.height(10.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Shield,
+                                    contentDescription = null,
+                                    tint = gradientColors.first(),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Keystore 256-bit AES",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
                             Text(
                                 text = "Forgot Password?",
                                 color = gradientColors.first(),
@@ -878,21 +1116,29 @@ fun AuthHomeScreen(
                 val errorText = if (isLight) Color(0xFFDC2626) else Color(0xFFFCA5A5)
                 val errorBorder = if (isLight) Color(0xFFFCA5A5) else Color(0xFFEF4444).copy(alpha = 0.5f)
 
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(errorBg)
-                        .border(1.dp, errorBorder, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .border(1.dp, errorBorder, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning,
+                        contentDescription = null,
+                        tint = errorText,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = errorMessage ?: "",
+                        text = sanitizeAuthError(errorMessage),
                         color = errorText,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        lineHeight = 17.sp,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -992,7 +1238,7 @@ fun AuthHomeScreen(
                                 onAuthSuccess(passedName)
                             } else {
                                 val err = result.exceptionOrNull()?.message ?: "Sign up failed. Please try again."
-                                errorMessage = err
+                                errorMessage = sanitizeAuthError(err)
                             }
                         }
                     } else {
@@ -1028,7 +1274,7 @@ fun AuthHomeScreen(
                                 }
                             } else {
                                 val err = result.exceptionOrNull()?.message ?: "Invalid username/email or password."
-                                errorMessage = err
+                                errorMessage = sanitizeAuthError(err)
                             }
                         }
                     }

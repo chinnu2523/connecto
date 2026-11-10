@@ -228,7 +228,7 @@ fun TwoFactorLoginDialog(
                             if (res.isSuccess) {
                                 onSuccess(res.getOrThrow())
                             } else {
-                                errorMessage = res.exceptionOrNull()?.message ?: "2FA verification failed."
+                                errorMessage = sanitizeAuthError(res.exceptionOrNull()?.message ?: "2FA verification failed.")
                             }
                         }
                     }
@@ -253,7 +253,7 @@ fun TwoFactorLoginDialog(
                             if (res.isSuccess) {
                                 onSuccess(res.getOrThrow())
                             } else {
-                                errorMessage = res.exceptionOrNull()?.message ?: "2FA verification failed."
+                                errorMessage = sanitizeAuthError(res.exceptionOrNull()?.message ?: "2FA verification failed.")
                             }
                         }
                     },
