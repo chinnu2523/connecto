@@ -47,14 +47,14 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes (Moss & Emerald, Mint & Vivid Red, Fiery Lime, Mocha Electric, Butter & Ink, Olive Bubblegum, Charcoal Crimson, Lemon Lavender, Mocha Gold) integrated natively in Profile appearance",
+            "Modern Sign Up & Sign In Tab UI: Fluid sliding pill indicator with spring physics, tactile haptic feedback, and contextual security badges",
+            "Biometric Quick Unlock: 1-tap Fingerprint & Face ID instant login with Android Keystore hardware-backed encryption",
             "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs",
-            "Modern High-Taste UI: Refined Linear minimalist headers, polished typography, and clean bubble styling",
-            "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
-            "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion"
+            "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes integrated natively in Profile appearance",
+            "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-10T15:50:00Z"
+        "updated_at": "2026-11-10T16:15:00Z"
     },
     {
         "id": "jarvis",
