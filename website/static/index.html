@@ -31079,6 +31079,20 @@ html[data-theme="dark"] #saveProfileBtn {
         ? renderAvatarHTML(resolvedAvatar, resolvedUser || title || 'Connecto', 42)
         : `<img src="${resolvedAvatar || '/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
 
+      // Sanitize raw technical errors, HTTP payloads, or stack traces
+      if (typeof content === 'string') {
+        const lower = content.toLowerCase();
+        if (content.length > 90 || lower.includes('exception') || lower.includes('traceback') || lower.includes('failed to fetch') || lower.includes('econnrefused') || (content.startsWith('{') && content.endsWith('}'))) {
+          if (lower.includes('network') || lower.includes('fetch') || lower.includes('connect')) {
+            content = 'Network connection issue. Please check your internet and try again.';
+          } else if (lower.includes('unauthorized') || lower.includes('expired') || lower.includes('token')) {
+            content = 'Session expired. Please log in again.';
+          } else {
+            content = 'Something went wrong. Please try again.';
+          }
+        }
+      }
+
       toast.innerHTML = `
         <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
           ${avatarHtml}
@@ -42563,6 +42577,20 @@ function selectSettingsAvatar(emoji, el) {
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         opacity: 0;
       `;
+      // Sanitize raw technical errors, HTTP payloads, or stack traces
+      if (typeof content === 'string') {
+        const lower = content.toLowerCase();
+        if (content.length > 90 || lower.includes('exception') || lower.includes('traceback') || lower.includes('failed to fetch') || lower.includes('econnrefused') || (content.startsWith('{') && content.endsWith('}'))) {
+          if (lower.includes('network') || lower.includes('fetch') || lower.includes('connect')) {
+            content = 'Network connection issue. Please check your internet and try again.';
+          } else if (lower.includes('unauthorized') || lower.includes('expired') || lower.includes('token')) {
+            content = 'Session expired. Please log in again.';
+          } else {
+            content = 'Something went wrong. Please try again.';
+          }
+        }
+      }
+
       toast.innerHTML = `
         <span style="font-size:18px;">⚡</span>
         <span>Connecting to <strong>${providerName}</strong> single sign-on...</span>

@@ -650,7 +650,7 @@ fun ProfileScreen(
             }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "Cannot open browser: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Unable to open browser. Please try again.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -673,7 +673,7 @@ fun ProfileScreen(
             }
             context.startActivity(Intent.createChooser(intent, "Send Email via..."))
         } catch (e: Exception) {
-            Toast.makeText(context, "No email application available: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "No email application available on device.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -748,10 +748,10 @@ fun ProfileScreen(
                 if (res.isSuccess) {
                     activeSessions = res.getOrThrow()
                 } else {
-                    sessionErrorMessage = res.exceptionOrNull()?.message ?: "Failed to fetch active sessions"
+                    sessionErrorMessage = sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to load active sessions. Please check your connection.")
                 }
             } catch (e: Exception) {
-                sessionErrorMessage = e.message
+                sessionErrorMessage = sanitizeErrorMessage(e.message, "Unable to load active sessions. Please check your connection.")
             } finally {
                 isLoadingSessions = false
             }
@@ -773,10 +773,10 @@ fun ProfileScreen(
                     activeSessions = activeSessions.filter { it.id != sessId }
                     Toast.makeText(context, "Session logged out successfully", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, res.exceptionOrNull()?.message ?: "Failed to terminate session", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to log out session. Please try again."), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, sanitizeErrorMessage(e.message, "Unable to log out session. Please try again."), Toast.LENGTH_SHORT).show()
             } finally {
                 terminatingSessionId = null
             }
@@ -793,10 +793,10 @@ fun ProfileScreen(
                     activeSessions = activeSessions.filter { it.isCurrent }
                     Toast.makeText(context, "Logged out of $count other session(s)", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, res.exceptionOrNull()?.message ?: "Failed to log out of other sessions", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to log out of other sessions. Please try again."), Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, sanitizeErrorMessage(e.message, "Unable to log out of other sessions. Please try again."), Toast.LENGTH_SHORT).show()
             } finally {
                 isTerminatingOtherSessions = false
             }
@@ -1861,7 +1861,7 @@ fun ProfileScreen(
                                                         twoFaDisableMaskedDest = data?.maskedDestination
                                                         show2FaDisableDialog = true
                                                     } else {
-                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch verification code to email."
+                                                        twoFaErrorMessage = sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to send verification code. Please try again.")
                                                     }
                                                 }
                                             }
@@ -1890,7 +1890,7 @@ fun ProfileScreen(
                                                         )
                                                         show2FaSetupDialog = true
                                                     } else {
-                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch setup OTP."
+                                                        twoFaErrorMessage = sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to send setup code. Please try again.")
                                                     }
                                                 }
                                             }
@@ -3139,7 +3139,7 @@ fun ProfileScreen(
                                                         twoFaDisableMaskedDest = data?.maskedDestination
                                                         show2FaDisableDialog = true
                                                     } else {
-                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch verification code to email."
+                                                        twoFaErrorMessage = sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to send verification code. Please try again.")
                                                     }
                                                 }
                                             }
@@ -3168,7 +3168,7 @@ fun ProfileScreen(
                                                         )
                                                         show2FaSetupDialog = true
                                                     } else {
-                                                        twoFaErrorMessage = res.exceptionOrNull()?.message ?: "Failed to dispatch setup OTP."
+                                                        twoFaErrorMessage = sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to send setup code. Please try again.")
                                                     }
                                                 }
                                             }
@@ -3770,439 +3770,348 @@ fun ProfileScreen(
                                             )
                                             .padding(18.dp)
                                     ) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    // 1. Active Theme Summary Header
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
+                                        Column(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalArrangement = Arrangement.spacedBy(16.dp)
                                         ) {
-                                            Text(
-                                                text = currentThemeMode.iconEmoji,
-                                                fontSize = 24.sp
-                                            )
-                                            Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                            // 1. Current Theme Header Card
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.weight(1f)
+                                                ) {
                                                     Text(
-                                                        text = currentThemeMode.displayName,
-                                                        fontSize = 15.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.onSurface
+                                                        text = currentThemeMode.iconEmoji,
+                                                        fontSize = 26.sp
                                                     )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(6.dp))
-                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    ) {
+                                                    Spacer(modifier = Modifier.width(12.dp))
+                                                    Column {
+                                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                                            Text(
+                                                                text = currentThemeMode.displayName,
+                                                                fontSize = 15.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Spacer(modifier = Modifier.width(8.dp))
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .clip(RoundedCornerShape(6.dp))
+                                                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                            ) {
+                                                                Text(
+                                                                    text = "ACTIVE",
+                                                                    fontSize = 10.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = MaterialTheme.colorScheme.primary
+                                                                )
+                                                            }
+                                                        }
                                                         Text(
-                                                            text = "ACTIVE",
-                                                            fontSize = 10.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.primary
+                                                            text = currentThemeMode.subtitle,
+                                                            fontSize = 12.sp,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
                                                 }
-                                                Text(
-                                                    text = currentThemeMode.subtitle,
-                                                    fontSize = 12.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+
+                                                // Quick toggle between Dark and Light
+                                                Switch(
+                                                    checked = currentThemeMode.isDark,
+                                                    onCheckedChange = { isDark ->
+                                                        val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                                                        onSelectThemeMode(newMode)
+                                                        onToggleTheme(isDark)
+                                                    },
+                                                    colors = getMonochromeSwitchColors()
                                                 )
                                             }
-                                        }
 
-                                        // Quick toggle between Dark and Light
-                                        Switch(
-                                            checked = currentThemeMode.isDark,
-                                            onCheckedChange = { isDark ->
-                                                val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
-                                                onSelectThemeMode(newMode)
-                                                onToggleTheme(isDark)
-                                            },
-                                            colors = getMonochromeSwitchColors()
-                                        )
-                                    }
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
 
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), thickness = 1.dp)
+                                            // 2. Primary Base Mode (Dark OLED vs Light Paper)
+                                            Text(
+                                                text = "BASE MODE",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
 
-                                    Text(
-                                        text = "SELECT COLOR PALETTE & ATMOSPHERE",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-
-                                    // 2. Theme Selection Cards Grid (5 Transparent Liquid Glass Themes)
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                                    ) {
-                                        com.example.connecto.ui.designsystem.ThemeMode.entries.forEach { mode ->
-                                            val isSelected = currentThemeMode == mode
-                                            val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .shadow(
-                                                        elevation = if (isSelected) 6.dp else 3.dp,
-                                                        shape = RoundedCornerShape(16.dp),
-                                                        ambientColor = Color.Black.copy(alpha = if (isThemeDark) 0.35f else 0.08f),
-                                                        spotColor = if (isSelected) modeColors.primary.copy(alpha = 0.40f) else Color.Transparent
-                                                    )
-                                                    .clip(RoundedCornerShape(16.dp))
-                                                    .background(
-                                                        brush = Brush.verticalGradient(
-                                                            colors = if (isSelected) {
-                                                                listOf(
-                                                                    modeColors.primary.copy(alpha = if (isThemeDark) 0.22f else 0.30f),
-                                                                    modeColors.surface.copy(alpha = if (isThemeDark) 0.12f else 0.18f)
-                                                                )
-                                                            } else {
-                                                                listOf(
-                                                                    Color.White.copy(alpha = if (isThemeDark) 0.08f else 0.55f),
-                                                                    modeColors.surface.copy(alpha = if (isThemeDark) 0.05f else 0.25f)
-                                                                )
-                                                            }
-                                                        )
-                                                    )
-                                                    .border(
-                                                        width = if (isSelected) 1.5.dp else 1.dp,
-                                                        brush = Brush.linearGradient(
-                                                            colors = if (isSelected) {
-                                                                listOf(
-                                                                    Color.White.copy(alpha = 0.90f),
-                                                                    modeColors.primary.copy(alpha = 0.80f),
-                                                                    modeColors.primary.copy(alpha = 0.25f)
-                                                                )
-                                                            } else {
-                                                                listOf(
-                                                                    Color.White.copy(alpha = if (isThemeDark) 0.45f else 0.75f),
-                                                                    modeColors.primary.copy(alpha = 0.25f),
-                                                                    Color.White.copy(alpha = 0.06f)
-                                                                )
-                                                            },
-                                                            start = Offset.Zero,
-                                                            end = Offset(300f, 300f)
-                                                        ),
-                                                        shape = RoundedCornerShape(16.dp)
-                                                    )
-                                                    .clickable {
-                                                        onSelectThemeMode(mode)
-                                                    }
-                                                    .padding(12.dp)
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
-                                                Row(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.SpaceBetween
-                                                ) {
-                                                    // Left: Emoji + Name + Subtitle
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        modifier = Modifier.weight(1f)
-                                                    ) {
-                                                        // Live Palette Preview Pill with Glass Glare
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .size(44.dp)
-                                                                .shadow(2.dp, RoundedCornerShape(12.dp))
-                                                                .clip(RoundedCornerShape(12.dp))
-                                                                .background(
-                                                                    Brush.verticalGradient(
-                                                                        listOf(
-                                                                            Color.White.copy(alpha = if (isThemeDark) 0.18f else 0.70f),
-                                                                            modeColors.background.copy(alpha = 0.50f)
-                                                                        )
-                                                                    )
-                                                                )
-                                                                .border(
-                                                                    1.dp,
-                                                                    Brush.linearGradient(
-                                                                        listOf(
-                                                                            Color.White.copy(alpha = 0.70f),
-                                                                            modeColors.primary.copy(alpha = 0.45f),
-                                                                            Color.Transparent
-                                                                        )
-                                                                    ),
-                                                                    RoundedCornerShape(12.dp)
-                                                                ),
-                                                            contentAlignment = Alignment.Center
-                                                        ) {
-                                                            Text(
-                                                                text = mode.iconEmoji,
-                                                                fontSize = 18.sp
+                                                val primaryModes = listOf(
+                                                    com.example.connecto.ui.designsystem.ThemeMode.NOIR,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                                                )
+
+                                                primaryModes.forEach { mode ->
+                                                    val isSelected = currentThemeMode == mode
+                                                    val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
+
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .weight(1f)
+                                                            .shadow(
+                                                                elevation = if (isSelected) 4.dp else 1.dp,
+                                                                shape = RoundedCornerShape(14.dp),
+                                                                spotColor = if (isSelected) modeColors.primary.copy(alpha = 0.35f) else Color.Transparent
                                                             )
-                                                        }
-
-                                                        Spacer(modifier = Modifier.width(12.dp))
-
-                                                        Column {
-                                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                                Text(
-                                                                    text = mode.displayName,
-                                                                    fontSize = 14.sp,
-                                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                                )
+                                                            .clip(RoundedCornerShape(14.dp))
+                                                            .background(
+                                                                if (isSelected) modeColors.primary.copy(alpha = if (isThemeDark) 0.18f else 0.22f)
+                                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isThemeDark) 0.35f else 0.50f)
+                                                            )
+                                                            .border(
+                                                                width = if (isSelected) 1.5.dp else 1.dp,
+                                                                color = if (isSelected) modeColors.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
+                                                                shape = RoundedCornerShape(14.dp)
+                                                            )
+                                                            .clickable {
+                                                                onSelectThemeMode(mode)
+                                                                onToggleTheme(mode.isDark)
+                                                            }
+                                                            .padding(12.dp)
+                                                    ) {
+                                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(text = mode.iconEmoji, fontSize = 20.sp)
                                                                 if (isSelected) {
-                                                                    Spacer(modifier = Modifier.width(6.dp))
                                                                     Icon(
                                                                         imageVector = Icons.Default.CheckCircle,
                                                                         contentDescription = "Selected",
-                                                                        tint = MaterialTheme.colorScheme.primary,
+                                                                        tint = modeColors.primary,
                                                                         modifier = Modifier.size(16.dp)
                                                                     )
                                                                 }
                                                             }
                                                             Text(
-                                                                text = mode.subtitle,
-                                                                fontSize = 11.sp,
+                                                                text = if (mode == com.example.connecto.ui.designsystem.ThemeMode.NOIR) "Dark (OLED)" else "Light (Paper)",
+                                                                fontSize = 13.sp,
+                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                                color = MaterialTheme.colorScheme.onSurface
+                                                            )
+                                                            Text(
+                                                                text = if (mode == com.example.connecto.ui.designsystem.ThemeMode.NOIR) "Pitch black • Night" else "Warm ivory • Day",
+                                                                fontSize = 10.sp,
                                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
                                                         }
                                                     }
-
-                                                    // Right: Color Swatches Preview with Specular Glass Beads
-                                                    Row(
-                                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        val swatches = if (mode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
-                                                            listOf(
-                                                                Color.White,
-                                                                Color(0xFFCBD5E1),
-                                                                Color(0x40FFFFFF),
-                                                                Color.Transparent
-                                                            )
-                                                        } else {
-                                                            listOf(
-                                                                modeColors.primary,
-                                                                modeColors.info,
-                                                                modeColors.surface,
-                                                                modeColors.background
-                                                            )
-                                                        }
-                                                        swatches.forEach { swatchColor ->
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(17.dp)
-                                                                    .shadow(1.dp, CircleShape)
-                                                                    .clip(CircleShape)
-                                                                    .background(
-                                                                        Brush.radialGradient(
-                                                                            colors = listOf(
-                                                                                Color.White.copy(alpha = 0.65f),
-                                                                                swatchColor,
-                                                                                swatchColor
-                                                                            ),
-                                                                            center = Offset(5f, 5f),
-                                                                            radius = 12f
-                                                                        )
-                                                                    )
-                                                                    .border(1.dp, Color.White.copy(alpha = 0.40f), CircleShape)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
-                                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), thickness = 1.dp)
-
-                                        Column(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = "LIQUID GLASS OPACITY (0% - 100%)",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 0.5.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                    Text(
-                                                        text = when {
-                                                            glassTransparency <= 0.01f -> "0% Pure Transparent Liquid Glass (Completely Clear)"
-                                                            glassTransparency < 0.25f -> "Ultra-Light Glass (Subtle Sheen & Specular Borders)"
-                                                            glassTransparency < 0.60f -> "Balanced Liquid Glass (Frosted Translucency)"
-                                                            glassTransparency < 0.90f -> "Semi-Solid Glaze (Deep Contrast & High Visibility)"
-                                                            else -> "100% Full Solid Glass (Maximum Opacity & Bold Tint)"
-                                                        },
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(8.dp))
-                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-                                                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "${(glassTransparency * 100).toInt()}% OPACITY",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = MaterialTheme.colorScheme.primary
-                                                    )
                                                 }
                                             }
 
-                                            // Live optical glass refraction preview box (neutral specular background, no foreign colors)
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .height(60.dp)
-                                                    .clip(RoundedCornerShape(14.dp))
-                                                    .background(
-                                                        Brush.horizontalGradient(
-                                                            listOf(
-                                                                Color(0x33FFFFFF),
-                                                                Color(0x1AFFFFFF),
-                                                                Color(0x0DFFFFFF)
-                                                            )
-                                                        )
-                                                    )
-                                                    .padding(4.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxSize()
-                                                        .liquidGlassCard(
-                                                            shape = RoundedCornerShape(10.dp),
-                                                            backgroundColor = Color.Transparent,
-                                                            borderColor = Color.White
-                                                        ),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "🪞 Live Glass Transparency: ${(glassTransparency * 100).toInt()}%",
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.SemiBold,
-                                                        color = MaterialTheme.colorScheme.onSurface
-                                                    )
-                                                }
-                                            }
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
 
-                                            // 5 Quick Presets (0% to 100%)
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                val presets = listOf(
-                                                    Triple("0%", "Clear", 0.0f),
-                                                    Triple("25%", "Light", 0.25f),
-                                                    Triple("50%", "Bal.", 0.50f),
-                                                    Triple("75%", "Deep", 0.75f),
-                                                    Triple("100%", "Solid", 1.0f)
-                                                )
-                                                presets.forEach { (pct, label, value) ->
-                                                    val isPresetActive = kotlin.math.abs(glassTransparency - value) < 0.06f
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .clip(RoundedCornerShape(8.dp))
-                                                            .background(
-                                                                if (isPresetActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                                            )
-                                                            .border(
-                                                                1.dp,
-                                                                if (isPresetActive) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.12f),
-                                                                RoundedCornerShape(8.dp)
-                                                            )
-                                                            .clickable { onChangeGlassTransparency(value) }
-                                                            .padding(vertical = 6.dp),
-                                                        contentAlignment = Alignment.Center
-                                                    ) {
-                                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                            Text(
-                                                                text = pct,
-                                                                fontSize = 11.sp,
-                                                                fontWeight = if (isPresetActive) FontWeight.Bold else FontWeight.SemiBold,
-                                                                color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                            )
-                                                            Text(
-                                                                text = label,
-                                                                fontSize = 9.sp,
-                                                                color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            // 3. Accent & Glass Styles
+                                            Text(
+                                                text = "ACCENT & GLASS STYLES",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.5.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
 
-                                            // Continuous Dynamic Liquid Glass Transparency Bar (0.0f to 1.0f)
                                             Column(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                                                verticalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
-                                                LiquidGlassTransparencyBar(
-                                                    value = glassTransparency.coerceIn(0.0f, 1.0f),
-                                                    onValueChange = { onChangeGlassTransparency(it.coerceIn(0.0f, 1.0f)) },
-                                                    modifier = Modifier.fillMaxWidth()
+                                                val styles = listOf(
+                                                    com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.EMERALD,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.MIDNIGHT,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.CYBERPUNK
                                                 )
-                                                Row(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(horizontal = 6.dp),
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically
+
+                                                styles.forEach { mode ->
+                                                    val isSelected = currentThemeMode == mode
+                                                    val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
+
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .clip(RoundedCornerShape(14.dp))
+                                                            .background(
+                                                                if (isSelected) modeColors.primary.copy(alpha = if (isThemeDark) 0.16f else 0.20f)
+                                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isThemeDark) 0.25f else 0.40f)
+                                                            )
+                                                            .border(
+                                                                width = if (isSelected) 1.5.dp else 1.dp,
+                                                                color = if (isSelected) modeColors.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                                                shape = RoundedCornerShape(14.dp)
+                                                            )
+                                                            .clickable {
+                                                                onSelectThemeMode(mode)
+                                                                onToggleTheme(mode.isDark)
+                                                            }
+                                                            .padding(horizontal = 14.dp, vertical = 11.dp)
+                                                    ) {
+                                                        Row(
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.SpaceBetween
+                                                        ) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.weight(1f)
+                                                            ) {
+                                                                Text(text = mode.iconEmoji, fontSize = 20.sp)
+                                                                Spacer(modifier = Modifier.width(12.dp))
+                                                                Column {
+                                                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                                                        Text(
+                                                                            text = mode.displayName,
+                                                                            fontSize = 13.sp,
+                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                                        )
+                                                                        if (isSelected) {
+                                                                            Spacer(modifier = Modifier.width(6.dp))
+                                                                            Icon(
+                                                                                imageVector = Icons.Default.CheckCircle,
+                                                                                contentDescription = "Selected",
+                                                                                tint = MaterialTheme.colorScheme.primary,
+                                                                                modifier = Modifier.size(15.dp)
+                                                                            )
+                                                                        }
+                                                                    }
+                                                                    Text(
+                                                                        text = mode.subtitle,
+                                                                        fontSize = 11.sp,
+                                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                                    )
+                                                                }
+                                                            }
+
+                                                            // Color Swatches
+                                                            Row(
+                                                                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                listOf(modeColors.primary, modeColors.surface).forEach { c ->
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .size(16.dp)
+                                                                            .clip(CircleShape)
+                                                                            .background(c)
+                                                                            .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape)
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            // 4. Liquid Glass Translucency Settings
+                                            if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
+                                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
+
+                                                Column(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                                 ) {
-                                                    Text(
-                                                        text = "0% Pure Clear",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = if (glassTransparency <= 0.05f) FontWeight.Bold else FontWeight.Medium,
-                                                        color = if (glassTransparency <= 0.05f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                                        modifier = Modifier.clickable { onChangeGlassTransparency(0.0f) }
-                                                    )
-                                                    Text(
-                                                        text = "50% Translucent",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = if (kotlin.math.abs(glassTransparency - 0.5f) <= 0.05f) FontWeight.Bold else FontWeight.Medium,
-                                                        color = if (kotlin.math.abs(glassTransparency - 0.5f) <= 0.05f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                                        modifier = Modifier.clickable { onChangeGlassTransparency(0.5f) }
-                                                    )
-                                                    Text(
-                                                        text = "100% Solid",
-                                                        fontSize = 10.sp,
-                                                        fontWeight = if (glassTransparency >= 0.95f) FontWeight.Bold else FontWeight.Medium,
-                                                        color = if (glassTransparency >= 0.95f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                                        modifier = Modifier.clickable { onChangeGlassTransparency(1.0f) }
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically
+                                                    ) {
+                                                        Column {
+                                                            Text(
+                                                                text = "GLASS TRANSLUCENCY",
+                                                                fontSize = 11.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                letterSpacing = 0.5.sp,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                            )
+                                                            Text(
+                                                                text = when {
+                                                                    glassTransparency <= 0.15f -> "Pure Clear • Optical Glass"
+                                                                    glassTransparency <= 0.65f -> "Frosted • Balanced Translucent"
+                                                                    else -> "Solid • High Contrast"
+                                                                },
+                                                                fontSize = 12.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
+
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .clip(RoundedCornerShape(8.dp))
+                                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
+                                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "${(glassTransparency * 100).toInt()}%",
+                                                                fontSize = 12.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = MaterialTheme.colorScheme.primary
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // 3 Easy Presets: Clear, Frosted, Solid
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                    ) {
+                                                        val presets = listOf(
+                                                            Pair("Clear (0%)", 0.0f),
+                                                            Pair("Frosted (40%)", 0.40f),
+                                                            Pair("Solid (100%)", 1.0f)
+                                                        )
+                                                        presets.forEach { (label, value) ->
+                                                            val isPresetActive = kotlin.math.abs(glassTransparency - value) < 0.10f
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .weight(1f)
+                                                                    .clip(RoundedCornerShape(8.dp))
+                                                                    .background(
+                                                                        if (isPresetActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+                                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                                    )
+                                                                    .border(
+                                                                        1.dp,
+                                                                        if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
+                                                                        RoundedCornerShape(8.dp)
+                                                                    )
+                                                                    .clickable { onChangeGlassTransparency(value) }
+                                                                    .padding(vertical = 8.dp),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Text(
+                                                                    text = label,
+                                                                    fontSize = 11.sp,
+                                                                    fontWeight = if (isPresetActive) FontWeight.Bold else FontWeight.Medium,
+                                                                    color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Continuous Slider
+                                                    LiquidGlassTransparencyBar(
+                                                        value = glassTransparency.coerceIn(0.0f, 1.0f),
+                                                        onValueChange = { onChangeGlassTransparency(it.coerceIn(0.0f, 1.0f)) },
+                                                        modifier = Modifier.fillMaxWidth()
                                                     )
                                                 }
-                                                Text(
-                                                    text = "✨ Affects app-wide transparency across headers, navigation bar, chat dock, and cards.",
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                    modifier = Modifier.padding(top = 2.dp, start = 4.dp)
-                                                )
                                             }
                                         }
                                     }
-                                }
-                            }
                                 }
                             }
                             ProfileSubPage.GROUPS_COMMUNITIES -> {
@@ -5784,7 +5693,7 @@ fun ProfileScreen(
                                         context.sendBroadcast(broadcastIntent)
                                     } catch (_: Exception) {}
                                 } else {
-                                    Toast.makeText(context, "Delete failed: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to delete group. Please try again."), Toast.LENGTH_SHORT).show()
                                 }
                             } finally {
                                 isDeletingProfileGroup = false
@@ -5868,7 +5777,7 @@ fun ProfileScreen(
                                         context.sendBroadcast(broadcastIntent)
                                     } catch (_: Exception) {}
                                 } else {
-                                    Toast.makeText(context, "Failed to exit: ${res.exceptionOrNull()?.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, sanitizeErrorMessage(res.exceptionOrNull()?.message, "Unable to leave group. Please try again."), Toast.LENGTH_SHORT).show()
                                 }
                             } finally {
                                 isLeavingProfileGroup = false
@@ -6177,11 +6086,11 @@ fun ProfileScreen(
                                         Toast.makeText(context, "Account permanently deleted.", Toast.LENGTH_LONG).show()
                                         onDeleteAccount()
                                     } else {
-                                        val err = result.exceptionOrNull()?.message ?: "Unknown error"
-                                        Toast.makeText(context, "Delete failed: $err", Toast.LENGTH_LONG).show()
+                                        val err = sanitizeErrorMessage(result.exceptionOrNull()?.message, "Unable to delete account. Please try again.")
+                                        Toast.makeText(context, err, Toast.LENGTH_LONG).show()
                                     }
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, sanitizeErrorMessage(e.message, "Unable to delete account. Please try again."), Toast.LENGTH_LONG).show()
                                 } finally {
                                     isDeletingAccount = false
                                 }
@@ -9130,5 +9039,32 @@ private fun formatSessionTimestamp(createdAt: String, lastActiveAt: String, isCu
         "Logged in: $timeToUse"
     }
 }
+
+/**
+ * Sanitizes errors and exceptions to prevent showing raw server payloads, stack traces,
+ * or technical text to users. Returns clean, human-friendly guidance.
+ */
+private fun sanitizeErrorMessage(rawError: String?, fallback: String = "Something went wrong. Please try again."): String {
+    if (rawError.isNullOrBlank()) return fallback
+    val lower = rawError.lowercase()
+    return when {
+        lower.contains("network") || lower.contains("connect") || lower.contains("timeout") || lower.contains("socket") || lower.contains("unreachable") ->
+            "Network connection issue. Please check your internet."
+        lower.contains("expired") || lower.contains("unauthorized") || lower.contains("log in again") || lower.contains("token") ->
+            "Session expired. Please log in again."
+        lower.contains("password") || lower.contains("credential") ->
+            "Incorrect credentials. Please try again."
+        lower.contains("email") ->
+            "Please check your email address and try again."
+        lower.contains("otp") || lower.contains("verification code") ->
+            "Invalid verification code. Please check and try again."
+        lower.contains("rate limit") || lower.contains("too many") ->
+            "Too many attempts. Please wait a moment and try again."
+        rawError.length > 70 || rawError.contains("exception", ignoreCase = true) || rawError.contains("{") || rawError.contains("http") || rawError.contains("50") || rawError.contains("40") ->
+            fallback
+        else -> rawError
+    }
+}
+
 
 

@@ -43,12 +43,12 @@ data class ConnectoColors(
 )
 
 enum class ThemeMode(val id: String, val displayName: String, val subtitle: String, val iconEmoji: String) {
-    NOIR("noir", "True Dark (OLED)", "Pure neutral zero-nit obsidian black with crisp neutral typography", "🌑"),
-    LIQUID_GLASS("liquid_glass", "Transparent Liquid Glass", "Apple iOS & VisionOS optical liquid glass with dynamic tint & refraction", "🪞"),
-    EMERALD("emerald", "Emerald Matrix", "Tactical deep obsidian with transparent liquid matrix emerald refraction", "💎"),
-    MIDNIGHT("midnight", "Midnight Navy", "Deep oceanic navy with transparent liquid azure refraction", "🌌"),
-    CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-voltage neon purple & cyan transparent liquid glass glow", "⚡"),
-    PARCHMENT("parchment", "Ivory Paper", "Warm archival light parchment with translucent liquid glass sheen", "☀️");
+    NOIR("noir", "Pure Black (OLED)", "Pitch black • Saves battery at night", "🌑"),
+    PARCHMENT("parchment", "Light Paper", "Warm ivory • Clean daylight reading", "☀️"),
+    LIQUID_GLASS("liquid_glass", "Liquid Glass", "Translucent glass with optical blur", "🪞"),
+    EMERALD("emerald", "Emerald Matrix", "Obsidian black with emerald glow", "💎"),
+    MIDNIGHT("midnight", "Midnight Navy", "Deep ocean blue with azure tint", "🌌"),
+    CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-contrast purple & cyan neon", "⚡");
 
     val isDark: Boolean
         get() = this != PARCHMENT
