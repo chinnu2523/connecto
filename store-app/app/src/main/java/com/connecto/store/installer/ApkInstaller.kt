@@ -205,18 +205,39 @@ object ApkInstaller {
      * Background Activity Launch (BAL) restrictions.
      */
     fun installApk(context: Context, apkFile: File, packageName: String? = null) {
-        if (!apkFile.exists()) {
-            Log.e(TAG, "Cannot install: APK file does not exist at ${apkFile.absolutePath}")
+        if (!apkFile.exists() || apkFile.length() < 1024) {
+            Log.e(TAG, "Cannot install: APK file does not exist or is too small at ${apkFile.absolutePath}")
             return
         }
 
-        // Direct System PackageInstaller Intent:
-        // PackageInstaller Session API with BroadcastReceivers suffers from Android 10-15+ Background
-        // Activity Launch (BAL) restrictions where STATUS_PENDING_USER_ACTION cannot launch the confirmation
-        // UI, causing updates to silently stall in the background. Handing off directly to the system
-        // PackageInstaller activity from foreground user action ensures the update dialog displays
-        // immediately 100% of the time across all Android versions and OEMs (MIUI, HyperOS, ColorOS, OneUI, Pixel).
-        Log.i(TAG, "Launching system package installer for $packageName at ${apkFile.name}")
+        // Pre-flight sanity check: Verify APK parses validly prior to system handoff
+        val pm = context.packageManager
+        val archiveInfo = try {
+            pm.getPackageArchiveInfo(apkFile.absolutePath, PackageManager.GET_ACTIVITIES)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse archive info", e)
+            null
+        }
+
+        if (archiveInfo == null) {
+            Log.e(TAG, "Pre-flight validation failed: APK archive is corrupted, incomplete, or invalid at ${apkFile.absolutePath}")
+            return
+        }
+
+        val targetPackage = packageName ?: archiveInfo.packageName
+        Log.i(TAG, "Pre-flight verified valid APK: package=${archiveInfo.packageName}, versionCode=${archiveInfo.versionCode}, target=$targetPackage")
+
+        // Priority 1: On Android 12+ (API 31+), attempt PackageInstaller Session IPC for seamless silent upgrade
+        if (targetPackage.isNotBlank() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val sessionSuccess = installViaPackageInstaller(context, apkFile, targetPackage)
+            if (sessionSuccess) {
+                Log.i(TAG, "PackageInstaller session successfully initiated for $targetPackage")
+                return
+            }
+        }
+
+        // Priority 2: Universal System PackageInstaller Intent
+        Log.i(TAG, "Launching system package installer for $targetPackage at ${apkFile.name}")
         installViaSystemIntent(context, apkFile)
     }
 
@@ -244,7 +265,7 @@ object ApkInstaller {
             val session = packageInstaller.openSession(sessionId)
 
             apkFile.inputStream().use { input ->
-                session.openWrite("package_base", 0, apkFile.length()).use { output ->
+                session.openWrite("base.apk", 0, apkFile.length()).use { output ->
                     input.copyTo(output)
                     session.fsync(output)
                 }
@@ -281,8 +302,11 @@ object ApkInstaller {
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 setDataAndType(uri, "application/vnd.android.package-archive")
+                clipData = android.content.ClipData.newRawUri("package", uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
             }
 
             // Universal OEM installer permissions: grant read permission to known system package installers
@@ -294,40 +318,12 @@ object ApkInstaller {
                 "com.coloros.packageinstaller",
                 "com.oppo.packageinstaller",
                 "com.vivo.abe",
-                "com.transsion.installer"
+                "com.transsion.installer",
+                "com.huawei.appmarket"
             )
             for (pkg in installerPackages) {
                 try {
                     context.grantUriPermission(pkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                } catch (_: Exception) {}
-            }
-
-            // Anti-browser hijack: resolve system package installer explicitly across all Android OEM skins
-            val pm = context.packageManager
-            val resolveList = try {
-                pm.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
-            } catch (e: Exception) {
-                emptyList()
-            }
-
-            val systemInstaller = resolveList.firstOrNull { ri ->
-                val pkg = ri.activityInfo.packageName.lowercase()
-                pkg.contains("packageinstaller") ||
-                    pkg.contains("google.android.packageinstaller") ||
-                    pkg.contains("android.packageinstaller") ||
-                    pkg.contains("oplus") ||
-                    pkg.contains("coloros") ||
-                    pkg.contains("miui") ||
-                    pkg.contains("samsung") ||
-                    pkg.contains("huawei") ||
-                    pkg.contains("transsion")
-            }
-
-            if (systemInstaller != null) {
-                // IMPORTANT: Use setPackage to safely route to the installer app without failing on unexported internal classes
-                intent.setPackage(systemInstaller.activityInfo.packageName)
-                try {
-                    context.grantUriPermission(systemInstaller.activityInfo.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 } catch (_: Exception) {}
             }
 
@@ -337,12 +333,12 @@ object ApkInstaller {
             Log.e(TAG, "Failed to launch targeted system installer intent, attempting fallback", e)
             try {
                 val fallbackIntent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(
-                        FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile),
-                        "application/vnd.android.package-archive"
-                    )
+                    val fallbackUri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile)
+                    setDataAndType(fallbackUri, "application/vnd.android.package-archive")
+                    clipData = android.content.ClipData.newRawUri("package", fallbackUri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
                 }
                 context.startActivity(fallbackIntent)
             } catch (fallbackErr: Exception) {

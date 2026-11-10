@@ -283,10 +283,10 @@ export default {
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.0-b37-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.0-b37-v4629.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -335,7 +335,7 @@ export default {
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.29/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -420,18 +420,18 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.28-b117.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.29-b118-live.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.28");
-          res.headers.set("X-Connecto-Build", "117");
+          res.headers.set("X-Connecto-Version", "v4.6.29");
+          res.headers.set("X-Connecto-Build", "118");
           return res;
         }
 
@@ -444,7 +444,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.28"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.29"
               }
             });
             if (upstreamResp.ok) {
@@ -455,8 +455,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.28");
-              downloadHeaders.set("X-Connecto-Build", "117");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.29");
+              downloadHeaders.set("X-Connecto-Build", "118");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -471,7 +471,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -6963,11 +6963,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.28",
-      version_name: "v4.6.28",
-      version_code: 117,
-      build: 117,
-      sha256: "ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06",
+      version: "4.6.29",
+      version_name: "v4.6.29",
+      version_code: 118,
+      build: 118,
+      sha256: "2bc37349bcb9590500097d203157ac5ac16e5207127e7f77f277ca94a5c9f5d3",
       filename: "connecto-fun.apk",
       size_bytes: 37890849,
       size_display: "36.1 MB",

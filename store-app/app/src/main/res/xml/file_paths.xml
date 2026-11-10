@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="external_files" path="." />
-    <files-path name="apk_files" path="apks/" />
-    <cache-path name="apk_cache" path="apks/" />
+    <!-- Full coverage for app-private cache, files, and external cache for secure APK installation -->
+    <files-path name="apk_files" path="." />
+    <cache-path name="apk_cache" path="." />
+    <external-cache-path name="apk_ext_cache" path="." />
 </paths>
