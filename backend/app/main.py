@@ -6876,7 +6876,6 @@ async def get_platform_changelog():
 
 CV_HTML_PATH = os.path.join(static_dir, "cv_screening.html")
 NEWS_HTML_PATH = os.path.join(static_dir, "news.html")
-STORE_HTML_PATH = os.path.join(static_dir, "store.html")
 STATUS_HTML_PATH = os.path.join(static_dir, "status.html")
 CHANGELOG_HTML_PATH = os.path.join(static_dir, "changelog.html")
 RESINORA_HTML_PATH = os.path.join(static_dir, "resinora.html")
@@ -6986,10 +6985,12 @@ async def news_portal():
 
 @app.get("/store")
 @app.get("/appstore")
+@app.get("/store.html")
 @app.head("/store")
 @app.head("/appstore")
+@app.head("/store.html")
 async def store_portal():
-    return FileResponse(STORE_HTML_PATH, media_type="text/html")
+    return RedirectResponse(url="/#ourStoreSection", status_code=301)
 
 @app.get("/resinora")
 @app.head("/resinora")

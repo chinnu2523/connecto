@@ -232,38 +232,9 @@ export default {
 
     const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
 
-    // 3a-2. Redirect /store to the dedicated Our Store page
-    if (cleanPath === "/store" || cleanPath === "/store/") {
-      return Response.redirect("https://connecto.fun/store.html", 302);
-    }
-
-    // 3a-2b. Serve /store.html directly from GitHub (always fresh, bypasses Pages CDN cache)
-    if (cleanPath === "/store.html" || cleanPath === "/appstore") {
-      try {
-        const ghRaw = await fetch(
-          "https://raw.githubusercontent.com/chinnu2523/connecto/main/website/static/store.html", {
-            cf: { cacheTtl: 60 }
-          }
-        );
-        if (ghRaw.ok) {
-          const html = await ghRaw.text();
-          return new Response(html, {
-            headers: {
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "public, max-age=60, s-maxage=60",
-              "X-Connecto-Store-Version": "v1.8.1",
-              "X-Served-By": "Connecto-Worker-GitHub-Direct",
-              "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
-              "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;",
-              "X-Content-Type-Options": "nosniff",
-              "X-Frame-Options": "SAMEORIGIN",
-              "X-XSS-Protection": "1; mode=block",
-              "Referrer-Policy": "strict-origin-when-cross-origin",
-              "Permissions-Policy": "camera=(), geolocation=(), microphone=(self)"
-            }
-          });
-        }
-      } catch (_) {}
+    // 3a-2. Redirect /store, /store.html, /appstore directly to the Our Store section on connecto.fun
+    if (cleanPath === "/store" || cleanPath === "/store/" || cleanPath === "/store.html" || cleanPath === "/appstore") {
+      return Response.redirect("https://connecto.fun/#ourStoreSection", 301);
     }
 
     // 3a-2c intentionally removed - index.html patched inline at Pages response layer
@@ -8031,9 +8002,9 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
   if (host.startsWith("news.") && (pagesPath === "/" || pagesPath === "")) {
     pagesPath = "/news.html";
   } else if (host.startsWith("store.") && (pagesPath === "/" || pagesPath === "")) {
-    pagesPath = "/store.html";
-  } else if (pagesPath === "/store" || pagesPath === "/appstore") {
-    pagesPath = "/store.html";
+    return Response.redirect("https://connecto.fun/#ourStoreSection", 301);
+  } else if (pagesPath === "/store" || pagesPath === "/appstore" || pagesPath === "/store.html") {
+    return Response.redirect("https://connecto.fun/#ourStoreSection", 301);
   } else if (host.startsWith("resinora.") && (pagesPath === "/" || pagesPath === "")) {
     pagesPath = "/resinora.html";
   } else if (pagesPath === "/" || pagesPath === "" || pagesPath === "/index.html") {
@@ -8104,14 +8075,14 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[678]\.[0-9]+<\/span>/g, "v1.8.0</span>")
-            .replace(/v1\.[678]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.8.0 (Build 37) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[678]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.8.0 • 17.2 MB)")
+            .replace(/v1\.[678]\.[0-9]+<\/span>/g, "v1.8.1</span>")
+            .replace(/v1\.[678]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.8.1 (Build 38) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[678]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.8.1 • 17.5 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[678]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.8.0)")
-            .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.0")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.8.1)")
+            .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.1")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">17.2 MB</span>')
+                     '<span class="android-spec-val" style="color:#38bdf8;">17.5 MB</span>')
             .replace(/v4\.6\.2[0-9]/g, "v4.6.30")
             .replace(/Build 11[0-8]/g, "Build 119")
             .replace(/BUILD 11[0-8]/g, "BUILD 119")
