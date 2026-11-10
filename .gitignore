@@ -26,6 +26,8 @@ Thumbs.db
 *.p12
 *.jks
 *.keystore
+!android/app/connecto-release.jks
+!store-app/app/connecto-release.jks
 firebase-service-account.json
 .secrets/
 
@@ -91,7 +93,7 @@ target/
 *.rs.bk
 
 # Firebase & Google Services
-android/app/google-services.json
 google-services.json
+!android/app/google-services.json
 
 .genkit/

@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "747871578150",
+    "project_id": "jarvisgmail-488814",
+    "storage_bucket": "jarvisgmail-488814.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747871578150:android:e8d80f027d01560737dee7",
+        "android_client_info": {
+          "package_name": "com.connecto.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8NYPMujBPIMjGi1Plv0BWIYed4hshDqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:747871578150:android:24558163c458228037dee7",
+        "android_client_info": {
+          "package_name": "com.example.connecto"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8NYPMujBPIMjGi1Plv0BWIYed4hshDqM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
