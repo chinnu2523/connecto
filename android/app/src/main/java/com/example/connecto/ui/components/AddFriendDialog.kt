@@ -791,8 +791,8 @@ fun AddFriendDialog(
                     } else {
                         // =============== TAB 1: RECEIVED REQUESTS ===============
                         if (isLoadingRequests) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                                com.example.connecto.ui.theme.ShimmerFriendRequestsList(count = 3)
                             }
                         } else if (receivedRequests.isEmpty()) {
                             Box(

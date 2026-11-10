@@ -272,13 +272,10 @@ fun NotificationCenterSheet(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
+                        .weight(1f)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(36.dp)
-                    )
+                    com.example.connecto.ui.theme.ShimmerNotificationsList(count = 4)
                 }
             } else if (filteredNotifications.isEmpty()) {
                 Box(

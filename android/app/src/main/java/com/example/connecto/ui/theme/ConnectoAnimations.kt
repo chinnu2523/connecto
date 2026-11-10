@@ -266,6 +266,193 @@ fun ShimmerChannelItem(
     }
 }
 
+@Composable
+fun ShimmerCallItem(
+    modifier: Modifier = Modifier
+) {
+    val callCardShape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(callCardShape)
+            .background(Color(0xFF161922))
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                // Avatar circle
+                ShimmerBox(
+                    modifier = Modifier.size(42.dp),
+                    shape = RoundedCornerShape(21.dp)
+                )
+                androidx.compose.foundation.layout.Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    ShimmerBox(
+                        modifier = Modifier
+                            .width(130.dp)
+                            .height(14.dp),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                    ShimmerBox(
+                        modifier = Modifier
+                            .width(90.dp)
+                            .height(10.dp),
+                        shape = RoundedCornerShape(4.dp)
+                    )
+                }
+            }
+            // Action button circle
+            ShimmerBox(
+                modifier = Modifier.size(36.dp),
+                shape = RoundedCornerShape(18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun ShimmerCallLogsList(
+    modifier: Modifier = Modifier,
+    count: Int = 5
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(count) {
+            ShimmerCallItem()
+        }
+    }
+}
+
+@Composable
+fun ShimmerNotificationItem(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF161922))
+            .padding(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ShimmerBox(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(20.dp)
+            )
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                ShimmerBox(
+                    modifier = Modifier.width(150.dp).height(14.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                ShimmerBox(
+                    modifier = Modifier.fillMaxWidth(0.85f).height(12.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                ShimmerBox(
+                    modifier = Modifier.width(70.dp).height(10.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ShimmerNotificationsList(
+    modifier: Modifier = Modifier,
+    count: Int = 4
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        repeat(count) {
+            ShimmerNotificationItem()
+        }
+    }
+}
+
+@Composable
+fun ShimmerFriendRequestItem(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF161922))
+            .padding(14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ShimmerBox(
+                modifier = Modifier.size(44.dp),
+                shape = RoundedCornerShape(22.dp)
+            )
+            androidx.compose.foundation.layout.Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                ShimmerBox(
+                    modifier = Modifier.width(120.dp).height(14.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                ShimmerBox(
+                    modifier = Modifier.width(80.dp).height(11.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ShimmerBox(
+                    modifier = Modifier.width(64.dp).height(32.dp),
+                    shape = RoundedCornerShape(8.dp)
+                )
+                ShimmerBox(
+                    modifier = Modifier.width(32.dp).height(32.dp),
+                    shape = RoundedCornerShape(8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ShimmerFriendRequestsList(
+    modifier: Modifier = Modifier,
+    count: Int = 3
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        repeat(count) {
+            ShimmerFriendRequestItem()
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // 4. PULSING ONLINE DOT
 //    Scale 1.0 → 1.4 → 1.0, uses only graphicsLayer (GPU-safe)

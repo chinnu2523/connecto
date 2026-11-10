@@ -1166,7 +1166,16 @@ fun HomeChatScreen(
                         Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
 
                         if (favouriteUsernames.isNotEmpty()) {
-                            if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
+                            if (displayedFavourites.isEmpty() && isLoadingDashboard) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    repeat(3) {
+                                        ShimmerConversationItem()
+                                    }
+                                }
+                            } else if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
                                 Text(
                                     text = "No favourites matching \"$searchQuery\"",
                                     fontSize = 13.sp,
@@ -1597,6 +1606,31 @@ private fun formatTimeAgoShort(isoString: String): String {
         if (trimmed.isEmpty() || trimmed.equals("just now", ignoreCase = true)) return "Just now"
         if (trimmed.equals("active", ignoreCase = true)) return "Active"
         if (trimmed.matches(Regex("""\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?"""))) return trimmed
+        val formats = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd HH:mm:ss.SSS",
+            "yyyy-MM-dd HH:mm:ss"
+        )
+        for (pattern in formats) {
+            try {
+                val sdfUtc = java.text.SimpleDateFormat(pattern, java.util.Locale.US).apply {
+                    timeZone = java.util.TimeZone.getTimeZone("UTC")
+                }
+                val date = sdfUtc.parse(trimmed)
+                if (date != null) {
+                    val sdfLocal = java.text.SimpleDateFormat("h:mm a", java.util.Locale.getDefault()).apply {
+                        timeZone = java.util.TimeZone.getDefault()
+                    }
+                    return sdfLocal.format(date)
+                }
+            } catch (_: Exception) {}
+        }
         val timePart = when {
             trimmed.contains("T") -> trimmed.substringAfter("T").substringBefore(".").substringBefore("Z")
             trimmed.contains(" ") -> trimmed.substringAfter(" ").substringBefore(".")

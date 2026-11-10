@@ -76,8 +76,8 @@ data class StoreThemeColors(
     val navBarBackground: Color,
     val dividerColor: Color,
     val searchBarBg: Color,
-    val accentColor: Color = Color(0xFF6C5CE7),
-    val accentColorLight: Color = Color(0xFFA29BFE)
+    val accentColor: Color = Color(0xFF2563EB),
+    val accentColorLight: Color = Color(0xFF3B82F6)
 )
 
 val DarkStoreTheme = StoreThemeColors(
@@ -94,8 +94,8 @@ val DarkStoreTheme = StoreThemeColors(
     navBarBackground = Color(0xFF000000),
     dividerColor = Color(0xFF222226),
     searchBarBg = Color(0xFF161619),
-    accentColor = Color(0xFF6C5CE7),
-    accentColorLight = Color(0xFFA29BFE)
+    accentColor = Color(0xFF2563EB),
+    accentColorLight = Color(0xFF3B82F6)
 )
 
 val LightStoreTheme = StoreThemeColors(
@@ -112,8 +112,8 @@ val LightStoreTheme = StoreThemeColors(
     navBarBackground = Color(0xFFFFFFFF),
     dividerColor = Color(0xFFE2E8F0),
     searchBarBg = Color(0xFFF1F5F9),
-    accentColor = Color(0xFF6C5CE7),
-    accentColorLight = Color(0xFF5645CA)
+    accentColor = Color(0xFF2563EB),
+    accentColorLight = Color(0xFF1D4ED8)
 )
 
 val LocalStoreTheme = staticCompositionLocalOf { DarkStoreTheme }
@@ -266,12 +266,8 @@ fun StoreApp(
                         onClearLoginError = { vm.clearLoginError() }
                     )
                 } else {
-                    val detailApp = selectedPackageName?.let { pkg ->
-                        s.apps.find { it.app.packageName == pkg }
-                    }
-
                     AnimatedContent(
-                        targetState = detailApp,
+                        targetState = selectedPackageName,
                         transitionSpec = {
                             if (targetState != null) {
                                 // Opening App Detail: fluid spring slide up + scale in + fade in
@@ -314,7 +310,10 @@ fun StoreApp(
                             }
                         },
                         label = "appDetailModalTransition"
-                    ) { activeDetailApp ->
+                    ) { targetPkg ->
+                        val activeDetailApp = targetPkg?.let { pkg ->
+                            s.apps.find { it.app.packageName == pkg }
+                        }
                         if (activeDetailApp != null) {
                             // Dedicated Full-Screen Application Detail & Preview View
                             ClassicAppDetailView(
@@ -355,7 +354,7 @@ fun StoreApp(
 
                                             val matchesSection = when (selectedSection) {
                                                 StoreNavSection.OVERVIEW -> true
-                                                StoreNavSection.UPDATES -> appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE
+                                                StoreNavSection.UPDATES -> appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE || appState.isDownloading || appState.isInstalling
                                                 StoreNavSection.LOGIN -> true
                                             }
 
@@ -807,6 +806,19 @@ private fun ClassicCatalogBody(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (!isUpdatesTab) {
+            // Curated Ecosystem Spotlight Card (Linear / x.ai modern aesthetic)
+            if (selectedCategory == "All") {
+                item {
+                    val spotlightApp = state.apps.find { it.app.id == "connecto" } ?: state.apps.firstOrNull()
+                    ClassicEcosystemSpotlightCard(
+                        featuredApp = spotlightApp,
+                        onOpenDetail = {
+                            spotlightApp?.let { onAppClick(it) }
+                        }
+                    )
+                }
+            }
+
             // Category Filter Pills
             item {
                 ClassicCategoryPills(
@@ -1012,7 +1024,144 @@ private fun ClassicCategoryPills(
     }
 }
 
-// ─── Classic App Card (Acts as Interactive Button) ────────────────────────────
+// ─── Ecosystem Spotlight Hero Card (Linear / x.ai Modern Aesthetic) ───────────
+@Composable
+private fun ClassicEcosystemSpotlightCard(
+    featuredApp: AppUiState?,
+    onOpenDetail: () -> Unit
+) {
+    val theme = LocalStoreTheme.current
+    val isDark = theme.isDark
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .tactilePress(pressedScale = 0.98f) { onOpenDetail() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = theme.surface),
+        border = androidx.compose.foundation.BorderStroke(
+            width = 1.dp,
+            brush = Brush.horizontalGradient(
+                colors = listOf(
+                    Color(0xFF2563EB).copy(alpha = 0.7f),
+                    Color(0xFF38BDF8).copy(alpha = 0.5f),
+                    Color(0xFF6366F1).copy(alpha = 0.4f)
+                )
+            )
+        )
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = if (isDark) {
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFF0F172A),
+                                Color(0xFF060913)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFFF8FAFC),
+                                Color(0xFFEDF2F7)
+                            )
+                        )
+                    }
+                )
+                .padding(20.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Top row: Tag & Live Indicator
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF2563EB).copy(alpha = 0.15f))
+                            .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF38BDF8))
+                        )
+                        Text(
+                            text = "ECOSYSTEM SPOTLIGHT",
+                            color = Color(0xFF38BDF8),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+
+                    Text(
+                        text = "v1.8.0 • LINEAR CRAFT",
+                        color = theme.textMuted,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                // Headline & Description
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Next-Gen Decentralized Private Suite",
+                        color = theme.textPrimary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.4).sp
+                    )
+                    Text(
+                        text = "Military-grade end-to-end encrypted messaging, studio HD voice, and autonomous 1-tap package distribution.",
+                        color = theme.textMuted,
+                        fontSize = 12.5.sp,
+                        lineHeight = 17.sp
+                    )
+                }
+
+                // Telemetry Chips Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "⚡ Sub-5ms IPC",
+                        "🛡️ AES-256 E2EE",
+                        "✨ Pure OLED #000"
+                    ).forEach { pill ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(theme.cardBorder.copy(alpha = 0.5f))
+                                .border(1.dp, theme.borderHighlight.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = pill,
+                                color = theme.textPrimary,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ─── App Store Style Curated App Item (Clean Minimalist Front Row) ─────────────
 @Composable
 private fun ClassicAppCard(
     appState: AppUiState,
@@ -1025,185 +1174,137 @@ private fun ClassicAppCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .tactilePress(pressedScale = 0.98f) { onClick() },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = theme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, theme.cardBorder)
     ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header Row: App Logo + Info + Size
-            Row(
-                verticalAlignment = Alignment.Top,
-                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            // Authentic Application Logo / Rounded Squircle Icon
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(theme.cardElevated)
+                    .border(1.dp, theme.borderHighlight, RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
             ) {
-                // Authentic Application Logo/Icon
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(RoundedCornerShape(13.dp))
-                        .background(theme.cardElevated)
-                        .border(1.dp, theme.borderHighlight, RoundedCornerShape(13.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AppIconImage(appId = app.id, appName = app.name)
-                }
-
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f, fill = false)
-                        ) {
-                            Text(
-                                text = app.name,
-                                color = theme.textPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 17.sp,
-                                letterSpacing = (-0.3).sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(theme.cardElevated)
-                                    .border(1.dp, theme.cardBorder, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 5.dp, vertical = 1.5.dp)
-                            ) {
-                                Text(
-                                    text = app.badge.uppercase(),
-                                    color = theme.textMuted,
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.5.sp
-                                )
-                            }
-                        }
-
-                        // Prominent High-Visibility Size Pill on Top of Card Header
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(theme.cardElevated)
-                                .border(1.dp, theme.borderHighlight, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 7.dp, vertical = 2.5.dp)
-                        ) {
-                            Text(
-                                text = app.sizeFormatted,
-                                color = theme.textPrimary,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace,
-                                letterSpacing = 0.4.sp
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = app.tagline,
-                        color = theme.textMuted,
-                        fontSize = 12.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Text(
-                        text = app.packageName,
-                        color = theme.textDarkMuted,
-                        fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
+                AppIconImage(appId = app.id, appName = app.name)
             }
 
-            // Specs Row: Version & Install State
-            ClassicVersionSpecRow(appState = appState)
-
-            // Bottom Interactive Tap Action Bar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(theme.cardElevated)
-                    .border(1.dp, theme.borderHighlight, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // App Name, Subtitle & Category (Clean App Store Row)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(3.dp)
             ) {
+                Text(
+                    text = app.name,
+                    color = theme.textPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.5.sp,
+                    letterSpacing = (-0.3).sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text = app.tagline,
+                    color = theme.textMuted,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    val (statusColor, statusLabel) = when {
-                        appState.isInstalling -> Pair(theme.textPrimary, "Installing into OS…")
-                        appState.isDownloading -> Pair(theme.textPrimary, "Downloading ${appState.downloadProgress}%…")
-                        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Pair(theme.textMuted, "Tap to Install & View Preview")
-                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Pair(AmberUpdate, "Update Available • Tap to View")
-                        else -> Pair(EmeraldStatus, "Installed • Tap to Manage / Uninstall")
-                    }
                     Text(
-                        text = statusLabel,
-                        color = statusColor,
-                        fontSize = 11.5.sp,
+                        text = app.category,
+                        color = theme.textDarkMuted,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "•",
+                        color = theme.textDarkMuted,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = app.sizeFormatted,
+                        color = theme.textDarkMuted,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    val actionLabel = when {
-                        appState.isInstalling -> "INSTALLING…"
-                        appState.isDownloading -> "${appState.downloadProgress}%"
-                        appState.installState == StoreApp.InstallState.NOT_INSTALLED -> "GET"
-                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> "UPDATE"
-                        else -> "OPEN"
-                    }
-                    val actionBg = when {
-                        appState.isDownloading || appState.isInstalling -> theme.cardBorder
-                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> AmberUpdate
-                        else -> theme.textPrimary
-                    }
-                    val actionFg = when {
-                        appState.isDownloading || appState.isInstalling -> theme.textPrimary
-                        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Color.Black
-                        else -> theme.background
-                    }
-
+                // Curated Feature Highlights Pill (Subtle Linear aesthetic)
+                val featureBadge = when (app.id) {
+                    "connecto" -> "E2EE • HD Voice • Workspaces"
+                    "ourstore" -> "1-Tap IPC • Background Engine"
+                    "pdfstudio" -> "Lossless Merge • Local Vault"
+                    "jarvis" -> "Neural AI • Shield"
+                    else -> null
+                }
+                if (featureBadge != null) {
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(actionBg)
-                            .tactilePress(pressedScale = 0.90f) { onActionClick() }
-                            .padding(horizontal = 10.dp, vertical = 4.dp),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFF2563EB).copy(alpha = 0.12f))
+                            .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
-                            text = actionLabel,
-                            color = actionFg,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
+                            text = featureBadge,
+                            color = Color(0xFF60A5FA),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 0.3.sp
                         )
                     }
-
-                    Icon(
-                        imageVector = Icons.Rounded.ChevronRight,
-                        contentDescription = "Details",
-                        tint = theme.textMuted,
-                        modifier = Modifier.size(16.dp)
-                    )
                 }
+            }
+
+            // Single App Store Style Tactile Action Button
+            val (actionLabel, actionBg, actionFg) = when {
+                appState.isInstalling -> Triple("INSTALLING…", theme.cardBorder, theme.textPrimary)
+                appState.isDownloading -> Triple("${appState.downloadProgress}%", theme.cardBorder, theme.textPrimary)
+                appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple("GET", theme.cardElevated, theme.textPrimary)
+                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple("UPDATE", AmberUpdate, Color.Black)
+                else -> Triple("OPEN", theme.cardElevated, theme.textPrimary)
+            }
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(actionBg)
+                    .border(
+                        1.dp,
+                        if (appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE) AmberUpdate else theme.borderHighlight,
+                        RoundedCornerShape(20.dp)
+                    )
+                    .tactilePress(
+                        pressedScale = 0.90f,
+                        onClick = if (!appState.isDownloading && !appState.isInstalling) onActionClick else null
+                    )
+                    .padding(horizontal = 16.dp, vertical = 7.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = actionLabel,
+                    color = actionFg,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.6.sp
+                )
             }
         }
     }
@@ -1667,9 +1768,10 @@ private fun getAppPreviews(appId: String): List<AppScreenshotPreview> = when (ap
         AppScreenshotPreview("previews/pdfstudio_2.png", "Photo & Image to PDF", "CONVERTER"),
         AppScreenshotPreview("previews/pdfstudio_3.png", "Lossless Multi-Document Merge", "MERGER")
     )
-    "visioncall" -> listOf(
-        AppScreenshotPreview("previews/visioncall_1.png", "Ultra-Low Latency Video Calls", "CONFERENCE"),
-        AppScreenshotPreview("previews/visioncall_2.png", "Instant Room Generator", "CONNECT")
+    "jarvis" -> listOf(
+        AppScreenshotPreview("previews/jarvis_1.png", "Neural Conversational Assistant", "INTELLIGENCE"),
+        AppScreenshotPreview("previews/jarvis_2.png", "Zero-Leak On-Device Memory Vault", "MEMORY VAULT"),
+        AppScreenshotPreview("previews/jarvis_3.png", "Multi-Cloud AI Engine & Personality", "SETTINGS")
     )
     else -> listOf(
         AppScreenshotPreview("previews/ourstore_1.png", "Curated Ecosystem Experience", "ECOSYSTEM")
@@ -1777,17 +1879,11 @@ private fun PhoneMockupCard(preview: AppScreenshotPreview) {
                 )
             }
         } else {
-            // Elegant loading placeholder
-            Box(
+            // Elegant skeleton shimmer preview placeholder
+            StoreSkeletonBox(
                 modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = theme.accentColor,
-                    strokeWidth = 2.dp
-                )
-            }
+                shape = RoundedCornerShape(14.dp)
+            )
         }
     }
 }
@@ -1995,15 +2091,191 @@ private fun ClassicFooterInfo() {
 
 // ─── Loading & Error Views ────────────────────────────────────────────────────
 @Composable
+fun storeShimmerBrush(): Brush {
+    val theme = LocalStoreTheme.current
+    val transition = rememberInfiniteTransition(label = "storeShimmerTransition")
+    val translateAnim by transition.animateFloat(
+        initialValue = -600f,
+        targetValue = 1400f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1350, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "storeShimmerTranslate"
+    )
+
+    val baseColor = if (theme.isDark) Color(0xFF141418) else Color(0xFFE2E8F0)
+    val highlightColor = if (theme.isDark) Color(0xFF282832) else Color(0xFFF1F5F9)
+
+    return Brush.linearGradient(
+        colors = listOf(baseColor, highlightColor, baseColor),
+        start = Offset(translateAnim, 0f),
+        end = Offset(translateAnim + 600f, 350f)
+    )
+}
+
+@Composable
+fun StoreSkeletonBox(
+    modifier: Modifier = Modifier,
+    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp)
+) {
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(storeShimmerBrush())
+    )
+}
+
+@Composable
 private fun ClassicLoadingState() {
     val theme = LocalStoreTheme.current
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Shimmer Status Subheader
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            CircularProgressIndicator(color = theme.textPrimary, strokeWidth = 3.dp)
-            Text("SYNCHRONIZING REPOSITORY…", color = theme.textMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            StoreSkeletonBox(
+                modifier = Modifier.width(140.dp).height(14.dp),
+                shape = RoundedCornerShape(4.dp)
+            )
+            StoreSkeletonBox(
+                modifier = Modifier.width(90.dp).height(20.dp),
+                shape = RoundedCornerShape(10.dp)
+            )
+        }
+
+        // 1. Hero Spotlight Skeleton Banner
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(theme.surface)
+                .border(1.dp, theme.cardBorder, RoundedCornerShape(22.dp))
+                .padding(20.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StoreSkeletonBox(
+                        modifier = Modifier.width(110.dp).height(18.dp),
+                        shape = RoundedCornerShape(6.dp)
+                    )
+                    StoreSkeletonBox(
+                        modifier = Modifier.width(60.dp).height(18.dp),
+                        shape = RoundedCornerShape(6.dp)
+                    )
+                }
+                StoreSkeletonBox(
+                    modifier = Modifier.width(230.dp).height(24.dp),
+                    shape = RoundedCornerShape(6.dp)
+                )
+                StoreSkeletonBox(
+                    modifier = Modifier.fillMaxWidth().height(14.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                StoreSkeletonBox(
+                    modifier = Modifier.width(180.dp).height(14.dp),
+                    shape = RoundedCornerShape(4.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        StoreSkeletonBox(
+                            modifier = Modifier.width(60.dp).height(14.dp),
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                        StoreSkeletonBox(
+                            modifier = Modifier.width(60.dp).height(14.dp),
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                    }
+                    StoreSkeletonBox(
+                        modifier = Modifier.width(120.dp).height(38.dp),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            }
+        }
+
+        // 2. Filter Chips Row Skeleton
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val pillWidths = listOf(54.dp, 84.dp, 108.dp, 80.dp)
+            pillWidths.forEach { w ->
+                StoreSkeletonBox(
+                    modifier = Modifier.width(w).height(32.dp),
+                    shape = RoundedCornerShape(16.dp)
+                )
+            }
+        }
+
+        // 3. App Feed Skeleton Cards
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            repeat(3) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(theme.surface)
+                        .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        StoreSkeletonBox(
+                            modifier = Modifier.size(54.dp),
+                            shape = RoundedCornerShape(14.dp)
+                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            StoreSkeletonBox(
+                                modifier = Modifier.width(130.dp).height(16.dp),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            StoreSkeletonBox(
+                                modifier = Modifier.fillMaxWidth().height(12.dp),
+                                shape = RoundedCornerShape(4.dp)
+                            )
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                StoreSkeletonBox(
+                                    modifier = Modifier.width(55.dp).height(10.dp),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                                StoreSkeletonBox(
+                                    modifier = Modifier.width(55.dp).height(10.dp),
+                                    shape = RoundedCornerShape(4.dp)
+                                )
+                            }
+                        }
+                        StoreSkeletonBox(
+                            modifier = Modifier.width(76.dp).height(34.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -2680,10 +2952,27 @@ fun ClassicLoginAccountView(
                     }
 
                     // Role Badge Pill
-                    val badgeBg = if (currentUser.role == StoreRole.ADMIN) EmeraldStatusBg else Color(0xFF261D45)
-                    val badgeBorder = if (currentUser.role == StoreRole.ADMIN) EmeraldStatus.copy(alpha = 0.4f) else Color(0xFF6C5CE7).copy(alpha = 0.5f)
-                    val badgeFg = if (currentUser.role == StoreRole.ADMIN) EmeraldStatus else Color(0xFFA29BFE)
-                    val roleLabel = if (currentUser.role == StoreRole.ADMIN) "SHIELD • SYSTEM ADMINISTRATOR" else "VERIFIED MEMBER"
+                    val isGuest = currentUser.username.equals("guest", ignoreCase = true)
+                    val badgeBg = when {
+                        currentUser.role == StoreRole.ADMIN -> EmeraldStatusBg
+                        isGuest -> Color(0xFF1E293B)
+                        else -> Color(0xFF261D45)
+                    }
+                    val badgeBorder = when {
+                        currentUser.role == StoreRole.ADMIN -> EmeraldStatus.copy(alpha = 0.4f)
+                        isGuest -> Color(0xFF64748B).copy(alpha = 0.5f)
+                        else -> Color(0xFF6C5CE7).copy(alpha = 0.5f)
+                    }
+                    val badgeFg = when {
+                        currentUser.role == StoreRole.ADMIN -> EmeraldStatus
+                        isGuest -> Color(0xFF94A3B8)
+                        else -> Color(0xFFA29BFE)
+                    }
+                    val roleLabel = when {
+                        currentUser.role == StoreRole.ADMIN -> "SHIELD • SYSTEM ADMINISTRATOR"
+                        isGuest -> "GUEST ACCESS • BROWSE MODE"
+                        else -> "VERIFIED MEMBER"
+                    }
 
                     Box(
                         modifier = Modifier
@@ -2701,7 +2990,26 @@ fun ClassicLoginAccountView(
                         )
                     }
 
-                    if (currentUser.isConnectoSso) {
+                    if (isGuest) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(top = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Info,
+                                contentDescription = null,
+                                tint = theme.textMuted,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = "Guest Mode • Sign in with Connecto to unlock admin apps & verified sync",
+                                color = theme.textMuted,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    } else if (currentUser.isConnectoSso) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp),

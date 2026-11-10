@@ -784,22 +784,10 @@ fun CallsScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             if (isInitialLoading) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    androidx.compose.material3.CircularProgressIndicator(
-                                        modifier = Modifier.size(36.dp),
-                                        color = gradientColors.first(),
-                                        strokeWidth = 3.dp
-                                    )
-                                    Text(
-                                        text = "Syncing call history...",
-                                        fontSize = 13.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
+                                com.example.connecto.ui.theme.ShimmerCallLogsList(
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                    count = 5
+                                )
                             } else {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
