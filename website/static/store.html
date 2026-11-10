@@ -17,6 +17,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js WebGL 3D Graphics Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <script>
     (function initStoreTheme() {
@@ -336,6 +338,120 @@
       margin-top: 10px;
     }
 
+    /* ==================== AFTER EFFECTS KINETIC LASER BEAM ==================== */
+    .ae-border-beam {
+      position: absolute;
+      inset: -1.5px;
+      border-radius: inherit;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 10;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      padding: 1.5px;
+    }
+    .ae-border-beam::after {
+      content: '';
+      position: absolute;
+      width: 250%;
+      height: 250%;
+      top: -75%;
+      left: -75%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 60deg,
+        rgba(6, 182, 212, 0.2) 120deg,
+        rgba(59, 130, 246, 0.95) 170deg,
+        rgba(16, 185, 129, 0.9) 180deg,
+        transparent 195deg,
+        transparent 360deg
+      );
+      animation: aeBeamSweep 7s linear infinite;
+      will-change: transform;
+    }
+    @keyframes aeBeamSweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ==================== 3D INTERACTIVE WEBGL STAGE ==================== */
+    .hero-3d-stage {
+      height: clamp(280px, 38vw, 420px);
+      width: 100%;
+      position: relative;
+      border-radius: 24px;
+      background: radial-gradient(circle at center, rgba(14, 28, 54, 0.5) 0%, rgba(7, 9, 14, 0.9) 75%);
+      box-shadow:
+        0 0 50px -10px rgba(6, 182, 212, 0.16),
+        inset 0 0 40px rgba(0, 0, 0, 0.7);
+      touch-action: pan-y;
+      overflow: hidden;
+      border: 1px solid var(--border-hairline);
+    }
+    .hero-3d-stage canvas {
+      touch-action: pan-y;
+    }
+
+    /* ==================== 3D KINETIC TILT & SPECULAR SHEEN ==================== */
+    .card-3d-tilt {
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease-out, box-shadow 0.25s var(--ease-snappy), border-color 0.2s ease;
+      will-change: transform;
+    }
+    .card-3d-tilt .specular-sheen {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: radial-gradient(
+        350px circle at var(--sheen-x, 50%) var(--sheen-y, 50%),
+        rgba(255, 255, 255, 0.12),
+        transparent 65%
+      );
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 5;
+    }
+    .card-3d-tilt:hover .specular-sheen {
+      opacity: 1;
+    }
+
+    /* ==================== MULTI-DEVICE RESPONSIVE LAYOUT ==================== */
+    /* Mobile Devices (320px - 640px) */
+    @media (max-width: 640px) {
+      .taste-container {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+      .hero-3d-stage {
+        height: 250px;
+        border-radius: 18px;
+      }
+      #filterPillsRow {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      #filterPillsRow::-webkit-scrollbar {
+        display: none;
+      }
+      .taste-btn {
+        min-height: 44px;
+      }
+      .app-download-btn-mobile {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    /* Tablet Devices (641px - 1024px) */
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .hero-3d-stage {
+        height: 330px;
+      }
+    }
+
     /* Accessibility */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -344,7 +460,7 @@
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
       }
-      .aurora-mote-1, .aurora-mote-2, .cursor-spotlight-layer {
+      .aurora-mote-1, .aurora-mote-2, .cursor-spotlight-layer, .ae-border-beam {
         display: none !important;
       }
     }
@@ -400,7 +516,7 @@
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
           </svg>
-          <span>Store App v1.7.6</span>
+          <span>Store App v1.8.0</span>
         </a>
       </div>
     </div>
@@ -420,8 +536,35 @@
       Install, update, and manage official ecosystem applications directly on Android. Free from store review delays, tracking bloat, or third-party wrappers.
     </p>
 
-    <!-- Native Ecosystem Spotlight Banner with Specular Border Track -->
-    <div class="taste-card p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5 text-left mb-8 max-w-4xl mx-auto">
+    <!-- Interactive 3D WebGL Holographic Stage (After Effects Motion Layer) -->
+    <div class="hero-3d-stage-wrapper mb-8 max-w-4xl mx-auto">
+      <div class="hero-3d-stage taste-card relative flex items-center justify-center overflow-hidden" id="storeHero3dStage">
+        <canvas id="store3dCanvas" class="w-full h-full cursor-grab active:cursor-grabbing"></canvas>
+        
+        <!-- Holographic 3D Floating HUD Telemetry -->
+        <div class="absolute top-4 left-4 z-10 pointer-events-none flex flex-col space-y-1.5 text-left">
+          <div class="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-black/60 border border-cyan-500/30 text-cyan-400 backdrop-blur-md shadow-lg">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span>ECOSYSTEM CORE 3D</span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-400 hidden sm:inline-block">Interactive WebGL • Drag or swipe to orbit</span>
+        </div>
+
+        <div class="absolute bottom-4 right-4 z-10 pointer-events-none hidden sm:flex items-center space-x-2">
+          <div class="px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-black/60 border border-emerald-500/30 text-emerald-400 backdrop-blur-md">
+            <span>60 FPS • ACCELERATED</span>
+          </div>
+        </div>
+
+        <!-- After Effects Continuous Laser Beam Perimeter -->
+        <div class="ae-border-beam" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Native Ecosystem Spotlight Banner with Specular Border Track & 3D Tilt -->
+    <div class="taste-card card-3d-tilt relative p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-5 text-left mb-8 max-w-4xl mx-auto">
+      <div class="specular-sheen"></div>
+      <div class="ae-border-beam" aria-hidden="true"></div>
       <div class="flex items-center space-x-4 min-w-0">
         <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-black flex items-center justify-center shrink-0 border border-white/20 shadow-xl">
           <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -431,10 +574,10 @@
         <div class="min-w-0">
           <div class="flex items-center space-x-2">
             <h3 class="text-white font-bold text-base sm:text-lg">Our Store for Android</h3>
-            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">v1.7.6 Live</span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase tracking-wider">v1.8.0 Live</span>
           </div>
           <p class="text-xs sm:text-sm mt-0.5" style="color: var(--text-subtle);">
-            Dual luxury themes (OLED Noir & Clean White), tactile spring physics, phone preview mockups & 1-tap IPC installer.
+            Ecosystem Spotlight Hero banner, Linear precision design system, instant guest downloads & 1-tap IPC installer.
           </p>
         </div>
       </div>
@@ -486,7 +629,8 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="appsContainer">
       
       <!-- 0. OUR STORE CLIENT APP CARD -->
-      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="ecosystem" data-name="our store" data-package="com.connecto.store">
+      <div class="taste-card card-3d-tilt relative p-6 sm:p-7 flex flex-col justify-between app-item" data-category="ecosystem" data-name="our store" data-package="com.connecto.store">
+        <div class="specular-sheen"></div>
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
@@ -500,7 +644,7 @@
                   <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">Our Store</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-white border border-white/30 uppercase tracking-wider">App Hub</span>
                 </div>
-                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.connecto.store • v1.7.6 (b33)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.connecto.store • v1.8.0 (b37)</p>
                 <div class="flex items-center space-x-2 mt-1">
                   <span class="text-xs text-emerald-400 font-semibold">● Auto-Update Engine</span>
                   <span class="text-xs" style="color: var(--text-subtle);">•</span>
@@ -511,33 +655,55 @@
           </div>
 
           <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
-            Official Android ecosystem client. Features 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, hardware KeyStore encrypted storage, and dual theme engine.
+            Official Android ecosystem client. Features Linear-styled Spotlight Hero UI, Apple App Store clean cards, 1-tap package installation via Android PackageInstaller session IPC, and background app auto-updating.
           </p>
 
           <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
-            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v1.7.6</h4>
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v1.8.0</h4>
             <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Ecosystem Live Sync: Full synchronization with Connecto v4.6.24 voice audio capture pipeline</span>
+                <span>Ecosystem Spotlight Hero: Curated Linear/x.ai dark hero banner with live platform telemetry</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Fluid Spring Animations: Tactile modal slide and scale spring physics across all catalog interactions</span>
+                <span>Linear Precision Design: Refined hair-line borders, subtle glow indicators, and tactile micro-press physics</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White with dynamic CompositionLocalProvider</span>
+                <span>Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Tactile Spring Physics: Fluid physics-based press scaling on all cards, buttons, tabs, and category chips</span>
+                <span>App Detail Transition Fix: Stabilized AnimatedContent targetState without reload loops</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-emerald-400">✓</span>
-                <span>Original Guest UI Previews: Authentic screen carousel captures in high-fidelity framed phone mockups</span>
+                <span>Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic theme switching</span>
               </li>
             </ul>
+          </div>
+
+          <!-- Interface Preview Carousel -->
+          <div class="mb-4">
+            <div class="text-[11px] font-semibold uppercase tracking-wider mb-2 flex items-center justify-between" style="color: var(--text-subtle);">
+              <span>App Interface Previews</span>
+              <span class="text-[10px] font-mono font-medium">4 Screens</span>
+            </div>
+            <div class="flex items-center space-x-2.5 overflow-x-auto pb-1 scrollbar-thin">
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/ourstore_1.png" alt="Our Store Home" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/ourstore_2.png" alt="Our Store Detail" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/ourstore_3.png" alt="Our Store Updates" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-white/10 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/ourstore_4.png" alt="Our Store Account" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+            </div>
           </div>
 
           <!-- Interactive Cryptographic Checksum Accordion -->
@@ -547,7 +713,7 @@
               <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
             <div id="chk-store" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
-              <div class="truncate">SHA256: 344dedc7c4d92f131295d2211fcda89e83b0346f9843b628d542f39c34e17be1 (Verified 2026-11-09)</div>
+              <div class="truncate">SHA256: 77cd1cb557f86db735a8db4dffdc18b1ea2f4197caefae1c1ffaaba78120559f (Verified 2026-11-09)</div>
               <div class="text-[10px] mt-1 text-emerald-400 font-semibold">Architectures: arm64-v8a, armeabi-v7a, x86_64</div>
             </div>
           </div>
@@ -567,7 +733,8 @@
       </div>
       
       <!-- 1. CONNECTO CHAT APP CARD -->
-      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="ecosystem" data-name="connecto" data-package="com.connecto.app">
+      <div class="taste-card card-3d-tilt relative p-6 sm:p-7 flex flex-col justify-between app-item" data-category="ecosystem" data-name="connecto" data-package="com.connecto.app">
+        <div class="specular-sheen"></div>
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
@@ -581,7 +748,7 @@
                   <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">Connecto</h3>
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 uppercase tracking-wider">Official</span>
                 </div>
-                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.connecto.app • v4.6.24 (b113)</p>
+                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.connecto.app • v4.6.28 (b117)</p>
                 <div class="flex items-center space-x-2 mt-1">
                   <span class="text-xs text-emerald-400 font-semibold">● Stable Release</span>
                   <span class="text-xs" style="color: var(--text-subtle);">•</span>
@@ -596,21 +763,67 @@
           </p>
 
           <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
-            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v4.6.24</h4>
+            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v4.6.28</h4>
             <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Voice Call Audio Capture: Continuous hardware AudioRecord capture fallback during WebRTC ICE negotiation</span>
+                <span>Modern High-Taste UI: Refined Linear minimalist headers, polished typography, and clean bubble styling</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Audio Focus & Routing: Transient audio focus acquisition, unmuted mic pipeline, and speakerphone fallback</span>
+                <span>Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving IST time offset</span>
               </li>
               <li class="flex items-center space-x-2">
                 <span class="text-blue-400">✓</span>
-                <span>Echo Audio Test Suite: Integrated local loopback diagnostics directly into Calls Screen</span>
+                <span>Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Full-Bandwidth HD Voice: 7.9kHz wideband vocal preservation restoring warmth and intelligibility</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Call Rapid Redial Stability: Hardened Android 14 ForegroundService lifecycle</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Low-Latency VoIP Engine: 20ms audio packetization (640B) with non-blocking AudioTrack streaming</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Adaptive Jitter Buffer: Intelligent backlog pruning ensuring &lt;30ms live voice latency</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Transparent Voice Isolation: Gentle -3dB noise floor suppression preserving vocal warmth and consonants</span>
+              </li>
+              <li class="flex items-center space-x-2">
+                <span class="text-blue-400">✓</span>
+                <span>Direct 1:1 Voice Relay: Zero-delay personal socket delivery with resilient AudioRecord recovery</span>
               </li>
             </ul>
+          </div>
+
+          <!-- Interface Preview Carousel -->
+          <div class="mb-4">
+            <div class="text-[11px] font-semibold uppercase tracking-wider mb-2 flex items-center justify-between" style="color: var(--text-subtle);">
+              <span>App Interface Previews</span>
+              <span class="text-[10px] font-mono font-medium">4 Screens</span>
+            </div>
+            <div class="flex items-center space-x-2.5 overflow-x-auto pb-1 scrollbar-thin">
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-blue-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/connecto_1.png" alt="Connecto Chat" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-blue-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/connecto_2.png" alt="Connecto Channels" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-blue-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/connecto_3.png" alt="Connecto Voice Lounge" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-blue-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/connecto_4.png" alt="Connecto Profile" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+            </div>
           </div>
 
           <!-- Interactive Cryptographic Checksum Accordion -->
@@ -620,7 +833,7 @@
               <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </button>
             <div id="chk-connecto" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
-              <div class="truncate">SHA256: ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06 (Verified 2026-11-09)</div>
+              <div class="truncate">SHA256: 6b0643e5ba4a211b30473c3aac866604ca8f8a99bfde77638b47e03f9d42f956 (Verified 2026-11-10)</div>
               <div class="text-[10px] mt-1 text-blue-400 font-semibold">Architectures: universal, arm64-v8a, armeabi-v7a</div>
             </div>
           </div>
@@ -640,7 +853,8 @@
       </div>
 
       <!-- 2. JARVIS AI APP CARD (Admin Accounts Only) -->
-      <div id="jarvisAppCard" style="display: none;" class="taste-card p-6 sm:p-7 flex-col justify-between app-item" data-category="tools" data-name="jarvis ai" data-package="com.omni.assistant">
+      <div id="jarvisAppCard" style="display: none;" class="taste-card card-3d-tilt relative p-6 sm:p-7 flex-col justify-between app-item" data-category="tools" data-name="jarvis ai" data-package="com.omni.assistant">
+        <div class="specular-sheen"></div>
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
@@ -709,7 +923,8 @@
       </div>
 
       <!-- 3. PDF STUDIO APP CARD -->
-      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="tools" data-name="pdf studio" data-package="com.app.pdfstudio">
+      <div class="taste-card card-3d-tilt relative p-6 sm:p-7 flex flex-col justify-between app-item" data-category="tools" data-name="pdf studio" data-package="com.app.pdfstudio">
+        <div class="specular-sheen"></div>
         <div>
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center space-x-4">
@@ -749,6 +964,25 @@
             </ul>
           </div>
 
+          <!-- Interface Preview Carousel -->
+          <div class="mb-4">
+            <div class="text-[11px] font-semibold uppercase tracking-wider mb-2 flex items-center justify-between" style="color: var(--text-subtle);">
+              <span>App Interface Previews</span>
+              <span class="text-[10px] font-mono font-medium">3 Screens</span>
+            </div>
+            <div class="flex items-center space-x-2.5 overflow-x-auto pb-1 scrollbar-thin">
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-red-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/pdfstudio_1.png" alt="PDF Studio Editor" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-red-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/pdfstudio_2.png" alt="PDF Studio Tools" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+              <div class="w-20 sm:w-24 shrink-0 rounded-xl overflow-hidden border border-red-500/20 shadow-lg bg-black/50 hover:scale-[1.03] transition-transform duration-200">
+                <img src="/img/previews/pdfstudio_3.png" alt="PDF Studio Document" class="w-full h-auto object-cover rounded-xl" loading="lazy">
+              </div>
+            </div>
+          </div>
+
           <!-- Interactive Cryptographic Checksum Accordion -->
           <div class="mb-4">
             <button onclick="toggleChecksum('chk-pdf', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
@@ -771,75 +1005,6 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
             </svg>
             <span>Download PDF Studio</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- 4. VISIONCALL APP CARD -->
-      <div class="taste-card p-6 sm:p-7 flex flex-col justify-between app-item" data-category="media" data-name="visioncall" data-package="com.videocall.app">
-        <div>
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex items-center space-x-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-600 to-cyan-700 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-400/30 shrink-0">
-                <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                </svg>
-              </div>
-              <div>
-                <div class="flex items-center space-x-2">
-                  <h3 class="text-xl sm:text-2xl font-bold" style="color: var(--text-heading);">VisionCall</h3>
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 uppercase tracking-wider">WebRTC HD</span>
-                </div>
-                <p class="text-xs font-mono mt-0.5" style="color: var(--text-subtle);">com.videocall.app • v1.0.0 (b1)</p>
-                <div class="flex items-center space-x-2 mt-1">
-                  <span class="text-xs text-cyan-400 font-semibold">● Hardware VP8/H.264</span>
-                  <span class="text-xs" style="color: var(--text-subtle);">•</span>
-                  <span class="text-xs font-mono font-bold" style="color: var(--text-heading);">54.3 MB</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <p class="text-sm mb-4 leading-relaxed" style="color: var(--text-body);">
-            Ultra low-latency HD video calling and group conferencing application. Features hardware encoders, Android 14+ screen sharing, virtual background bokeh, and Picture-in-Picture mode.
-          </p>
-
-          <div class="rounded-xl p-3.5 border mb-4" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline);">
-            <h4 class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-subtle);">Highlights in v1.0.0</h4>
-            <ul class="text-xs space-y-1.5" style="color: var(--text-body);">
-              <li class="flex items-center space-x-2">
-                <span class="text-cyan-400">✓</span>
-                <span>WebRTC HD Video: Hardware-accelerated H.264 with dynamic bitrate scaling</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-cyan-400">✓</span>
-                <span>MediaProjection: Android 14+ screen sharing with foreground service continuity</span>
-              </li>
-            </ul>
-          </div>
-
-          <!-- Interactive Cryptographic Checksum Accordion -->
-          <div class="mb-4">
-            <button onclick="toggleChecksum('chk-vision', this)" class="taste-btn text-[11px] font-mono flex items-center space-x-1.5 px-2 py-1 rounded border" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
-              <span>🔒 Cryptographic Signatures (V1, V2, V3, V4)</span>
-              <svg class="w-3 h-3 chevron-icon transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-            </button>
-            <div id="chk-vision" class="checksum-details text-[11px] font-mono p-2.5 rounded-lg border mt-1" style="background-color: var(--bg-surface-elevated); border-color: var(--border-hairline); color: var(--text-subtle);">
-              <div class="truncate">SHA256: 9e55b...10cf4 (Verified)</div>
-              <div class="text-[10px] mt-1 text-cyan-400 font-semibold">Architectures: arm64-v8a, armeabi-v7a</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="pt-4 border-t flex items-center justify-between gap-3" style="border-color: var(--border-hairline);">
-          <div class="text-[11px] font-mono" style="color: var(--text-subtle);">
-            Target: Android 8.0+
-          </div>
-          <a href="/downloads/vision-call.apk" download="vision-call.apk" class="taste-btn shimmer-btn px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-cyan-600/30 flex items-center space-x-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-            </svg>
-            <span>Download VisionCall APK</span>
           </a>
         </div>
       </div>
@@ -999,6 +1164,233 @@
         updateThemeIcons(currentTheme);
         handleAppFilter();
       } catch (_) {}
+    })();
+
+    // ==================== THREE.JS 3D WEBGL MOTION GRAPHICS SYSTEM ====================
+    (function initStore3DWebGL() {
+      const container = document.getElementById('storeHero3dStage');
+      const canvas = document.getElementById('store3dCanvas');
+      if (!container || !canvas || typeof THREE === 'undefined') return;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      // 1. Scene, Camera, Renderer
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.z = 6;
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+
+      // 2. Geometry Group
+      const masterGroup = new THREE.Group();
+      scene.add(masterGroup);
+
+      // Inner Quantum Icosahedron Core (Cyan Glow Wireframe)
+      const coreGeo = new THREE.IcosahedronGeometry(1.6, 1);
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x06b6d4,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.72
+      });
+      const coreMesh = new THREE.Mesh(coreGeo, wireMat);
+      masterGroup.add(coreMesh);
+
+      // Glowing Vertex Points
+      const vertexGeo = new THREE.IcosahedronGeometry(1.6, 1);
+      const vertexMat = new THREE.PointsMaterial({
+        color: 0x38bdf8,
+        size: 0.08,
+        transparent: true,
+        opacity: 0.9
+      });
+      const vertexPoints = new THREE.Points(vertexGeo, vertexMat);
+      masterGroup.add(vertexPoints);
+
+      // Concentric Torus Orbital Ring (Tilted Gyroscope)
+      const ringGeo = new THREE.TorusGeometry(2.5, 0.035, 16, 120);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0x3b82f6,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.6
+      });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.rotation.x = Math.PI / 3;
+      ringMesh.rotation.y = Math.PI / 6;
+      masterGroup.add(ringMesh);
+
+      // Outer Counter-Orbiting Gimbal Ring
+      const ringGeo2 = new THREE.TorusGeometry(2.9, 0.02, 16, 100);
+      const ringMat2 = new THREE.MeshBasicMaterial({
+        color: 0x10b981,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4
+      });
+      const ringMesh2 = new THREE.Mesh(ringGeo2, ringMat2);
+      ringMesh2.rotation.x = -Math.PI / 4;
+      masterGroup.add(ringMesh2);
+
+      // Ambient Floating Micro-Particles Constellation
+      const particleCount = window.innerWidth < 640 ? 350 : 750;
+      const partPositions = new Float32Array(particleCount * 3);
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        const radius = 2.2 + Math.random() * 4.5;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        partPositions[i] = radius * Math.sin(phi) * Math.cos(theta);
+        partPositions[i + 1] = radius * Math.sin(phi) * Math.sin(theta);
+        partPositions[i + 2] = radius * Math.cos(phi);
+      }
+      const partGeo = new THREE.BufferGeometry();
+      partGeo.setAttribute('position', new THREE.BufferAttribute(partPositions, 3));
+      const partMat = new THREE.PointsMaterial({
+        color: 0x93c5fd,
+        size: 0.04,
+        transparent: true,
+        opacity: 0.6
+      });
+      const particles = new THREE.Points(partGeo, partMat);
+      masterGroup.add(particles);
+
+      // 3. Inertia Drag & Gyroscopic Physics
+      let isDragging = false;
+      let prevMouseX = 0;
+      let prevMouseY = 0;
+      let velX = 0;
+      let velY = 0;
+      let targetRotX = 0;
+      let targetRotY = 0;
+
+      function onPointerDown(e) {
+        isDragging = true;
+        prevMouseX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+        prevMouseY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+        velX = 0;
+        velY = 0;
+      }
+
+      function onPointerMove(e) {
+        const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+        const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+
+        if (isDragging) {
+          const deltaX = clientX - prevMouseX;
+          const deltaY = clientY - prevMouseY;
+          velX = deltaX * 0.005;
+          velY = deltaY * 0.005;
+          masterGroup.rotation.y += velX;
+          masterGroup.rotation.x += velY;
+          prevMouseX = clientX;
+          prevMouseY = clientY;
+        } else {
+          // Subtle cursor parallax
+          const rect = container.getBoundingClientRect();
+          const normX = ((clientX - rect.left) / rect.width) - 0.5;
+          const normY = ((clientY - rect.top) / rect.height) - 0.5;
+          targetRotY = normX * 0.45;
+          targetRotX = normY * 0.35;
+        }
+      }
+
+      function onPointerUp() {
+        isDragging = false;
+      }
+
+      container.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
+
+      container.addEventListener('touchstart', onPointerDown, { passive: true });
+      window.addEventListener('touchmove', onPointerMove, { passive: true });
+      window.addEventListener('touchend', onPointerUp, { passive: true });
+
+      // 4. Resize Observer
+      function onWindowResize() {
+        if (!container || !renderer || !camera) return;
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+        renderer.setSize(width, height);
+      }
+      window.addEventListener('resize', onWindowResize);
+
+      // 5. Visibility / Auto-pause via IntersectionObserver
+      let isVisible = true;
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isVisible = entry.isIntersecting;
+        });
+      }, { threshold: 0.05 });
+      observer.observe(container);
+
+      // 6. 60 FPS Render Loop with Smooth Physics Dampening
+      function animate() {
+        requestAnimationFrame(animate);
+        if (!isVisible) return;
+
+        // Autonomous constant slow orbital spin
+        if (!isDragging) {
+          velX *= 0.94;
+          velY *= 0.94;
+          masterGroup.rotation.y += velX + 0.0035;
+          masterGroup.rotation.x += velY;
+
+          // Parallax smoothing (lerp)
+          coreMesh.rotation.y += (targetRotY - coreMesh.rotation.y) * 0.05;
+          coreMesh.rotation.x += (targetRotX - coreMesh.rotation.x) * 0.05;
+        }
+
+        // Counter rotations for cosmic depth
+        ringMesh.rotation.z += 0.008;
+        ringMesh2.rotation.z -= 0.006;
+        particles.rotation.y -= 0.0015;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+    })();
+
+    // ==================== 3D KINETIC CARD TILT ENGINE ====================
+    (function init3DCardTiltEngine() {
+      const tiltCards = document.querySelectorAll('.card-3d-tilt');
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      tiltCards.forEach(card => {
+        card.addEventListener('pointermove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+
+          const percentX = (x - centerX) / centerX;
+          const percentY = (y - centerY) / centerY;
+
+          const rotateX = percentY * -8;
+          const rotateY = percentX * 8;
+
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.012, 1.012, 1.012)`;
+          card.style.setProperty('--sheen-x', `${(x / rect.width) * 100}%`);
+          card.style.setProperty('--sheen-y', `${(y / rect.height) * 100}%`);
+        });
+
+        card.addEventListener('pointerleave', () => {
+          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        });
+      });
     })();
   </script>
 </body>

@@ -166,10 +166,10 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.24",
-        version_name: "v4.6.24",
-        version_code: 113,
-        build: 113,
+        version: "4.6.28",
+        version_name: "v4.6.28",
+        version_code: 117,
+        build: 117,
         sha256: "ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06",
         filename: "connecto-fun.apk",
         size_bytes: 37890849,
@@ -249,8 +249,15 @@ export default {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Cache-Control": "public, max-age=60, s-maxage=60",
-              "X-Connecto-Store-Version": "v1.7.6",
-              "X-Served-By": "Connecto-Worker-GitHub-Direct"
+              "X-Connecto-Store-Version": "v1.8.0",
+              "X-Served-By": "Connecto-Worker-GitHub-Direct",
+              "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+              "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;",
+              "X-Content-Type-Options": "nosniff",
+              "X-Frame-Options": "SAMEORIGIN",
+              "X-XSS-Protection": "1; mode=block",
+              "Referrer-Policy": "strict-origin-when-cross-origin",
+              "Permissions-Policy": "camera=(), geolocation=(), microphone=(self)"
             }
           });
         }
@@ -277,14 +284,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.7.6-b33-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.0-b37-live.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.7.6");
-          res.headers.set("X-Connecto-Store-Build", "33");
+          res.headers.set("X-Connecto-Store-Version", "v1.8.0");
+          res.headers.set("X-Connecto-Store-Build", "37");
           return res;
         }
 
@@ -297,7 +304,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/1.7.6"
+                "User-Agent": "Connecto-Cloud-Worker/1.8.0"
               }
             });
             if (upstreamResp.ok) {
@@ -310,8 +317,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.7.6");
-              downloadHeaders.set("X-Connecto-Store-Build", "33");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.8.0");
+              downloadHeaders.set("X-Connecto-Store-Build", "37");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -400,48 +407,6 @@ export default {
       return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.10/pdf-studio.apk", 302);
     }
 
-    // 3a-6. Cloudflare Edge Gateway for VisionCall APK
-    if (
-      cleanPath === "/download/vision-call" ||
-      cleanPath === "/download/visioncall" ||
-      cleanPath === "/download/video-call" ||
-      cleanPath === "/downloads/vision-call.apk" ||
-      cleanPath === "/downloads/visioncall.apk" ||
-      cleanPath === "/downloads/VisionCall.apk" ||
-      cleanPath === "/vision-call.apk" ||
-      (cleanPath.includes("vision-call") && cleanPath.endsWith(".apk")) ||
-      (cleanPath.includes("visioncall") && cleanPath.endsWith(".apk"))
-    ) {
-      try {
-        const vcResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/vision-call.apk", {
-          redirect: "follow",
-          headers: {
-            "User-Agent": "Connecto-Cloud-Worker/1.1.0"
-          }
-        });
-        if (vcResp.ok) {
-          const downloadHeaders = new Headers();
-          downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
-          downloadHeaders.set("Content-Disposition", 'attachment; filename="vision-call.apk"');
-          const cl = vcResp.headers.get("content-length");
-          if (cl) downloadHeaders.set("Content-Length", cl);
-          downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800");
-          downloadHeaders.set("Access-Control-Allow-Origin", "*");
-          downloadHeaders.set("X-Connecto-Package", "com.videocall.app");
-          downloadHeaders.set("X-Connecto-App", "VisionCall");
-          downloadHeaders.set("X-Connecto-Version", "v1.0.0");
-          return new Response(vcResp.body, {
-            status: 200,
-            headers: downloadHeaders
-          });
-        }
-      } catch (err) {
-        console.error("VisionCall download fetch error:", err);
-      }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.11/vision-call.apk", 302);
-    }
-
-
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
     const isStaticAsset = url.pathname.match(/\.(png|jpe?g|svg|webp|ico|gif|css|js|json|woff2?|ttf|map)$/i);
     if (!isStaticAsset && (
@@ -457,14 +422,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.11/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.24-b113.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.28-b117.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.24");
-          res.headers.set("X-Connecto-Build", "113");
+          res.headers.set("X-Connecto-Version", "v4.6.28");
+          res.headers.set("X-Connecto-Build", "117");
           return res;
         }
 
@@ -477,7 +442,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.24"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.28"
               }
             });
             if (upstreamResp.ok) {
@@ -488,8 +453,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.24");
-              downloadHeaders.set("X-Connecto-Build", "113");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.28");
+              downloadHeaders.set("X-Connecto-Build", "117");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1799,23 +1764,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.7.6",
-        version_code: 33,
+        version_name: "1.8.0",
+        version_code: 37,
         size_bytes: 17993016,
         size_formatted: "17.2 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
-          "Ecosystem Live Sync v1.7.6: Live synchronization with Connecto v4.6.24 voice audio capture pipeline",
-          "Fluid Spring Transition Animations: Tactile modal slide and scale spring physics when opening application details from the catalog",
-          "Original Guest UI Previews: Integrated real emulator application screenshots captured cleanly in guest mode across all applications",
-          "Streamlined Technical Specifications: Removed technical clutter and low-level jargon, presenting clean version, size, category, and compatibility",
-          "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White luxury themes with dynamic composition local provider and instant switching",
-          "Tactile Spring Physics: Fluid physics-based press scaling and spring damping across all action buttons, cards, category chips, and navigation items"
+          "Ecosystem Spotlight Hero UI: Integrated Linear/x.ai dark aesthetic hero banner with real-time platform telemetry",
+          "Linear Precision Design System: High-tactile micro-interactions, refined hair-line borders, and zero-slop layout",
+          "App Detail Reload Loop Fix: Stabilized AnimatedContent targetState on package identifier",
+          "Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks",
+          "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
         ],
         is_essential: true,
-        updated_at: "2026-11-09T08:30:00Z"
+        updated_at: "2026-11-10T12:00:00Z"
       },
       {
         id: "connecto",
@@ -1825,28 +1789,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.24",
-        version_code: 113,
+        version_name: "4.6.28",
+        version_code: 117,
         size_bytes: 37890849,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "Voice Call Audio & Mic Capture Fix: Resolved root cause of silent/inaudible calls. Removed premature AudioRecord capture return, implemented seamless AudioRecord fallback during WebRTC ICE negotiation, added explicit microphone unmute and audio focus acquisition, fixed device communication routing fallbacks, and stabilized voice isolation DSP with Echo loopback testing.",
-          "Raw Content Elimination: Sanitized all message streams, notifications, conversation previews, and error responses across web and native app tiers, preventing raw encrypted ciphertext, JSON payloads, and stack traces from leaking to the UI",
-          "Blur Validation & Focus Error Detection: Interactive email and credentials validation dynamically reveals error state and messages only when leaving the field (blur), eliminating premature error noise",
-          "Unslop Redline Optimization: Refined push-pin minimalist badge in chat screen, removed visual clutter, stripped decorative emoji from buttons, and polished typography",
-          "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly",
-          "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash",
-          "Particle Gather Navigation Animation: Luxury physics-based particle suction and coalescence animation on tab switch with ambient micro-sparkles",
-          "Calling State Transparency: Precise real-time status indicators displaying 'Not connected...' before user pickup and 'Connected but not answering...' while phone is ringing",
-          "Multi-Scheme Cryptographic Signing: Enabled simultaneous V1 (JAR), V2 (APK), V3, and V4 signatures for 100% update validation across all Android versions",
-          "Inter-City Voice Call Stability: Fixed audio relay packet routing and SDP formatting for seamless calls across networks and cities",
-          "Data-Only Background Call Push: High-priority data push guarantees immediate device ringing and full-screen incoming call UI"
+          "Modern High-Taste UI: Refined Linear minimalist headers, polished typography, and clean bubble styling",
+          "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
+          "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion",
+          "Full-Bandwidth HD Voice: Expanded vocal bandwidth (140Hz-7900Hz) restoring vocal warmth, consonants and intelligibility",
+          "Call Rapid Redial Stability: Hardened Android 14 ForegroundService lifecycle and non-blocking AudioRecord lifecycle",
+          "Sub-30ms Real-Time Voice Sync: Zero-wait non-blocking playback queue eliminating delay accumulation"
         ],
         is_essential: true,
-        updated_at: "2026-11-09T05:45:00Z"
+        updated_at: "2026-11-10T12:00:00Z"
       },
       {
         id: "jarvis",
@@ -1906,33 +1865,6 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         ],
         is_essential: false,
         updated_at: "2026-10-30T11:45:00Z"
-      },
-      {
-        id: "visioncall",
-        package_name: "com.videocall.app",
-        name: "VisionCall",
-        badge: "HD Video Calling",
-        tagline: "Ultra-low latency HD video calling, screen sharing & group conferencing",
-        description: "Dedicated WebRTC video calling and conferencing application. Features dynamic multi-party grids, 1-on-1 direct calls with draggable PIP, real-time camera flip, mic/video toggles, screen sharing with Android 14+ foreground service, virtual background blur, in-call chat with reactions, and system-level Picture-in-Picture mode.",
-        category: "Communication",
-        version_name: "1.0.0",
-        version_code: 1,
-        size_bytes: 56933716,
-        size_formatted: "54.3 MB",
-        download_url: "https://connecto.fun/downloads/vision-call.apk",
-        icon_url: "https://connecto.fun/static/favicon.svg",
-        accent_color: "#00E5FF",
-        changelog: [
-          "Hardware-accelerated H.264 & VP8 WebRTC Video Engine with Acoustic Echo Cancellation & Noise Suppression",
-          "Dynamic Group Video Calling with responsive 1-on-1, 2-peer split, and 2x2 multi-party room grid",
-          "Screen Sharing presentation with Android 14+ compliant Foreground Service (mediaProjection)",
-          "System-Level Picture-in-Picture (PiP) Mode with seamless home-gesture transition",
-          "Visual Background Effects & Portrait Blur (Soft Blur, Deep Bokeh, Studio Glow, Virtual Backdrops)",
-          "Real-Time In-Call Text Chat with quick emoji reaction bar and unread notification badges",
-          "Live audio device switcher for Speakerphone, Earpiece, and Bluetooth audio accessories"
-        ],
-        is_essential: false,
-        updated_at: "2026-11-02T11:45:00Z"
       }
     ];
 
@@ -7030,10 +6962,10 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.24",
-      version_name: "v4.6.24",
-      version_code: 113,
-      build: 113,
+      version: "4.6.28",
+      version_name: "v4.6.28",
+      version_code: 117,
+      build: 117,
       sha256: "ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06",
       filename: "connecto-fun.apk",
       size_bytes: 37890849,
@@ -8169,18 +8101,18 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[67]\.[0-9]+<\/span>/g, "v1.7.6</span>")
-            .replace(/v1\.[67]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.7.6 (Build 33) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[67]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.7.6 • 17.2 MB)")
-            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[67]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.7.6)")
-            .replace(/Autonomous Package Manager • v1\.[67]\.[0-9]+/g, "Autonomous Package Manager • v1.7.6")
+            .replace(/v1\.[678]\.[0-9]+<\/span>/g, "v1.8.0</span>")
+            .replace(/v1\.[678]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.8.0 (Build 37) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[678]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.8.0 • 17.2 MB)")
+            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[678]\.[0-9]+\)/g,
+                     "Official Verified Store Release • Package: com.connecto.store (v1.8.0)")
+            .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">17.2 MB</span>')
-            .replace(/v4\.6\.23/g, "v4.6.24")
-            .replace(/Build 112/g, "Build 113")
-            .replace(/BUILD 112/g, "BUILD 113")
-            .replace(/\(b112\)/g, "(b113)");
+            .replace(/v4\.6\.2[0-7]/g, "v4.6.28")
+            .replace(/Build 11[0-6]/g, "Build 117")
+            .replace(/BUILD 11[0-6]/g, "BUILD 117")
+            .replace(/\(b11[0-6]\)/g, "(b117)");
           responseBody = patched;
         } catch (_) {}
       }
