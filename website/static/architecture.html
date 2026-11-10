@@ -56,7 +56,7 @@
       --arch-icon-bg: rgba(255, 255, 255, 0.04);
       --footer-bg: transparent;
       --footer-border: rgba(255, 255, 255, 0.08);
-      --title-gradient: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      --title-gradient: var(--text-primary);
       --eyebrow-bg: rgba(6, 182, 212, 0.1);
       --eyebrow-border: rgba(6, 182, 212, 0.3);
       --section-icon-bg: rgba(255, 255, 255, 0.04);
@@ -87,7 +87,7 @@
       --arch-icon-bg: rgba(20, 19, 18, 0.04);
       --footer-bg: rgba(20, 19, 18, 0.03);
       --footer-border: rgba(20, 19, 18, 0.10);
-      --title-gradient: linear-gradient(135deg, #141312 40%, #44403c 100%);
+      --title-gradient: var(--text-primary);
       --eyebrow-bg: rgba(8, 145, 178, 0.08);
       --eyebrow-border: rgba(8, 145, 178, 0.3);
       --section-icon-bg: rgba(20, 19, 18, 0.05);
@@ -161,13 +161,13 @@
     .nav-logo-badge {
       width: 30px;
       height: 30px;
-      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-emerald));
+      background: var(--accent-cyan);
       border-radius: 9px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #fff;
-      font-weight: 900;
+      font-weight: 700;
       flex-shrink: 0;
     }
     .nav-links {
@@ -199,16 +199,14 @@
     .nav-links .btn-action {
       background: var(--accent-cyan);
       color: #ffffff;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 13px;
       padding: 7px 16px;
       border-radius: 8px;
-      box-shadow: 0 4px 14px rgba(6, 182, 212, 0.25);
-      transition: all 0.15s ease;
+      transition: opacity 0.15s ease;
     }
     .nav-links .btn-action:hover {
       opacity: 0.92;
-      transform: translateY(-1px);
     }
     /* Theme toggle button */
     .theme-toggle-btn {
@@ -330,13 +328,10 @@
     .page-title {
       font-family: 'Plus Jakarta Sans', sans-serif;
       font-size: 40px;
-      font-weight: 800;
+      font-weight: 700;
       line-height: 1.2;
       margin-bottom: 16px;
-      background: var(--title-gradient);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text-primary);
       letter-spacing: -0.5px;
     }
     .page-sub {
@@ -381,7 +376,6 @@
     }
     .arch-card:hover {
       border-color: var(--border-accent);
-      box-shadow: 0 8px 24px rgba(6, 182, 212, 0.08);
     }
     .arch-card-header {
       display: flex;

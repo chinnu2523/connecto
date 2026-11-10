@@ -20,7 +20,6 @@
       --accent-hover: #06b6d4;
       --accent-tint: rgba(34, 211, 238, 0.12);
       --accent-border: rgba(34, 211, 238, 0.3);
-      --accent-glow: rgba(34, 211, 238, 0.35);
 
       --bg-darkest: #07090e;
       --bg-darker: #0b0f19;
@@ -49,9 +48,6 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      background-image: 
-        radial-gradient(circle at 20% 15%, rgba(34, 211, 238, 0.06) 0%, transparent 40%),
-        radial-gradient(circle at 80% 85%, rgba(168, 85, 247, 0.05) 0%, transparent 40%);
       padding-bottom: 60px;
     }
 
@@ -231,7 +227,6 @@
     }
     .release-card:hover {
       border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
     .release-header {
       display: flex;
@@ -380,9 +375,9 @@
     <div class="filter-bar">
       <div class="filter-chips">
         <button class="filter-chip active" onclick="filterReleases('all')">All Updates</button>
-        <button class="filter-chip" onclick="filterReleases('feature')">🚀 Features</button>
-        <button class="filter-chip" onclick="filterReleases('performance')">⚡ Performance</button>
-        <button class="filter-chip" onclick="filterReleases('security')">🛡️ Security</button>
+        <button class="filter-chip" onclick="filterReleases('feature')">Features</button>
+        <button class="filter-chip" onclick="filterReleases('performance')">Performance</button>
+        <button class="filter-chip" onclick="filterReleases('security')">Security</button>
       </div>
       <div class="search-input-wrap">
         <span class="search-icon">🔍</span>

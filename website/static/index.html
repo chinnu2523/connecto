@@ -8344,10 +8344,7 @@
       text-shadow: 0 4px 35px rgba(0, 0, 0, 0.85);
     }
     .morph-gradient-text {
-      background: linear-gradient(135deg, #00cec9 0%, #6c5ce7 50%, #a855f7 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      filter: drop-shadow(0 0 25px rgba(0, 206, 201, 0.45));
+      color: var(--text-header);
     }
     .morph-subtext {
       color: var(--text-muted);
@@ -27122,7 +27119,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="morph-content-wrap">
                 <div class="morph-eyebrow">
                   <span class="pulse-cyan-dot"></span>
-                  <span>SYNAPSE ENGINE</span>
+                  <span>Synapse Engine</span>
                 </div>
                 <h2 class="morph-headline">
                   Ultra-fast collaboration.<br>
@@ -27524,7 +27521,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION: OUR STORE (OFFICIAL AUTONOMOUS PACKAGE MANAGER) -->
         <div class="android-showcase-section scroll-reveal-3d spatial-3d-section" id="ourStoreSection" style="margin-top: 60px;">
           <div class="section-header-standard">
-            <h2 class="section-title">Our Store. <span class="hero-gradient-text" style="background:linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">On-Device Updates & Security.</span></h2>
+            <h2 class="section-title">Our Store. <span class="hero-gradient-text">On-Device Updates &amp; Security.</span></h2>
             <p class="section-sub">A native, independent Android package installer that monitors releases, verifies cryptographic SHA-256 signatures, and installs updates seamlessly in the background with zero telemetry and complete privacy.</p>
           </div>
 
@@ -28662,10 +28659,10 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="academy-mastery-rank" id="learnRankBadge">Level 3 • Advanced</div>
           </div>
           <div class="academy-track-buttons">
-            <button class="btn btn-outline track-btn active" id="btnTrackGenin" onclick="loadTrackWorkspace('genin')">🌱 Foundations</button>
-            <button class="btn btn-outline track-btn" id="btnTrackChunin" onclick="loadTrackWorkspace('chunin')">⚡ Streams</button>
-            <button class="btn btn-outline track-btn" id="btnTrackJonin" onclick="loadTrackWorkspace('jonin')">🔥 Advanced</button>
-            <button class="btn btn-outline track-btn" id="btnTrackSoc" onclick="loadTrackWorkspace('soc')" style="border-color:rgba(245, 158, 11, 0.4); color:#f59e0b; font-weight:700;">🛡️ Security Labs &amp; SOC</button>
+            <button class="btn btn-outline track-btn active" id="btnTrackGenin" onclick="loadTrackWorkspace('genin')">Foundations</button>
+            <button class="btn btn-outline track-btn" id="btnTrackChunin" onclick="loadTrackWorkspace('chunin')">Streams</button>
+            <button class="btn btn-outline track-btn" id="btnTrackJonin" onclick="loadTrackWorkspace('jonin')">Advanced</button>
+            <button class="btn btn-outline track-btn" id="btnTrackSoc" onclick="loadTrackWorkspace('soc')" style="border-color:rgba(245, 158, 11, 0.4); color:#f59e0b; font-weight:700;">Security Labs &amp; SOC</button>
           </div>
         </div>
 
@@ -29032,7 +29029,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <div class="modal-actions">
           <button class="btn btn-outline" onclick="nextOnboardingStep(3)">Back</button>
           <button class="btn btn-outline" onclick="completeOnboarding(true)">Skip</button>
-          <button class="btn" id="obFinishBtn" style="padding:10px 22px;" onclick="completeOnboarding(false)">Complete Setup 🚀</button>
+          <button class="btn" id="obFinishBtn" style="padding:10px 22px;" onclick="completeOnboarding(false)">Complete Setup</button>
         </div>
       </div>
 
@@ -29044,7 +29041,7 @@ html[data-theme="dark"] #saveProfileBtn {
     <div class="modal-box-scroll border-beam-card" style="width:440px; border-radius:20px; position:relative;" onclick="event.stopPropagation()">
       <div class="border-beam"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 class="modal-title shimmer-title" style="font-size:18px; font-weight:800;">➕ Create Group Voice Room</h3>
+        <h3 class="modal-title shimmer-title" style="font-size:18px; font-weight:700;">Create Group Voice Room</h3>
         <button class="btn-icon" onclick="closeCreateVoiceRoomModal()">✕</button>
       </div>
       <div style="display:flex; flex-direction:column; gap:14px;">
@@ -29448,7 +29445,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <!-- 2. New Password & Re-enter (Highlighted when verified) -->
               <div id="newPasswordSectionWrap" style="display:none; margin-top:14px; padding:14px; border-radius:10px; background:rgba(34, 211, 238, 0.05); border:2px solid var(--primary); transition:all 0.3s;">
                 <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px; display:flex; justify-content:space-between;">
-                  <span>✨ Set New Password</span>
+                  <span>Set New Password</span>
                   <span style="font-weight:normal; color:var(--text-muted); font-size:11px;">Min 4 characters</span>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -29570,7 +29567,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <!-- 2. New Password & Re-enter (Unlocked when verified) -->
               <div id="secNewPasswordSectionWrap" style="display:none; margin-top:14px; padding:14px; border-radius:10px; background:rgba(34, 211, 238, 0.05); border:2px solid var(--primary); transition:all 0.3s;">
                 <div style="font-size:12px; font-weight:800; color:var(--primary); margin-bottom:10px; display:flex; justify-content:space-between;">
-                  <span>✨ Set New Password</span>
+                  <span>Set New Password</span>
                   <span style="font-weight:normal; color:var(--text-muted); font-size:11px;">Min 4 characters</span>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -32515,14 +32512,14 @@ html[data-theme="dark"] #saveProfileBtn {
           fb.innerText = data.detail || 'Onboarding failed.';
           fb.style.color = 'var(--red)';
           fb.style.display = 'block';
-          btn.innerText = 'Complete Setup 🚀';
+          btn.innerText = 'Complete Setup';
           btn.disabled = false;
         }
       } catch (err) {
         fb.innerText = `Error: ${err.message}`;
         fb.style.color = 'var(--red)';
         fb.style.display = 'block';
-        btn.innerText = 'Complete Setup 🚀';
+        btn.innerText = 'Complete Setup';
         btn.disabled = false;
       }
     }
@@ -36580,15 +36577,15 @@ html[data-theme="dark"] #saveProfileBtn {
         return `
           <div class="scheduled-card-item" id="sched_card_${safeId}">
             <div class="scheduled-card-header">
-              <span class="scheduled-time-pill">🕒 ${escapeHTML(targetStr)}</span>
+              <span class="scheduled-time-pill">${escapeHTML(targetStr)}</span>
               <span style="font-size:11px; color:var(--text-muted);">#${escapeHTML(item.channel_id || currentChannel)}</span>
             </div>
             <div style="font-size:13px; color:#fff; word-break:break-word; line-height:1.4;">
               ${escapeHTML(item.content)}
             </div>
             <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:4px; border-top:1px solid rgba(255,255,255,0.06); padding-top:6px;">
-              <button class="btn btn-outline" style="font-size:11px; padding:3px 8px; color:#f87171; border-color:rgba(248,113,113,0.3);" onclick="cancelScheduledMessage('${safeId}')">🗑️ Cancel</button>
-              <button class="btn btn-primary" style="font-size:11px; padding:3px 10px; background:linear-gradient(135deg,#a855f7,#6366f1);" onclick="sendScheduledMessageNow('${safeId}')">🚀 Send Now</button>
+              <button class="btn btn-outline" style="font-size:11px; padding:3px 8px; color:#f87171; border-color:rgba(248,113,113,0.3);" onclick="cancelScheduledMessage('${safeId}')">Cancel</button>
+              <button class="btn btn-primary" style="font-size:11px; padding:3px 10px; background:var(--accent-primary);" onclick="sendScheduledMessageNow('${safeId}')">Send Now</button>
             </div>
           </div>
         `;
