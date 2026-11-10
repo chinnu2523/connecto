@@ -166,14 +166,14 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.29",
-        version_name: "v4.6.29",
-        version_code: 118,
-        build: 118,
-        sha256: "ade56674b0d345e67dc12c2e43e3937422b40ede9f8c9644fa9970664fb7bdc7",
+        version: "4.6.30",
+        version_name: "v4.6.30",
+        version_code: 119,
+        build: 119,
+        sha256: "5e1d609baa6aa51597fcf523f8bb2a9e0651327e9610f22af9460702f450c3d9",
         filename: "connecto-fun.apk",
-        size_bytes: 37894857,
-        size_display: "36.1 MB",
+        size_bytes: 37907444,
+        size_display: "36.2 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
@@ -420,18 +420,19 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/app-release.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.30/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.30/app-release.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.29-b118-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.30-b119-live.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.29");
-          res.headers.set("X-Connecto-Build", "118");
+          res.headers.set("X-Connecto-Version", "v4.6.30");
+          res.headers.set("X-Connecto-Build", "119");
           return res;
         }
 
@@ -444,7 +445,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.29"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.30"
               }
             });
             if (upstreamResp.ok) {
@@ -455,8 +456,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.29");
-              downloadHeaders.set("X-Connecto-Build", "118");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.30");
+              downloadHeaders.set("X-Connecto-Build", "119");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1791,15 +1792,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.29",
-        version_code: 118,
-        size_bytes: 37894857,
-        size_formatted: "36.1 MB",
+        version_name: "4.6.30",
+        version_code: 119,
+        size_bytes: 37907444,
+        size_formatted: "36.2 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes (Moss & Emerald, Mint & Vivid Red, Fiery Lime, Mocha Electric, Butter & Ink, Olive Bubblegum, Charcoal Crimson, Lemon Lavender, Mocha Gold) integrated natively in Profile appearance",
+          "Theme Selection Root Cause Resolved: Removed conflicting toggle handlers so all 9 custom signature color palettes apply accurately across the app",
+          "Clean Theme Hierarchy: Eliminated numerical ratio percentages (60% • 30% • 10%) from theme descriptions for a refined aesthetic",
           "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs",
           "Modern High-Taste UI: Refined Linear minimalist headers, polished typography, and clean bubble styling",
           "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
@@ -6963,14 +6965,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.29",
-      version_name: "v4.6.29",
-      version_code: 118,
-      build: 118,
-      sha256: "2bc37349bcb9590500097d203157ac5ac16e5207127e7f77f277ca94a5c9f5d3",
+      version: "4.6.30",
+      version_name: "v4.6.30",
+      version_code: 119,
+      build: 119,
+      sha256: "5e1d609baa6aa51597fcf523f8bb2a9e0651327e9610f22af9460702f450c3d9",
       filename: "connecto-fun.apk",
-      size_bytes: 37890849,
-      size_display: "36.1 MB",
+      size_bytes: 37907444,
+      size_display: "36.2 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -8110,10 +8112,10 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">17.2 MB</span>')
-            .replace(/v4\.6\.2[0-8]/g, "v4.6.29")
-            .replace(/Build 11[0-7]/g, "Build 118")
-            .replace(/BUILD 11[0-7]/g, "BUILD 118")
-            .replace(/\(b11[0-7]\)/g, "(b118)");
+            .replace(/v4\.6\.2[0-9]/g, "v4.6.30")
+            .replace(/Build 11[0-8]/g, "Build 119")
+            .replace(/BUILD 11[0-8]/g, "BUILD 119")
+            .replace(/\(b11[0-8]\)/g, "(b119)");
           responseBody = patched;
         } catch (_) {}
       }

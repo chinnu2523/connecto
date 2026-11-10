@@ -49,15 +49,15 @@ enum class ThemeMode(val id: String, val displayName: String, val subtitle: Stri
     EMERALD("emerald", "Emerald Matrix", "Obsidian black with emerald glow", "💎"),
     MIDNIGHT("midnight", "Midnight Navy", "Deep ocean blue with azure tint", "🌌"),
     CYBERPUNK("cyberpunk", "Cyberpunk Neon", "High-contrast purple & cyan neon", "⚡"),
-    MOSS_EMERALD("moss_emerald", "Jet Black & Moss", "Jet Black 60% • Moss Green 30% • Neon Emerald 10%", "🌿"),
-    MINT_RED("mint_red", "Mint & Vivid Red", "Mint Green 60% • Pure Black 30% • Vivid Red 10%", "🍃"),
-    FIERY_LIME("fiery_lime", "Fiery Orange & Lime", "Fiery Orange 60% • Sunshine Yellow 30% • Lime Green 10%", "🔥"),
-    MOCHA_ELECTRIC("mocha_electric", "Mocha & Electric Blue", "Mocha Brown 60% • Vanilla 30% • Electric Blue 10%", "☕"),
-    BUTTER_INK("butter_ink", "Butter & Ink", "Butter Yellow 60% • Ink Black 30% • Lipstick Red 10%", "🧈"),
-    OLIVE_BUBBLEGUM("olive_bubblegum", "Olive & Bubblegum", "Olive Drab 60% • Linen 30% • Bubblegum Pink 10%", "🫒"),
-    CHARCOAL_CRIMSON("charcoal_crimson", "Charcoal Crimson", "Charcoal Black 60% • Forest 30% • Crimson Red 10%", "🎯"),
-    LEMON_LAVENDER("lemon_lavender", "Lemon & Lavender", "Lemon 60% • Charcoal 30% • Electric Lavender 10%", "🍋"),
-    MOCHA_GOLD("mocha_gold", "Mocha & Gold", "Mocha Brown 60% • Champagne 30% • Burnt Amber 10%", "👑");
+    MOSS_EMERALD("moss_emerald", "Jet Black & Moss", "Jet Black • Muted Moss Green • Neon Emerald", "🌿"),
+    MINT_RED("mint_red", "Mint & Vivid Red", "Mint Green • Pure Black • Vivid Red", "🍃"),
+    FIERY_LIME("fiery_lime", "Fiery Orange & Lime", "Fiery Orange • Sunshine Yellow • Lime Green", "🔥"),
+    MOCHA_ELECTRIC("mocha_electric", "Mocha & Electric Blue", "Mocha Brown • Vanilla Cream • Electric Blue", "☕"),
+    BUTTER_INK("butter_ink", "Butter & Ink", "Butter Yellow • Ink Black • Lipstick Red", "🧈"),
+    OLIVE_BUBBLEGUM("olive_bubblegum", "Olive & Bubblegum", "Olive Drab • Linen White • Bubblegum Pink", "🫒"),
+    CHARCOAL_CRIMSON("charcoal_crimson", "Charcoal Crimson", "Charcoal Black • Forest Green • Crimson Red", "🎯"),
+    LEMON_LAVENDER("lemon_lavender", "Lemon & Lavender", "Lemon • Charcoal Black • Electric Lavender", "🍋"),
+    MOCHA_GOLD("mocha_gold", "Mocha & Gold", "Mocha Brown • Champagne Gold • Burnt Amber", "👑");
 
     val isDark: Boolean
         get() = this != PARCHMENT && this != MINT_RED && this != BUTTER_INK && this != LEMON_LAVENDER

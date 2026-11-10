@@ -3826,7 +3826,6 @@ fun ProfileScreen(
                                                     onCheckedChange = { isDark ->
                                                         val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
                                                         onSelectThemeMode(newMode)
-                                                        onToggleTheme(isDark)
                                                     },
                                                     colors = getMonochromeSwitchColors()
                                                 )
@@ -3876,7 +3875,6 @@ fun ProfileScreen(
                                                             )
                                                             .clickable {
                                                                 onSelectThemeMode(mode)
-                                                                onToggleTheme(mode.isDark)
                                                             }
                                                             .padding(12.dp)
                                                     ) {
@@ -3962,7 +3960,6 @@ fun ProfileScreen(
                                                             )
                                                             .clickable {
                                                                 onSelectThemeMode(mode)
-                                                                onToggleTheme(mode.isDark)
                                                             }
                                                             .padding(horizontal = 14.dp, vertical = 11.dp)
                                                     ) {
@@ -4003,7 +4000,7 @@ fun ProfileScreen(
                                                                 }
                                                             }
 
-                                                            // Color Swatches (60% Base • 30% Surface • 10% Accent)
+                                                            // Color Swatches (Base • Surface • Accent)
                                                             Row(
                                                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                                                                 verticalAlignment = Alignment.CenterVertically

@@ -54,6 +54,8 @@
   <!-- Highlight.js Syntax Highlighting for Developer Code Blocks -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- Three.js WebGL 3D Motion Graphics Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
   // ==================== AUTOMATED CLOUD & LOCAL FAILOVER ENGINE ====================
   (function initAutomatedFailover() {
@@ -356,6 +358,8 @@
       --hero-glow-2: transparent;
       --hero-grad-start: #ffffff;
       --hero-grad-end: #a1a1aa;
+      --card-spotlight-rim: rgba(255, 255, 255, 0.28);
+      --glow-color: rgba(255, 255, 255, 0.04);
       --theme-name: "Pure Black OLED";
     }
 
@@ -386,6 +390,8 @@
       --hero-glow-2: rgba(251, 146, 60, 0.08);
       --hero-grad-start: #ea580c;
       --hero-grad-end: #f97316;
+      --card-spotlight-rim: rgba(249, 115, 22, 0.24);
+      --glow-color: rgba(249, 115, 22, 0.05);
       --theme-name: "Ivory Paper";
     }
 
@@ -514,6 +520,66 @@
       color: var(--accent) !important;
     }
 
+    /* Native View Transitions API support for seamless theme switches */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 0.32s;
+      animation-timing-function: var(--ease-snappy);
+    }
+
+    /* Atmospheric After Effects: Ambient Aurora Depth Mesh */
+    .aurora-mesh {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .aurora-mote-1 {
+      position: absolute;
+      top: -150px;
+      left: 10%;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(99, 102, 241, 0.04) 50%, transparent 70%);
+      filter: blur(90px);
+      animation: floatAurora1 18s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    .aurora-mote-2 {
+      position: absolute;
+      top: 35%;
+      right: -100px;
+      width: 650px;
+      height: 650px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.06) 0%, rgba(139, 92, 246, 0.04) 50%, transparent 70%);
+      filter: blur(100px);
+      animation: floatAurora2 22s ease-in-out infinite alternate;
+      will-change: transform;
+    }
+    @keyframes floatAurora1 {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(70px, 50px) scale(1.10); }
+      100% { transform: translate(-30px, 100px) scale(0.95); }
+    }
+    @keyframes floatAurora2 {
+      0% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(-80px, -30px) scale(1.12); }
+      100% { transform: translate(30px, -60px) scale(0.92); }
+    }
+
+    /* Interactive Cursor Spotlight Track (After Effect) */
+    .cursor-spotlight-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+      background: radial-gradient(700px circle at var(--mouse-x, 50vw) var(--mouse-y, 50vh), var(--glow-color, rgba(255, 255, 255, 0.04)), transparent 60%);
+      transition: opacity 0.3s ease;
+    }
+
     /* Card and Component Transitions Across Themes */
     .ecosystem-card,
     .comparison-card,
@@ -550,6 +616,61 @@
       box-shadow: 0 2px 14px rgba(0, 0, 0, 0.05) !important;
     }
 
+    /* Bento & Feature Cards Specular Rim Lighting & Spring Transitions */
+    [data-theme] .ecosystem-card,
+    [data-theme] .usecase-card,
+    [data-theme] .step-card-custom,
+    [data-theme] .comparison-card,
+    [data-theme] .bento-card,
+    [data-theme] .arch-node,
+    [data-theme] .final-cta-card {
+      position: relative;
+      overflow: hidden;
+      will-change: transform, box-shadow;
+      transition:
+        transform 0.26s var(--ease-snappy),
+        border-color 0.22s ease,
+        box-shadow 0.26s var(--ease-snappy),
+        background-color 0.35s ease !important;
+    }
+
+    /* Specular Interactive Border Lighting (Mouse Proximity Reaction) */
+    [data-theme] .ecosystem-card::before,
+    [data-theme] .usecase-card::before,
+    [data-theme] .step-card-custom::before,
+    [data-theme] .comparison-card::before,
+    [data-theme] .bento-card::before,
+    [data-theme] .arch-node::before,
+    [data-theme] .final-cta-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      padding: 1px;
+      background: radial-gradient(
+        360px circle at calc(var(--mouse-x, 50vw) - var(--card-left, 0px)) calc(var(--mouse-y, 50vh) - var(--card-top, 0px)),
+        var(--card-spotlight-rim, rgba(255, 255, 255, 0.28)),
+        transparent 65%
+      );
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    [data-theme] .ecosystem-card:hover::before,
+    [data-theme] .usecase-card:hover::before,
+    [data-theme] .step-card-custom:hover::before,
+    [data-theme] .comparison-card:hover::before,
+    [data-theme] .bento-card:hover::before,
+    [data-theme] .arch-node:hover::before,
+    [data-theme] .final-cta-card:hover::before {
+      opacity: 1;
+    }
+
     /* Neutralize legacy neon glow strips & laser lines across all themes */
     [data-theme] .stats-section-asym::after,
     [data-theme] .android-showcase-card-left::before,
@@ -560,6 +681,66 @@
       display: none !important;
     }
 
+    /* ==================== AFTER EFFECTS KINETIC LASER BEAM ==================== */
+    .ae-border-beam {
+      position: absolute;
+      inset: -1.5px;
+      border-radius: inherit;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 10;
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      padding: 1.5px;
+    }
+    .ae-border-beam::after {
+      content: '';
+      position: absolute;
+      width: 250%;
+      height: 250%;
+      top: -75%;
+      left: -75%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 65deg,
+        rgba(6, 182, 212, 0.25) 115deg,
+        rgba(56, 189, 248, 0.95) 165deg,
+        rgba(16, 185, 129, 0.9) 180deg,
+        transparent 195deg,
+        transparent 360deg
+      );
+      animation: aeBeamSweep 7s linear infinite;
+      will-change: transform;
+    }
+    @keyframes aeBeamSweep {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 3D WebGL Background Spatial Stage */
+    .hero-spatial-stage {
+      position: relative;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .hero-3d-bg-canvas {
+      position: absolute;
+      inset: -40px -30px -40px -30px;
+      width: calc(100% + 60px);
+      height: calc(100% + 80px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.9;
+    }
+    .chat-mockup-card {
+      position: relative;
+      z-index: 2;
+    }
+
     [data-theme] .ecosystem-card:hover,
     [data-theme] .usecase-card:hover,
     [data-theme] .step-card-custom:hover,
@@ -568,8 +749,51 @@
     [data-theme] .comparison-card:hover,
     [data-theme] .final-cta-card:hover {
       border-color: var(--accent-border) !important;
-      box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.12) !important;
-      transform: translateY(-2px) !important;
+      box-shadow: 0 14px 34px -8px rgba(0, 0, 0, 0.32), 0 0 0 1px var(--accent-border) !important;
+      transform: translateY(-3.5px) scale(1.004) !important;
+    }
+
+    html[data-theme="parchment"] .ecosystem-card:hover,
+    html[data-theme="parchment"] .usecase-card:hover,
+    html[data-theme="parchment"] .step-card-custom:hover,
+    html[data-theme="parchment"] .bento-card:hover,
+    html[data-theme="parchment"] .faq-item:hover,
+    html[data-theme="parchment"] .comparison-card:hover,
+    html[data-theme="parchment"] .final-cta-card:hover {
+      box-shadow: 0 14px 30px -8px rgba(20, 19, 18, 0.10), 0 0 0 1px var(--accent-border) !important;
+    }
+
+    /* Tactile Spring Press Physics on Interactive Buttons & CTAs */
+    .btn,
+    .hero-cta-btn-primary,
+    .hero-cta-btn-secondary,
+    .landing-link-btn,
+    .nav-signup-cta-btn,
+    .nav-theme-toggle-btn,
+    .nav-ai-support-btn,
+    .android-primary-download-btn,
+    .android-secondary-action-btn,
+    .editorial-theme-btn {
+      transition: transform 0.2s var(--ease-snappy), box-shadow 0.2s var(--ease-snappy), background-color 0.2s ease, border-color 0.2s ease !important;
+      will-change: transform;
+    }
+    .btn:hover,
+    .hero-cta-btn-primary:hover,
+    .hero-cta-btn-secondary:hover,
+    .nav-signup-cta-btn:hover,
+    .android-primary-download-btn:hover,
+    .android-secondary-action-btn:hover {
+      transform: translateY(-1.5px) !important;
+    }
+    .btn:active,
+    .hero-cta-btn-primary:active,
+    .hero-cta-btn-secondary:active,
+    .landing-link-btn:active,
+    .nav-signup-cta-btn:active,
+    .android-primary-download-btn:active,
+    .android-secondary-action-btn:active,
+    .editorial-theme-btn:active {
+      transform: scale(0.96) !important;
     }
 
     /* Minimal Editorial Card Typography (Universally Themed) */
@@ -5232,7 +5456,16 @@
       transform: translateY(-1px);
     }
 
-    /* Channel Loading Skeleton Pulse */
+    /* Universal High-Performance Shimmer & Skeleton System */
+    @keyframes skeletonShimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton-shimmer {
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.04) 75%) !important;
+      background-size: 200% 100% !important;
+      animation: skeletonShimmer 1.5s ease-in-out infinite !important;
+    }
     .channel-loading-skeleton {
       display: flex;
       flex-direction: column;
@@ -5251,31 +5484,57 @@
       gap: 8px;
     }
     .skeleton-avatar {
-      width: 24px;
-      height: 24px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.08);
-      animation: skeletonPulse 1.4s ease-in-out infinite alternate;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.04) 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s ease-in-out infinite;
     }
     .skeleton-author {
       width: 90px;
       height: 14px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.08);
-      animation: skeletonPulse 1.4s ease-in-out infinite alternate;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.04) 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s ease-in-out infinite;
     }
     .skeleton-time {
       width: 45px;
       height: 10px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.04);
-      animation: skeletonPulse 1.4s ease-in-out infinite alternate;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s ease-in-out infinite;
     }
     .skeleton-bubble {
       height: 38px;
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      animation: skeletonPulse 1.4s ease-in-out infinite alternate;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.11) 50%, rgba(255, 255, 255, 0.04) 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s ease-in-out infinite;
+    }
+    .skeleton-list-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      padding: 14px;
+    }
+    .skeleton-card-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .skeleton-box {
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.12) 50%, rgba(255, 255, 255, 0.04) 75%);
+      background-size: 200% 100%;
+      animation: skeletonShimmer 1.5s ease-in-out infinite;
     }
     @keyframes skeletonPulse {
       0% { opacity: 0.4; }
@@ -16816,6 +17075,416 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
     }
 
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* ============================================================ */
+    /* BRAND ENFORCEMENT: BRAND FONTS & FLAT COLOURS ONLY (NO GLOW) */
+    /* ============================================================ */
+    :root, [data-theme] {
+      --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      --font-serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      --font-shinobi: 'Plus Jakarta Sans', sans-serif !important;
+
+      /* Flat Brand Colors Only (0-nit OLED Black, Crisp White, Neutral Zinc & Functional Accents) */
+      --bg-darkest: #000000 !important;
+      --bg-darker: #09090C !important;
+      --bg-dark: #101014 !important;
+      --bg-card: #121216 !important;
+      --bg-card-hover: #18181D !important;
+      --bg-modal: #0D0D10 !important;
+      --bg-nav: rgba(0, 0, 0, 0.95) !important;
+      --card-border: #27272A !important;
+      --border-color: #27272A !important;
+      --text-normal: #D4D4D8 !important;
+      --text-muted: #A1A1AA !important;
+      --text-header: #FFFFFF !important;
+      --accent: #FFFFFF !important;
+      --accent-hover: #F4F4F5 !important;
+      --accent-tint: #18181B !important;
+      --accent-border: #27272A !important;
+      --chakra-cyan: #38BDF8 !important;
+
+      /* STRICTLY ZERO GLOW - FLAT ONLY */
+      --accent-glow: transparent !important;
+      --accent-secondary-glow: transparent !important;
+      --green-glow: transparent !important;
+      --red-glow: transparent !important;
+      --hero-glow-1: transparent !important;
+      --hero-glow-2: transparent !important;
+      --card-glow: transparent !important;
+      --card-spotlight-rim: transparent !important;
+      --glow-color: transparent !important;
+      --node-glow: transparent !important;
+      --step-glow: transparent !important;
+    }
+
+    * {
+      font-family: var(--font-body);
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .hero-official-title,
+    .section-title,
+    .bento-card-title,
+    .ecosystem-card-title,
+    .step-card-title,
+    .android-showcase-title {
+      font-family: var(--font-body) !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.02em !important;
+    }
+
+    .hero-official-title em {
+      font-family: var(--font-body) !important;
+      font-style: normal !important;
+      font-weight: 700 !important;
+      color: #FAFAFA !important;
+    }
+
+    /* Remove glow and neon halos across all elements */
+    .aurora-mesh,
+    .cursor-spotlight-layer,
+    .ae-border-beam,
+    .phone-vault-scanner-ring,
+    [data-theme] .ecosystem-card::before,
+    [data-theme] .usecase-card::before,
+    [data-theme] .step-card-custom::before,
+    [data-theme] .comparison-card::before,
+    [data-theme] .bento-card::before,
+    [data-theme] .arch-node::before,
+    [data-theme] .final-cta-card::before {
+      display: none !important;
+    }
+
+    /* Flat cards and borders */
+    .ecosystem-card,
+    .android-feat-card,
+    .arch-node,
+    .step-card-custom,
+    .comparison-card,
+    .bento-card,
+    .chat-mockup-card,
+    .stat-item,
+    .final-cta-card,
+    .android-showcase-card-left,
+    .usecase-card {
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      background: #101014 !important;
+      border: 1px solid #27272A !important;
+    }
+
+    .ecosystem-top-accent,
+    .android-feat-top-accent,
+    .arch-top-accent,
+    .step-top-accent,
+    .usecase-top-accent,
+    .comparison-top-accent {
+      background: #27272A !important;
+      height: 1px !important;
+    }
+
+    .shimmer-title,
+    .hero-gradient-text {
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      -webkit-text-fill-color: initial !important;
+      color: var(--text-header) !important;
+      text-shadow: none !important;
+    }
+
+    .official-live-indicator,
+    .pulse-emerald-dot,
+    .ecosystem-pulse-dot,
+    .arch-pulse-dot,
+    .nav-live-dot {
+      box-shadow: none !important;
+      animation: none !important;
+    }
+
+    /* Product Micro-Interface Components (Flat, Brand Fonts & Colours) */
+    .card-product-demo {
+      background: #09090C;
+      border: 1px solid #222226;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: var(--font-body);
+    }
+    .cpd-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #A1A1AA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .cpd-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #71717A;
+    }
+    .cpd-dot.live { background: #10B981; }
+    .cpd-dot.voice { background: #38BDF8; }
+    .cpd-dot.lab { background: #F59E0B; }
+    .cpd-dot.sec { background: #FFFFFF; }
+
+    .cpd-chat-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cpd-chat-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .cpd-user {
+      font-weight: 700;
+      color: #FAFAFA;
+    }
+    .cpd-bubble {
+      color: #D4D4D8;
+      background: #141418;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #27272A;
+    }
+    .cpd-input-bar {
+      font-size: 11px;
+      color: #52525B;
+      background: #121216;
+      border: 1px solid #27272A;
+      border-radius: 4px;
+      padding: 4px 8px;
+    }
+
+    .cpd-voice-roster {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cpd-speaker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #D4D4D8;
+      background: #141418;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #27272A;
+    }
+    .cpd-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #27272A;
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .cpd-name {
+      font-weight: 600;
+      flex: 1;
+    }
+    .cpd-wave {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .cpd-wave span {
+      width: 2px;
+      height: 8px;
+      background: #10B981;
+      border-radius: 1px;
+    }
+    .cpd-mute-badge {
+      font-size: 10px;
+      color: #71717A;
+      background: #1E1E22;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+
+    .cpd-terminal {
+      background: #000000;
+      border: 1px solid #27272A;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+    }
+    .cpd-code-line {
+      color: #A1A1AA;
+    }
+    .cpd-prompt {
+      color: #10B981;
+      font-weight: 700;
+    }
+    .cpd-code-res {
+      color: #10B981;
+      margin-top: 2px;
+    }
+
+    .cpd-vault-box,
+    .cpd-mobile-box,
+    .cpd-automod-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11.5px;
+    }
+    .cpd-vault-row,
+    .cpd-mobile-row,
+    .cpd-automod-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #A1A1AA;
+      background: #141418;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #222226;
+    }
+    .cpd-vault-row strong,
+    .cpd-mobile-row strong,
+    .cpd-automod-row strong {
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    /* Feature Product Snippet (inside android-feat-card & arch-node) */
+    .feat-product-snippet {
+      background: #0A0A0D;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-family: var(--font-body);
+    }
+    .fps-tag {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 9.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #A1A1AA;
+      background: #18181D;
+      padding: 1.5px 6px;
+      border-radius: 3px;
+      border: 1px solid #27272A;
+    }
+    .fps-tag.success {
+      color: #10B981;
+      border-color: #10B981;
+      background: #052E16;
+    }
+    .fps-tag.alert {
+      color: #F87171;
+      border-color: #F87171;
+      background: #450A0A;
+    }
+    .fps-bubble,
+    .fps-line {
+      font-size: 11.5px;
+      color: #E4E4E7;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Step Product Preview */
+    .step-product-preview {
+      background: #0A0A0D;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .spp-step {
+      font-size: 10px;
+      font-weight: 800;
+      color: #FFFFFF;
+      background: #27272A;
+      align-self: flex-start;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+    .spp-box {
+      font-size: 12px;
+      color: #D4D4D8;
+      font-weight: 600;
+    }
+
+    .comp-product-badge {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #FFFFFF;
+      background: #141418;
+      border: 1px solid #27272A;
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .comp-product-badge.legacy {
+      color: #A1A1AA;
+      background: #121214;
+      border-color: #27272A;
+    }
+    .cpb-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #71717A;
+    }
+    .cpb-dot.active { background: #10B981; }
+    .cpb-dot.legacy { background: #F87171; }
+
+    .track-product-demo {
+      background: #0A0A0D;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .tpd-tag {
+      font-size: 9px;
+      font-weight: 800;
+      color: #A1A1AA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tpd-out {
+      font-size: 11px;
+      color: #E4E4E7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
 </style>
 <style>
     /* ==================== 60FPS SMOOTHNESS & FAST TOUCH ENGINE ==================== */
@@ -18506,7 +19175,7 @@ html[data-theme="ivory"] .mobile-drawer-btn.nav-cta-shimmer {
 .mobile-drawer-apk-card {
   margin: 0 0 16px;
   padding: 14px;
-  background: linear-gradient(135deg, #050811, #0b1120);
+  background: linear-gradient(135deg, #050811, #0b1130);
   border: 1px solid rgba(16, 185, 129, 0.35);
   border-radius: 14px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
@@ -25621,11 +26290,11 @@ html[data-theme="dark"] #saveProfileBtn {
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
     </div>
 
-    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.6.15 Live • 24/7 AI Support & Legal Suite • 36.0 MB)" style="text-decoration:none; color:#10b981; position:relative;">
+    <a href="/download/apk" download="connecto-fun.apk" class="guild-icon rail-apk-guild-btn" id="tabApkRailBtn" title="Download Connecto for Android (v4.6.30 Live • 24/7 AI Support & Legal Suite • 36.1 MB)" style="text-decoration:none; color:#10b981; position:relative;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="20" x="5" y="2" rx="3"/><path d="M12 18h.01"/><path d="m9 10 3 3 3-3"/><path d="M12 6v7"/></svg>
       <div class="rail-unread-badge rail-apk-badge" style="display:flex; align-items:center; gap:2px; background:linear-gradient(135deg, #10b981, #06b6d4); color:#020617; font-weight:900; font-size:7.5px; padding:1px 4px; min-width:auto; height:16px; border-radius:8px; box-shadow:0 0 8px rgba(16,185,129,0.5);">
         <span class="live-dot-pulse-mini"></span>
-        <span class="apk-version-val">v4.6.15</span>
+        <span class="apk-version-val">v4.6.30</span>
       </div>
     </a>
 <div class="guild-separator"></div>
@@ -25728,14 +26397,14 @@ html[data-theme="dark"] #saveProfileBtn {
         <div class="sidebar-apk-meta">
           <div class="sidebar-apk-title-row">
             <span class="sidebar-apk-title">Connecto App</span>
-            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.6.15</span></span>
+            <span class="sidebar-apk-badge"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.6.30</span></span>
           </div>
           <div class="sidebar-apk-sub">
-            <span class="apk-size-val">36.0 MB</span> • OLED Vault • Sub-5ms
+            <span class="apk-size-val">36.1 MB</span> • OLED Vault • Sub-5ms
           </div>
         </div>
       </div>
-      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v4.6.15)">
+      <a href="/download/apk" download="connecto-fun.apk" class="sidebar-apk-cta-btn" title="Download Connecto APK (v4.6.30)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         <span>GET</span>
       </a>
@@ -26271,6 +26940,13 @@ html[data-theme="dark"] #saveProfileBtn {
     <!-- Primary Default View: Complete Landing Homepage -->
     <div class="view-panel active" id="heroView" onscroll="handleHeroParallax(this)">
       
+      <!-- Atmospheric After Effects: Floating Ambient Depth Mesh & Cursor Spotlight -->
+      <div class="aurora-mesh" aria-hidden="true">
+        <div class="aurora-mote-1"></div>
+        <div class="aurora-mote-2"></div>
+      </div>
+      <div class="cursor-spotlight-layer" id="cursorSpotlightLayer" aria-hidden="true"></div>
+      
       <!-- PUBLIC BETA TESTING ANNOUNCEMENT BANNER -->
       <div class="public-beta-banner" style="background:linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(6, 182, 212, 0.12)); border-bottom:1px solid rgba(245, 158, 11, 0.25); color:#fbbf24; font-size:12.5px; font-weight:600; padding:8px 16px; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; z-index:100; position:relative;">
         <span style="background:#f59e0b; color:#020617; font-size:10px; font-weight:900; padding:1.5px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px;">Public Beta</span>
@@ -26298,15 +26974,15 @@ html[data-theme="dark"] #saveProfileBtn {
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
             <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
             <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
-            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.6.15 Live • 36.1 MB)">
+            <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v4.6.30 Live • 36.1 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
-              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.6.15</span></span>
+              <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v4.6.30</span></span>
             </a>
             <a class="landing-link" onclick="scrollToHeroSection('ourStoreSection')" style="cursor:pointer;" title="Our Store • Dedicated App Hub">
               <i data-lucide="shopping-bag" class="lucide-sm"></i>
               <span>Our Store</span>
-              <span class="nav-apk-version-chip" style="background:rgba(59,130,246,0.2); border-color:rgba(59,130,246,0.4); color:#60a5fa;"><span class="pulse-emerald-dot" style="background:#3b82f6;"></span><span>v1.6.0</span></span>
+              <span class="nav-apk-version-chip" style="background:rgba(59,130,246,0.2); border-color:rgba(59,130,246,0.4); color:#60a5fa;"><span class="pulse-emerald-dot" style="background:#3b82f6;"></span><span>v1.8.0</span></span>
             </a>
           </div>
 
@@ -26345,7 +27021,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 1: HERO & INTERACTIVE STAGE -->
         <div class="hero-grid">
           <div class="hero-text">
-            <div class="hero-eyebrow"><span class="official-live-indicator" style="background:#10b981; box-shadow:0 0 8px rgba(16,185,129,0.6);"></span>24/7 AI SUPPORT &amp; LEGAL SUITE · v4.6.15 (BUILD 104)</div>
             <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
             <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
@@ -26362,7 +27037,10 @@ html[data-theme="dark"] #saveProfileBtn {
           
           <!-- HIGH-TEXTURE MOTION CHAT WINDOW WITH 3D SPATIAL STAGE -->
           <div class="hero-spatial-stage" id="heroSpatialStage" style="flex-direction:column; align-items:center; position:relative;">
+            <canvas id="hero3dCanvas" class="hero-3d-bg-canvas" aria-hidden="true"></canvas>
             <div class="chat-mockup-card interactive-tilt-card" id="heroChatMockup">
+              <!-- After Effects Continuous Perimeter Laser Beam -->
+              <div class="ae-border-beam" aria-hidden="true"></div>
               <div class="mock-win-header">
                 <div class="mock-win-controls">
                   <span class="win-dot red"></span>
@@ -26595,7 +27273,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION: CONNECTO FOR ANDROID (OFFICIAL NATIVE APP) -->
         <div class="android-showcase-section scroll-reveal-3d spatial-3d-section" id="androidAppSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);"><span class="pulse-emerald-dot"></span> Official Native Android Release • Public Beta Testing Stage</div>
             <h2 class="section-title">Connecto in Your Pocket. <span class="hero-gradient-text">Pure Black. Zero Compromise.</span></h2>
             <p class="section-sub">Engineered with 100% Pure Black OLED aesthetics, hardware-backed biometric vault lock, ultra low-latency WebSocket messaging, and crystal-clear WebRTC spatial mesh voice lounges.</p>
           </div>
@@ -26604,24 +27281,24 @@ html[data-theme="dark"] #saveProfileBtn {
             <!-- Left: Specs & Features Bento -->
             <div class="android-showcase-card-left interactive-tilt-card">
               <div class="android-release-tag-row">
-                <span class="android-release-badge" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399;"><span class="pulse-emerald-dot" style="background:#10b981;"></span> <span class="apk-version-val">v4.6.15</span> 24/7 AI SUPPORT &amp; LEGAL SUITE (BUILD 104)</span>
+                <span class="android-release-badge" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399;"><span class="pulse-emerald-dot" style="background:#10b981;"></span> <span class="apk-version-val">v4.6.30</span> 24/7 AI SUPPORT &amp; LEGAL SUITE (BUILD 119)</span>
                 <span class="android-release-device-chip"><i data-lucide="smartphone" class="lucide-xs"></i> Android 7.0 to 16+ (POCO / HyperOS Verified)</span>
                 <span class="android-release-device-chip" style="border-color:rgba(16,185,129,0.3); color:#10b981;"><i data-lucide="shield-check" class="lucide-xs"></i> Touch-Scroll Isolation Hardened</span>
               </div>
 
               <h3 class="android-showcase-title">Direct APK Package • Hardened for Android 16 & HyperOS (Official Release)</h3>
               <p class="android-showcase-desc">
-                Experience total privacy, instant voice calls, and zero-crash performance. Connecto for Android (v4.6.15, Build 104) delivers 24/7 In-App AI Customer Support, Integrated Platform Legal Center (Privacy Policy &amp; Terms of Service dialogs), Relocated Bottom Danger Zone Architecture, hardware AGSL Liquid Glass UI shaders, dedicated 2048-bit RSA production keystore signing, Zero-Knowledge E2EE, and studio-grade hardware voice isolation.
+                Experience total privacy, instant voice calls, and zero-crash performance. Connecto for Android (v4.6.30, Build 119) delivers 24/7 In-App AI Customer Support, Integrated Platform Legal Center (Privacy Policy &amp; Terms of Service dialogs), Relocated Bottom Danger Zone Architecture, hardware AGSL Liquid Glass UI shaders, dedicated 2048-bit RSA production keystore signing, Zero-Knowledge E2EE, and studio-grade hardware voice isolation.
               </p>
 
               <div class="android-specs-row">
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-size-val">36.0 MB</span>
+                  <span class="android-spec-val apk-size-val">36.1 MB</span>
                   <span class="android-spec-lbl">Package Size</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val apk-version-val">v4.6.15</span>
-                  <span class="android-spec-lbl">Live Build 104</span>
+                  <span class="android-spec-val apk-version-val">v4.6.30</span>
+                  <span class="android-spec-lbl">Live Build 119</span>
                 </div>
                 <div class="android-spec-item">
                   <span class="android-spec-val" style="color:#10b981;">Android 16+</span>
@@ -26636,24 +27313,21 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="android-features-grid">
                 <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="bot" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#6ee7b7;">24/7 AI Customer Support</span>
+                    <div class="feat-product-snippet"><span class="fps-tag">AI Assistant</span><div class="fps-bubble">&ldquo;All keys are hardware-isolated on-device.&rdquo;</div></div><span class="android-feat-card-title" style="color:#6ee7b7;">24/7 AI Customer Support</span>
                   </div>
                   <div class="android-feat-card-desc">Conversational assistant for instant support on E2EE encryption, audio setup, custom wallpapers, background alerts, and 2FA recovery.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#38bdf8;"><i data-lucide="scroll-text" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#7dd3fc;">Platform Legal Center</span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Legal Suite</span><div class="fps-line">Privacy &amp; Terms: 0 data collection consent</div></div><span class="android-feat-card-title" style="color:#7dd3fc;">Platform Legal Center</span>
                   </div>
                   <div class="android-feat-card-desc">Integrated in-app readers and responsive web portals for Zero-Telemetry Privacy Policy and Community Terms of Service.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#f43f5e;"><i data-lucide="trash-2" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#fda4af;">Bottom Danger Zone Safeguards</span>
+                    <div class="feat-product-snippet"><span class="fps-tag alert">Safety Guard</span><div class="fps-line">Relocated to bottom of Help &amp; Support</div></div><span class="android-feat-card-title" style="color:#fda4af;">Bottom Danger Zone Safeguards</span>
                   </div>
                   <div class="android-feat-card-desc">Account deletion relocated to the very bottom of Help &amp; Support with strict typed confirmation safeguards against accidental purges.</div>
                 </div>
@@ -26661,10 +27335,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #10b981; --android-glow: rgba(16, 185, 129, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                      <i data-lucide="shield-check" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">Biometrics</span><div class="fps-line">Fingerprint &amp; Face ID KeyStore Match ✓</div></div></span>
                     <span class="android-feat-card-title">Connecto Vault</span>
                   </div>
                   <div class="android-feat-card-desc">Native Biometric fingerprint/face scan + Android device screen lock (PIN/pattern/password) with zero bypasses.</div>
@@ -26673,10 +27344,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #a855f7; --android-glow: rgba(168, 85, 247, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                      <i data-lucide="moon" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag">0-nit Engine</span><div class="fps-line">100% Pitch Black Canvas &bull; Zero Pixel Drain</div></div></span>
                     <span class="android-feat-card-title">Pure Black OLED</span>
                   </div>
                   <div class="android-feat-card-desc">True 100% pitch black (#000000) interface designed for ultra-high contrast and massive AMOLED battery savings.</div>
@@ -26685,10 +27353,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #00cec9; --android-glow: rgba(0, 206, 201, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                      <i data-lucide="zap" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">WebSocket Bus</span><div class="fps-line">Sub-5ms Event Dispatch Active</div></div></span>
                     <span class="android-feat-card-title">Real-Time Engine</span>
                   </div>
                   <div class="android-feat-card-desc">Ultra low-latency WebSocket synchronization, live community polls, rich markdown, file attachments, and instant notifications.</div>
@@ -26697,10 +27362,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #38bdf8; --android-glow: rgba(56, 189, 248, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">
-                      <i data-lucide="mic" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Opus DSP</span><div class="fps-line">Hardware Noise Cancelling Active</div></div></span>
                     <span class="android-feat-card-title">Spatial Mesh Voice</span>
                   </div>
                   <div class="android-feat-card-desc">Ultra low-latency WebRTC mesh audio lounges with hardware acoustic echo cancellation and background suppression.</div>
@@ -26709,10 +27371,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #10b981; --android-glow: rgba(16, 185, 129, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                      <i data-lucide="corner-up-left" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Gestures</span><div class="fps-line">Haptic Spring Swipe &bull; Rich Thread Preview</div></div></span>
                     <span class="android-feat-card-title">Swipe-to-Reply &amp; Quoted Previews</span>
                   </div>
                   <div class="android-feat-card-desc">Intuitive right-swipe on channel messages triggers active reply composer banner and embeds quoted message bubbles in sent responses.</div>
@@ -26721,10 +27380,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #06b6d4; --android-glow: rgba(6, 182, 212, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #06b6d4, #0284c7);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #06b6d4; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
-                      <i data-lucide="cpu" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #06b6d4; box-shadow: 0 0 8px #06b6d4;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">HyperOS Verified</span><div class="fps-line">120 FPS Target &bull; Zero Background Overhead</div></div></span>
                     <span class="android-feat-card-title">Android 16 &amp; HyperOS Ready</span>
                   </div>
                   <div class="android-feat-card-desc">Full 64-bit arm64-v8a targetSdk 37 build verified live on physical POCO HyperOS and Android 16 with zero Google Play dependencies.</div>
@@ -26734,7 +27390,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="android-cta-row">
                 <a href="/download/apk" download="connecto-fun.apk" class="android-primary-download-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>Download Connecto APK (<span class="apk-size-val">36.0 MB</span>)</span>
+                  <span>Download Connecto APK (<span class="apk-size-val">36.1 MB</span>)</span>
                 </a>
                 <button class="android-secondary-action-btn" onclick="copyApkDownloadLink()" id="btnCopyApkLink">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
@@ -26749,10 +27405,10 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="android-security-note" style="margin-top:14px; padding:12px 14px; background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <span style="display:flex; align-items:center; gap:6px; color:#10b981; font-weight:700; font-size:12px;">
-                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v4.6.15 (Build 104) • Oct 30, 2026
+                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified APK Release • v4.6.30 (Build 119) • Oct 30, 2026
                   </span>
                   <span style="font-size:11px; color:#94a3b8;">
-                    arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16+) • 36.0 MB
+                    arm64-v8a • minSdk 24 (Android 7.0) • targetSdk 37 (Android 16+) • 36.1 MB
                   </span>
                 </div>
                 <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size:10.5px; color:#94a3b8; background:rgba(0,0,0,0.5); padding:6px 10px; border-radius:6px; border:1px solid rgba(255,255,255,0.06); word-break:break-all;">
@@ -26825,7 +27481,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
                     <div class="phone-chat-msg">
                       <span class="phone-chat-user">alex:</span>
-                      <span style="color:#cbd5e1;">v4.6.15 is live! Native Face ID &amp; Our Store integration released!</span>
+                      <span style="color:#cbd5e1;">v4.6.30 is live! Native Face ID &amp; Our Store integration released!</span>
                     </div>
 
                     <div class="phone-chat-msg">
@@ -26834,7 +27490,7 @@ html[data-theme="dark"] #saveProfileBtn {
                     </div>
 
                     <div class="phone-chat-poll">
-                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v4.6.15 Stability:</div>
+                      <div style="font-weight:800; color:#fff; display:flex; align-items:center; gap:5px;"><i data-lucide="bar-chart-2" style="width:12px; height:12px;"></i> Release v4.6.30 Stability:</div>
                       <div style="display:flex; justify-content:space-between; margin-top:4px; color:#94a3b8;">
                         <span>Liquid Glass &amp; Blur Mesh</span>
                         <strong style="color:#10b981;">100% Stable</strong>
@@ -26865,14 +27521,11 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
         </div>
 
-        <!-- SECTION: OUR STORE (OFFICIAL DEDICATED APP ECOSYSTEM) -->
+        <!-- SECTION: OUR STORE (OFFICIAL AUTONOMOUS PACKAGE MANAGER) -->
         <div class="android-showcase-section scroll-reveal-3d spatial-3d-section" id="ourStoreSection" style="margin-top: 60px;">
           <div class="section-header-standard">
-            <div class="hero-eyebrow" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">
-              <i data-lucide="shopping-bag" class="lucide-xs"></i> Official Dedicated App Ecosystem • Instant 1-Tap Updates
-            </div>
-            <h2 class="section-title">Our Store. <span class="hero-gradient-text" style="background:linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">Your Dedicated App Hub.</span></h2>
-            <p class="section-sub">Never visit websites or search the web manually to check for updates again. <strong>Our Store</strong> is your personal on-device hub that automatically detects new versions and updates all your dedicated apps with a single tap.</p>
+            <h2 class="section-title">Our Store. <span class="hero-gradient-text" style="background:linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">On-Device Updates & Security.</span></h2>
+            <p class="section-sub">A native, independent Android package installer that monitors releases, verifies cryptographic SHA-256 signatures, and installs updates seamlessly in the background with zero telemetry and complete privacy.</p>
           </div>
 
           <div class="android-showcase-grid">
@@ -26880,62 +27533,76 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="android-showcase-card-left interactive-tilt-card" style="border-color: rgba(56, 189, 248, 0.3);">
               <div class="android-release-tag-row">
                 <span class="android-release-badge" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">
-                  <span class="pulse-emerald-dot" style="background:#38bdf8;"></span> v1.6.0 (Build 17) • Dedicated Store
+                  <span class="pulse-emerald-dot" style="background:#38bdf8;"></span> v1.8.0 (Build 37) • Standalone Client
                 </span>
-                <span class="android-release-device-chip"><i data-lucide="shield-check" class="lucide-xs"></i> 4 Verified Apps</span>
-                <span class="android-release-device-chip" style="border-color:rgba(56,189,248,0.3); color:#38bdf8;"><i data-lucide="zap" class="lucide-xs"></i> In-App Auto-Updates</span>
+                <span class="android-release-device-chip" style="border-color:rgba(56,189,248,0.3); color:#38bdf8;"><i data-lucide="cpu" class="lucide-xs"></i> Native PackageInstaller IPC</span>
+                <span class="android-release-device-chip"><i data-lucide="shield-check" class="lucide-xs"></i> SHA-256 Verified</span>
               </div>
 
-              <h3 class="android-showcase-title">Dedicated App Store for Android (No Google Play Needed)</h3>
+              <h3 class="android-showcase-title">Autonomous Package Management Without Play Store Dependencies</h3>
               <p class="android-showcase-desc">
-                Instead of downloading APK files from browser links each time an update comes out, <strong>Our Store</strong> sits natively on your Android device. It periodically checks the cloud catalog, shows you when updates are ready, and automatically installs updates in 1-tap via Android's native package installer session architecture.
+                <strong>Our Store</strong> is an on-device application manager built specifically for Android. Instead of manually downloading APKs through a browser or relying on external app stores, Our Store manages your application lifecycle directly on hardware. It performs cryptographic integrity checks, orchestrates 1-tap in-app package session installations via standard Android OS APIs, and keeps your system updated effortlessly.
               </p>
 
               <div class="android-specs-row">
                 <div class="android-spec-item">
-                  <span class="android-spec-val" style="color:#38bdf8;">11.8 MB</span>
-                  <span class="android-spec-lbl">Store APK Size</span>
+                  <span class="android-spec-val" style="color:#38bdf8;">14.2 MB</span>
+                  <span class="android-spec-lbl">Client Size</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val" style="color:#a855f7;">4 Curated</span>
-                  <span class="android-spec-lbl">Official Apps</span>
+                  <span class="android-spec-val" style="color:#a855f7;">1-Tap</span>
+                  <span class="android-spec-lbl">Native Installer</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val" style="color:#10b981;">Auto-Update</span>
-                  <span class="android-spec-lbl">Engine Active</span>
+                  <span class="android-spec-val" style="color:#10b981;">SHA-256</span>
+                  <span class="android-spec-lbl">Integrity Guard</span>
                 </div>
                 <div class="android-spec-item">
-                  <span class="android-spec-val" style="color:#f59e0b;">0% PlayStore</span>
-                  <span class="android-spec-lbl">Zero Telemetry</span>
+                  <span class="android-spec-val" style="color:#f59e0b;">0% Trackers</span>
+                  <span class="android-spec-lbl">Strict Privacy</span>
                 </div>
               </div>
 
-              <!-- Dedicated Apps Grid -->
+              <!-- Store Architectural Features Grid -->
               <div class="android-features-grid" style="margin-top:16px;">
-                <div class="android-feat-card" style="border-color: rgba(59, 130, 246, 0.4); background: rgba(59, 130, 246, 0.08);">
+                <div class="android-feat-card" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#60a5fa; background:rgba(59,130,246,0.15); border-color:rgba(59,130,246,0.3);">
-                      <i data-lucide="message-square" class="lucide-md"></i>
-                    </span>
-                    <div>
-                      <span class="android-feat-card-title" style="color:#93c5fd;">Connecto</span>
-                      <span style="font-size:11px; color:#60a5fa; display:block; font-weight:700;">Official Messaging • v4.6.15 (Build 104)</span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Android OS IPC</span><div class="fps-line">PackageInstaller.Session: Atomic Commit OK</div></div><div>
+                      <span class="android-feat-card-title" style="color:#93c5fd;">Native PackageInstaller Sessions</span>
+                      <span style="font-size:11px; color:#38bdf8; display:block; font-weight:700;">Direct Android OS IPC Architecture</span>
                     </div>
                   </div>
-                  <div class="android-feat-card-desc">End-to-end encrypted direct messaging, crystal-clear WebRTC spatial voice lounges, private workspace channels, and Connecto Vault biometrics.</div>
+                  <div class="android-feat-card-desc">Streams APK bytes directly into Android OS package installer sessions with PI broadcasts, ensuring safe, crash-free installations and atomic rollback protection.</div>
                 </div>
 
-                <div class="android-feat-card" style="border-color: rgba(6, 182, 212, 0.4); background: rgba(6, 182, 212, 0.08);">
+                <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#22d3ee; background:rgba(6,182,212,0.15); border-color:rgba(6,182,212,0.3);">
-                      <i data-lucide="zap" class="lucide-md"></i>
-                    </span>
-                    <div>
-                      <span class="android-feat-card-title" style="color:#67e8f9;">JARVIS AI</span>
-                      <span style="font-size:11px; color:#22d3ee; display:block; font-weight:700;">AI Super-Assistant • v2.8.0 (Build 28)</span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">SHA-256 Guard</span><div class="fps-line">Digest: 57e5d0... [Integrity Verified ✓]</div></div><div>
+                      <span class="android-feat-card-title" style="color:#6ee7b7;">Cryptographic Hash Verification</span>
+                      <span style="font-size:11px; color:#34d399; display:block; font-weight:700;">Zero-Tampering Security Vault</span>
                     </div>
                   </div>
-                  <div class="android-feat-card-desc">Autonomous personal AI assistant powered by Gemini. Features conversational voice dialogue, computer vision scene analysis, and smart task automation.</div>
+                  <div class="android-feat-card-desc">Every package download is validated against remote SHA-256 digests prior to staging, guaranteeing uncompromised authenticity and malware immunity.</div>
+                </div>
+
+                <div class="android-feat-card" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.08);">
+                  <div class="android-feat-card-top">
+                    <div class="feat-product-snippet"><span class="fps-tag">Sync Daemon</span><div class="fps-line">Installed: v1.8.0 &bull; Release: Verified Active</div></div><div>
+                      <span class="android-feat-card-title" style="color:#d8b4fe;">Autonomous Background Watcher</span>
+                      <span style="font-size:11px; color:#c084fc; display:block; font-weight:700;">Zero-Effort Version Intelligence</span>
+                    </div>
+                  </div>
+                  <div class="android-feat-card-desc">Continuously discovers newly released builds, compares semantic versioning, and notifies you when updates are available with 1-tap bulk upgrades.</div>
+                </div>
+
+                <div class="android-feat-card" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+                  <div class="android-feat-card-top">
+                    <div class="feat-product-snippet"><span class="fps-tag">Theme Engine</span><div class="fps-line">Pure OLED Black &amp; Ivory Paper Instant Switch</div></div><div>
+                      <span class="android-feat-card-title" style="color:#fde68a;">Pure Black OLED & Light Themes</span>
+                      <span style="font-size:11px; color:#fbbf24; display:block; font-weight:700;">Modern Tactile Jetpack Compose UI</span>
+                    </div>
+                  </div>
+                  <div class="android-feat-card-desc">High-performance Material 3 interface featuring instant dark/light switching, fluid spring-physics transitions, and zero background analytics or telemetry.</div>
                 </div>
               </div>
 
@@ -26943,18 +27610,14 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="android-cta-row" style="margin-top:20px;">
                 <a href="/downloads/our-store.apk" download="our-store.apk" class="android-primary-download-btn" style="background:linear-gradient(135deg, #2563eb, #0284c7); border-color:#38bdf8;">
                   <i data-lucide="download" class="lucide-sm"></i>
-                  <span>Download Our Store APK (v1.6.0 • 12.7 MB)</span>
-                </a>
-                <a href="/download/apk" download="connecto-fun.apk" class="android-secondary-action-btn">
-                  <i data-lucide="smartphone" class="lucide-xs"></i>
-                  <span>Download Connecto Directly</span>
+                  <span>Download Our Store APK (v1.8.0 • 17.2 MB)</span>
                 </a>
               </div>
 
               <div class="android-security-note" style="margin-top:14px; padding:12px 14px; background:rgba(15, 23, 42, 0.85); border:1px solid rgba(255, 255, 255, 0.08); border-radius:10px; display:flex; flex-direction:column; gap:6px;">
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
                   <span style="display:flex; align-items:center; gap:6px; color:#38bdf8; font-weight:700; font-size:12px;">
-                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified Store Release • Package: com.connecto.store (v1.6.0)
+                    <i data-lucide="check-circle-2" class="lucide-xs"></i> Official Verified Store Release • Package: com.connecto.store (v1.8.0)
                   </span>
                   <span style="font-size:11px; color:#94a3b8;">
                     Android 8.0 to 16+ • Native In-App Package Installer &amp; Auto-Update Engine
@@ -26969,84 +27632,84 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                   <div style="display: flex; align-items: center; gap: 10px;">
                     <div style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #2563eb, #0284c7); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.4);">
-                      <i data-lucide="shopping-bag" style="color: #fff; width: 22px; height: 22px;"></i>
+                      <i data-lucide="package" style="color: #fff; width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                      <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff;">Our Store</h4>
-                      <span style="font-size: 11px; color: #94a3b8;">Official App Ecosystem • v1.6.0</span>
+                      <h4 style="margin: 0; font-size: 16px; font-weight: 800; color: #fff;">Our Store Client</h4>
+                      <span style="font-size: 11px; color: #94a3b8;">Autonomous Package Manager • v1.8.0</span>
                     </div>
                   </div>
-                  <span style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
-                    ● 4 Apps Ready
+                  <span style="background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3); color: #38bdf8; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 20px;">
+                    ● Active Engine
                   </span>
                 </div>
 
-                <!-- Mini App 1 Item -->
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <!-- Highlight Card 1: Native In-App PackageInstaller -->
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                   <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #2563eb; display: flex; align-items: center; justify-content: center;">
-                      <i data-lucide="message-square" style="color: #fff; width: 18px; height: 18px;"></i>
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); display: flex; align-items: center; justify-content: center;">
+                      <i data-lucide="cpu" style="color: #38bdf8; width: 20px; height: 20px;"></i>
                     </div>
                     <div>
-                      <div style="font-size: 13px; font-weight: 700; color: #fff;">Connecto</div>
-                      <div style="font-size: 10px; color: #64748b;">v4.6.15 • 36.0 MB</div>
+                      <div style="font-size: 13px; font-weight: 700; color: #fff;">1-Tap Session Installer</div>
+                      <div style="font-size: 10.5px; color: #94a3b8;">Native OS PackageInstaller IPC</div>
                     </div>
                   </div>
                   <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56,189,248,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25);">
-                    1-Tap Update
+                    Zero Browser
                   </span>
                 </div>
 
-                <!-- Mini App 2 Item -->
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <!-- Highlight Card 2: SHA-256 Integrity Verification -->
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                   <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #06b6d4; display: flex; align-items: center; justify-content: center;">
-                      <i data-lucide="zap" style="color: #fff; width: 18px; height: 18px;"></i>
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center;">
+                      <i data-lucide="shield-check" style="color: #34d399; width: 20px; height: 20px;"></i>
                     </div>
                     <div>
-                      <div style="font-size: 13px; font-weight: 700; color: #fff;">JARVIS AI</div>
-                      <div style="font-size: 10px; color: #64748b;">v2.8.0 • 125.8 MB</div>
+                      <div style="font-size: 13px; font-weight: 700; color: #fff;">Cryptographic Integrity</div>
+                      <div style="font-size: 10.5px; color: #94a3b8;">Strict SHA-256 Digest Validation</div>
                     </div>
                   </div>
                   <span style="font-size: 11px; font-weight: 700; color: #34d399; background: rgba(16,185,129,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(16,185,129,0.25);">
-                    Up to date
+                    Tamper-Proof
                   </span>
                 </div>
 
-                <!-- Mini App 3 Item -->
-                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+                <!-- Highlight Card 3: Autonomous Background Engine -->
+                <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
                   <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; border-radius: 8px; background: #ef4444; display: flex; align-items: center; justify-content: center;">
-                      <i data-lucide="file-text" style="color: #fff; width: 18px; height: 18px;"></i>
+                    <div style="width: 38px; height: 38px; border-radius: 8px; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); display: flex; align-items: center; justify-content: center;">
+                      <i data-lucide="refresh-cw" style="color: #c084fc; width: 20px; height: 20px;"></i>
                     </div>
                     <div>
-                      <div style="font-size: 13px; font-weight: 700; color: #fff;">PDF Studio</div>
-                      <div style="font-size: 10px; color: #64748b;">v1.1.0 • 27.4 MB</div>
+                      <div style="font-size: 13px; font-weight: 700; color: #fff;">Automated Update Checks</div>
+                      <div style="font-size: 10.5px; color: #94a3b8;">Instant Notification & 1-Tap Upgrade</div>
                     </div>
                   </div>
-                  <span style="font-size: 11px; font-weight: 700; color: #38bdf8; background: rgba(56,189,248,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(56,189,248,0.25);">
-                    1-Tap Install
+                  <span style="font-size: 11px; font-weight: 700; color: #c084fc; background: rgba(168,85,247,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(168,85,247,0.25);">
+                    Autonomous
                   </span>
                 </div>
 
                 <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;">
                     <i data-lucide="check" class="lucide-xs" style="color: #34d399;"></i>
-                    <span>Built-in Auto-Update Engine with 1-Tap Update All</span>
+                    <span>Built-in Background Update Engine with 1-Tap Upgrade</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;">
                     <i data-lucide="check" class="lucide-xs" style="color: #34d399;"></i>
-                    <span>Light &amp; Dark Theme Switcher &amp; Prominent Size Badges</span>
+                    <span>Light &amp; Dark Theme Switcher with Pure OLED Mode</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8;">
                     <i data-lucide="check" class="lucide-xs" style="color: #34d399;"></i>
-                    <span>Native Android PackageInstaller session IPC</span>
+                    <span>Zero Analytics, Zero Tracking, Direct On-Device Execution</span>
                   </div>
                 </div>
 
                 <a href="/downloads/our-store.apk" download="our-store.apk" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: linear-gradient(135deg, #2563eb, #0284c7); border-radius: 10px; color: #fff; font-size: 13px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 14px rgba(37,99,235,0.4);">
                   <i data-lucide="download" class="lucide-sm"></i>
-                  <span>Download Our Store APK (v1.6.0 • 12.7 MB)</span>
+                  <span>Download Our Store APK (v1.8.0 • 17.2 MB)</span>
                 </a>
               </div>
             </div>
@@ -27056,7 +27719,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 3: COMPLETE ECOSYSTEM DIRECTORY & REAL-TIME DISCOVERY -->
         <div class="ecosystem-gateway-section scroll-reveal-3d spatial-3d-section" id="ecosystemSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="compass" class="lucide-sm"></i> Ecosystem Directory</div>
             <h2 class="section-title">Explore the Connecto Ecosystem</h2>
             <p class="section-sub">High-speed messaging, crystal-clear voice rooms, interactive learning labs, and hardware-level encryption — instantly searchable.</p>
           </div>
@@ -27083,10 +27745,11 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-1" data-cat="chat" data-title="instant live community chat general developer code markdown" style="--card-accent: #00cec9; --card-glow: rgba(0, 206, 201, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                  <i data-lucide="message-square" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#00cec9; box-shadow:0 0 8px #00cec9;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot live"></span><span class="cpd-title">#general • WSS Stream</span></div>
+      <div class="cpd-chat-feed"><div class="cpd-chat-row"><span class="cpd-user">alex:</span><span class="cpd-bubble">Sub-5ms WebSocket connection established! ⚡</span></div></div>
+      <div class="cpd-input-bar">Message #general...</div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Instant Live Chat</span>
@@ -27111,10 +27774,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-2" data-cat="voice" data-title="spatial voice lounge p2p webrtc mesh audio dsp" style="--card-accent: #10b981; --card-glow: rgba(16, 185, 129, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                  <i data-lucide="mic" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#10b981; box-shadow:0 0 8px #10b981;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot voice"></span><span class="cpd-title">Spatial Voice • P2P Mesh</span></div>
+      <div class="cpd-voice-roster">
+        <div class="cpd-speaker active"><span class="cpd-avatar">JD</span><span class="cpd-name">Jordan</span><div class="cpd-wave"><span></span><span></span><span></span><span></span></div></div>
+        <div class="cpd-speaker"><span class="cpd-avatar">MK</span><span class="cpd-name">Maya</span><span class="cpd-mute-badge">Muted</span></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Spatial Voice Lounge</span>
@@ -27139,10 +27805,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-3" data-cat="academy" data-title="learning hub protocol networking security labs" style="--card-accent: #f59e0b; --card-glow: rgba(245, 158, 11, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
-                  <i data-lucide="book-open" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot lab"></span><span class="cpd-title">Interactive Terminal • Lab 04</span></div>
+      <div class="cpd-terminal">
+        <div class="cpd-code-line"><span class="cpd-prompt">$</span> connecto inspect-frame --wss</div>
+        <div class="cpd-code-res">[ACK] 256-bit AES frame validated (0.4ms)</div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Learning Hub & Labs</span>
@@ -27167,10 +27836,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-4" data-cat="security" data-title="connecto hardware vault biometrics aes 256 gcm keys passwords credentials" style="--card-accent: #a855f7; --card-glow: rgba(168, 85, 247, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #a855f7, #8b5cf6);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                  <i data-lucide="shield-check" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#a855f7; box-shadow:0 0 8px #a855f7;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot sec"></span><span class="cpd-title">Biometric Vault Engine</span></div>
+      <div class="cpd-vault-box">
+        <div class="cpd-vault-row"><span>Cipher:</span> <strong>AES-256-GCM Hardware-Backed</strong></div>
+        <div class="cpd-vault-row"><span>Auth:</span> <strong style="color:#10b981;">Fingerprint Match Verified ✓</strong></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Zero-Knowledge Security</span>
@@ -27195,14 +27867,17 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-5" data-cat="apps" data-title="connecto android native app apk mobile download sub 5ms voice push notifications" style="--card-accent: #06b6d4; --card-glow: rgba(6, 182, 212, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #06b6d4, #0284c7);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #06b6d4; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
-                  <i data-lucide="smartphone" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#06b6d4; box-shadow:0 0 8px #06b6d4;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot live"></span><span class="cpd-title">Native Android Client • v4.6.30</span></div>
+      <div class="cpd-mobile-box">
+        <div class="cpd-mobile-row"><span>Runtime:</span> <strong>Android 16 &amp; HyperOS • 120Hz</strong></div>
+        <div class="cpd-mobile-row"><span>Display:</span> <strong>Pure OLED Black (0-nit)</strong></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Connecto Android Native</span>
-                    <span class="ecosystem-card-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border-color: rgba(6, 182, 212, 0.3);">Official APK • v4.6.15</span>
+                    <span class="ecosystem-card-badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; border-color: rgba(6, 182, 212, 0.3);">Official APK • v4.6.30</span>
                   </div>
                   <p class="ecosystem-card-desc">Native Android client engineered with Dark Luxury &amp; Liquid Glass UI, AGSL GPU shaders, low-latency voice rooms, pure black OLED power saving, and background call listener.</p>
                 </div>
@@ -27214,7 +27889,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <span class="ecosystem-feature-chip">OLED Black Mode</span>
               </div>
               <div class="ecosystem-card-action">
-                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.6.15</span> • <span class="apk-size-val">36.0 MB</span></span>
+                <span style="font-size:11.5px; color:var(--text-muted);"><span class="apk-version-val">v4.6.30</span> • <span class="apk-size-val">36.1 MB</span></span>
                 <a href="/download/apk" download="connecto-fun.apk" class="ecosystem-card-btn" style="color:#06b6d4; text-decoration:none;">Download APK <i data-lucide="download" class="lucide-sm"></i></a>
               </div>
             </div>
@@ -27223,10 +27898,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-6" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac" style="--card-accent: #38bdf8; --card-glow: rgba(56, 189, 248, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">
-                  <i data-lucide="shield-alert" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#38bdf8; box-shadow:0 0 8px #38bdf8;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot sec"></span><span class="cpd-title">Community AutoMod Guard</span></div>
+      <div class="cpd-automod-box">
+        <div class="cpd-automod-row"><span>Policy:</span> <strong>Zero Spam Floods Allowed</strong></div>
+        <div class="cpd-automod-row"><span>Rate Limit:</span> <strong>Enforcing 5s Cooldowns</strong></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Community Defense & Security</span>
@@ -27252,7 +27930,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 4: PLATFORM COMPARISON MATRIX -->
         <div class="comparison-section scroll-reveal-3d spatial-3d-section" id="comparisonSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="zap" class="lucide-sm"></i> Platform Edge</div>
             <h2 class="section-title">Why Friends & Communities Choose Connecto</h2>
             <p class="section-sub">A lightweight, free, secure alternative to heavy legacy chat clients and bloated walled gardens.</p>
           </div>
@@ -27263,10 +27940,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="comparison-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div class="comparison-card-header">
                 <div class="comparison-logo-title-group">
-                  <div class="comparison-logo-badge" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                    <i data-lucide="shield" class="lucide-md"></i>
-                    <span class="comparison-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-                  </div>
+                  <div class="comp-product-badge"><span class="cpb-dot active"></span> Connecto Core: 0.8ms WSS &bull; Zero Trackers</div>
                   <div>
                     <div class="comparison-title-text" style="color: var(--text-header); font-size: 17px; font-weight: 800;">Connecto Platform</div>
                     <div style="font-size: 11.5px; color: #10b981; font-weight: 700;">Open &amp; High-Throughput</div>
@@ -27343,7 +28017,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 5: PLATFORM ARCHITECTURE & DEFENSE SPOTLIGHT -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="archSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="cpu" class="lucide-sm"></i> Architecture & Security</div>
             <h2 class="section-title shimmer-title">High-Performance Stack & Cryptographic Defense</h2>
             <p class="section-sub">Built with modern asynchronous Python, edge Anycast distribution, and multi-layered cryptographic protocols.</p>
           </div>
@@ -27351,50 +28024,35 @@ html[data-theme="dark"] #saveProfileBtn {
           <div class="arch-flow-wrap interactive-tilt-card scroll-reveal-3d">
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-1" style="--node-accent: #00cec9; --node-glow: rgba(0, 206, 201, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
-              <div class="arch-node-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                <i data-lucide="monitor" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag">PWA Core</span><div class="fps-line">Vanilla JS Engine &bull; 0ms Cache &bull; 60 FPS UI</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Client Web App</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Vanilla JS &amp; CSS3 • PWA Service Worker • Zero Bloat • Hardware-Accelerated UI</span>
               <div class="arch-node-status" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.25);">Edge Optimized</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-2" style="--node-accent: #ff7675; --node-glow: rgba(255, 118, 117, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #ff7675, #d63031);"></div>
-              <div class="arch-node-icon" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.3);">
-                <i data-lucide="shield" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #ff7675; box-shadow: 0 0 8px #ff7675;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag success">Edge Shield</span><div class="fps-line">TLS 1.3 Strict &bull; Global Anycast Routing</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Cloudflare Anycast</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">DDoS Shield • TLS 1.3 Strict • Global CDN Caching • Zero Open Port Tunnels</span>
               <div class="arch-node-status" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.25);">Global Anycast</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-3" style="--node-accent: #f59e0b; --node-glow: rgba(245, 158, 11, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
-              <div class="arch-node-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
-                <i data-lucide="zap" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag">FastAPI Node</span><div class="fps-line">Python Asyncio &bull; Zero-Copy WebSocket Bus</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">FastAPI Async Core</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Python Uvicorn Engine • Asyncio Non-blocking Loop • High-Throughput I/O</span>
               <div class="arch-node-status" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25);">Non-Blocking I/O</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-4" style="--node-accent: #a855f7; --node-glow: rgba(168, 85, 247, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
-              <div class="arch-node-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                <i data-lucide="radio" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag">Mesh Signaling</span><div class="fps-line">Direct P2P STUN/TURN &bull; Opus 48kHz Audio</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Real-Time Event Stream</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Full-Duplex WebSocket Framing • Dynamic ICE Signaling • Ephemeral State Sync</span>
               <div class="arch-node-status" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.25);">Event-Driven</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-5" style="--node-accent: #10b981; --node-glow: rgba(16, 185, 129, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
-              <div class="arch-node-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                <i data-lucide="database" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag success">SQLite WAL</span><div class="fps-line">Atomic Transactions &bull; Zero Data Leakage</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">ACID Data Engine</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Atomic Transactions • In-Memory Presence • Real-Time Sync</span>
               <div class="arch-node-status" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25);">Atomic Commits</div>
@@ -27421,7 +28079,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 8: INTERACTIVE PROTOCOL LABS & SECURITY CURRICULUM -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="academyRoadmapSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="graduation-cap" class="lucide-sm"></i> Learning Hub</div>
             <h2 class="section-title">Networking, Streams & Security Curriculum</h2>
             <p class="section-sub">Master foundational networking, full-duplex streams, and modern cryptographic protocols to level up your skills.</p>
           </div>
@@ -27429,10 +28086,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <div class="usecases-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #00cec9; --track-glow: rgba(0, 206, 201, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
-              <div class="usecase-icon-badge" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                <i data-lucide="book-open" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Lab Console</span><div class="tpd-out">GET /api/v1/health &bull; 200 OK (0.2ms)</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border-color: rgba(0, 206, 201, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 1</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Web Foundations</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">HTTP/1.1 vs HTTP/2 vs HTTP/3, headers, status codes, RESTful methods, and request-response lifecycles.</p>
@@ -27440,10 +28094,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #10b981; --track-glow: rgba(16, 185, 129, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
-              <div class="usecase-icon-badge" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                <i data-lucide="activity" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Stream Bus</span><div class="tpd-out">WSS: Binary frame stream connected</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 2</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Real-Time Streams</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">WebSocket TCP upgrades, framing protocols, WebRTC SDP offer/answer handshakes, and ICE candidate negotiation.</p>
@@ -27451,10 +28102,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #f59e0b; --track-glow: rgba(245, 158, 11, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
-              <div class="usecase-icon-badge" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
-                <i data-lucide="shield" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Crypto Engine</span><div class="tpd-out">AES-256-GCM cipher envelope generated</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security &amp; Encryption</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Symmetric AES-256 vs Asymmetric RSA, TLS 1.3 handshake verification, and DTLS-SRTP audio security.</p>
@@ -27462,10 +28110,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #a855f7; --track-glow: rgba(168, 85, 247, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
-              <div class="usecase-icon-badge" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                <i data-lucide="sparkles" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Edge Runtime</span><div class="tpd-out">Anycast node active across 300+ PoPs</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7; border-color: rgba(168, 85, 247, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 4</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Distributed Edge Architecture</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">High-concurrency asyncio architecture, event streams, and zero-trust edge infrastructure.</p>
@@ -27501,7 +28146,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 9: FAQ ACCORDION -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="faqSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="help-circle" class="lucide-sm"></i> Got Questions?</div>
             <h2 class="section-title shimmer-title">Frequently Asked Questions</h2>
             <p class="section-sub">Everything you need to know about setting up groups, voice rooms, and learning tracks.</p>
           </div>
@@ -27562,7 +28206,7 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
               <div class="faq-a">
                 <div class="faq-a-inner">
-                  Yes! Connecto is available as an official native Android app (v4.6.15, 36.0 MB) engineered with Dark Luxury &amp; Liquid Glass UI, AGSL GPU runtime shaders, Connecto Vault biometric &amp; device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
+                  Yes! Connecto is available as an official native Android app (v4.6.30, 36.1 MB) engineered with Dark Luxury &amp; Liquid Glass UI, AGSL GPU runtime shaders, Connecto Vault biometric &amp; device screen lock, low-latency WebSockets chat, touch-scroll isolation gesture engine, and WebRTC mesh voice lounges. You can download the direct APK immediately by clicking any APK button or visiting /download/apk. It is verified and optimized for Android 7.0 (Nougat) all the way through Android 16+ (including Xiaomi / POCO HyperOS).
                 </div>
               </div>
             </div>
@@ -27572,7 +28216,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 10: QUICKSTART GUIDE, TESTIMONIAL & FINAL CTA -->
         <div class="how-section-diagonal scroll-reveal-3d spatial-3d-section" id="howItWorksSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="check-circle" class="lucide-sm"></i> Quickstart Guide</div>
             <h2 class="section-title shimmer-title">How to Get Started in 3 Steps</h2>
             <p class="section-sub">Three simple steps to join the Connecto community.</p>
           </div>
@@ -27580,7 +28223,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-1" style="--step-accent: #00F5A0; --step-glow: rgba(0, 245, 160, 0.35);">
               <div class="step-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div>
-                <div class="step-badge-custom" style="background: linear-gradient(135deg, #00F5A0, #00cec9); color: #020617; box-shadow: 0 4px 16px rgba(0, 245, 160, 0.35);">1</div>
+                <div class="step-product-preview"><span class="spp-step">STEP 1</span><div class="spp-box">Auth &rarr; Enter username &ldquo;alex&rdquo; &bull; Join squad</div></div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Connect with Friends</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend circles via invite code or create your own custom encrypted space.</p>
               </div>
@@ -27590,7 +28233,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-2" style="--step-accent: #00cec9; --step-glow: rgba(0, 206, 201, 0.35);">
               <div class="step-top-accent" style="background: linear-gradient(90deg, #00cec9, #0984e3);"></div>
               <div>
-                <div class="step-badge-custom" style="background: linear-gradient(135deg, #00cec9 0%, #0984e3 100%); color: #ffffff; box-shadow: 0 4px 16px rgba(0, 206, 201, 0.35);">2</div>
+                <div class="step-product-preview"><span class="spp-step">STEP 2</span><div class="spp-box">Channel &rarr; #general: &ldquo;Voice lounge open&rdquo; [Join]</div></div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Coordinate in Real-Time</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Chat across text channels, summon squad mates with @mentions, and hop into clear, low-latency WebRTC voice rooms.</p>
               </div>
@@ -27600,7 +28243,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-3" style="--step-accent: #f59e0b; --step-glow: rgba(245, 158, 11, 0.35);">
               <div class="step-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div>
-                <div class="step-badge-custom" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #020617; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);">3</div>
+                <div class="step-product-preview"><span class="spp-step">STEP 3</span><div class="spp-box">Security &rarr; Hardware Biometric Vault Sealed</div></div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh &amp; cryptography in interactive lessons. Level up your skills with hands-on practice.</p>
               </div>
@@ -27628,7 +28271,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="footer-col">
               <h5>Product</h5>
               <ul>
-                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v4.6.15</span> Live)</a></li>
+                <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v4.6.30</span> Live)</a></li>
                 <li><a href="/architecture"><i data-lucide="cpu" class="lucide-sm" style="margin-right:6px;"></i> Architecture Deep-Dive</a></li>
                 <li><a href="/status" target="_blank"><i data-lucide="activity" class="lucide-sm" style="color:var(--green); margin-right:6px;"></i> Live Status Page</a></li>
                 <li><a onclick="switchMainView('learning')"><i data-lucide="graduation-cap" class="lucide-sm" style="margin-right:6px;"></i> Learning Academy</a></li>
@@ -28096,7 +28739,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <div class="drawer-apk-top-accent"></div>
           <div class="drawer-apk-badge-row">
             <span class="drawer-apk-chip"><span class="pulse-emerald-dot"></span> OFFICIAL ANDROID APP</span>
-            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.6.15</span> Live</span>
+            <span class="drawer-apk-ver-pill"><span class="apk-version-val">v4.6.30</span> Live</span>
           </div>
           <div class="drawer-apk-main">
             <div class="drawer-apk-icon">
@@ -28104,7 +28747,7 @@ html[data-theme="dark"] #saveProfileBtn {
             </div>
             <div class="drawer-apk-details">
               <strong>Connecto Android Native</strong>
-              <span>Dark Luxury • Pure OLED • <span class="apk-size-val">36.0 MB</span></span>
+              <span>Dark Luxury • Pure OLED • <span class="apk-size-val">36.1 MB</span></span>
             </div>
           </div>
           <a href="/download/apk" download="connecto-fun.apk" class="drawer-apk-download-btn">
@@ -28937,10 +29580,11 @@ html[data-theme="dark"] #saveProfileBtn {
               <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Select your signature theme edition for the entire Connecto workspace and chat interface.</p>
               
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:16px;">
-                <div class="theme-selection-card" id="themeCardParchment" onclick="setHomepageTheme('parchment')" style="padding:18px; border-radius:16px; border:2px solid rgba(68,64,60,0.2); background:#fbf8f2; color:#141312; cursor:pointer; display:flex; flex-direction:column; gap:12px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                <!-- Ivory Paper (Light) -->
+                <div class="theme-selection-card" id="themeCardParchment" onclick="setHomepageTheme('parchment')" style="padding:18px; border-radius:16px; border:2px solid rgba(68,64,60,0.2); background:#fbf8f2; color:#141312; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
                   <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                      <span style="width:34px; height:34px; border-radius:50%; background:#f5f1e8; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:15px;">☀️</span>
+                      <span style="width:34px; height:34px; border-radius:50%; background:#f5f1e8; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:16px;">☀️</span>
                       <div>
                         <div style="font-weight:800; font-size:15px; color:#141312;">Ivory Paper (Light)</div>
                         <div style="font-size:11.5px; color:#78716c;">Archival daylight parchment</div>
@@ -28948,21 +29592,20 @@ html[data-theme="dark"] #saveProfileBtn {
                     </div>
                     <span class="theme-active-pill" id="themePillParchment" style="display:none; font-size:10px; font-weight:800; padding:3px 10px; border-radius:12px; background:#141312; color:#ffffff;">ACTIVE</span>
                   </div>
-                  <div style="font-size:12px; color:#57534e; line-height:1.45;">Crisp high-contrast sumi ink on warm paper. Optimized for clarity and daytime focus.</div>
                 </div>
 
-                <div class="theme-selection-card" id="themeCardNoir" onclick="setHomepageTheme('noir')" style="padding:18px; border-radius:16px; border:2px solid rgba(255,255,255,0.15); background:#000000; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:12px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
+                <!-- Pure Black OLED (Dark) -->
+                <div class="theme-selection-card" id="themeCardNoir" onclick="setHomepageTheme('noir')" style="padding:18px; border-radius:16px; border:2px solid rgba(255,255,255,0.15); background:#000000; color:#ffffff; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
                   <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                      <span style="width:34px; height:34px; border-radius:50%; background:#000000; border:2px solid #ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:15px;">🌙</span>
+                      <span style="width:34px; height:34px; border-radius:50%; background:#000000; border:2px solid #ffffff; display:inline-flex; align-items:center; justify-content:center; font-size:16px;">🌙</span>
                       <div>
                         <div style="font-weight:800; font-size:15px; color:#ffffff;">Pure Black OLED (Dark)</div>
-                        <div style="font-size:11.5px; color:#a1a1aa;">#000000 pitch-black luxury</div>
+                        <div style="font-size:11.5px; color:#a1a1aa;">Pitch-black OLED contrast</div>
                       </div>
                     </div>
                     <span class="theme-active-pill" id="themePillNoir" style="display:none; font-size:10px; font-weight:800; padding:3px 10px; border-radius:12px; background:#ffffff; color:#000000;">ACTIVE</span>
                   </div>
-                  <div style="font-size:12px; color:#a1a1aa; line-height:1.45;">Zero pixel emission, true pure black OLED contrast for night sessions and tactical focus.</div>
                 </div>
               </div>
             </div>
@@ -29588,14 +30231,14 @@ html[data-theme="dark"] #saveProfileBtn {
           <b>Popular Assistance Areas:</b><br>
           • <b>End-to-End Encryption:</b> AES-256-GCM symmetric session security & zero cloud cleartext<br>
           • <b>Voice Lounges & Audio:</b> WebRTC mesh, Acoustic Echo Canceler (AEC) & Voice Isolation AI<br>
-          • <b>Android APK:</b> Download v4.6.15 (36.0 MB) with hardware biometrics & OLED theme<br>
+          • <b>Android APK:</b> Download v4.6.30 (36.1 MB) with hardware biometrics & OLED theme<br>
           • <b>Chat Wallpapers:</b> Custom image uploads & 5 master gradient presets<br>
           • <b>Account Protection:</b> Two-Factor Authentication (2FA) & Stealth Ghost presence<br><br>
           Choose a quick suggestion below or ask any question!
           <div class="ai-support-action-card">
             <div>
               <div style="font-weight:800; font-size:12px; color:#ffffff;">Need Connecto on your phone?</div>
-              <div style="font-size:11px; color:var(--text-muted);">Get the official Android APK v4.6.15 (36.0 MB)</div>
+              <div style="font-size:11px; color:var(--text-muted);">Get the official Android APK v4.6.30 (36.1 MB)</div>
             </div>
             <a href="/download/apk" download="connecto-fun.apk" class="ai-action-btn-pill">
               <i data-lucide="download" class="lucide-xs"></i> Download APK
@@ -30618,7 +31261,13 @@ html[data-theme="dark"] #saveProfileBtn {
     // ==================== UNIVERSAL HELPERS ====================
     function escapeHTML(str) {
       if (str === null || str === undefined) return '';
-      return String(str).replace(/[&<>'"]/g, tag => ({
+      let text = str;
+      if (Array.isArray(text)) {
+        text = text.map(item => (item && typeof item === 'object') ? (item.msg || item.message || '') : String(item)).filter(Boolean).join(', ');
+      } else if (typeof text === 'object') {
+        text = text.detail || text.error || text.message || text.msg || '';
+      }
+      return String(text).replace(/[&<>'"]/g, tag => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
       }[tag] || tag));
     }
@@ -30816,6 +31465,20 @@ html[data-theme="dark"] #saveProfileBtn {
       let avatarHtml = typeof renderAvatarHTML === 'function'
         ? renderAvatarHTML(resolvedAvatar, resolvedUser || title || 'Connecto', 42)
         : `<img src="${resolvedAvatar || '/uploads/avatars/shinobi_avatar.png'}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:1.5px solid var(--chakra-cyan);">`;
+
+      // Sanitize raw technical errors, HTTP payloads, or stack traces
+      if (typeof content === 'string') {
+        const lower = content.toLowerCase();
+        if (content.length > 90 || lower.includes('exception') || lower.includes('traceback') || lower.includes('failed to fetch') || lower.includes('econnrefused') || (content.startsWith('{') && content.endsWith('}'))) {
+          if (lower.includes('network') || lower.includes('fetch') || lower.includes('connect')) {
+            content = 'Network connection issue. Please check your internet and try again.';
+          } else if (lower.includes('unauthorized') || lower.includes('expired') || lower.includes('token')) {
+            content = 'Session expired. Please log in again.';
+          } else {
+            content = 'Something went wrong. Please try again.';
+          }
+        }
+      }
 
       toast.innerHTML = `
         <div style="flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
@@ -31218,18 +31881,14 @@ html[data-theme="dark"] #saveProfileBtn {
         if (headerPrefix) headerPrefix.innerText = '🔊';
         if (headerTitle) headerTitle.innerText = 'Voice & Screen Lounge';
         if (headerTopic) headerTopic.innerText = 'WebRTC 256-Bit DTLS-SRTP Mesh Audio';
-        // Bug #5 Fix: Pre-populate with skeleton before showing to eliminate flash
+        // Pre-populate with responsive shimmer skeleton screens before showing
         const _vGrid = document.getElementById('voiceRoomsGrid');
         if (_vGrid && !_vGrid.innerHTML.trim()) {
-          _vGrid.innerHTML = [1,2,3].map(() => `
-            <div class="voice-room-card" style="animation:pulse 1.5s infinite;">
-              <div style="background:rgba(255,255,255,0.05);height:18px;border-radius:6px;width:60%;margin-bottom:8px;"></div>
-              <div style="background:rgba(255,255,255,0.03);height:13px;border-radius:4px;width:80%;"></div>
-            </div>`).join('');
+          showVoiceRoomsLoadingSkeleton();
         }
         const _cList = document.getElementById('callHistoryList');
         if (_cList && !_cList.innerHTML.trim()) {
-          _cList.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0;">Loading...</div>';
+          showCallHistoryLoadingSkeleton();
         }
         document.getElementById('voiceView').classList.add('active');
         document.getElementById('tabVoiceBtn')?.classList.add('active');
@@ -32153,6 +32812,65 @@ html[data-theme="dark"] #saveProfileBtn {
       `;
     }
 
+    function showFriendsLoadingSkeleton() {
+      const container = document.getElementById('friendsListContainer');
+      if (!container) return;
+      container.innerHTML = `
+        <div class="skeleton-list-container">
+          ${[1, 2, 3, 4, 5].map(() => `
+            <div class="skeleton-card-item">
+              <div class="skeleton-avatar" style="width:36px; height:36px;"></div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+                <div class="skeleton-author" style="width:140px; height:14px;"></div>
+                <div class="skeleton-time" style="width:85px; height:10px;"></div>
+              </div>
+              <div class="skeleton-box" style="width:72px; height:30px; border-radius:8px;"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function showCallHistoryLoadingSkeleton() {
+      const cList = document.getElementById('callHistoryList');
+      if (!cList) return;
+      cList.innerHTML = `
+        <div class="skeleton-list-container" style="padding:0;">
+          ${[1, 2, 3, 4].map(() => `
+            <div class="skeleton-card-item" style="padding:10px 12px;">
+              <div class="skeleton-avatar" style="width:34px; height:34px;"></div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:5px;">
+                <div class="skeleton-author" style="width:120px; height:12px;"></div>
+                <div class="skeleton-time" style="width:80px; height:9px;"></div>
+              </div>
+              <div class="skeleton-box" style="width:28px; height:28px; border-radius:50%;"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function showVoiceRoomsLoadingSkeleton() {
+      const vGrid = document.getElementById('voiceRoomsGrid');
+      if (!vGrid) return;
+      vGrid.innerHTML = `
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; width:100%;">
+          ${[1, 2, 3].map(() => `
+            <div class="voice-room-card skeleton-card-item" style="border:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); padding:16px; border-radius:14px; display:flex; flex-direction:column; gap:10px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                <div class="skeleton-author" style="width:130px; height:16px;"></div>
+                <div class="skeleton-box" style="width:52px; height:18px; border-radius:10px;"></div>
+              </div>
+              <div class="skeleton-time" style="width:170px; height:12px;"></div>
+              <div style="display:flex; justify-content:flex-end; width:100%; margin-top:4px;">
+                <div class="skeleton-box" style="width:80px; height:32px; border-radius:8px;"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
     async function fetchHistory(query = '', isSilentSync = false) {
       if (currentMode !== 'channel') return;
       try {
@@ -32459,6 +33177,42 @@ html[data-theme="dark"] #saveProfileBtn {
 
     function formatMessageContent(rawText) {
       if (!rawText) return '';
+      const trimmed = String(rawText).trim();
+
+      // Never show raw ciphertext in web chat
+      if (trimmed.startsWith('ENC:') || trimmed.startsWith('__E2E_AES_GCM__:')) {
+        return `<span class="e2ee-encrypted-badge" style="display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#38bdf8; background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.25); padding:4px 10px; border-radius:8px;">🔒 <span>End-to-end encrypted message</span></span>`;
+      }
+
+      // Handle structured JSON data gracefully
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed && typeof parsed === 'object') {
+            const fileUrl = parsed.file_url || parsed.image_url || parsed.url;
+            const fileName = parsed.file_name || parsed.filename || parsed.name || 'Attachment';
+            const type = String(parsed.type || '').toLowerCase();
+            const caption = parsed.caption || parsed.text || parsed.content;
+
+            if (type === 'image' || (fileUrl && /\.(png|jpe?g|webp|gif|svg)$/i.test(fileUrl))) {
+              const fullUrl = (fileUrl.startsWith('http') || fileUrl.startsWith('/')) ? fileUrl : ('https://connecto.fun/' + fileUrl.replace(/^\/+/, ''));
+              return `<div style="margin:4px 0;"><img src="${escapeHTML(fullUrl)}" alt="${escapeHTML(fileName)}" style="max-width:280px; max-height:220px; border-radius:10px; display:block; cursor:pointer;" onclick="handleAttachmentImgClick(this)">${caption ? `<div style="font-size:13px; margin-top:4px;">${escapeHTML(caption)}</div>` : ''}</div>`;
+            }
+            if (fileUrl) {
+              const fullUrl = (fileUrl.startsWith('http') || fileUrl.startsWith('/')) ? fileUrl : ('https://connecto.fun/' + fileUrl.replace(/^\/+/, ''));
+              return `<a href="${escapeHTML(fullUrl)}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; padding:6px 12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; font-size:12px; color:var(--text-header,#fff); text-decoration:none;">📎 <span>${escapeHTML(fileName)}</span></a>`;
+            }
+            if (type === 'audio' || parsed.audio_url) {
+              const fullUrl = ((parsed.audio_url || '').startsWith('http') || (parsed.audio_url || '').startsWith('/')) ? parsed.audio_url : ('https://connecto.fun/' + (parsed.audio_url || '').replace(/^\/+/, ''));
+              return `<div style="margin:4px 0;"><audio controls src="${escapeHTML(fullUrl)}" style="max-height:36px; max-width:240px;"></audio></div>`;
+            }
+            if (parsed.text || parsed.content || parsed.message) {
+              return escapeHTML(parsed.text || parsed.content || parsed.message);
+            }
+          }
+        } catch (_) {}
+      }
+
       let text = rawText;
 
       const knownLangs = ['javascript', 'js', 'typescript', 'ts', 'python', 'py', 'html', 'css', 'json', 'bash', 'sh', 'cpp', 'c', 'rust', 'rs', 'go', 'sql', 'yaml', 'yml', 'markdown', 'md', 'xml'];
@@ -38715,6 +39469,10 @@ html[data-theme="dark"] #saveProfileBtn {
           authHeaders['Authorization'] = `Bearer ${authToken}`;
         }
         const userParam = encodeURIComponent(currentUser || '');
+        const container = document.getElementById('friendsListContainer');
+        if (container && (!cachedFriendsList || cachedFriendsList.length === 0)) {
+          showFriendsLoadingSkeleton();
+        }
         let data = {};
         try {
           const res = await fetch(`/api/friends?username=${userParam}`, {
@@ -39108,8 +39866,167 @@ html[data-theme="dark"] #saveProfileBtn {
       });
     }
 
-    // 3D cursor tilt animations removed for clean, aesthetic performance & instant responsiveness
-    function initCursorAndTiltMotion() {}
+    // ==================== 3D PERSPECTIVE TILT & INTERACTIVE PHYSICS ====================
+    function initCursorAndTiltMotion() {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      const tiltCards = document.querySelectorAll('.interactive-tilt-card');
+      tiltCards.forEach(card => {
+        if (card._tiltInitialized) return;
+        card._tiltInitialized = true;
+
+        card.addEventListener('pointermove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+
+          const percentX = (x - centerX) / centerX;
+          const percentY = (y - centerY) / centerY;
+
+          const maxDeg = card.id === 'heroChatMockup' ? 5 : 7;
+          const rotateX = percentY * -maxDeg;
+          const rotateY = percentX * maxDeg;
+
+          card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.008, 1.008, 1.008)`;
+          card.style.setProperty('--card-left', `${rect.left}px`);
+          card.style.setProperty('--card-top', `${rect.top}px`);
+        });
+
+        card.addEventListener('pointerleave', () => {
+          card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+        });
+      });
+
+      // Initialize Spatial 3D WebGL Background
+      initHeroSpatial3D();
+    }
+
+    // ==================== THREE.JS 3D SPATIAL WEBGL MOTION ====================
+    let hero3DRenderer = null;
+    function initHeroSpatial3D() {
+      const container = document.getElementById('heroSpatialStage');
+      const canvas = document.getElementById('hero3dCanvas');
+      if (!container || !canvas || typeof THREE === 'undefined') return;
+      if (canvas._initialized) return;
+      canvas._initialized = true;
+
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.z = 7;
+
+      const renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      hero3DRenderer = renderer;
+
+      const stageGroup = new THREE.Group();
+      scene.add(stageGroup);
+
+      // 1. Quantum Orbital Gyro Ring 1
+      const ring1Geo = new THREE.TorusGeometry(3.2, 0.03, 16, 120);
+      const ring1Mat = new THREE.MeshBasicMaterial({
+        color: 0x06b6d4,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.55
+      });
+      const ring1 = new THREE.Mesh(ring1Geo, ring1Mat);
+      ring1.rotation.x = Math.PI / 4;
+      stageGroup.add(ring1);
+
+      // 2. Quantum Orbital Gyro Ring 2
+      const ring2Geo = new THREE.TorusGeometry(3.6, 0.02, 16, 100);
+      const ring2Mat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.45
+      });
+      const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+      ring2.rotation.y = Math.PI / 3;
+      ring2.rotation.z = Math.PI / 6;
+      stageGroup.add(ring2);
+
+      // 3. Floating Spatial Starfield Constellation
+      const pCount = window.innerWidth < 640 ? 300 : 650;
+      const positions = new Float32Array(pCount * 3);
+      for (let i = 0; i < pCount * 3; i += 3) {
+        const rad = 2.5 + Math.random() * 5.0;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos((Math.random() * 2) - 1);
+        positions[i] = rad * Math.sin(phi) * Math.cos(theta);
+        positions[i + 1] = rad * Math.sin(phi) * Math.sin(theta);
+        positions[i + 2] = rad * Math.cos(phi);
+      }
+      const pGeo = new THREE.BufferGeometry();
+      pGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const pMat = new THREE.PointsMaterial({
+        color: 0xa5f3fc,
+        size: 0.035,
+        transparent: true,
+        opacity: 0.65
+      });
+      const particles = new THREE.Points(pGeo, pMat);
+      stageGroup.add(particles);
+
+      // Interaction: smooth cursor tracking
+      let targetRotX = 0;
+      let targetRotY = 0;
+      window.addEventListener('pointermove', (e) => {
+        const normX = (e.clientX / window.innerWidth) - 0.5;
+        const normY = (e.clientY / window.innerHeight) - 0.5;
+        targetRotY = normX * 0.35;
+        targetRotX = normY * 0.25;
+      }, { passive: true });
+
+      function onResize() {
+        if (!container || !renderer || !camera) return;
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }
+      window.addEventListener('resize', onResize);
+
+      // Visibility Observer
+      let isVisible = true;
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          isVisible = entry.isIntersecting;
+        });
+      }, { threshold: 0.05 });
+      obs.observe(container);
+
+      function loop() {
+        requestAnimationFrame(loop);
+        if (!isVisible) return;
+
+        // Smooth rotation & damping
+        stageGroup.rotation.y += 0.0025;
+        ring1.rotation.z += 0.004;
+        ring2.rotation.z -= 0.005;
+        particles.rotation.y -= 0.001;
+
+        stageGroup.rotation.x += (targetRotX - stageGroup.rotation.x) * 0.04;
+        stageGroup.rotation.y += (targetRotY - stageGroup.rotation.y) * 0.04;
+
+        renderer.render(scene, camera);
+      }
+      loop();
+    }
 
     function initNavHoverPill() {
       const track = document.getElementById('navLinksTrack');
@@ -40410,14 +41327,14 @@ function selectSettingsAvatar(emoji, el) {
           <b>Popular Assistance Areas:</b><br>
           • <b>End-to-End Encryption:</b> AES-256-GCM symmetric session security & zero cloud cleartext<br>
           • <b>Voice Lounges & Audio:</b> WebRTC mesh, Acoustic Echo Canceler (AEC) & Voice Isolation AI<br>
-          • <b>Android APK:</b> Download v4.6.15 (36.0 MB) with hardware biometrics & OLED theme<br>
+          • <b>Android APK:</b> Download v4.6.30 (36.1 MB) with hardware biometrics & OLED theme<br>
           • <b>Chat Wallpapers:</b> Custom image uploads & 5 master gradient presets<br>
           • <b>Account Protection:</b> Two-Factor Authentication (2FA) & Stealth Ghost presence<br><br>
           Choose a quick suggestion below or ask any question!
           <div class="ai-support-action-card">
             <div>
               <div style="font-weight:800; font-size:12px; color:#ffffff;">Need Connecto on your phone?</div>
-              <div style="font-size:11px; color:var(--text-muted);">Get the official Android APK v4.6.15 (36.0 MB)</div>
+              <div style="font-size:11px; color:var(--text-muted);">Get the official Android APK v4.6.30 (36.1 MB)</div>
             </div>
             <a href="/download/apk" download="connecto-fun.apk" class="ai-action-btn-pill">
               <i data-lucide="download" class="lucide-xs"></i> Download APK
@@ -40596,7 +41513,7 @@ function selectSettingsAvatar(emoji, el) {
           text: `🛡️ **Hardware Blackscreen Protection & Anti-Spyware Engine:**\n\nConnecto implements native operating-system level hardware protections to guarantee complete visual privacy:\n\n• **FLAG_SECURE SurfaceFlinger Enforcement:** On Android devices, Connecto invokes Android OS \`WindowManager.LayoutParams.FLAG_SECURE\` on active window surfaces. This instructs the device display hardware compositor (SurfaceFlinger) to blank out the screen buffer whenever a capture event occurs.\n• **Anti-Spyware Shielding:** Even if malicious background spyware, commercial trojans, or unauthorized screen recorders run with user permissions on the device, all captured screenshots and video recordings result in completely pitch-black frames.\n• **Recent Apps Task Switcher Obfuscation:** Prevents sensitive chat previews, private media, or voice call screens from appearing in the Android task switcher carousel.\n• **Decrypted Stream Defense:** Ensures that ephemeral messages and secret conversations are rendered exclusively in protected volatile RAM, never saving screenshots to disk storage.`,
           action: {
             title: 'Experience Hardware Blackscreen',
-            subtitle: 'Get the native Android APK v4.6.15 (36.0 MB)',
+            subtitle: 'Get the native Android APK v4.6.30 (36.1 MB)',
             href: '/download/apk',
             download: 'connecto-fun.apk',
             label: 'Download Android APK',
@@ -40622,10 +41539,10 @@ function selectSettingsAvatar(emoji, el) {
       // 6. Android APK Download & Installation
       if (q.includes("apk") || q.includes("android") || q.includes("mobile app") || q.includes("download") || q.includes("hyperos") || q.includes("samsung") || q.includes("xiaomi") || q.includes("poco")) {
         return {
-          text: `📱 **Connecto for Android APK (Official Native Release v4.6.15):**\n\nExperience pure black OLED aesthetics, hardware biometrics, and studio-grade voice calls in your pocket:\n\n• **Direct Download Specs:** Official native APK v4.6.15 (Build 104) is 36.0 MB, supporting Android 7.0 through Android 16+ (tested and verified on Xiaomi HyperOS, Samsung OneUI 6+, and Google Pixel).\n• **Hardware Biometric Vault:** Secure your private conversations behind hardware fingerprint and face unlock authentication with zero cloud biometric leakage.\n• **Pure Black OLED Aesthetic:** Engineered with true #000000 backgrounds to maximize battery longevity on AMOLED displays while reducing eye fatigue.\n• **Installation Guide:**\n  1. Tap **Download APK** below.\n  2. When downloaded, tap the file in your notification shade or browser downloads.\n  3. If prompted with *"For your security, your phone is not allowed to install unknown apps from this source"*, tap **Settings** and toggle **Allow from this source**.\n  4. Tap **Install** — Connecto is 100% verified, tracker-free, and contains zero third-party telemetry.`,
+          text: `📱 **Connecto for Android APK (Official Native Release v4.6.30):**\n\nExperience pure black OLED aesthetics, hardware biometrics, and studio-grade voice calls in your pocket:\n\n• **Direct Download Specs:** Official native APK v4.6.30 (Build 119) is 36.1 MB, supporting Android 7.0 through Android 16+ (tested and verified on Xiaomi HyperOS, Samsung OneUI 6+, and Google Pixel).\n• **Hardware Biometric Vault:** Secure your private conversations behind hardware fingerprint and face unlock authentication with zero cloud biometric leakage.\n• **Pure Black OLED Aesthetic:** Engineered with true #000000 backgrounds to maximize battery longevity on AMOLED displays while reducing eye fatigue.\n• **Installation Guide:**\n  1. Tap **Download APK** below.\n  2. When downloaded, tap the file in your notification shade or browser downloads.\n  3. If prompted with *"For your security, your phone is not allowed to install unknown apps from this source"*, tap **Settings** and toggle **Allow from this source**.\n  4. Tap **Install** — Connecto is 100% verified, tracker-free, and contains zero third-party telemetry.`,
           action: {
             title: 'Download Official Android APK',
-            subtitle: 'v4.6.15 Live Release • 36.0 MB • Pure Black OLED',
+            subtitle: 'v4.6.30 Live Release • 36.1 MB • Pure Black OLED',
             href: '/download/apk',
             download: 'connecto-fun.apk',
             label: 'Download APK',
@@ -40763,7 +41680,7 @@ function selectSettingsAvatar(emoji, el) {
       // 16. Greetings & Welcome
       if (q.includes("hello") || q.includes("hi") || q.includes("hey") || q.includes("who are you") || q.includes("help") || q === "yo" || q === "sup") {
         return {
-          text: `👋 **Hello! Welcome to Connecto's 24/7 AI Support & Intelligence Assistant.**\n\nI can explain all features, protocols, and security mechanics in complete technical detail. Key topics you can explore:\n\n• **🛡️ Security Labs & SOC Analysis:** Hands-on SIEM event correlation, packet forensics, memory injection, phishing triage, and incident response.\n• **🔒 End-to-End Encryption:** Zero-knowledge architecture, client-side AES-256-GCM, and PBKDF2 password derivation.\n• **📱 Android Native APK v4.6.15:** FLAG_SECURE hardware blackscreen privacy, biometric vault, and OLED optimization.\n• **⚡ Response Time & Edge Speed:** Cloudflare Edge Worker caching, sub-300ms global TTFB, and 0ms browser cache loads.\n• **🌓 Dual Themes & Wallpapers:** OLED Dark Noir vs Archival Ivory Parchment, custom photo uploads, and presets.\n• **📞 WebRTC Voice Lounges:** Hardware Acoustic Echo Cancellation, Noise Suppression, and spatial audio tuning.\n\nAsk any question in plain English or select any quick chip below!`,
+          text: `👋 **Hello! Welcome to Connecto's 24/7 AI Support & Intelligence Assistant.**\n\nI can explain all features, protocols, and security mechanics in complete technical detail. Key topics you can explore:\n\n• **🛡️ Security Labs & SOC Analysis:** Hands-on SIEM event correlation, packet forensics, memory injection, phishing triage, and incident response.\n• **🔒 End-to-End Encryption:** Zero-knowledge architecture, client-side AES-256-GCM, and PBKDF2 password derivation.\n• **📱 Android Native APK v4.6.30:** FLAG_SECURE hardware blackscreen privacy, biometric vault, and OLED optimization.\n• **⚡ Response Time & Edge Speed:** Cloudflare Edge Worker caching, sub-300ms global TTFB, and 0ms browser cache loads.\n• **🌓 Dual Themes & Wallpapers:** OLED Dark Noir vs Archival Ivory Parchment, custom photo uploads, and presets.\n• **📞 WebRTC Voice Lounges:** Hardware Acoustic Echo Cancellation, Noise Suppression, and spatial audio tuning.\n\nAsk any question in plain English or select any quick chip below!`,
           action: {
             title: 'Launch Security Labs & SOC Hub',
             subtitle: 'Explore hands-on SOC analysis and protocol labs',
@@ -42106,6 +43023,20 @@ function selectSettingsAvatar(emoji, el) {
         transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         opacity: 0;
       `;
+      // Sanitize raw technical errors, HTTP payloads, or stack traces
+      if (typeof content === 'string') {
+        const lower = content.toLowerCase();
+        if (content.length > 90 || lower.includes('exception') || lower.includes('traceback') || lower.includes('failed to fetch') || lower.includes('econnrefused') || (content.startsWith('{') && content.endsWith('}'))) {
+          if (lower.includes('network') || lower.includes('fetch') || lower.includes('connect')) {
+            content = 'Network connection issue. Please check your internet and try again.';
+          } else if (lower.includes('unauthorized') || lower.includes('expired') || lower.includes('token')) {
+            content = 'Session expired. Please log in again.';
+          } else {
+            content = 'Something went wrong. Please try again.';
+          }
+        }
+      }
+
       toast.innerHTML = `
         <span style="font-size:18px;">⚡</span>
         <span>Connecting to <strong>${providerName}</strong> single sign-on...</span>
@@ -42629,8 +43560,14 @@ function selectSettingsAvatar(emoji, el) {
         }
       };
 
-      // Instant theme application without DOM snapshot rasterization lag
-      applyTheme();
+      // Native View Transitions API for buttery smooth cross-fade theme switches
+      if (document.startViewTransition && updateUrl) {
+        document.startViewTransition(() => {
+          applyTheme();
+        });
+      } else {
+        applyTheme();
+      }
     }
 
     // Quick toggle helper between the two editorial themes
@@ -45856,6 +46793,27 @@ function hangupVoiceLounge() {
         return false;
       }
     }, true);
+
+    // Interactive Cursor Spotlight & Card Specular Lighting Engine (After Effects Layer)
+    (function initSpotlightMotion() {
+      const root = document.documentElement;
+      let rafId = null;
+
+      window.addEventListener('pointermove', (e) => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          root.style.setProperty('--mouse-x', `${e.clientX}px`);
+          root.style.setProperty('--mouse-y', `${e.clientY}px`);
+
+          const targetCard = e.target.closest('.ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .arch-node, .final-cta-card');
+          if (targetCard) {
+            const rect = targetCard.getBoundingClientRect();
+            targetCard.style.setProperty('--card-left', `${rect.left}px`);
+            targetCard.style.setProperty('--card-top', `${rect.top}px`);
+          }
+        });
+      }, { passive: true });
+    })();
   })();
   </script>
 </body>

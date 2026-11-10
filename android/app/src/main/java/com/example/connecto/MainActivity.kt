@@ -334,12 +334,14 @@ fun ConnectoAppWrapper() {
             },
             isDarkTheme = currentThemeMode.isDark,
             onToggleTheme = { isDark ->
-                val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
-                currentThemeMode = newMode
-                profilePrefs.edit()
-                    .putString("theme_mode_$authenticatedUsername", newMode.id)
-                    .putBoolean("dark_theme_$authenticatedUsername", isDark)
-                    .apply()
+                if (currentThemeMode.isDark != isDark) {
+                    val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                    currentThemeMode = newMode
+                    profilePrefs.edit()
+                        .putString("theme_mode_$authenticatedUsername", newMode.id)
+                        .putBoolean("dark_theme_$authenticatedUsername", isDark)
+                        .apply()
+                }
             },
             glassTransparency = glassTransparency,
             onChangeGlassTransparency = { newLevel ->
