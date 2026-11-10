@@ -46,78 +46,15 @@ jobs:
       - name: Install Wrangler
         run: npm install -g wrangler
 
-      - name: Provision Android Signing Keystores & Google Services
+      - name: Verify Signing Keystores & Google Services
         run: |
-          echo "Verifying and provisioning signing keystores and Google Services..."
-          mkdir -p android/app store-app/app
-
-          # Provision google-services.json for Connecto
-          if [ ! -f android/app/google-services.json ]; then
-            echo "Generating fallback google-services.json..."
-            cat << 'EOF' > android/app/google-services.json
-{
-  "project_info": {
-    "project_number": "747871578150",
-    "project_id": "jarvisgmail-488814",
-    "storage_bucket": "jarvisgmail-488814.firebasestorage.app"
-  },
-  "client": [
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:747871578150:android:e8d80f027d01560737dee7",
-        "android_client_info": {
-          "package_name": "com.connecto.app"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyC8NYPMujBPIMjGi1Plv0BWIYed4hshDqM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:747871578150:android:24558163c458228037dee7",
-        "android_client_info": {
-          "package_name": "com.example.connecto"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyC8NYPMujBPIMjGi1Plv0BWIYed4hshDqM"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    }
-  ],
-  "configuration_version": "1"
-}
-EOF
-          fi
-
-          # Provision connecto-release.jks for Connecto App
-          if [ ! -f android/app/connecto-release.jks ]; then
-            echo "Generating fallback android/app/connecto-release.jks..."
-            echo "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" | base64 -d > android/app/connecto-release.jks
-          fi
-
-          # Provision connecto-release.jks for Our Store App
+          echo "Verifying Android build configuration..."
+          test -f android/app/google-services.json || { echo "❌ Missing google-services.json"; exit 1; }
+          test -f android/app/connecto-release.jks || { echo "❌ Missing android keystore"; exit 1; }
           if [ ! -f store-app/app/connecto-release.jks ]; then
-            echo "Copying keystore to store-app/app/connecto-release.jks..."
             cp android/app/connecto-release.jks store-app/app/connecto-release.jks
           fi
-          echo "✔ Keystores and Google Services successfully provisioned."
+          echo "✔ Keystores and Google Services verified."
 
       - name: Pre-Flight Integrity Check
         run: |
