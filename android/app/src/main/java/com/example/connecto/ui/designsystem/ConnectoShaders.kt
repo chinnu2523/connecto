@@ -137,6 +137,60 @@ fun Modifier.connectoAmbientShader(
                 Color(0xFFF2EAD9).copy(alpha = 0.70f), // Soft Ivory
                 Color(0xFFFBF8F2)                      // Archival Canvas
             )
+            ThemeMode.MOSS_EMERALD -> listOf(
+                Color(0xFF00FF88).copy(alpha = 0.40f),
+                Color(0xFF1E2B20).copy(alpha = 0.50f),
+                Color(0xFF35543A).copy(alpha = 0.30f),
+                Color(0xFF0A0D0A)
+            )
+            ThemeMode.MINT_RED -> listOf(
+                Color(0xFFEF4444).copy(alpha = 0.40f),
+                Color(0xFF86EFAC).copy(alpha = 0.45f),
+                Color(0xFF09090B).copy(alpha = 0.50f),
+                Color(0xFFD1FAE5)
+            )
+            ThemeMode.FIERY_LIME -> listOf(
+                Color(0xFFA3E635).copy(alpha = 0.40f),
+                Color(0xFFFEF08A).copy(alpha = 0.45f),
+                Color(0xFFEA580C).copy(alpha = 0.50f),
+                Color(0xFF9A3412)
+            )
+            ThemeMode.MOCHA_ELECTRIC -> listOf(
+                Color(0xFF00D2FF).copy(alpha = 0.40f),
+                Color(0xFFFDFBF7).copy(alpha = 0.45f),
+                Color(0xFF452B20).copy(alpha = 0.50f),
+                Color(0xFF26150D)
+            )
+            ThemeMode.BUTTER_INK -> listOf(
+                Color(0xFFE11D48).copy(alpha = 0.40f),
+                Color(0xFF09090B).copy(alpha = 0.50f),
+                Color(0xFFFEF08A).copy(alpha = 0.45f),
+                Color(0xFFFEF9C3)
+            )
+            ThemeMode.OLIVE_BUBBLEGUM -> listOf(
+                Color(0xFFFF69B4).copy(alpha = 0.40f),
+                Color(0xFFFAF0E6).copy(alpha = 0.45f),
+                Color(0xFF4A5528).copy(alpha = 0.50f),
+                Color(0xFF353C19)
+            )
+            ThemeMode.CHARCOAL_CRIMSON -> listOf(
+                Color(0xFFDC2626).copy(alpha = 0.40f),
+                Color(0xFF144D29).copy(alpha = 0.50f),
+                Color(0xFF243827).copy(alpha = 0.35f),
+                Color(0xFF111315)
+            )
+            ThemeMode.LEMON_LAVENDER -> listOf(
+                Color(0xFFC084FC).copy(alpha = 0.40f),
+                Color(0xFF18181B).copy(alpha = 0.50f),
+                Color(0xFFFEF08A).copy(alpha = 0.45f),
+                Color(0xFFFEF08A)
+            )
+            ThemeMode.MOCHA_GOLD -> listOf(
+                Color(0xFFD97706).copy(alpha = 0.40f),
+                Color(0xFFD4AF37).copy(alpha = 0.45f),
+                Color(0xFF422618).copy(alpha = 0.50f),
+                Color(0xFF22120B)
+            )
         }
     }
 

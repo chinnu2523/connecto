@@ -3928,6 +3928,15 @@ fun ProfileScreen(
                                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 val styles = listOf(
+                                                    com.example.connecto.ui.designsystem.ThemeMode.MOSS_EMERALD,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.MINT_RED,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.FIERY_LIME,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.MOCHA_ELECTRIC,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.BUTTER_INK,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.OLIVE_BUBBLEGUM,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.CHARCOAL_CRIMSON,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.LEMON_LAVENDER,
+                                                    com.example.connecto.ui.designsystem.ThemeMode.MOCHA_GOLD,
                                                     com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS,
                                                     com.example.connecto.ui.designsystem.ThemeMode.EMERALD,
                                                     com.example.connecto.ui.designsystem.ThemeMode.MIDNIGHT,
@@ -3994,12 +4003,12 @@ fun ProfileScreen(
                                                                 }
                                                             }
 
-                                                            // Color Swatches
+                                                            // Color Swatches (60% Base • 30% Surface • 10% Accent)
                                                             Row(
                                                                 horizontalArrangement = Arrangement.spacedBy(5.dp),
                                                                 verticalAlignment = Alignment.CenterVertically
                                                             ) {
-                                                                listOf(modeColors.primary, modeColors.surface).forEach { c ->
+                                                                listOf(modeColors.background, modeColors.surface, modeColors.primary).forEach { c ->
                                                                     Box(
                                                                         modifier = Modifier
                                                                             .size(16.dp)
