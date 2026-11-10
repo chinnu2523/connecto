@@ -14,21 +14,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "1.7.6",
-        "version_code": 33,
+        "version_name": "1.8.0",
+        "version_code": 37,
         "size_bytes": 17993016,
         "size_formatted": "17.2 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#FFFFFF",
         "changelog": [
-            "Role-based visibility: Restricted JARVIS AI strictly to authenticated Administrators",
-            "Native OEM Installer: Direct targeting for HyperOS, ColorOS, OneUI, OxygenOS, Pixel",
-            "FileProvider Security: Eliminated 'Problem parsing the package' with world-readable cache flags",
-            "Autonomous background update engine and KeyStore encryption"
+            "Ecosystem Spotlight Hero UI: Integrated Linear/x.ai dark aesthetic hero banner with real-time platform telemetry",
+            "Linear Precision Design System: High-tactile micro-interactions, refined hair-line borders, and zero-slop layout",
+            "App Detail Reload Loop Fix: Stabilized AnimatedContent targetState on package identifier",
+            "Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks",
+            "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-09T03:30:00Z"
+        "updated_at": "2026-11-10T12:00:00Z"
     },
     {
         "id": "connecto",
@@ -38,22 +39,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.24",
-        "version_code": 113,
+        "version_name": "4.6.29",
+        "version_code": 118,
         "size_bytes": 37890849,
         "size_formatted": "36.1 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "Blur Validation: Errors trigger only on field departure (blur), removing noisy typing interruptions",
-            "Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography",
-            "Pure Black OLED #000000 true black background and battery conservation",
-            "Thread-synchronized WebRTC teardown mutex and dynamic ICE gathering",
-            "Touch Gesture Isolation: Fluid finger-tracking swipe transitions across Home, Messages, Channels, Calls, and Profile tabs"
+            "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes (Moss & Emerald, Mint & Vivid Red, Fiery Lime, Mocha Electric, Butter & Ink, Olive Bubblegum, Charcoal Crimson, Lemon Lavender, Mocha Gold) integrated natively in Profile appearance",
+            "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs",
+            "Modern High-Taste UI: Refined Linear minimalist headers, polished typography, and clean bubble styling",
+            "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
+            "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-09T03:30:00Z"
+        "updated_at": "2026-11-10T15:50:00Z"
     },
     {
         "id": "jarvis",

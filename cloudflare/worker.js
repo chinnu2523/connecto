@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.28",
-        version_name: "v4.6.28",
-        version_code: 117,
-        build: 117,
-        sha256: "ee5f8aa08734dd862299ea73c368e2d7b4e4653a9378573e5c317ad6dbef4c06",
+        version: "4.6.29",
+        version_name: "v4.6.29",
+        version_code: 118,
+        build: 118,
+        sha256: "ade56674b0d345e67dc12c2e43e3937422b40ede9f8c9644fa9970664fb7bdc7",
         filename: "connecto-fun.apk",
-        size_bytes: 37890849,
+        size_bytes: 37894857,
         size_display: "36.1 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -180,6 +180,8 @@ export default {
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes (Moss & Emerald, Mint & Vivid Red, Fiery Lime, Mocha Electric, Butter & Ink, Olive Bubblegum, Charcoal Crimson, Lemon Lavender, Mocha Gold) integrated natively in Profile appearance.",
+          "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs.",
           "Message Tab Interactive Swipe Suite: Peek hint micro-interaction on drag, right swipe to pin/unpin conversations with amber badge and haptic feedback, left swipe to delete with liquid collapse animation, and inline undo strip with 5-second countdown timer to restore deleted chats smoothly.",
           "Interactive Auth Text Fields Suite: 6-box OTP code with cascading mint wave animation, 4-step real-time password strength meter (fills & recolours), and interactive email ghost completion with tap-to-fill white flash.",
           "Particle Gather Bottom Bar Animation: High-performance physics-based particle suction and coalescence animation when switching navigation tabs with ambient orbital micro-sparkles.",
@@ -1789,23 +1791,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.28",
-        version_code: 117,
-        size_bytes: 37890849,
+        version_name: "4.6.29",
+        version_code: 118,
+        size_bytes: 37894857,
         size_formatted: "36.1 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes (Moss & Emerald, Mint & Vivid Red, Fiery Lime, Mocha Electric, Butter & Ink, Olive Bubblegum, Charcoal Crimson, Lemon Lavender, Mocha Gold) integrated natively in Profile appearance",
+          "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs",
           "Modern High-Taste UI: Refined Linear minimalist headers, polished typography, and clean bubble styling",
           "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
-          "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion",
-          "Full-Bandwidth HD Voice: Expanded vocal bandwidth (140Hz-7900Hz) restoring vocal warmth, consonants and intelligibility",
-          "Call Rapid Redial Stability: Hardened Android 14 ForegroundService lifecycle and non-blocking AudioRecord lifecycle",
-          "Sub-30ms Real-Time Voice Sync: Zero-wait non-blocking playback queue eliminating delay accumulation"
+          "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion"
         ],
         is_essential: true,
-        updated_at: "2026-11-10T12:00:00Z"
+        updated_at: "2026-11-10T15:50:00Z"
       },
       {
         id: "jarvis",
@@ -8109,10 +8110,10 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">17.2 MB</span>')
-            .replace(/v4\.6\.2[0-7]/g, "v4.6.28")
-            .replace(/Build 11[0-6]/g, "Build 117")
-            .replace(/BUILD 11[0-6]/g, "BUILD 117")
-            .replace(/\(b11[0-6]\)/g, "(b117)");
+            .replace(/v4\.6\.2[0-8]/g, "v4.6.29")
+            .replace(/Build 11[0-7]/g, "Build 118")
+            .replace(/BUILD 11[0-7]/g, "BUILD 118")
+            .replace(/\(b11[0-7]\)/g, "(b118)");
           responseBody = patched;
         } catch (_) {}
       }
