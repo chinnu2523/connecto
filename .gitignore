@@ -93,3 +93,5 @@ target/
 # Firebase & Google Services
 android/app/google-services.json
 google-services.json
+
+.genkit/

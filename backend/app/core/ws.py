@@ -20,8 +20,11 @@ FANOUT_CONCURRENCY = 500
 _fanout_semaphore = asyncio.Semaphore(FANOUT_CONCURRENCY)
 
 import httpx
+import time
 
 _rust_relay_client: Optional[httpx.AsyncClient] = None
+_rust_relay_available: bool = True
+_rust_relay_last_attempt: float = 0.0
 
 def _get_rust_relay_client() -> httpx.AsyncClient:
     global _rust_relay_client
@@ -32,16 +35,26 @@ def _get_rust_relay_client() -> httpx.AsyncClient:
 _RELAY_SECRET = os.getenv("RELAY_INTERNAL_SECRET", "")
 
 async def _forward_to_rust_relay(payload: dict):
-    """Asynchronously forwards events to the standalone Rust connecto-relay without blocking."""
+    """Asynchronously forwards events to the standalone Rust connecto-relay with circuit breaker."""
+    global _rust_relay_available, _rust_relay_last_attempt
+    now = time.time()
+    if not _rust_relay_available and (now - _rust_relay_last_attempt) < 30.0:
+        return
     try:
         client = _get_rust_relay_client()
-        await client.post(
+        resp = await client.post(
             "/api/broadcast",
             json=payload,
             headers={"X-Internal-Secret": _RELAY_SECRET}
         )
+        if resp.status_code == 200:
+            _rust_relay_available = True
+        else:
+            _rust_relay_available = False
+            _rust_relay_last_attempt = now
     except Exception:
-        pass
+        _rust_relay_available = False
+        _rust_relay_last_attempt = now
 
 async def _send_safe(ws: WebSocket, payload_str: str) -> bool:
     """Sends pre-serialized UTF-8 text with timeout; returns False on slow/broken socket."""

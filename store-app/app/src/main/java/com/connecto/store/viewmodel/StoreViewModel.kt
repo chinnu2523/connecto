@@ -338,6 +338,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun handleAppAction(context: Context, appState: AppUiState) {
+        if (appState.isDownloading || appState.isInstalling) {
+            return
+        }
         if (appState.installState == StoreApp.InstallState.UP_TO_DATE) {
             val intent = context.packageManager.getLaunchIntentForPackage(appState.app.packageName)
             if (intent != null) {
@@ -348,12 +351,14 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             // iOS App Store Behavior: Updates NEVER ask for password or biometric
             downloadAndInstall(context, appState)
         } else {
-            // First-time installation: Check if the user has already authorized on this device
-            if (sessionManager.hasAuthorizedOnce()) {
-                // Previously authenticated on this device - install directly like iOS App Store
+            // First-time installation: Check if the user is a guest or has already authorized on this device
+            val user = _currentUser.value
+            val isGuest = user == null || user.username.isBlank() || user.username.equals("guest", ignoreCase = true)
+            if (isGuest || sessionManager.hasAuthorizedOnce()) {
+                // Guests or previously authenticated users install free apps directly without blocking password prompt!
                 downloadAndInstall(context, appState)
             } else {
-                // Only for the very first time on a new installation: ask password / biometric
+                // Only for authenticated Connecto accounts on their very first installation: ask password / biometric
                 _authError.value = null
                 _isVerifyingAuth.value = false
                 _pendingAuthApp.value = appState
@@ -412,6 +417,12 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun downloadAndInstall(context: Context, appState: AppUiState) {
+        val current = _uiState.value as? StoreUiState.Success ?: return
+        val currentApp = current.apps.find { it.app.packageName == appState.app.packageName }
+        if (currentApp?.isDownloading == true || currentApp?.isInstalling == true) {
+            return
+        }
+
         viewModelScope.launch {
             val ctx = getApplication<Application>()
             val app = appState.app
@@ -458,6 +469,12 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissPermissionPrompt() {
         val current = _uiState.value as? StoreUiState.Success ?: return
+        val pendingPkg = pendingPackageName
+        if (pendingPkg != null) {
+            updateAppState(pendingPkg) { it.copy(isInstalling = false) }
+        }
+        pendingInstallFile = null
+        pendingPackageName = null
         _uiState.value = current.copy(permissionPromptApp = null)
     }
 
@@ -559,20 +576,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "1.7.6",
-            versionCode = 33,
-            sizeFormatted = "13.7 MB",
+            versionName = "1.7.9",
+            versionCode = 36,
+            sizeFormatted = "17.2 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#FFFFFF",
             changelog = listOf(
-                "UI Elevation: Dual luxury themes (OLED Noir & Ivory White) with dynamic contrast",
-                "Tactile Spring Physics: Natural pressure responses on cards, action buttons and tabs",
-                "Phone Mockup Previews: Realistic OLED device bezels with interactive screen slides",
-                "1-Tap In-Card Actions: Direct installation and update sessions with progress feedback",
-                "Biometric & Keystore Security: Seamless download authorization with device credentials"
+                "App Detail Reload Loop Fix: Stabilized AnimatedContent targetState on package identifier",
+                "Update Concurrency Guard: Eliminated duplicate download coroutines and progress races",
+                "Instant Guest Installs: Removed impossible password prompt for free app downloads",
+                "OLED Account UI: Refined Guest Mode account representation and badge indicators",
+                "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
             ),
             isEssential = true,
-            updatedAt = "2026-11-09T04:30:00Z"
+            updatedAt = "2026-11-10T11:00:00Z"
         ),
         StoreApp(
             id = "connecto",
@@ -582,20 +599,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Private encrypted messaging, calls & workspaces",
             description = "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
             category = "Communication",
-            versionName = "4.6.24",
-            versionCode = 113,
+            versionName = "4.6.27",
+            versionCode = 116,
             sizeFormatted = "36.1 MB",
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
-                "Voice Call Audio & Mic Capture Fix: Continuous hardware AudioRecord fallback during WebRTC ICE negotiation",
-                "Audio Focus & Routing: Transient audio focus acquisition, unmuted mic pipeline, and speakerphone fallback",
-                "Echo Audio Test Suite: Integrated local loopback diagnostics directly into Calls Screen",
-                "Blur Validation: Errors trigger only on field departure (blur), removing noisy typing interruptions",
-                "Unslop Design: Minimalist pinned chat icon, decluttered chat UI, and refined typography"
+                "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
+                "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion",
+                "Full-Bandwidth HD Voice: Expanded vocal bandwidth (140Hz-7900Hz) restoring vocal warmth, consonants and intelligibility",
+                "Call Rapid Redial Stability: Hardened Android 14 ForegroundService lifecycle and non-blocking AudioRecord lifecycle",
+                "Sub-30ms Real-Time Voice Sync: Zero-wait non-blocking playback queue eliminating delay accumulation"
             ),
             isEssential = true,
-            updatedAt = "2026-11-09T08:00:00Z"
+            updatedAt = "2026-11-09T23:00:00Z"
         ),
         StoreApp(
             id = "jarvis",
@@ -605,10 +622,10 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Multimodal voice, vision & device automation assistant",
             description = "Autonomous AI assistant powered by Gemini. Features natural conversational voice interactions, computer vision, camera intelligence, biometric security, and custom device task execution.",
             category = "Artificial Intelligence",
-            versionName = "2.0.0",
-            versionCode = 2,
-            sizeFormatted = "126 MB",
-            downloadUrl = "https://connecto.fun/downloads/jarvis-ai-official.apk",
+            versionName = "3.5.0",
+            versionCode = 35,
+            sizeFormatted = "161.7 MB",
+            downloadUrl = "https://connecto.fun/downloads/jarvis-ai-v3.5.0.apk",
             accentColor = "#06B6D4",
             changelog = listOf(
                 "Multimodal voice conversation engine",
@@ -617,7 +634,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                 "Background task automation and scheduled triggers"
             ),
             isEssential = true,
-            updatedAt = "2026-10-29T12:00:00Z"
+            updatedAt = "2026-10-31T15:20:00Z"
         ),
         StoreApp(
             id = "pdfstudio",
@@ -627,9 +644,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Change names in matching fonts, edit text & convert images to PDF",
             description = "Professional PDF editor for Android. Find & replace names in the exact same font and size, tap to edit text in-place, convert JPG/PNG/WEBP to PDF, merge multiple PDF files losslessly, and draw or annotate directly on documents.",
             category = "Productivity",
-            versionName = "1.1.0",
-            versionCode = 2,
-            sizeFormatted = "27.4 MB",
+            versionName = "1.4.10",
+            versionCode = 15,
+            sizeFormatted = "29.4 MB",
             downloadUrl = "https://connecto.fun/downloads/pdf-studio.apk",
             accentColor = "#EF4444",
             changelog = listOf(
@@ -640,7 +657,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                 "Lossless PDF merging and interactive drawing/annotating"
             ),
             isEssential = false,
-            updatedAt = "2026-10-29T21:15:00Z"
+            updatedAt = "2026-10-30T11:45:00Z"
         )
     )
 }

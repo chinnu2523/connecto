@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.ShoppingBag
@@ -89,6 +90,7 @@ fun StoreAppDownloadAuthSheet(
     val keyboardController = LocalSoftwareKeyboardController.current
     val theme = LocalStoreTheme.current
     val app = appState.app
+    val isGuest = currentUser == null || currentUser.username.isBlank() || currentUser.username.equals("guest", ignoreCase = true)
 
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -101,7 +103,7 @@ fun StoreAppDownloadAuthSheet(
 
     // Auto-prompt biometric if available and enrolled on device
     LaunchedEffect(Unit) {
-        if (hasBiometrics && !showPasswordField) {
+        if (!isGuest && hasBiometrics && !showPasswordField) {
             val activity = context as? FragmentActivity
             if (activity != null) {
                 StoreBiometricHelper.promptBiometric(
@@ -267,26 +269,26 @@ fun StoreAppDownloadAuthSheet(
                                 ) {
                                     Text(
                                         text = "@${currentUser?.username ?: "guest"}",
-                                        color = Color(0xFF38BDF8),
+                                        color = if (isGuest) Color(0xFF94A3B8) else Color(0xFF38BDF8),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 15.sp
                                     )
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(4.dp))
-                                            .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                            .background(if (isGuest) Color(0xFF64748B).copy(alpha = 0.2f) else Color(0xFF10B981).copy(alpha = 0.15f))
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = "VERIFIED",
-                                            color = Color(0xFF34D399),
+                                            text = if (isGuest) "GUEST MODE" else "VERIFIED",
+                                            color = if (isGuest) Color(0xFF94A3B8) else Color(0xFF34D399),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
                                 Text(
-                                    text = currentUser?.displayName ?: "Connecto Account",
+                                    text = if (isGuest) "Connecto Guest Sandbox" else (currentUser?.displayName ?: "Connecto Account"),
                                     color = theme.textMuted,
                                     fontSize = 12.sp,
                                     maxLines = 1,
@@ -380,8 +382,49 @@ fun StoreAppDownloadAuthSheet(
                         }
                     }
 
-                    // Authentication Interface (Fingerprint / Password)
-                    if (hasBiometrics && !showPasswordField) {
+                    // Authentication Interface (Fingerprint / Password / Guest 1-Tap)
+                    if (isGuest) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Text(
+                                text = "Free Ecosystem Download",
+                                color = theme.textPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Text(
+                                text = "No account password is required for guest installations. Tap below to begin downloading ${app.name}.",
+                                color = theme.textMuted,
+                                fontSize = 12.5.sp,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            Button(
+                                onClick = { onBiometricSuccess() },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(14.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFF2563EB),
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Download,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "1-Tap Install Now",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+                    } else if (hasBiometrics && !showPasswordField) {
                         // Apple App Store Touch ID / Fingerprint View
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),

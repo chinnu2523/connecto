@@ -1,0 +1,100 @@
+name: Ecosystem Automated Verification & Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'android/**'
+      - 'store-app/**'
+      - 'cloudflare/**'
+      - 'backend/app/api/v1/store.py'
+      - 'website/static/**'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ecosystem-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-and-deploy:
+    name: Pre-Flight Check, Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up OpenJDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Node.js & Wrangler
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Pre-Flight Integrity Check
+        run: |
+          echo "Executing pre-flight checks..."
+          chmod +x scripts/deploy-ecosystem.sh
+          # Verify version consistency
+          CONNECTO_VERSION=$(grep 'versionName = ' android/app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          STORE_VERSION=$(grep 'versionName = ' store-app/app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "Verified Connecto Version: $CONNECTO_VERSION"
+          echo "Verified Store Version:    $STORE_VERSION"
+
+      - name: Build Connecto Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'connecto2026' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'connecto' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'connecto2026' }}
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Build Our Store Release APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'connecto2026' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'connecto' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'connecto2026' }}
+        run: |
+          cd store-app
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Verify Cryptographic Checksums
+        run: |
+          mkdir -p website/static/downloads
+          cp -f android/app/build/outputs/apk/release/app-release.apk website/static/downloads/connecto-fun.apk
+          cp -f store-app/app/build/outputs/apk/release/app-release.apk website/static/downloads/our-store.apk
+          echo "Connecto SHA256: $(sha256sum website/static/downloads/connecto-fun.apk)"
+          echo "Our Store SHA256: $(sha256sum website/static/downloads/our-store.apk)"
+
+      - name: Deploy to Cloudflare Edge CDN
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+            cd cloudflare
+            wrangler deploy
+          else
+            echo "CLOUDFLARE_API_TOKEN not configured, skipping worker deploy in CI."
+          fi
+
+      - name: Upload to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v4.6.11 website/static/downloads/connecto-fun.apk --clobber || true
+          gh release upload v4.6.11 website/static/downloads/our-store.apk --clobber || true

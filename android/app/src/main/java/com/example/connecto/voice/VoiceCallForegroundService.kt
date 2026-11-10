@@ -101,6 +101,11 @@ class VoiceCallForegroundService : Service() {
         createNotificationChannel()
         acquireLocks()
         startDurationCollector()
+        try {
+            startForegroundWithNotification()
+        } catch (t: Throwable) {
+            Log.w(TAG, "Initial startForeground in onCreate: ${t.message}")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -321,6 +326,10 @@ class VoiceCallForegroundService : Service() {
         Log.d(TAG, "Stopping VoiceCallForegroundService")
         durationMonitorJob?.cancel()
         releaseLocks()
+        try {
+            // Guarantee startForeground was invoked before stopping, satisfying Android 14 requirements
+            startForegroundWithNotification()
+        } catch (_: Throwable) {}
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)

@@ -497,41 +497,13 @@ private fun ClassicTopHeader(
                 // Master Architectural Obsidian Store Insignia
                 OurStoreLogoMark(modifier = Modifier.size(40.dp))
 
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "OUR STORE",
-                            color = theme.textPrimary,
-                            fontWeight = FontWeight.Black,
-                            fontSize = 17.sp,
-                            letterSpacing = 1.sp
-                        )
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(theme.cardElevated)
-                                .border(1.dp, theme.cardBorder, RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "ENTERPRISE HUB",
-                                color = theme.textMuted,
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.6.sp
-                            )
-                        }
-                    }
-                    Text(
-                        text = "Native In-App Package Engine • Instant Deployment",
-                        color = theme.textDarkMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+                Text(
+                    text = "OUR STORE",
+                    color = theme.textPrimary,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 18.sp,
+                    letterSpacing = 0.5.sp
+                )
             }
 
             Row(
@@ -806,19 +778,6 @@ private fun ClassicCatalogBody(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (!isUpdatesTab) {
-            // Curated Ecosystem Spotlight Card (Linear / x.ai modern aesthetic)
-            if (selectedCategory == "All") {
-                item {
-                    val spotlightApp = state.apps.find { it.app.id == "connecto" } ?: state.apps.firstOrNull()
-                    ClassicEcosystemSpotlightCard(
-                        featuredApp = spotlightApp,
-                        onOpenDetail = {
-                            spotlightApp?.let { onAppClick(it) }
-                        }
-                    )
-                }
-            }
-
             // Category Filter Pills
             item {
                 ClassicCategoryPills(
@@ -840,30 +799,21 @@ private fun ClassicCatalogBody(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(7.dp)
-                                    .clip(CircleShape)
-                                    .background(if (updateCount > 0) AmberUpdate else EmeraldStatus)
-                            )
-                            Text(
-                                text = if (updateCount > 0) "$updateCount UPDATE${if (updateCount > 1) "S" else ""} AVAILABLE" else "ALL APPS UP TO DATE",
-                                color = if (updateCount > 0) AmberUpdate else EmeraldStatus,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                letterSpacing = 0.8.sp
-                            )
-                        }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(if (updateCount > 0) AmberUpdate else EmeraldStatus)
+                        )
                         Text(
-                            text = "Auto-Update: Autonomous Background Engine Active",
-                            color = theme.textDarkMuted,
-                            fontSize = 11.sp,
-                            fontFamily = FontFamily.Monospace
+                            text = if (updateCount > 0) "$updateCount update${if (updateCount > 1) "s" else ""} ready" else "All apps up to date",
+                            color = if (updateCount > 0) AmberUpdate else EmeraldStatus,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
                         )
                     }
 
@@ -897,29 +847,6 @@ private fun ClassicCatalogBody(
                         }
                     }
                 }
-            }
-        }
-
-        // Section Meta Header
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = if (isUpdatesTab) "PENDING SYSTEM UPDATES" else "VERIFIED ECOSYSTEM APPLICATIONS",
-                    color = theme.textMuted,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Text(
-                    text = "${filteredApps.size} apps available",
-                    color = theme.textDarkMuted,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace
-                )
             }
         }
 
@@ -1199,7 +1126,7 @@ private fun ClassicAppCard(
                 AppIconImage(appId = app.id, appName = app.name)
             }
 
-            // App Name, Subtitle & Category (Clean App Store Row)
+            // App Name & Subtitle
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(3.dp)
@@ -1222,55 +1149,13 @@ private fun ClassicAppCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = app.category,
-                        color = theme.textDarkMuted,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "•",
-                        color = theme.textDarkMuted,
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = app.sizeFormatted,
-                        color = theme.textDarkMuted,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                // Curated Feature Highlights Pill (Subtle Linear aesthetic)
-                val featureBadge = when (app.id) {
-                    "connecto" -> "E2EE • HD Voice • Workspaces"
-                    "ourstore" -> "1-Tap IPC • Background Engine"
-                    "pdfstudio" -> "Lossless Merge • Local Vault"
-                    "jarvis" -> "Neural AI • Shield"
-                    else -> null
-                }
-                if (featureBadge != null) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFF2563EB).copy(alpha = 0.12f))
-                            .border(1.dp, Color(0xFF3B82F6).copy(alpha = 0.25f), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = featureBadge,
-                            color = Color(0xFF60A5FA),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.3.sp
-                        )
-                    }
-                }
+                Text(
+                    text = app.sizeFormatted,
+                    color = theme.textDarkMuted,
+                    fontSize = 11.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             // Single App Store Style Tactile Action Button
@@ -1357,35 +1242,12 @@ private fun ClassicAppDetailView(
                     )
                 }
 
-                Column {
-                    Text(
-                        text = app.name,
-                        color = theme.textPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                        letterSpacing = (-0.3).sp
-                    )
-                    Text(
-                        text = "Ecosystem Application",
-                        color = theme.textDarkMuted,
-                        fontSize = 10.sp
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(theme.cardElevated)
-                    .border(1.dp, theme.borderHighlight, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 9.dp, vertical = 4.dp)
-            ) {
                 Text(
-                    text = app.category.uppercase(),
-                    color = theme.textMuted,
-                    fontSize = 9.5.sp,
+                    text = app.name,
+                    color = theme.textPrimary,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.6.sp
+                    fontSize = 17.sp,
+                    letterSpacing = (-0.3).sp
                 )
             }
         }
@@ -1634,93 +1496,44 @@ private fun ClassicAppDetailView(
             }
 
             // Visual Application Previews Section (Interactive Horizontal Carousel)
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "APPLICATION PREVIEWS",
-                        color = theme.textPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    )
-                    Text(
-                        text = "${remember(app.id) { getAppPreviews(app.id).size }} screens",
-                        color = theme.textDarkMuted,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
-
-                AppPreviewCarousel(appId = app.id)
-            }
+            AppPreviewCarousel(appId = app.id)
 
             // Description Section
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
+                    .padding(16.dp)
+            ) {
                 Text(
-                    text = "ABOUT THIS APPLICATION",
-                    color = theme.textPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
+                    text = app.description,
+                    color = theme.textSecondary,
+                    fontSize = 13.sp,
+                    lineHeight = 20.sp
                 )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(theme.surface)
-                        .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = app.description,
-                        color = theme.textSecondary,
-                        fontSize = 13.sp,
-                        lineHeight = 20.sp
-                    )
-                }
             }
 
             // What's New Section
             if (app.changelog.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "WHAT'S NEW IN v${app.versionName}",
-                        color = theme.textPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    )
-                    ClassicChangelogBox(app.changelog)
-                }
+                ClassicChangelogBox(app.changelog)
             }
 
             // Technical Details Box
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "TECHNICAL SPECIFICATIONS",
-                    color = theme.textPrimary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.sp
-                )
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(theme.surface)
-                        .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
-                        .padding(16.dp)
-                ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TechSpecRow("Version", "v${app.versionName}")
-                        TechSpecRow("Download Size", app.sizeFormatted)
-                        TechSpecRow("Category", app.category)
-                        TechSpecRow("Compatibility", "Android 8.0+")
-                    }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
+                    .padding(16.dp)
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TechSpecRow("Version", "v${app.versionName}")
+                    TechSpecRow("Download Size", app.sizeFormatted)
+                    TechSpecRow("Category", app.category)
+                    TechSpecRow("Compatibility", "Android 8.0+")
                 }
             }
 
@@ -2019,43 +1832,28 @@ internal fun AppIconImage(appId: String, appName: String, modifier: Modifier = M
             OurStoreLogoMark(modifier = modifier)
         }
         "connecto" -> {
-            Box(
-                modifier = modifier.clip(RoundedCornerShape(13.dp)).background(Color(0xFF2563EB)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.Chat,
-                    contentDescription = appName,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.ic_app_connecto),
+                contentDescription = appName,
+                modifier = modifier.clip(RoundedCornerShape(13.dp)),
+                contentScale = ContentScale.Crop
+            )
         }
         "jarvis" -> {
-            Box(
-                modifier = modifier.clip(RoundedCornerShape(13.dp)).background(Color(0xFF8B5CF6)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.SmartToy,
-                    contentDescription = appName,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.ic_app_jarvis),
+                contentDescription = appName,
+                modifier = modifier.clip(RoundedCornerShape(13.dp)),
+                contentScale = ContentScale.Crop
+            )
         }
         "pdfstudio" -> {
-            Box(
-                modifier = modifier.clip(RoundedCornerShape(13.dp)).background(Color(0xFFEF4444)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.PictureAsPdf,
-                    contentDescription = appName,
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.ic_app_pdfstudio),
+                contentDescription = appName,
+                modifier = modifier.clip(RoundedCornerShape(13.dp)),
+                contentScale = ContentScale.Crop
+            )
         }
         else -> {
             Box(
@@ -2767,35 +2565,20 @@ fun ClassicLoginAccountView(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(AmberUpdate)
-                            )
-                            Text(
-                                text = "OUR STORE UPDATE READY",
-                                color = AmberUpdate,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 12.sp,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(AmberUpdate)
+                        )
                         Text(
-                            text = "v${storeSelfUpdate.app.versionName}",
-                            color = theme.textPrimary,
-                            fontSize = 12.sp,
+                            text = "Update available (v${storeSelfUpdate.app.versionName})",
+                            color = AmberUpdate,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
+                            fontSize = 13.sp
                         )
                     }
 
@@ -2951,44 +2734,7 @@ fun ClassicLoginAccountView(
                         )
                     }
 
-                    // Role Badge Pill
                     val isGuest = currentUser.username.equals("guest", ignoreCase = true)
-                    val badgeBg = when {
-                        currentUser.role == StoreRole.ADMIN -> EmeraldStatusBg
-                        isGuest -> Color(0xFF1E293B)
-                        else -> Color(0xFF261D45)
-                    }
-                    val badgeBorder = when {
-                        currentUser.role == StoreRole.ADMIN -> EmeraldStatus.copy(alpha = 0.4f)
-                        isGuest -> Color(0xFF64748B).copy(alpha = 0.5f)
-                        else -> Color(0xFF6C5CE7).copy(alpha = 0.5f)
-                    }
-                    val badgeFg = when {
-                        currentUser.role == StoreRole.ADMIN -> EmeraldStatus
-                        isGuest -> Color(0xFF94A3B8)
-                        else -> Color(0xFFA29BFE)
-                    }
-                    val roleLabel = when {
-                        currentUser.role == StoreRole.ADMIN -> "SHIELD • SYSTEM ADMINISTRATOR"
-                        isGuest -> "GUEST ACCESS • BROWSE MODE"
-                        else -> "VERIFIED MEMBER"
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(100.dp))
-                            .background(badgeBg)
-                            .border(1.dp, badgeBorder, RoundedCornerShape(100.dp))
-                            .padding(horizontal = 14.dp, vertical = 6.dp)
-                    ) {
-                        Text(
-                            text = roleLabel,
-                            color = badgeFg,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp
-                        )
-                    }
 
                     if (isGuest) {
                         Row(
@@ -3041,44 +2787,10 @@ fun ClassicLoginAccountView(
                             .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
                             .padding(16.dp)
                     ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Palette,
-                                        contentDescription = null,
-                                        tint = theme.accentColorLight,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = "VISUAL THEME & APPEARANCE",
-                                        color = theme.textPrimary,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        letterSpacing = 0.5.sp
-                                    )
-                                }
-
-                                Text(
-                                    text = if (isDarkTheme) "OLED NOIR" else "CLEAN WHITE",
-                                    color = if (isDarkTheme) AmberUpdate else theme.accentColor,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
                                 // Dark Mode Option Box
                                 Box(
                                     modifier = Modifier
@@ -3151,7 +2863,6 @@ fun ClassicLoginAccountView(
                                     }
                                 }
                             }
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(2.dp))
@@ -3198,40 +2909,19 @@ fun ClassicLoginAccountView(
                             .border(1.dp, theme.cardBorder, RoundedCornerShape(12.dp))
                             .padding(horizontal = 14.dp, vertical = 10.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(
-                                    text = "Our Store Client",
-                                    color = theme.textPrimary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "v${com.connecto.store.BuildConfig.VERSION_NAME} (Build ${com.connecto.store.BuildConfig.VERSION_CODE})",
-                                    color = theme.textDarkMuted,
-                                    fontSize = 11.sp,
-                                    fontFamily = FontFamily.Monospace
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(EmeraldStatusBg)
-                                    .border(1.dp, EmeraldStatus.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "INSTALLED & ACTIVE",
-                                    color = EmeraldStatus,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.6.sp
-                                )
-                            }
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = "Our Store Client",
+                                color = theme.textPrimary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "v${com.connecto.store.BuildConfig.VERSION_NAME} (Build ${com.connecto.store.BuildConfig.VERSION_CODE})",
+                                color = theme.textDarkMuted,
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
                         }
                     }
                 }

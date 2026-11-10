@@ -244,7 +244,14 @@ private fun formatIsoTime(isoString: String): String {
         if (trimmed.matches(Regex("""\d{1,2}:\d{2}\s*(?:AM|PM|am|pm)?"""))) {
             return trimmed
         }
-        // Extract time part from ISO or SQL timestamp (handles 'T' or ' ' delimiter)
+        // Extract time part: convert UTC ISO/SQL timestamp to user's local timezone
+        val millis = parseMessageTimestamp(trimmed)
+        if (millis > 0L) {
+            val sdf = SimpleDateFormat("h:mm a", Locale.getDefault()).apply {
+                timeZone = TimeZone.getDefault()
+            }
+            return sdf.format(Date(millis))
+        }
         val timePart = when {
             trimmed.contains("T") -> trimmed.substringAfter("T").substringBefore(".").substringBefore("Z")
             trimmed.contains(" ") -> trimmed.substringAfter(" ").substringBefore(".")

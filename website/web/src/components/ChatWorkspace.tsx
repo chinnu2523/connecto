@@ -1810,7 +1810,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
           <div className="w-full max-w-sm rounded-3xl p-6 glass-card border border-electric/50 bg-slate-900/95 shadow-2xl text-center space-y-6">
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold tracking-widest text-cyanglow uppercase bg-electric/10 px-3 py-1 rounded-full border border-electric/20 inline-block">
-                {isRemoteRinging ? 'Connected but not answering' : 'Not connected'}
+                {isRemoteRinging ? 'Ringing...' : 'Calling...'}
               </span>
             </div>
 
@@ -1829,7 +1829,7 @@ export const ChatWorkspace: React.FC<ChatWorkspaceProps> = ({ currentUser, onOpe
             <div>
               <h3 className="text-xl font-bold text-white">{activeCallPartner.displayName}</h3>
               <p className="text-xs font-mono text-slate-400">@{activeCallPartner.username}</p>
-              <p className="text-xs text-cyanglow font-semibold mt-2 animate-pulse">Waiting for answer...</p>
+              <p className="text-xs text-cyanglow font-semibold mt-2 animate-pulse">{isRemoteRinging ? 'Ringing...' : 'Calling...'}</p>
             </div>
 
             <div className="flex items-center justify-center pt-2">

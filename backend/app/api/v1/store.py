@@ -14,22 +14,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "1.8.0",
-        "version_code": 37,
-        "size_bytes": 17993016,
-        "size_formatted": "17.2 MB",
+        "version_name": "1.8.1",
+        "version_code": 38,
+        "size_bytes": 18347750,
+        "size_formatted": "17.5 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#FFFFFF",
         "changelog": [
-            "Ecosystem Spotlight Hero UI: Integrated Linear/x.ai dark aesthetic hero banner with real-time platform telemetry",
+            "Authentic Application Icons: Real branded icons for Connecto, PDF Studio, JARVIS AI, and Our Store across catalog and detail views",
+            "Minimalist Clean Sections: Removed noisy headlines and category label badges for distraction-free browsing",
             "Linear Precision Design System: High-tactile micro-interactions, refined hair-line borders, and zero-slop layout",
-            "App Detail Reload Loop Fix: Stabilized AnimatedContent targetState on package identifier",
             "Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks",
             "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-10T12:00:00Z"
+        "updated_at": "2026-11-10T17:10:00Z"
     },
     {
         "id": "connecto",

@@ -104,7 +104,7 @@ data class CallStatsDto(
 object VoiceCallManager {
     private const val TAG = "VoiceCallManager"
     private const val SAMPLE_RATE = 16000
-    private const val CHUNK_SIZE_BYTES = 2560 // ~80ms at 16kHz 16-bit mono
+    private const val CHUNK_SIZE_BYTES = 640 // 20ms at 16kHz 16-bit mono (low-latency VoIP standard)
 
     private var appContext: Context? = null
     private var audioManager: AudioManager? = null
@@ -394,6 +394,7 @@ object VoiceCallManager {
     private val audioRelayBuffer = java.io.ByteArrayOutputStream()
     private var lastRelaySendTimeMs = 0L
     private val audioPlayExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private val pendingAudioChunksCount = java.util.concurrent.atomic.AtomicInteger(0)
 
     // ICE servers: Resilient public STUN servers for NAT traversal.
     // Removed unreachable connecto.fun:3478 which caused candidate gathering timeouts.
@@ -2791,7 +2792,10 @@ object VoiceCallManager {
     }
 
     private fun endCallLocally() {
-        val wasTearingDown = isTeardownInProgress.getAndSet(true)
+        if (isTeardownInProgress.getAndSet(true)) {
+            Log.d(TAG, "endCallLocally: Teardown already in progress, skipping duplicate call")
+            return
+        }
         val currentCallState = _callState.value
         val currentRoom = _activeRoomId.value ?: _incomingCall.value?.roomId ?: _activeCallRoomCode.value
 
@@ -3046,22 +3050,16 @@ object VoiceCallManager {
             val high = buffer[i * 2 + 1].toInt()
             val raw = ((high shl 8) or low).toFloat()
 
-            // 1. High-Pass Filter (140Hz)
+            // 1. High-Pass Filter (140Hz) rejecting DC rumble and sub-bass handling noise
             val hpY = hpB0 * raw + hpB1 * hpX1 + hpB2 * hpX2 - hpA1 * hpY1 - hpA2 * hpY2
             hpX2 = hpX1
             hpX1 = raw
             hpY2 = hpY1
             hpY1 = hpY
 
-            // 2. Low-Pass Filter (3400Hz)
-            val lpY = lpB0 * hpY + lpB1 * lpX1 + lpB2 * lpX2 - lpA1 * lpY1 - lpA2 * lpY2
-            lpX2 = lpX1
-            lpX1 = hpY
-            lpY2 = lpY1
-            lpY1 = lpY
-
-            filtered[i] = lpY
-            frameEnergy += lpY * lpY
+            // Full wideband vocal preservation (140Hz - 7900Hz HD Voice)
+            filtered[i] = hpY
+            frameEnergy += hpY * hpY
         }
 
         val frameRms = if (shortsCount > 0) Math.sqrt(frameEnergy / shortsCount) else 0.0
@@ -3073,25 +3071,25 @@ object VoiceCallManager {
             dspNoiseFloor = dspNoiseFloor * 0.998 + frameRms * 0.002
         }
 
-        val safeNoiseFloor = dspNoiseFloor.coerceIn(50.0, 400.0)
-        val speechThreshold = safeNoiseFloor * 2.0
-        val silenceFloor = safeNoiseFloor * 1.1
+        val safeNoiseFloor = dspNoiseFloor.coerceIn(50.0, 300.0)
+        val speechThreshold = safeNoiseFloor * 1.35
+        val silenceFloor = safeNoiseFloor * 0.75
 
         val targetGain = when {
             frameRms > speechThreshold -> {
-                voiceHangoverFrames = 14 // ~280ms hold time prevents dropping word endings
-                1.15f
+                voiceHangoverFrames = 15 // ~300ms hold time
+                1.00f // Clean, transparent vocal clarity (no artificial noise boost)
             }
             voiceHangoverFrames > 0 -> {
                 voiceHangoverFrames--
-                1.0f
+                0.90f
             }
             frameRms < silenceFloor -> {
-                0.15f // Gentle ambient suppression instead of dead muting speech onset
+                0.12f // -18.4 dB deep background noise suppression during silence
             }
             else -> {
                 val ratio = ((frameRms - silenceFloor) / (speechThreshold - silenceFloor)).coerceIn(0.0, 1.0).toFloat()
-                0.15f + ratio * 0.85f
+                0.12f + ratio * 0.88f // Smooth exponential transition
             }
         }
 
@@ -3574,7 +3572,8 @@ object VoiceCallManager {
                 AudioFormat.CHANNEL_OUT_MONO,
                 AudioFormat.ENCODING_PCM_16BIT
             )
-            val bufSize = maxOf(minBuf * 2, CHUNK_SIZE_BYTES * 4)
+            // Lean buffer to guarantee sub-30ms hardware rendering latency without queue bloat
+            val bufSize = maxOf(minBuf, CHUNK_SIZE_BYTES * 2)
 
             audioTrack = AudioTrack.Builder()
                 .setAudioAttributes(
@@ -3598,13 +3597,18 @@ object VoiceCallManager {
             try {
                 audioTrack?.setVolume(1.0f)
             } catch (_: Throwable) {}
-            Log.d(TAG, "AudioTrack initialized and playing at $effectiveRate Hz")
+            Log.d(TAG, "AudioTrack initialized and playing at $effectiveRate Hz (bufSize=$bufSize)")
         } catch (t: Throwable) {
             Log.e(TAG, "Failed initializing AudioTrack: ${t.message}", t)
         }
     }
 
     private fun playAudioChunk(base64Audio: String, sampleRate: Int = SAMPLE_RATE) {
+        // Jitter buffer drop: if playback queue exceeds 3 chunks (~60ms), drop older frames to maintain real-time sync
+        if (pendingAudioChunksCount.get() > 3) {
+            return
+        }
+        pendingAudioChunksCount.incrementAndGet()
         audioPlayExecutor.execute {
             try {
                 val bytes = Base64.decode(base64Audio, Base64.NO_WRAP)
@@ -3617,16 +3621,19 @@ object VoiceCallManager {
                     }
                     var offset = 0
                     while (offset < bytes.size && audioTrack?.playState == AudioTrack.PLAYSTATE_PLAYING) {
-                        val written = audioTrack?.write(bytes, offset, bytes.size - offset, AudioTrack.WRITE_BLOCKING) ?: -1
+                        val written = audioTrack?.write(bytes, offset, bytes.size - offset, AudioTrack.WRITE_NON_BLOCKING) ?: -1
                         if (written > 0) {
                             offset += written
                         } else {
+                            // Non-blocking buffer full: drop late frames to preserve sub-30ms real-time audio sync
                             break
                         }
                     }
                 }
             } catch (t: Throwable) {
                 Log.e(TAG, "Error playing audio chunk: ${t.message}")
+            } finally {
+                pendingAudioChunksCount.decrementAndGet()
             }
         }
     }
@@ -3641,7 +3648,7 @@ object VoiceCallManager {
             Log.e(TAG, "Invalid AudioRecord minBufferSize: $minBuf")
             return
         }
-        val bufSize = maxOf(minBuf * 2, CHUNK_SIZE_BYTES * 4)
+        val bufSize = maxOf(minBuf, CHUNK_SIZE_BYTES * 2)
 
         try {
             val record = AudioRecord(
@@ -3672,7 +3679,13 @@ object VoiceCallManager {
                 fallbackRecord
             }
 
-            activeRecord.startRecording()
+            try {
+                activeRecord.startRecording()
+            } catch (t: Throwable) {
+                Log.e(TAG, "Failed calling startRecording: ${t.message}")
+                try { activeRecord.release() } catch (_: Throwable) {}
+                return
+            }
             audioRecord = activeRecord
             isRecordingActive = true
             Log.d(TAG, "AudioRecord started recording")
@@ -3721,10 +3734,12 @@ object VoiceCallManager {
 
             recordingJob = scope.launch(Dispatchers.IO) {
                 val buffer = ByteArray(CHUNK_SIZE_BYTES)
+                var consecutiveErrors = 0
                 try {
                     while (isActive && isRecordingActive && activeRecord.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                         val read = activeRecord.read(buffer, 0, buffer.size)
                         if (read > 0) {
+                            consecutiveErrors = 0
                             if (_isVoiceIsolationEnabled.value) {
                                 applyVoiceIsolationDsp(buffer, read)
                             }
@@ -3770,10 +3785,15 @@ object VoiceCallManager {
                                 }
                             }
                         } else if (read == AudioRecord.ERROR_INVALID_OPERATION || read == AudioRecord.ERROR_BAD_VALUE) {
-                            Log.w(TAG, "AudioRecord read returned error code ($read), terminating loop")
-                            break
+                            consecutiveErrors++
+                            Log.w(TAG, "AudioRecord read returned error code ($read), retry count: $consecutiveErrors")
+                            if (consecutiveErrors > 30) {
+                                Log.e(TAG, "AudioRecord persistent hardware error ($read), breaking loop")
+                                break
+                            }
+                            delay(30)
                         } else {
-                            delay(20)
+                            delay(10)
                         }
                     }
                 } catch (t: Throwable) {

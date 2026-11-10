@@ -359,21 +359,29 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif msg_type in ("voice_data", "voice:data"):
                     room_id = payload.get("room_id") or payload.get("channel_id")
                     audio_data = payload.get("audio") or payload.get("payload")
-                    if room_id and audio_data:
-                        # Broadcast audio chunk to all other peers in the room
-                        await ws_manager.broadcast_to_voice_room(
-                            room_id=room_id,
-                            event={
-                                "type": "voice_data",
-                                "room_id": room_id,
-                                "channel_id": room_id,
-                                "sender_id": user.id,
-                                "sender_name": user.display_name or user.username,
-                                "audio": audio_data,
-                                "payload": audio_data
-                            },
-                            exclude_user_id=user.id
-                        )
+                    target = (payload.get("target") or payload.get("target_user") or payload.get("target_user_id") or "").strip()
+                    sample_rate = payload.get("sample_rate", 16000)
+                    if audio_data:
+                        voice_event = {
+                            "type": "voice_data",
+                            "room_id": room_id,
+                            "channel_id": room_id,
+                            "sender_id": user.id,
+                            "sender_name": user.display_name or user.username,
+                            "audio": audio_data,
+                            "payload": audio_data,
+                            "sample_rate": sample_rate
+                        }
+                        # Direct 1:1 personal relay: ensures instantaneous delivery even if room sync lags
+                        if target:
+                            await ws_manager.send_personal_event(target, voice_event)
+                        # Multi-peer room broadcast: for group voice lounges or room-based routing
+                        if room_id:
+                            await ws_manager.broadcast_to_voice_room(
+                                room_id=room_id,
+                                event=voice_event,
+                                exclude_user_id=user.id
+                            )
 
                 # --- REAL-TIME CHAT MESSAGE RELAY ---
                 elif msg_type in ("chat_message", "message_send", "message:send"):

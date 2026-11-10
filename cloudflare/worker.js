@@ -251,7 +251,7 @@ export default {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
               "Cache-Control": "public, max-age=60, s-maxage=60",
-              "X-Connecto-Store-Version": "v1.8.0",
+              "X-Connecto-Store-Version": "v1.8.1",
               "X-Served-By": "Connecto-Worker-GitHub-Direct",
               "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
               "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.tailwindcss.com https://unpkg.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss: ws: https: https://cloudflareinsights.com; object-src 'none'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;",
@@ -286,14 +286,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.0-b37-v4629.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.1-b38-v4629.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.8.0");
-          res.headers.set("X-Connecto-Store-Build", "37");
+          res.headers.set("X-Connecto-Store-Version", "v1.8.1");
+          res.headers.set("X-Connecto-Store-Build", "38");
           return res;
         }
 
@@ -319,8 +319,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.8.0");
-              downloadHeaders.set("X-Connecto-Store-Build", "37");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.8.1");
+              downloadHeaders.set("X-Connecto-Store-Build", "38");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1766,22 +1766,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.8.0",
-        version_code: 37,
-        size_bytes: 17993016,
-        size_formatted: "17.2 MB",
+        version_name: "1.8.1",
+        version_code: 38,
+        size_bytes: 18347750,
+        size_formatted: "17.5 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#FFFFFF",
         changelog: [
-          "Ecosystem Spotlight Hero UI: Integrated Linear/x.ai dark aesthetic hero banner with real-time platform telemetry",
+          "Authentic Application Icons: Real branded icons for Connecto, PDF Studio, JARVIS AI, and Our Store across catalog and detail views",
+          "Minimalist Clean Sections: Removed noisy headlines and category label badges for distraction-free browsing",
           "Linear Precision Design System: High-tactile micro-interactions, refined hair-line borders, and zero-slop layout",
-          "App Detail Reload Loop Fix: Stabilized AnimatedContent targetState on package identifier",
           "Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks",
           "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
         ],
         is_essential: true,
-        updated_at: "2026-11-10T12:00:00Z"
+        updated_at: "2026-11-10T17:10:00Z"
       },
       {
         id: "connecto",

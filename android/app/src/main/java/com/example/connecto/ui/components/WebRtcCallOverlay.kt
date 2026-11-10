@@ -143,12 +143,12 @@ fun WebRtcCallOverlay(
     val effectiveParticipants = maxOf(participantCount, managerParticipantCount)
 
     val statusSubtitle = when (callState) {
-        CallState.OUTGOING_RINGING -> if (isRemoteRinging) "Connected but not answering..." else "Not connected..."
+        CallState.OUTGOING_RINGING -> if (isRemoteRinging) "Ringing..." else "Calling..."
         CallState.INCOMING_RINGING -> "Incoming call..."
         CallState.CONNECTED -> if (!roomCode.isNullOrBlank()) {
-            "Room: $roomCode • $effectiveParticipants active"
+            "Room #$roomCode • $effectiveParticipants active"
         } else {
-            "Connected • Live Audio (16kHz PCM)"
+            "Connected • HD Voice"
         }
         CallState.IDLE -> "Call Ended"
     }
@@ -504,10 +504,10 @@ fun FullScreenCallUI(
     val themeAccent = designColors.primary
 
     val statusSubtitle = when (callState) {
-        CallState.OUTGOING_RINGING -> if (isRemoteRinging) "Connected but not answering..." else "Not connected..."
-        CallState.INCOMING_RINGING -> "Incoming Audio Call..."
+        CallState.OUTGOING_RINGING -> if (isRemoteRinging) "Ringing..." else "Calling..."
+        CallState.INCOMING_RINGING -> "Incoming Voice Call..."
         CallState.CONNECTED -> if (!roomCode.isNullOrBlank()) "Active Room #$roomCode • Lossless HD Audio" else "Connected • End-to-End Encrypted"
-        CallState.IDLE -> "Call Disconnected"
+        CallState.IDLE -> "Call Ended"
     }
 
     // Dynamic Pulsing Ring Animations
@@ -653,9 +653,9 @@ fun FullScreenCallUI(
                 // Security & Status Capsule Pill
                 val securityPillText = when (callState) {
                     CallState.CONNECTED -> if (isVoiceIsolationEnabled) "E2E • VOICE ISOLATION" else "E2E ENCRYPTED"
-                    CallState.OUTGOING_RINGING -> if (isRemoteRinging) "CONNECTED BUT NOT ANSWERING" else "NOT CONNECTED"
+                    CallState.OUTGOING_RINGING -> if (isRemoteRinging) "RINGING" else "CALLING"
                     CallState.INCOMING_RINGING -> "INCOMING"
-                    CallState.IDLE -> "DISCONNECTED"
+                    CallState.IDLE -> "ENDED"
                 }
                 val securityPillColor = if (callState == CallState.CONNECTED) OnlineGreen else Color(0xFFFBBF24)
 
@@ -956,7 +956,9 @@ fun FullScreenCallUI(
                                    else if (callState == CallState.CONNECTED) {
                                        if (isVoiceIsolationEnabled) "Connected • Voice Isolation Active"
                                        else "Connected • Encrypted Audio"
-                                   } else "Establishing secure connection...",
+                                   } else if (callState == CallState.OUTGOING_RINGING) {
+                                       if (isRemoteRinging) "Ringing..." else "Calling..."
+                                   } else "Connecting...",
                             fontSize = 12.sp,
                             color = if (isMuted) Color(0xFFEF4444) else Color.White.copy(alpha = 0.90f),
                             fontWeight = FontWeight.Medium
@@ -1508,7 +1510,7 @@ fun MinimizedCallPill(
                         maxLines = 1
                     )
                     Text(
-                        text = if (callState == CallState.CONNECTED) formattedTime else if (isRemoteRinging) "Connected but not answering..." else "Not connected...",
+                        text = if (callState == CallState.CONNECTED) formattedTime else if (isRemoteRinging) "Ringing..." else "Calling...",
                         color = if (isMuted) Color(0xFFF87171) else Color(0xFF94A3B8),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Medium
