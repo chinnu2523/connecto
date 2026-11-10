@@ -17075,6 +17075,416 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
     }
 
 .members-sidebar-body { flex: 1 1 auto; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* ============================================================ */
+    /* BRAND ENFORCEMENT: BRAND FONTS & FLAT COLOURS ONLY (NO GLOW) */
+    /* ============================================================ */
+    :root, [data-theme] {
+      --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      --font-serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+      --font-shinobi: 'Plus Jakarta Sans', sans-serif !important;
+
+      /* Flat Brand Colors Only (0-nit OLED Black, Crisp White, Neutral Zinc & Functional Accents) */
+      --bg-darkest: #000000 !important;
+      --bg-darker: #09090C !important;
+      --bg-dark: #101014 !important;
+      --bg-card: #121216 !important;
+      --bg-card-hover: #18181D !important;
+      --bg-modal: #0D0D10 !important;
+      --bg-nav: rgba(0, 0, 0, 0.95) !important;
+      --card-border: #27272A !important;
+      --border-color: #27272A !important;
+      --text-normal: #D4D4D8 !important;
+      --text-muted: #A1A1AA !important;
+      --text-header: #FFFFFF !important;
+      --accent: #FFFFFF !important;
+      --accent-hover: #F4F4F5 !important;
+      --accent-tint: #18181B !important;
+      --accent-border: #27272A !important;
+      --chakra-cyan: #38BDF8 !important;
+
+      /* STRICTLY ZERO GLOW - FLAT ONLY */
+      --accent-glow: transparent !important;
+      --accent-secondary-glow: transparent !important;
+      --green-glow: transparent !important;
+      --red-glow: transparent !important;
+      --hero-glow-1: transparent !important;
+      --hero-glow-2: transparent !important;
+      --card-glow: transparent !important;
+      --card-spotlight-rim: transparent !important;
+      --glow-color: transparent !important;
+      --node-glow: transparent !important;
+      --step-glow: transparent !important;
+    }
+
+    * {
+      font-family: var(--font-body);
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .hero-official-title,
+    .section-title,
+    .bento-card-title,
+    .ecosystem-card-title,
+    .step-card-title,
+    .android-showcase-title {
+      font-family: var(--font-body) !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.02em !important;
+    }
+
+    .hero-official-title em {
+      font-family: var(--font-body) !important;
+      font-style: normal !important;
+      font-weight: 700 !important;
+      color: #FAFAFA !important;
+    }
+
+    /* Remove glow and neon halos across all elements */
+    .aurora-mesh,
+    .cursor-spotlight-layer,
+    .ae-border-beam,
+    .phone-vault-scanner-ring,
+    [data-theme] .ecosystem-card::before,
+    [data-theme] .usecase-card::before,
+    [data-theme] .step-card-custom::before,
+    [data-theme] .comparison-card::before,
+    [data-theme] .bento-card::before,
+    [data-theme] .arch-node::before,
+    [data-theme] .final-cta-card::before {
+      display: none !important;
+    }
+
+    /* Flat cards and borders */
+    .ecosystem-card,
+    .android-feat-card,
+    .arch-node,
+    .step-card-custom,
+    .comparison-card,
+    .bento-card,
+    .chat-mockup-card,
+    .stat-item,
+    .final-cta-card,
+    .android-showcase-card-left,
+    .usecase-card {
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      background: #101014 !important;
+      border: 1px solid #27272A !important;
+    }
+
+    .ecosystem-top-accent,
+    .android-feat-top-accent,
+    .arch-top-accent,
+    .step-top-accent,
+    .usecase-top-accent,
+    .comparison-top-accent {
+      background: #27272A !important;
+      height: 1px !important;
+    }
+
+    .shimmer-title,
+    .hero-gradient-text {
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      -webkit-text-fill-color: initial !important;
+      color: var(--text-header) !important;
+      text-shadow: none !important;
+    }
+
+    .official-live-indicator,
+    .pulse-emerald-dot,
+    .ecosystem-pulse-dot,
+    .arch-pulse-dot,
+    .nav-live-dot {
+      box-shadow: none !important;
+      animation: none !important;
+    }
+
+    /* Product Micro-Interface Components (Flat, Brand Fonts & Colours) */
+    .card-product-demo {
+      background: #09090C;
+      border: 1px solid #222226;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: var(--font-body);
+    }
+    .cpd-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #A1A1AA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .cpd-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #71717A;
+    }
+    .cpd-dot.live { background: #10B981; }
+    .cpd-dot.voice { background: #38BDF8; }
+    .cpd-dot.lab { background: #F59E0B; }
+    .cpd-dot.sec { background: #FFFFFF; }
+
+    .cpd-chat-feed {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .cpd-chat-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .cpd-user {
+      font-weight: 700;
+      color: #FAFAFA;
+    }
+    .cpd-bubble {
+      color: #D4D4D8;
+      background: #141418;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #27272A;
+    }
+    .cpd-input-bar {
+      font-size: 11px;
+      color: #52525B;
+      background: #121216;
+      border: 1px solid #27272A;
+      border-radius: 4px;
+      padding: 4px 8px;
+    }
+
+    .cpd-voice-roster {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cpd-speaker {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #D4D4D8;
+      background: #141418;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #27272A;
+    }
+    .cpd-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #27272A;
+      color: #FFFFFF;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+    }
+    .cpd-name {
+      font-weight: 600;
+      flex: 1;
+    }
+    .cpd-wave {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .cpd-wave span {
+      width: 2px;
+      height: 8px;
+      background: #10B981;
+      border-radius: 1px;
+    }
+    .cpd-mute-badge {
+      font-size: 10px;
+      color: #71717A;
+      background: #1E1E22;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+
+    .cpd-terminal {
+      background: #000000;
+      border: 1px solid #27272A;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+    }
+    .cpd-code-line {
+      color: #A1A1AA;
+    }
+    .cpd-prompt {
+      color: #10B981;
+      font-weight: 700;
+    }
+    .cpd-code-res {
+      color: #10B981;
+      margin-top: 2px;
+    }
+
+    .cpd-vault-box,
+    .cpd-mobile-box,
+    .cpd-automod-box {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 11.5px;
+    }
+    .cpd-vault-row,
+    .cpd-mobile-row,
+    .cpd-automod-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #A1A1AA;
+      background: #141418;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid #222226;
+    }
+    .cpd-vault-row strong,
+    .cpd-mobile-row strong,
+    .cpd-automod-row strong {
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    /* Feature Product Snippet (inside android-feat-card & arch-node) */
+    .feat-product-snippet {
+      background: #0A0A0D;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-family: var(--font-body);
+    }
+    .fps-tag {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 9.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #A1A1AA;
+      background: #18181D;
+      padding: 1.5px 6px;
+      border-radius: 3px;
+      border: 1px solid #27272A;
+    }
+    .fps-tag.success {
+      color: #10B981;
+      border-color: #10B981;
+      background: #052E16;
+    }
+    .fps-tag.alert {
+      color: #F87171;
+      border-color: #F87171;
+      background: #450A0A;
+    }
+    .fps-bubble,
+    .fps-line {
+      font-size: 11.5px;
+      color: #E4E4E7;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Step Product Preview */
+    .step-product-preview {
+      background: #0A0A0D;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .spp-step {
+      font-size: 10px;
+      font-weight: 800;
+      color: #FFFFFF;
+      background: #27272A;
+      align-self: flex-start;
+      padding: 2px 7px;
+      border-radius: 3px;
+    }
+    .spp-box {
+      font-size: 12px;
+      color: #D4D4D8;
+      font-weight: 600;
+    }
+
+    .comp-product-badge {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #FFFFFF;
+      background: #141418;
+      border: 1px solid #27272A;
+      padding: 5px 10px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .comp-product-badge.legacy {
+      color: #A1A1AA;
+      background: #121214;
+      border-color: #27272A;
+    }
+    .cpb-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #71717A;
+    }
+    .cpb-dot.active { background: #10B981; }
+    .cpb-dot.legacy { background: #F87171; }
+
+    .track-product-demo {
+      background: #0A0A0D;
+      border: 1px solid #27272A;
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .tpd-tag {
+      font-size: 9px;
+      font-weight: 800;
+      color: #A1A1AA;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tpd-out {
+      font-size: 11px;
+      color: #E4E4E7;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
 </style>
 <style>
     /* ==================== 60FPS SMOOTHNESS & FAST TOUCH ENGINE ==================== */
@@ -26611,7 +27021,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 1: HERO & INTERACTIVE STAGE -->
         <div class="hero-grid">
           <div class="hero-text">
-            <div class="hero-eyebrow"><span class="official-live-indicator" style="background:#10b981; box-shadow:0 0 8px rgba(16,185,129,0.6);"></span>24/7 AI SUPPORT &amp; LEGAL SUITE · v4.6.29 (BUILD 118)</div>
             <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
             <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
@@ -26864,7 +27273,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION: CONNECTO FOR ANDROID (OFFICIAL NATIVE APP) -->
         <div class="android-showcase-section scroll-reveal-3d spatial-3d-section" id="androidAppSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow" style="color:#10b981; border-color:rgba(16,185,129,0.3); background:rgba(16,185,129,0.08);"><span class="pulse-emerald-dot"></span> Official Native Android Release • Public Beta Testing Stage</div>
             <h2 class="section-title">Connecto in Your Pocket. <span class="hero-gradient-text">Pure Black. Zero Compromise.</span></h2>
             <p class="section-sub">Engineered with 100% Pure Black OLED aesthetics, hardware-backed biometric vault lock, ultra low-latency WebSocket messaging, and crystal-clear WebRTC spatial mesh voice lounges.</p>
           </div>
@@ -26905,24 +27313,21 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="android-features-grid">
                 <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#10b981;"><i data-lucide="bot" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#6ee7b7;">24/7 AI Customer Support</span>
+                    <div class="feat-product-snippet"><span class="fps-tag">AI Assistant</span><div class="fps-bubble">&ldquo;All keys are hardware-isolated on-device.&rdquo;</div></div><span class="android-feat-card-title" style="color:#6ee7b7;">24/7 AI Customer Support</span>
                   </div>
                   <div class="android-feat-card-desc">Conversational assistant for instant support on E2EE encryption, audio setup, custom wallpapers, background alerts, and 2FA recovery.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#38bdf8;"><i data-lucide="scroll-text" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#7dd3fc;">Platform Legal Center</span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Legal Suite</span><div class="fps-line">Privacy &amp; Terms: 0 data collection consent</div></div><span class="android-feat-card-title" style="color:#7dd3fc;">Platform Legal Center</span>
                   </div>
                   <div class="android-feat-card-desc">Integrated in-app readers and responsive web portals for Zero-Telemetry Privacy Policy and Community Terms of Service.</div>
                 </div>
 
                 <div class="android-feat-card" style="border-color: rgba(244, 63, 94, 0.4); background: rgba(244, 63, 94, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#f43f5e;"><i data-lucide="trash-2" class="lucide-md"></i></span>
-                    <span class="android-feat-card-title" style="color:#fda4af;">Bottom Danger Zone Safeguards</span>
+                    <div class="feat-product-snippet"><span class="fps-tag alert">Safety Guard</span><div class="fps-line">Relocated to bottom of Help &amp; Support</div></div><span class="android-feat-card-title" style="color:#fda4af;">Bottom Danger Zone Safeguards</span>
                   </div>
                   <div class="android-feat-card-desc">Account deletion relocated to the very bottom of Help &amp; Support with strict typed confirmation safeguards against accidental purges.</div>
                 </div>
@@ -26930,10 +27335,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #10b981; --android-glow: rgba(16, 185, 129, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                      <i data-lucide="shield-check" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">Biometrics</span><div class="fps-line">Fingerprint &amp; Face ID KeyStore Match ✓</div></div></span>
                     <span class="android-feat-card-title">Connecto Vault</span>
                   </div>
                   <div class="android-feat-card-desc">Native Biometric fingerprint/face scan + Android device screen lock (PIN/pattern/password) with zero bypasses.</div>
@@ -26942,10 +27344,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #a855f7; --android-glow: rgba(168, 85, 247, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                      <i data-lucide="moon" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag">0-nit Engine</span><div class="fps-line">100% Pitch Black Canvas &bull; Zero Pixel Drain</div></div></span>
                     <span class="android-feat-card-title">Pure Black OLED</span>
                   </div>
                   <div class="android-feat-card-desc">True 100% pitch black (#000000) interface designed for ultra-high contrast and massive AMOLED battery savings.</div>
@@ -26954,10 +27353,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #00cec9; --android-glow: rgba(0, 206, 201, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                      <i data-lucide="zap" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">WebSocket Bus</span><div class="fps-line">Sub-5ms Event Dispatch Active</div></div></span>
                     <span class="android-feat-card-title">Real-Time Engine</span>
                   </div>
                   <div class="android-feat-card-desc">Ultra low-latency WebSocket synchronization, live community polls, rich markdown, file attachments, and instant notifications.</div>
@@ -26966,10 +27362,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #38bdf8; --android-glow: rgba(56, 189, 248, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">
-                      <i data-lucide="mic" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #38bdf8; box-shadow: 0 0 8px #38bdf8;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Opus DSP</span><div class="fps-line">Hardware Noise Cancelling Active</div></div></span>
                     <span class="android-feat-card-title">Spatial Mesh Voice</span>
                   </div>
                   <div class="android-feat-card-desc">Ultra low-latency WebRTC mesh audio lounges with hardware acoustic echo cancellation and background suppression.</div>
@@ -26978,10 +27371,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #10b981; --android-glow: rgba(16, 185, 129, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                      <i data-lucide="corner-up-left" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag">Gestures</span><div class="fps-line">Haptic Spring Swipe &bull; Rich Thread Preview</div></div></span>
                     <span class="android-feat-card-title">Swipe-to-Reply &amp; Quoted Previews</span>
                   </div>
                   <div class="android-feat-card-desc">Intuitive right-swipe on channel messages triggers active reply composer banner and embeds quoted message bubbles in sent responses.</div>
@@ -26990,10 +27380,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="android-feat-card" style="--android-accent: #06b6d4; --android-glow: rgba(6, 182, 212, 0.35);">
                   <div class="android-feat-top-accent" style="background: linear-gradient(90deg, #06b6d4, #0284c7);"></div>
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color: #06b6d4; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
-                      <i data-lucide="cpu" class="lucide-md"></i>
-                      <span class="android-pulse-dot" style="background: #06b6d4; box-shadow: 0 0 8px #06b6d4;"></span>
-                    </span>
+                    <div class="feat-product-snippet"><span class="fps-tag success">HyperOS Verified</span><div class="fps-line">120 FPS Target &bull; Zero Background Overhead</div></div></span>
                     <span class="android-feat-card-title">Android 16 &amp; HyperOS Ready</span>
                   </div>
                   <div class="android-feat-card-desc">Full 64-bit arm64-v8a targetSdk 37 build verified live on physical POCO HyperOS and Android 16 with zero Google Play dependencies.</div>
@@ -27137,9 +27524,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION: OUR STORE (OFFICIAL AUTONOMOUS PACKAGE MANAGER) -->
         <div class="android-showcase-section scroll-reveal-3d spatial-3d-section" id="ourStoreSection" style="margin-top: 60px;">
           <div class="section-header-standard">
-            <div class="hero-eyebrow" style="color:#38bdf8; border-color:rgba(56,189,248,0.3); background:rgba(56,189,248,0.08);">
-              <i data-lucide="package" class="lucide-xs"></i> Autonomous Android Package Manager • Native OS Sessions
-            </div>
             <h2 class="section-title">Our Store. <span class="hero-gradient-text" style="background:linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">On-Device Updates & Security.</span></h2>
             <p class="section-sub">A native, independent Android package installer that monitors releases, verifies cryptographic SHA-256 signatures, and installs updates seamlessly in the background with zero telemetry and complete privacy.</p>
           </div>
@@ -27183,10 +27567,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="android-features-grid" style="margin-top:16px;">
                 <div class="android-feat-card" style="border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#38bdf8; background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.3);">
-                      <i data-lucide="cpu" class="lucide-md"></i>
-                    </span>
-                    <div>
+                    <div class="feat-product-snippet"><span class="fps-tag">Android OS IPC</span><div class="fps-line">PackageInstaller.Session: Atomic Commit OK</div></div><div>
                       <span class="android-feat-card-title" style="color:#93c5fd;">Native PackageInstaller Sessions</span>
                       <span style="font-size:11px; color:#38bdf8; display:block; font-weight:700;">Direct Android OS IPC Architecture</span>
                     </div>
@@ -27196,10 +27577,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
                 <div class="android-feat-card" style="border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#34d399; background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.3);">
-                      <i data-lucide="shield-check" class="lucide-md"></i>
-                    </span>
-                    <div>
+                    <div class="feat-product-snippet"><span class="fps-tag success">SHA-256 Guard</span><div class="fps-line">Digest: 57e5d0... [Integrity Verified ✓]</div></div><div>
                       <span class="android-feat-card-title" style="color:#6ee7b7;">Cryptographic Hash Verification</span>
                       <span style="font-size:11px; color:#34d399; display:block; font-weight:700;">Zero-Tampering Security Vault</span>
                     </div>
@@ -27209,10 +27587,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
                 <div class="android-feat-card" style="border-color: rgba(168, 85, 247, 0.4); background: rgba(168, 85, 247, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#c084fc; background:rgba(168,85,247,0.15); border-color:rgba(168,85,247,0.3);">
-                      <i data-lucide="refresh-cw" class="lucide-md"></i>
-                    </span>
-                    <div>
+                    <div class="feat-product-snippet"><span class="fps-tag">Sync Daemon</span><div class="fps-line">Installed: v1.8.0 &bull; Release: Verified Active</div></div><div>
                       <span class="android-feat-card-title" style="color:#d8b4fe;">Autonomous Background Watcher</span>
                       <span style="font-size:11px; color:#c084fc; display:block; font-weight:700;">Zero-Effort Version Intelligence</span>
                     </div>
@@ -27222,10 +27597,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
                 <div class="android-feat-card" style="border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
                   <div class="android-feat-card-top">
-                    <span class="android-feat-card-icon" style="color:#fbbf24; background:rgba(245,158,11,0.15); border-color:rgba(245,158,11,0.3);">
-                      <i data-lucide="sun-moon" class="lucide-md"></i>
-                    </span>
-                    <div>
+                    <div class="feat-product-snippet"><span class="fps-tag">Theme Engine</span><div class="fps-line">Pure OLED Black &amp; Ivory Paper Instant Switch</div></div><div>
                       <span class="android-feat-card-title" style="color:#fde68a;">Pure Black OLED & Light Themes</span>
                       <span style="font-size:11px; color:#fbbf24; display:block; font-weight:700;">Modern Tactile Jetpack Compose UI</span>
                     </div>
@@ -27347,7 +27719,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 3: COMPLETE ECOSYSTEM DIRECTORY & REAL-TIME DISCOVERY -->
         <div class="ecosystem-gateway-section scroll-reveal-3d spatial-3d-section" id="ecosystemSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="compass" class="lucide-sm"></i> Ecosystem Directory</div>
             <h2 class="section-title">Explore the Connecto Ecosystem</h2>
             <p class="section-sub">High-speed messaging, crystal-clear voice rooms, interactive learning labs, and hardware-level encryption — instantly searchable.</p>
           </div>
@@ -27374,10 +27745,11 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-1" data-cat="chat" data-title="instant live community chat general developer code markdown" style="--card-accent: #00cec9; --card-glow: rgba(0, 206, 201, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                  <i data-lucide="message-square" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#00cec9; box-shadow:0 0 8px #00cec9;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot live"></span><span class="cpd-title">#general • WSS Stream</span></div>
+      <div class="cpd-chat-feed"><div class="cpd-chat-row"><span class="cpd-user">alex:</span><span class="cpd-bubble">Sub-5ms WebSocket connection established! ⚡</span></div></div>
+      <div class="cpd-input-bar">Message #general...</div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Instant Live Chat</span>
@@ -27402,10 +27774,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-2" data-cat="voice" data-title="spatial voice lounge p2p webrtc mesh audio dsp" style="--card-accent: #10b981; --card-glow: rgba(16, 185, 129, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                  <i data-lucide="mic" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#10b981; box-shadow:0 0 8px #10b981;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot voice"></span><span class="cpd-title">Spatial Voice • P2P Mesh</span></div>
+      <div class="cpd-voice-roster">
+        <div class="cpd-speaker active"><span class="cpd-avatar">JD</span><span class="cpd-name">Jordan</span><div class="cpd-wave"><span></span><span></span><span></span><span></span></div></div>
+        <div class="cpd-speaker"><span class="cpd-avatar">MK</span><span class="cpd-name">Maya</span><span class="cpd-mute-badge">Muted</span></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Spatial Voice Lounge</span>
@@ -27430,10 +27805,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-3" data-cat="academy" data-title="learning hub protocol networking security labs" style="--card-accent: #f59e0b; --card-glow: rgba(245, 158, 11, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
-                  <i data-lucide="book-open" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#f59e0b; box-shadow:0 0 8px #f59e0b;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot lab"></span><span class="cpd-title">Interactive Terminal • Lab 04</span></div>
+      <div class="cpd-terminal">
+        <div class="cpd-code-line"><span class="cpd-prompt">$</span> connecto inspect-frame --wss</div>
+        <div class="cpd-code-res">[ACK] 256-bit AES frame validated (0.4ms)</div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Learning Hub & Labs</span>
@@ -27458,10 +27836,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-4" data-cat="security" data-title="connecto hardware vault biometrics aes 256 gcm keys passwords credentials" style="--card-accent: #a855f7; --card-glow: rgba(168, 85, 247, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #a855f7, #8b5cf6);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                  <i data-lucide="shield-check" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#a855f7; box-shadow:0 0 8px #a855f7;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot sec"></span><span class="cpd-title">Biometric Vault Engine</span></div>
+      <div class="cpd-vault-box">
+        <div class="cpd-vault-row"><span>Cipher:</span> <strong>AES-256-GCM Hardware-Backed</strong></div>
+        <div class="cpd-vault-row"><span>Auth:</span> <strong style="color:#10b981;">Fingerprint Match Verified ✓</strong></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Zero-Knowledge Security</span>
@@ -27486,10 +27867,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-5" data-cat="apps" data-title="connecto android native app apk mobile download sub 5ms voice push notifications" style="--card-accent: #06b6d4; --card-glow: rgba(6, 182, 212, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #06b6d4, #0284c7);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #06b6d4; background: rgba(6, 182, 212, 0.12); border-color: rgba(6, 182, 212, 0.3);">
-                  <i data-lucide="smartphone" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#06b6d4; box-shadow:0 0 8px #06b6d4;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot live"></span><span class="cpd-title">Native Android Client • v4.6.29</span></div>
+      <div class="cpd-mobile-box">
+        <div class="cpd-mobile-row"><span>Runtime:</span> <strong>Android 16 &amp; HyperOS • 120Hz</strong></div>
+        <div class="cpd-mobile-row"><span>Display:</span> <strong>Pure OLED Black (0-nit)</strong></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Connecto Android Native</span>
@@ -27514,10 +27898,13 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-6" data-cat="security" data-title="community defense auto mod guard rate limiting audit logs rbac" style="--card-accent: #38bdf8; --card-glow: rgba(56, 189, 248, 0.35);">
               <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
               <div class="ecosystem-card-top">
-                <div class="ecosystem-card-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.3);">
-                  <i data-lucide="shield-alert" class="lucide-md"></i>
-                  <span class="ecosystem-pulse-dot" style="background:#38bdf8; box-shadow:0 0 8px #38bdf8;"></span>
-                </div>
+                <div class="card-product-demo">
+      <div class="cpd-header"><span class="cpd-dot sec"></span><span class="cpd-title">Community AutoMod Guard</span></div>
+      <div class="cpd-automod-box">
+        <div class="cpd-automod-row"><span>Policy:</span> <strong>Zero Spam Floods Allowed</strong></div>
+        <div class="cpd-automod-row"><span>Rate Limit:</span> <strong>Enforcing 5s Cooldowns</strong></div>
+      </div>
+    </div>
                 <div style="flex:1;">
                   <div class="ecosystem-card-title">
                     <span>Community Defense & Security</span>
@@ -27543,7 +27930,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 4: PLATFORM COMPARISON MATRIX -->
         <div class="comparison-section scroll-reveal-3d spatial-3d-section" id="comparisonSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="zap" class="lucide-sm"></i> Platform Edge</div>
             <h2 class="section-title">Why Friends & Communities Choose Connecto</h2>
             <p class="section-sub">A lightweight, free, secure alternative to heavy legacy chat clients and bloated walled gardens.</p>
           </div>
@@ -27554,10 +27940,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="comparison-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div class="comparison-card-header">
                 <div class="comparison-logo-title-group">
-                  <div class="comparison-logo-badge" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                    <i data-lucide="shield" class="lucide-md"></i>
-                    <span class="comparison-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-                  </div>
+                  <div class="comp-product-badge"><span class="cpb-dot active"></span> Connecto Core: 0.8ms WSS &bull; Zero Trackers</div>
                   <div>
                     <div class="comparison-title-text" style="color: var(--text-header); font-size: 17px; font-weight: 800;">Connecto Platform</div>
                     <div style="font-size: 11.5px; color: #10b981; font-weight: 700;">Open &amp; High-Throughput</div>
@@ -27634,7 +28017,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 5: PLATFORM ARCHITECTURE & DEFENSE SPOTLIGHT -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="archSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="cpu" class="lucide-sm"></i> Architecture & Security</div>
             <h2 class="section-title shimmer-title">High-Performance Stack & Cryptographic Defense</h2>
             <p class="section-sub">Built with modern asynchronous Python, edge Anycast distribution, and multi-layered cryptographic protocols.</p>
           </div>
@@ -27642,50 +28024,35 @@ html[data-theme="dark"] #saveProfileBtn {
           <div class="arch-flow-wrap interactive-tilt-card scroll-reveal-3d">
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-1" style="--node-accent: #00cec9; --node-glow: rgba(0, 206, 201, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
-              <div class="arch-node-icon" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                <i data-lucide="monitor" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag">PWA Core</span><div class="fps-line">Vanilla JS Engine &bull; 0ms Cache &bull; 60 FPS UI</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Client Web App</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Vanilla JS &amp; CSS3 • PWA Service Worker • Zero Bloat • Hardware-Accelerated UI</span>
               <div class="arch-node-status" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.25);">Edge Optimized</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-2" style="--node-accent: #ff7675; --node-glow: rgba(255, 118, 117, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #ff7675, #d63031);"></div>
-              <div class="arch-node-icon" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.3);">
-                <i data-lucide="shield" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #ff7675; box-shadow: 0 0 8px #ff7675;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag success">Edge Shield</span><div class="fps-line">TLS 1.3 Strict &bull; Global Anycast Routing</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Cloudflare Anycast</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">DDoS Shield • TLS 1.3 Strict • Global CDN Caching • Zero Open Port Tunnels</span>
               <div class="arch-node-status" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.25);">Global Anycast</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-3" style="--node-accent: #f59e0b; --node-glow: rgba(245, 158, 11, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
-              <div class="arch-node-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
-                <i data-lucide="zap" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag">FastAPI Node</span><div class="fps-line">Python Asyncio &bull; Zero-Copy WebSocket Bus</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">FastAPI Async Core</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Python Uvicorn Engine • Asyncio Non-blocking Loop • High-Throughput I/O</span>
               <div class="arch-node-status" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.25);">Non-Blocking I/O</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-4" style="--node-accent: #a855f7; --node-glow: rgba(168, 85, 247, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
-              <div class="arch-node-icon" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                <i data-lucide="radio" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag">Mesh Signaling</span><div class="fps-line">Direct P2P STUN/TURN &bull; Opus 48kHz Audio</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">Real-Time Event Stream</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Full-Duplex WebSocket Framing • Dynamic ICE Signaling • Ephemeral State Sync</span>
               <div class="arch-node-status" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.25);">Event-Driven</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-5" style="--node-accent: #10b981; --node-glow: rgba(16, 185, 129, 0.35);">
               <div class="arch-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
-              <div class="arch-node-icon" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                <i data-lucide="database" class="lucide-md"></i>
-                <span class="arch-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-              </div>
+              <div class="feat-product-snippet"><span class="fps-tag success">SQLite WAL</span><div class="fps-line">Atomic Transactions &bull; Zero Data Leakage</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">ACID Data Engine</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Atomic Transactions • In-Memory Presence • Real-Time Sync</span>
               <div class="arch-node-status" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25);">Atomic Commits</div>
@@ -27712,7 +28079,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 8: INTERACTIVE PROTOCOL LABS & SECURITY CURRICULUM -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="academyRoadmapSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="graduation-cap" class="lucide-sm"></i> Learning Hub</div>
             <h2 class="section-title">Networking, Streams & Security Curriculum</h2>
             <p class="section-sub">Master foundational networking, full-duplex streams, and modern cryptographic protocols to level up your skills.</p>
           </div>
@@ -27720,10 +28086,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <div class="usecases-grid" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #00cec9; --track-glow: rgba(0, 206, 201, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
-              <div class="usecase-icon-badge" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);">
-                <i data-lucide="book-open" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #00cec9; box-shadow: 0 0 8px #00cec9;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Lab Console</span><div class="tpd-out">GET /api/v1/health &bull; 200 OK (0.2ms)</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border-color: rgba(0, 206, 201, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 1</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Web Foundations</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">HTTP/1.1 vs HTTP/2 vs HTTP/3, headers, status codes, RESTful methods, and request-response lifecycles.</p>
@@ -27731,10 +28094,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #10b981; --track-glow: rgba(16, 185, 129, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
-              <div class="usecase-icon-badge" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);">
-                <i data-lucide="activity" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #10b981; box-shadow: 0 0 8px #10b981;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Stream Bus</span><div class="tpd-out">WSS: Binary frame stream connected</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 2</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Real-Time Streams</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">WebSocket TCP upgrades, framing protocols, WebRTC SDP offer/answer handshakes, and ICE candidate negotiation.</p>
@@ -27742,10 +28102,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #f59e0b; --track-glow: rgba(245, 158, 11, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
-              <div class="usecase-icon-badge" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);">
-                <i data-lucide="shield" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #f59e0b; box-shadow: 0 0 8px #f59e0b;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Crypto Engine</span><div class="tpd-out">AES-256-GCM cipher envelope generated</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security &amp; Encryption</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Symmetric AES-256 vs Asymmetric RSA, TLS 1.3 handshake verification, and DTLS-SRTP audio security.</p>
@@ -27753,10 +28110,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #a855f7; --track-glow: rgba(168, 85, 247, 0.35);">
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
-              <div class="usecase-icon-badge" style="color: #a855f7; background: rgba(168, 85, 247, 0.12); border-color: rgba(168, 85, 247, 0.3);">
-                <i data-lucide="sparkles" class="lucide-md"></i>
-                <span class="usecase-pulse-dot" style="background: #a855f7; box-shadow: 0 0 8px #a855f7;"></span>
-              </div>
+              <div class="track-product-demo"><span class="tpd-tag">Edge Runtime</span><div class="tpd-out">Anycast node active across 300+ PoPs</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7; border-color: rgba(168, 85, 247, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 4</span></div>
               <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Distributed Edge Architecture</h4>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">High-concurrency asyncio architecture, event streams, and zero-trust edge infrastructure.</p>
@@ -27792,7 +28146,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 9: FAQ ACCORDION -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="faqSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="help-circle" class="lucide-sm"></i> Got Questions?</div>
             <h2 class="section-title shimmer-title">Frequently Asked Questions</h2>
             <p class="section-sub">Everything you need to know about setting up groups, voice rooms, and learning tracks.</p>
           </div>
@@ -27863,7 +28216,6 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 10: QUICKSTART GUIDE, TESTIMONIAL & FINAL CTA -->
         <div class="how-section-diagonal scroll-reveal-3d spatial-3d-section" id="howItWorksSection">
           <div class="section-header-standard">
-            <div class="hero-eyebrow"><i data-lucide="check-circle" class="lucide-sm"></i> Quickstart Guide</div>
             <h2 class="section-title shimmer-title">How to Get Started in 3 Steps</h2>
             <p class="section-sub">Three simple steps to join the Connecto community.</p>
           </div>
@@ -27871,7 +28223,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-1" style="--step-accent: #00F5A0; --step-glow: rgba(0, 245, 160, 0.35);">
               <div class="step-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div>
-                <div class="step-badge-custom" style="background: linear-gradient(135deg, #00F5A0, #00cec9); color: #020617; box-shadow: 0 4px 16px rgba(0, 245, 160, 0.35);">1</div>
+                <div class="step-product-preview"><span class="spp-step">STEP 1</span><div class="spp-box">Auth &rarr; Enter username &ldquo;alex&rdquo; &bull; Join squad</div></div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Connect with Friends</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend circles via invite code or create your own custom encrypted space.</p>
               </div>
@@ -27881,7 +28233,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-2" style="--step-accent: #00cec9; --step-glow: rgba(0, 206, 201, 0.35);">
               <div class="step-top-accent" style="background: linear-gradient(90deg, #00cec9, #0984e3);"></div>
               <div>
-                <div class="step-badge-custom" style="background: linear-gradient(135deg, #00cec9 0%, #0984e3 100%); color: #ffffff; box-shadow: 0 4px 16px rgba(0, 206, 201, 0.35);">2</div>
+                <div class="step-product-preview"><span class="spp-step">STEP 2</span><div class="spp-box">Channel &rarr; #general: &ldquo;Voice lounge open&rdquo; [Join]</div></div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Coordinate in Real-Time</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Chat across text channels, summon squad mates with @mentions, and hop into clear, low-latency WebRTC voice rooms.</p>
               </div>
@@ -27891,7 +28243,7 @@ html[data-theme="dark"] #saveProfileBtn {
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-3" style="--step-accent: #f59e0b; --step-glow: rgba(245, 158, 11, 0.35);">
               <div class="step-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div>
-                <div class="step-badge-custom" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: #020617; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);">3</div>
+                <div class="step-product-preview"><span class="spp-step">STEP 3</span><div class="spp-box">Security &rarr; Hardware Biometric Vault Sealed</div></div>
                 <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h4>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh &amp; cryptography in interactive lessons. Level up your skills with hands-on practice.</p>
               </div>
