@@ -166,11 +166,11 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "4.6.30",
-        version_name: "v4.6.30",
-        version_code: 119,
-        build: 119,
-        sha256: "5e1d609baa6aa51597fcf523f8bb2a9e0651327e9610f22af9460702f450c3d9",
+        version: "4.6.31",
+        version_name: "v4.6.31",
+        version_code: 120,
+        build: 120,
+        sha256: "d1c7de9a251bb117d149283b6e7984290e7a123a0d469454e22054bd78506889",
         filename: "connecto-fun.apk",
         size_bytes: 37907444,
         size_display: "36.2 MB",
@@ -391,19 +391,21 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/app-release.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.30/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.30/app-release.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.30-b119-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.31-b120-live.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v4.6.30");
-          res.headers.set("X-Connecto-Build", "119");
+          res.headers.set("X-Connecto-Version", "v4.6.31");
+          res.headers.set("X-Connecto-Build", "120");
           return res;
         }
 
@@ -416,7 +418,7 @@ export default {
                 cacheTtl: 604800
               },
               headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.30"
+                "User-Agent": "Connecto-Cloud-Worker/4.6.31"
               }
             });
             if (upstreamResp.ok) {
@@ -427,8 +429,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v4.6.30");
-              downloadHeaders.set("X-Connecto-Build", "119");
+              downloadHeaders.set("X-Connecto-Version", "v4.6.31");
+              downloadHeaders.set("X-Connecto-Build", "120");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1763,14 +1765,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "4.6.30",
-        version_code: 119,
+        version_name: "4.6.31",
+        version_code: 120,
         size_bytes: 37907444,
         size_formatted: "36.2 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Smooth & Clear Grouped Inset UI: Executive calm Settings with grouped Account, Preferences, and Support cards, spring physics, and centered minimalist navigation",
+          "Modern Sign Up & Sign In Tab UI: Fluid sliding pill indicator with spring physics, tactile haptic feedback, and contextual security badges",
+          "Biometric Quick Unlock: 1-tap Fingerprint & Face ID instant login with Android Keystore hardware-backed encryption",
           "Theme Selection Root Cause Resolved: Removed conflicting toggle handlers so all 9 custom signature color palettes apply accurately across the app",
           "Clean Theme Hierarchy: Eliminated numerical ratio percentages (60% • 30% • 10%) from theme descriptions for a refined aesthetic",
           "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs",
@@ -6936,11 +6941,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "4.6.30",
-      version_name: "v4.6.30",
-      version_code: 119,
-      build: 119,
-      sha256: "5e1d609baa6aa51597fcf523f8bb2a9e0651327e9610f22af9460702f450c3d9",
+      version: "4.6.31",
+      version_name: "v4.6.31",
+      version_code: 120,
+      build: 120,
+      sha256: "d1c7de9a251bb117d149283b6e7984290e7a123a0d469454e22054bd78506889",
       filename: "connecto-fun.apk",
       size_bytes: 37907444,
       size_display: "36.2 MB",

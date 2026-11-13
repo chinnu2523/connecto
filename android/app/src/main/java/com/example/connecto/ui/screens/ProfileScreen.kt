@@ -49,6 +49,15 @@ import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Description
 import com.example.connecto.ui.components.FullScreenGroupProfileDialog
 import com.example.connecto.ui.designsystem.ConnectoAvatar
+import com.example.connecto.ui.designsystem.ConnectoSettingsSection
+import com.example.connecto.ui.designsystem.ConnectoSettingsCard
+import com.example.connecto.ui.designsystem.ConnectoSettingsRow
+import com.example.connecto.ui.designsystem.ConnectoSettingsDivider
+import com.example.connecto.ui.designsystem.ConnectoSettingsActionCard
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Fingerprint
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.animation.AnimatedVisibility
@@ -1092,7 +1101,7 @@ fun ProfileScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
                     // ========== SHARED TOP HEADER ==========
                     ConnectoTopHeader(
-                        title = "PROFILE SETTINGS",
+                        title = "Settings",
                         subtitle = if (stealthModeEnabled) "Stealth Mode Active" else "@$username",
                         userInitial = userInitial,
                         avatarUrl = profilePhotoUri,
@@ -1644,127 +1653,147 @@ fun ProfileScreen(
                         }
                     }
 
-                // ================= 1. PERSONAL INFORMATION BUTTON =================
-                item(key = "menu_personal_details") {
-                    ProfileNavigationMenuButton(
-                        title = "Personal Information",
-                        subtitle = "Name, username, email & profile photo",
-                        icon = Icons.Default.Person,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = {
-                            previousSubPage = null
-                            activeSubPage = ProfileSubPage.PERSONAL_INFO
-                        }
-                    )
+                // ================= 1. ACCOUNT SECTION =================
+                item(key = "section_account") {
+                    ConnectoSettingsSection(title = "Account") {
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Person,
+                            title = "Profile",
+                            subtitle = "@$username",
+                            value = null,
+                            showChevron = true,
+                            onClick = {
+                                previousSubPage = null
+                                activeSubPage = ProfileSubPage.PERSONAL_INFO
+                            }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Shield,
+                            title = "Security & Privacy",
+                            value = if (twoFactorEnabled && isScreenSecurityActive) "Optimal" else "Active",
+                            showChevron = true,
+                            onClick = {
+                                previousSubPage = null
+                                activeSubPage = ProfileSubPage.SECURITY
+                            }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Devices,
+                            title = "Active Sessions",
+                            value = if (activeSessions.isNotEmpty()) "${activeSessions.size} Active" else "1 Active",
+                            showChevron = true,
+                            onClick = {
+                                previousSubPage = null
+                                activeSubPage = ProfileSubPage.SESSION_MANAGEMENT
+                            }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.VisibilityOff,
+                            title = "Presence & Stealth",
+                            value = if (stealthModeEnabled) "Stealth" else "Online",
+                            showChevron = true,
+                            onClick = {
+                                previousSubPage = null
+                                activeSubPage = ProfileSubPage.PRESENCE_STEALTH
+                            }
+                        )
+                    }
                 }
 
-                // ================= 2. SECURITY & PRIVACY BUTTON =================
-                item(key = "menu_security_hub") {
-                    ProfileNavigationMenuButton(
-                        title = "Security & Privacy",
-                        subtitle = "Two-factor, biometrics, screen privacy & stealth",
-                        badge = if (twoFactorEnabled && isScreenSecurityActive) "OPTIMAL" else "ACTIVE",
-                        icon = Icons.Default.Shield,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = {
-                            previousSubPage = null
-                            activeSubPage = ProfileSubPage.SECURITY
-                        }
-                    )
-                }
-
-                // ================= 3. SESSION MANAGEMENT BUTTON =================
-                item(key = "menu_session_management") {
-                    ProfileNavigationMenuButton(
-                        title = "Session Management",
-                        subtitle = "Review logged-in devices & terminate sessions",
-                        badge = if (activeSessions.isNotEmpty()) "${activeSessions.size} Active" else null,
-                        icon = Icons.Default.Devices,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = {
-                            previousSubPage = null
-                            activeSubPage = ProfileSubPage.SESSION_MANAGEMENT
-                        }
-                    )
-                }
-
-                // ================= 4. APPEARANCE & DISPLAY THEME BUTTON =================
-                item(key = "menu_appearance_theme") {
-                    ProfileNavigationMenuButton(
-                        title = "Appearance & Display Theme",
-                        subtitle = "Dark, light, OLED black & liquid glass",
-                        icon = Icons.Default.Tune,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
-                    )
-                }
-
-                // ================= 4b. VOICE & AUDIO BUTTON =================
-                item(key = "menu_voice_audio") {
+                // ================= 2. PREFERENCES SECTION =================
+                item(key = "section_preferences") {
                     val isVoiceIsoActive by com.example.connecto.voice.VoiceCallManager.isVoiceIsolationEnabled.collectAsState()
-                    ProfileNavigationMenuButton(
-                        title = "Voice & Audio Settings",
-                        subtitle = if (isVoiceIsoActive) "Voice Isolation active • Studio noise filter" else "Standard audio • Voice Isolation off",
-                        badge = if (isVoiceIsoActive) "Active" else null,
-                        icon = Icons.Default.Mic,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.VOICE_AUDIO }
-                    )
+                    ConnectoSettingsSection(title = "Preferences") {
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Notifications,
+                            title = "Notifications",
+                            value = selectedNotificationSoundName,
+                            showChevron = true,
+                            onClick = { activeSubPage = ProfileSubPage.NOTIFICATIONS }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Tune,
+                            title = "Appearance",
+                            value = currentThemeMode.name.lowercase().replaceFirstChar { it.uppercase() },
+                            showChevron = true,
+                            onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Mic,
+                            title = "Voice & Audio",
+                            value = if (isVoiceIsoActive) "Studio" else "Standard",
+                            showChevron = true,
+                            onClick = { activeSubPage = ProfileSubPage.VOICE_AUDIO }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Fingerprint,
+                            title = "Biometric & App Lock",
+                            value = if (isScreenSecurityActive) "Active" else "Off",
+                            showChevron = true,
+                            onClick = { activeSubPage = ProfileSubPage.BIOMETRIC_LOCK }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Groups,
+                            title = "Groups & Communities",
+                            showChevron = true,
+                            onClick = { activeSubPage = ProfileSubPage.GROUPS_COMMUNITIES }
+                        )
+                    }
                 }
 
-                // ================= 5. NOTIFICATION BUTTON =================
-                item(key = "menu_notifications") {
-                    ProfileNavigationMenuButton(
-                        title = "Notification",
-                        subtitle = "Sound alerts ($selectedNotificationSoundName) & privacy",
-                        badge = selectedNotificationSoundName,
-                        icon = Icons.Default.Notifications,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.NOTIFICATIONS }
-                    )
+                // ================= 3. SUPPORT & LEGAL SECTION =================
+                item(key = "section_support") {
+                    ConnectoSettingsSection(title = "Support") {
+                        ConnectoSettingsRow(
+                            icon = Icons.AutoMirrored.Filled.Help,
+                            title = "Help Center",
+                            showChevron = true,
+                            onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Policy,
+                            title = "Privacy Policy",
+                            showChevron = true,
+                            onClick = { showPrivacyPolicyDialog = true }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Description,
+                            title = "Terms of Service",
+                            showChevron = true,
+                            onClick = { showTermsOfServiceDialog = true }
+                        )
+                    }
                 }
 
-                // ================= 6. HELP & SUPPORT BUTTON =================
-                item(key = "menu_help_support") {
-                    ProfileNavigationMenuButton(
-                        title = "Help & Support",
-                        subtitle = "FAQs, report issues, terms & delete account",
-                        icon = Icons.AutoMirrored.Filled.Help,
-                        hasCoverPhoto = hasCoverPhoto,
-                        onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
-                    )
+                // ================= 4. STANDALONE ACTION CARDS =================
+                item(key = "action_sign_out") {
+                    Box(modifier = Modifier.padding(top = 8.dp)) {
+                        ConnectoSettingsActionCard(
+                            text = "Sign Out Account",
+                            isDestructive = false,
+                            icon = Icons.AutoMirrored.Filled.ExitToApp,
+                            onClick = onSignOut
+                        )
+                    }
                 }
 
-                item(key = "sign_out_button") {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(52.dp)
-                            .clickable(onClick = onSignOut)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.30f)
-                                else Color(0xFFEF4444).copy(alpha = 0.12f)
-                            )
-                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ExitToApp,
-                                contentDescription = null,
-                                tint = Color(0xFFEF4444),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Sign Out Account",
-                                color = Color(0xFFEF4444),
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.3.sp
-                            )
-                        }
+                item(key = "action_delete_account") {
+                    Box(modifier = Modifier.padding(top = 2.dp)) {
+                        ConnectoSettingsActionCard(
+                            text = "Delete account",
+                            isDestructive = true,
+                            icon = Icons.Default.DeleteOutline,
+                            onClick = { showDeleteAccountDialog = true }
+                        )
                     }
                 }
 
@@ -8088,7 +8117,6 @@ private fun ProfileSubPageHeader(
     onBack: () -> Unit
 ) {
     val isDark = ConnectoTheme.colors.isDark
-    val gradientColors = getDynamicAccentGradientColors()
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = Color.Transparent,
@@ -8099,83 +8127,59 @@ private fun ProfileSubPageHeader(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    if (hasCoverPhoto) Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.35f),
-                            Color.Black.copy(alpha = 0.18f)
-                        )
-                    )
-                    else Brush.verticalGradient(
-                        colors = listOf(
-                            if (!isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.10f),
-                            ConnectoTheme.colors.surface.copy(alpha = if (!isDark) 0.50f else 0.20f)
-                        )
-                    )
+                    if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                    else MaterialTheme.colorScheme.surface
                 )
                 .statusBarsPadding()
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .height(54.dp)
+                    .padding(horizontal = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Smooth circular back button
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clickable(onClick = onBack)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f))
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isDark) Color.White.copy(alpha = 0.08f)
+                            else Color(0xFFF1F5F9)
+                        )
+                        .clickable(onClick = onBack),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back to Profile Settings",
+                        contentDescription = "Back",
                         tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(19.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(gradientColors.map { it.copy(alpha = 0.16f) }))
-                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = title,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                    )
-                }
+
+                // Centered Screen Title
+                Text(
+                    text = title,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+
+                // Right optical spacer
+                Spacer(modifier = Modifier.size(38.dp))
             }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1.5.dp)
+                    .height(0.6.dp)
                     .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
-                                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                Color.Transparent
-                            )
-                        )
+                        if (isDark) Color.White.copy(alpha = 0.08f)
+                        else Color(0xFFE2E8F0)
                     )
             )
         }

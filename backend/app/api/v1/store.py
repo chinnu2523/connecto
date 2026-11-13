@@ -39,19 +39,19 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.30",
-        "version_code": 119,
+        "version_name": "4.6.31",
+        "version_code": 120,
         "size_bytes": 37890849,
-        "size_formatted": "36.1 MB",
+        "size_formatted": "36.2 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Smooth & Clear Grouped Inset UI: Executive calm Settings with grouped Account, Preferences, and Support cards, spring physics, and centered minimalist navigation",
             "Modern Sign Up & Sign In Tab UI: Fluid sliding pill indicator with spring physics, tactile haptic feedback, and contextual security badges",
             "Biometric Quick Unlock: 1-tap Fingerprint & Face ID instant login with Android Keystore hardware-backed encryption",
             "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs",
-            "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes integrated natively in Profile appearance",
-            "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset"
+            "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes integrated natively in Profile appearance"
         ],
         "is_essential": True,
         "updated_at": "2026-11-10T16:15:00Z"
