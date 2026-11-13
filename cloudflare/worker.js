@@ -8088,10 +8088,10 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.1")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">17.5 MB</span>')
-            .replace(/v4\.6\.2[0-9]/g, "v4.6.30")
-            .replace(/Build 11[0-8]/g, "Build 119")
-            .replace(/BUILD 11[0-8]/g, "BUILD 119")
-            .replace(/\(b11[0-8]\)/g, "(b119)");
+            .replace(/v4\.6\.(2[0-9]|30)/g, "v4.6.31")
+            .replace(/Build 11[0-9]/g, "Build 120")
+            .replace(/BUILD 11[0-9]/g, "BUILD 120")
+            .replace(/\(b11[0-9]\)/g, "(b120)");
           responseBody = patched;
         } catch (_) {}
       }
