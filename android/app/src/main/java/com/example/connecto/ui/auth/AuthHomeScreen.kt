@@ -591,30 +591,23 @@ fun AuthHomeScreen(
                     val errorText = if (isLight) Color(0xFFDC2626) else Color(0xFFFCA5A5)
                     val errorBorder = if (isLight) Color(0xFFFCA5A5) else Color(0xFFEF4444).copy(alpha = 0.5f)
 
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 14.dp)
                             .clip(RoundedCornerShape(14.dp))
                             .background(errorBg)
                             .border(1.dp, errorBorder, RoundedCornerShape(14.dp))
-                            .padding(horizontal = 14.dp, vertical = 11.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 16.dp, vertical = 11.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Warning,
-                            contentDescription = null,
-                            tint = errorText,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = sanitizeAuthError(errorMessage),
                             color = errorText,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            lineHeight = 17.sp,
-                            modifier = Modifier.weight(1f)
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 18.sp
                         )
                     }
                 }

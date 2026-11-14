@@ -528,7 +528,16 @@
       animation-timing-function: var(--ease-snappy);
     }
 
-    /* Universal Tactile Spring Press Physics (Solves 'Missing tap animations') */
+    /* ========================================================
+       UNIVERSAL 5-STATE BUTTON DESIGN ARCHITECTURE
+       1. Default  - High-precision typography, theme-aware colors, subtle shadow
+       2. Hover    - Smooth elevation lift (translateY -1.5px), specular border highlight, ambient glow
+       3. Loading  - Fluid rotating micro-spinner, content locked, cursor wait, zero layout shift
+       4. Disabled - Opacity 0.42, cursor not-allowed, zero hover/active transform, no shadow
+       5. Error    - Crimson alert border & wash, horizontal shake animation, alert icon, error message
+       ======================================================== */
+
+    /* 1. DEFAULT STATE */
     button,
     .btn,
     .auth-tab-btn,
@@ -542,15 +551,47 @@
     .sidebar-apk-cta-btn,
     .channel-item,
     .app-card-btn,
-    .store-cta-btn {
-      transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease !important;
+    .store-cta-btn,
+    .magic-shimmer-btn {
+      position: relative;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                  background-color 0.18s ease, 
+                  border-color 0.18s ease, 
+                  box-shadow 0.18s ease,
+                  opacity 0.18s ease !important;
       will-change: transform;
     }
 
-    button:active:not(:disabled),
-    .btn:active:not(:disabled),
+    /* 2. HOVER STATE */
+    button:hover:not(:disabled):not(.is-loading):not(.is-disabled):not([aria-disabled="true"]):not(.is-error),
+    .btn:hover:not(:disabled):not(.is-loading):not(.is-disabled):not([aria-disabled="true"]):not(.is-error),
+    .auth-submit-btn-premium:hover:not(:disabled):not(.is-loading):not(.is-error),
+    .magic-shimmer-btn:hover:not(:disabled):not(.is-loading):not(.is-error),
+    .landing-cta-btn:hover:not(:disabled):not(.is-loading):not(.is-error),
+    .app-card-btn:hover:not(:disabled):not(.is-loading):not(.is-error),
+    .store-cta-btn:hover:not(:disabled):not(.is-loading):not(.is-error) {
+      transform: translateY(-1.5px) !important;
+      box-shadow: 0 6px 20px -4px rgba(0, 0, 0, 0.35), 0 0 14px -2px rgba(6, 182, 212, 0.25) !important;
+      filter: brightness(1.06);
+    }
+    html[data-theme="parchment"] button:hover:not(:disabled):not(.is-loading):not(.is-disabled):not([aria-disabled="true"]):not(.is-error),
+    html[data-theme="parchment"] .btn:hover:not(:disabled):not(.is-loading):not(.is-disabled):not([aria-disabled="true"]):not(.is-error) {
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.12) !important;
+      filter: brightness(0.96);
+    }
+
+    /* Active / Press state */
+    button:active:not(:disabled):not(.is-loading):not(.is-disabled),
+    .btn:active:not(:disabled):not(.is-loading):not(.is-disabled),
     .auth-tab-btn:active,
-    .auth-submit-btn-premium:active:not(:disabled),
+    .auth-submit-btn-premium:active:not(:disabled):not(.is-loading),
     .auth-cancel-btn-premium:active,
     .nav-tab-btn:active,
     .guild-icon:active,
@@ -560,8 +601,199 @@
     .sidebar-apk-cta-btn:active,
     .channel-item:active,
     .app-card-btn:active,
-    .store-cta-btn:active {
-      transform: scale(0.96) !important;
+    .store-cta-btn:active,
+    .magic-shimmer-btn:active {
+      transform: scale(0.96) translateY(0.5px) !important;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+    }
+
+    /* 3. LOADING STATE */
+    button.is-loading,
+    button[data-loading="true"],
+    .btn.is-loading,
+    .btn[data-loading="true"],
+    .auth-submit-btn-premium.is-loading,
+    .auth-submit-btn-premium[data-loading="true"],
+    .magic-shimmer-btn.is-loading {
+      pointer-events: none !important;
+      cursor: wait !important;
+      transform: none !important;
+      opacity: 0.88 !important;
+      filter: none !important;
+    }
+    .btn-spinner {
+      display: inline-block;
+      width: 15px;
+      height: 15px;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      border-radius: 50%;
+      animation: btnSpin 0.75s linear infinite !important;
+      flex-shrink: 0;
+    }
+    @keyframes btnSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* 4. DISABLED STATE */
+    button:disabled:not(.is-loading),
+    button[disabled]:not(.is-loading),
+    button.is-disabled:not(.is-loading),
+    button[aria-disabled="true"]:not(.is-loading),
+    .btn:disabled:not(.is-loading),
+    .btn[disabled]:not(.is-loading),
+    .btn.is-disabled:not(.is-loading),
+    .btn[aria-disabled="true"]:not(.is-loading),
+    .auth-submit-btn-premium:disabled:not(.is-loading),
+    .magic-shimmer-btn:disabled:not(.is-loading),
+    .landing-cta-btn:disabled:not(.is-loading) {
+      opacity: 0.42 !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      transform: none !important;
+      box-shadow: none !important;
+      filter: grayscale(0.5) !important;
+    }
+
+    /* 5. ERROR STATE */
+    button.is-error,
+    button[data-error="true"],
+    .btn.is-error,
+    .btn[data-error="true"],
+    .auth-submit-btn-premium.is-error,
+    .magic-shimmer-btn.is-error {
+      background: #dc2626 !important;
+      border-color: #ef4444 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 16px rgba(220, 38, 38, 0.45) !important;
+      animation: btnErrorShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+      pointer-events: auto !important;
+      cursor: pointer !important;
+    }
+    html[data-theme="parchment"] button.is-error,
+    html[data-theme="parchment"] .btn.is-error,
+    html[data-theme="parchment"] .auth-submit-btn-premium.is-error {
+      background: #ef4444 !important;
+      border-color: #b91c1c !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.35) !important;
+    }
+    .btn-error-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      margin-right: 2px;
+    }
+    @keyframes btnErrorShake {
+      0%, 100% { transform: translateX(0); }
+      15%, 55% { transform: translateX(-6px); }
+      35%, 75% { transform: translateX(6px); }
+      90% { transform: translateX(-2px); }
+    }
+
+    /* ========================================================
+       UI FIX #01: IN-PLACE ERROR ARCHITECTURE (Image 4)
+       Clean, calm, soft tinted in-place error banners that replace
+       disruptive popups/dialogs directly above input fields.
+       ======================================================== */
+    .auth-alert,
+    .connecto-in-place-error {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      font-size: 13.5px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 16px;
+      animation: btnErrorShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .auth-alert.error,
+    .connecto-in-place-error.error {
+      display: flex !important;
+      background: #FEE2E2 !important;
+      border: 1px solid #FECACA !important;
+      color: #DC2626 !important;
+      box-shadow: 0 2px 10px rgba(220, 38, 38, 0.06);
+    }
+    html[data-theme="noir"] .auth-alert.error,
+    html[data-theme="noir"] .connecto-in-place-error.error,
+    html[data-theme="dark"] .auth-alert.error,
+    html[data-theme="dark"] .connecto-in-place-error.error {
+      background: rgba(220, 38, 38, 0.16) !important;
+      border: 1px solid rgba(239, 68, 68, 0.35) !important;
+      color: #FCA5A5 !important;
+      box-shadow: 0 2px 12px rgba(220, 38, 38, 0.15);
+    }
+    .auth-alert.success,
+    .connecto-in-place-error.success {
+      display: flex !important;
+      background: #DCFCE7 !important;
+      border: 1px solid #BBF7D0 !important;
+      color: #16A34A !important;
+    }
+    html[data-theme="noir"] .auth-alert.success,
+    html[data-theme="noir"] .connecto-in-place-error.success,
+    html[data-theme="dark"] .auth-alert.success,
+    html[data-theme="dark"] .connecto-in-place-error.success {
+      background: rgba(22, 163, 74, 0.18) !important;
+      border: 1px solid rgba(34, 197, 94, 0.35) !important;
+      color: #86EFAC !important;
+    }
+
+    /* ========================================================
+       5 TELLS ELIMINATION: OFFLINE SUPPORT BANNER (Image 3)
+       ======================================================== */
+    .connecto-offline-banner {
+      position: sticky;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10000;
+      background: #F59E0B;
+      color: #0F172A;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+      animation: alertSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    html[data-theme="noir"] .connecto-offline-banner {
+      background: #B45309;
+      color: #FEF3C7;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+    .offline-retry-btn {
+      background: #0F172A;
+      color: #FFFFFF;
+      border: none;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s ease;
+    }
+    html[data-theme="noir"] .offline-retry-btn {
+      background: #FEF3C7;
+      color: #78350F;
+    }
+    .offline-retry-btn:hover {
+      opacity: 0.88;
     }
 
     /* ========================================================
@@ -9030,12 +9262,15 @@
       bottom: 0;
       left: 0;
       height: 2.5px;
-      width: 0%;
+      width: 100%;
+      transform-origin: left;
+      transform: scaleX(0);
+      will-change: transform;
       background: linear-gradient(90deg, var(--accent) 0%, var(--chakra-cyan) 50%, var(--ninja-gold) 100%);
       box-shadow: 0 0 12px var(--chakra-cyan);
       z-index: 100;
       pointer-events: none;
-      transition: width 0.08s ease-out;
+      transition: transform 0.06s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .landing-logo {
       display: flex;
@@ -27372,6 +27607,13 @@ html[data-theme="dark"] #saveProfileBtn {
       </div>
       <div class="cursor-spotlight-layer" id="cursorSpotlightLayer" aria-hidden="true"></div>
       
+      <!-- OFFLINE STATUS BANNER (Tell 5 Fix - Graceful Offline Support) -->
+      <div id="connectoOfflineBanner" class="connecto-offline-banner" style="display:none;" role="status" aria-live="polite">
+        <span class="offline-icon">⚡</span>
+        <span class="offline-text">You are currently offline. Connecto is operating in cached offline mode.</span>
+        <button type="button" class="offline-retry-btn" onclick="window.location.reload()">Reconnect</button>
+      </div>
+
       <!-- PUBLIC BETA TESTING ANNOUNCEMENT BANNER -->
       <div class="public-beta-banner" style="background:linear-gradient(90deg, rgba(245, 158, 11, 0.12), rgba(6, 182, 212, 0.12)); border-bottom:1px solid rgba(245, 158, 11, 0.25); color:#fbbf24; font-size:12.5px; font-weight:600; padding:8px 16px; text-align:center; display:flex; align-items:center; justify-content:center; gap:8px; z-index:100; position:relative;">
         <span style="background:#f59e0b; color:#020617; font-size:10px; font-weight:900; padding:1.5px 6px; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px;">Public Beta</span>
@@ -40610,8 +40852,8 @@ html[data-theme="dark"] #saveProfileBtn {
       const progressBar = document.getElementById('scrollProgressBar');
       if (progressBar) {
         const maxScroll = el.scrollHeight - el.clientHeight;
-        const scrollPct = maxScroll > 0 ? (el.scrollTop / maxScroll) * 100 : 0;
-        progressBar.style.width = `${Math.min(Math.max(scrollPct, 0), 100)}%`;
+        const scrollPct = maxScroll > 0 ? (el.scrollTop / maxScroll) : 0;
+        progressBar.style.transform = `scaleX(${Math.min(Math.max(scrollPct, 0), 1)})`;
       }
 
       const nav = document.getElementById('landingNav');
@@ -44359,7 +44601,62 @@ function handleNavCommunityClick() {
     }
 
 
-        async function handleSignInSubmit() {
+    // ==================== UNIVERSAL 5-STATE BUTTON CONTROLLER ====================
+    window.setButtonState = function(btnRef, state, message = null, duration = 3000) {
+      const btn = (typeof btnRef === 'string') ? document.getElementById(btnRef) : btnRef;
+      if (!btn) return;
+
+      if (!btn._originalHtml) {
+        btn._originalHtml = btn.innerHTML;
+      }
+
+      if (btn._stateTimer) {
+        clearTimeout(btn._stateTimer);
+        btn._stateTimer = null;
+      }
+
+      // Reset state classes and attributes
+      btn.classList.remove('is-loading', 'is-error', 'is-disabled', 'is-hovered');
+      btn.removeAttribute('data-loading');
+      btn.removeAttribute('data-error');
+      btn.removeAttribute('aria-disabled');
+
+      switch (state) {
+        case 'loading':
+          btn.disabled = true;
+          btn.classList.add('is-loading');
+          btn.setAttribute('data-loading', 'true');
+          btn.innerHTML = `<span class="btn-spinner"></span><span>${message || 'Loading...'}</span>`;
+          break;
+        case 'disabled':
+          btn.disabled = true;
+          btn.classList.add('is-disabled');
+          btn.setAttribute('aria-disabled', 'true');
+          if (message) btn.innerHTML = message;
+          break;
+        case 'error':
+          btn.disabled = false;
+          btn.classList.add('is-error');
+          btn.setAttribute('data-error', 'true');
+          btn.innerHTML = `<span class="btn-error-icon">✕</span><span>${message || 'Failed. Try again'}</span>`;
+          btn._stateTimer = setTimeout(() => {
+            window.setButtonState(btn, 'default');
+          }, duration);
+          break;
+        case 'hover':
+          btn.classList.add('is-hovered');
+          break;
+        case 'default':
+        default:
+          btn.disabled = false;
+          if (btn._originalHtml) {
+            btn.innerHTML = btn._originalHtml;
+          }
+          break;
+      }
+    };
+
+    async function handleSignInSubmit() {
       const usernameInput = document.getElementById('signInUsername');
       const passwordInput = document.getElementById('signInPassword');
       const fb = document.getElementById('signInFeedback');
@@ -44380,6 +44677,7 @@ function handleNavCommunityClick() {
           fb.innerHTML = '<span>⚠️</span><span>Please enter your username or registered email.</span>';
           fb.style.display = 'flex';
         }
+        if (btn) window.setButtonState(btn, 'error', 'Missing Username');
         if (usernameInput) usernameInput.focus();
         return;
       }
@@ -44390,13 +44688,13 @@ function handleNavCommunityClick() {
           fb.innerHTML = '<span>⚠️</span><span>Please enter your password.</span>';
           fb.style.display = 'flex';
         }
+        if (btn) window.setButtonState(btn, 'error', 'Missing Password');
         if (passwordInput) passwordInput.focus();
         return;
       }
 
       if (btn) {
-        btn.disabled = true;
-        btn.innerText = 'Signing In...';
+        window.setButtonState(btn, 'loading', 'Signing In...');
       }
 
       try {
@@ -44408,6 +44706,7 @@ function handleNavCommunityClick() {
         const data = await res.json();
 
         if (res.ok && (data.status === '2fa_required' || data.two_factor_required)) {
+          if (btn) window.setButtonState(btn, 'default');
           showTwoFactorStep(data.username || username, data.masked_phone);
           return;
         }
@@ -44419,6 +44718,7 @@ function handleNavCommunityClick() {
             fb.innerHTML = `<span>✅</span><span>${escapeHTML(data.message || 'Authenticated successfully!')}</span>`;
             fb.style.display = 'flex';
           }
+          if (btn) window.setButtonState(btn, 'default');
 
           currentUser = user.username;
           currentAvatar = user.avatar || user.avatar_url || '🔥';
@@ -44449,6 +44749,7 @@ function handleNavCommunityClick() {
             switchMainView('chat');
           }, 350);
         } else {
+          if (btn) window.setButtonState(btn, 'error', 'Login Failed');
           if (fb) {
             fb.className = 'auth-alert error';
             fb.innerHTML = `<span>⚠️</span><span>${escapeHTML(data.detail || 'Login failed. Please verify credentials.')}</span>`;
@@ -44456,15 +44757,11 @@ function handleNavCommunityClick() {
           }
         }
       } catch (err) {
+        if (btn) window.setButtonState(btn, 'error', 'Network Error');
         if (fb) {
           fb.className = 'auth-alert error';
           fb.innerHTML = `<span>⚠️</span><span>Error: ${escapeHTML(err.message)}</span>`;
           fb.style.display = 'flex';
-        }
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerText = 'Sign In ➔';
         }
       }
     }
@@ -44598,8 +44895,7 @@ function handleNavCommunityClick() {
       }
 
       if (btn) {
-        btn.disabled = true;
-        btn.innerText = 'Creating Account...';
+        window.setButtonState(btn, 'loading', 'Creating Account...');
       }
 
       try {
@@ -44626,6 +44922,7 @@ function handleNavCommunityClick() {
 
         const user = data.user || data;
         if (res.ok && (user.username || user.id)) {
+          if (btn) window.setButtonState(btn, 'default');
           currentUser = user.username;
           currentAvatar = user.avatar || user.avatar_url || '🔥';
           authToken = data.token || user.token || '';
@@ -44646,6 +44943,7 @@ function handleNavCommunityClick() {
           showNotificationToast('Account Created!', `Welcome to Connecto, @${currentUser}! 🎉`);
           switchMainView('chat');
         } else {
+          if (btn) window.setButtonState(btn, 'error', 'Registration Failed');
           if (fb) {
             fb.className = 'auth-alert error';
             const detailMsg = data.detail || 'Registration failed.';
@@ -44667,16 +44965,12 @@ function handleNavCommunityClick() {
           }
         }
       } catch (err) {
+        if (btn) window.setButtonState(btn, 'error', 'Network Error');
         if (fb) {
           fb.className = 'auth-alert error';
           fb.innerHTML = `<span>⚠️</span><span>Error: ${escapeHTML(err.message)}</span>`;
           fb.style.display = 'flex';
           fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerText = 'Create Account 🚀';
         }
       }
     }
@@ -47368,6 +47662,11 @@ function hangupVoiceLounge() {
     (function initSpotlightMotion() {
       const root = document.documentElement;
       let rafId = null;
+      let lastCard = null;
+      let cachedRect = null;
+
+      window.addEventListener('resize', () => { lastCard = null; cachedRect = null; }, { passive: true });
+      window.addEventListener('scroll', () => { lastCard = null; cachedRect = null; }, { passive: true });
 
       window.addEventListener('pointermove', (e) => {
         if (rafId) cancelAnimationFrame(rafId);
@@ -47377,11 +47676,17 @@ function hangupVoiceLounge() {
 
           const targetCard = e.target.closest('.ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .arch-node, .final-cta-card, .stat-item, .android-showcase-card-left, .our-store-card, .chat-mockup-card, .theme-selection-card, .magic-spotlight-card');
           if (targetCard) {
-            const rect = targetCard.getBoundingClientRect();
-            targetCard.style.setProperty('--card-left', `${rect.left}px`);
-            targetCard.style.setProperty('--card-top', `${rect.top}px`);
-            targetCard.style.setProperty('--card-mouse-x', `${e.clientX - rect.left}px`);
-            targetCard.style.setProperty('--card-mouse-y', `${e.clientY - rect.top}px`);
+            if (targetCard !== lastCard || !cachedRect) {
+              lastCard = targetCard;
+              cachedRect = targetCard.getBoundingClientRect();
+              targetCard.style.setProperty('--card-left', `${cachedRect.left}px`);
+              targetCard.style.setProperty('--card-top', `${cachedRect.top}px`);
+            }
+            targetCard.style.setProperty('--card-mouse-x', `${e.clientX - cachedRect.left}px`);
+            targetCard.style.setProperty('--card-mouse-y', `${e.clientY - cachedRect.top}px`);
+          } else {
+            lastCard = null;
+            cachedRect = null;
           }
         });
       }, { passive: true });
@@ -47405,6 +47710,29 @@ function hangupVoiceLounge() {
         }, { threshold: 0.2 });
         observer.observe(statsSection);
       })();
+
+      // Offline / Online Status Engine (Tell 5 Fix - Graceful Offline Support)
+      window.addEventListener('offline', () => {
+        const b = document.getElementById('connectoOfflineBanner');
+        if (b) {
+          b.style.display = 'flex';
+          b.style.background = '#F59E0B';
+          const txt = b.querySelector('.offline-text');
+          if (txt) txt.textContent = 'You are currently offline. Connecto is operating in cached offline mode.';
+        }
+      });
+
+      window.addEventListener('online', () => {
+        const b = document.getElementById('connectoOfflineBanner');
+        if (b) {
+          b.style.background = '#10B981';
+          const txt = b.querySelector('.offline-text');
+          if (txt) txt.textContent = '✓ Internet connection restored! Synchronizing...';
+          setTimeout(() => {
+            b.style.display = 'none';
+          }, 2200);
+        }
+      });
     })();
   })();
   </script>

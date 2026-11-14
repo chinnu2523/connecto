@@ -1798,11 +1798,11 @@ fun ProfileScreen(
                 }
 
                 item(key = "action_delete_account") {
-                    Box(modifier = Modifier.padding(top = 2.dp)) {
+                    Box(modifier = Modifier.padding(top = 4.dp)) {
                         ConnectoSettingsActionCard(
                             text = "Delete account",
                             isDestructive = true,
-                            icon = Icons.Default.DeleteOutline,
+                            icon = null,
                             onClick = { showDeleteAccountDialog = true }
                         )
                     }

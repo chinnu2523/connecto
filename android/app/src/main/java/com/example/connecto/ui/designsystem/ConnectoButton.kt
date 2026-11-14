@@ -1,12 +1,21 @@
 package com.example.connecto.ui.designsystem
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,22 +27,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -44,12 +50,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 
 enum class ConnectoButtonVariant {
     PRIMARY,
@@ -66,10 +66,12 @@ enum class ConnectoButtonSize {
 }
 
 /**
- * Reusable Connecto Button adhering to the Centralized Design System.
- * Consistent 8px radius, 14–15px font, 600 weight, smooth transitions with slight scale/translate on press.
- * Primary: dark (near-black) background, white text, subtle shadow, smooth press states.
- * Secondary: light background, dark text, thin border, subtle press states.
+ * Universal Connecto Button adhering to the 5 Canonical States:
+ * 1. Default  - Balanced resting aesthetics, theme-compliant colors and subtle elevation.
+ * 2. Hover    - Subtle lift (translateY -1.5dp, scale 1.02f) and border specular highlight.
+ * 3. Loading  - Fluid CircularProgressIndicator without layout jitter; interaction safely gated.
+ * 4. Disabled - Muted opacity (0.45f), suppressed shadows, disabled interaction.
+ * 5. Error    - Tactile horizontal shake animation, crimson tint, error alert icon and error text.
  */
 @Composable
 fun ConnectoButton(
@@ -80,21 +82,61 @@ fun ConnectoButton(
     size: ConnectoButtonSize = ConnectoButtonSize.REGULAR,
     enabled: Boolean = true,
     isLoading: Boolean = false,
+    isError: Boolean = false,
+    errorText: String? = null,
     leadingIcon: ImageVector? = null,
     trailingIcon: ImageVector? = null,
     fullWidth: Boolean = false
 ) {
     val colors = LocalConnectoColors.current
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
 
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    // Error shake animation
+    val shakeOffset = remember { Animatable(0f) }
+    LaunchedEffect(isError) {
+        if (isError) {
+            try {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            } catch (_: Exception) {}
+            shakeOffset.animateTo(
+                targetValue = 0f,
+                animationSpec = keyframes {
+                    durationMillis = 400
+                    0f at 0
+                    (-8f) at 80
+                    8f at 160
+                    (-5f) at 240
+                    5f at 320
+                    0f at 400
+                }
+            )
+        }
+    }
+
+    // Interactive scale following Default, Hover, Pressed, and Disabled states
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1.0f,
+        targetValue = when {
+            !enabled -> 1.0f
+            isPressed -> 0.96f
+            isHovered && !isLoading && !isError -> 1.02f
+            else -> 1.0f
+        },
         animationSpec = spring(stiffness = 500f, dampingRatio = 0.8f),
         label = "buttonScale"
     )
+
+    // Interactive translation Y for hover lift and press dip
     val translateY by animateDpAsState(
-        targetValue = if (isPressed) 1.dp else 0.dp,
+        targetValue = when {
+            !enabled -> 0.dp
+            isPressed -> 1.dp
+            isHovered && !isLoading && !isError -> (-1.5).dp
+            else -> 0.dp
+        },
         animationSpec = spring(stiffness = 500f, dampingRatio = 0.8f),
         label = "buttonTranslateY"
     )
@@ -105,9 +147,10 @@ fun ConnectoButton(
         ConnectoButtonSize.LARGE -> 52.dp
     }
 
-    val shape = RoundedCornerShape(8.dp) // Consistent 8px radius
+    val shape = RoundedCornerShape(10.dp) // Refined 10px ergonomic radius
 
-    val contentColor = when {
+    // Base Content Color (State 1: Default)
+    val baseContentColor = when {
         colors.isGlass -> when (variant) {
             ConnectoButtonVariant.PRIMARY -> Color(0xFF031627)
             ConnectoButtonVariant.SECONDARY -> Color(0xFFF8FAFC)
@@ -124,10 +167,11 @@ fun ConnectoButton(
         }
     }
 
-    val containerColor = when {
+    // Base Container Color (State 1: Default)
+    val baseContainerColor = when {
         colors.isGlass -> when (variant) {
-            ConnectoButtonVariant.PRIMARY -> colors.primary // Electric Ice Cyan 400
-            ConnectoButtonVariant.SECONDARY -> Color(0xFF1E293B) // Frosted Slate Acrylic
+            ConnectoButtonVariant.PRIMARY -> colors.primary
+            ConnectoButtonVariant.SECONDARY -> Color(0xFF1E293B)
             ConnectoButtonVariant.OUTLINED -> Color.Transparent
             ConnectoButtonVariant.DESTRUCTIVE -> colors.error
             ConnectoButtonVariant.TEXT -> Color.Transparent
@@ -141,6 +185,7 @@ fun ConnectoButton(
         }
     }
 
+    // State 4: Disabled Colors
     val disabledContainerColor = when {
         colors.isGlass -> when (variant) {
             ConnectoButtonVariant.PRIMARY,
@@ -158,9 +203,19 @@ fun ConnectoButton(
         }
     }
 
-    val haptic = LocalHapticFeedback.current
+    // State 5: Error Resolution
+    val effectiveContainerColor = when {
+        isError -> if (variant == ConnectoButtonVariant.PRIMARY || variant == ConnectoButtonVariant.DESTRUCTIVE) colors.error else colors.error.copy(alpha = 0.15f)
+        else -> baseContainerColor
+    }
+
+    val effectiveContentColor = when {
+        isError -> if (variant == ConnectoButtonVariant.PRIMARY || variant == ConnectoButtonVariant.DESTRUCTIVE) Color.White else colors.error
+        else -> baseContentColor
+    }
+
     LaunchedEffect(isPressed) {
-        if (isPressed && enabled && !isLoading) {
+        if (isPressed && enabled && !isLoading && !isError) {
             try {
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             } catch (_: Exception) {}
@@ -169,8 +224,14 @@ fun ConnectoButton(
 
     val shadowElevation by animateDpAsState(
         targetValue = when {
-            !enabled -> 0.dp
+            !enabled || isError -> 0.dp
             isPressed -> 2.dp
+            isHovered -> when (variant) {
+                ConnectoButtonVariant.PRIMARY -> 10.dp
+                ConnectoButtonVariant.DESTRUCTIVE -> 8.dp
+                ConnectoButtonVariant.SECONDARY -> 6.dp
+                else -> 0.dp
+            }
             variant == ConnectoButtonVariant.PRIMARY -> 8.dp
             variant == ConnectoButtonVariant.DESTRUCTIVE -> 6.dp
             variant == ConnectoButtonVariant.SECONDARY -> 4.dp
@@ -181,20 +242,28 @@ fun ConnectoButton(
     )
 
     val shadowAmbientColor = when {
-        !enabled -> Color.Transparent
-        colors.isDark -> Color.Black.copy(alpha = if (isPressed) 0.65f else 0.45f)
-        else -> Color.Black.copy(alpha = if (isPressed) 0.25f else 0.12f)
+        !enabled || isError -> Color.Transparent
+        colors.isDark -> Color.Black.copy(alpha = if (isPressed) 0.65f else (if (isHovered) 0.55f else 0.45f))
+        else -> Color.Black.copy(alpha = if (isPressed) 0.25f else (if (isHovered) 0.18f else 0.12f))
     }
 
     val shadowSpotColor = when {
-        !enabled -> Color.Transparent
-        variant == ConnectoButtonVariant.PRIMARY -> colors.primary.copy(alpha = if (isPressed) 0.50f else (if (colors.isDark) 0.42f else 0.22f))
+        !enabled || isError -> Color.Transparent
+        variant == ConnectoButtonVariant.PRIMARY -> colors.primary.copy(alpha = if (isPressed) 0.50f else (if (isHovered) 0.48f else 0.38f))
         variant == ConnectoButtonVariant.DESTRUCTIVE -> colors.error.copy(alpha = if (isPressed) 0.50f else 0.38f)
         colors.isDark -> Color(0xFF38BDF8).copy(alpha = if (isPressed) 0.25f else 0.12f)
         else -> Color.Black.copy(alpha = 0.10f)
     }
 
-    val border = when {
+    // Border Resolution (Default, Hover, and Error)
+    val border: BorderStroke? = when {
+        isError -> BorderStroke(1.2.dp, colors.error)
+        isHovered && enabled && !isLoading -> when (variant) {
+            ConnectoButtonVariant.OUTLINED -> BorderStroke(1.5.dp, colors.primary)
+            ConnectoButtonVariant.PRIMARY -> BorderStroke(1.2.dp, colors.primary.copy(alpha = 0.85f))
+            ConnectoButtonVariant.SECONDARY -> BorderStroke(1.2.dp, if (colors.isDark) Color(0xFF94A3B8) else Color(0xFF64748B))
+            else -> null
+        }
         colors.isGlass -> when (variant) {
             ConnectoButtonVariant.PRIMARY -> BorderStroke(
                 1.2.dp,
@@ -251,6 +320,8 @@ fun ConnectoButton(
             scaleX = scale
             scaleY = scale
             this.translationY = translateY.toPx()
+            this.translationX = shakeOffset.value.dp.toPx()
+            alpha = if (enabled) 1.0f else 0.45f
         }
         .shadow(
             elevation = shadowElevation,
@@ -261,7 +332,7 @@ fun ConnectoButton(
         )
 
     Button(
-        onClick = { if (!isLoading && enabled) onClick() },
+        onClick = { if (!isLoading && enabled && !isError) onClick() },
         modifier = buttonModifier,
         enabled = enabled && !isLoading,
         shape = shape,
@@ -269,8 +340,8 @@ fun ConnectoButton(
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp),
         interactionSource = interactionSource,
         colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
-            contentColor = contentColor,
+            containerColor = effectiveContainerColor,
+            contentColor = effectiveContentColor,
             disabledContainerColor = disabledContainerColor,
             disabledContentColor = colors.textDisabled
         ),
@@ -283,13 +354,41 @@ fun ConnectoButton(
             vertical = ConnectoSpacing.xs
         )
     ) {
+        // State 3: Loading
         if (isLoading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(18.dp),
                 strokeWidth = 2.dp,
-                color = contentColor
+                color = effectiveContentColor
             )
-        } else {
+        }
+        // State 5: Error
+        else if (isError) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ErrorOutline,
+                    contentDescription = "Error",
+                    modifier = Modifier.size(17.dp),
+                    tint = effectiveContentColor
+                )
+                Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+                Text(
+                    text = errorText ?: "Failed. Try again",
+                    fontSize = when (size) {
+                        ConnectoButtonSize.COMPACT -> 13.sp
+                        ConnectoButtonSize.REGULAR -> 14.sp
+                        ConnectoButtonSize.LARGE -> 15.sp
+                    },
+                    fontWeight = FontWeight.Bold,
+                    color = effectiveContentColor
+                )
+            }
+        }
+        // States 1 (Default), 2 (Hover), and 4 (Disabled)
+        else {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
@@ -299,7 +398,7 @@ fun ConnectoButton(
                         imageVector = leadingIcon,
                         contentDescription = null,
                         modifier = Modifier.size(17.dp),
-                        tint = contentColor
+                        tint = effectiveContentColor
                     )
                     Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
                 }
@@ -311,7 +410,7 @@ fun ConnectoButton(
                         ConnectoButtonSize.LARGE -> 15.5.sp
                     },
                     fontWeight = FontWeight.SemiBold,
-                    color = if (enabled) contentColor else colors.textDisabled
+                    color = if (enabled) effectiveContentColor else colors.textDisabled
                 )
                 if (trailingIcon != null) {
                     Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
@@ -319,7 +418,7 @@ fun ConnectoButton(
                         imageVector = trailingIcon,
                         contentDescription = null,
                         modifier = Modifier.size(17.dp),
-                        tint = contentColor
+                        tint = effectiveContentColor
                     )
                 }
             }
