@@ -39,18 +39,18 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.32",
-        "version_code": 121,
+        "version_name": "4.6.33",
+        "version_code": 122,
         "size_bytes": 37890849,
         "size_formatted": "36.2 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "Cohesive Executive Inset-Grouped UI: Extended the calm, smooth, clear, and high-end grouped card architecture from the Profile tab across the entire app (Home, Messages, Calls, Channels & Drawer)",
-            "Compose Rendering & Performance Optimization: Added @Immutable state contracts, stable LazyColumn item keys and contentTypes, and eliminated redundant recompositions for butter-smooth 60/120fps scrolling",
-            "Centered Minimalist Top Bars: Refined navigation top headers with centered executive titles, circular tactile action buttons, and subtle hairline dividers",
-            "Seamless Our Store Native Updates: Reliable direct package installation and ecosystem-wide update delivery"
+            "Pure Dual-Theme System: Streamlined appearance settings to exclusively feature the high-contrast Pure Black OLED theme and the pristine White Paper theme",
+            "Minimalist Inset Settings Architecture: Polished theme selection cards with tactile toggles, clear typography, and zero-distraction visual previews",
+            "Performance & Smoothness Optimization: Butter-smooth frame rates and rapid theme-switching latency across all devices",
+            "Ecosystem Update Delivery: Instant updates through Our Store with full backward compatibility and integrity verification"
         ],
         "is_essential": True,
         "updated_at": "2026-11-10T16:15:00Z"

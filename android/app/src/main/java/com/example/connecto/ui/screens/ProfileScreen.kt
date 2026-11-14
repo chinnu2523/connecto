@@ -1718,7 +1718,7 @@ fun ProfileScreen(
                         ConnectoSettingsRow(
                             icon = Icons.Default.Tune,
                             title = "Appearance",
-                            value = currentThemeMode.name.lowercase().replaceFirstChar { it.uppercase() },
+                            value = if (currentThemeMode.isDark) "Black" else "White",
                             showChevron = true,
                             onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
                         )
@@ -3814,14 +3814,14 @@ fun ProfileScreen(
                                                     modifier = Modifier.weight(1f)
                                                 ) {
                                                     Text(
-                                                        text = currentThemeMode.iconEmoji,
-                                                        fontSize = 26.sp
+                                                        text = if (currentThemeMode.isDark) "🌑" else "☀️",
+                                                        fontSize = 28.sp
                                                     )
                                                     Spacer(modifier = Modifier.width(12.dp))
                                                     Column {
                                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                                             Text(
-                                                                text = currentThemeMode.displayName,
+                                                                text = if (currentThemeMode.isDark) "Black Theme" else "White Theme",
                                                                 fontSize = 15.sp,
                                                                 fontWeight = FontWeight.Bold,
                                                                 color = MaterialTheme.colorScheme.onSurface
@@ -3842,14 +3842,14 @@ fun ProfileScreen(
                                                             }
                                                         }
                                                         Text(
-                                                            text = currentThemeMode.subtitle,
+                                                            text = if (currentThemeMode.isDark) "Pure pitch black OLED • Battery saver" else "Clean crisp white • Daylight readability",
                                                             fontSize = 12.sp,
                                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                                         )
                                                     }
                                                 }
 
-                                                // Quick toggle between Dark and Light
+                                                // Quick toggle between Black and White
                                                 Switch(
                                                     checked = currentThemeMode.isDark,
                                                     onCheckedChange = { isDark ->
@@ -3860,90 +3860,11 @@ fun ProfileScreen(
                                                 )
                                             }
 
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
+                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.20f), thickness = 1.dp)
 
-                                            // 2. Primary Base Mode (Dark OLED vs Light Paper)
+                                            // 2. Dual Theme Selection (Black Theme vs White Theme)
                                             Text(
-                                                text = "BASE MODE",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                letterSpacing = 0.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                                            ) {
-                                                val primaryModes = listOf(
-                                                    com.example.connecto.ui.designsystem.ThemeMode.NOIR,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
-                                                )
-
-                                                primaryModes.forEach { mode ->
-                                                    val isSelected = currentThemeMode == mode
-                                                    val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
-
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .weight(1f)
-                                                            .shadow(
-                                                                elevation = if (isSelected) 4.dp else 1.dp,
-                                                                shape = RoundedCornerShape(14.dp),
-                                                                spotColor = if (isSelected) modeColors.primary.copy(alpha = 0.35f) else Color.Transparent
-                                                            )
-                                                            .clip(RoundedCornerShape(14.dp))
-                                                            .background(
-                                                                if (isSelected) modeColors.primary.copy(alpha = if (isThemeDark) 0.18f else 0.22f)
-                                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isThemeDark) 0.35f else 0.50f)
-                                                            )
-                                                            .border(
-                                                                width = if (isSelected) 1.5.dp else 1.dp,
-                                                                color = if (isSelected) modeColors.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
-                                                                shape = RoundedCornerShape(14.dp)
-                                                            )
-                                                            .clickable {
-                                                                onSelectThemeMode(mode)
-                                                            }
-                                                            .padding(12.dp)
-                                                    ) {
-                                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                                            Row(
-                                                                modifier = Modifier.fillMaxWidth(),
-                                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                                verticalAlignment = Alignment.CenterVertically
-                                                            ) {
-                                                                Text(text = mode.iconEmoji, fontSize = 20.sp)
-                                                                if (isSelected) {
-                                                                    Icon(
-                                                                        imageVector = Icons.Default.CheckCircle,
-                                                                        contentDescription = "Selected",
-                                                                        tint = modeColors.primary,
-                                                                        modifier = Modifier.size(16.dp)
-                                                                    )
-                                                                }
-                                                            }
-                                                            Text(
-                                                                text = if (mode == com.example.connecto.ui.designsystem.ThemeMode.NOIR) "Dark (OLED)" else "Light (Paper)",
-                                                                fontSize = 13.sp,
-                                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                                                color = MaterialTheme.colorScheme.onSurface
-                                                            )
-                                                            Text(
-                                                                text = if (mode == com.example.connecto.ui.designsystem.ThemeMode.NOIR) "Pitch black • Night" else "Warm ivory • Day",
-                                                                fontSize = 10.sp,
-                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
-
-                                            // 3. Accent & Glass Styles
-                                            Text(
-                                                text = "ACCENT & GLASS STYLES",
+                                                text = "THEME SELECTION",
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold,
                                                 letterSpacing = 0.5.sp,
@@ -3952,197 +3873,138 @@ fun ProfileScreen(
 
                                             Column(
                                                 modifier = Modifier.fillMaxWidth(),
-                                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                                                verticalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
-                                                val styles = listOf(
-                                                    com.example.connecto.ui.designsystem.ThemeMode.MOSS_EMERALD,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.MINT_RED,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.FIERY_LIME,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.MOCHA_ELECTRIC,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.BUTTER_INK,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.OLIVE_BUBBLEGUM,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.CHARCOAL_CRIMSON,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.LEMON_LAVENDER,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.MOCHA_GOLD,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.EMERALD,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.MIDNIGHT,
-                                                    com.example.connecto.ui.designsystem.ThemeMode.CYBERPUNK
-                                                )
-
-                                                styles.forEach { mode ->
-                                                    val isSelected = currentThemeMode == mode
-                                                    val modeColors = com.example.connecto.ui.designsystem.getColorsForTheme(mode)
-
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .fillMaxWidth()
-                                                            .clip(RoundedCornerShape(14.dp))
-                                                            .background(
-                                                                if (isSelected) modeColors.primary.copy(alpha = if (isThemeDark) 0.16f else 0.20f)
-                                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (isThemeDark) 0.25f else 0.40f)
-                                                            )
-                                                            .border(
-                                                                width = if (isSelected) 1.5.dp else 1.dp,
-                                                                color = if (isSelected) modeColors.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                                                                shape = RoundedCornerShape(14.dp)
-                                                            )
-                                                            .clickable {
-                                                                onSelectThemeMode(mode)
-                                                            }
-                                                            .padding(horizontal = 14.dp, vertical = 11.dp)
-                                                    ) {
-                                                        Row(
-                                                            modifier = Modifier.fillMaxWidth(),
-                                                            verticalAlignment = Alignment.CenterVertically,
-                                                            horizontalArrangement = Arrangement.SpaceBetween
-                                                        ) {
-                                                            Row(
-                                                                verticalAlignment = Alignment.CenterVertically,
-                                                                modifier = Modifier.weight(1f)
-                                                            ) {
-                                                                Text(text = mode.iconEmoji, fontSize = 20.sp)
-                                                                Spacer(modifier = Modifier.width(12.dp))
-                                                                Column {
-                                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                                        Text(
-                                                                            text = mode.displayName,
-                                                                            fontSize = 13.sp,
-                                                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                                                                        )
-                                                                        if (isSelected) {
-                                                                            Spacer(modifier = Modifier.width(6.dp))
-                                                                            Icon(
-                                                                                imageVector = Icons.Default.CheckCircle,
-                                                                                contentDescription = "Selected",
-                                                                                tint = MaterialTheme.colorScheme.primary,
-                                                                                modifier = Modifier.size(15.dp)
-                                                                            )
-                                                                        }
-                                                                    }
-                                                                    Text(
-                                                                        text = mode.subtitle,
-                                                                        fontSize = 11.sp,
-                                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                                    )
-                                                                }
-                                                            }
-
-                                                            // Color Swatches (Base • Surface • Accent)
-                                                            Row(
-                                                                horizontalArrangement = Arrangement.spacedBy(5.dp),
-                                                                verticalAlignment = Alignment.CenterVertically
-                                                            ) {
-                                                                listOf(modeColors.background, modeColors.surface, modeColors.primary).forEach { c ->
-                                                                    Box(
-                                                                        modifier = Modifier
-                                                                            .size(16.dp)
-                                                                            .clip(CircleShape)
-                                                                            .background(c)
-                                                                            .border(1.dp, Color.White.copy(alpha = 0.35f), CircleShape)
-                                                                    )
-                                                                }
-                                                            }
+                                                // Black Theme Option Card
+                                                val isBlackSelected = currentThemeMode.isDark
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .background(
+                                                            if (isBlackSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                        )
+                                                        .border(
+                                                            width = if (isBlackSelected) 1.8.dp else 1.dp,
+                                                            color = if (isBlackSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                                                            shape = RoundedCornerShape(16.dp)
+                                                        )
+                                                        .clickable {
+                                                            onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.NOIR)
                                                         }
-                                                    }
-                                                }
-                                            }
-
-                                            // 4. Liquid Glass Translucency Settings
-                                            if (currentThemeMode == com.example.connecto.ui.designsystem.ThemeMode.LIQUID_GLASS) {
-                                                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), thickness = 1.dp)
-
-                                                Column(
-                                                    modifier = Modifier.fillMaxWidth(),
-                                                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                                                        .padding(horizontal = 16.dp, vertical = 14.dp)
                                                 ) {
                                                     Row(
                                                         modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                                        verticalAlignment = Alignment.CenterVertically
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween
                                                     ) {
-                                                        Column {
-                                                            Text(
-                                                                text = "GLASS TRANSLUCENCY",
-                                                                fontSize = 11.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                letterSpacing = 0.5.sp,
-                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                            )
-                                                            Text(
-                                                                text = when {
-                                                                    glassTransparency <= 0.15f -> "Pure Clear • Optical Glass"
-                                                                    glassTransparency <= 0.65f -> "Frosted • Balanced Translucent"
-                                                                    else -> "Solid • High Contrast"
-                                                                },
-                                                                fontSize = 12.sp,
-                                                                fontWeight = FontWeight.SemiBold,
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-
-                                                        Box(
-                                                            modifier = Modifier
-                                                                .clip(RoundedCornerShape(8.dp))
-                                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.30f), RoundedCornerShape(8.dp))
-                                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier.weight(1f)
                                                         ) {
-                                                            Text(
-                                                                text = "${(glassTransparency * 100).toInt()}%",
-                                                                fontSize = 12.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
-                                                    }
-
-                                                    // 3 Easy Presets: Clear, Frosted, Solid
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                                    ) {
-                                                        val presets = listOf(
-                                                            Pair("Clear (0%)", 0.0f),
-                                                            Pair("Frosted (40%)", 0.40f),
-                                                            Pair("Solid (100%)", 1.0f)
-                                                        )
-                                                        presets.forEach { (label, value) ->
-                                                            val isPresetActive = kotlin.math.abs(glassTransparency - value) < 0.10f
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .weight(1f)
-                                                                    .clip(RoundedCornerShape(8.dp))
-                                                                    .background(
-                                                                        if (isPresetActive) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
-                                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                                                    )
-                                                                    .border(
-                                                                        1.dp,
-                                                                        if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f),
-                                                                        RoundedCornerShape(8.dp)
-                                                                    )
-                                                                    .clickable { onChangeGlassTransparency(value) }
-                                                                    .padding(vertical = 8.dp),
+                                                                    .size(40.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(Color(0xFF000000))
+                                                                    .border(1.5.dp, Color(0xFFFAFAFA).copy(alpha = 0.6f), CircleShape),
                                                                 contentAlignment = Alignment.Center
                                                             ) {
+                                                                Text(text = "🌑", fontSize = 18.sp)
+                                                            }
+                                                            Spacer(modifier = Modifier.width(14.dp))
+                                                            Column {
                                                                 Text(
-                                                                    text = label,
-                                                                    fontSize = 11.sp,
-                                                                    fontWeight = if (isPresetActive) FontWeight.Bold else FontWeight.Medium,
-                                                                    color = if (isPresetActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                                    text = "Black Theme",
+                                                                    fontSize = 15.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                                Text(
+                                                                    text = "Pure pitch black OLED • Battery saver",
+                                                                    fontSize = 12.sp,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
                                                             }
                                                         }
-                                                    }
 
-                                                    // Continuous Slider
-                                                    LiquidGlassTransparencyBar(
-                                                        value = glassTransparency.coerceIn(0.0f, 1.0f),
-                                                        onValueChange = { onChangeGlassTransparency(it.coerceIn(0.0f, 1.0f)) },
-                                                        modifier = Modifier.fillMaxWidth()
-                                                    )
+                                                        if (isBlackSelected) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.CheckCircle,
+                                                                contentDescription = "Selected",
+                                                                tint = MaterialTheme.colorScheme.primary,
+                                                                modifier = Modifier.size(22.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                // White Theme Option Card
+                                                val isWhiteSelected = !currentThemeMode.isDark
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .background(
+                                                            if (isWhiteSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                        )
+                                                        .border(
+                                                            width = if (isWhiteSelected) 1.8.dp else 1.dp,
+                                                            color = if (isWhiteSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
+                                                            shape = RoundedCornerShape(16.dp)
+                                                        )
+                                                        .clickable {
+                                                            onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT)
+                                                        }
+                                                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.fillMaxWidth(),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            modifier = Modifier.weight(1f)
+                                                        ) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(40.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(Color(0xFFFBF8F2))
+                                                                    .border(1.5.dp, Color(0xFF141312).copy(alpha = 0.3f), CircleShape),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Text(text = "☀️", fontSize = 18.sp)
+                                                            }
+                                                            Spacer(modifier = Modifier.width(14.dp))
+                                                            Column {
+                                                                Text(
+                                                                    text = "White Theme",
+                                                                    fontSize = 15.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    color = MaterialTheme.colorScheme.onSurface
+                                                                )
+                                                                Text(
+                                                                    text = "Clean crisp white • Daylight readability",
+                                                                    fontSize = 12.sp,
+                                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                                )
+                                                            }
+                                                        }
+
+                                                        if (isWhiteSelected) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.CheckCircle,
+                                                                contentDescription = "Selected",
+                                                                tint = MaterialTheme.colorScheme.primary,
+                                                                modifier = Modifier.size(22.dp)
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }

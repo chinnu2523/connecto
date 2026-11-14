@@ -43,8 +43,8 @@ data class ConnectoColors(
 )
 
 enum class ThemeMode(val id: String, val displayName: String, val subtitle: String, val iconEmoji: String) {
-    NOIR("noir", "Pure Black (OLED)", "Pitch black • Saves battery at night", "🌑"),
-    PARCHMENT("parchment", "Light Paper", "Warm ivory • Clean daylight reading", "☀️"),
+    NOIR("noir", "Black Theme", "Pure pitch black OLED • Battery saver", "🌑"),
+    PARCHMENT("parchment", "White Theme", "Clean crisp white • Daylight readability", "☀️"),
     LIQUID_GLASS("liquid_glass", "Liquid Glass", "Translucent glass with optical blur", "🪞"),
     EMERALD("emerald", "Emerald Matrix", "Obsidian black with emerald glow", "💎"),
     MIDNIGHT("midnight", "Midnight Navy", "Deep ocean blue with azure tint", "🌌"),
@@ -70,9 +70,10 @@ enum class ThemeMode(val id: String, val displayName: String, val subtitle: Stri
 
     companion object {
         fun fromId(id: String?): ThemeMode {
-            if (id.equals("liquid_glass", ignoreCase = true)) return LIQUID_GLASS
-            if (id.equals("glass", ignoreCase = true)) return LIQUID_GLASS
-            return entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: NOIR
+            if (id.equals("parchment", ignoreCase = true) || id.equals("white", ignoreCase = true) || id.equals("light", ignoreCase = true)) {
+                return PARCHMENT
+            }
+            return NOIR
         }
     }
 }
