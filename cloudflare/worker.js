@@ -1794,13 +1794,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "Cohesive Executive Inset-Grouped UI: Extended the calm, smooth, clear, and high-end grouped card architecture from the Profile tab across the entire app (Home, Messages, Calls, Channels & Drawer)",
-          "Compose Rendering & Performance Optimization: Added @Immutable state contracts, stable LazyColumn item keys and contentTypes, and eliminated redundant recompositions for butter-smooth 60/120fps scrolling",
-          "Centered Minimalist Top Bars: Refined navigation top headers with centered executive titles, circular tactile action buttons, and subtle hairline dividers",
-          "Seamless Our Store Native Updates: Reliable direct package installation and ecosystem-wide update delivery"
+          "Executive In-Place Error System: Contextual inline validation and inline error banners on Auth screens matching modern UI patterns",
+          "Dual Theme Engine: Pure OLED pitch black and pure white paper theme switch with fluid circular ripple and spring morph transition",
+          "Optimistic UI Architecture: 0ms zero-latency message reactions, pinning, editing, and friend requests with background synchronization",
+          "Tactile 5-State Button Architecture: Standardized Default, Hover, Loading, Disabled, and Error interaction states across all surfaces",
+          "Zero Vibe-Coding Tells Elimination: Instant 0ms tap feedback, skeleton shimmer loaders, pre-cached instant screen hydration, and offline network queueing",
+          "Security & Crypto Vault: Multi-layer edge HMAC token signing, PBKDF2 credential derivation, KeyStore AES-GCM encryption, and FLAG_SECURE protection"
         ],
         is_essential: true,
-        updated_at: "2026-11-10T15:50:00Z"
+        updated_at: "2026-11-14T20:30:00Z"
       },
       {
         id: "jarvis",
@@ -1868,7 +1870,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.7.5",
+      store_version: "1.8.1",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn

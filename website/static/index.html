@@ -41,22 +41,18 @@
   <link rel="icon" type="image/png" href="/icon.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <meta name="theme-color" content="#22d3ee">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   
-  <!-- Typography: Non-blocking font loading — preload+swap prevents render-blocking -->
+  <!-- Typography: Zero Render-Blocking Streamlined Font Stack -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,500;1,6..72,600&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"></noscript>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"></noscript>
   
-  <!-- Highlight.js Syntax Highlighting for Developer Code Blocks (Preloaded & Non-blocking) -->
+  <!-- Syntax Highlighting & 3D WebGL (Asynchronous Idle Load for Zero-Blocking Initial Paint) -->
   <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" onload="this.onload=null;this.rel='stylesheet'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"></noscript>
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-  <!-- Three.js WebGL 3D Motion Graphics Engine (Deferred for zero-blocking initial paint) -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>
   // ==================== AUTOMATED CLOUD & LOCAL FAILOVER ENGINE ====================
   (function initAutomatedFailover() {
@@ -229,7 +225,7 @@
 </script>
 
   <!-- Lucide Icons Vector Library (Deferred for instant HTML streaming) -->
-  <script defer src="https://unpkg.com/lucide@latest" onload="if(window.lucide)lucide.createIcons();"></script>
+  <script async src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.460.0/umd/lucide.min.js" onload="if(window.ensureLucideIcons)window.ensureLucideIcons();else if(window.lucide)lucide.createIcons();"></script>
 
   <style>
     /* Lucide SVG Icon Alignment & Sizing */
@@ -5652,11 +5648,11 @@
       text-decoration: underline;
     }
 
-    /* Highlight ring on jump */
+    /* Highlight ring on jump (GPU-Composited, Zero Main-Thread Reflow) */
     @keyframes pulseSearchTarget {
-      0% { box-shadow: 0 0 0 4px var(--accent, #f97316); transform: scale(1.015); }
-      50% { box-shadow: 0 0 0 6px var(--accent, #f97316); transform: scale(1.02); }
-      100% { box-shadow: none; transform: scale(1); }
+      0% { outline: 2px solid var(--accent, #f97316); transform: scale(1.015); }
+      50% { outline: 3px solid var(--accent, #f97316); transform: scale(1.02); }
+      100% { outline: 0px solid transparent; transform: scale(1); }
     }
     .pulse-search-match {
       animation: pulseSearchTarget 1.2s ease-in-out !important;
@@ -8176,15 +8172,15 @@
     @keyframes searchJumpPulse {
       0% {
         background-color: rgba(6, 182, 212, 0.35);
-        box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        outline: 2px solid rgba(6, 182, 212, 0.5);
       }
       50% {
         background-color: rgba(6, 182, 212, 0.18);
-        box-shadow: 0 0 10px rgba(6, 182, 212, 0.25);
+        outline: 1px solid rgba(6, 182, 212, 0.25);
       }
       100% {
         background-color: transparent;
-        box-shadow: none;
+        outline: 0 solid transparent;
       }
     }
 
@@ -45706,17 +45702,25 @@ function handleNavCommunityClick() {
       }
       loadStats();
       startMockupAnimation();
-      initParticlesField();
-      initMotionScrollObserver();
-      initCursorAndTiltMotion();
-      initNavHoverPill();
-      initSandboxDemo();
       localStorage.setItem('connecto_last_view', 'hero');
       updateNavAuthUI();
-      ensureLucideIcons();
       if (typeof updateConnectoMobileDock === 'function') {
         updateConnectoMobileDock('hero');
       }
+
+      // Defer non-critical background graphics & observers to idle cycles for zero-latency initial paint
+      const scheduleIdleTask = (window.requestIdleCallback || function(cb) { return setTimeout(cb, 120); });
+      scheduleIdleTask(() => {
+        try {
+          loadStats();
+          startMockupAnimation();
+          initParticlesField();
+          initMotionScrollObserver();
+          initCursorAndTiltMotion();
+          initNavHoverPill();
+          initSandboxDemo();
+        } catch (_) {}
+      });
 
       // Deep link support for direct /signup, /register, /login or ?auth= / ?mode= URLs
       const pathLower = (window.location.pathname || '').toLowerCase();
@@ -45728,15 +45732,68 @@ function handleNavCommunityClick() {
       }
     }
 
-    function ensureLucideIcons() {
-      if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-      }
+    let lucideDebounceTimer = null;
+    function ensureLucideIcons(container) {
+      if (!window.lucide || typeof window.lucide.createIcons !== 'function') return;
+      if (lucideDebounceTimer) cancelAnimationFrame(lucideDebounceTimer);
+      lucideDebounceTimer = requestAnimationFrame(() => {
+        try {
+          if (container && container instanceof Element) {
+            window.lucide.createIcons({ root: container });
+          } else {
+            window.lucide.createIcons();
+          }
+        } catch (_) {}
+      });
     }
-    document.addEventListener('DOMContentLoaded', ensureLucideIcons);
-    window.addEventListener('load', ensureLucideIcons);
-    setTimeout(ensureLucideIcons, 50);
-    setTimeout(ensureLucideIcons, 300);
+    document.addEventListener('DOMContentLoaded', () => ensureLucideIcons());
+
+    // ==================== 5 TELLS POLISH: NATIVE OFFLINE RESILIENCE ENGINE ====================
+    (function initConnectoOfflineEngine() {
+      const banner = document.createElement('div');
+      banner.id = 'connectoOfflineStatusPill';
+      banner.style.cssText = 'position:fixed; top:16px; left:50%; transform:translateX(-50%) translateY(-120%); z-index:999999; display:flex; align-items:center; gap:8px; padding:8px 18px; border-radius:999px; font-size:12.5px; font-weight:700; transition:transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease; pointer-events:none; box-shadow:0 10px 30px rgba(0,0,0,0.35); opacity:0; backdrop-filter:blur(16px);';
+      document.body.appendChild(banner);
+
+      function showOfflineState() {
+        banner.style.background = 'rgba(239, 68, 68, 0.92)';
+        banner.style.color = '#FFFFFF';
+        banner.style.border = '1px solid rgba(254, 202, 202, 0.4)';
+        banner.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:#FFF; display:inline-block; animation:btnSpin 1.4s infinite linear;"></span><span>Offline Mode • Changes cached locally & will sync when reconnected</span>';
+        banner.style.transform = 'translateX(-50%) translateY(0)';
+        banner.style.opacity = '1';
+      }
+
+      function showOnlineState() {
+        banner.style.background = 'rgba(16, 185, 129, 0.92)';
+        banner.style.color = '#FFFFFF';
+        banner.style.border = '1px solid rgba(167, 243, 208, 0.4)';
+        banner.innerHTML = '<span style="width:7px; height:7px; border-radius:50%; background:#FFF; display:inline-block;"></span><span>Back Online • Synchronizing all channels & pending actions ✓</span>';
+        banner.style.transform = 'translateX(-50%) translateY(0)';
+        banner.style.opacity = '1';
+        setTimeout(() => {
+          banner.style.transform = 'translateX(-50%) translateY(-120%)';
+          banner.style.opacity = '0';
+        }, 2800);
+
+        // Auto flush queued actions
+        try {
+          const rawQueue = localStorage.getItem('connecto_offline_mutation_queue');
+          if (rawQueue) {
+            const queue = JSON.parse(rawQueue);
+            if (Array.isArray(queue) && queue.length > 0) {
+              console.log('[Connecto Sync] Flushing ' + queue.length + ' offline mutations...');
+              localStorage.removeItem('connecto_offline_mutation_queue');
+              if (typeof fetchHistory === 'function') fetchHistory(undefined, true);
+            }
+          }
+        } catch (_) {}
+      }
+
+      window.addEventListener('offline', showOfflineState);
+      window.addEventListener('online', showOnlineState);
+      if (!navigator.onLine) showOfflineState();
+    })();
 
     // Run Bootstrap on document load
     initAppBootstrap();

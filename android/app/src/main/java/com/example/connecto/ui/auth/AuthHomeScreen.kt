@@ -1160,10 +1160,11 @@ fun AuthHomeScreen(
                 loginUsernameOrEmail.isNotBlank() && loginPassword.isNotBlank()
             }
 
-            // ===== MAIN ACTION BUTTON =====
+            // ===== MAIN ACTION BUTTON (5 States: Default, Hover, Loading, Disabled, Error with Instant In-Place Validation) =====
             Button(
                 onClick = {
                     if (isLoading) return@Button
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     errorMessage = null
                     forceShowValidationErrors = true
 
@@ -1284,7 +1285,7 @@ fun AuthHomeScreen(
                 shape = RoundedCornerShape(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                 contentPadding = PaddingValues(),
-                enabled = !isLoading && isFormSubmittable
+                enabled = !isLoading
             ) {
                 Box(
                     modifier = Modifier
