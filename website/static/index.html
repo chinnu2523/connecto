@@ -521,11 +521,28 @@
       color: var(--accent) !important;
     }
 
-    /* Native View Transitions API support for seamless theme switches */
+    /* Native View Transitions API support for circular ripple theme switches */
     ::view-transition-old(root),
     ::view-transition-new(root) {
-      animation-duration: 0.32s;
-      animation-timing-function: var(--ease-snappy);
+      animation: none;
+      mix-blend-mode: normal;
+    }
+    ::view-transition-old(root) {
+      z-index: 1;
+    }
+    ::view-transition-new(root) {
+      z-index: 999999;
+    }
+
+    /* Spring-Bouncy Theme Toggle Icon Spin */
+    .theme-toggle-animating {
+      animation: themeBtnSpinBounce 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+    }
+    @keyframes themeBtnSpinBounce {
+      0% { transform: scale(1) rotate(0deg); }
+      35% { transform: scale(1.3) rotate(180deg); }
+      70% { transform: scale(0.92) rotate(340deg); }
+      100% { transform: scale(1) rotate(360deg); }
     }
 
     /* ========================================================
@@ -27083,7 +27100,7 @@ html[data-theme="dark"] #saveProfileBtn {
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:3px;">
-        <button class="btn-icon" id="userProfileThemeBtn" onclick="toggleEditorialTheme()" title="Toggle Theme (Light / Dark)" style="font-size:13px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; cursor:pointer;" aria-label="Toggle Theme">🌓</button>
+        <button class="btn-icon" id="userProfileThemeBtn" onclick="toggleEditorialTheme(event)" title="Toggle Theme (Light / Dark)" style="font-size:13px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; cursor:pointer;" aria-label="Toggle Theme">🌓</button>
         <button class="btn-icon" id="userCustomStatusBtn" onclick="openCustomStatusModal()" title="Set Custom Status" style="font-size:12px;">⚡</button>
         <button class="btn-icon" id="userProfileBarBtn" onclick="handleUserProfileBarClick()" title="Sign In / Account">⚙️</button>
         <button class="btn-icon user-signout-btn" id="userSignoutBtn" onclick="handleLogout()" title="Sign Out" style="color:#ef4444 !important; font-size:12px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); cursor:pointer;">🚪</button>
@@ -27164,7 +27181,7 @@ html[data-theme="dark"] #saveProfileBtn {
         </div>
 
         <!-- In-Chat Theme Quick Toggle (Ivory Paper <-> Pure Black OLED) -->
-        <button class="btn-icon" id="chatHeaderThemeToggleBtn" onclick="toggleEditorialTheme()" title="Toggle Theme (Light / Dark)" aria-label="Toggle Theme">
+        <button class="btn-icon" id="chatHeaderThemeToggleBtn" onclick="toggleEditorialTheme(event)" title="Toggle Theme (Light / Dark)" aria-label="Toggle Theme">
           <span id="chatHeaderThemeToggleIcon" style="display:inline-flex; align-items:center;">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
           </span>
@@ -27665,7 +27682,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <button class="nav-signup-cta-btn" onclick="openAuthModal('register')">Sign up <i data-lucide="arrow-right" class="lucide-sm"></i></button>
             </div>
 
-            <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+            <button class="nav-theme-toggle-btn" id="navThemeToggleBtn" onclick="toggleEditorialTheme(event)" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
               <span id="navThemeToggleIcon" style="display:inline-flex; align-items:center; justify-content:center;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
               </span>
@@ -29092,7 +29109,7 @@ html[data-theme="dark"] #saveProfileBtn {
             </div>
           </div>
           <div class="connecto-header-actions">
-            <button type="button" class="connecto-header-icon-btn" id="homeHeaderThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+            <button type="button" class="connecto-header-icon-btn" id="homeHeaderThemeToggleBtn" onclick="toggleEditorialTheme(event)" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
               <span id="homeHeaderThemeToggleIcon" style="display:inline-flex; align-items:center;">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
               </span>
@@ -34767,12 +34784,38 @@ html[data-theme="dark"] #saveProfileBtn {
       }, { passive: true });
     }
 
-    // Interactive Reactions Handler
+    // Interactive Reactions Handler with Zero-Latency Optimistic UI
     async function handleMessageReaction(msgId, emoji) {
       if (!currentUser || currentUser === 'guest') {
         openAuthModal('login');
         return;
       }
+      const msg = messageStore.get(msgId);
+      if (!msg) return;
+
+      // Deep copy previous reactions for instant rollback on error
+      const previousReactions = JSON.parse(JSON.stringify(msg.reactions || {}));
+      const userLower = currentUser.toLowerCase();
+
+      // OPTIMISTIC UPDATE: Instant local reaction toggle (0ms latency)
+      if (!msg.reactions || typeof msg.reactions !== 'object') msg.reactions = {};
+      const currentUsers = Array.isArray(msg.reactions[emoji]) ? [...msg.reactions[emoji]] : [];
+      const userIndex = currentUsers.indexOf(userLower);
+
+      if (userIndex !== -1) {
+        currentUsers.splice(userIndex, 1);
+        if (currentUsers.length === 0) {
+          delete msg.reactions[emoji];
+        } else {
+          msg.reactions[emoji] = currentUsers;
+        }
+      } else {
+        currentUsers.push(userLower);
+        msg.reactions[emoji] = currentUsers;
+      }
+
+      renderMessages();
+
       try {
         const res = await fetch(`/api/messages/${encodeURIComponent(msgId)}/react?channel_id=${encodeURIComponent(currentChannel)}`, {
           method: 'POST',
@@ -34781,14 +34824,16 @@ html[data-theme="dark"] #saveProfileBtn {
         });
         const data = await res.json();
         if (data.status === 'ok') {
-          const msg = messageStore.get(msgId);
-          if (msg) {
-            msg.reactions = data.reactions;
-            renderMessages();
-          }
+          msg.reactions = data.reactions;
+          renderMessages();
+        } else {
+          msg.reactions = previousReactions;
+          renderMessages();
         }
       } catch (err) {
         console.error('[REACT_ERROR]', err);
+        msg.reactions = previousReactions;
+        renderMessages();
       }
     }
 
@@ -35432,15 +35477,28 @@ html[data-theme="dark"] #saveProfileBtn {
     }
 
     function togglePinMessage(msgId) {
+      const msg = messageStore.get(msgId);
+      if (!msg) return;
+
+      // OPTIMISTIC UPDATE: Flip pinned state immediately (0ms)
+      const prevPinned = Boolean(msg.pinned);
+      msg.pinned = !prevPinned;
+      renderMessages();
+      showNotificationToast('Scroll Pin', `Message ${msg.pinned ? 'pinned to channel scrolls 📌' : 'unpinned 📌'}`);
+
       fetch(`/api/channels/${encodeURIComponent(currentChannel)}/pins/${encodeURIComponent(msgId)}`, { method: 'POST' })
         .then(r => r.json())
         .then(data => {
-          const msg = messageStore.get(msgId);
-          if (msg) {
+          if (data && data.action) {
             msg.pinned = (data.action === 'pinned');
             renderMessages();
-            showNotificationToast('Scroll Pin', `Message ${data.action === 'pinned' ? 'pinned to channel scrolls 📌' : 'unpinned 📌'}`);
           }
+        })
+        .catch(err => {
+          console.error('[PIN_TOGGLE_ERR]', err);
+          msg.pinned = prevPinned;
+          renderMessages();
+          showNotificationToast('Pin Failed', 'Could not sync pin with server.');
         });
     }
 
@@ -39013,17 +39071,55 @@ html[data-theme="dark"] #saveProfileBtn {
       if (!msg) return;
       const newText = prompt("Edit your message:", msg.content);
       if (newText && newText !== msg.content) {
-        await fetch(`/api/messages/${messageId}?channel_id=${currentChannel}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: newText, username: currentUser })
-        });
+        // OPTIMISTIC UPDATE: Update text immediately (0ms)
+        const prevText = msg.content;
+        const prevEdited = msg.edited;
+        msg.content = newText;
+        msg.edited = true;
+        renderMessages();
+
+        try {
+          const res = await fetch(`/api/messages/${messageId}?channel_id=${currentChannel}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: newText, username: currentUser })
+          });
+          if (!res.ok) {
+            msg.content = prevText;
+            msg.edited = prevEdited;
+            renderMessages();
+            showNotificationToast('Edit Failed', 'Server rejected message edit.');
+          }
+        } catch (e) {
+          msg.content = prevText;
+          msg.edited = prevEdited;
+          renderMessages();
+          showNotificationToast('Connection Error', 'Network error saving edited message.');
+        }
       }
     }
 
     async function deleteMessage(messageId) {
       if (!confirm("Delete this message?")) return;
-      await fetch(`/api/messages/${messageId}?channel_id=${currentChannel}`, { method: 'DELETE' });
+      const msg = messageStore.get(messageId);
+      if (!msg) return;
+
+      // OPTIMISTIC UPDATE: Remove from UI immediately in 0ms
+      messageStore.delete(messageId);
+      renderMessages();
+
+      try {
+        const res = await fetch(`/api/messages/${messageId}?channel_id=${currentChannel}`, { method: 'DELETE' });
+        if (!res.ok) {
+          messageStore.set(messageId, msg);
+          renderMessages();
+          showNotificationToast('Delete Failed', 'Server could not delete message.');
+        }
+      } catch (e) {
+        messageStore.set(messageId, msg);
+        renderMessages();
+        showNotificationToast('Connection Error', 'Network error deleting message.');
+      }
     }
 
     let _chatSearchTimer = null;
@@ -44229,7 +44325,7 @@ function selectSettingsAvatar(emoji, el) {
     // PRISTINE EDITORIAL DUAL-THEME SYSTEM - CONTROLLER
     // Strictly Two Editions: Ivory Paper (Light) & Pure Black OLED (Dark)
     // ============================================================
-    function setHomepageTheme(themeId, updateUrl = true) {
+    function setHomepageTheme(themeId, updateUrl = true, ev = null) {
       const applyTheme = () => {
         const aliasMap = {
           // Light Edition -> 'parchment'
@@ -44368,12 +44464,49 @@ function selectSettingsAvatar(emoji, el) {
         }
       };
 
-      // Native View Transitions API for buttery smooth cross-fade theme switches with robust try/catch fallback
+      // Luxury Circular Reveal View Transitions API Animation with Zero-Latency Optimistic UI
       if (document.startViewTransition && updateUrl) {
+        let x = window.innerWidth / 2;
+        let y = window.innerHeight / 2;
+        if (typeof ev !== 'undefined' && ev) {
+          if (typeof ev.clientX === 'number' && typeof ev.clientY === 'number' && (ev.clientX > 0 || ev.clientY > 0)) {
+            x = ev.clientX;
+            y = ev.clientY;
+          } else if (ev.currentTarget && typeof ev.currentTarget.getBoundingClientRect === 'function') {
+            const rect = ev.currentTarget.getBoundingClientRect();
+            x = rect.left + rect.width / 2;
+            y = rect.top + rect.height / 2;
+          }
+        }
+
+        const maxRadius = Math.hypot(
+          Math.max(x, window.innerWidth - x),
+          Math.max(y, window.innerHeight - y)
+        );
+
         try {
-          document.startViewTransition(() => {
+          const transition = document.startViewTransition(() => {
             applyTheme();
           });
+
+          if (transition.ready) {
+            transition.ready.then(() => {
+              const clipPath = [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${maxRadius}px at ${x}px ${y}px)`
+              ];
+              document.documentElement.animate(
+                {
+                  clipPath: clipPath
+                },
+                {
+                  duration: 450,
+                  easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+                  pseudoElement: '::view-transition-new(root)'
+                }
+              );
+            }).catch(() => {});
+          }
         } catch (vtErr) {
           applyTheme();
         }
@@ -44382,11 +44515,20 @@ function selectSettingsAvatar(emoji, el) {
       }
     }
 
-    // Quick toggle helper between the two editorial themes
-    function toggleEditorialTheme() {
+    // Quick toggle helper between the two editorial themes with tactile spin feedback
+    function toggleEditorialTheme(e) {
+      const ev = e || window.event;
       const currentTheme = (document.documentElement.getAttribute('data-theme') || '').toLowerCase().trim();
       const targetTheme = (currentTheme === 'noir' || currentTheme === 'black' || currentTheme === 'dark' || currentTheme === 'oled') ? 'parchment' : 'noir';
-      setHomepageTheme(targetTheme, true);
+      
+      // Trigger instant spring spin animation on toggle buttons
+      const buttons = document.querySelectorAll('#navThemeToggleBtn, #magicDockThemeBtn, #chatHeaderThemeToggleBtn, #homeHeaderThemeToggleBtn, #userProfileThemeBtn');
+      buttons.forEach(btn => {
+        btn.classList.add('theme-toggle-animating');
+        setTimeout(() => btn.classList.remove('theme-toggle-animating'), 580);
+      });
+
+      setHomepageTheme(targetTheme, true, ev);
     }
 
     // Chakra Theme Customization Engine (Compat & in-app settings)
@@ -47767,7 +47909,7 @@ function hangupVoiceLounge() {
         <span class="magic-dock-tooltip">SOC Labs</span>
       </button>
       <div class="magic-dock-divider" aria-hidden="true"></div>
-      <button class="magic-dock-item magic-dock-theme-item" id="magicDockThemeBtn" onclick="toggleEditorialTheme()" title="Toggle Theme" aria-label="Toggle Theme">
+      <button class="magic-dock-item magic-dock-theme-item" id="magicDockThemeBtn" onclick="toggleEditorialTheme(event)" title="Toggle Theme" aria-label="Toggle Theme">
         <span class="magic-dock-icon" id="magicDockThemeIcon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
         </span>

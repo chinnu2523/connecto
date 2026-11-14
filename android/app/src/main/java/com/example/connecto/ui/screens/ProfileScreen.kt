@@ -335,6 +335,7 @@ fun ProfileScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val activity = remember(context) { context.findFragmentActivity() }
+    val haptic = LocalHapticFeedback.current
     val prefs = remember { context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE) }
 
     // Global Screen Security & Black Screen state
@@ -3824,10 +3825,43 @@ fun ProfileScreen(
                                                     verticalAlignment = Alignment.CenterVertically,
                                                     modifier = Modifier.weight(1f)
                                                 ) {
-                                                    Text(
-                                                        text = if (currentThemeMode.isDark) "🌑" else "☀️",
-                                                        fontSize = 28.sp
+                                                    val themeRotation by animateFloatAsState(
+                                                        targetValue = if (currentThemeMode.isDark) 360f else 0f,
+                                                        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                                        label = "themeIconRotation"
                                                     )
+                                                    val themeIconScale by animateFloatAsState(
+                                                        targetValue = 1.0f,
+                                                        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                                        label = "themeIconScale"
+                                                    )
+
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(44.dp)
+                                                            .graphicsLayer {
+                                                                rotationZ = themeRotation
+                                                                scaleX = themeIconScale
+                                                                scaleY = themeIconScale
+                                                            }
+                                                            .clip(CircleShape)
+                                                            .background(
+                                                                if (currentThemeMode.isDark) Color(0xFF000000)
+                                                                else Color(0xFFFFFBEB)
+                                                            )
+                                                            .border(
+                                                                1.5.dp,
+                                                                if (currentThemeMode.isDark) Color(0xFF38BDF8).copy(alpha = 0.5f)
+                                                                else Color(0xFFF59E0B).copy(alpha = 0.6f),
+                                                                CircleShape
+                                                            ),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = if (currentThemeMode.isDark) "🌑" else "☀️",
+                                                            fontSize = 22.sp
+                                                        )
+                                                    }
                                                     Spacer(modifier = Modifier.width(12.dp))
                                                     Column {
                                                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -3860,10 +3894,13 @@ fun ProfileScreen(
                                                     }
                                                 }
 
-                                                // Quick toggle between Black and White
+                                                // Quick toggle between Black and White with haptic spring response
                                                 Switch(
                                                     checked = currentThemeMode.isDark,
                                                     onCheckedChange = { isDark ->
+                                                        try {
+                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                        } catch (_: Exception) {}
                                                         val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
                                                         onSelectThemeMode(newMode)
                                                     },
@@ -3902,6 +3939,7 @@ fun ProfileScreen(
                                                             shape = RoundedCornerShape(16.dp)
                                                         )
                                                         .clickable {
+                                                            try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
                                                             onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.NOIR)
                                                         }
                                                         .padding(horizontal = 16.dp, vertical = 14.dp)
@@ -3968,6 +4006,7 @@ fun ProfileScreen(
                                                             shape = RoundedCornerShape(16.dp)
                                                         )
                                                         .clickable {
+                                                            try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
                                                             onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT)
                                                         }
                                                         .padding(horizontal = 16.dp, vertical = 14.dp)
