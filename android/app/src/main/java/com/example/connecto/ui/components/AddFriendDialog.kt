@@ -47,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.example.connecto.ui.designsystem.ConnectoModalBottomSheet
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -201,28 +202,16 @@ fun AddFriendDialog(
         fetchReceivedRequests()
     }
 
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ConnectoModalBottomSheet(
+        onDismissRequest = onDismissRequest
     ) {
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.85f)
-                .clip(RoundedCornerShape(26.dp))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(26.dp)
-                ),
-            color = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(26.dp)
+                .fillMaxWidth()
+                .fillMaxHeight(0.90f)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(20.dp)
-            ) {
                 // ================= 1. HEADER ROW =================
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -988,7 +977,6 @@ fun AddFriendDialog(
                         }
                     }
                 }
-            }
         }
     }
 }

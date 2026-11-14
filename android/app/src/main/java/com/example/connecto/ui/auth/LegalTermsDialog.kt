@@ -36,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import com.example.connecto.ui.designsystem.ConnectoModalBottomSheet
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -72,28 +73,16 @@ fun LegalTermsDialog(
     var selectedTab by remember { mutableIntStateOf(initialTab.coerceIn(0, 1)) }
     val scrollState = rememberScrollState()
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnBackPress = true,
-            dismissOnClickOutside = true
-        )
+    ConnectoModalBottomSheet(
+        onDismissRequest = onDismiss
     ) {
-        Box(
+        Column(
             modifier = Modifier
-                .fillMaxWidth(0.94f)
-                .fillMaxHeight(0.88f)
-                .clip(RoundedCornerShape(24.dp))
-                .background(Color(0xFF090A0F)) // Pure OLED jet black base
-                .border(1.dp, Color(0xFF27272A), RoundedCornerShape(24.dp))
+                .fillMaxWidth()
+                .fillMaxHeight(0.90f)
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight()
-                    .padding(20.dp)
-            ) {
                 // Header Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -384,7 +373,6 @@ fun LegalTermsDialog(
             }
         }
     }
-}
 
 @Composable
 private fun LegalBadge(text: String) {

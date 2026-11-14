@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -315,3 +316,126 @@ fun ConnectoOfflineBanner(
         }
     }
 }
+
+/**
+ * Modern In-Place Error Banner (Errors in Place - UI Fix #01)
+ * Replaces disruptive alert dialogs with inline contextual error notifications.
+ */
+@Composable
+fun ConnectoInPlaceError(
+    message: String?,
+    modifier: Modifier = Modifier,
+    onDismiss: (() -> Unit)? = null
+) {
+    val colors = LocalConnectoColors.current
+
+    AnimatedVisibility(
+        visible = !message.isNullOrBlank(),
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut()
+    ) {
+        if (!message.isNullOrBlank()) {
+            val bg = if (colors.isDark) Color(0xFF3B1219).copy(alpha = 0.65f) else Color(0xFFFFECEC)
+            val borderCol = if (colors.isDark) Color(0xFFEF4444).copy(alpha = 0.35f) else Color(0xFFFCA5A5)
+            val textCol = if (colors.isDark) Color(0xFFFCA5A5) else Color(0xFFDC2626)
+
+            Box(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(bg)
+                    .border(width = 1.dp, color = borderCol, shape = RoundedCornerShape(12.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = message,
+                        color = textCol,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 18.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (onDismiss != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .clickable { onDismiss() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✕",
+                                color = textCol.copy(alpha = 0.8f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Multi-item Skeleton Card for List Previews (Fixes "Screens open empty" & "Blank loading screens")
+ */
+@Composable
+fun ConnectoSkeletonList(
+    itemCount: Int = 4,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalConnectoColors.current
+    val shimmer = connectoShimmerBrush()
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        repeat(itemCount) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(if (colors.isDark) colors.surface else Color.White)
+                    .border(0.8.dp, colors.borderSubtle.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(shimmer)
+                )
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.55f)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmer)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.85f)
+                            .height(11.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(shimmer)
+                    )
+                }
+            }
+        }
+    }
+}
+

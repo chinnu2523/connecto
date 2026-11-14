@@ -54,6 +54,8 @@ import com.example.connecto.ui.designsystem.ConnectoSettingsCard
 import com.example.connecto.ui.designsystem.ConnectoSettingsRow
 import com.example.connecto.ui.designsystem.ConnectoSettingsDivider
 import com.example.connecto.ui.designsystem.ConnectoSettingsActionCard
+import com.example.connecto.ui.designsystem.ConnectoModalBottomSheet
+import com.example.connecto.ui.designsystem.ConnectoInPlaceError
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Fingerprint
@@ -449,6 +451,7 @@ fun ProfileScreen(
     var showDeleteAccountDialog by rememberSaveable { mutableStateOf(false) }
     var isDeletingAccount by remember { mutableStateOf(false) }
     var deleteConfirmInput by rememberSaveable { mutableStateOf("") }
+    var deleteAccountErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     var showCustomerSupportAiDialog by rememberSaveable { mutableStateOf(false) }
     var showPrivacyPolicyDialog by rememberSaveable { mutableStateOf(false) }
@@ -1713,6 +1716,14 @@ fun ProfileScreen(
                             value = selectedNotificationSoundName,
                             showChevron = true,
                             onClick = { activeSubPage = ProfileSubPage.NOTIFICATIONS }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Language,
+                            title = "Language",
+                            value = "English",
+                            showChevron = true,
+                            onClick = { /* Default app language is English */ }
                         )
                         ConnectoSettingsDivider()
                         ConnectoSettingsRow(
@@ -5916,65 +5927,106 @@ fun ProfileScreen(
     }
 
     if (showDeleteAccountDialog) {
-        AlertDialog(
+        ConnectoModalBottomSheet(
             onDismissRequest = {
                 if (!isDeletingAccount) {
                     showDeleteAccountDialog = false
                     deleteConfirmInput = ""
+                    deleteAccountErrorMessage = null
                 }
-            },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+                    .padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header Icon
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFDC2626).copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
                         imageVector = Icons.Default.DeleteForever,
                         contentDescription = null,
                         tint = Color(0xFFDC2626),
-                        modifier = Modifier.size(26.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "Delete Account Permanently",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                        color = Color(0xFFDC2626)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "This action is IRREVERSIBLE. Your account, profile information, messages, active sessions, and all physical database backups will be permanently purged forever.",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        lineHeight = 18.sp
-                    )
-                    Text(
-                        text = "To confirm deletion, type DELETE in capital letters below:",
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    OutlinedTextField(
-                        value = deleteConfirmInput,
-                        onValueChange = { deleteConfirmInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("DELETE", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFDC2626),
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                            focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        enabled = !isDeletingAccount
-                    )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "Delete Account Permanently",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 19.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "This action is IRREVERSIBLE. Your account, profile information, messages, active sessions, and database backups will be permanently purged forever.",
+                    fontSize = 13.5.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    lineHeight = 19.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // In-Place Error Banner (UI FIX #01: 4. Errors in place)
+                ConnectoInPlaceError(
+                    message = deleteAccountErrorMessage,
+                    onDismiss = { deleteAccountErrorMessage = null }
+                )
+
+                if (deleteAccountErrorMessage != null) {
+                    Spacer(modifier = Modifier.height(12.dp))
                 }
-            },
-            confirmButton = {
+
+                Text(
+                    text = "To confirm deletion, type DELETE below:",
+                    fontSize = 12.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                OutlinedTextField(
+                    value = deleteConfirmInput,
+                    onValueChange = { 
+                        deleteConfirmInput = it
+                        if (deleteAccountErrorMessage != null) deleteAccountErrorMessage = null
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("DELETE", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFDC2626),
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    enabled = !isDeletingAccount
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Confirm Delete Button with tactile feedback
                 Button(
                     onClick = {
                         if (deleteConfirmInput.trim() == "DELETE" && !isDeletingAccount) {
                             isDeletingAccount = true
+                            deleteAccountErrorMessage = null
                             coroutineScope.launch {
                                 try {
                                     val result = ConnectoApiClient.deleteAccount()
@@ -5984,10 +6036,10 @@ fun ProfileScreen(
                                         onDeleteAccount()
                                     } else {
                                         val err = sanitizeErrorMessage(result.exceptionOrNull()?.message, "Unable to delete account. Please try again.")
-                                        Toast.makeText(context, err, Toast.LENGTH_LONG).show()
+                                        deleteAccountErrorMessage = err
                                     }
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, sanitizeErrorMessage(e.message, "Unable to delete account. Please try again."), Toast.LENGTH_LONG).show()
+                                    deleteAccountErrorMessage = sanitizeErrorMessage(e.message, "Unable to delete account. Please try again.")
                                 } finally {
                                     isDeletingAccount = false
                                 }
@@ -5995,34 +6047,43 @@ fun ProfileScreen(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
-                    shape = RoundedCornerShape(10.dp),
-                    enabled = deleteConfirmInput.trim() == "DELETE" && !isDeletingAccount
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = deleteConfirmInput.trim() == "DELETE" && !isDeletingAccount,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
                 ) {
                     if (isDeletingAccount) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
+                            modifier = Modifier.size(18.dp),
                             color = Color.White,
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Deleting...", fontWeight = FontWeight.Bold, color = Color.White)
                     } else {
-                        Text("Delete Forever", fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Delete Forever", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 15.sp)
                     }
                 }
-            },
-            dismissButton = {
-                TextButton(
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedButton(
                     onClick = {
                         showDeleteAccountDialog = false
                         deleteConfirmInput = ""
+                        deleteAccountErrorMessage = null
                     },
-                    enabled = !isDeletingAccount
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isDeletingAccount,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                 }
             }
-        )
+        }
     }
 
     if (showCustomerSupportAiDialog) {

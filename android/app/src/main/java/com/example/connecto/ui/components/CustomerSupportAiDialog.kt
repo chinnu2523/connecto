@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import com.example.connecto.ui.designsystem.ConnectoModalBottomSheet
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -563,110 +565,105 @@ fun CustomerSupportAiDialog(
 @Composable
 fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ConnectoModalBottomSheet(
+        onDismissRequest = onDismiss
     ) {
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-            color = MaterialTheme.colorScheme.background
+                .fillMaxWidth()
+                .fillMaxHeight(0.90f)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Privacy Policy",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
                     }
-                    Button(
-                        onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://connecto.fun/privacy")).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Web Version", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Content
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Connecto Platform Privacy Policy",
-                        fontSize = 20.sp,
+                        text = "Privacy Policy",
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = "Last Updated: October 2026 • Version 4.6.4",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    LegalSectionItem(
-                        number = "1",
-                        title = "Zero-Knowledge End-to-End Encryption",
-                        body = "Connecto is engineered on the principle that your private conversations are yours alone. All direct messages, group chats, images, and voice payloads are encrypted on your device using AES-256-GCM before transmission. Encryption keys are generated client-side and never touch our servers or edge workers. We cannot read, analyze, or decrypt your private communications under any circumstance."
-                    )
-
-                    LegalSectionItem(
-                        number = "2",
-                        title = "Hardware Screen Protection & Admin Screenshot Policy (FLAG_SECURE)",
-                        body = "Connecto enforces WindowManager.LayoutParams.FLAG_SECURE at Android's SurfaceFlinger hardware level for all members. Only authorized administrator users are permitted to take screenshots or screen record in the application. For all other members, screenshot tools, screen recorders, and screen-sharing apps (Zoom, Discord, Meet) receive a solid black screen (#000000)."
-                    )
-
-                    LegalSectionItem(
-                        number = "3",
-                        title = "Minimal Data Collection Policy",
-                        body = "We collect only the bare minimum required to maintain your account: your chosen username, hashed credentials, and optional verified email address for Two-Factor Authentication. We do NOT track your GPS location, sell personal data to advertisers, or utilize invasive third-party analytics SDKs."
-                    )
-
-                    LegalSectionItem(
-                        number = "4",
-                        title = "Voice Channels & WebRTC Spatial Mesh",
-                        body = "Voice lounges establish direct peer-to-peer WebRTC mesh connections between participants. Audio packets are encoded with the Opus 48 kHz high-definition codec and streamed directly between devices with zero server recording or storage."
-                    )
-
-                    LegalSectionItem(
-                        number = "5",
-                        title = "Right to Total Data Purge (Account Deletion)",
-                        body = "You have the unconditional right to delete your account at any time. When you trigger 'Delete Account & Data', our database immediately purges your user profile, active sessions, message relations, and backups forever. No ghost records remain."
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
+                Button(
+                    onClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://connecto.fun/privacy")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Web Version", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Content
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Connecto Platform Privacy Policy",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Last Updated: October 2026 • Version 4.6.4",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                LegalSectionItem(
+                    number = "1",
+                    title = "Zero-Knowledge End-to-End Encryption",
+                    body = "Connecto is engineered on the principle that your private conversations are yours alone. All direct messages, group chats, images, and voice payloads are encrypted on your device using AES-256-GCM before transmission. Encryption keys are generated client-side and never touch our servers or edge workers. We cannot read, analyze, or decrypt your private communications under any circumstance."
+                )
+
+                LegalSectionItem(
+                    number = "2",
+                    title = "Hardware Screen Protection & Admin Screenshot Policy (FLAG_SECURE)",
+                    body = "Connecto enforces WindowManager.LayoutParams.FLAG_SECURE at Android's SurfaceFlinger hardware level for all members. Only authorized administrator users are permitted to take screenshots or screen record in the application. For all other members, screenshot tools, screen recorders, and screen-sharing apps (Zoom, Discord, Meet) receive a solid black screen (#000000)."
+                )
+
+                LegalSectionItem(
+                    number = "3",
+                    title = "Minimal Data Collection Policy",
+                    body = "We collect only the bare minimum required to maintain your account: your chosen username, hashed credentials, and optional verified email address for Two-Factor Authentication. We do NOT track your GPS location, sell personal data to advertisers, or utilize invasive third-party analytics SDKs."
+                )
+
+                LegalSectionItem(
+                    number = "4",
+                    title = "Voice Channels & WebRTC Spatial Mesh",
+                    body = "Voice lounges establish direct peer-to-peer WebRTC mesh connections between participants. Audio packets are encoded with the Opus 48 kHz high-definition codec and streamed directly between devices with zero server recording or storage."
+                )
+
+                LegalSectionItem(
+                    number = "5",
+                    title = "Right to Total Data Purge (Account Deletion)",
+                    body = "You have the unconditional right to delete your account at any time. When you trigger 'Delete Account & Data', our database immediately purges your user profile, active sessions, message relations, and backups forever. No ghost records remain."
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
@@ -675,110 +672,105 @@ fun PrivacyPolicyDialog(onDismiss: () -> Unit) {
 @Composable
 fun TermsOfServiceDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ConnectoModalBottomSheet(
+        onDismissRequest = onDismiss
     ) {
-        Surface(
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
-            color = MaterialTheme.colorScheme.background
+                .fillMaxWidth()
+                .fillMaxHeight(0.90f)
         ) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = onDismiss) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
-                        }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Terms of Service",
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surface)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurface)
                     }
-                    Button(
-                        onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://connecto.fun/terms")).apply {
-                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                }
-                                context.startActivity(intent)
-                            } catch (_: Exception) {}
-                        },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("Web Version", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
-                    }
-                }
-
-                // Content
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Connecto Platform Terms of Service",
-                        fontSize = 20.sp,
+                        text = "Terms of Service",
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    Text(
-                        text = "Last Updated: October 2026 • Version 4.6.4",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    LegalSectionItem(
-                        number = "1",
-                        title = "Acceptance of Terms",
-                        body = "By downloading, installing, or accessing Connecto (including the Android native application, Web platform, and Cloudflare Edge services), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may discontinue use and delete your account."
-                    )
-
-                    LegalSectionItem(
-                        number = "2",
-                        title = "Permitted & Lawful Use",
-                        body = "Connecto is provided as an open, encrypted communication platform for friends, colleagues, and developer communities. You agree not to use Connecto to distribute malware, orchestrate denial-of-service attacks, engage in targeted harassment or abuse, or violate local laws."
-                    )
-
-                    LegalSectionItem(
-                        number = "3",
-                        title = "Account Responsibility & Security",
-                        body = "You are responsible for safeguarding your login credentials and maintaining the confidentiality of your device encryption keys. We strongly recommend enabling Two-Factor Authentication (2FA) and Biometric Vault locking to safeguard your chats against unauthorized physical access."
-                    )
-
-                    LegalSectionItem(
-                        number = "4",
-                        title = "Voice Channels & Community Etiquette",
-                        body = "Participants in WebRTC spatial voice lounges and public channels are expected to maintain respectful behavior. Channel administrators retain the authority to mute, kick, or ban members who disrupt voice conversations."
-                    )
-
-                    LegalSectionItem(
-                        number = "5",
-                        title = "Service Availability & Termination",
-                        body = "We strive for 99.99% edge network uptime across our global Cloudflare and WebSocket infrastructure. We reserve the right to suspend or terminate accounts that actively abuse our network sockets. You may terminate your account at any time via Profile -> Help & Support -> Delete Account & Data."
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
+                Button(
+                    onClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://connecto.fun/terms")).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {}
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Web Version", fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // Content
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Connecto Platform Terms of Service",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Last Updated: October 2026 • Version 4.6.4",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                LegalSectionItem(
+                    number = "1",
+                    title = "Acceptance of Terms",
+                    body = "By downloading, installing, or accessing Connecto (including the Android native application, Web platform, and Cloudflare Edge services), you agree to be bound by these Terms of Service. If you do not agree to these terms, you may discontinue use and delete your account."
+                )
+
+                LegalSectionItem(
+                    number = "2",
+                    title = "Permitted & Lawful Use",
+                    body = "Connecto is provided as an open, encrypted communication platform for friends, colleagues, and developer communities. You agree not to use Connecto to distribute malware, orchestrate denial-of-service attacks, engage in targeted harassment or abuse, or violate local laws."
+                )
+
+                LegalSectionItem(
+                    number = "3",
+                    title = "Account Responsibility & Security",
+                    body = "You are responsible for safeguarding your login credentials and maintaining the confidentiality of your device encryption keys. We strongly recommend enabling Two-Factor Authentication (2FA) and Biometric Vault locking to safeguard your chats against unauthorized physical access."
+                )
+
+                LegalSectionItem(
+                    number = "4",
+                    title = "Voice Channels & Community Etiquette",
+                    body = "Participants in WebRTC spatial voice lounges and public channels are expected to maintain respectful behavior. Channel administrators retain the authority to mute, kick, or ban members who disrupt voice conversations."
+                )
+
+                LegalSectionItem(
+                    number = "5",
+                    title = "Service Availability & Termination",
+                    body = "We strive for 99.99% edge network uptime across our global Cloudflare and WebSocket infrastructure. We reserve the right to suspend or terminate accounts that actively abuse our network sockets. You may terminate your account at any time via Profile -> Help & Support -> Delete Account & Data."
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
