@@ -672,7 +672,7 @@ fun ProfileScreen(
             val body = if (prefilledBody.isNotBlank()) prefilledBody else {
                 "Hello Connecto Support Team,\n\n[Please describe your issue or inquiry here]\n\n" +
                 "--- Device & App Information ---\n" +
-                "• App Version: 4.4.8 (Build 77)\n" +
+                "• App Version: ${com.example.connecto.BuildConfig.VERSION_NAME} (Build ${com.example.connecto.BuildConfig.VERSION_CODE})\n" +
                 "• Username: @$username\n" +
                 "• Android Version: Android ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})\n" +
                 "• Device Model: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n" +
@@ -694,7 +694,7 @@ fun ProfileScreen(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
         val text = "=== CONNECTO SYSTEM DIAGNOSTICS ===\n" +
                 "App: Connecto for Android\n" +
-                "Version: v4.4.8 (Build 77)\n" +
+                "Version: v${com.example.connecto.BuildConfig.VERSION_NAME} (Build ${com.example.connecto.BuildConfig.VERSION_CODE})\n" +
                 "API Endpoint: https://connecto.fun\n" +
                 "User: @$username\n" +
                 "OS: Android ${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})\n" +
@@ -5557,11 +5557,11 @@ fun ProfileScreen(
                         val emailBody = "Issue Category: $bugReportCategory\n\n" +
                                 "User Report:\n$desc\n\n" +
                                 "--- System Diagnostics ---\n" +
-                                "App Version: 4.4.8 (Build 77)\n" +
+                                "App Version: ${com.example.connecto.BuildConfig.VERSION_NAME} (Build ${com.example.connecto.BuildConfig.VERSION_CODE})\n" +
                                 "User: @$username\n" +
                                 "Android: ${android.os.Build.VERSION.RELEASE} (API ${android.os.Build.VERSION.SDK_INT})\n" +
                                 "Model: ${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}\n"
-                        sendSupportEmail(subject = "[Bug Report - $bugReportCategory] Connecto v4.4.8", prefilledBody = emailBody)
+                        sendSupportEmail(subject = "[Bug Report - $bugReportCategory] Connecto v${com.example.connecto.BuildConfig.VERSION_NAME}", prefilledBody = emailBody)
                         showBugReportDialog = false
                         bugReportDescription = ""
                     },
