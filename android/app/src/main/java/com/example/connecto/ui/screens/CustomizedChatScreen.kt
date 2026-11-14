@@ -4188,6 +4188,9 @@ fun CustomizedChatScreen(
                                                 }
                                             }
 
+                                            // OPTIMISTIC UPDATE: Instantly remove deleted message from Compose list in 0ms
+                                            friendMessages = friendMessages.filter { it.id != msgId }
+
                                             val deletedSet = friendPrefs.getStringSet("deleted_for_me_$myUsername", emptySet())
                                                 ?.toMutableSet() ?: mutableSetOf()
                                             deletedSet.add(msgId)
@@ -5863,6 +5866,44 @@ fun CustomizedChatScreen(
                                                     },
                                                     onMessageLongPress = { targetMsg ->
                                                         selectedMessageForAction = targetMsg
+                                                    },
+                                                    onReact = { targetMsg, emoji ->
+                                                        val prevReaction = targetMsg.reaction
+                                                        val newReaction = if (prevReaction == emoji) null else emoji
+                                                        // OPTIMISTIC UPDATE: Instant 0ms Compose state update
+                                                        friendMessages = friendMessages.map { m ->
+                                                            if (m.id == targetMsg.id) m.copy(reaction = newReaction) else m
+                                                        }
+                                                        coroutineScope.launch(Dispatchers.IO) {
+                                                            try {
+                                                                dbHelper.updateMessageReaction(targetMsg.id, newReaction)
+                                                            } catch (_: Exception) {}
+                                                        }
+                                                        val targetChan = activeDmChannelId ?: (if (selectedFriend?.isGroup == true) selectedFriend!!.id else getCanonicalChatId(selectedFriend))
+                                                        coroutineScope.launch {
+                                                            try {
+                                                                val res = ConnectoApiClient.reactToMessage(
+                                                                    messageId = targetMsg.id,
+                                                                    emoji = emoji,
+                                                                    channelId = targetChan.ifBlank { null }
+                                                                )
+                                                                if (res.isFailure) {
+                                                                    friendMessages = friendMessages.map { m ->
+                                                                        if (m.id == targetMsg.id) m.copy(reaction = prevReaction) else m
+                                                                    }
+                                                                    withContext(Dispatchers.IO) {
+                                                                        dbHelper.updateMessageReaction(targetMsg.id, prevReaction)
+                                                                    }
+                                                                }
+                                                            } catch (_: Exception) {
+                                                                friendMessages = friendMessages.map { m ->
+                                                                    if (m.id == targetMsg.id) m.copy(reaction = prevReaction) else m
+                                                                }
+                                                                withContext(Dispatchers.IO) {
+                                                                    dbHelper.updateMessageReaction(targetMsg.id, prevReaction)
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 )
                                             }
@@ -6687,6 +6728,7 @@ fun CustomChatBubble(
     isSelected: Boolean = false,
     onMessageClick: (() -> Unit)? = null,
     onMessageLongPress: (CustomMessageItem) -> Unit = {},
+    onReact: ((CustomMessageItem, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showReactionPill by remember { mutableStateOf(false) }
@@ -7203,8 +7245,9 @@ fun CustomChatBubble(
                                     indication = null
                                 ) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    message.reaction = if (message.reaction == emoji) null else emoji
+                                    val chosenEmoji = emoji
                                     showReactionPill = false
+                                    onReact?.invoke(message, chosenEmoji)
                                 }
                                 .padding(3.dp)
                         )

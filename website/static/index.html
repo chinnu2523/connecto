@@ -40556,26 +40556,59 @@ html[data-theme="dark"] #saveProfileBtn {
 
     async function respondFriendRequest(reqId, senderName, accept) {
       const endpoint = accept ? '/api/friends/accept' : '/api/friends/decline';
+      const cleanSender = String(senderName || '').trim().replace(/^@/, '');
+      const prevFriends = Array.isArray(cachedFriendsList) ? [...cachedFriendsList] : [];
+
+      // OPTIMISTIC UPDATE: 0ms UI transition with fade-and-collapse
+      const cardEl = document.getElementById(`friendReqCard_${reqId}`) || document.querySelector(`[data-request-id="${reqId}"]`);
+      if (cardEl) {
+        cardEl.style.transition = 'opacity 0.2s ease, transform 0.2s ease, max-height 0.25s ease';
+        cardEl.style.opacity = '0';
+        cardEl.style.transform = 'scale(0.96)';
+        setTimeout(() => { try { cardEl.remove(); } catch (_) {} }, 220);
+      }
+
+      if (accept) {
+        if (!cachedFriendsList) cachedFriendsList = [];
+        if (!cachedFriendsList.some(f => (f.username || '').toLowerCase() === cleanSender.toLowerCase())) {
+          cachedFriendsList.unshift({
+            username: cleanSender,
+            displayName: cleanSender,
+            status: 'online',
+            avatar: '👤'
+          });
+        }
+        showNotificationToast('Alliance Forged', `You are now friends with @${cleanSender}! 🤝`);
+      } else {
+        showNotificationToast('Request Declined', `Declined friend request from @${cleanSender}.`);
+      }
+
+      if (typeof updateFriendsBadgeCount === 'function') updateFriendsBadgeCount();
+      if (typeof loadDMSidebar === 'function') loadDMSidebar();
+
       try {
         const authHeaders = { 'Content-Type': 'application/json' };
         if (typeof authToken !== 'undefined' && authToken) {
           authHeaders['Authorization'] = `Bearer ${authToken}`;
         }
-        await fetch(endpoint, {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: authHeaders,
           credentials: 'include',
           body: JSON.stringify({ request_id: reqId, sender: senderName, recipient: currentUser })
         });
-        if (accept) {
-          showNotificationToast('Alliance Forged', `You are now friends with @${senderName}! 🤝`);
-        } else {
-          showNotificationToast('Request Declined', `Declined friend request from @${senderName}.`);
+        if (!res.ok) {
+          throw new Error('Server rejected friend request action');
         }
         loadFriends();
         loadDMSidebar();
       } catch (err) {
         console.error('[FRIEND_RESPONSE_ERROR]', err);
+        // ROLLBACK on network or server error
+        cachedFriendsList = prevFriends;
+        loadFriends();
+        loadDMSidebar();
+        showNotificationToast('Action Failed', 'Could not sync friend status with server. Reverting...');
       }
     }
 
@@ -46191,10 +46224,18 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
       const target = pendingUnfriendTarget;
       if (!target) return;
       const modal = document.getElementById('unfriendConfirmModal');
-      const btn = document.getElementById('unfriendModalConfirmBtn');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm" style="display:inline-block; width:12px; height:12px; border:2px solid #fff; border-right-color:transparent; border-radius:50%; animation:spin 0.75s linear infinite; margin-right:4px;"></span> Removing...`;
+      
+      // OPTIMISTIC UPDATE: Instant 0ms modal close and UI purge with rollback
+      if (modal) modal.style.display = 'none';
+
+      const prevFriends = Array.isArray(cachedFriendsList) ? [...cachedFriendsList] : [];
+      if (Array.isArray(cachedFriendsList)) {
+        cachedFriendsList = cachedFriendsList.filter(f => (f.username || '').toLowerCase() !== target.toLowerCase());
+      }
+      if (typeof loadFriends === 'function') loadFriends();
+      if (typeof loadDMSidebar === 'function') loadDMSidebar();
+      if (typeof showNotificationToast === 'function') {
+        showNotificationToast('Friend Removed', `Unfriended @${target}. All mutual chat logs deleted.`);
       }
 
       try {
@@ -46220,13 +46261,6 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
           throw new Error(errData.detail || 'Failed to remove friend');
         }
 
-        if (modal) modal.style.display = 'none';
-
-        // 1. Remove from local friends cache
-        if (Array.isArray(cachedFriendsList)) {
-          cachedFriendsList = cachedFriendsList.filter(f => (f.username || '').toLowerCase() !== target.toLowerCase());
-        }
-
         // 2. Clear cached direct messages for this target
         if (typeof messagesMap !== 'undefined' && messagesMap) {
           Object.keys(messagesMap).forEach(k => {
@@ -46247,17 +46281,20 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
           );
         }
 
-        if (typeof showToast === 'function') {
-          showToast(`Unfriended @${target}. All mutual chat and call logs have been permanently deleted.`, 'success');
-        } else if (typeof showNotificationToast === 'function') {
-          showNotificationToast('Friend Removed', `Unfriended @${target}. Chat and call data deleted.`);
-        }
-
         // 4. Refresh lists & UI
         if (typeof loadFriends === 'function') loadFriends();
         if (typeof loadDMSidebar === 'function') loadDMSidebar();
         if (typeof loadMembersRoster === 'function') loadMembersRoster();
         if (typeof loadCallLogs === 'function') loadCallLogs();
+      } catch (err) {
+        console.error('[UNFRIEND_ROLLBACK]', err);
+        cachedFriendsList = prevFriends;
+        if (typeof loadFriends === 'function') loadFriends();
+        if (typeof loadDMSidebar === 'function') loadDMSidebar();
+        if (typeof showNotificationToast === 'function') {
+          showNotificationToast('Action Failed', 'Could not sync unfriend with server. Restoring friend...');
+        }
+      }
 
         // 5. If currently in personal chat with this user, wipe messages container
         if (currentMode === 'dm' && currentDMTarget && currentDMTarget.toLowerCase() === target.toLowerCase()) {

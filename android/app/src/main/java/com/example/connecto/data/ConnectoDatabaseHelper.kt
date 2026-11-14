@@ -844,6 +844,20 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         } catch (_: Exception) {}
     }
 
+    fun updateMessageReaction(messageId: String, reaction: String?) {
+        try {
+            val writeDb = writableDatabase
+            val cv = ContentValues().apply {
+                if (reaction != null) {
+                    put("reaction", reaction)
+                } else {
+                    putNull("reaction")
+                }
+            }
+            writeDb.update(TABLE_MESSAGES, cv, "$COL_MSG_ID = ?", arrayOf(messageId))
+        } catch (_: Exception) {}
+    }
+
     fun saveDmChannel(canonicalName: String, channelId: String) {
         val cleanId = channelId.trim().lowercase().removePrefix("#")
         val cleanName = canonicalName.trim().lowercase().removePrefix("#")

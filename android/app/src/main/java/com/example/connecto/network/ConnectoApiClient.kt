@@ -2492,6 +2492,32 @@ object ConnectoApiClient {
         }
     }
 
+    suspend fun reactToMessage(
+        messageId: String,
+        emoji: String,
+        channelId: String? = null,
+        username: String? = null,
+        token: String? = null
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            val cleanChannel = channelId?.trim()?.lowercase()?.removePrefix("#")
+            val query = if (!cleanChannel.isNullOrBlank()) "?channel_id=${java.net.URLEncoder.encode(cleanChannel, "UTF-8")}" else ""
+            val body = JSONObject().apply {
+                put("emoji", emoji)
+                put("username", (username ?: currentUsername ?: "user").trim().removePrefix("@"))
+            }
+            val res = executeRequest(
+                endpoint = "/api/messages/$messageId/react$query",
+                method = "POST",
+                body = body.toString(),
+                token = token ?: sessionToken
+            )
+            Result.success(res.isSuccess)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun deleteMessageForMe(
         messageId: String,
         username: String
