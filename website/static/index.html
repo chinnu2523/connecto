@@ -28461,8 +28461,10 @@ html[data-theme="dark"] #saveProfileBtn {
             </div>
           </div>
           <div class="connecto-header-actions">
-            <button type="button" class="connecto-header-icon-btn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            <button type="button" class="connecto-header-icon-btn" id="homeHeaderThemeToggleBtn" onclick="toggleEditorialTheme()" aria-label="Toggle Theme" title="Toggle Light / Dark Theme">
+              <span id="homeHeaderThemeToggleIcon" style="display:inline-flex; align-items:center;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              </span>
             </button>
             <button type="button" class="connecto-header-icon-btn" onclick="openAddFriendModal()" title="Add Friend">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
@@ -39651,7 +39653,7 @@ html[data-theme="dark"] #saveProfileBtn {
           }
         }
 
-        const container = document.getElementById('friendsListContainer');
+        // friendsListContainer container already declared above at line 39621
         if (!container) return;
 
         if (friendsSubTab === 'all') {
@@ -39853,7 +39855,7 @@ html[data-theme="dark"] #saveProfileBtn {
     function animateCountUp(el, target, duration = 1000, suffix = '') {
       if (!el) return;
       const start = 0;
-      const startTime = performance.now();
+      const startTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
       function update(now) {
         const elapsed = now - startTime;
@@ -40017,7 +40019,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
     // ==================== 3D PERSPECTIVE TILT & INTERACTIVE PHYSICS ====================
     function initCursorAndTiltMotion() {
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) return;
 
       const tiltCards = document.querySelectorAll('.interactive-tilt-card');
@@ -40063,7 +40065,7 @@ html[data-theme="dark"] #saveProfileBtn {
       if (canvas._initialized) return;
       canvas._initialized = true;
 
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) return;
 
       const scene = new THREE.Scene();
@@ -43643,6 +43645,7 @@ function selectSettingsAvatar(emoji, el) {
         root.setAttribute('data-theme', canonicalTheme);
         try {
           localStorage.setItem('connecto_home_theme', canonicalTheme);
+          localStorage.setItem('connecto_chakra_theme', canonicalTheme);
           if (updateUrl && window.history && window.history.replaceState) {
             const url = new URL(window.location);
             url.searchParams.set('theme', canonicalTheme);
@@ -43666,10 +43669,19 @@ function selectSettingsAvatar(emoji, el) {
             : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
         }
 
-        // Update User Profile Bar theme button tooltip
+        // Update Home Header theme quick toggle icon
+        const homeHeaderToggleIcon = document.getElementById('homeHeaderThemeToggleIcon');
+        if (homeHeaderToggleIcon) {
+          homeHeaderToggleIcon.innerHTML = canonicalTheme === 'parchment'
+            ? '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+            : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+        }
+
+        // Update User Profile Bar theme button tooltip & emoji
         const userProfileThemeBtn = document.getElementById('userProfileThemeBtn');
         if (userProfileThemeBtn) {
           userProfileThemeBtn.setAttribute('title', canonicalTheme === 'parchment' ? 'Switch to Pure Black OLED (Dark)' : 'Switch to Ivory Paper (Light)');
+          userProfileThemeBtn.innerText = canonicalTheme === 'parchment' ? '🌙' : '☀️';
         }
 
         // Synchronize Settings Modal Appearance Tab Cards & Active Pills
@@ -43709,11 +43721,15 @@ function selectSettingsAvatar(emoji, el) {
         }
       };
 
-      // Native View Transitions API for buttery smooth cross-fade theme switches
+      // Native View Transitions API for buttery smooth cross-fade theme switches with robust try/catch fallback
       if (document.startViewTransition && updateUrl) {
-        document.startViewTransition(() => {
+        try {
+          document.startViewTransition(() => {
+            applyTheme();
+          });
+        } catch (vtErr) {
           applyTheme();
-        });
+        }
       } else {
         applyTheme();
       }
@@ -43721,8 +43737,8 @@ function selectSettingsAvatar(emoji, el) {
 
     // Quick toggle helper between the two editorial themes
     function toggleEditorialTheme() {
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'parchment';
-      const targetTheme = (currentTheme === 'parchment' || currentTheme === 'light' || currentTheme === 'ivory') ? 'noir' : 'parchment';
+      const currentTheme = (document.documentElement.getAttribute('data-theme') || '').toLowerCase().trim();
+      const targetTheme = (currentTheme === 'noir' || currentTheme === 'black' || currentTheme === 'dark' || currentTheme === 'oled') ? 'parchment' : 'noir';
       setHomepageTheme(targetTheme, true);
     }
 
