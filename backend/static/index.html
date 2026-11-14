@@ -564,6 +564,315 @@
       transform: scale(0.96) !important;
     }
 
+    /* ========================================================
+       MAGIC UI & STITCH MCP: LUXURY COMPONENT SYSTEM
+       ======================================================== */
+    /* 1. Magic UI Perimeter Border Beam */
+    .magic-border-beam-wrap {
+      position: relative;
+    }
+    .magic-border-beam {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      padding: 1.5px;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      z-index: 2;
+    }
+    .magic-border-beam::after {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      aspect-ratio: 1;
+      background: conic-gradient(from 0deg, transparent 0deg, var(--chakra-cyan, #00e5ff) 45deg, var(--accent-secondary, #7c5cfc) 90deg, transparent 135deg);
+      animation: magicBeamSpin 6s linear infinite;
+    }
+    html[data-theme="parchment"] .magic-border-beam::after {
+      background: conic-gradient(from 0deg, transparent 0deg, #c2410c 45deg, #141312 90deg, transparent 135deg);
+    }
+    @keyframes magicBeamSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* 2. Magic UI Animated Shiny Text */
+    .animated-shiny-text {
+      background: linear-gradient(
+        110deg,
+        rgba(255, 255, 255, 0.45) 0%,
+        #ffffff 45%,
+        var(--chakra-cyan, #00e5ff) 50%,
+        #ffffff 55%,
+        rgba(255, 255, 255, 0.45) 100%
+      );
+      background-size: 250% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shinyTextSweep 4s ease-in-out infinite;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    html[data-theme="parchment"] .animated-shiny-text {
+      background: linear-gradient(
+        110deg,
+        #78716c 0%,
+        #141312 45%,
+        #c2410c 50%,
+        #141312 55%,
+        #78716c 100%
+      );
+      background-size: 250% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    @keyframes shinyTextSweep {
+      0%, 15% { background-position: 200% 0; }
+      85%, 100% { background-position: -200% 0; }
+    }
+
+    /* 3. Magic UI Spotlight Cards */
+    .magic-spotlight-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .magic-spotlight-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(350px circle at var(--card-mouse-x, -999px) var(--card-mouse-y, -999px), rgba(124, 92, 252, 0.14), transparent 80%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 1;
+    }
+    .magic-spotlight-card:hover::before {
+      opacity: 1;
+    }
+    html[data-theme="parchment"] .magic-spotlight-card::before {
+      background: radial-gradient(350px circle at var(--card-mouse-x, -999px) var(--card-mouse-y, -999px), rgba(217, 119, 6, 0.12), transparent 80%);
+    }
+
+    /* 4. Magic UI Shimmer Button */
+    .magic-shimmer-btn {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .magic-shimmer-btn::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 255, 255, 0.35) 45deg, transparent 90deg);
+      animation: shimmerRotate 4.5s linear infinite;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.7;
+    }
+    .magic-shimmer-btn::after {
+      content: '';
+      position: absolute;
+      inset: 1.5px;
+      background: inherit;
+      border-radius: inherit;
+      z-index: 1;
+    }
+    .magic-shimmer-btn > * {
+      position: relative;
+      z-index: 2;
+    }
+    @keyframes shimmerRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* 5. Magic UI Subtle Dot Grid Matrix */
+    .magic-dot-grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 35%, transparent 85%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 35%, transparent 85%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    html[data-theme="parchment"] .magic-dot-grid {
+      background-image: radial-gradient(rgba(20, 19, 18, 0.09) 1.2px, transparent 1.2px);
+    }
+
+    /* 6. Magic UI Luxury Floating Glass Dock */
+    .magic-dock-container {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateZ(0);
+      z-index: 99990;
+      pointer-events: auto;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    html[data-active-view="chat"] .magic-dock-container,
+    html[data-active-view="voice"] .magic-dock-container {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-50%) translateY(24px);
+    }
+    .magic-dock-glass {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      background: rgba(10, 11, 16, 0.82);
+      backdrop-filter: blur(24px) saturate(190%);
+      -webkit-backdrop-filter: blur(24px) saturate(190%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9999px;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 8px 24px -4px rgba(0, 0, 0, 0.6),
+        0 16px 40px -8px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+    html[data-theme="parchment"] .magic-dock-glass {
+      background: rgba(251, 248, 242, 0.88);
+      border-color: rgba(68, 64, 60, 0.22);
+      box-shadow:
+        0 0 0 1px rgba(68, 64, 60, 0.08),
+        0 8px 24px -4px rgba(20, 19, 18, 0.15),
+        0 16px 40px -8px rgba(20, 19, 18, 0.20);
+    }
+    .magic-dock-item {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      will-change: transform;
+    }
+    html[data-theme="parchment"] .magic-dock-item {
+      background: rgba(20, 19, 18, 0.04);
+      border-color: rgba(68, 64, 60, 0.15);
+      color: #141312;
+    }
+    .magic-dock-item:hover,
+    .magic-dock-item.active {
+      transform: scale(1.22) translateY(-6px);
+      background: rgba(124, 92, 252, 0.25);
+      border-color: rgba(124, 92, 252, 0.6);
+      box-shadow: 0 8px 20px rgba(124, 92, 252, 0.35);
+      color: #ffffff;
+      z-index: 10;
+    }
+    html[data-theme="parchment"] .magic-dock-item:hover,
+    html[data-theme="parchment"] .magic-dock-item.active {
+      background: rgba(20, 19, 18, 0.12);
+      border-color: rgba(20, 19, 18, 0.4);
+      box-shadow: 0 8px 20px rgba(20, 19, 18, 0.18);
+      color: #141312;
+    }
+    .magic-dock-item:active {
+      transform: scale(1.02) translateY(-2px);
+    }
+    .magic-dock-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+    }
+    .magic-dock-tooltip {
+      position: absolute;
+      top: -36px;
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      padding: 4px 9px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.95);
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    }
+    html[data-theme="parchment"] .magic-dock-tooltip {
+      background: #141312;
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .magic-dock-item:hover .magic-dock-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .magic-dock-divider {
+      width: 1px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.12);
+      margin: 0 2px;
+    }
+    html[data-theme="parchment"] .magic-dock-divider {
+      background: rgba(68, 64, 60, 0.2);
+    }
+    .magic-dock-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      padding: 1px 5px;
+      font-size: 8px;
+      font-weight: 800;
+      border-radius: 9999px;
+      background: #00e5ff;
+      color: #06080e;
+      letter-spacing: 0.04em;
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+    }
+    html[data-theme="parchment"] .magic-dock-badge {
+      background: #141312;
+      color: #ffffff;
+      box-shadow: 0 0 6px rgba(20, 19, 18, 0.3);
+    }
+    @media (max-width: 640px) {
+      .magic-dock-container {
+        bottom: 12px;
+      }
+      .magic-dock-glass {
+        padding: 6px 10px;
+        gap: 6px;
+      }
+      .magic-dock-item {
+        width: 36px;
+        height: 36px;
+      }
+      .magic-dock-icon {
+        width: 17px;
+        height: 17px;
+      }
+      .magic-dock-tooltip {
+        display: none;
+      }
+    }
+
     /* Atmospheric After Effects: Ambient Aurora Depth Mesh */
     .aurora-mesh {
       position: fixed;
@@ -27053,8 +27362,10 @@ html[data-theme="dark"] #saveProfileBtn {
         </nav>
       </div>
 
-      <!-- High-Performance Static Official Background Mesh -->
-      <div class="hero-official-bg"></div>
+      <!-- High-Performance Static Official Background Mesh with Magic UI Dot Grid -->
+      <div class="hero-official-bg">
+        <div class="magic-dot-grid" aria-hidden="true"></div>
+      </div>
 
       <div class="hero-container">
         
@@ -27064,12 +27375,12 @@ html[data-theme="dark"] #saveProfileBtn {
             <h1 class="hero-official-title">Connecting <em>people,</em> <span class="hero-editorial-sub">simply.</span></h1>
             <p class="hero-official-desc">Understated, distraction-free communication. High-speed real-time messaging, clear spatial voice lounges, and private circles engineered with zero-knowledge cryptography.</p>
             <div class="hero-pill-badges-row">
-              <span class="hero-pill-badge"><i data-lucide="feather" class="lucide-sm"></i> Distraction-Free</span>
-              <span class="hero-pill-badge"><i data-lucide="shield" class="lucide-sm"></i> Zero-Knowledge</span>
-              <span class="hero-pill-badge"><i data-lucide="radio" class="lucide-sm"></i> Mesh Voice</span>
+              <span class="hero-pill-badge animated-shiny-text"><i data-lucide="feather" class="lucide-sm"></i> Distraction-Free</span>
+              <span class="hero-pill-badge animated-shiny-text"><i data-lucide="shield" class="lucide-sm"></i> Zero-Knowledge</span>
+              <span class="hero-pill-badge animated-shiny-text"><i data-lucide="radio" class="lucide-sm"></i> Mesh Voice</span>
             </div>
             <div class="hero-cta-buttons-row">
-              <button class="btn hero-cta-btn-primary" onclick="switchMainView('home')"><span>Open Home Dashboard</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
+              <button class="btn hero-cta-btn-primary magic-shimmer-btn" onclick="switchMainView('home')"><span>Open Home Dashboard</span> <i data-lucide="arrow-right" class="lucide-sm"></i></button>
               <button class="btn hero-cta-btn-secondary" onclick="switchMainView('chat')"><span>Open Live Chat</span> <i data-lucide="message-square" class="lucide-sm"></i></button>
               <button class="btn hero-cta-btn-secondary" onclick="scrollToHeroSection('ecosystemSection')"><span>Explore Architecture</span> <i data-lucide="arrow-down" class="lucide-sm"></i></button>
             </div>
@@ -27078,9 +27389,9 @@ html[data-theme="dark"] #saveProfileBtn {
           <!-- HIGH-TEXTURE MOTION CHAT WINDOW WITH 3D SPATIAL STAGE -->
           <div class="hero-spatial-stage" id="heroSpatialStage" style="flex-direction:column; align-items:center; position:relative;">
             <canvas id="hero3dCanvas" class="hero-3d-bg-canvas" aria-hidden="true"></canvas>
-            <div class="chat-mockup-card interactive-tilt-card" id="heroChatMockup">
-              <!-- After Effects Continuous Perimeter Laser Beam -->
-              <div class="ae-border-beam" aria-hidden="true"></div>
+            <div class="chat-mockup-card interactive-tilt-card magic-spotlight-card magic-border-beam-wrap" id="heroChatMockup">
+              <!-- Magic UI Perimeter Light Beam -->
+              <div class="magic-border-beam" aria-hidden="true"></div>
               <div class="mock-win-header">
                 <div class="mock-win-controls">
                   <span class="win-dot red"></span>
@@ -27200,7 +27511,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <div class="stats-section-asym scroll-reveal-3d spatial-3d-section" id="statsSection">
           
           <!-- Tab 1: Connected People -->
-          <div class="stat-item stat-tab-card" onclick="switchMainView('chat')" role="button" tabindex="0" title="Join Connected Friends in Community Chat" style="--stat-accent: #00D9F5; --stat-glow: rgba(0, 217, 245, 0.35);">
+          <div class="stat-item stat-tab-card magic-spotlight-card" onclick="switchMainView('chat')" role="button" tabindex="0" title="Join Connected Friends in Community Chat" style="--stat-accent: #00D9F5; --stat-glow: rgba(0, 217, 245, 0.35);">
             <div class="stat-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00D9F5);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(0, 217, 245, 0.1); border-color: rgba(0, 217, 245, 0.3); color: #00D9F5;">
@@ -27220,7 +27531,7 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <!-- Tab 2: Messages Sent -->
-          <div class="stat-item stat-tab-card" onclick="switchMainView('chat')" role="button" tabindex="0" title="Send Instant Encrypted Messages" style="--stat-accent: #3b82f6; --stat-glow: rgba(59, 130, 246, 0.35);">
+          <div class="stat-item stat-tab-card magic-spotlight-card" onclick="switchMainView('chat')" role="button" tabindex="0" title="Send Instant Encrypted Messages" style="--stat-accent: #3b82f6; --stat-glow: rgba(59, 130, 246, 0.35);">
             <div class="stat-top-accent" style="background: linear-gradient(90deg, #3b82f6, #6366f1);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6;">
@@ -27238,7 +27549,7 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <!-- Tab 3: Always-On Voice Lounges -->
-          <div class="stat-item stat-tab-card" onclick="switchMainView('voice')" role="button" tabindex="0" title="Drop Into Always-On Voice Lounges" style="--stat-accent: #10b981; --stat-glow: rgba(16, 185, 129, 0.35);">
+          <div class="stat-item stat-tab-card magic-spotlight-card" onclick="switchMainView('voice')" role="button" tabindex="0" title="Drop Into Always-On Voice Lounges" style="--stat-accent: #10b981; --stat-glow: rgba(16, 185, 129, 0.35);">
             <div class="stat-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981;">
@@ -27259,7 +27570,7 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <!-- Tab 4: Security Labs -->
-          <div class="stat-item stat-tab-card" onclick="switchMainView('learning'); setTimeout(() => loadTrackWorkspace('soc'), 80);" role="button" tabindex="0" title="Practice in Hands-On Security & Protocol Labs (SOC, SIEM, Packet Forensics, Incident Response)" style="--stat-accent: #f59e0b; --stat-glow: rgba(245, 158, 11, 0.35);">
+          <div class="stat-item stat-tab-card magic-spotlight-card" onclick="switchMainView('learning'); setTimeout(() => loadTrackWorkspace('soc'), 80);" role="button" tabindex="0" title="Practice in Hands-On Security & Protocol Labs (SOC, SIEM, Packet Forensics, Incident Response)" style="--stat-accent: #f59e0b; --stat-glow: rgba(245, 158, 11, 0.35);">
             <div class="stat-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">
@@ -27276,7 +27587,7 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <!-- Tab 5: Global Latency -->
-          <div class="stat-item stat-tab-card" onclick="document.getElementById('architectureSection')?.scrollIntoView({behavior:'smooth'})" role="button" tabindex="0" title="Inspect High-Throughput Async Architecture" style="--stat-accent: #a855f7; --stat-glow: rgba(168, 85, 247, 0.35);">
+          <div class="stat-item stat-tab-card magic-spotlight-card" onclick="document.getElementById('architectureSection')?.scrollIntoView({behavior:'smooth'})" role="button" tabindex="0" title="Inspect High-Throughput Async Architecture" style="--stat-accent: #a855f7; --stat-glow: rgba(168, 85, 247, 0.35);">
             <div class="stat-top-accent" style="background: linear-gradient(90deg, #a855f7, #8b5cf6);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(168, 85, 247, 0.1); border-color: rgba(168, 85, 247, 0.3); color: #a855f7;">
@@ -27292,7 +27603,7 @@ html[data-theme="dark"] #saveProfileBtn {
           </div>
 
           <!-- Tab 6: Zero Paywalls -->
-          <div class="stat-item stat-tab-card" onclick="openAuthModal('register')" role="button" tabindex="0" title="Create Free Account - 100% Free Forever" style="--stat-accent: #14b8a6; --stat-glow: rgba(20, 184, 166, 0.35);">
+          <div class="stat-item stat-tab-card magic-spotlight-card" onclick="openAuthModal('register')" role="button" tabindex="0" title="Create Free Account - 100% Free Forever" style="--stat-accent: #14b8a6; --stat-glow: rgba(20, 184, 166, 0.35);">
             <div class="stat-top-accent" style="background: linear-gradient(90deg, #14b8a6, #0d9488);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(20, 184, 166, 0.1); border-color: rgba(20, 184, 166, 0.3); color: #14b8a6;">
@@ -27319,9 +27630,10 @@ html[data-theme="dark"] #saveProfileBtn {
 
           <div class="android-showcase-grid">
             <!-- Left: Specs & Features Bento -->
-            <div class="android-showcase-card-left interactive-tilt-card">
+            <div class="android-showcase-card-left interactive-tilt-card magic-spotlight-card magic-border-beam-wrap">
+              <div class="magic-border-beam" aria-hidden="true"></div>
               <div class="android-release-tag-row">
-                <span class="android-release-badge" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399;"><span class="pulse-emerald-dot" style="background:#10b981;"></span> <span class="apk-version-val">v4.6.34</span> 24/7 AI SUPPORT &amp; LEGAL SUITE (BUILD 119)</span>
+                <span class="android-release-badge animated-shiny-text" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399;"><span class="pulse-emerald-dot" style="background:#10b981;"></span> <span class="apk-version-val">v4.6.34</span> 24/7 AI SUPPORT &amp; LEGAL SUITE (BUILD 119)</span>
                 <span class="android-release-device-chip"><i data-lucide="smartphone" class="lucide-xs"></i> Android 7.0 to 16+ (POCO / HyperOS Verified)</span>
                 <span class="android-release-device-chip" style="border-color:rgba(16,185,129,0.3); color:#10b981;"><i data-lucide="shield-check" class="lucide-xs"></i> Touch-Scroll Isolation Hardened</span>
               </div>
@@ -27428,7 +27740,7 @@ html[data-theme="dark"] #saveProfileBtn {
               </div>
 
               <div class="android-cta-row">
-                <a href="/download/apk" download="connecto-fun.apk" class="android-primary-download-btn">
+                <a href="/download/apk" download="connecto-fun.apk" class="android-primary-download-btn magic-shimmer-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   <span>Download Connecto APK (<span class="apk-size-val">36.1 MB</span>)</span>
                 </a>
@@ -27570,9 +27882,10 @@ html[data-theme="dark"] #saveProfileBtn {
 
           <div class="android-showcase-grid">
             <!-- Left: Overview & Details Bento -->
-            <div class="android-showcase-card-left interactive-tilt-card" style="border-color: rgba(56, 189, 248, 0.3);">
+            <div class="android-showcase-card-left interactive-tilt-card magic-spotlight-card magic-border-beam-wrap" style="border-color: rgba(56, 189, 248, 0.3);">
+              <div class="magic-border-beam" aria-hidden="true"></div>
               <div class="android-release-tag-row">
-                <span class="android-release-badge" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">
+                <span class="android-release-badge animated-shiny-text" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">
                   <span class="pulse-emerald-dot" style="background:#38bdf8;"></span> v1.8.1 (Build 38) • Standalone Client
                 </span>
                 <span class="android-release-device-chip" style="border-color:rgba(56,189,248,0.3); color:#38bdf8;"><i data-lucide="cpu" class="lucide-xs"></i> Native PackageInstaller IPC</span>
@@ -27648,7 +27961,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
               <!-- Download Action Row -->
               <div class="android-cta-row" style="margin-top:20px;">
-                <a href="/downloads/our-store.apk" download="our-store.apk" class="android-primary-download-btn" style="background:linear-gradient(135deg, #2563eb, #0284c7); border-color:#38bdf8;">
+                <a href="/downloads/our-store.apk" download="our-store.apk" class="android-primary-download-btn magic-shimmer-btn" style="background:linear-gradient(135deg, #2563eb, #0284c7); border-color:#38bdf8;">
                   <i data-lucide="download" class="lucide-sm"></i>
                   <span>Download Our Store APK (v1.8.1 • 17.5 MB)</span>
                 </a>
@@ -31921,6 +32234,10 @@ html[data-theme="dark"] #saveProfileBtn {
     function switchMainView(view) {
       if (typeof updateConnectoMobileDock === 'function') updateConnectoMobileDock(view);
       closeAllMobileDrawers();
+      document.documentElement.setAttribute('data-active-view', view || 'hero');
+      document.querySelectorAll('.magic-dock-item').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-dock-view') === view);
+      });
       if (view) {
         localStorage.setItem('connecto_last_view', view);
       }
@@ -43684,6 +44001,18 @@ function selectSettingsAvatar(emoji, el) {
           userProfileThemeBtn.innerText = canonicalTheme === 'parchment' ? '🌙' : '☀️';
         }
 
+        // Update Magic UI Floating Dock theme quick toggle icon
+        const magicDockThemeIcon = document.getElementById('magicDockThemeIcon');
+        const magicDockThemeBtn = document.getElementById('magicDockThemeBtn');
+        if (magicDockThemeIcon) {
+          magicDockThemeIcon.innerHTML = canonicalTheme === 'parchment'
+            ? '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'
+            : '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+        }
+        if (magicDockThemeBtn) {
+          magicDockThemeBtn.setAttribute('title', canonicalTheme === 'parchment' ? 'Switch to Pure Black OLED (Dark)' : 'Switch to Ivory Paper (Light)');
+        }
+
         // Synchronize Settings Modal Appearance Tab Cards & Active Pills
         const allThemes = [
           { id: 'parchment', pillId: 'themePillParchment', cardId: 'themeCardParchment', activeBorder: '#141312', shadow: '0 0 0 1px #141312, 0 8px 24px rgba(20,19,18,0.12)', inactiveBorder: 'rgba(68,64,60,0.15)' },
@@ -46959,7 +47288,7 @@ function hangupVoiceLounge() {
       }
     }, true);
 
-    // Interactive Cursor Spotlight & Card Specular Lighting Engine (After Effects Layer)
+    // Interactive Cursor Spotlight & Card Specular Lighting Engine (Magic UI & Stitch MCP Layer)
     (function initSpotlightMotion() {
       const root = document.documentElement;
       let rafId = null;
@@ -46970,16 +47299,81 @@ function hangupVoiceLounge() {
           root.style.setProperty('--mouse-x', `${e.clientX}px`);
           root.style.setProperty('--mouse-y', `${e.clientY}px`);
 
-          const targetCard = e.target.closest('.ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .arch-node, .final-cta-card');
+          const targetCard = e.target.closest('.ecosystem-card, .usecase-card, .step-card-custom, .comparison-card, .bento-card, .arch-node, .final-cta-card, .stat-item, .android-showcase-card-left, .our-store-card, .chat-mockup-card, .theme-selection-card, .magic-spotlight-card');
           if (targetCard) {
             const rect = targetCard.getBoundingClientRect();
             targetCard.style.setProperty('--card-left', `${rect.left}px`);
             targetCard.style.setProperty('--card-top', `${rect.top}px`);
+            targetCard.style.setProperty('--card-mouse-x', `${e.clientX - rect.left}px`);
+            targetCard.style.setProperty('--card-mouse-y', `${e.clientY - rect.top}px`);
           }
         });
       }, { passive: true });
+
+      // Magic UI Number Ticker for Telemetry Stats
+      (function initStatsNumberTicker() {
+        const statsSection = document.getElementById('statsSection');
+        if (!statsSection || !('IntersectionObserver' in window)) return;
+        let hasAnimated = false;
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting && !hasAnimated) {
+              hasAnimated = true;
+              if (typeof animateCountUp === 'function') {
+                animateCountUp(document.getElementById('statShinobi'), 28, 1200, '+');
+                animateCountUp(document.getElementById('statMessages'), 142, 1400, '+');
+                animateCountUp(document.getElementById('statLabs'), 15, 1000, '+');
+              }
+            }
+          });
+        }, { threshold: 0.2 });
+        observer.observe(statsSection);
+      })();
     })();
   })();
   </script>
+
+  <!-- MAGIC UI LUXURY FLOATING GLASS DOCK (STITCH & MAGICUI CONNECTOR ENGINE) -->
+  <aside class="magic-dock-container" id="magicFloatingDock" aria-label="Quick Action Dock">
+    <div class="magic-dock-glass">
+      <button class="magic-dock-item active" data-dock-view="hero" onclick="switchMainView('hero')" title="Explore Connecto" aria-label="Explore Connecto">
+        <span class="magic-dock-icon"><i data-lucide="sparkles"></i></span>
+        <span class="magic-dock-tooltip">Explore</span>
+      </button>
+      <button class="magic-dock-item" data-dock-view="home" onclick="switchMainView('home')" title="Home Dashboard" aria-label="Home Dashboard">
+        <span class="magic-dock-icon"><i data-lucide="home"></i></span>
+        <span class="magic-dock-tooltip">Dashboard</span>
+      </button>
+      <button class="magic-dock-item" data-dock-view="chat" onclick="switchMainView('chat')" title="Live Community Chat" aria-label="Live Community Chat">
+        <span class="magic-dock-icon"><i data-lucide="message-square"></i></span>
+        <span class="magic-dock-tooltip">Live Chat</span>
+      </button>
+      <button class="magic-dock-item" data-dock-view="voice" onclick="switchMainView('voice')" title="Spatial Voice Lounges" aria-label="Spatial Voice Lounges">
+        <span class="magic-dock-icon"><i data-lucide="radio"></i></span>
+        <span class="magic-dock-tooltip">Spatial Voice</span>
+      </button>
+      <div class="magic-dock-divider" aria-hidden="true"></div>
+      <button class="magic-dock-item magic-dock-store-item" onclick="scrollToHeroSection('ourStoreSection')" title="Our Store APKs" aria-label="Our Store APKs">
+        <span class="magic-dock-icon"><i data-lucide="shopping-bag"></i></span>
+        <span class="magic-dock-badge">APK</span>
+        <span class="magic-dock-tooltip">Our Store</span>
+      </button>
+      <button class="magic-dock-item" data-dock-view="learning" onclick="switchMainView('learning')" title="SOC Security Labs" aria-label="SOC Security Labs">
+        <span class="magic-dock-icon"><i data-lucide="shield"></i></span>
+        <span class="magic-dock-tooltip">SOC Labs</span>
+      </button>
+      <div class="magic-dock-divider" aria-hidden="true"></div>
+      <button class="magic-dock-item magic-dock-theme-item" id="magicDockThemeBtn" onclick="toggleEditorialTheme()" title="Toggle Theme" aria-label="Toggle Theme">
+        <span class="magic-dock-icon" id="magicDockThemeIcon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </span>
+        <span class="magic-dock-tooltip">Switch Theme</span>
+      </button>
+      <button class="magic-dock-item" onclick="openSettingsModal()" title="Preferences & Account" aria-label="Preferences">
+        <span class="magic-dock-icon"><i data-lucide="settings"></i></span>
+        <span class="magic-dock-tooltip">Settings</span>
+      </button>
+    </div>
+  </aside>
 </body>
 </html>
