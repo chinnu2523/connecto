@@ -151,6 +151,7 @@ import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -533,6 +534,7 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
     )
 )
 
+@Immutable
 data class FriendItem(
     val id: String,
     val name: String,
@@ -542,7 +544,7 @@ data class FriendItem(
     val bio: String,
     val lastMessage: String,
     val timeAgo: String = "10:14 AM",
-    var unreadCount: Int = 0,
+    val unreadCount: Int = 0,
     val isOnline: Boolean = false,
     val avatarUrl: String? = null,
     val bannerUrl: String? = null,
@@ -4821,10 +4823,11 @@ fun CustomizedChatScreen(
                             }
                             Text(
                                 text = titleText,
-                                fontSize = 11.sp,
+                                fontSize = 11.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                letterSpacing = 0.8.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                                modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 2.dp)
                             )
                         }
 
@@ -4946,7 +4949,11 @@ fun CustomizedChatScreen(
                             }
                         }
 
-                        itemsIndexed(filteredFriends, key = { _, friend -> friend.id }) { index, friend ->
+                        itemsIndexed(
+                            filteredFriends,
+                            key = { _, friend -> friend.id },
+                            contentType = { _, _ -> "conversation_row" }
+                        ) { index, friend ->
                             val userPrefix = myUsername.lowercase()
                             val isFriendLocked = friendPrefs.getBoolean("${userPrefix}_chat_locked_${friend.id}", false) || friendPrefs.getBoolean("${userPrefix}_chat_locked_${friend.handle.trim().lowercase().removePrefix("@")}", false)
                             val isUnlocked = unlockedLockedFriends.contains(friend.id)
@@ -5044,9 +5051,9 @@ fun CustomizedChatScreen(
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = RoundedCornerShape(18.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                                    border = BorderStroke(0.8.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                                 ) {
                                     Row(
                                         modifier = Modifier

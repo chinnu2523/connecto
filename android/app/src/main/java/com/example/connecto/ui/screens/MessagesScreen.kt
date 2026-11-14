@@ -42,6 +42,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -70,6 +71,7 @@ import com.example.connecto.ui.theme.TypingIndicatorDots
 import com.example.connecto.ui.theme.glassmorphicCard
 import com.example.connecto.ui.theme.pressScaleEffect
 
+@Immutable
 data class ConversationItem(
     val id: Int,
     val name: String,
@@ -79,6 +81,7 @@ data class ConversationItem(
     val isOnline: Boolean
 )
 
+@Immutable
 data class ChatMessage(
     val sender: String,
     val text: String,

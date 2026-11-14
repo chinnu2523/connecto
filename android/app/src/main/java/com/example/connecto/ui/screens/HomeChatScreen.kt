@@ -34,6 +34,7 @@ import com.example.connecto.ui.theme.getContentColorOnAccentGradient
 import com.example.connecto.ui.theme.getDynamicAccentGradientColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
@@ -100,6 +101,11 @@ import com.example.connecto.network.FriendshipDto
 import com.example.connecto.network.NotificationDto
 import com.example.connecto.ui.components.AddFriendDialog
 import com.example.connecto.ui.components.ConnectoTopHeader
+import androidx.compose.runtime.Immutable
+import com.example.connecto.ui.designsystem.ConnectoSettingsSection
+import com.example.connecto.ui.designsystem.ConnectoSettingsCard
+import com.example.connecto.ui.designsystem.ConnectoSettingsRow
+import com.example.connecto.ui.designsystem.ConnectoSettingsDivider
 import com.example.connecto.ui.designsystem.ConnectoAvatar
 import com.example.connecto.ui.designsystem.ConnectoAvatarSize
 import com.example.connecto.ui.designsystem.ConnectoBadge
@@ -135,6 +141,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Calendar
 
+@Immutable
 data class RecentConversationItem(
     val id: String,
     val name: String,
@@ -1017,98 +1024,50 @@ fun HomeChatScreen(
                 }
 
                 // 5. Workspace Channels Directory
-                item {
+                item(key = "section_workspace_channels") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.sm)
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Workspace Channels",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = colors.textPrimary
-                            )
-                            Text(
-                                text = "View All",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = colors.primary,
-                                modifier = Modifier.clickable { onNavigateToChannel?.invoke("general") ?: onNavigateToMessages() }
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
-
-                        if (channels.isEmpty() && isLoadingDashboard) {
-                            androidx.compose.foundation.layout.Column(
-                                verticalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                repeat(3) {
-                                    ShimmerChannelItem()
+                        ConnectoSettingsSection(title = "Workspace Channels") {
+                            if (channels.isEmpty() && isLoadingDashboard) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    repeat(3) { ShimmerChannelItem() }
                                 }
-                            }
-                        } else if (filteredChannels.isEmpty() && searchQuery.isNotEmpty()) {
-                            Text(
-                                text = "No channels matching \"" + searchQuery + "\"",
-                                fontSize = 13.sp,
-                                color = colors.textSecondary,
-                                modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
-                            )
-                        } else {
-                            val displayedChannels = filteredChannels.take(if (searchQuery.isNotEmpty()) 10 else 4)
-                            Column(modifier = Modifier.fillMaxWidth()) {
+                            } else if (filteredChannels.isEmpty() && searchQuery.isNotEmpty()) {
+                                Text(
+                                    text = "No channels matching \"$searchQuery\"",
+                                    fontSize = 13.sp,
+                                    color = colors.textSecondary,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            } else {
+                                val displayedChannels = filteredChannels.take(if (searchQuery.isNotEmpty()) 10 else 4)
                                 displayedChannels.forEachIndexed { index, ch ->
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                            .clickable {
-                                                onNavigateToChannel?.invoke(ch.name) ?: onNavigateToMessages()
-                                            }
-                                            .padding(vertical = 10.dp, horizontal = ConnectoSpacing.xs),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Tag,
-                                            contentDescription = null,
-                                            tint = colors.textSecondary,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "#${ch.name}",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = colors.textPrimary
-                                            )
-                                            Text(
-                                                text = when (ch.name.trim().lowercase().removePrefix("#")) {
-                                                    "general" -> "Team announcements and general chat"
-                                                    "announcements" -> "Official updates and releases"
-                                                    "dev-chat", "dev-talk" -> "Engineering, architecture and code"
-                                                    "gaming" -> "Casual discussion, lounge and off-topic"
-                                                    "war-room" -> "Tactical briefings & threat intelligence"
-                                                    "tournaments" -> "Free Fire esports tournaments & matches"
-                                                    "clips" -> "Community gaming highlights & clutches"
-                                                    "voice-lounge" -> "Voice & screen sharing lounge"
-                                                    else -> "Discussions and shared resources"
-                                                },
-                                                fontSize = 12.sp,
-                                                color = colors.textSecondary,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
+                                    val desc = when (ch.name.trim().lowercase().removePrefix("#")) {
+                                        "general" -> "Team announcements and general chat"
+                                        "announcements" -> "Official updates and releases"
+                                        "dev-chat", "dev-talk" -> "Engineering, architecture and code"
+                                        "gaming" -> "Casual discussion, lounge and off-topic"
+                                        "war-room" -> "Tactical briefings & threat intelligence"
+                                        "tournaments" -> "Free Fire esports tournaments & matches"
+                                        "clips" -> "Community gaming highlights & clutches"
+                                        "voice-lounge" -> "Voice & screen sharing lounge"
+                                        else -> "Discussions and shared resources"
                                     }
+                                    ConnectoSettingsRow(
+                                        title = "#${ch.name}",
+                                        subtitle = desc,
+                                        icon = Icons.Default.Tag,
+                                        onClick = { onNavigateToChannel?.invoke(ch.name) ?: onNavigateToMessages() },
+                                        showChevron = true
+                                    )
                                     if (index < displayedChannels.size - 1) {
-                                        ConnectoDivider(thickness = 0.5.dp)
+                                        ConnectoSettingsDivider(startIndent = 58.dp)
                                     }
                                 }
                             }
@@ -1117,89 +1076,44 @@ fun HomeChatScreen(
                 }
 
                 // 6. Favourites List Only (No groups or non-favourite friends on Home tab)
-                item {
+                item(key = "section_favourites") {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = ConnectoSpacing.md, vertical = ConnectoSpacing.sm)
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Favourites",
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = colors.textPrimary
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Default.Star,
-                                    contentDescription = null,
-                                    tint = Color(0xFFFFB800),
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = if (favouriteUsernames.isNotEmpty()) "Edit (${favouriteUsernames.size}/5)" else "★ Select Favourites",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.primary,
-                                    modifier = Modifier
-                                        .clickable { isFavouritesDialogOpen = true }
-                                        .padding(end = 12.dp)
-                                )
-                                Text(
-                                    text = "All Messages",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = colors.primary,
-                                    modifier = Modifier.clickable { onNavigateToMessages() }
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
-
-                        if (favouriteUsernames.isNotEmpty()) {
-                            if (displayedFavourites.isEmpty() && isLoadingDashboard) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    repeat(3) {
-                                        ShimmerConversationItem()
+                        ConnectoSettingsSection(title = "Favourites & Pinned") {
+                            if (favouriteUsernames.isNotEmpty()) {
+                                if (displayedFavourites.isEmpty() && isLoadingDashboard) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        repeat(3) { ShimmerConversationItem() }
                                     }
-                                }
-                            } else if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
-                                Text(
-                                    text = "No favourites matching \"$searchQuery\"",
-                                    fontSize = 13.sp,
-                                    color = colors.textSecondary,
-                                    modifier = Modifier.padding(vertical = ConnectoSpacing.xs)
-                                )
-                            } else {
-                                Column(modifier = Modifier.fillMaxWidth()) {
+                                } else if (displayedFavourites.isEmpty() && searchQuery.isNotEmpty()) {
+                                    Text(
+                                        text = "No favourites matching \"$searchQuery\"",
+                                        fontSize = 13.sp,
+                                        color = colors.textSecondary,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                } else {
                                     displayedFavourites.forEachIndexed { index, convo ->
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clip(RoundedCornerShape(ConnectoRadius.sm))
                                                 .clickable { onOpenConversation(convo) }
-                                                .padding(vertical = 8.dp, horizontal = ConnectoSpacing.xs),
+                                                .padding(horizontal = 16.dp, vertical = 12.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             ConnectoAvatar(
                                                 name = convo.name,
                                                 avatarUrl = convo.avatarUrl,
-                                                size = ConnectoAvatarSize.MD,
+                                                size = ConnectoAvatarSize.SM,
                                                 status = if (convo.isOnline) ConnectoPresenceStatus.ONLINE else ConnectoPresenceStatus.OFFLINE
                                             )
-                                            Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                            Spacer(modifier = Modifier.width(14.dp))
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Row(
                                                     modifier = Modifier.fillMaxWidth(),
@@ -1212,7 +1126,7 @@ fun HomeChatScreen(
                                                     ) {
                                                         Text(
                                                             text = convo.name,
-                                                            fontSize = 14.sp,
+                                                            fontSize = 14.5.sp,
                                                             fontWeight = FontWeight.SemiBold,
                                                             color = colors.textPrimary,
                                                             maxLines = 1,
@@ -1226,11 +1140,11 @@ fun HomeChatScreen(
                                                             modifier = Modifier.size(13.dp)
                                                         )
                                                     }
-                                                    Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+                                                    Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
                                                         text = convo.timestamp,
-                                                        fontSize = 11.sp,
-                                                        color = colors.textDisabled
+                                                        fontSize = 11.5.sp,
+                                                        color = colors.textSecondary
                                                     )
                                                 }
                                                 Spacer(modifier = Modifier.height(2.dp))
@@ -1252,55 +1166,39 @@ fun HomeChatScreen(
                                                     }
                                                 }
                                             }
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = if (colors.isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
+                                                modifier = Modifier.size(17.dp)
+                                            )
                                         }
                                         if (index < displayedFavourites.size - 1) {
-                                            ConnectoDivider(thickness = 0.5.dp)
+                                            ConnectoSettingsDivider(startIndent = 58.dp)
                                         }
                                     }
                                 }
 
                                 if (favouriteUsernames.size < 5) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(top = ConnectoSpacing.xs)
-                                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                            .background(colors.surfaceVariant.copy(alpha = 0.5f))
-                                            .border(
-                                                1.dp,
-                                                colors.primary.copy(alpha = 0.25f),
-                                                RoundedCornerShape(ConnectoRadius.sm)
-                                            )
-                                            .clickable { isFavouritesDialogOpen = true }
-                                            .padding(vertical = 10.dp, horizontal = ConnectoSpacing.md),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null,
-                                            tint = colors.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Add More Favourites (${favouriteUsernames.size}/5)",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = colors.primary
-                                        )
-                                    }
+                                    ConnectoSettingsDivider(startIndent = 16.dp)
+                                    ConnectoSettingsRow(
+                                        title = "Add Favourite",
+                                        subtitle = "Quickly pin up to 5 close friends",
+                                        icon = Icons.Default.Add,
+                                        onClick = { isFavouritesDialogOpen = true },
+                                        showChevron = true
+                                    )
                                 }
+                            } else {
+                                ConnectoSettingsRow(
+                                    title = "★ Select Favourite Friends",
+                                    subtitle = "Pin up to 5 friends for quick 1-tap chats",
+                                    icon = Icons.Default.Star,
+                                    onClick = { isFavouritesDialogOpen = true },
+                                    showChevron = true
+                                )
                             }
-                        } else {
-                            // Favourites list is empty: Show only the dedicated favourites empty state. Never show groups or friends!
-                            ConnectoEmptyState(
-                                title = "No Favourites Added",
-                                description = "Star your favourite contacts to quickly message or call them directly from Home.",
-                                icon = Icons.Default.Star,
-                                actionText = "★ Select Favourites",
-                                onActionClick = { isFavouritesDialogOpen = true }
-                            )
                         }
                     }
                 }

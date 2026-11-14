@@ -140,44 +140,19 @@ fun ConnectoTopHeader(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = if (colors.isLiquidGlass) {
-                        val alpha = colors.glassAlpha
-                        if (alpha <= 0.005f) {
-                            listOf(Color.Transparent, Color.Transparent)
-                        } else {
-                            listOf(
-                                Color.White.copy(alpha = (alpha * 0.35f).coerceIn(0.02f, 0.45f)),
-                                Color.White.copy(alpha = (alpha * 0.15f).coerceIn(0.01f, 0.25f))
-                            )
-                        }
-                    } else {
-                        listOf(
-                            if (!colors.isDark) Color.White.copy(alpha = 0.65f) else Color.White.copy(alpha = 0.12f),
-                            colors.surface.copy(alpha = if (!colors.isDark) 0.50f else 0.16f)
-                        )
-                    }
-                )
-            )
             .then(
                 if (colors.isLiquidGlass) {
-                    val rimAlpha = if (colors.glassAlpha <= 0.005f) 0.50f else (0.60f - colors.glassAlpha * 0.20f).coerceIn(0.25f, 0.65f)
-                    Modifier.drawBehind {
-                        drawLine(
-                            brush = Brush.horizontalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.10f),
-                                    Color.White.copy(alpha = rimAlpha),
-                                    Color.White.copy(alpha = 0.10f)
-                                )
-                            ),
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1.dp.toPx()
-                        )
+                    val alpha = colors.glassAlpha
+                    if (alpha <= 0.005f) {
+                        Modifier.background(Color.Transparent)
+                    } else {
+                        Modifier.background(colors.surface.copy(alpha = (alpha * 0.75f).coerceIn(0.15f, 0.90f)))
                     }
-                } else Modifier
+                } else if (colors.isGlass) {
+                    Modifier.background(colors.surface.copy(alpha = if (colors.isDark) 0.75f else 0.90f))
+                } else {
+                    Modifier.background(colors.surface)
+                }
             )
             .statusBarsPadding()
             .offset(y = headerOffsetY)
@@ -186,8 +161,8 @@ fun ConnectoTopHeader(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = ConnectoSpacing.sm),
+                .height(54.dp)
+                .padding(horizontal = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -197,21 +172,25 @@ fun ConnectoTopHeader(
                 modifier = Modifier.weight(1f, fill = false)
             ) {
                 if (onMenuClick != null) {
-                    IconButton(
-                        onClick = onMenuClick,
-                        modifier = Modifier.size(40.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
+                            .clickable(onClick = onMenuClick),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
                             contentDescription = "Open Channels",
                             tint = colors.textPrimary,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+                    Spacer(modifier = Modifier.width(10.dp))
                 }
 
-                Column {
+                Column(verticalArrangement = Arrangement.Center) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = if (title == "CONNECTO GAMERS HUB") "Connecto" else title,
@@ -222,6 +201,7 @@ fun ConnectoTopHeader(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
+                    Spacer(modifier = Modifier.height(2.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
@@ -251,10 +231,11 @@ fun ConnectoTopHeader(
                                     )
                             )
                         }
-                        Spacer(modifier = Modifier.width(ConnectoSpacing.xxs))
+                        Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = statusText,
-                            fontSize = 11.sp,
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Medium,
                             color = if (connectTimedOut) colors.warning else colors.textSecondary,
                             maxLines = 1
                         )
@@ -269,52 +250,57 @@ fun ConnectoTopHeader(
             ) {
                 if (onAddFriendClick != null) {
                     Box(contentAlignment = Alignment.TopEnd) {
-                        IconButton(
-                            onClick = onAddFriendClick,
-                            modifier = Modifier.size(40.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
+                                .clickable(onClick = onAddFriendClick),
+                            contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = if (pendingFriendRequestsCount > 0) Icons.Filled.PersonAdd else Icons.Outlined.PersonAdd,
                                 contentDescription = "Add Friend / Requests",
                                 tint = if (pendingFriendRequestsCount > 0) colors.primary else colors.textSecondary,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(19.dp)
                             )
                         }
                         if (pendingFriendRequestsCount > 0) {
                             ConnectoBadge(
                                 count = pendingFriendRequestsCount,
                                 variant = ConnectoBadgeVariant.PRIMARY,
-                                modifier = Modifier.padding(top = 4.dp, end = 4.dp)
+                                modifier = Modifier.padding(top = 2.dp, end = 2.dp)
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.width(ConnectoSpacing.xxs))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 if (onVoiceGroupClick != null) {
-                    IconButton(
-                        onClick = onVoiceGroupClick,
-                        modifier = Modifier.size(40.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
+                            .clickable(onClick = onVoiceGroupClick),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.GroupAdd,
                             contentDescription = "Voice Group",
                             tint = colors.primary,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(19.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.width(ConnectoSpacing.xxs))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
-
-
 
                 if (customAction != null) {
                     customAction()
-                    Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 if (showProfileButton) {
-                    Spacer(modifier = Modifier.width(ConnectoSpacing.xs))
                     ConnectoAvatar(
                         name = userInitial,
                         avatarUrl = resolvedAvatarUrl,
@@ -326,21 +312,12 @@ fun ConnectoTopHeader(
             }
         }
 
-        // Specular 1dp Bottom Border
+        // Subtle Hairline Divider matching ConnectoSettingsTopBar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(1.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            Color.White.copy(alpha = 0.15f),
-                            colors.border.copy(alpha = 0.45f),
-                            Color.White.copy(alpha = 0.35f),
-                            colors.borderSubtle.copy(alpha = 0.20f)
-                        )
-                    )
-                )
+                .height(0.6.dp)
+                .background(colors.borderSubtle.copy(alpha = if (colors.isDark) 0.40f else 0.50f))
         )
     }
 }

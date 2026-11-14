@@ -59,6 +59,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -91,6 +92,7 @@ import com.example.connecto.ui.theme.PulsingOnlineDot
 import com.example.connecto.ui.theme.StaggeredReveal
 import com.example.connecto.ui.theme.TypingIndicatorDots
 
+@Immutable
 data class GameChannelItem(
     val id: String,
     val name: String,
@@ -98,6 +100,7 @@ data class GameChannelItem(
     val isReadOnly: Boolean = false
 )
 
+@Immutable
 data class GameFriend(
     val id: String,
     val name: String,
@@ -107,6 +110,7 @@ data class GameFriend(
     val avatar: String? = null
 )
 
+@Immutable
 data class ChannelMessage(
     val id: Int,
     val senderName: String,

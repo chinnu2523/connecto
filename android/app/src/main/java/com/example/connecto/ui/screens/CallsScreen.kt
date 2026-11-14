@@ -54,6 +54,10 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import com.example.connecto.ui.designsystem.ConnectoSettingsSection
+import com.example.connecto.ui.designsystem.ConnectoSettingsCard
+import com.example.connecto.ui.designsystem.ConnectoSettingsDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -185,6 +189,7 @@ fun formatCallDuration(seconds: Int): String {
     }
 }
 
+@Immutable
 data class CallLogItem(
     val id: String,
     val callerName: String,
@@ -729,20 +734,22 @@ fun CallsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
-                contentPadding = PaddingValues(bottom = 90.dp)
+                contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp)
             ) {
-                item {
+                item(key = "calls_header_row") {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 12.dp, top = 8.dp, bottom = 4.dp, end = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "CALL HISTORY (${filteredLogs.size})",
-                            fontSize = 11.sp,
+                            fontSize = 11.5.sp,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            letterSpacing = 0.8.sp,
+                            color = if (colors.isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
                         )
                         if (liveCallLogs.isNotEmpty()) {
                             Box(
@@ -752,7 +759,7 @@ fun CallsScreen(
                                         onClick = { showClearAllDialog = true },
                                         targetScale = 0.94f
                                     )
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -776,7 +783,7 @@ fun CallsScreen(
                 }
 
                 if (filteredLogs.isEmpty()) {
-                    item {
+                    item(key = "calls_empty_state") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -797,14 +804,14 @@ fun CallsScreen(
                                         modifier = Modifier
                                             .size(54.dp)
                                             .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                            .background(if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Call,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                                            modifier = Modifier.size(26.dp)
+                                            tint = colors.textSecondary,
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                     val emptyTitle = if (callSearchQuery.isNotBlank()) {
@@ -825,21 +832,21 @@ fun CallsScreen(
                                     }
                                     Text(
                                         text = emptyTitle,
-                                        fontSize = 14.sp,
+                                        fontSize = 15.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = colors.textPrimary
                                     )
                                     Text(
                                         text = emptySubtitle,
                                         fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = colors.textSecondary
                                     )
                                     Spacer(modifier = Modifier.height(10.dp))
                                     Button(
                                         onClick = { showCreateVoiceGroupDialog = true },
                                         colors = ButtonDefaults.buttonColors(
-                                            containerColor = gradientColors.first(),
-                                            contentColor = contentOnGradient
+                                            containerColor = colors.primary,
+                                            contentColor = Color.White
                                         ),
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
@@ -851,164 +858,131 @@ fun CallsScreen(
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Group Voice Call", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                                     }
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    OutlinedButton(
-                                        onClick = {
-                                            VoiceCallManager.start1on1Call("echo", "Echo Audio Test (Self)")
-                                        },
-                                        shape = RoundedCornerShape(12.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Mic,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text("Echo Audio Test (Self)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                                    }
                                 }
                             }
                         }
                     }
-                }
-
-                itemsIndexed(filteredLogs, key = { _, log -> "call_${log.id}" }) { idx, log ->
-                    StaggeredReveal(index = idx) {
-                        val callCardShape = RoundedCornerShape(16.dp)
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .then(
-                                    if (colors.isLiquidGlass) {
-                                        Modifier.liquidGlassCard(shape = callCardShape)
-                                    } else if (colors.isGlass) {
-                                        Modifier.glassCard(shape = callCardShape, backgroundColor = Color(0xFF1E293B), borderColor = Color(0x6038BDF8))
-                                    } else {
-                                        Modifier
-                                            .clip(callCardShape)
-                                            .background(MaterialTheme.colorScheme.surface)
-                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), callCardShape)
-                                    }
-                                )
-                                .padding(12.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                } else {
+                    item(key = "calls_grouped_card") {
+                        ConnectoSettingsCard {
+                            filteredLogs.forEachIndexed { idx, log ->
                                 Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    // Caller Initial or Profile Avatar
-                                    Box(
-                                        modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(CircleShape)
-                                            .background(
-                                                if (log.isMissed) MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
-                                                else MaterialTheme.colorScheme.surfaceVariant
-                                            ),
-                                        contentAlignment = Alignment.Center
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        if (!log.avatarUrl.isNullOrBlank()) {
-                                            val imgModel = resolveImageModel(log.avatarUrl)
-                                            AsyncImage(
-                                                model = imgModel,
-                                                contentDescription = log.callerName,
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .clip(CircleShape),
-                                                contentScale = ContentScale.Crop
-                                            )
-                                        } else {
-                                            Text(
-                                                text = log.initial,
-                                                fontSize = 16.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = if (log.isMissed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = log.callerName,
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
-                                            Icon(
-                                                imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
-                                                contentDescription = null,
-                                                tint = if (log.isMissed) MaterialTheme.colorScheme.error else if (isCancelled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else OnlineGreen,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            val statusText = when {
-                                                log.isMissed -> "Missed"
-                                                log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
-                                                log.isOutgoing -> "Cancelled"
-                                                else -> "Incoming"
-                                            }
-                                            val durStr = formatCallDuration(log.durationSeconds)
-                                            val displaySubtext = if (durStr.isNotBlank()) {
-                                                "$statusText • ${log.timeAgo} • $durStr"
+                                        // Caller Initial or Profile Avatar
+                                        Box(
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (log.isMissed) colors.error.copy(alpha = 0.12f)
+                                                    else if (colors.isDark) Color.White.copy(alpha = 0.08f)
+                                                    else Color(0xFFF1F5F9)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (!log.avatarUrl.isNullOrBlank()) {
+                                                val imgModel = resolveImageModel(log.avatarUrl)
+                                                AsyncImage(
+                                                    model = imgModel,
+                                                    contentDescription = log.callerName,
+                                                    modifier = Modifier
+                                                        .fillMaxSize()
+                                                        .clip(CircleShape),
+                                                    contentScale = ContentScale.Crop
+                                                )
                                             } else {
-                                                "$statusText • ${log.timeAgo}"
+                                                Text(
+                                                    text = log.initial,
+                                                    fontSize = 16.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (log.isMissed) colors.error else colors.textPrimary
+                                                )
                                             }
+                                        }
+
+                                        Spacer(modifier = Modifier.width(14.dp))
+
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = displaySubtext,
-                                                fontSize = 12.sp,
-                                                color = if (log.isMissed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                text = log.callerName,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = colors.textPrimary,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
                                             )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                val isCancelled = log.isOutgoing && log.durationSeconds == 0 && !log.isMissed
+                                                Icon(
+                                                    imageVector = if (log.isMissed) Icons.AutoMirrored.Filled.CallMissed else if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
+                                                    contentDescription = null,
+                                                    tint = if (log.isMissed) colors.error else if (isCancelled) colors.textDisabled else OnlineGreen,
+                                                    modifier = Modifier.size(13.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                val statusText = when {
+                                                    log.isMissed -> "Missed"
+                                                    log.isOutgoing && log.durationSeconds > 0 -> "Outgoing"
+                                                    log.isOutgoing -> "Cancelled"
+                                                    else -> "Incoming"
+                                                }
+                                                val durStr = formatCallDuration(log.durationSeconds)
+                                                val displaySubtext = if (durStr.isNotBlank()) {
+                                                    "$statusText • ${log.timeAgo} • $durStr"
+                                                } else {
+                                                    "$statusText • ${log.timeAgo}"
+                                                }
+                                                Text(
+                                                    text = displaySubtext,
+                                                    fontSize = 12.sp,
+                                                    color = if (log.isMissed) colors.error else colors.textSecondary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
                                         }
                                     }
-                                }
 
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Delete Single Call Log Action
-                                    Box(
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
-                                            .pressScaleEffect(
-                                                onClick = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // Delete Single Call Log Action
+                                        Box(
+                                            modifier = Modifier
+                                                .size(34.dp)
+                                                .clip(CircleShape)
+                                                .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
+                                                .clickable {
                                                     logPendingDelete = log
                                                 },
-                                                targetScale = 0.88f
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.DeleteOutline,
-                                            contentDescription = "Delete Call Log",
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.DeleteOutline,
+                                                contentDescription = "Delete Call Log",
+                                                tint = colors.textSecondary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
 
-                                    // Initiate 1:1 Voice Call Action Button
-                                    Box(
-                                        modifier = Modifier
-                                            .size(38.dp)
-                                            .clip(CircleShape)
-                                            .background(Brush.linearGradient(gradientColors))
-                                            .pressScaleEffect(
-                                                onClick = {
+                                        // Initiate 1:1 Voice Call Action Button
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(colors.primary.copy(alpha = 0.12f))
+                                                .clickable {
                                                     val dialTarget = if (log.friendUsername.isNotBlank()) log.friendUsername else log.callerName
                                                     initiateDirectCall(
                                                         target = dialTarget,
@@ -1016,17 +990,19 @@ fun CallsScreen(
                                                         avatarUrl = log.avatarUrl
                                                     )
                                                 },
-                                                targetScale = 0.88f
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Call,
-                                            contentDescription = "Voice Call",
-                                            tint = contentOnGradient,
-                                            modifier = Modifier.size(19.dp)
-                                        )
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Call,
+                                                contentDescription = "Voice Call",
+                                                tint = colors.primary,
+                                                modifier = Modifier.size(17.dp)
+                                            )
+                                        }
                                     }
+                                }
+                                if (idx < filteredLogs.size - 1) {
+                                    ConnectoSettingsDivider(startIndent = 70.dp)
                                 }
                             }
                         }
