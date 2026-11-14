@@ -58,6 +58,24 @@ object ApkInstaller {
     }
 
     /**
+     * Checks whether Our Store is the installer of record for [packageName].
+     * Android requires an app to be the installer of record to perform silent updates without user prompt.
+     */
+    fun isInstallerOfRecord(context: Context, packageName: String): Boolean {
+        return try {
+            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                context.packageManager.getInstallSourceInfo(packageName).installingPackageName
+            } else {
+                @Suppress("DEPRECATION")
+                context.packageManager.getInstallerPackageName(packageName)
+            }
+            installer == context.packageName
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    /**
      * Opens the system Unknown App Sources settings screen for Our Store.
      */
     fun openUnknownAppSourcesSettings(context: Context) {
@@ -227,8 +245,12 @@ object ApkInstaller {
         val targetPackage = packageName ?: archiveInfo.packageName
         Log.i(TAG, "Pre-flight verified valid APK: package=${archiveInfo.packageName}, versionCode=${archiveInfo.versionCode}, target=$targetPackage")
 
-        // Priority 1: On Android 12+ (API 31+), attempt PackageInstaller Session IPC for seamless silent upgrade
-        if (targetPackage.isNotBlank() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        // Priority 1: On Android 12+ (API 31+), only attempt PackageInstaller Session IPC
+        // if Our Store is already the installer-of-record. If not, Android requires user interaction
+        // and strictly blocks background activity launches from BroadcastReceivers on Android 14+,
+        // so we invoke the system package installer intent directly from the active foreground activity.
+        val isOurStoreInstaller = isInstallerOfRecord(context, targetPackage)
+        if (targetPackage.isNotBlank() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isOurStoreInstaller) {
             val sessionSuccess = installViaPackageInstaller(context, apkFile, targetPackage)
             if (sessionSuccess) {
                 Log.i(TAG, "PackageInstaller session successfully initiated for $targetPackage")
@@ -236,7 +258,7 @@ object ApkInstaller {
             }
         }
 
-        // Priority 2: Universal System PackageInstaller Intent
+        // Priority 2: Universal System PackageInstaller Intent (rock-solid for updates and initial installs)
         Log.i(TAG, "Launching system package installer for $targetPackage at ${apkFile.name}")
         installViaSystemIntent(context, apkFile)
     }

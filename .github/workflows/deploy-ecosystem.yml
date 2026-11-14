@@ -121,5 +121,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload v4.6.11 website/static/downloads/connecto-fun.apk --clobber || true
-          gh release upload v4.6.11 website/static/downloads/our-store.apk --clobber || true
+          CONNECTO_VERSION=$(grep 'versionName = ' android/app/build.gradle.kts | head -n 1 | sed 's/.*"\(.*\)".*/\1/')
+          TAG_NAME="v${CONNECTO_VERSION}"
+          echo "Target Release Tag: ${TAG_NAME}"
+          gh release view "${TAG_NAME}" || gh release create "${TAG_NAME}" --title "Connecto ${TAG_NAME}" --notes "Automated release ${TAG_NAME}" || true
+          gh release upload "${TAG_NAME}" website/static/downloads/connecto-fun.apk --clobber || true
+          gh release upload "${TAG_NAME}" website/static/downloads/our-store.apk --clobber || true

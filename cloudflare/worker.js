@@ -254,10 +254,10 @@ export default {
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.1-b38-v4629.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.1-b38-v4631.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -270,17 +270,29 @@ export default {
 
         for (const targetUrl of canonicalApkUrls) {
           try {
-            const upstreamResp = await fetch(targetUrl, {
-              redirect: "follow",
-              cf: {
-                cacheEverything: true,
-                cacheTtl: 604800
-              },
-              headers: {
-                "User-Agent": "Connecto-Cloud-Worker/1.8.0"
+            let currentFetchUrl = targetUrl;
+            let upstreamResp = null;
+            for (let redirectCount = 0; redirectCount < 5; redirectCount++) {
+              const resp = await fetch(currentFetchUrl, {
+                redirect: "manual",
+                headers: {
+                  "User-Agent": "Connecto-Cloud-Worker/1.8.1"
+                }
+              });
+              if (resp.status >= 300 && resp.status < 400) {
+                const loc = resp.headers.get("Location");
+                if (loc) {
+                  currentFetchUrl = loc.startsWith("http") ? loc : new URL(loc, currentFetchUrl).toString();
+                  continue;
+                }
               }
-            });
-            if (upstreamResp.ok) {
+              if (resp.ok) {
+                upstreamResp = resp;
+              }
+              break;
+            }
+
+            if (upstreamResp && upstreamResp.ok) {
               const downloadHeaders = new Headers();
               downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
               downloadHeaders.set("Content-Disposition", 'attachment; filename="our-store.apk"');
@@ -306,7 +318,7 @@ export default {
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.29/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.31/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -392,13 +404,10 @@ export default {
       try {
         const canonicalApkUrls = [
           "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/app-release.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.30/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.30/app-release.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.31-b120-live.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v4.6.31-b120-bin.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -411,17 +420,29 @@ export default {
 
         for (const targetUrl of canonicalApkUrls) {
           try {
-            const upstreamResp = await fetch(targetUrl, {
-              redirect: "follow",
-              cf: {
-                cacheEverything: true,
-                cacheTtl: 604800
-              },
-              headers: {
-                "User-Agent": "Connecto-Cloud-Worker/4.6.31"
+            let currentFetchUrl = targetUrl;
+            let upstreamResp = null;
+            for (let redirectCount = 0; redirectCount < 5; redirectCount++) {
+              const resp = await fetch(currentFetchUrl, {
+                redirect: "manual",
+                headers: {
+                  "User-Agent": "Connecto-Cloud-Worker/4.6.31"
+                }
+              });
+              if (resp.status >= 300 && resp.status < 400) {
+                const loc = resp.headers.get("Location");
+                if (loc) {
+                  currentFetchUrl = loc.startsWith("http") ? loc : new URL(loc, currentFetchUrl).toString();
+                  continue;
+                }
               }
-            });
-            if (upstreamResp.ok) {
+              if (resp.ok) {
+                upstreamResp = resp;
+              }
+              break;
+            }
+
+            if (upstreamResp && upstreamResp.ok) {
               const downloadHeaders = new Headers();
               downloadHeaders.set("Content-Type", "application/vnd.android.package-archive");
               downloadHeaders.set("Content-Disposition", 'attachment; filename="connecto-fun.apk"');
@@ -445,7 +466,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.29/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.31/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
