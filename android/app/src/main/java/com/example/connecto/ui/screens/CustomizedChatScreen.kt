@@ -6640,9 +6640,14 @@ fun CustomizedChatScreen(
                                         },
                                         shape = CircleShape
                                     )
-                                    .clickable(enabled = typedMessage.isNotBlank()) {
-                                        onSendMessage()
-                                    },
+                                    .pressScaleEffect(
+                                        onClick = {
+                                            if (typedMessage.isNotBlank()) {
+                                                onSendMessage()
+                                            }
+                                        },
+                                        targetScale = 0.88f
+                                    ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(

@@ -169,6 +169,12 @@ fun ConnectoSettingsRow(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
 
+    val rowScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.982f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "settingsRowScale"
+    )
+
     val rowBgColor = if (isPressed) {
         if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f)
     } else {
@@ -179,6 +185,10 @@ fun ConnectoSettingsRow(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 52.dp)
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
             .background(rowBgColor)
             .clickable(
                 interactionSource = interactionSource,

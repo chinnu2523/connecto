@@ -64,6 +64,7 @@ import com.example.connecto.ui.designsystem.ConnectoPresenceStatus
 import com.example.connecto.ui.designsystem.ConnectoSpacing
 import com.example.connecto.ui.designsystem.LocalConnectoColors
 import com.example.connecto.ui.theme.PulsingOnlineDot
+import com.example.connecto.ui.theme.pressScaleEffect
 
 /**
  * Connecto Refined Top Header.
@@ -177,7 +178,7 @@ fun ConnectoTopHeader(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
-                            .clickable(onClick = onMenuClick),
+                            .pressScaleEffect(onClick = onMenuClick, targetScale = 0.90f),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -255,7 +256,7 @@ fun ConnectoTopHeader(
                                 .size(36.dp)
                                 .clip(CircleShape)
                                 .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
-                                .clickable(onClick = onAddFriendClick),
+                                .pressScaleEffect(onClick = onAddFriendClick, targetScale = 0.90f),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -282,7 +283,7 @@ fun ConnectoTopHeader(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f))
-                            .clickable(onClick = onVoiceGroupClick),
+                            .pressScaleEffect(onClick = onVoiceGroupClick, targetScale = 0.90f),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -307,6 +308,40 @@ fun ConnectoTopHeader(
                         size = ConnectoAvatarSize.SM,
                         status = presence,
                         onClick = onAvatarClick
+                    )
+                }
+            }
+        }
+
+        // Offline Status Pill (Visible when server connection timed out or offline)
+        androidx.compose.animation.AnimatedVisibility(
+            visible = connectTimedOut || (!isActuallyOnline && !effectiveStealth),
+            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(if (colors.isDark) Color(0xFF18181B) else Color(0xFFF4F4F5))
+                    .padding(horizontal = 16.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFEAB308))
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Offline Mode • Browsing cached conversations",
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = colors.textSecondary
                     )
                 }
             }

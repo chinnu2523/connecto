@@ -39,18 +39,18 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "4.6.33",
-        "version_code": 122,
+        "version_name": "4.6.34",
+        "version_code": 123,
         "size_bytes": 37890849,
         "size_formatted": "36.2 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
-            "Pure Dual-Theme System: Streamlined appearance settings to exclusively feature the high-contrast Pure Black OLED theme and the pristine White Paper theme",
-            "Minimalist Inset Settings Architecture: Polished theme selection cards with tactile toggles, clear typography, and zero-distraction visual previews",
-            "Performance & Smoothness Optimization: Butter-smooth frame rates and rapid theme-switching latency across all devices",
-            "Ecosystem Update Delivery: Instant updates through Our Store with full backward compatibility and integrity verification"
+            "Errors In-Place & Clean Authentication: Relocated error feedback directly above form fields for immediate visibility without layout shifts",
+            "Universal Tactile Physics & Tap Animations: Added spring physics micro-interactions and scale-down press responses on all buttons, rows, and cards",
+            "Zero Empty Screens & Shimmer Loading: Enforced pre-cached workspace channels, SQLite offline fallback, and refined skeleton loaders",
+            "Lighthouse & Web Rendering Optimization: Eliminated render-blocking assets, converted non-composited animations to GPU transforms, and tuned cache lifetimes to 1 year"
         ],
         "is_essential": True,
         "updated_at": "2026-11-10T16:15:00Z"

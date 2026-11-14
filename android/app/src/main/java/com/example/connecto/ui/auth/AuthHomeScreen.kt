@@ -580,6 +580,46 @@ fun AuthHomeScreen(
 
             Spacer(modifier = Modifier.height(18.dp))
 
+            // ===== IN-PLACE ERROR BANNER (UI FIX #01 - Clean In-Place Errors) =====
+            AnimatedVisibility(
+                visible = errorMessage != null,
+                enter = expandVertically(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + fadeIn(),
+                exit = shrinkVertically(animationSpec = tween(180)) + fadeOut()
+            ) {
+                if (errorMessage != null) {
+                    val errorBg = if (isLight) Color(0xFFFEE2E2) else Color(0xFF7F1D1D).copy(alpha = 0.35f)
+                    val errorText = if (isLight) Color(0xFFDC2626) else Color(0xFFFCA5A5)
+                    val errorBorder = if (isLight) Color(0xFFFCA5A5) else Color(0xFFEF4444).copy(alpha = 0.5f)
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 14.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(errorBg)
+                            .border(1.dp, errorBorder, RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = errorText,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = sanitizeAuthError(errorMessage),
+                            color = errorText,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 17.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
             // ===== INPUT FIELDS WITH HORIZONTAL TRANSITION =====
             AnimatedContent(
                 targetState = isSignUp,
@@ -1106,40 +1146,6 @@ fun AuthHomeScreen(
                             )
                         }
                     }
-                }
-            }
-
-            // ===== ERROR BANNER =====
-            if (errorMessage != null) {
-                Spacer(modifier = Modifier.height(14.dp))
-                val errorBg = if (isLight) Color(0xFFFEE2E2) else Color(0xFF7F1D1D).copy(alpha = 0.35f)
-                val errorText = if (isLight) Color(0xFFDC2626) else Color(0xFFFCA5A5)
-                val errorBorder = if (isLight) Color(0xFFFCA5A5) else Color(0xFFEF4444).copy(alpha = 0.5f)
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(errorBg)
-                        .border(1.dp, errorBorder, RoundedCornerShape(14.dp))
-                        .padding(horizontal = 14.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Warning,
-                        contentDescription = null,
-                        tint = errorText,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = sanitizeAuthError(errorMessage),
-                        color = errorText,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        lineHeight = 17.sp,
-                        modifier = Modifier.weight(1f)
-                    )
                 }
             }
 
