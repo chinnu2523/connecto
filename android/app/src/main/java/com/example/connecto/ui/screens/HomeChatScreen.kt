@@ -229,6 +229,7 @@ fun HomeChatScreen(
     var showSupportAiDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showTermsDialog by remember { mutableStateOf(false) }
+    var isRefreshing by remember { mutableStateOf(false) }
 
     val updateDetails by AppUpdateManager.updateState.collectAsState()
     val isStoreInstalled = remember(context) { AppUpdateManager.isOurStoreInstalled(context) }
@@ -788,11 +789,28 @@ fun HomeChatScreen(
                 customAction = null
             )
 
-            // Scrollable Dashboard Content
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
+            // Scrollable Dashboard Content with Tactile Drag-To-Refresh
+            com.example.connecto.ui.components.ConnectoDragToRefresh(
+                isRefreshing = isRefreshing,
+                onRefresh = {
+                    isRefreshing = true
+                    coroutineScope.launch {
+                        try {
+                            refreshDashboard()
+                            AppUpdateManager.checkForUpdates()
+                        } catch (_: Exception) {
+                        } finally {
+                            kotlinx.coroutines.delay(400)
+                            isRefreshing = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
             ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
                 // Interactive Search Bar (inside LazyColumn to enable smooth top scrolling)
                 item {
                     val searchShape = RoundedCornerShape(ConnectoRadius.sm)
@@ -1253,6 +1271,7 @@ fun HomeChatScreen(
                         }
                     }
                 }
+            }
             }
         }
 

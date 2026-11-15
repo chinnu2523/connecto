@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import com.connecto.store.ui.components.StoreDragToRefresh
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -425,6 +426,7 @@ fun StoreApp(
                                                 onCancelDownload = { appState -> vm.cancelDownload(appState.app.packageName) },
                                                 onToggleBookmark = { appState -> vm.toggleBookmark(appState.app.id) },
                                                 onUpdateAll = { vm.updateAll(context) },
+                                                onRefresh = { vm.loadCatalog(silently = true) },
                                                 isUpdatesTab = currentSection == StoreNavSection.UPDATES
                                             )
                                         }
@@ -827,6 +829,7 @@ private fun ClassicCatalogBody(
     onCancelDownload: (AppUiState) -> Unit,
     onToggleBookmark: (AppUiState) -> Unit,
     onUpdateAll: () -> Unit,
+    onRefresh: () -> Unit = {},
     isUpdatesTab: Boolean
 ) {
     val theme = LocalStoreTheme.current
@@ -835,11 +838,16 @@ private fun ClassicCatalogBody(
     }
     val updateCount = state.apps.count { it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 28.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    StoreDragToRefresh(
+        isRefreshing = state.isRefreshing,
+        onRefresh = onRefresh,
+        modifier = Modifier.fillMaxSize()
     ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         if (!isUpdatesTab) {
             // Category Filter Pills
             item {
@@ -975,6 +983,7 @@ private fun ClassicCatalogBody(
         item {
             ClassicFooterInfo()
         }
+    }
     }
 }
 
