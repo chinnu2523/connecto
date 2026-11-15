@@ -42,3 +42,12 @@ object ConnectoDuration {
     const val NORMAL = 250
     const val SLOW = 350
 }
+
+/**
+ * Unslop Rule: inner_radius = max(0.dp, outer_radius - padding)
+ * Ensures nested cards, inner containers, images, and chips follow geometric concentricity.
+ */
+fun innerRadius(outerRadius: Dp, padding: Dp): Dp {
+    val result = outerRadius - padding
+    return if (result > 0.dp) result else 0.dp
+}

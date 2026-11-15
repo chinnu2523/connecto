@@ -226,6 +226,9 @@ fun HomeChatScreen(
     var isVoiceGroupOpen by remember { mutableStateOf(false) }
     var isSearchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var showSupportAiDialog by remember { mutableStateOf(false) }
+    var showPrivacyDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
 
     val updateDetails by AppUpdateManager.updateState.collectAsState()
     val isStoreInstalled = remember(context) { AppUpdateManager.isOurStoreInstalled(context) }
@@ -852,6 +855,23 @@ fun HomeChatScreen(
                                     modifier = Modifier.size(14.dp)
                                 )
                             }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(colors.surfaceVariant.copy(alpha = 0.6f))
+                                    .border(0.8.dp, colors.borderSubtle, RoundedCornerShape(4.dp))
+                                    .clickable { isSearchOpen = true }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = "⌘K",
+                                    fontSize = 10.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textSecondary
+                                )
+                            }
                         }
                     }
                 }
@@ -1173,6 +1193,7 @@ fun HomeChatScreen(
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
                                                         text = convo.timestamp,
+                                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                                                         fontSize = 11.5.sp,
                                                         color = colors.textSecondary
                                                     )
@@ -1272,7 +1293,7 @@ fun HomeChatScreen(
             )
         }
 
-        // Global Search Dialog
+        // Global Search & Command Palette Dialog
         if (isSearchOpen) {
             GlobalSearchDialog(
                 query = searchQuery,
@@ -1285,7 +1306,45 @@ fun HomeChatScreen(
                 onSelectChannel = { channelName ->
                     isSearchOpen = false
                     onNavigateToMessages()
+                },
+                onOpenSupport = {
+                    isSearchOpen = false
+                    showSupportAiDialog = true
+                },
+                onOpenPrivacy = {
+                    isSearchOpen = false
+                    showPrivacyDialog = true
+                },
+                onOpenTerms = {
+                    isSearchOpen = false
+                    showTermsDialog = true
+                },
+                onCheckUpdates = {
+                    isSearchOpen = false
+                    coroutineScope.launch {
+                        AppUpdateManager.checkForUpdates()
+                    }
+                    Toast.makeText(context, "Checking for official Connecto updates...", Toast.LENGTH_SHORT).show()
                 }
+            )
+        }
+
+        if (showSupportAiDialog) {
+            com.example.connecto.ui.components.CustomerSupportAiDialog(
+                username = currentUsername,
+                onDismiss = { showSupportAiDialog = false }
+            )
+        }
+
+        if (showPrivacyDialog) {
+            com.example.connecto.ui.components.PrivacyPolicyDialog(
+                onDismiss = { showPrivacyDialog = false }
+            )
+        }
+
+        if (showTermsDialog) {
+            com.example.connecto.ui.components.TermsOfServiceDialog(
+                onDismiss = { showTermsDialog = false }
             )
         }
 
@@ -1432,13 +1491,17 @@ private fun GlobalSearchDialog(
     onQueryChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onSelectPerson: (String) -> Unit,
-    onSelectChannel: (String) -> Unit
+    onSelectChannel: (String) -> Unit,
+    onOpenSupport: () -> Unit = {},
+    onOpenPrivacy: () -> Unit = {},
+    onOpenTerms: () -> Unit = {},
+    onCheckUpdates: () -> Unit = {}
 ) {
     val colors = LocalConnectoColors.current
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(0.96f)
                 .clip(RoundedCornerShape(ConnectoRadius.lg))
                 .background(colors.surface)
                 .border(1.dp, colors.borderSubtle, RoundedCornerShape(ConnectoRadius.lg))
@@ -1450,12 +1513,30 @@ private fun GlobalSearchDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Global Search",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = colors.textPrimary
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Command Palette",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colors.textPrimary
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(colors.surfaceVariant.copy(alpha = 0.7f))
+                                .border(0.8.dp, colors.borderSubtle, RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "⌘K",
+                                fontSize = 10.sp,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.primary
+                            )
+                        }
+                    }
                     IconButton(
                         onClick = onDismiss,
                         modifier = Modifier.size(28.dp)
@@ -1473,45 +1554,117 @@ private fun GlobalSearchDialog(
                 ConnectoTextField(
                     value = query,
                     onValueChange = onQueryChange,
-                    placeholder = "Type a name, channel, or keyword...",
+                    placeholder = "Type a command, channel, or action...",
                     leadingIcon = Icons.Default.Search,
                     showClearButton = true
                 )
 
                 Spacer(modifier = Modifier.height(ConnectoSpacing.md))
 
-                // Default suggestions or filtered items
-                Text(
-                    text = "Suggested Channels",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.textSecondary
-                )
-                Spacer(modifier = Modifier.height(ConnectoSpacing.xs))
+                // Scrollable actions & channels
+                androidx.compose.foundation.lazy.LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 340.dp)
+                ) {
+                    // Quick Actions Section
+                    val quickActions = listOf(
+                        Triple("24/7 AI Customer Support", Icons.Default.Star, onOpenSupport),
+                        Triple("Privacy Policy & Security", Icons.Default.Star, onOpenPrivacy),
+                        Triple("Terms of Service", Icons.AutoMirrored.Filled.Chat, onOpenTerms),
+                        Triple("Check for App Updates", Icons.Default.Check, onCheckUpdates)
+                    ).filter { query.isBlank() || it.first.contains(query, ignoreCase = true) }
 
-                listOf("general", "dev-talk", "announcements").filter {
-                    query.isBlank() || it.contains(query, ignoreCase = true)
-                }.forEach { ch ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(ConnectoRadius.sm))
-                            .clickable { onSelectChannel(ch) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Tag,
-                            contentDescription = null,
-                            tint = colors.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
-                        Text(
-                            text = "#$ch",
-                            fontSize = 14.sp,
-                            color = colors.textPrimary
-                        )
+                    if (quickActions.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "QUICK ACTIONS",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
+                        items(quickActions) { action ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                    .clickable { action.third() }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = action.second,
+                                    contentDescription = null,
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                Text(
+                                    text = action.first,
+                                    fontSize = 13.5.sp,
+                                    color = colors.textPrimary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "ACTION",
+                                    fontSize = 10.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
+                        item {
+                            Spacer(modifier = Modifier.height(ConnectoSpacing.sm))
+                        }
+                    }
+
+                    // Suggested Channels Section
+                    val suggestedChannels = listOf("general", "dev-talk", "announcements", "security-labs").filter {
+                        query.isBlank() || it.contains(query, ignoreCase = true)
+                    }
+
+                    if (suggestedChannels.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "CHANNELS",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = colors.textSecondary,
+                                modifier = Modifier.padding(bottom = 6.dp)
+                            )
+                        }
+                        items(suggestedChannels) { ch ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                    .clickable { onSelectChannel(ch) }
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Tag,
+                                    contentDescription = null,
+                                    tint = colors.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(ConnectoSpacing.sm))
+                                Text(
+                                    text = "#$ch",
+                                    fontSize = 13.5.sp,
+                                    color = colors.textPrimary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "ENTER",
+                                    fontSize = 10.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    color = colors.textSecondary
+                                )
+                            }
+                        }
                     }
                 }
             }

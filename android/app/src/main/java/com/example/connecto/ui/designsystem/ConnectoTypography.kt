@@ -74,6 +74,18 @@ data class ConnectoTypography(
         fontSize = 11.sp,
         lineHeight = 14.sp,
         letterSpacing = 0.3.sp
+    ),
+    val tabularNumbers: TextStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        lineHeight = 16.sp
+    ),
+    val codeMono: TextStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp
     )
 )
 

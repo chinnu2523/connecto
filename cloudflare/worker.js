@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.1.0",
-        version_name: "v5.1.0",
-        version_code: 126,
-        build: 126,
-        sha256: "7b3a35ae993a17d0e5a5a52dad9061b4f1b321948225a7eab1131d94961010b3",
+        version: "5.1.1",
+        version_name: "v5.1.1",
+        version_code: 127,
+        build: 127,
+        sha256: "8fedd3b276126ecd6731addc7844979aa511d2df080a1602ce042edb3828ff57",
         filename: "connecto-fun.apk",
-        size_bytes: 37940276,
+        size_bytes: 37955822,
         size_display: "36.2 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -360,14 +360,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.2-b41-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.3-b42-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.9.2");
-          res.headers.set("X-Connecto-Store-Build", "41");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.3");
+          res.headers.set("X-Connecto-Store-Build", "42");
           return res;
         }
 
@@ -510,14 +510,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.0-b126-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.1-b127-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.1.0");
-          res.headers.set("X-Connecto-Build", "126");
+          res.headers.set("X-Connecto-Version", "v5.1.1");
+          res.headers.set("X-Connecto-Build", "127");
           return res;
         }
 
@@ -553,8 +553,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.1.0");
-              downloadHeaders.set("X-Connecto-Build", "126");
+              downloadHeaders.set("X-Connecto-Version", "v5.1.1");
+              downloadHeaders.set("X-Connecto-Build", "127");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1891,23 +1891,24 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.1.0",
-        version_code: 126,
-        size_bytes: 37940276,
+        version_name: "5.1.1",
+        version_code: 127,
+        size_bytes: 37955822,
         size_formatted: "36.2 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Anti-Slop Command Palette & Quick Search: Integrated ⌘K quick action palette for instant channel navigation, AI support, and legal documents",
+          "Tabular Numbers & Reflow Protection: Monospace tabular numerals for timestamps, call durations, and badge metrics",
+          "Inner Radius Geometric Concentricity: Strict inner_radius = max(0, outer_radius - padding) formula across cards and dialogs",
+          "Optimistic State Management: Instant 0ms local state updates with graceful background sync and rollback handling",
           "Chat Wallpaper Customizer UI: Real-time custom wallpaper gallery, interactive touch pan, zoom, blur, opacity & luminance calibration",
           "Pure White Theme System: Eliminated all harsh orange tints in favor of clean cobalt noir accents and optimized high-contrast white layout",
-          "Self-Explanatory Zero-Slop Architecture: Completely eliminated verbose text descriptions in favor of clear intuitive iconography and tactile affordances",
-          "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations",
-          "Optimistic UI Architecture: 0ms instant feedback on chat messages, reactions, pins, and background synchronization",
-          "Security & Crypto Vault: Multi-layer edge HMAC token signing, PBKDF2 credential derivation, KeyStore AES-GCM encryption, and FLAG_SECURE protection"
+          "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T08:30:00Z"
+        updated_at: "2026-11-15T11:20:00Z"
       },
       {
         id: "jarvis",
@@ -7064,13 +7065,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.1.0",
-      version_name: "v5.1.0",
-      version_code: 126,
-      build: 126,
-      sha256: "7b3a35ae993a17d0e5a5a52dad9061b4f1b321948225a7eab1131d94961010b3",
+      version: "5.1.1",
+      version_name: "v5.1.1",
+      version_code: 127,
+      build: 127,
+      sha256: "8fedd3b276126ecd6731addc7844979aa511d2df080a1602ce042edb3828ff57",
       filename: "connecto-fun.apk",
-      size_bytes: 37940276,
+      size_bytes: 37955822,
       size_display: "36.2 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -8227,11 +8228,11 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.3")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.0")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.0")
-            .replace(/Build 12[0-6]/g, "Build 126")
-            .replace(/BUILD 12[0-6]/g, "BUILD 126")
-            .replace(/\(b12[0-6]\)/g, "(b126)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.1")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.1")
+            .replace(/Build 12[0-7]/g, "Build 127")
+            .replace(/BUILD 12[0-7]/g, "BUILD 127")
+            .replace(/\(b12[0-7]\)/g, "(b127)");
           responseBody = patched;
         } catch (_) {}
       }

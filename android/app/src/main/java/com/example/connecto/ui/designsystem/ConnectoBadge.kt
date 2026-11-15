@@ -68,6 +68,7 @@ fun ConnectoBadge(
         Text(
             text = displayText,
             color = contentColor,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             lineHeight = 12.sp
