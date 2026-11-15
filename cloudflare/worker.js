@@ -34,6 +34,39 @@ export default {
     const host = url.hostname.toLowerCase();
     const clientIp = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown";
 
+    // Explicit High-Performance Edge robots.txt Handler (Unblocks AI Crawlers & References Sitemap)
+    if (url.pathname === "/robots.txt") {
+      const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /resinora_admin
+
+# AI Crawlers explicitly welcomed for verified discoverability
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://connecto.fun/sitemap.xml
+`;
+      return new Response(robotsTxt, {
+        status: 200,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "public, max-age=86400",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
     // Direct High-Performance Edge Avatar Serving for verified user avatars
     if (url.pathname === "/uploads/avatars/chinnu_avatar_verified.webp" || url.pathname.endsWith("/chinnu_avatar_verified.webp")) {
       const binary = atob(CHINNU_AVATAR_B64);
@@ -372,8 +405,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.2");
-              downloadHeaders.set("X-Connecto-Store-Build", "41");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.3");
+              downloadHeaders.set("X-Connecto-Store-Build", "42");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1831,23 +1864,24 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.2",
-        version_code: 41,
-        size_bytes: 18493401,
-        size_formatted: "17.6 MB",
+        version_name: "1.9.3",
+        version_code: 42,
+        size_bytes: 18477000,
+        size_formatted: "18.2 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Unslop Visual System: Refined typography, eliminated filler embellishments, and unified high-contrast dark/light design system",
+          "Tabular Numerals & Anti-Jitter: Monospace and tabular numbers applied to telemetry and metrics to avoid reflow",
+          "5-State Interactive Tactile Feedback: Micro-interaction springs on buttons with instant confirmation and rollback handling",
           "Optimistic Zero-Blank Hydration: Stale-While-Revalidate disk caching provides instantaneous cold starts with 0ms blank screens",
           "Non-Blocking Background Sync: Real-time top edge progress shimmer and continuous refresh while keeping catalog interactive",
           "0ms Instant Download Feedback & Cancellation: Action buttons transition immediately to active progress with instant cancelation",
-          "Optimistic App Bookmarking: 0ms favorite toggle with persistent storage and dedicated 'Saved' category filter",
-          "Interactive 5-Star Ratings: 0ms local rating state with community feedback on app details",
-          "Optimistic Social Actions: Instant 0ms friend request accept/decline with automatic network rollback in Connecto"
+          "Optimistic App Bookmarking: 0ms favorite toggle with persistent storage and dedicated 'Saved' category filter"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T10:50:00Z"
+        updated_at: "2026-11-15T11:00:00Z"
       },
       {
         id: "connecto",
@@ -1941,7 +1975,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.9.0",
+      store_version: "1.9.3",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn
@@ -8185,14 +8219,14 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.0</span>")
-            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.0 (Build 39) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.0 • 18.0 MB)")
+            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.3</span>")
+            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.3 (Build 42) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.3 • 18.2 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[6789]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.9.0)")
-            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.0")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.9.3)")
+            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.3")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">18.0 MB</span>')
+                     '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.0")
             .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.0")
             .replace(/Build 12[0-6]/g, "Build 126")
