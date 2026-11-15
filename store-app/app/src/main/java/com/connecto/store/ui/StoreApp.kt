@@ -1484,69 +1484,6 @@ private fun ClassicAppDetailView(
             // Specs Row (Version, Device Version, Size Pill, Status)
             ClassicVersionSpecRow(appState = appState)
 
-            // Interactive Community & User Rating (0ms Optimistic local updates)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(theme.surface)
-                    .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "RATINGS & REVIEWS",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp,
-                        color = theme.textMuted
-                    )
-                    if (appState.userRating > 0) {
-                        Text(
-                            text = "Your Rating: ★ ${appState.userRating}/5",
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFFF59E0B)
-                        )
-                    } else {
-                        Text(
-                            text = "Tap a star to rate",
-                            fontSize = 11.sp,
-                            color = theme.textDarkMuted
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    (1..5).forEach { starIndex ->
-                        val isFilled = starIndex <= appState.userRating
-                        Box(
-                            modifier = Modifier
-                                .padding(horizontal = 6.dp)
-                                .clip(CircleShape)
-                                .tactilePress(pressedScale = 0.82f) { onRateApp(starIndex) }
-                                .padding(6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isFilled) Icons.Rounded.Star else Icons.Rounded.StarBorder,
-                                contentDescription = "$starIndex Stars",
-                                tint = if (isFilled) Color(0xFFF59E0B) else theme.textDarkMuted,
-                                modifier = Modifier.size(30.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
             // Progress Bar if Downloading or Installing with Shimmer Sweep
             AnimatedVisibility(visible = appState.isDownloading || appState.isInstalling) {
                 Column(
@@ -1734,6 +1671,69 @@ private fun ClassicAppDetailView(
 
             // Visual Application Previews Section (Interactive Horizontal Carousel)
             AppPreviewCarousel(appId = app.id)
+
+            // Interactive Community & User Rating (0ms Optimistic local updates)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "RATINGS & REVIEWS",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = theme.textMuted
+                    )
+                    if (appState.userRating > 0) {
+                        Text(
+                            text = "Your Rating: ★ ${appState.userRating}/5",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF59E0B)
+                        )
+                    } else {
+                        Text(
+                            text = "Tap a star to rate",
+                            fontSize = 11.sp,
+                            color = theme.textDarkMuted
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    (1..5).forEach { starIndex ->
+                        val isFilled = starIndex <= appState.userRating
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp)
+                                .clip(CircleShape)
+                                .tactilePress(pressedScale = 0.82f) { onRateApp(starIndex) }
+                                .padding(6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isFilled) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                                contentDescription = "$starIndex Stars",
+                                tint = if (isFilled) Color(0xFFF59E0B) else theme.textDarkMuted,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             // Description Section
             Box(

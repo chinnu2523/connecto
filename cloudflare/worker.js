@@ -1881,14 +1881,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.3",
-        version_code: 52,
-        size_bytes: 18945083,
+        version_name: "2.0.4",
+        version_code: 53,
+        size_bytes: 18945093,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Application Detail Architecture: Positioned Ratings & Reviews directly after visual application screenshot previews for an intuitive browsing experience matching industry standards",
           "Connecto-Inspired Profile & Settings Tab UI: Complete executive redesign of the Account Tab matching Connecto's inset grouped sections, large avatar hero card with verification badge & role capsules, dual-segmented Black & White theme pill button, and dedicated Security, Support & About sections",
           "App-Wide Tap-To-Top Navigation: Tapping active bottom bar tab button (Store, Updates, Account) smoothly snaps any scrolled list back to the top with leap acceleration",
           "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
@@ -8339,12 +8340,12 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.3</span>")
-            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.3 (Build 52) • Standalone Client")
-            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.3 • 18.1 MB)")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.4</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.4 (Build 53) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.4 • 18.1 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v2.0.3)")
-            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.3")
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.4)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.4")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.3")
