@@ -75,6 +75,11 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Tag
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.DoneAll
 import androidx.compose.material.icons.rounded.EmojiEmotions
@@ -190,6 +195,7 @@ fun ChannelsWorkspaceScreen(
     unreadNotificationsCount: Int = 0,
     onNavigateToCalls: (() -> Unit)? = null,
     onDrawerStateChanged: ((Boolean) -> Unit)? = null,
+    scrollToBottomTrigger: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -293,6 +299,63 @@ fun ChannelsWorkspaceScreen(
     var showMoreOptionsMenu by remember { mutableStateOf(false) }
     var editingMessage by remember { mutableStateOf<MessageDto?>(null) }
 
+    var isChannelSearchOpen by rememberSaveable { mutableStateOf(false) }
+    var channelSearchQuery by rememberSaveable { mutableStateOf("") }
+    var showChannelOptionsMenu by remember { mutableStateOf(false) }
+    var showChannelInfoDialog by remember { mutableStateOf(false) }
+    var isChannelMuted by rememberSaveable(cleanSelectedChannel) {
+        mutableStateOf(sharedPrefs.getBoolean("muted_ch_$cleanSelectedChannel", false))
+    }
+
+    val channelRowState = rememberLazyListState()
+    val activeChipIndex = remember(cleanSelectedChannel) {
+        defaultChannels.indexOfFirst {
+            it.id.equals(cleanSelectedChannel, ignoreCase = true) || it.name.equals(cleanSelectedChannel, ignoreCase = true)
+        }.coerceAtLeast(0)
+    }
+
+    LaunchedEffect(activeChipIndex) {
+        try {
+            channelRowState.animateScrollToItem((activeChipIndex - 1).coerceAtLeast(0))
+        } catch (_: Exception) {}
+    }
+
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (drawerState.isOpen || drawerState.targetValue == DrawerValue.Open) 180f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "drawerChevron"
+    )
+
+    val waveTransition = rememberInfiniteTransition(label = "voiceLoungeWave")
+    val waveBar1 by waveTransition.animateFloat(
+        initialValue = 4f, targetValue = 13f,
+        animationSpec = infiniteRepeatable(tween(420, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "wb1"
+    )
+    val waveBar2 by waveTransition.animateFloat(
+        initialValue = 12f, targetValue = 5f,
+        animationSpec = infiniteRepeatable(tween(560, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "wb2"
+    )
+    val waveBar3 by waveTransition.animateFloat(
+        initialValue = 6f, targetValue = 15f,
+        animationSpec = infiniteRepeatable(tween(380, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "wb3"
+    )
+
+    val displayMessages = remember(messages.toList(), channelSearchQuery) {
+        if (channelSearchQuery.isBlank()) {
+            messages
+        } else {
+            val q = channelSearchQuery.trim().lowercase()
+            messages.filter { msg ->
+                msg.content.lowercase().contains(q) ||
+                msg.authorName.lowercase().contains(q) ||
+                msg.authorId.lowercase().contains(q)
+            }
+        }
+    }
+
     BackHandler(enabled = drawerState.isOpen) {
         coroutineScope.launch { drawerState.close() }
     }
@@ -387,6 +450,14 @@ fun ChannelsWorkspaceScreen(
         if (messages.isNotEmpty() && !hasScrolledToBottomOnEntry) {
             hasScrolledToBottomOnEntry = true
             try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+        }
+    }
+
+    LaunchedEffect(scrollToBottomTrigger) {
+        if (scrollToBottomTrigger > 0 && messages.isNotEmpty()) {
+            try {
+                listState.animateScrollToItem(messages.size)
+            } catch (_: Exception) {}
         }
     }
 
@@ -949,45 +1020,590 @@ fun ChannelsWorkspaceScreen(
                         }
                     }
                 } else {
-                    ConnectoTopHeader(
-                        title = "#${activeChip.name}",
-                        subtitle = activeChip.description,
-                        userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
-                        onMenuClick = {
-                            coroutineScope.launch {
-                                if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                            }
+                    // ================= DEDICATED CHANNEL WORKSPACE NAVIGATION BAR =================
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().statusBarsPadding(),
+                        color = if (colors.isLiquidGlass) {
+                            val alpha = colors.glassAlpha
+                            if (alpha <= 0.005f) Color.Transparent
+                            else colors.surface.copy(alpha = (alpha * 0.75f).coerceIn(0.15f, 0.90f))
+                        } else if (colors.isGlass) {
+                            colors.surface.copy(alpha = if (colors.isDark) 0.85f else 0.92f)
+                        } else if (colors.isDark) {
+                            Color(0xFF0D0F15)
+                        } else {
+                            colors.surface
                         },
-                        onAddFriendClick = { showAddFriendDialog = true },
-                        showProfileButton = false,
-                        onAvatarClick = {},
-                        customAction = if (activeChip.id == "voice-lounge") {
-                            {
-                                Box(
+                        tonalElevation = 2.dp
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            // Row 1: Workspace Selector Capsule + Quick Actions
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(54.dp)
+                                    .padding(horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                // Workspace Capsule (Interactive Drawer / Switcher trigger)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
                                     modifier = Modifier
-                                        .pressScaleEffect(onClick = { onNavigateToCalls?.invoke() })
-                                        .clip(RoundedCornerShape(ConnectoRadius.sm))
-                                        .background(Brush.linearGradient(gradientColors))
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        .pressScaleEffect(
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    if (drawerState.isClosed) drawerState.open() else drawerState.close()
+                                                }
+                                            },
+                                            targetScale = 0.95f
+                                        )
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (colors.isDark) Color(0xFF151822) else Color(0xFFF1F3F9))
+                                        .border(
+                                            width = 1.dp,
+                                            color = colors.borderSubtle.copy(alpha = 0.6f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .padding(start = 7.dp, end = 9.dp, top = 5.dp, bottom = 5.dp)
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(28.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (activeChip.id == "voice-lounge") OnlineGreen.copy(alpha = 0.15f)
+                                                else colors.primary.copy(alpha = 0.15f)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
                                         Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.VolumeUp,
+                                            imageVector = activeChip.icon,
                                             contentDescription = null,
-                                            tint = contentOnGradient,
-                                            modifier = Modifier.size(14.dp)
+                                            tint = if (activeChip.id == "voice-lounge") OnlineGreen else colors.primary,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "Join Voice",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = contentOnGradient
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(verticalArrangement = Arrangement.Center) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = "#${activeChip.name}",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.textPrimary,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            if (isChannelMuted) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.NotificationsOff,
+                                                    contentDescription = "Muted",
+                                                    tint = colors.textSecondary,
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                        }
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(5.dp)
+                                                    .clip(CircleShape)
+                                                    .background(OnlineGreen)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "Connecto Workspace",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = colors.textSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.KeyboardArrowDown,
+                                        contentDescription = "Open Workspace Drawer",
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .graphicsLayer { rotationZ = chevronRotation }
+                                    )
+                                }
+
+                                // Right Actions Row
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    // Voice Join button if in voice-lounge
+                                    if (activeChip.id == "voice-lounge") {
+                                        Box(
+                                            modifier = Modifier
+                                                .pressScaleEffect(onClick = { onNavigateToCalls?.invoke() })
+                                                .clip(RoundedCornerShape(ConnectoRadius.sm))
+                                                .background(Brush.linearGradient(gradientColors))
+                                                .padding(horizontal = 9.dp, vertical = 6.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(1.5.dp),
+                                                    modifier = Modifier.height(14.dp)
+                                                ) {
+                                                    Box(modifier = Modifier.width(2.dp).height(waveBar1.dp).clip(CircleShape).background(contentOnGradient))
+                                                    Box(modifier = Modifier.width(2.dp).height(waveBar2.dp).clip(CircleShape).background(contentOnGradient))
+                                                    Box(modifier = Modifier.width(2.dp).height(waveBar3.dp).clip(CircleShape).background(contentOnGradient))
+                                                }
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text(
+                                                    text = "Join Lounge",
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = contentOnGradient
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Search In-Channel Toggle Button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isChannelSearchOpen) colors.primary.copy(alpha = 0.15f)
+                                                else if (colors.isDark) Color.White.copy(alpha = 0.05f)
+                                                else Color.Black.copy(alpha = 0.04f)
+                                            )
+                                            .clickable {
+                                                isChannelSearchOpen = !isChannelSearchOpen
+                                                if (!isChannelSearchOpen) channelSearchQuery = ""
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = "Search Messages",
+                                            tint = if (isChannelSearchOpen) colors.primary else colors.textPrimary,
+                                            modifier = Modifier.size(19.dp)
                                         )
+                                    }
+
+                                    // Pinned Message Quick-Jump Button
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (pinnedMessageForChannel != null) colors.primary.copy(alpha = 0.10f)
+                                                else if (colors.isDark) Color.White.copy(alpha = 0.05f)
+                                                else Color.Black.copy(alpha = 0.04f)
+                                            )
+                                            .clickable {
+                                                val pinned = pinnedMessageForChannel
+                                                if (pinned != null) {
+                                                    val targetIdx = displayMessages.indexOfFirst { it.id == pinned.messageId }
+                                                    if (targetIdx != -1) {
+                                                        coroutineScope.launch {
+                                                            try { listState.animateScrollToItem(targetIdx) } catch (_: Exception) {}
+                                                        }
+                                                    }
+                                                } else {
+                                                    Toast.makeText(context, "No pinned message in #${activeChip.name}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = "Pinned Messages",
+                                            tint = if (pinnedMessageForChannel != null) colors.primary else colors.textSecondary,
+                                            modifier = Modifier.size(17.dp)
+                                        )
+                                        if (pinnedMessageForChannel != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(6.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .offset(x = (-6).dp, y = 6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.primary)
+                                            )
+                                        }
+                                    }
+
+                                    // 3-Dots Channel Options Menu
+                                    Box {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(CircleShape)
+                                                .background(
+                                                    if (colors.isDark) Color.White.copy(alpha = 0.05f)
+                                                    else Color.Black.copy(alpha = 0.04f)
+                                                )
+                                                .clickable { showChannelOptionsMenu = true },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.MoreVert,
+                                                contentDescription = "Channel Options",
+                                                tint = colors.textPrimary,
+                                                modifier = Modifier.size(19.dp)
+                                            )
+                                        }
+
+                                        DropdownMenu(
+                                            expanded = showChannelOptionsMenu,
+                                            onDismissRequest = { showChannelOptionsMenu = false },
+                                            modifier = Modifier.background(if (colors.isDark) Color(0xFF1E2029) else Color.White)
+                                        ) {
+                                            DropdownMenuItem(
+                                                text = { Text("Channel Info & Topic", color = colors.textPrimary) },
+                                                leadingIcon = {
+                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = colors.primary)
+                                                },
+                                                onClick = {
+                                                    showChannelOptionsMenu = false
+                                                    showChannelInfoDialog = true
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text(if (isChannelMuted) "Unmute Channel" else "Mute Channel", color = colors.textPrimary) },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = if (isChannelMuted) Icons.Default.Notifications else Icons.Default.NotificationsOff,
+                                                        contentDescription = null,
+                                                        tint = if (isChannelMuted) colors.success else colors.textSecondary
+                                                    )
+                                                },
+                                                onClick = {
+                                                    showChannelOptionsMenu = false
+                                                    isChannelMuted = !isChannelMuted
+                                                    sharedPrefs.edit().putBoolean("muted_ch_$cleanSelectedChannel", isChannelMuted).apply()
+                                                    Toast.makeText(context, if (isChannelMuted) "Muted #${activeChip.name}" else "Unmuted #${activeChip.name}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("Search Messages", color = colors.textPrimary) },
+                                                leadingIcon = {
+                                                    Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = colors.primary)
+                                                },
+                                                onClick = {
+                                                    showChannelOptionsMenu = false
+                                                    isChannelSearchOpen = true
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("Invite to Channel", color = colors.textPrimary) },
+                                                leadingIcon = {
+                                                    Icon(imageVector = Icons.Default.PersonAdd, contentDescription = null, tint = colors.primary)
+                                                },
+                                                onClick = {
+                                                    showChannelOptionsMenu = false
+                                                    showAddFriendDialog = true
+                                                }
+                                            )
+                                            DropdownMenuItem(
+                                                text = { Text("Scroll to Bottom", color = colors.textPrimary) },
+                                                leadingIcon = {
+                                                    Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null, tint = colors.primary)
+                                                },
+                                                onClick = {
+                                                    showChannelOptionsMenu = false
+                                                    coroutineScope.launch {
+                                                        if (displayMessages.isNotEmpty()) {
+                                                            try { listState.animateScrollToItem(displayMessages.size) } catch (_: Exception) {}
+                                                        }
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        } else null
+
+                            // Row 2: In-Channel Expandable Search Bar
+                            AnimatedVisibility(
+                                visible = isChannelSearchOpen,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (colors.isDark) Color(0xFF161822) else Color(0xFFEEF0F6))
+                                        .border(1.dp, colors.borderSubtle.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Search,
+                                            contentDescription = null,
+                                            tint = colors.textSecondary,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            if (channelSearchQuery.isEmpty()) {
+                                                Text(
+                                                    text = "Search in #${activeChip.name}...",
+                                                    fontSize = 13.sp,
+                                                    color = colors.textSecondary.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                            BasicTextField(
+                                                value = channelSearchQuery,
+                                                onValueChange = { channelSearchQuery = it },
+                                                textStyle = TextStyle(
+                                                    fontSize = 13.sp,
+                                                    color = colors.textPrimary
+                                                ),
+                                                cursorBrush = SolidColor(colors.primary),
+                                                singleLine = true,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                        if (channelSearchQuery.isNotBlank()) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "${displayMessages.size} found",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = colors.primary,
+                                                style = TextStyle(fontFeatureSettings = "tnum")
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .clip(CircleShape)
+                                                    .clickable { channelSearchQuery = "" },
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Close,
+                                                    contentDescription = "Clear",
+                                                    tint = colors.textSecondary,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .size(22.dp)
+                                                .clip(CircleShape)
+                                                .clickable {
+                                                    isChannelSearchOpen = false
+                                                    channelSearchQuery = ""
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Close Search",
+                                                tint = colors.textPrimary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Row 3: Horizontal Channel Segmented Navigation Bar
+                            LazyRow(
+                                state = channelRowState,
+                                modifier = Modifier.fillMaxWidth(),
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(defaultChannels, key = { it.id }) { channelItem ->
+                                    val isSelected = channelItem.id.equals(cleanSelectedChannel, ignoreCase = true) ||
+                                                     channelItem.name.equals(cleanSelectedChannel, ignoreCase = true)
+
+                                    val pillBg = if (isSelected) {
+                                        if (colors.isDark) Color(0xFF1F2230) else colors.primary.copy(alpha = 0.14f)
+                                    } else {
+                                        if (colors.isDark) Color(0xFF111319).copy(alpha = 0.7f) else Color(0xFFF3F4F8)
+                                    }
+
+                                    val pillBorder = if (isSelected) {
+                                        colors.primary.copy(alpha = 0.85f)
+                                    } else {
+                                        colors.borderSubtle.copy(alpha = 0.45f)
+                                    }
+
+                                    val pillContentColor = if (isSelected) {
+                                        if (colors.isDark) Color.White else colors.primary
+                                    } else {
+                                        colors.textSecondary
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .pressScaleEffect(
+                                                onClick = {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                                    selectedChannelId = channelItem.id
+                                                    sharedPrefs.edit().putString("last_active_channel", channelItem.id).apply()
+                                                    if (isChannelSearchOpen) {
+                                                        channelSearchQuery = ""
+                                                        isChannelSearchOpen = false
+                                                    }
+                                                },
+                                                targetScale = 0.94f
+                                            )
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(pillBg)
+                                            .border(
+                                                width = if (isSelected) 1.2.dp else 0.5.dp,
+                                                color = pillBorder,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = channelItem.icon,
+                                                contentDescription = null,
+                                                tint = pillContentColor,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text(
+                                                text = "#${channelItem.name}",
+                                                fontSize = 12.5.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                color = pillContentColor
+                                            )
+                                            if (channelItem.id == "voice-lounge" && isSelected) {
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(1.dp),
+                                                    modifier = Modifier.height(10.dp)
+                                                ) {
+                                                    Box(modifier = Modifier.width(1.5.dp).height((waveBar1 * 0.7f).dp).clip(CircleShape).background(OnlineGreen))
+                                                    Box(modifier = Modifier.width(1.5.dp).height((waveBar2 * 0.7f).dp).clip(CircleShape).background(OnlineGreen))
+                                                    Box(modifier = Modifier.width(1.5.dp).height((waveBar3 * 0.7f).dp).clip(CircleShape).background(OnlineGreen))
+                                                }
+                                            } else if (channelItem.id == "announcements") {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(5.dp)
+                                                        .clip(CircleShape)
+                                                        .background(colors.primary)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Microscopic Hairline Divider
+                            ConnectoDivider(
+                                thickness = 0.5.dp,
+                                color = colors.borderSubtle.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                }
+
+                // ================= CHANNEL INFO DIALOG =================
+                if (showChannelInfoDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showChannelInfoDialog = false },
+                        containerColor = if (colors.isDark) Color(0xFF161821) else Color.White,
+                        shape = RoundedCornerShape(16.dp),
+                        title = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.primary.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = activeChip.icon,
+                                        contentDescription = null,
+                                        tint = colors.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "#${activeChip.name}",
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
+                            }
+                        },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Text(
+                                    text = activeChip.description.ifBlank { "Connecto official community channel." },
+                                    fontSize = 13.5.sp,
+                                    color = colors.textSecondary,
+                                    lineHeight = 18.sp
+                                )
+                                ConnectoDivider(thickness = 0.5.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Channel Messages",
+                                        fontSize = 12.sp,
+                                        color = colors.textSecondary
+                                    )
+                                    Text(
+                                        text = "${messages.size}",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.textPrimary,
+                                        style = TextStyle(fontFeatureSettings = "tnum")
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Access Level",
+                                        fontSize = 12.sp,
+                                        color = colors.textSecondary
+                                    )
+                                    Text(
+                                        text = "Public Community",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = colors.primary
+                                    )
+                                }
+                            }
+                        },
+                        confirmButton = {
+                            TextButton(onClick = { showChannelInfoDialog = false }) {
+                                Text(text = "Close", fontWeight = FontWeight.Bold, color = colors.primary)
+                            }
+                        }
                     )
                 }
 
@@ -1149,6 +1765,59 @@ fun ChannelsWorkspaceScreen(
                                 )
                             }
                         }
+                    } else if (displayMessages.isEmpty() && channelSearchQuery.isNotBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(54.dp)
+                                        .clip(CircleShape)
+                                        .background(colors.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = colors.textSecondary,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text(
+                                    text = "No results for \"$channelSearchQuery\"",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "No messages match your search in #${activeChip.name}",
+                                    fontSize = 12.5.sp,
+                                    color = colors.textSecondary,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(colors.primary.copy(alpha = 0.15f))
+                                        .clickable { channelSearchQuery = "" }
+                                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "Clear search",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = colors.primary
+                                    )
+                                }
+                            }
+                        }
                     } else {
                         LazyColumn(
                             state = listState,
@@ -1158,55 +1827,57 @@ fun ChannelsWorkspaceScreen(
                             contentPadding = PaddingValues(top = 10.dp, bottom = 14.dp),
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            // Top Welcome Banner inside the feed (visible when scrolled to top)
-                            item(key = "feed_top_welcome_header") {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 16.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(54.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.surfaceVariant)
-                                                .border(1.dp, colors.borderSubtle, CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = activeChip.icon,
-                                                contentDescription = null,
-                                                tint = colors.primary,
-                                                modifier = Modifier.size(26.dp)
+                            // Top Welcome Banner inside the feed (visible when scrolled to top and not searching)
+                            if (channelSearchQuery.isBlank()) {
+                                item(key = "feed_top_welcome_header") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(54.dp)
+                                                    .clip(CircleShape)
+                                                    .background(colors.surfaceVariant)
+                                                    .border(1.dp, colors.borderSubtle, CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Icon(
+                                                    imageVector = activeChip.icon,
+                                                    contentDescription = null,
+                                                    tint = colors.primary,
+                                                    modifier = Modifier.size(26.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = "Welcome to #${activeChip.name}!",
+                                                fontSize = 17.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = colors.textPrimary
                                             )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = if (activeChip.description.isNotBlank()) activeChip.description
+                                                       else "This is the beginning of #${activeChip.name}. Start chatting!",
+                                                fontSize = 12.sp,
+                                                color = colors.textSecondary,
+                                                textAlign = TextAlign.Center,
+                                                modifier = Modifier.padding(horizontal = 24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(12.dp))
+                                            ConnectoDivider(thickness = 0.5.dp)
                                         }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            text = "Welcome to #${activeChip.name}!",
-                                            fontSize = 17.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = colors.textPrimary
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = if (activeChip.description.isNotBlank()) activeChip.description
-                                                   else "This is the beginning of #${activeChip.name}. Start chatting!",
-                                            fontSize = 12.sp,
-                                            color = colors.textSecondary,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(horizontal = 24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(12.dp))
-                                        ConnectoDivider(thickness = 0.5.dp)
                                     }
                                 }
                             }
 
-                            itemsIndexed(messages, key = { _, msg -> msg.id }) { idx, msg ->
+                            itemsIndexed(displayMessages, key = { _, msg -> msg.id }) { idx, msg ->
                                 val currentDate = formatChannelDate(msg.createdAt)
-                                val prevDate = if (idx > 0) formatChannelDate(messages[idx - 1].createdAt) else null
+                                val prevDate = if (idx > 0) formatChannelDate(displayMessages[idx - 1].createdAt) else null
                                 val showDateDivider = prevDate == null || currentDate != prevDate
 
                                 Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1361,7 +2032,7 @@ fun ChannelsWorkspaceScreen(
                     }
 
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = canScrollDown && messages.isNotEmpty(),
+                        visible = canScrollDown && displayMessages.isNotEmpty(),
                         enter = fadeIn() + scaleIn(initialScale = 0.8f),
                         exit = fadeOut() + scaleOut(targetScale = 0.8f),
                         modifier = Modifier
@@ -1378,9 +2049,9 @@ fun ChannelsWorkspaceScreen(
                                 .pressScaleEffect(
                                     onClick = {
                                         coroutineScope.launch {
-                                            if (messages.isNotEmpty()) {
+                                            if (displayMessages.isNotEmpty()) {
                                                 try {
-                                                    listState.animateScrollToItem(messages.size)
+                                                    listState.animateScrollToItem(displayMessages.size)
                                                 } catch (_: Exception) {}
                                             }
                                         }

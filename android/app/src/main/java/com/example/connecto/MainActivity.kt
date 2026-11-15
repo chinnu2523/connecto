@@ -424,6 +424,7 @@ fun ConnectoApp(
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
     var isChannelDrawerOpen by remember { mutableStateOf(false) }
     var homeScrollToTopTrigger by remember { mutableStateOf(0) }
+    var channelScrollToBottomTrigger by remember { mutableStateOf(0) }
 
     // App-wide screen privacy & blackscreen protection for screenshot, screenshare, and screencast
     val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
@@ -860,6 +861,9 @@ fun ConnectoApp(
                                             if (selectedTab == ConnectoTab.HOME && currentTab == ConnectoTab.HOME) {
                                                 homeScrollToTopTrigger++
                                             }
+                                            if (selectedTab == ConnectoTab.CHANNELS && currentTab == ConnectoTab.CHANNELS) {
+                                                channelScrollToBottomTrigger++
+                                            }
                                             updateCurrentTab(selectedTab)
                                         },
                                         hasUnreadChats = hasUnreadChats,
@@ -933,7 +937,8 @@ fun ConnectoApp(
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,
                                             onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
-                                            onDrawerStateChanged = { isOpen -> isChannelDrawerOpen = isOpen }
+                                            onDrawerStateChanged = { isOpen -> isChannelDrawerOpen = isOpen },
+                                            scrollToBottomTrigger = channelScrollToBottomTrigger
                                         )
                                     }
                                     ConnectoTab.CALLS -> {

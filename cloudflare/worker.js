@@ -199,20 +199,23 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.1.5",
-        version_name: "v5.1.5",
-        version_code: 131,
-        build: 131,
-        sha256: "364a00a693bc25678e8ff8df918c53e598fb0c4ccb75c51cac254b6e0186477a",
+        version: "5.1.6",
+        version_name: "v5.1.6",
+        version_code: 132,
+        build: 132,
+        sha256: "62afc24e3f1d30961104bf46a1e46d36bf70c1079f8c73eb21315fbc82001d4e",
         filename: "connecto-fun.apk",
-        size_bytes: 38001412,
-        size_display: "36.2 MB",
+        size_bytes: 38035239,
+        size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
         url: "https://connecto.fun/download/apk",
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Channel Workspace Navigation Bar: Dedicated top header featuring interactive workspace switcher capsule, animated chevron indicator, in-channel instant message search with live filter & tabular match counter, pinned message quick-jump, and channel options menu.",
+          "Segmented Channel Navigation Bar: Smooth horizontal segmented pill bar (#general, #announcements, #gaming, #tournaments, #clips, #voice-lounge) with concentric geometry, active indicator, live sound wave visualizer, and haptic feedback.",
+          "Channel Bottom Bar Quick Return: Tapping the Channels bottom bar tab when active smoothly snaps the message timeline to latest messages.",
           "Interactive Referral & Invite System: Personalized referral links (connecto.fun/download?ref=user) in Profile Support, ⌘K Command Palette, and directory search empty states.",
           "Feedback & Suggestions Center: Dedicated feedback portal in Profile Support, Help Center, and Command Palette with 5-star ratings, categories, and system diagnostics.",
           "Home Tab Tap-To-Top: Tapping the Home bottom bar tab button or top header smoothly scrolls the dashboard LazyColumn back to top with intelligent leap acceleration.",
@@ -514,14 +517,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.5-b131-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.6-b132-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.1.5");
-          res.headers.set("X-Connecto-Build", "131");
+          res.headers.set("X-Connecto-Version", "v5.1.6");
+          res.headers.set("X-Connecto-Build", "132");
           return res;
         }
 
@@ -1911,14 +1914,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.1.5",
-        version_code: 131,
-        size_bytes: 38001412,
-        size_formatted: "36.2 MB",
+        version_name: "5.1.6",
+        version_code: 132,
+        size_bytes: 38035239,
+        size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Channel Workspace Navigation Bar: Elevated top header with interactive workspace switcher capsule, chevron rotation, in-channel search with live message filter & tabular match count, pinned message quick-jump, and 3-dots channel options",
+          "Segmented Channel Navigation Bar: Ergonomic horizontal scrollable segmented pill bar with animated liquid active indicator, subtle unread dots, live voice lounge waveform, and haptic feedback",
+          "Channel Bottom Bar Quick Return: Tapping the Channels tab when active smoothly snaps the message timeline to latest messages",
           "Invite Friends & Referral: Interactive referral modal with personalized link generation (connecto.fun/download?ref=user), directory search invite CTA, and system share sheet",
           "Feedback & Suggestions Center: Dedicated feedback portal in Profile Support, Help Center, and Command Palette with 5-star ratings, categories, and system diagnostics",
           "Home Tab Tap-To-Top: Tapping the Home bottom bar tab button or top header smoothly scrolls the dashboard LazyColumn back to top with intelligent leap acceleration",
@@ -7089,14 +7095,14 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.1.4",
-      version_name: "v5.1.5",
-      version_code: 131,
-      build: 131,
-      sha256: "364a00a693bc25678e8ff8df918c53e598fb0c4ccb75c51cac254b6e0186477a",
+      version: "5.1.6",
+      version_name: "v5.1.6",
+      version_code: 132,
+      build: 132,
+      sha256: "62afc24e3f1d30961104bf46a1e46d36bf70c1079f8c73eb21315fbc82001d4e",
       filename: "connecto-fun.apk",
-      size_bytes: 38001412,
-      size_display: "36.2 MB",
+      size_bytes: 38035239,
+      size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
       url: "https://connecto.fun/download/apk",
@@ -8282,11 +8288,11 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.9")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.5")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.5")
-            .replace(/Build 12[0-9]|Build 13[0-9]/g, "Build 131")
-            .replace(/BUILD 12[0-9]|BUILD 13[0-9]/g, "BUILD 131")
-            .replace(/\(b12[0-9]\)|\(b13[0-9]\)/g, "(b131)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.6")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.6")
+            .replace(/Build 12[0-9]|Build 13[0-9]/g, "Build 132")
+            .replace(/BUILD 12[0-9]|BUILD 13[0-9]/g, "BUILD 132")
+            .replace(/\(b12[0-9]\)|\(b13[0-9]\)/g, "(b132)");
           responseBody = patched;
         } catch (_) {}
       }
