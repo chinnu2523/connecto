@@ -420,7 +420,12 @@ fun StoreApp(
                                                 onLoginConnecto = { vm.loginWithConnecto(context) },
                                                 onLogout = { vm.logout() },
                                                 onClearLoginError = { vm.clearLoginError() },
-                                                scrollToTopTrigger = accountScrollToTopTrigger
+                                                scrollToTopTrigger = accountScrollToTopTrigger,
+                                                isRefreshing = s.isRefreshing,
+                                                onRefresh = {
+                                                    vm.syncSsoProfileIfAvailable()
+                                                    vm.loadCatalog(silently = true)
+                                                }
                                             )
                                         } else {
                                             ClassicCatalogBody(
@@ -3479,7 +3484,9 @@ fun ClassicLoginAccountView(
     onLoginConnecto: () -> Unit,
     onLogout: () -> Unit,
     onClearLoginError: () -> Unit,
-    scrollToTopTrigger: Int = 0
+    scrollToTopTrigger: Int = 0,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val theme = LocalStoreTheme.current
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
@@ -3498,6 +3505,15 @@ fun ClassicLoginAccountView(
         }
     }
 
+    StoreDragToRefresh(
+        isRefreshing = isRefreshing,
+        onRefresh = onRefresh,
+        refreshText = "Refreshing profile & session...",
+        canScrollBackward = {
+            accountScrollState.canScrollBackward || accountScrollState.value > 0
+        },
+        modifier = Modifier.fillMaxSize()
+    ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -4263,6 +4279,7 @@ fun ClassicLoginAccountView(
                 }
             }
         }
+    }
     }
 
     if (showLegalDialog != null) {

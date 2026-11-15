@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.3",
-        version_name: "v5.2.3",
-        version_code: 139,
-        build: 139,
-        sha256: "2510a5935c46fba9b0661f68f71889c2f5ca273845d0ec5e4726a9037180fb70",
+        version: "5.2.4",
+        version_name: "v5.2.4",
+        version_code: 140,
+        build: 140,
+        sha256: "c989f8d1d13f76012e467757c560f2d30f0a1318e9a47973bcf5a8d598332894",
         filename: "connecto-fun.apk",
-        size_bytes: 38045464,
+        size_bytes: 38050394,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -363,21 +363,22 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.6/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.5/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.4/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.3/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.6-b55-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.7-b56-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.0.6");
-          res.headers.set("X-Connecto-Store-Build", "55");
+          res.headers.set("X-Connecto-Store-Version", "v2.0.7");
+          res.headers.set("X-Connecto-Store-Build", "56");
           return res;
         }
 
@@ -389,7 +390,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/2.0.6"
+                  "User-Agent": "Connecto-Cloud-Worker/2.0.7"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -415,8 +416,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.6");
-              downloadHeaders.set("X-Connecto-Store-Build", "55");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.7");
+              downloadHeaders.set("X-Connecto-Store-Build", "56");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -431,7 +432,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v2.0.6/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -516,18 +517,19 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.2/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.3-b139-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.4-b140-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.2.3");
+          res.headers.set("X-Connecto-Version", "v5.2.4");
           res.headers.set("X-Connecto-Build", "139");
           return res;
         }
@@ -540,7 +542,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.2.3"
+                  "User-Agent": "Connecto-Cloud-Worker/5.2.4"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -564,7 +566,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.2.3");
+              downloadHeaders.set("X-Connecto-Version", "v5.2.4");
               downloadHeaders.set("X-Connecto-Build", "139");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
@@ -580,7 +582,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.3/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -1885,14 +1887,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.6",
-        version_code: 55,
-        size_bytes: 18945068,
+        version_name: "2.0.7",
+        version_code: 56,
+        size_bytes: 18961479,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Elastic Pull-to-Refresh on Account & Updates Tabs: Integrated StoreDragToRefresh into ClassicLoginAccountView and UpdatesView with Cyan/Sky indicator and spring return physics",
+          "Scroll-to-Top Refresh Protection: Fixed root cause where upward scrolling and fling settling accidentally triggered auto-refresh by locking gesture qualification at touch-down",
           "Interactive Screenshot Lightbox & Touch Slider: Tapping any preview thumbnail launches an immersive full-screen lightbox with smooth horizontal swipe paging, animated dot indicators, previous/next controls, and zoom badges",
           "PackageInstaller Silent Self-Update Prohibition & BAL Fix: Self-update now invokes system package installer intent directly from foreground activity context with unknown sources guidance, completely bypassing Android 14+ Background Activity Launch (BAL) restrictions",
           "UI State Lockout Safeguard: Reset isInstalling state immediately on package install failure or session cancellation to ensure retry buttons remain fully responsive",
@@ -1925,14 +1929,17 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.3",
-        version_code: 139,
-        size_bytes: 38045464,
+        version_name: "5.2.4",
+        version_code: 140,
+        size_bytes: 38050394,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Authentic Elastic Pull Transition Animation Engine: Progressive logarithmic rubber-band tension with 2-phase gesture qualification, 12dp hysteresis deadband, OLED pill indicator, and fluid spring return across Home, Messages, Calls, and Profile tabs",
+          "Scroll-to-Top Refresh Protection: Fixed root cause where normal flings and upward scrolling accidentally triggered auto-refresh by locking gesture qualification at touch-down",
+          "In-Flight Refresh Freeze Prevention: Reject upward drag manipulation during active refresh to prevent indicator and content offset freezing",
           "App-Wide Tap-To-Top Navigation: Tapping any active bottom bar tab button (Home, Messages, Channels, Calls, Profile) or top header bar smoothly scrolls back to the top with multi-item leap acceleration",
           "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
           "Dual-Segmented Black/White Theme Toggle: Tactile squircle pill toggle in Profile Settings with vector icons and dynamic elevation",
@@ -7117,11 +7124,11 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.3",
-      version_name: "v5.2.3",
-      version_code: 139,
-      build: 139,
-      sha256: "2510a5935c46fba9b0661f68f71889c2f5ca273845d0ec5e4726a9037180fb70",
+      version: "5.2.4",
+      version_name: "v5.2.4",
+      version_code: 140,
+      build: 140,
+      sha256: "c989f8d1d13f76012e467757c560f2d30f0a1318e9a47973bcf5a8d598332894",
       filename: "connecto-fun.apk",
       size_bytes: 38045464,
       size_display: "36.3 MB",
@@ -7137,7 +7144,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       releases: [
         {
-          version: "v5.2.3",
+          version: "v5.2.4",
           date: "Nov 15, 2026",
           category: "feature",
           tag: "Latest Release",
@@ -8349,19 +8356,19 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.6</span>")
-            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.6 (Build 55) • Standalone Client")
-            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.6 • 18.1 MB)")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.7</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.7 (Build 56) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.7 • 18.1 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v2.0.6)")
-            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.6")
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.7)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.7")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.3")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.3")
-            .replace(/Build 1[0-9][0-9]/g, "Build 139")
-            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 139")
-            .replace(/\(b1[0-9][0-9]\)/g, "(b139)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.4")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.4")
+            .replace(/Build 1[0-9][0-9]/g, "Build 140")
+            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 140")
+            .replace(/\(b1[0-9][0-9]\)/g, "(b140)");
           responseBody = patched;
         } catch (_) {}
       }

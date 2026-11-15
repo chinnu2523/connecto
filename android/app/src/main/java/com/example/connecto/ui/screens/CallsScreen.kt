@@ -337,6 +337,7 @@ fun CallsScreen(
     }
 
     var isInitialLoading by remember { mutableStateOf(liveCallLogs.isEmpty()) }
+    var isRefreshingCalls by remember { mutableStateOf(false) }
 
     fun refreshCallLogs() {
         coroutineScope.launch {
@@ -759,11 +760,34 @@ fun CallsScreen(
             }
 
             // Call Logs List
-            LazyColumn(
-                state = callListState,
+            com.example.connecto.ui.components.ConnectoDragToRefresh(
+                isRefreshing = isRefreshingCalls,
+                onRefresh = {
+                    isRefreshingCalls = true
+                    coroutineScope.launch {
+                        try {
+                            refreshCallLogs()
+                        } catch (_: Exception) {
+                        } finally {
+                            kotlinx.coroutines.delay(400)
+                            isRefreshingCalls = false
+                        }
+                    }
+                },
+                refreshText = "Syncing call history...",
+                canScrollBackward = {
+                    callListState.canScrollBackward ||
+                    callListState.firstVisibleItemIndex > 0 ||
+                    callListState.firstVisibleItemScrollOffset > 0
+                },
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+            ) {
+            LazyColumn(
+                state = callListState,
+                modifier = Modifier
+                    .fillMaxSize()
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(top = 8.dp, bottom = 90.dp)
@@ -1040,6 +1064,7 @@ fun CallsScreen(
                         }
                     }
                 }
+            }
             }
         }
 

@@ -779,6 +779,8 @@ fun ProfileScreen(
         }
     }
 
+    var isRefreshingProfile by remember { mutableStateOf(false) }
+
     fun refreshUserSessions() {
         coroutineScope.launch {
             isLoadingSessions = true
@@ -1162,11 +1164,35 @@ fun ProfileScreen(
                         )
                     }
 
-                    LazyColumn(
-                        state = profileListState,
+                    com.example.connecto.ui.components.ConnectoDragToRefresh(
+                        isRefreshing = isRefreshingProfile,
+                        onRefresh = {
+                            isRefreshingProfile = true
+                            coroutineScope.launch {
+                                try {
+                                    refreshUserSessions()
+                                    ConnectoApiClient.getProfile(username)
+                                } catch (_: Exception) {
+                                } finally {
+                                    kotlinx.coroutines.delay(400)
+                                    isRefreshingProfile = false
+                                }
+                            }
+                        },
+                        refreshText = "Syncing profile & security sessions...",
+                        canScrollBackward = {
+                            profileListState.canScrollBackward ||
+                            profileListState.firstVisibleItemIndex > 0 ||
+                            profileListState.firstVisibleItemScrollOffset > 0
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
+                    ) {
+                    LazyColumn(
+                        state = profileListState,
+                        modifier = Modifier
+                            .fillMaxSize()
                             .padding(horizontal = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
@@ -1872,6 +1898,7 @@ fun ProfileScreen(
 
                 
                         item { Spacer(modifier = Modifier.height(32.dp)) }
+                    }
                     }
                 }
             } else {

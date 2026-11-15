@@ -637,6 +637,7 @@ fun CustomizedChatScreen(
     var openedProfileFromChatList by remember { mutableStateOf(false) }
     var showFriendProfileDialog by remember { mutableStateOf(false) }
     var showGroupProfileDialog by remember { mutableStateOf(false) }
+    var isRefreshingFriends by remember { mutableStateOf(false) }
     var showAddGroupMembersDialog by remember { mutableStateOf(false) }
     var showUnfriendConfirmDialog by remember { mutableStateOf(false) }
     var isUnfriending by remember { mutableStateOf(false) }
@@ -4784,6 +4785,28 @@ fun CustomizedChatScreen(
                 when (screenState) {
                     "FRIENDS_LIST" -> {
                     // ================= 1. FRIENDS LIST SCREEN =================
+                    com.example.connecto.ui.components.ConnectoDragToRefresh(
+                        isRefreshing = isRefreshingFriends,
+                        onRefresh = {
+                            isRefreshingFriends = true
+                            coroutineScope.launch {
+                                try {
+                                    syncAcceptedFriends()
+                                } catch (_: Exception) {
+                                } finally {
+                                    kotlinx.coroutines.delay(400)
+                                    isRefreshingFriends = false
+                                }
+                            }
+                        },
+                        refreshText = "Syncing conversations & friends...",
+                        canScrollBackward = {
+                            friendsListState.canScrollBackward ||
+                            friendsListState.firstVisibleItemIndex > 0 ||
+                            friendsListState.firstVisibleItemScrollOffset > 0
+                        },
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                     DisableSelection {
                     LazyColumn(
                         state = friendsListState,
@@ -5312,6 +5335,7 @@ fun CustomizedChatScreen(
                             }
                         }
                     } // end DisableSelection
+                    }
                     }
                     } // end FRIENDS_LIST branch
                     "FRIEND_PROFILE" -> {
