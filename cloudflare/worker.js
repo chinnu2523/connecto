@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.0",
-        version_name: "v5.2.0",
-        version_code: 136,
-        build: 136,
-        sha256: "ed43918238d076bf3db369fe85c98e43be8cb0fd7436b29274bf9751d9099232",
+        version: "5.2.1",
+        version_name: "v5.2.1",
+        version_code: 137,
+        build: 137,
+        sha256: "648348e3927cf0074956fa74b759c6b39beb2175a4de74fbfb2e0172ed672f9c",
         filename: "connecto-fun.apk",
-        size_bytes: 38031062,
+        size_bytes: 38038468,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -1914,9 +1914,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.0",
-        version_code: 136,
-        size_bytes: 38031062,
+        version_name: "5.2.1",
+        version_code: 137,
+        size_bytes: 38038468,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
@@ -7101,13 +7101,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.0",
-      version_name: "v5.2.0",
-      version_code: 136,
-      build: 136,
-      sha256: "ed43918238d076bf3db369fe85c98e43be8cb0fd7436b29274bf9751d9099232",
+      version: "5.2.1",
+      version_name: "v5.2.1",
+      version_code: 137,
+      build: 137,
+      sha256: "648348e3927cf0074956fa74b759c6b39beb2175a4de74fbfb2e0172ed672f9c",
       filename: "connecto-fun.apk",
-      size_bytes: 38031062,
+      size_bytes: 38038468,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -8294,11 +8294,11 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.0")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.0")
-            .replace(/Build 1[0-9][0-9]/g, "Build 136")
-            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 136")
-            .replace(/\(b1[0-9][0-9]\)/g, "(b136)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.1")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.1")
+            .replace(/Build 1[0-9][0-9]/g, "Build 137")
+            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 137")
+            .replace(/\(b1[0-9][0-9]\)/g, "(b137)");
           responseBody = patched;
         } catch (_) {}
       }

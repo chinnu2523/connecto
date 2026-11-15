@@ -90,6 +90,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.ui.res.painterResource
@@ -3860,13 +3862,13 @@ fun ProfileScreen(
 
                                                     Box(
                                                         modifier = Modifier
-                                                            .size(44.dp)
+                                                            .size(42.dp)
                                                             .graphicsLayer {
                                                                 rotationZ = themeRotation
                                                                 scaleX = themeIconScale
                                                                 scaleY = themeIconScale
                                                             }
-                                                            .clip(CircleShape)
+                                                            .clip(RoundedCornerShape(12.dp))
                                                             .background(
                                                                 if (currentThemeMode.isDark) Color(0xFF000000)
                                                                 else Color(0xFFFFFBEB)
@@ -3875,13 +3877,15 @@ fun ProfileScreen(
                                                                 1.5.dp,
                                                                 if (currentThemeMode.isDark) Color(0xFF38BDF8).copy(alpha = 0.5f)
                                                                 else Color(0xFFF59E0B).copy(alpha = 0.6f),
-                                                                CircleShape
+                                                                RoundedCornerShape(12.dp)
                                                             ),
                                                         contentAlignment = Alignment.Center
                                                     ) {
-                                                        Text(
-                                                            text = if (currentThemeMode.isDark) "🌑" else "☀️",
-                                                            fontSize = 22.sp
+                                                        Icon(
+                                                            imageVector = if (currentThemeMode.isDark) Icons.Default.DarkMode else Icons.Default.LightMode,
+                                                            contentDescription = null,
+                                                            tint = if (currentThemeMode.isDark) Color(0xFF38BDF8) else Color(0xFFF59E0B),
+                                                            modifier = Modifier.size(22.dp)
                                                         )
                                                     }
                                                     Spacer(modifier = Modifier.width(12.dp))
@@ -3916,18 +3920,104 @@ fun ProfileScreen(
                                                     }
                                                 }
 
-                                                // Quick toggle between Black and White with haptic spring response
-                                                Switch(
-                                                    checked = currentThemeMode.isDark,
-                                                    onCheckedChange = { isDark ->
-                                                        try {
-                                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                                        } catch (_: Exception) {}
-                                                        val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
-                                                        onSelectThemeMode(newMode)
-                                                    },
-                                                    colors = getMonochromeSwitchColors()
-                                                )
+                                                // Dual Segmented Theme Button Pill
+                                                Row(
+                                                    modifier = Modifier
+                                                        .height(34.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(
+                                                            if (currentThemeMode.isDark) Color(0xFF141416) else Color(0xFFF1F5F9)
+                                                        )
+                                                        .border(
+                                                            width = 1.dp,
+                                                            color = if (currentThemeMode.isDark) Color.White.copy(alpha = 0.10f) else Color(0xFFCBD5E1),
+                                                            shape = RoundedCornerShape(10.dp)
+                                                        )
+                                                        .padding(3.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                ) {
+                                                    // Black Segment Button
+                                                    val isBlack = currentThemeMode.isDark
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(7.dp))
+                                                            .background(
+                                                                if (isBlack) Color(0xFF000000) else Color.Transparent
+                                                            )
+                                                            .then(
+                                                                if (isBlack) {
+                                                                    Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.60f), RoundedCornerShape(7.dp))
+                                                                } else Modifier
+                                                            )
+                                                            .clickable {
+                                                                if (!isBlack) {
+                                                                    try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                                                                    onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.NOIR)
+                                                                }
+                                                            }
+                                                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.DarkMode,
+                                                                contentDescription = "Black Theme",
+                                                                tint = if (isBlack) Color(0xFF38BDF8) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                            Text(
+                                                                text = "Black",
+                                                                fontSize = 11.5.sp,
+                                                                fontWeight = if (isBlack) FontWeight.Bold else FontWeight.Medium,
+                                                                color = if (isBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                            )
+                                                        }
+                                                    }
+
+                                                    // White Segment Button
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(7.dp))
+                                                            .background(
+                                                                if (!isBlack) Color(0xFFFFFFFF) else Color.Transparent
+                                                            )
+                                                            .then(
+                                                                if (!isBlack) {
+                                                                    Modifier.border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(7.dp))
+                                                                } else Modifier
+                                                            )
+                                                            .clickable {
+                                                                if (isBlack) {
+                                                                    try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                                                                    onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT)
+                                                                }
+                                                            }
+                                                            .padding(horizontal = 9.dp, vertical = 5.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.LightMode,
+                                                                contentDescription = "White Theme",
+                                                                tint = if (!isBlack) Color(0xFFF59E0B) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                                modifier = Modifier.size(13.dp)
+                                                            )
+                                                            Text(
+                                                                text = "White",
+                                                                fontSize = 11.5.sp,
+                                                                fontWeight = if (!isBlack) FontWeight.Bold else FontWeight.Medium,
+                                                                color = if (!isBlack) Color(0xFF0F172A) else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                                            )
+                                                        }
+                                                    }
+                                                }
                                             }
 
                                             HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.20f), thickness = 1.dp)
@@ -3947,10 +4037,22 @@ fun ProfileScreen(
                                             ) {
                                                 // Black Theme Option Card
                                                 val isBlackSelected = currentThemeMode.isDark
+                                                val blackCardInteraction = remember { MutableInteractionSource() }
+                                                val isBlackCardPressed by blackCardInteraction.collectIsPressedAsState()
+                                                val blackCardScale by animateFloatAsState(
+                                                    targetValue = if (isBlackCardPressed) 0.982f else 1.0f,
+                                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                                    label = "blackCardScale"
+                                                )
+
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .graphicsLayer {
+                                                            scaleX = blackCardScale
+                                                            scaleY = blackCardScale
+                                                        }
+                                                        .clip(RoundedCornerShape(18.dp))
                                                         .background(
                                                             if (isBlackSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
@@ -3958,9 +4060,12 @@ fun ProfileScreen(
                                                         .border(
                                                             width = if (isBlackSelected) 1.8.dp else 1.dp,
                                                             color = if (isBlackSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
-                                                            shape = RoundedCornerShape(16.dp)
+                                                            shape = RoundedCornerShape(18.dp)
                                                         )
-                                                        .clickable {
+                                                        .clickable(
+                                                            interactionSource = blackCardInteraction,
+                                                            indication = null
+                                                        ) {
                                                             try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
                                                             onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.NOIR)
                                                         }
@@ -3977,19 +4082,24 @@ fun ProfileScreen(
                                                         ) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .size(40.dp)
-                                                                    .clip(CircleShape)
+                                                                    .size(42.dp)
+                                                                    .clip(RoundedCornerShape(12.dp))
                                                                     .background(Color(0xFF000000))
-                                                                    .border(1.5.dp, Color(0xFFFAFAFA).copy(alpha = 0.6f), CircleShape),
+                                                                    .border(1.5.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(12.dp)),
                                                                 contentAlignment = Alignment.Center
                                                             ) {
-                                                                Text(text = "🌑", fontSize = 18.sp)
+                                                                Icon(
+                                                                    imageVector = Icons.Default.DarkMode,
+                                                                    contentDescription = null,
+                                                                    tint = Color(0xFF38BDF8),
+                                                                    modifier = Modifier.size(22.dp)
+                                                                )
                                                             }
                                                             Spacer(modifier = Modifier.width(14.dp))
                                                             Column {
                                                                 Text(
                                                                     text = "Black Theme",
-                                                                    fontSize = 15.sp,
+                                                                    fontSize = 15.5.sp,
                                                                     fontWeight = FontWeight.Bold,
                                                                     color = MaterialTheme.colorScheme.onSurface
                                                                 )
@@ -4001,23 +4111,48 @@ fun ProfileScreen(
                                                             }
                                                         }
 
-                                                        if (isBlackSelected) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.CheckCircle,
-                                                                contentDescription = "Selected",
-                                                                tint = MaterialTheme.colorScheme.primary,
-                                                                modifier = Modifier.size(22.dp)
-                                                            )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .clip(CircleShape)
+                                                                .background(if (isBlackSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                                                .border(
+                                                                    width = if (isBlackSelected) 0.dp else 1.5.dp,
+                                                                    color = if (isBlackSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                                                    shape = CircleShape
+                                                                ),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            if (isBlackSelected) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Check,
+                                                                    contentDescription = "Selected",
+                                                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                                                    modifier = Modifier.size(14.dp)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
 
                                                 // White Theme Option Card
                                                 val isWhiteSelected = !currentThemeMode.isDark
+                                                val whiteCardInteraction = remember { MutableInteractionSource() }
+                                                val isWhiteCardPressed by whiteCardInteraction.collectIsPressedAsState()
+                                                val whiteCardScale by animateFloatAsState(
+                                                    targetValue = if (isWhiteCardPressed) 0.982f else 1.0f,
+                                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                                    label = "whiteCardScale"
+                                                )
+
                                                 Box(
                                                     modifier = Modifier
                                                         .fillMaxWidth()
-                                                        .clip(RoundedCornerShape(16.dp))
+                                                        .graphicsLayer {
+                                                            scaleX = whiteCardScale
+                                                            scaleY = whiteCardScale
+                                                        }
+                                                        .clip(RoundedCornerShape(18.dp))
                                                         .background(
                                                             if (isWhiteSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
@@ -4025,9 +4160,12 @@ fun ProfileScreen(
                                                         .border(
                                                             width = if (isWhiteSelected) 1.8.dp else 1.dp,
                                                             color = if (isWhiteSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.18f),
-                                                            shape = RoundedCornerShape(16.dp)
+                                                            shape = RoundedCornerShape(18.dp)
                                                         )
-                                                        .clickable {
+                                                        .clickable(
+                                                            interactionSource = whiteCardInteraction,
+                                                            indication = null
+                                                        ) {
                                                             try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
                                                             onSelectThemeMode(com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT)
                                                         }
@@ -4044,19 +4182,24 @@ fun ProfileScreen(
                                                         ) {
                                                             Box(
                                                                 modifier = Modifier
-                                                                    .size(40.dp)
-                                                                    .clip(CircleShape)
-                                                                    .background(Color(0xFFFBF8F2))
-                                                                    .border(1.5.dp, Color(0xFF141312).copy(alpha = 0.3f), CircleShape),
+                                                                    .size(42.dp)
+                                                                    .clip(RoundedCornerShape(12.dp))
+                                                                    .background(Color(0xFFFFFBEB))
+                                                                    .border(1.5.dp, Color(0xFFF59E0B).copy(alpha = 0.6f), RoundedCornerShape(12.dp)),
                                                                 contentAlignment = Alignment.Center
                                                             ) {
-                                                                Text(text = "☀️", fontSize = 18.sp)
+                                                                Icon(
+                                                                    imageVector = Icons.Default.LightMode,
+                                                                    contentDescription = null,
+                                                                    tint = Color(0xFFF59E0B),
+                                                                    modifier = Modifier.size(22.dp)
+                                                                )
                                                             }
                                                             Spacer(modifier = Modifier.width(14.dp))
                                                             Column {
                                                                 Text(
                                                                     text = "White Theme",
-                                                                    fontSize = 15.sp,
+                                                                    fontSize = 15.5.sp,
                                                                     fontWeight = FontWeight.Bold,
                                                                     color = MaterialTheme.colorScheme.onSurface
                                                                 )
@@ -4068,13 +4211,26 @@ fun ProfileScreen(
                                                             }
                                                         }
 
-                                                        if (isWhiteSelected) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.CheckCircle,
-                                                                contentDescription = "Selected",
-                                                                tint = MaterialTheme.colorScheme.primary,
-                                                                modifier = Modifier.size(22.dp)
-                                                            )
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .size(24.dp)
+                                                                .clip(CircleShape)
+                                                                .background(if (isWhiteSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                                                .border(
+                                                                    width = if (isWhiteSelected) 0.dp else 1.5.dp,
+                                                                    color = if (isWhiteSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                                                                    shape = CircleShape
+                                                                ),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            if (isWhiteSelected) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Check,
+                                                                    contentDescription = "Selected",
+                                                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                                                    modifier = Modifier.size(14.dp)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }

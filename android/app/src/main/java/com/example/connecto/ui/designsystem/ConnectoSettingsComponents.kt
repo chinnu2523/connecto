@@ -31,6 +31,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -345,17 +347,10 @@ fun ConnectoThemeToggleRow(
         label = "themeIconScale"
     )
 
-    // Smooth spring slider offset for the toggle switch thumb (2.dp when light, 24.dp when dark)
-    val thumbOffset by animateDpAsState(
-        targetValue = if (isDarkTheme) 24.dp else 2.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "themeThumbOffset"
-    )
-
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 56.dp)
+            .heightIn(min = 54.dp)
             .graphicsLayer {
                 scaleX = rowScale
                 scaleY = rowScale
@@ -366,36 +361,39 @@ fun ConnectoThemeToggleRow(
                 indication = null
             ) {
                 try {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 } catch (_: Exception) {}
                 onToggleTheme(!isDarkTheme)
             }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Leading Animated Icon (Moon/Sun)
+        // Leading Squircle Icon (Matches ConnectoSettingsRow style)
+        val iconTint = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFFF59E0B)
         Box(
             modifier = Modifier
-                .size(34.dp)
+                .size(28.dp)
                 .graphicsLayer {
                     rotationZ = themeIconRotation
                     scaleX = themeIconScale
                     scaleY = themeIconScale
                 }
-                .clip(CircleShape)
+                .clip(RoundedCornerShape(8.dp))
                 .background(
-                    if (isDarkTheme) Color(0xFF000000) else Color(0xFFF1F5F9)
+                    if (colors.isDark) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)
                 )
                 .border(
-                    width = 1.2.dp,
-                    color = if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.45f) else Color(0xFFCBD5E1),
-                    shape = CircleShape
+                    width = 1.dp,
+                    color = if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFFF59E0B).copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(8.dp)
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = if (isDarkTheme) "🌑" else "☀️",
-                fontSize = 17.sp
+            Icon(
+                imageVector = if (isDarkTheme) Icons.Default.DarkMode else Icons.Default.LightMode,
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(17.dp)
             )
         }
 
@@ -408,7 +406,7 @@ fun ConnectoThemeToggleRow(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = if (isDarkTheme) "Black Theme" else "White Theme",
+                    text = "Display Theme",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.textPrimary,
@@ -428,16 +426,17 @@ fun ConnectoThemeToggleRow(
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = if (isDarkTheme) "OLED" else "LIGHT",
+                        text = if (isDarkTheme) "BLACK" else "WHITE",
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Bold,
+                        style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
                         color = colors.primary
                     )
                 }
             }
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (isDarkTheme) "Pure 0-nit black • Tap to switch to White" else "Crisp studio white • Tap to switch to Black",
+                text = if (isDarkTheme) "Pure 0-nit OLED Black" else "Studio Crisp White",
                 fontSize = 12.sp,
                 color = colors.textSecondary,
                 maxLines = 1,
@@ -447,45 +446,129 @@ fun ConnectoThemeToggleRow(
 
         Spacer(modifier = Modifier.width(10.dp))
 
-        // Custom Tactile Switch Pill
-        Box(
+        // Dual Segmented Theme Button Pill (Consistent with Profile tab button aesthetics)
+        Row(
             modifier = Modifier
-                .width(52.dp)
-                .height(30.dp)
-                .clip(CircleShape)
+                .height(34.dp)
+                .clip(RoundedCornerShape(10.dp))
                 .background(
-                    if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+                    if (colors.isDark) Color(0xFF141416) else Color(0xFFF1F5F9)
                 )
                 .border(
                     width = 1.dp,
-                    color = if (isDarkTheme) Color(0xFF334155) else Color(0xFFCBD5E1),
-                    shape = CircleShape
+                    color = if (colors.isDark) Color.White.copy(alpha = 0.10f) else Color(0xFFCBD5E1),
+                    shape = RoundedCornerShape(10.dp)
                 )
-                .padding(2.dp),
-            contentAlignment = Alignment.CenterStart
+                .padding(3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
+            // Black Theme Segment Button
+            val blackInteraction = remember { MutableInteractionSource() }
+            val isBlackPressed by blackInteraction.collectIsPressedAsState()
+            val blackScale by animateFloatAsState(
+                targetValue = if (isBlackPressed) 0.94f else 1.0f,
+                animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "blackBtnScale"
+            )
             Box(
                 modifier = Modifier
                     .graphicsLayer {
-                        translationX = thumbOffset.toPx()
+                        scaleX = blackScale
+                        scaleY = blackScale
                     }
-                    .size(24.dp)
-                    .shadow(elevation = 3.dp, shape = CircleShape)
-                    .clip(CircleShape)
+                    .clip(RoundedCornerShape(7.dp))
                     .background(
-                        if (isDarkTheme) Color(0xFF000000) else Color(0xFFFFFFFF)
+                        if (isDarkTheme) Color(0xFF000000) else Color.Transparent
                     )
-                    .border(
-                        0.8.dp,
-                        if (isDarkTheme) Color(0xFF475569) else Color(0xFFE2E8F0),
-                        CircleShape
-                    ),
+                    .then(
+                        if (isDarkTheme) {
+                            Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.60f), RoundedCornerShape(7.dp))
+                        } else Modifier
+                    )
+                    .clickable(
+                        interactionSource = blackInteraction,
+                        indication = null
+                    ) {
+                        if (!isDarkTheme) {
+                            try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                            onToggleTheme(true)
+                        }
+                    }
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = if (isDarkTheme) "🌑" else "☀️",
-                    fontSize = 11.sp
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DarkMode,
+                        contentDescription = "Black Theme",
+                        tint = if (isDarkTheme) Color(0xFF38BDF8) else colors.textDisabled,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = "Black",
+                        fontSize = 11.5.sp,
+                        fontWeight = if (isDarkTheme) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isDarkTheme) Color.White else colors.textDisabled
+                    )
+                }
+            }
+
+            // White Theme Segment Button
+            val whiteInteraction = remember { MutableInteractionSource() }
+            val isWhitePressed by whiteInteraction.collectIsPressedAsState()
+            val whiteScale by animateFloatAsState(
+                targetValue = if (isWhitePressed) 0.94f else 1.0f,
+                animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                label = "whiteBtnScale"
+            )
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        scaleX = whiteScale
+                        scaleY = whiteScale
+                    }
+                    .clip(RoundedCornerShape(7.dp))
+                    .background(
+                        if (!isDarkTheme) Color(0xFFFFFFFF) else Color.Transparent
+                    )
+                    .then(
+                        if (!isDarkTheme) {
+                            Modifier.border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(7.dp))
+                        } else Modifier
+                    )
+                    .clickable(
+                        interactionSource = whiteInteraction,
+                        indication = null
+                    ) {
+                        if (isDarkTheme) {
+                            try { haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                            onToggleTheme(false)
+                        }
+                    }
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.LightMode,
+                        contentDescription = "White Theme",
+                        tint = if (!isDarkTheme) Color(0xFFF59E0B) else colors.textDisabled,
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Text(
+                        text = "White",
+                        fontSize = 11.5.sp,
+                        fontWeight = if (!isDarkTheme) FontWeight.Bold else FontWeight.Medium,
+                        color = if (!isDarkTheme) Color(0xFF0F172A) else colors.textDisabled
+                    )
+                }
             }
         }
     }
