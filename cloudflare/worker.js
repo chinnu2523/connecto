@@ -363,20 +363,21 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.6/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.5/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.4/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.3/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.5-b54-prod2.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.6-b55-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.0.5");
-          res.headers.set("X-Connecto-Store-Build", "54");
+          res.headers.set("X-Connecto-Store-Version", "v2.0.6");
+          res.headers.set("X-Connecto-Store-Build", "55");
           return res;
         }
 
@@ -388,7 +389,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/2.0.5"
+                  "User-Agent": "Connecto-Cloud-Worker/2.0.6"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -414,8 +415,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.5");
-              downloadHeaders.set("X-Connecto-Store-Build", "54");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.6");
+              downloadHeaders.set("X-Connecto-Store-Build", "55");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -430,7 +431,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v2.0.5/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v2.0.6/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -1884,14 +1885,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.5",
-        version_code: 54,
-        size_bytes: 18945090,
+        version_name: "2.0.6",
+        version_code: 55,
+        size_bytes: 18945068,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Interactive Screenshot Lightbox & Touch Slider: Tapping any preview thumbnail launches an immersive full-screen lightbox with smooth horizontal swipe paging, animated dot indicators, previous/next controls, and zoom badges",
           "PackageInstaller Silent Self-Update Prohibition & BAL Fix: Self-update now invokes system package installer intent directly from foreground activity context with unknown sources guidance, completely bypassing Android 14+ Background Activity Launch (BAL) restrictions",
           "UI State Lockout Safeguard: Reset isInstalling state immediately on package install failure or session cancellation to ensure retry buttons remain fully responsive",
           "Application Detail Architecture: Positioned Ratings & Reviews directly after visual application screenshot previews for an intuitive browsing experience matching industry standards",
@@ -8345,12 +8347,12 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.5</span>")
-            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.5 (Build 54) • Standalone Client")
-            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.5 • 18.1 MB)")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.6</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.6 (Build 55) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.6 • 18.1 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v2.0.5)")
-            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.5")
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.6)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.6")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.3")

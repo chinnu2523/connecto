@@ -22,6 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.rounded.*
@@ -1670,7 +1674,7 @@ private fun ClassicAppDetailView(
             }
 
             // Visual Application Previews Section (Interactive Horizontal Carousel)
-            AppPreviewCarousel(appId = app.id)
+            AppPreviewCarousel(appId = app.id, appName = app.name)
 
             // Interactive Community & User Rating (0ms Optimistic local updates)
             Column(
@@ -1781,16 +1785,29 @@ private fun ClassicAppDetailView(
 
 // ─── Application Previews Carousel & Mockups ─────────────────────────────────
 @Composable
-private fun AppPreviewCarousel(appId: String) {
+private fun AppPreviewCarousel(appId: String, appName: String = "") {
     val previews = remember(appId) { getAppPreviews(appId) }
+    var selectedIndex by remember { mutableStateOf<Int?>(null) }
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = PaddingValues(vertical = 4.dp)
     ) {
-        items(previews) { preview ->
-            PhoneMockupCard(preview)
+        itemsIndexed(previews) { index, preview ->
+            PhoneMockupCard(
+                preview = preview,
+                onClick = { selectedIndex = index }
+            )
         }
+    }
+
+    selectedIndex?.let { index ->
+        ScreenshotLightboxDialog(
+            previews = previews,
+            initialIndex = index,
+            appName = appName,
+            onDismiss = { selectedIndex = null }
+        )
     }
 }
 
@@ -1849,17 +1866,36 @@ private fun rememberAssetBitmap(assetPath: String): ImageBitmap? {
 }
 
 @Composable
-private fun PhoneMockupCard(preview: AppScreenshotPreview) {
+private fun PhoneMockupCard(
+    preview: AppScreenshotPreview,
+    onClick: () -> Unit = {}
+) {
     val theme = LocalStoreTheme.current
     val bitmap = rememberAssetBitmap(preview.assetPath)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "previewCardScale"
+    )
 
     Box(
         modifier = Modifier
             .width(200.dp)
             .height(410.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
             .clip(RoundedCornerShape(24.dp))
             .background(theme.surface)
             .border(1.5.dp, theme.borderHighlight, RoundedCornerShape(24.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
     ) {
         if (bitmap != null) {
             Image(
@@ -1896,6 +1932,25 @@ private fun PhoneMockupCard(preview: AppScreenshotPreview) {
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.7f))
             )
+
+            // Fullscreen expand indicator badge on top right
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 10.dp, end = 10.dp)
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.65f))
+                    .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Fullscreen,
+                    contentDescription = "Expand screenshot",
+                    tint = Color.White,
+                    modifier = Modifier.size(17.dp)
+                )
+            }
 
             // Bottom Tag & Caption
             Column(
@@ -1934,6 +1989,292 @@ private fun PhoneMockupCard(preview: AppScreenshotPreview) {
                 modifier = Modifier.fillMaxSize(),
                 shape = RoundedCornerShape(14.dp)
             )
+        }
+    }
+}
+
+// ─── Interactive Fullscreen Screenshot Slider & Lightbox ──────────────────────
+@Composable
+private fun ScreenshotLightboxDialog(
+    previews: List<AppScreenshotPreview>,
+    initialIndex: Int,
+    appName: String = "",
+    onDismiss: () -> Unit
+) {
+    if (previews.isEmpty()) return
+
+    val validInitialIndex = initialIndex.coerceIn(0, previews.size - 1)
+    val pagerState = rememberPagerState(initialPage = validInitialIndex) { previews.size }
+    val coroutineScope = rememberCoroutineScope()
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            usePlatformDefaultWidth = false,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true
+        )
+    ) {
+        BackHandler { onDismiss() }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xF508080A))
+                .statusBarsPadding()
+                .navigationBarsPadding()
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Top Header Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        val currentPreview = previews.getOrNull(pagerState.currentPage)
+                        if (currentPreview != null) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF2563EB))
+                                    .padding(horizontal = 9.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = currentPreview.tag,
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.5.sp
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = if (appName.isNotBlank()) "$appName • ${pagerState.currentPage + 1} of ${previews.size}" else "${pagerState.currentPage + 1} of ${previews.size}",
+                            color = Color(0xFFE5E7EB),
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    // Close Button
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Close,
+                            contentDescription = "Close preview",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Center Swipable Screen Pager
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize(),
+                        pageSpacing = 18.dp,
+                        contentPadding = PaddingValues(horizontal = 28.dp)
+                    ) { page ->
+                        val preview = previews[page]
+                        val bitmap = rememberAssetBitmap(preview.assetPath)
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Phone frame container
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .aspectRatio(9f / 19.5f)
+                                    .clip(RoundedCornerShape(32.dp))
+                                    .background(Color(0xFF101014))
+                                    .border(2.dp, Color(0xFF2E2E36), RoundedCornerShape(32.dp))
+                            ) {
+                                if (bitmap != null) {
+                                    Image(
+                                        bitmap = bitmap,
+                                        contentDescription = preview.caption,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(32.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+
+                                    // Gradient overlay at bottom
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(
+                                                Brush.verticalGradient(
+                                                    colors = listOf(
+                                                        Color.Transparent,
+                                                        Color.Transparent,
+                                                        Color.Black.copy(alpha = 0.85f)
+                                                    )
+                                                )
+                                            )
+                                    )
+
+                                    // Camera notch simulation
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopCenter)
+                                            .padding(top = 12.dp)
+                                            .width(46.dp)
+                                            .height(10.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.Black.copy(alpha = 0.8f))
+                                    )
+
+                                    // Bottom caption inside frame
+                                    Column(
+                                        modifier = Modifier
+                                            .align(Alignment.BottomStart)
+                                            .fillMaxWidth()
+                                            .padding(18.dp),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = preview.caption,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 13.5.sp,
+                                            lineHeight = 18.sp
+                                        )
+                                    }
+                                } else {
+                                    StoreSkeletonBox(
+                                        modifier = Modifier.fillMaxSize(),
+                                        shape = RoundedCornerShape(32.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Floating Left Arrow (Previous)
+                    if (pagerState.currentPage > 0) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage - 1)
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterStart)
+                                .padding(start = 10.dp)
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.65f))
+                                .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Previous screenshot",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    // Floating Right Arrow (Next)
+                    if (pagerState.currentPage < previews.size - 1) {
+                        IconButton(
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 10.dp)
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.65f))
+                                .border(1.dp, Color.White.copy(alpha = 0.25f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowForward,
+                                contentDescription = "Next screenshot",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Bottom Pagination Bar & Instruction Hint
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 14.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Dot indicators
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        previews.forEachIndexed { idx, _ ->
+                            val isSelected = pagerState.currentPage == idx
+                            val width by animateDpAsState(
+                                targetValue = if (isSelected) 24.dp else 8.dp,
+                                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                                label = "dotWidth"
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 3.dp)
+                                    .height(8.dp)
+                                    .width(width)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isSelected) Color(0xFF2563EB) else Color.White.copy(alpha = 0.25f)
+                                    )
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(idx)
+                                        }
+                                    }
+                            )
+                        }
+                    }
+
+                    // Tactile hint text
+                    Text(
+                        text = "Slide or tap arrows to view next screenshot",
+                        color = Color(0xFF9CA3AF),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
     }
 }
