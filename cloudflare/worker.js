@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.1",
-        version_name: "v5.2.1",
-        version_code: 137,
-        build: 137,
-        sha256: "648348e3927cf0074956fa74b759c6b39beb2175a4de74fbfb2e0172ed672f9c",
+        version: "5.2.2",
+        version_name: "v5.2.2",
+        version_code: 138,
+        build: 138,
+        sha256: "e824e1f0ab89e05d0e4d68ef2c344f9e7e8983896af5b110583711fe443847ef",
         filename: "connecto-fun.apk",
-        size_bytes: 38038468,
+        size_bytes: 38039591,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -1881,14 +1881,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.0",
-        version_code: 49,
-        size_bytes: 18928679,
+        version_name: "2.0.1",
+        version_code: 50,
+        size_bytes: 18928693,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
           "Real-Time Edge Broadcast Mesh: Real-time WebSocket connection to edge server pushes app releases and updates instantly with 0ms latency",
           "Foreground Real-Time Update Watchdog: Instant revalidation on resume and tab switch with 30s background re-check",
           "Refer Our Store: Interactive referral modal with 1-tap link copying, Android share sheet intent, and direct APK download distribution",
@@ -1914,14 +1915,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.1",
-        version_code: 137,
-        size_bytes: 38038468,
+        version_name: "5.2.2",
+        version_code: 138,
+        size_bytes: 38039591,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
+          "Dual-Segmented Black/White Theme Toggle: Tactile squircle pill toggle in Profile Settings with vector icons and dynamic elevation",
           "Channel Workspace Navigation Bar: Elevated top header with interactive workspace switcher capsule, chevron rotation, in-channel search with live message filter & tabular match count, pinned message quick-jump, and 3-dots channel options",
           "Segmented Channel Navigation Bar: Ergonomic horizontal scrollable segmented pill bar with animated liquid active indicator, subtle unread dots, live voice lounge waveform, and haptic feedback",
           "Channel Bottom Bar Quick Return: Tapping the Channels tab when active smoothly snaps the message timeline to latest messages",
@@ -7101,13 +7104,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.1",
-      version_name: "v5.2.1",
-      version_code: 137,
-      build: 137,
-      sha256: "648348e3927cf0074956fa74b759c6b39beb2175a4de74fbfb2e0172ed672f9c",
+      version: "5.2.2",
+      version_name: "v5.2.2",
+      version_code: 138,
+      build: 138,
+      sha256: "e824e1f0ab89e05d0e4d68ef2c344f9e7e8983896af5b110583711fe443847ef",
       filename: "connecto-fun.apk",
-      size_bytes: 38038468,
+      size_bytes: 38039591,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7120,6 +7123,37 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.2.2",
+          date: "Nov 15, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v5.2.2 & Our Store v2.0.1: Scroll-to-Top Refresh Protection",
+          summary: "Completely eliminates accidental auto-refreshing when scrolling or flinging normally to the top of the page. Only when the user is already settled at the top and performs an explicit downward drag past the threshold will refresh trigger.",
+          highlights: [
+            "Scroll-to-Top Gating: Injected canScrollBackward validation so normal upward scrolls and momentum flings to the top cannot trigger pull-to-refresh.",
+            "Explicit Top Drag Requirement: Pull-to-refresh is only armed when the user is already at the very top (index 0, offset 0) and performs a fresh downward drag.",
+            "Fling & SideEffect Rejection: All momentum scroll side-effects are strictly rejected from accumulating pull distance.",
+            "Dual App Parity: Safeguard deployed across both Connecto v5.2.2 (Build 138) and Our Store v2.0.1 (Build 50).",
+            "Android Native App v5.2.2 (Build 138 • 36.3 MB): SHA-256 e824e1f0ab89e05d0e4d68ef2c344f9e7e8983896af5b110583711fe443847ef • MD5 d901f1626f9fcfd88a9746e3587c5c2e."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
+        {
+          version: "v5.2.1",
+          date: "Nov 15, 2026",
+          category: "feature",
+          tag: "Production",
+          title: "Connecto v5.2.1: Dual-Segmented Theme Pill Button Elevation",
+          summary: "Elevated the Dark/Light theme toggle in the Profile Settings tab from a basic switch into a tactile, dual-segmented squircle pill button matching Connecto's signature executive design system.",
+          highlights: [
+            "Dual-Segmented Theme Pill: High-contrast [🌙 Black] and [☀️ White] squircle toggle with spring physics and active elevation.",
+            "Vector Icon Containers: Clean rounded squircle containers with official Material DarkMode and LightMode icons.",
+            "Instant Live Toggle: Haptic tick feedback with immediate system-wide theme change.",
+            "Android Native App v5.2.1 (Build 137 • 36.3 MB): SHA-256 648348e3927cf0074956fa74b759c6b39beb2175a4de74fbfb2e0172ed672f9c."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.1.3",
           date: "Nov 15, 2026",
@@ -8286,19 +8320,19 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.0</span>")
-            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.0 (Build 49) • Standalone Client")
-            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.0 • 18.1 MB)")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.1</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.1 (Build 50) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.1 • 18.1 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v2.0.0)")
-            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.0")
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.1)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.1")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.1")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.1")
-            .replace(/Build 1[0-9][0-9]/g, "Build 137")
-            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 137")
-            .replace(/\(b1[0-9][0-9]\)/g, "(b137)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.2")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.2")
+            .replace(/Build 1[0-9][0-9]/g, "Build 138")
+            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 138")
+            .replace(/\(b1[0-9][0-9]\)/g, "(b138)");
           responseBody = patched;
         } catch (_) {}
       }

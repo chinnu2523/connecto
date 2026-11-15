@@ -58,6 +58,7 @@ fun ConnectoDragToRefresh(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    canScrollBackward: () -> Boolean = { false },
     content: @Composable () -> Unit
 ) {
     val density = LocalDensity.current
@@ -71,6 +72,10 @@ fun ConnectoDragToRefresh(
     val pullOffset = remember { Animatable(0f) }
     var hasTriggeredHaptic by remember { mutableStateOf(false) }
 
+    // Track active user gesture lifecycle and eligibility to prevent auto-refresh during normal scrolling
+    var isUserDragging by remember { mutableStateOf(false) }
+    var isEligibleForPull by remember { mutableStateOf(false) }
+
     LaunchedEffect(isRefreshing) {
         if (!isRefreshing) {
             pullOffset.animateTo(
@@ -81,6 +86,8 @@ fun ConnectoDragToRefresh(
                 )
             )
             hasTriggeredHaptic = false
+            isEligibleForPull = false
+            isUserDragging = false
         } else {
             pullOffset.animateTo(
                 targetValue = refreshThresholdPx,
@@ -95,12 +102,26 @@ fun ConnectoDragToRefresh(
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // If user is dragging backwards up while refresh pill is pulled down
                 if (available.y < 0 && pullOffset.value > 0f) {
                     val newOffset = (pullOffset.value + available.y).coerceAtLeast(0f)
                     val consumed = newOffset - pullOffset.value
                     scope.launch { pullOffset.snapTo(newOffset) }
                     return Offset(0f, consumed)
                 }
+
+                // Initialize gesture eligibility on the very first touch movement of a gesture
+                if (source == NestedScrollSource.UserInput) {
+                    if (!isUserDragging && pullOffset.value <= 0f) {
+                        isUserDragging = true
+                        // Only eligible for pull-to-refresh if the user is ALREADY settled at the top!
+                        isEligibleForPull = !canScrollBackward()
+                    }
+                } else if (source == NestedScrollSource.SideEffect) {
+                    // Flings are NEVER eligible for pull-to-refresh
+                    isEligibleForPull = false
+                }
+
                 return Offset.Zero
             }
 
@@ -111,8 +132,21 @@ fun ConnectoDragToRefresh(
             ): Offset {
                 if (isRefreshing) return Offset.Zero
 
-                if (available.y > 0) {
-                    val dampedDelta = available.y * 0.45f
+                // Flings and momentum animations must NEVER pull down or trigger refresh
+                if (source != NestedScrollSource.UserInput) {
+                    return Offset.Zero
+                }
+
+                // If content consumed any upward scroll during this stroke, the user was scrolling
+                // from below - mark as ineligible for pull-to-refresh for the remainder of this gesture!
+                if (consumed.y > 0) {
+                    isEligibleForPull = false
+                    return Offset.Zero
+                }
+
+                // Only pull down if user was already at top and actively dragging downwards
+                if (available.y > 0 && isEligibleForPull) {
+                    val dampedDelta = available.y * 0.42f
                     val newOffset = (pullOffset.value + dampedDelta).coerceAtMost(maxDragDistancePx)
                     scope.launch { pullOffset.snapTo(newOffset) }
 
@@ -125,15 +159,35 @@ fun ConnectoDragToRefresh(
 
                     return Offset(0f, available.y)
                 }
+
                 return Offset.Zero
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
+                isUserDragging = false
+
                 if (isRefreshing) return Velocity.Zero
 
-                if (pullOffset.value >= refreshThresholdPx) {
+                if (pullOffset.value >= refreshThresholdPx && isEligibleForPull) {
+                    isEligibleForPull = false
                     onRefresh()
                 } else {
+                    isEligibleForPull = false
+                    pullOffset.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    )
+                }
+                return Velocity.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                isUserDragging = false
+                isEligibleForPull = false
+                if (pullOffset.value > 0f && !isRefreshing) {
                     pullOffset.animateTo(
                         targetValue = 0f,
                         animationSpec = spring(

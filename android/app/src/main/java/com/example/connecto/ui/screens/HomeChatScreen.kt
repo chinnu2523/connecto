@@ -842,6 +842,11 @@ fun HomeChatScreen(
                         }
                     }
                 },
+                canScrollBackward = {
+                    dashboardListState.canScrollBackward ||
+                    dashboardListState.firstVisibleItemIndex > 0 ||
+                    dashboardListState.firstVisibleItemScrollOffset > 0
+                },
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(

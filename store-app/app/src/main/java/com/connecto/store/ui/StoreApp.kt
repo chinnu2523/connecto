@@ -830,6 +830,11 @@ private fun ClassicCatalogBody(
     StoreDragToRefresh(
         isRefreshing = state.isRefreshing,
         onRefresh = onRefresh,
+        canScrollBackward = {
+            listState.canScrollBackward ||
+            listState.firstVisibleItemIndex > 0 ||
+            listState.firstVisibleItemScrollOffset > 0
+        },
         modifier = Modifier.fillMaxSize()
     ) {
         LazyColumn(
