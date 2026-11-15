@@ -441,6 +441,10 @@ fun StoreApp(
                                         if (section == StoreNavSection.OVERVIEW && selectedSection == StoreNavSection.OVERVIEW) {
                                             catalogScrollToTopTrigger++
                                         }
+                                        if (section == StoreNavSection.UPDATES || section == StoreNavSection.OVERVIEW) {
+                                            vm.loadCatalog(silently = true)
+                                            com.connecto.store.network.StoreRealtimeManager.requestCheckUpdates()
+                                        }
                                         selectedSection = section
                                     },
                                     updateCount = s.apps.count {

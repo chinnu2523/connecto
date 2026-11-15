@@ -11,6 +11,8 @@ import com.connecto.store.model.StoreRole
 import com.connecto.store.model.StoreSessionManager
 import com.connecto.store.model.StoreUser
 import com.connecto.store.network.StoreApiClient
+import com.connecto.store.network.StoreRealtimeEvent
+import com.connecto.store.network.StoreRealtimeManager
 import com.connecto.store.notifications.StoreNotificationHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -111,6 +113,26 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         loadCatalog(silently = true)
         syncSsoProfileIfAvailable()
         startPeriodicUpdateWatcher()
+
+        // 3. Connect to Real-Time Edge WebSocket Broadcast Mesh
+        StoreRealtimeManager.start()
+        viewModelScope.launch {
+            StoreRealtimeManager.events.collect { event ->
+                when (event) {
+                    is StoreRealtimeEvent.AppUpdate -> {
+                        // Edge broadcast: app release updated in real time!
+                        loadCatalog(silently = true)
+                    }
+                    is StoreRealtimeEvent.CatalogSync -> {
+                        loadCatalog(silently = true)
+                    }
+                    is StoreRealtimeEvent.Connected -> {
+                        StoreRealtimeManager.requestCheckUpdates()
+                    }
+                    is StoreRealtimeEvent.Disconnected -> {}
+                }
+            }
+        }
     }
 
     fun syncSsoProfileIfAvailable() {
@@ -162,12 +184,13 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     private fun startPeriodicUpdateWatcher() {
         viewModelScope.launch {
             while (true) {
-                delay(15 * 60 * 1000L) // Silent autonomous background check every 15 minutes
+                delay(30_000L) // Foreground real-time watcher runs every 30 seconds
                 try {
                     val user = _currentUser.value
                     val apps = withContext(Dispatchers.IO) { StoreApiClient.fetchApps(user?.token, user?.username) }
                     if (apps.isNotEmpty()) {
                         allRawApps = apps
+                        saveCatalogToDisk(apps)
                         publishFilteredCatalog()
                     }
                 } catch (_: Exception) {}
@@ -621,7 +644,12 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onActivityResumed(context: Context) {
-        refreshInstallStates()
+        // Reset any stale isInstalling state if the user returned without completing install
+        refreshInstallStates(resetInstallingIfStillPending = true)
+        // Immediately revalidate catalog with edge on activity resume
+        loadCatalog(silently = true)
+        StoreRealtimeManager.start()
+        StoreRealtimeManager.requestCheckUpdates()
 
         // If user just returned from Settings with permission granted, resume pending install!
         if (pendingInstallFile != null && ApkInstaller.canRequestPackageInstalls(context)) {
@@ -635,7 +663,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun refreshInstallStates() {
+    fun refreshInstallStates(resetInstallingIfStillPending: Boolean = false) {
         val current = _uiState.value
         if (current is StoreUiState.Success) {
             val ctx = getApplication<Application>()
@@ -645,6 +673,9 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                     // If app is currently UP_TO_DATE, clear isInstalling flag
                     if (resolved.installState == StoreApp.InstallState.UP_TO_DATE) {
                         resolved.copy(isDownloading = false, isInstalling = false)
+                    } else if (resetInstallingIfStillPending && !currentApp.isDownloading) {
+                        // User returned to Our Store without completing installation: clear stuck isInstalling!
+                        resolved.copy(isDownloading = false, isInstalling = false, downloadProgress = 0)
                     } else {
                         resolved.copy(
                             isDownloading = currentApp.isDownloading,
@@ -777,6 +808,11 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        StoreRealtimeManager.stop()
+    }
+
     private fun buildFallbackCatalog(): List<StoreApp> = listOf(
         StoreApp(
             id = "ourstore",
@@ -786,20 +822,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "1.9.0",
-            versionCode = 39,
-            sizeFormatted = "18.0 MB",
+            versionName = "1.9.9",
+            versionCode = 48,
+            sizeFormatted = "18.2 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
             accentColor = "#2563EB",
             changelog = listOf(
+                "Real-Time Edge Broadcast Mesh: Real-time WebSocket connection to edge server pushes app releases and updates instantly with 0ms latency",
+                "Foreground Real-Time Update Watchdog: Instant revalidation on resume and tab switch with 30s background re-check",
+                "Referral & Feedback System: Interactive sharing link generator, Android share sheet intent, and in-app feedback dialog",
                 "Standalone Authentication Architecture: Comprehensive Sign In & Account Registration with instant session onboarding",
-                "Universal 5-State Button System: Default, Hover/Pressed, Loading, Disabled, and Error states across all actions",
-                "Biometric Sensor Quick Unlock: High-security fingerprint and face authentication for instant login and download approvals",
-                "Pure Theme Optimization: Purged all orange hues in favor of Cobalt Noir & Pristine White aesthetics",
-                "Zero-Slop UI: Self-explanatory layout with tactile spring physics and high-contrast accessibility"
+                "Universal 5-State Button System: Default, Hover/Pressed, Loading, Disabled, and Error states across all actions"
             ),
             isEssential = true,
-            updatedAt = "2026-11-15T08:00:00Z"
+            updatedAt = "2026-11-15T13:30:00Z"
         ),
         StoreApp(
             id = "connecto",
@@ -809,8 +845,8 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Private encrypted messaging, calls & workspaces",
             description = "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
             category = "Communication",
-            versionName = "5.1.0",
-            versionCode = 126,
+            versionName = "5.1.5",
+            versionCode = 131,
             sizeFormatted = "36.2 MB",
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",

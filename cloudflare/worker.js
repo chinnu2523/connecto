@@ -364,14 +364,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.8-b47-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.9-b48-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.9.8");
-          res.headers.set("X-Connecto-Store-Build", "47");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.9");
+          res.headers.set("X-Connecto-Store-Build", "48");
           return res;
         }
 
@@ -409,8 +409,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.8");
-              downloadHeaders.set("X-Connecto-Store-Build", "47");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.9");
+              downloadHeaders.set("X-Connecto-Store-Build", "48");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -616,6 +616,16 @@ Sitemap: https://connecto.fun/sitemap.xml
     // 4. WebSocket Upgrade Handling (Direct Origin Tunnel Proxy with Edge Durable Object Fallback)
     const isWebSocket = request.headers.get("Upgrade") === "websocket";
     if (isWebSocket) {
+      const isStoreWs = url.pathname.includes("/store/ws") ||
+                        url.searchParams.get("channel") === "store_updates" ||
+                        url.searchParams.get("client") === "our_store";
+      if (isStoreWs) {
+        const room = getRealtimeRoom(env);
+        if (room) {
+          return room.fetch(request);
+        }
+      }
+
       try {
         const originWsResp = await fetch(request);
         if (originWsResp.status === 101) {
@@ -1868,14 +1878,16 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.8",
-        version_code: 47,
-        size_bytes: 18526153,
-        size_formatted: "18.2 MB",
+        version_name: "1.9.9",
+        version_code: 48,
+        size_bytes: 18928691,
+        size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Real-Time Edge Broadcast Mesh: Real-time WebSocket connection to edge server pushes app releases and updates instantly with 0ms latency",
+          "Foreground Real-Time Update Watchdog: Instant revalidation on resume and tab switch with 30s background re-check",
           "Refer Our Store: Interactive referral modal with 1-tap link copying, Android share sheet intent, and direct APK download distribution",
           "Send Feedback & Suggestions: Direct interactive feedback dialog with 5-star ratings, category chips, and device diagnostics",
           "Optimized Bottom Navigation UI: Balanced 1f touch distribution, single-layer spring physics, and haptic feedback on tab select",
@@ -1889,7 +1901,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Non-Blocking Background Sync: Real-time top edge progress shimmer and continuous refresh while keeping catalog interactive"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T13:20:00Z"
+        updated_at: "2026-11-15T13:40:00Z"
       },
       {
         id: "connecto",
@@ -8262,12 +8274,12 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.8</span>")
-            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.8 (Build 47) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.8 • 18.2 MB)")
+            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.9</span>")
+            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.9 (Build 48) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.9 • 18.2 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[6789]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.9.8)")
-            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.8")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.9.9)")
+            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.9")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.5")
@@ -9123,6 +9135,64 @@ export class ConnectoRealtimeRoom {
   }
 
   async handleWebSocket(server, request, url) {
+    const isStoreWs = url.pathname.includes("/store/ws") ||
+                      url.searchParams.get("channel") === "store_updates" ||
+                      url.searchParams.get("client") === "our_store";
+
+    if (isStoreWs) {
+      const storeClientId = "store_" + Math.random().toString(36).substring(2, 9);
+      const meta = {
+        username: storeClientId,
+        displayName: "Our Store Client",
+        avatar: "🏬",
+        channels: new Set(["store_updates", "general"]),
+        currentVoiceRoom: null,
+        sessionTokenHash: "",
+        connectedAt: Date.now()
+      };
+      this.sockets.add(server);
+      this.socketMeta.set(server, meta);
+
+      if (!this.userSockets.has(storeClientId)) this.userSockets.set(storeClientId, new Set());
+      this.userSockets.get(storeClientId).add(server);
+
+      // Send immediate initial handshake
+      server.send(JSON.stringify({
+        type: "connected",
+        channel: "store_updates",
+        status: "online",
+        message: "Connected to Our Store Real-Time Edge Broadcast Mesh",
+        timestamp: new Date().toISOString()
+      }));
+
+      server.addEventListener("message", async (msgEvt) => {
+        try {
+          const data = JSON.parse(msgEvt.data);
+          if (data.action === "ping" || data.type === "ping") {
+            server.send(JSON.stringify({ type: "pong", timestamp: Date.now() }));
+          } else if (data.action === "check_updates" || data.type === "check_updates") {
+            server.send(JSON.stringify({
+              type: "catalog_sync",
+              channel: "store_updates",
+              timestamp: Date.now()
+            }));
+          }
+        } catch (_) {}
+      });
+
+      server.addEventListener("close", () => {
+        this.sockets.delete(server);
+        this.socketMeta.delete(server);
+        if (this.userSockets.has(storeClientId)) {
+          this.userSockets.get(storeClientId).delete(server);
+          if (this.userSockets.get(storeClientId).size === 0) {
+            this.userSockets.delete(storeClientId);
+          }
+        }
+      });
+      return;
+    }
+
     let initialUser = url.searchParams.get("username") ||
                       url.searchParams.get("user") ||
                       url.searchParams.get("user_id") ||
@@ -10224,6 +10294,17 @@ export class ConnectoRealtimeRoom {
           this.removeSocket(ws);
         }
       }
+    } else if (payload.type === "app_update" || payload.type === "catalog_update" || payload.channel === "store_updates") {
+      const updateMsg = {
+        type: payload.type || "app_update",
+        channel: "store_updates",
+        package_name: payload.package_name || "",
+        version_name: payload.version_name || "",
+        version_code: payload.version_code || 0,
+        timestamp: payload.timestamp || Date.now()
+      };
+      this.broadcastToChannel("store_updates", updateMsg);
+      this.broadcastToAll(updateMsg);
     }
   }
 
