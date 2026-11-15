@@ -250,13 +250,18 @@ class ConnectoFirebaseMessagingService : FirebaseMessagingService() {
                 }
 
                 // 5. Display Android system notification
-                ConnectoNotificationManager.showMessageNotification(
-                    senderName = sender.ifBlank { title },
-                    messageText = safeBodyPreview,
-                    channelOrDmId = channelId,
-                    senderAvatar = senderAvatar,
-                    senderUsername = senderUser
-                )
+                val cleanSenderKey = senderUser.trim().lowercase().removePrefix("@")
+                val cleanChKey = channelId.trim().lowercase().removePrefix("dm-").removePrefix("dm_").removePrefix("#")
+                val notifSig = "${cleanSenderKey}_${cleanChKey}_${safeBodyPreview.trim()}"
+                if (!ConnectoNotificationManager.hasRecentlyNotified(notifSig)) {
+                    ConnectoNotificationManager.showMessageNotification(
+                        senderName = sender.ifBlank { title },
+                        messageText = safeBodyPreview,
+                        channelOrDmId = channelId,
+                        senderAvatar = senderAvatar,
+                        senderUsername = senderUser
+                    )
+                }
             }
             "friend_request" -> {
                 val senderAvatar = data["sender_avatar"] ?: data["avatar"]

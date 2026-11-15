@@ -5932,12 +5932,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
             channel: canonicalChannel,
             message: msgResponse
           }));
+        } else {
+          ctx.waitUntil(broadcastRealtime(env, {
+            type: "channel_message",
+            channel: canonicalChannel,
+            message: msgResponse
+          }));
         }
-        ctx.waitUntil(broadcastRealtime(env, {
-          type: "channel_message",
-          channel: canonicalChannel,
-          message: msgResponse
-        }));
       }
 
       return jsonResponse(msgResponse, 201);
@@ -6453,10 +6454,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           LIMIT 50
         `).bind(myUser, myUser).all();
 
-        const existingIds = new Set(notifs.map(n => n.id));
+        const existingKeys = new Set(notifs.map(n => {
+          const rawId = (n.id || "").replace(/^notif_(ws_)?/, "");
+          return rawId ? `id_${rawId}` : `sig_${n.sender_username || ""}_${n.content || ""}`;
+        }));
         for (const row of (d1Rows.results || [])) {
-          if (!existingIds.has(row.id)) {
-            existingIds.add(row.id);
+          const rawId = (row.id || "").replace(/^notif_(ws_)?/, "");
+          const key = rawId ? `id_${rawId}` : `sig_${row.sender_username || ""}_${row.content || ""}`;
+          if (!existingKeys.has(key)) {
+            existingKeys.add(key);
             notifs.push({
               id: row.id,
               user_id: myUser,
@@ -9936,17 +9942,15 @@ export class ConnectoRealtimeRoom {
             const recipient = resolveDmRecipient(targetCh, meta.username, data.recipient || data.target);
 
             if (recipient) {
-              const dmPayload = {
-                type: "new_dm_alert",
-                sender: meta.username,
+              this.sendToUser(recipient, {
+                type: "new_message",
                 channel_id: targetCh,
                 channel_name: targetCh,
                 message: msgObj
-              };
-              this.sendToUser(recipient, dmPayload);
-              this.sendToUser(recipient, { type: "new_message", channel_id: targetCh, message: msgObj });
+              });
               this.addNotification(recipient, {
-                id: msgId,
+                id: "notif_" + msgId,
+                message_id: msgId,
                 type: "message",
                 title: meta.displayName || meta.username,
                 content: rawContent,
@@ -10086,21 +10090,16 @@ export class ConnectoRealtimeRoom {
       });
     } else if (payload.type === "dm_message") {
       this.sendToUser(payload.target, {
-        type: "new_dm_alert",
-        sender: payload.sender,
-        channel_id: payload.channel,
-        channel_name: payload.channel,
-        message: payload.message
-      });
-      this.sendToUser(payload.target, {
         type: "new_message",
         channel_id: payload.channel,
         channel_name: payload.channel,
         message: payload.message
       });
       if (payload.message) {
+        const canonicalNotifId = "notif_" + (payload.message.id || Date.now());
         this.addNotification(payload.target, {
-          id: payload.message.id,
+          id: canonicalNotifId,
+          message_id: payload.message.id,
           type: "message",
           title: payload.message.sender_display_name || payload.sender,
           content: payload.message.content || payload.message.text || "",

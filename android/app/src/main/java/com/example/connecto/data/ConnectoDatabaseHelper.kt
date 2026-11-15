@@ -483,6 +483,16 @@ class ConnectoDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATAB
         }
     }
 
+    fun hasMessage(messageId: String): Boolean {
+        if (messageId.isBlank()) return false
+        val db = readableDatabase
+        val bareId = messageId.removePrefix("notif_ws_").removePrefix("notif_")
+        val cursor = db.rawQuery(
+            "SELECT 1 FROM $TABLE_MESSAGES WHERE $COL_MSG_ID = ? OR $COL_MSG_ID = ? OR $COL_MSG_ID = ? LIMIT 1",
+            arrayOf(messageId, bareId, "notif_ws_$bareId")
+        )
+        return cursor.use { it.moveToFirst() }
+    }
 
     fun getMessagesForChannel(channelId: String, limit: Int = 50, beforeCreatedAt: String? = null): List<MessageDto> {
         val cleanCh = channelId.trim().lowercase().removePrefix("#")

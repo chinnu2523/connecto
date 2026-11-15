@@ -232,11 +232,17 @@ object VoiceCallManager {
     fun handleIncomingPushMessage(msgDto: MessageDto) {
         val cleanSender = msgDto.authorId.trim().removePrefix("@").lowercase()
         val content = msgDto.content.trim()
-        val dedupKey = if (msgDto.id.isNotBlank()) msgDto.id else "${cleanSender}_${content.hashCode()}"
+        val bareId = msgDto.id.removePrefix("notif_ws_").removePrefix("notif_")
+        val dedupKey = if (bareId.isNotBlank()) bareId else "${cleanSender}_${content.hashCode()}"
         if (notifiedMessageIds.add(dedupKey)) {
             if (notifiedMessageIds.size > 500) {
                 val first = notifiedMessageIds.firstOrNull()
                 if (first != null) notifiedMessageIds.remove(first)
+            }
+        }
+        appContext?.let { ctx ->
+            if (ConnectoDatabaseHelper.getInstance(ctx).hasMessage(bareId)) {
+                return
             }
         }
         _incomingChannelMessages.tryEmit(msgDto)
@@ -1565,7 +1571,8 @@ object VoiceCallManager {
                                    (myUserId.isNotBlank() && (cleanSender == myUserId || cleanSenderId == myUserId))
 
                     if (!isFromMe && cleanSender.isNotBlank() && content.isNotBlank()) {
-                        val dedupKey = msgId.ifEmpty { "${cleanSender}_${chId}_${content.hashCode()}" }
+                        val cleanMsgId = msgId.removePrefix("notif_ws_").removePrefix("notif_")
+                        val dedupKey = if (cleanMsgId.isNotBlank()) cleanMsgId else "${cleanSender}_${chId}_${content.trim().hashCode()}"
                         if (notifiedMessageIds.add(dedupKey)) {
                             if (notifiedMessageIds.size > 500) {
                                 val first = notifiedMessageIds.firstOrNull()
@@ -2229,7 +2236,9 @@ object VoiceCallManager {
                                     val extraMsgId: String = notifObj.optString("message_id").ifBlank {
                                         notifObj.optJSONObject("extra_data")?.optString("message_id") ?: ""
                                     }
-                                    val dedupKey: String = if (extraMsgId.isNotBlank()) extraMsgId else if (nId.isNotBlank()) nId else "${cleanSender}_${nRefId}_${nContent.hashCode()}"
+                                    val rawId = if (extraMsgId.isNotBlank()) extraMsgId else nId
+                                    val bareMsgId = rawId.removePrefix("notif_ws_").removePrefix("notif_")
+                                    val dedupKey: String = if (bareMsgId.isNotBlank()) bareMsgId else "${cleanSender}_${nRefId}_${nContent.trim().hashCode()}"
                                     if (notifiedMessageIds.add(dedupKey)) {
                                         if (notifiedMessageIds.size > 500) {
                                             val first = notifiedMessageIds.firstOrNull()
@@ -2250,30 +2259,36 @@ object VoiceCallManager {
                                                 senderUsername = cleanSender.ifEmpty { nSender }
                                             )
                                         }
-                                        // Ensure message is dispatched to real-time chat stream and local DB so it is visible in chat
-                                        val canonicalName = if (cleanSender.isNotBlank() && myUser.isNotBlank()) {
-                                            "dm-${minOf(myUser, cleanSender)}-${maxOf(myUser, cleanSender)}"
-                                        } else nRefId
-                                        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
-                                        val finalMsgId: String = if (extraMsgId.isNotBlank()) extraMsgId else if (nId.isNotBlank()) nId else "notif_msg_${System.currentTimeMillis()}"
-                                        val msgDto = MessageDto(
-                                            id = finalMsgId,
-                                            channelId = canonicalName.ifEmpty { nRefId },
-                                            authorId = cleanSender,
-                                            authorName = cleanSender,
-                                            content = nContent,
-                                            createdAt = nowIso,
-                                            authorAvatar = nAvatar
-                                        )
-                                        appContext?.let { ctx ->
-                                            try {
-                                                ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto)
-                                                if (nRefId.isNotBlank() && nRefId != canonicalName) {
-                                                    ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto.copy(channelId = nRefId))
-                                                }
-                                            } catch (_: Exception) {}
+                                        // Ensure message is dispatched to real-time chat stream and local DB only if not already present
+                                        val hasAlready = appContext?.let { ctx ->
+                                            ConnectoDatabaseHelper.getInstance(ctx).hasMessage(bareMsgId)
+                                        } ?: false
+
+                                        if (!hasAlready) {
+                                            val canonicalName = if (cleanSender.isNotBlank() && myUser.isNotBlank()) {
+                                                "dm-${minOf(myUser, cleanSender)}-${maxOf(myUser, cleanSender)}"
+                                            } else nRefId
+                                            val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }.format(Date())
+                                            val finalMsgId: String = if (bareMsgId.isNotBlank()) bareMsgId else "msg_${System.currentTimeMillis()}"
+                                            val msgDto = MessageDto(
+                                                id = finalMsgId,
+                                                channelId = canonicalName.ifEmpty { nRefId },
+                                                authorId = cleanSender,
+                                                authorName = cleanSender,
+                                                content = nContent,
+                                                createdAt = nowIso,
+                                                authorAvatar = nAvatar
+                                            )
+                                            appContext?.let { ctx ->
+                                                try {
+                                                    ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto)
+                                                    if (nRefId.isNotBlank() && nRefId != canonicalName) {
+                                                        ConnectoDatabaseHelper.getInstance(ctx).saveMessage(msgDto.copy(channelId = nRefId))
+                                                    }
+                                                } catch (_: Exception) {}
+                                            }
+                                            _incomingChannelMessages.tryEmit(msgDto)
                                         }
-                                        _incomingChannelMessages.tryEmit(msgDto)
                                         // In-app notification banner suppressed for personal chat / messages per user requirement
                                     }
                                 }

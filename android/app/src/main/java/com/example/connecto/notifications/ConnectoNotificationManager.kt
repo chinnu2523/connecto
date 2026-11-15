@@ -68,6 +68,25 @@ object ConnectoNotificationManager {
 
     private var appContext: Context? = null
 
+    private val recentlyDeliveredSignatures = java.util.Collections.synchronizedMap(
+        object : java.util.LinkedHashMap<String, Long>(50, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Long>?): Boolean {
+                return size > 300
+            }
+        }
+    )
+
+    fun hasRecentlyNotified(signature: String, windowMillis: Long = 8000L): Boolean {
+        if (signature.isBlank()) return false
+        val now = System.currentTimeMillis()
+        val lastTime = recentlyDeliveredSignatures[signature]
+        if (lastTime != null && (now - lastTime) < windowMillis) {
+            return true
+        }
+        recentlyDeliveredSignatures[signature] = now
+        return false
+    }
+
     fun init(context: Context) {
         appContext = context.applicationContext
         createNotificationChannels()
@@ -639,6 +658,15 @@ object ConnectoNotificationManager {
         if (!hasNotificationPermission()) return
         if (!shouldShowNotification(channelOrDmId)) return
 
+        val cleanSenderKey = (senderUsername ?: senderName).trim().lowercase().removePrefix("@")
+        val cleanChKey = channelOrDmId.trim().lowercase().removePrefix("dm-").removePrefix("dm_").removePrefix("#")
+        val cleanText = messageText.trim()
+        val notifSig = "${cleanSenderKey}_${cleanChKey}_$cleanText"
+        if (hasRecentlyNotified(notifSig)) {
+            Log.d(TAG, "Suppressed duplicate notification for: $notifSig")
+            return
+        }
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val avatarBitmap = fetchAvatarBitmap(senderAvatar, senderName, senderUsername)
@@ -693,9 +721,15 @@ object ConnectoNotificationManager {
                     .setGroupConversation(!isDm)
 
                 // Build history messages in chronological order (oldest to newest)
+                // Filter out the incoming message and deduplicate to guarantee zero duplicate lines
+                val cleanIncoming = messageText.trim()
                 val historyList = if (recentMessages.isNotEmpty()) {
                     recentMessages.sortedBy { it.createdAt }
-                        .filter { it.content.trim() != messageText.trim() }
+                        .filter { m ->
+                            val c = m.content.trim()
+                            c != cleanIncoming && com.example.connecto.ui.screens.cleanMessageContentForDisplay(c, "") != cleanIncoming
+                        }
+                        .distinctBy { "${it.authorId}_${it.content.trim()}" }
                         .takeLast(4)
                 } else emptyList()
 
@@ -725,7 +759,14 @@ object ConnectoNotificationManager {
                 val displayMessage = if (isContentHidden) "New message received" else messageText
                 val displaySubText = if (isContentHidden) "Connecto • Private" else subText
 
-                val notifId = NOTIFICATION_ID_MESSAGE + (Math.abs(channelOrDmId.hashCode()) % 1000)
+                val canonicalNotifKey = if (isDm) {
+                    val myU = myUsername.lowercase()
+                    if (myU.isNotBlank() && cleanSenderKey.isNotBlank()) "dm-${minOf(myU, cleanSenderKey)}-${maxOf(myU, cleanSenderKey)}"
+                    else cleanSenderKey
+                } else {
+                    channelOrDmId.trim().lowercase().removePrefix("#")
+                }
+                val notifId = NOTIFICATION_ID_MESSAGE + (Math.abs(canonicalNotifKey.hashCode()) % 1000)
 
                 // Inline Direct Reply RemoteInput (just like WhatsApp)
                 val remoteInput = androidx.core.app.RemoteInput.Builder(DirectReplyReceiver.KEY_TEXT_REPLY)

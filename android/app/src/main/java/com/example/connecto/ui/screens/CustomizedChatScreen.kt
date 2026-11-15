@@ -710,16 +710,19 @@ fun CustomizedChatScreen(
     fun deduplicateCustomMessages(messages: List<CustomMessageItem>): List<CustomMessageItem> {
         val result = mutableListOf<CustomMessageItem>()
         for (msg in messages) {
+            val bareMsgId = msg.id.removePrefix("notif_ws_").removePrefix("notif_")
             val existingIndex = result.indexOfFirst { existing ->
                 if (existing.id == msg.id) return@indexOfFirst true
-                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_")
-                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_")
-                // Only merge by content and timestamp if at least one of them is temporary (optimistic)
-                if (existingIsTemp || newIsTemp) {
-                    val sameContent = existing.content.trim() == msg.content.trim() && msg.content.isNotBlank()
-                    if (sameContent && existing.isMe == msg.isMe) {
-                        val timeDiff = kotlin.math.abs(existing.timestampMillis - msg.timestampMillis)
-                        return@indexOfFirst (timeDiff <= 30_000L || existing.time == msg.time)
+                val bareExistingId = existing.id.removePrefix("notif_ws_").removePrefix("notif_")
+                if (bareExistingId.isNotBlank() && bareExistingId == bareMsgId) return@indexOfFirst true
+                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_") || existing.id.startsWith("notif_")
+                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_") || msg.id.startsWith("notif_")
+                // Merge by content and timestamp if at least one is temporary/synthetic or if sender & content match within 30s
+                val sameContent = existing.content.trim() == msg.content.trim() && msg.content.isNotBlank()
+                if (sameContent && existing.isMe == msg.isMe) {
+                    val timeDiff = kotlin.math.abs(existing.timestampMillis - msg.timestampMillis)
+                    if (timeDiff <= 30_000L || existing.time == msg.time || existingIsTemp || newIsTemp) {
+                        return@indexOfFirst true
                     }
                 }
                 false
@@ -728,8 +731,8 @@ fun CustomizedChatScreen(
                 result.add(msg)
             } else {
                 val existing = result[existingIndex]
-                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_")
-                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_")
+                val existingIsTemp = existing.id.startsWith("opt-") || existing.id.startsWith("ws_") || existing.id.startsWith("notif_")
+                val newIsTemp = msg.id.startsWith("opt-") || msg.id.startsWith("ws_") || msg.id.startsWith("notif_")
                 if (existingIsTemp && !newIsTemp) {
                     result[existingIndex] = msg.copy(
                         reaction = existing.reaction ?: msg.reaction,
@@ -5775,7 +5778,9 @@ fun CustomizedChatScreen(
                                 }
                             } else {
                                 DisableSelection {
-                                val deduplicatedMessages = remember(friendMessages) { friendMessages.distinctBy { it.id } }
+                                val deduplicatedMessages = remember(friendMessages) {
+                                    friendMessages.distinctBy { it.id.removePrefix("notif_ws_").removePrefix("notif_") }
+                                }
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier

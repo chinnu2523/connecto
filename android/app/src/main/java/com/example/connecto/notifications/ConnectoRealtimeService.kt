@@ -224,13 +224,22 @@ class ConnectoRealtimeService : Service() {
                                                 else -> {
                                                     val sender = n.senderUsername ?: n.title.ifEmpty { "Connecto" }
                                                     if (!sender.equals(username, ignoreCase = true)) {
-                                                        ConnectoNotificationManager.showMessageNotification(
-                                                            senderName = sender,
-                                                            messageText = n.content,
-                                                            channelOrDmId = n.referenceId ?: sender,
-                                                            senderAvatar = n.senderAvatar,
-                                                            senderUsername = n.senderUsername ?: sender
-                                                        )
+                                                        val cleanSenderKey = sender.trim().lowercase().removePrefix("@")
+                                                        val cleanChKey = (n.referenceId ?: sender).trim().lowercase().removePrefix("dm-").removePrefix("dm_").removePrefix("#")
+                                                        val cleanText = n.content.trim()
+                                                        val notifSig = "${cleanSenderKey}_${cleanChKey}_$cleanText"
+                                                        if (!ConnectoNotificationManager.hasRecentlyNotified(notifSig)) {
+                                                            ConnectoNotificationManager.showMessageNotification(
+                                                                senderName = sender,
+                                                                messageText = n.content,
+                                                                channelOrDmId = n.referenceId ?: sender,
+                                                                senderAvatar = n.senderAvatar,
+                                                                senderUsername = n.senderUsername ?: sender
+                                                            )
+                                                        }
+                                                        serviceScope.launch(Dispatchers.IO) {
+                                                            try { ConnectoApiClient.markNotificationRead(n.id) } catch (_: Exception) {}
+                                                        }
                                                     }
                                                 }
                                             }
