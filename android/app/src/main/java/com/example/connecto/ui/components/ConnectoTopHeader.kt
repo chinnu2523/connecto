@@ -98,28 +98,14 @@ fun ConnectoTopHeader(
 
     val isActuallyOnline = !effectiveStealth && (isWsConnected && isOnline)
 
-    // Bug #2 fix: timeout after 12s so "Connecting..." becomes "Server Offline"
-    var connectTimedOut by remember { mutableStateOf(false) }
-    LaunchedEffect(isWsConnected) {
-        if (!isWsConnected) {
-            kotlinx.coroutines.delay(12_000L)
-            if (!isWsConnected) connectTimedOut = true
-        } else {
-            connectTimedOut = false
-        }
-    }
-
     val statusText = when {
         effectiveStealth -> "Stealth Mode"
-        isActuallyOnline -> "Online"
-        connectTimedOut -> "Server in Maintenance"
-        else -> "Connecting..."
+        else -> "Online"
     }
 
     val presence = when {
         effectiveStealth -> ConnectoPresenceStatus.IDLE
-        isActuallyOnline -> ConnectoPresenceStatus.ONLINE
-        else -> ConnectoPresenceStatus.OFFLINE
+        else -> ConnectoPresenceStatus.ONLINE
     }
 
     // On first load, animate header sliding down + fading in (≈0.4–0.6s)
@@ -205,39 +191,18 @@ fun ConnectoTopHeader(
                     Spacer(modifier = Modifier.height(2.dp))
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .clickable(enabled = connectTimedOut || !isActuallyOnline) {
-                                com.example.connecto.MainActivity.openMaintenanceScreen()
-                            }
-                            .padding(vertical = 1.dp, horizontal = 2.dp)
+                        modifier = Modifier.padding(vertical = 1.dp, horizontal = 2.dp)
                     ) {
-                        if (presence == ConnectoPresenceStatus.ONLINE) {
-                            PulsingOnlineDot(
-                                color = colors.success,
-                                size = 6.dp
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        when (presence) {
-                                            ConnectoPresenceStatus.ONLINE -> colors.success
-                                            ConnectoPresenceStatus.IDLE -> colors.info
-                                            ConnectoPresenceStatus.DND -> colors.error
-                                            ConnectoPresenceStatus.OFFLINE -> colors.textDisabled
-                                        }
-                                    )
-                            )
-                        }
+                        PulsingOnlineDot(
+                            color = colors.success,
+                            size = 6.dp
+                        )
                         Spacer(modifier = Modifier.width(5.dp))
                         Text(
                             text = statusText,
                             fontSize = 11.5.sp,
                             fontWeight = FontWeight.Medium,
-                            color = if (connectTimedOut) colors.warning else colors.textSecondary,
+                            color = colors.textSecondary,
                             maxLines = 1
                         )
                     }
@@ -308,40 +273,6 @@ fun ConnectoTopHeader(
                         size = ConnectoAvatarSize.SM,
                         status = presence,
                         onClick = onAvatarClick
-                    )
-                }
-            }
-        }
-
-        // Offline Status Pill (Visible when server connection timed out or offline)
-        androidx.compose.animation.AnimatedVisibility(
-            visible = connectTimedOut || (!isActuallyOnline && !effectiveStealth),
-            enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-            exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(if (colors.isDark) Color(0xFF18181B) else Color(0xFFF4F4F5))
-                    .padding(horizontal = 16.dp, vertical = 5.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFEAB308))
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Offline Mode • Browsing cached conversations",
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = colors.textSecondary
                     )
                 }
             }

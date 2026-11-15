@@ -609,24 +609,12 @@ fun ConnectoApp(
         }
     }
 
-    // Automated Server Maintenance Detection
+    // Automated Server Maintenance Detection: Keep connections running in the background without interrupting the user
     val isWsConnectedGlobal by VoiceCallManager.isWsConnectedFlow.collectAsState()
 
     androidx.compose.runtime.LaunchedEffect(isWsConnectedGlobal, flowState) {
-        if (!isWsConnectedGlobal) {
-            delay(3500L)
-            if (!isWsConnectedGlobal) {
-                val isMaint = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-                    com.example.connecto.network.ConnectoApiClient.isServerInMaintenance()
-                }
-                if (isMaint) {
-                    MainActivity.openMaintenanceScreen()
-                }
-            }
-        } else {
-            if (MainActivity.isServerMaintenanceOpen) {
-                MainActivity.closeMaintenanceScreen()
-            }
+        if (isWsConnectedGlobal && MainActivity.isServerMaintenanceOpen) {
+            MainActivity.closeMaintenanceScreen()
         }
     }
 

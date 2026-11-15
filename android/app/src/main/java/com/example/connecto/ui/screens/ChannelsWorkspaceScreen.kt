@@ -1298,16 +1298,6 @@ fun ChannelsWorkspaceScreen(
                                                 }
                                             )
                                             DropdownMenuItem(
-                                                text = { Text("Invite to Channel", color = colors.textPrimary) },
-                                                leadingIcon = {
-                                                    Icon(imageVector = Icons.Default.PersonAdd, contentDescription = null, tint = colors.primary)
-                                                },
-                                                onClick = {
-                                                    showChannelOptionsMenu = false
-                                                    showAddFriendDialog = true
-                                                }
-                                            )
-                                            DropdownMenuItem(
                                                 text = { Text("Scroll to Bottom", color = colors.textPrimary) },
                                                 leadingIcon = {
                                                     Icon(imageVector = Icons.Default.KeyboardArrowDown, contentDescription = null, tint = colors.primary)
