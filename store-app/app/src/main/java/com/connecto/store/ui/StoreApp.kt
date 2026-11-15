@@ -2762,7 +2762,43 @@ fun ConnectoLoginGateScreen(
     }
 }
 
-// ─── Our Store Tactile Theme Toggle Switch ────────────────────────────────────
+// ─── Our Store Centralized Settings Section ──────────────────────────────────
+@Composable
+fun StoreSettingsSection(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val theme = LocalStoreTheme.current
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = title.uppercase(),
+            fontSize = 11.5.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp,
+            color = theme.textMuted,
+            modifier = Modifier.padding(start = 6.dp)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(theme.surface)
+                .border(1.dp, theme.cardBorder, RoundedCornerShape(18.dp))
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+// ─── Our Store Dual-Segmented Theme Pill Button ────────────────────────────────────
 @Composable
 fun StoreThemeToggleRow(
     isDarkTheme: Boolean,
@@ -2771,11 +2807,15 @@ fun StoreThemeToggleRow(
     modifier: Modifier = Modifier
 ) {
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val thumbOffset by animateDpAsState(
-        targetValue = if (isDarkTheme) 24.dp else 2.dp,
-        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "storeThemeThumbOffset"
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val rowScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.985f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "storeThemeRowScale"
     )
+
     val iconRotation by animateFloatAsState(
         targetValue = if (isDarkTheme) 360f else 0f,
         animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -2785,16 +2825,23 @@ fun StoreThemeToggleRow(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
+            .clip(RoundedCornerShape(18.dp))
             .background(theme.surface)
-            .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
-            .clickable {
+            .border(1.dp, theme.cardBorder, RoundedCornerShape(18.dp))
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
                 try {
-                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                 } catch (_: Exception) {}
                 onToggleTheme()
             }
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+            .padding(horizontal = 16.dp, vertical = 13.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -2803,33 +2850,41 @@ fun StoreThemeToggleRow(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(13.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                // Celestial Badge
+                // Leading Squircle Icon Container (Matches Connecto Settings style)
+                val iconTint = if (isDarkTheme) Color(0xFF38BDF8) else Color(0xFFF59E0B)
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(34.dp)
                         .graphicsLayer { rotationZ = iconRotation }
-                        .clip(CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF1F5F9))
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (isDarkTheme) Color.White.copy(alpha = 0.08f) else Color(0xFFF1F5F9)
+                        )
                         .border(
-                            1.2.dp,
-                            if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.5f) else Color(0xFFCBD5E1),
-                            CircleShape
+                            1.dp,
+                            if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.35f) else Color(0xFFF59E0B).copy(alpha = 0.35f),
+                            RoundedCornerShape(10.dp)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isDarkTheme) "🌑" else "☀️",
-                        fontSize = 18.sp
+                    Icon(
+                        imageVector = if (isDarkTheme) Icons.Rounded.DarkMode else Icons.Rounded.LightMode,
+                        contentDescription = null,
+                        tint = iconTint,
+                        modifier = Modifier.size(19.dp)
                     )
                 }
 
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
-                            text = if (isDarkTheme) "Black Theme" else "White Theme",
+                            text = "Display Theme",
                             color = theme.textPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.5.sp
@@ -2837,50 +2892,148 @@ fun StoreThemeToggleRow(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(theme.accentColor.copy(alpha = 0.15f))
-                                .border(0.6.dp, theme.accentColor.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 6.dp, vertical = 1.5.dp)
+                                .background(theme.accentColor.copy(alpha = if (isDarkTheme) 0.15f else 0.10f))
+                                .border(
+                                    0.6.dp,
+                                    theme.accentColor.copy(alpha = if (isDarkTheme) 0.35f else 0.25f),
+                                    RoundedCornerShape(6.dp)
+                                )
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
-                                text = if (isDarkTheme) "OLED" else "LIGHT",
+                                text = if (isDarkTheme) "BLACK" else "WHITE",
                                 color = theme.accentColor,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 9.sp
+                                fontSize = 9.sp,
+                                style = TextStyle(fontFeatureSettings = "tnum")
                             )
                         }
                     }
                     Text(
-                        text = if (isDarkTheme) "Pure 0-nit pitch black • Tap to switch" else "Clean daylight studio white • Tap to switch",
+                        text = if (isDarkTheme) "Pure 0-nit OLED Black" else "Studio Crisp White",
                         color = theme.textMuted,
                         fontSize = 11.5.sp
                     )
                 }
             }
 
-            // Custom Physical Switch Pill
-            Box(
+            // Dual Segmented Theme Button Pill [ 🌙 Black ] [ ☀️ White ]
+            Row(
                 modifier = Modifier
-                    .width(52.dp)
-                    .height(30.dp)
-                    .clip(CircleShape)
-                    .background(if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFE2E8F0))
-                    .border(1.dp, if (isDarkTheme) Color(0xFF334155) else Color(0xFFCBD5E1), CircleShape)
-                    .padding(2.dp),
-                contentAlignment = Alignment.CenterStart
+                    .height(34.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        if (isDarkTheme) Color(0xFF141416) else Color(0xFFF1F5F9)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = if (isDarkTheme) Color.White.copy(alpha = 0.10f) else Color(0xFFCBD5E1),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    .padding(3.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                // Black Theme Segment Button
+                val blackInteraction = remember { MutableInteractionSource() }
+                val isBlackPressed by blackInteraction.collectIsPressedAsState()
+                val blackScale by animateFloatAsState(
+                    targetValue = if (isBlackPressed) 0.94f else 1.0f,
+                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "storeBlackBtnScale"
+                )
                 Box(
                     modifier = Modifier
-                        .graphicsLayer { translationX = thumbOffset.toPx() }
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFFFFFFF))
-                        .border(0.8.dp, if (isDarkTheme) Color(0xFF475569) else Color(0xFFCBD5E1), CircleShape),
+                        .graphicsLayer {
+                            scaleX = blackScale
+                            scaleY = blackScale
+                        }
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(if (isDarkTheme) Color(0xFF000000) else Color.Transparent)
+                        .then(
+                            if (isDarkTheme) Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.60f), RoundedCornerShape(7.dp))
+                            else Modifier
+                        )
+                        .clickable(
+                            interactionSource = blackInteraction,
+                            indication = null
+                        ) {
+                            if (!isDarkTheme) {
+                                try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                                onToggleTheme()
+                            }
+                        }
+                        .padding(horizontal = 9.dp, vertical = 5.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = if (isDarkTheme) "🌑" else "☀️",
-                        fontSize = 11.sp
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.DarkMode,
+                            contentDescription = "Black Theme",
+                            tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textDarkMuted,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "Black",
+                            fontSize = 11.5.sp,
+                            fontWeight = if (isDarkTheme) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isDarkTheme) Color.White else theme.textDarkMuted
+                        )
+                    }
+                }
+
+                // White Theme Segment Button
+                val whiteInteraction = remember { MutableInteractionSource() }
+                val isWhitePressed by whiteInteraction.collectIsPressedAsState()
+                val whiteScale by animateFloatAsState(
+                    targetValue = if (isWhitePressed) 0.94f else 1.0f,
+                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                    label = "storeWhiteBtnScale"
+                )
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            scaleX = whiteScale
+                            scaleY = whiteScale
+                        }
+                        .clip(RoundedCornerShape(7.dp))
+                        .background(if (!isDarkTheme) Color(0xFFFFFFFF) else Color.Transparent)
+                        .then(
+                            if (!isDarkTheme) Modifier.border(1.dp, Color(0xFFF59E0B).copy(alpha = 0.60f), RoundedCornerShape(7.dp))
+                            else Modifier
+                        )
+                        .clickable(
+                            interactionSource = whiteInteraction,
+                            indication = null
+                        ) {
+                            if (isDarkTheme) {
+                                try { haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove) } catch (_: Exception) {}
+                                onToggleTheme()
+                            }
+                        }
+                        .padding(horizontal = 9.dp, vertical = 5.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.LightMode,
+                            contentDescription = "White Theme",
+                            tint = if (!isDarkTheme) Color(0xFFF59E0B) else theme.textDarkMuted,
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            text = "White",
+                            fontSize = 11.5.sp,
+                            fontWeight = if (!isDarkTheme) FontWeight.Bold else FontWeight.Medium,
+                            color = if (!isDarkTheme) Color.Black else theme.textDarkMuted
+                        )
+                    }
                 }
             }
         }
@@ -2895,12 +3048,14 @@ fun StoreSettingsNavRow(
     title: String,
     subtitle: String,
     theme: StoreThemeColors,
-    onClick: () -> Unit
+    trailingBadge: String? = null,
+    trailingBadgeColor: Color? = null,
+    onClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
@@ -2942,12 +3097,30 @@ fun StoreSettingsNavRow(
             }
         }
 
-        Icon(
-            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-            contentDescription = null,
-            tint = theme.textDarkMuted,
-            modifier = Modifier.size(18.dp)
-        )
+        if (trailingBadge != null) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(6.dp))
+                    .background((trailingBadgeColor ?: theme.accentColor).copy(alpha = 0.15f))
+                    .border(0.6.dp, (trailingBadgeColor ?: theme.accentColor).copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
+            ) {
+                Text(
+                    text = trailingBadge,
+                    color = trailingBadgeColor ?: theme.accentColor,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    style = TextStyle(fontFeatureSettings = "tnum")
+                )
+            }
+        } else {
+            Icon(
+                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                tint = theme.textDarkMuted,
+                modifier = Modifier.size(18.dp)
+            )
+        }
     }
 }
 
@@ -2974,6 +3147,8 @@ fun ClassicLoginAccountView(
     var showReferDialog by remember { mutableStateOf(false) }
     val accountScrollState = rememberScrollState()
 
+    val isGuest = currentUser == null || currentUser.username.equals("guest", ignoreCase = true)
+
     LaunchedEffect(scrollToTopTrigger) {
         if (scrollToTopTrigger > 0) {
             try {
@@ -2987,18 +3162,18 @@ fun ClassicLoginAccountView(
             .fillMaxSize()
             .background(theme.background)
             .verticalScroll(accountScrollState)
-            .padding(horizontal = 20.dp, vertical = 24.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Dynamic Our Store In-App Update Card (ONLY shown when update available)
         if (storeSelfUpdate != null && storeSelfUpdate.installState == StoreApp.InstallState.UPDATE_AVAILABLE) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(theme.surface)
-                    .border(1.dp, ElectricBlueUpdate.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                    .border(1.dp, ElectricBlueUpdate.copy(alpha = 0.6f), RoundedCornerShape(18.dp))
                     .padding(18.dp)
             ) {
                 Column(
@@ -3094,228 +3269,295 @@ fun ClassicLoginAccountView(
             }
         }
 
-        if (currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
-            // Logged In Account Dashboard
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(theme.surface)
-                    .border(1.dp, theme.cardBorder, RoundedCornerShape(20.dp))
-                    .padding(24.dp)
+        // ================= 1. USER IDENTITY HERO CARD (Connecto Profile Style) =================
+        val avatarCardShape = RoundedCornerShape(22.dp)
+        val role = currentUser?.role ?: StoreRole.MEMBER
+        val isAdmin = role == StoreRole.ADMIN
+        val isConnectoSso = currentUser?.isConnectoSso == true
+        val statusRingColor = when {
+            isAdmin -> Color(0xFF10B981) // Emerald Green
+            isConnectoSso -> Color(0xFF8B5CF6) // Violet / Indigo
+            !isGuest -> Color(0xFF2563EB) // Electric Blue
+            else -> Color(0xFFF59E0B) // Amber
+        }
+
+        val roleBadgeText = when {
+            isAdmin -> "ADMINISTRATOR"
+            isConnectoSso -> "CONNECTO SSO"
+            !isGuest -> "OFFICIAL VERIFIED"
+            else -> "GUEST EXPLORER"
+        }
+
+        val roleBadgeDesc = when {
+            isAdmin -> "Full administrative privileges, verified release signing & telemetry diagnostics."
+            isConnectoSso -> "Authenticated via Connecto Single Sign-On ecosystem with unified identity."
+            !isGuest -> "Verified account with autonomous background updates and repository access."
+            else -> "Browsing in Guest Mode. Sign in with Connecto or credentials to unlock full sync."
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(avatarCardShape)
+                .background(theme.surface)
+                .border(1.dp, theme.cardBorder, avatarCardShape)
+                .padding(20.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                // Large Avatar with concentric status ring & verification badge
+                Box(
+                    modifier = Modifier.size(76.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    val ringColor = if (currentUser.role == StoreRole.ADMIN) Color(0xFF10B981) else Color(0xFF6C5CE7)
-                    Box(
-                        modifier = Modifier.size(88.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    if (!isGuest && currentUser != null) {
                         UserAvatarImage(
                             avatarUrl = currentUser.avatarUrl,
                             displayName = currentUser.displayName,
                             modifier = Modifier
-                                .size(82.dp)
+                                .size(72.dp)
                                 .clip(CircleShape)
-                                .border(2.5.dp, ringColor, CircleShape),
+                                .border(2.5.dp, statusRingColor, CircleShape),
                             fallback = {
                                 Box(
                                     modifier = Modifier
-                                        .size(82.dp)
+                                        .size(72.dp)
                                         .clip(CircleShape)
-                                        .background(ringColor.copy(alpha = 0.15f))
-                                        .border(2.5.dp, ringColor, CircleShape),
+                                        .background(statusRingColor.copy(alpha = 0.15f))
+                                        .border(2.5.dp, statusRingColor, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = if (currentUser.role == StoreRole.ADMIN) Icons.Rounded.AdminPanelSettings else Icons.Rounded.Person,
+                                        imageVector = if (isAdmin) Icons.Rounded.AdminPanelSettings else Icons.Rounded.Person,
                                         contentDescription = null,
-                                        tint = ringColor,
-                                        modifier = Modifier.size(42.dp)
+                                        tint = statusRingColor,
+                                        modifier = Modifier.size(38.dp)
                                     )
                                 }
                             }
                         )
-
+                    } else {
                         Box(
                             modifier = Modifier
-                                .size(24.dp)
-                                .align(Alignment.BottomEnd)
+                                .size(72.dp)
                                 .clip(CircleShape)
-                                .background(theme.cardElevated)
-                                .border(1.5.dp, theme.surface, CircleShape),
+                                .background(statusRingColor.copy(alpha = 0.15f))
+                                .border(2.5.dp, statusRingColor, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (currentUser.role == StoreRole.ADMIN) Icons.Rounded.Security else Icons.Rounded.CheckCircle,
+                                imageVector = Icons.Rounded.Explore,
                                 contentDescription = null,
-                                tint = ringColor,
-                                modifier = Modifier.size(13.dp)
+                                tint = statusRingColor,
+                                modifier = Modifier.size(36.dp)
                             )
                         }
                     }
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    // Bottom-End Verification Badge Pip
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .align(Alignment.BottomEnd)
+                            .clip(CircleShape)
+                            .background(theme.surface)
+                            .border(1.5.dp, statusRingColor, CircleShape)
+                            .padding(2.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = currentUser.displayName,
-                            color = theme.textPrimary,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "@${currentUser.username}",
-                            color = theme.textMuted,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium
+                        Icon(
+                            imageVector = if (isAdmin) Icons.Rounded.Shield else if (!isGuest) Icons.Rounded.CheckCircle else Icons.Rounded.Public,
+                            contentDescription = null,
+                            tint = statusRingColor,
+                            modifier = Modifier.size(13.dp)
                         )
                     }
+                }
 
-                    val isGuest = currentUser.username.equals("guest", ignoreCase = true)
+                // Display Name & Handle
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = if (!isGuest && currentUser != null) currentUser.displayName else "Guest Explorer",
+                        color = theme.textPrimary,
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = if (!isGuest && currentUser != null) "@${currentUser.username}" else "@guest.store",
+                        color = theme.textMuted,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center
+                    )
+                }
 
-                    if (isGuest) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Info,
-                                contentDescription = null,
-                                tint = theme.textMuted,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "Guest Mode • Sign in with Connecto to unlock admin apps & verified sync",
-                                color = theme.textMuted,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    } else if (currentUser.isConnectoSso) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.padding(top = 4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.VerifiedUser,
-                                contentDescription = null,
-                                tint = Color(0xFFA29BFE),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "Authenticated via Connecto SSO",
-                                color = Color(0xFFA29BFE),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // ─── Direct Black & White Theme Mode Toggle Row ────────────────
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                // Role / Status Badge Capsule (Matching Connecto Profile Style)
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(statusRingColor.copy(alpha = 0.12f))
+                        .border(0.8.dp, statusRingColor.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
                     ) {
-                        Text(
-                            text = "APPEARANCE & THEME",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            color = theme.textMuted,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-
-                        StoreThemeToggleRow(
-                            isDarkTheme = isDarkTheme,
-                            onToggleTheme = onToggleTheme,
-                            theme = theme
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    // ─── Help, Support & Legal Center ──────────────────────────────
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "SUPPORT & LEGAL",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp,
-                            color = theme.textMuted,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
-
                         Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(theme.cardElevated)
-                                .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
-                        ) {
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                StoreSettingsNavRow(
-                                    icon = Icons.Rounded.Share,
-                                    iconTint = Color(0xFF8B5CF6),
-                                    title = "Refer Our Store",
-                                    subtitle = "Share download link & spread independent open apps",
-                                    theme = theme,
-                                    onClick = { showReferDialog = true }
-                                )
-                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
-                                StoreSettingsNavRow(
-                                    icon = Icons.Rounded.RateReview,
-                                    iconTint = Color(0xFFF59E0B),
-                                    title = "Send Feedback",
-                                    subtitle = "Share suggestions, report bugs & rate experience",
-                                    theme = theme,
-                                    onClick = { showFeedbackDialog = true }
-                                )
-                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
-                                StoreSettingsNavRow(
-                                    icon = Icons.Rounded.HeadsetMic,
-                                    iconTint = Color(0xFF2563EB),
-                                    title = "Help & Support",
-                                    subtitle = "FAQs, installation troubleshooting & direct contact",
-                                    theme = theme,
-                                    onClick = { showHelpDialog = true }
-                                )
-                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
-                                StoreSettingsNavRow(
-                                    icon = Icons.Rounded.Description,
-                                    iconTint = Color(0xFF3B82F6),
-                                    title = "Terms of Use",
-                                    subtitle = "Ecosystem guidelines, distribution & license terms",
-                                    theme = theme,
-                                    onClick = { showLegalDialog = 0 }
-                                )
-                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
-                                StoreSettingsNavRow(
-                                    icon = Icons.Rounded.Security,
-                                    iconTint = Color(0xFF10B981),
-                                    title = "Privacy Policy",
-                                    subtitle = "Zero telemetry, zero tracking & local data ownership",
-                                    theme = theme,
-                                    onClick = { showLegalDialog = 1 }
-                                )
-                            }
-                        }
+                                .size(6.dp)
+                                .clip(CircleShape)
+                                .background(statusRingColor)
+                        )
+                        Text(
+                            text = roleBadgeText,
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = statusRingColor,
+                            letterSpacing = 0.6.sp
+                        )
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = roleBadgeDesc,
+                    color = theme.textDarkMuted,
+                    fontSize = 11.5.sp,
+                    lineHeight = 16.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+            }
+        }
 
-                    // Logout Button
+        // ================= 2. APPEARANCE & DISPLAY SECTION =================
+        StoreSettingsSection(title = "Appearance & Display") {
+            StoreThemeToggleRow(
+                isDarkTheme = isDarkTheme,
+                onToggleTheme = onToggleTheme,
+                theme = theme
+            )
+        }
+
+        // ================= 3. SECURITY & SYSTEM ENGINE SECTION =================
+        StoreSettingsSection(title = "Security & System Engine") {
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Security,
+                iconTint = Color(0xFF10B981),
+                title = "PackageInstaller IPC",
+                subtitle = "Direct Android OS package session manager",
+                theme = theme,
+                trailingBadge = "ACTIVE",
+                trailingBadgeColor = Color(0xFF10B981)
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.VerifiedUser,
+                iconTint = Color(0xFF3B82F6),
+                title = "Cryptographic Hash Vault",
+                subtitle = "End-to-end SHA-256 package verification",
+                theme = theme,
+                trailingBadge = "SHA-256",
+                trailingBadgeColor = Color(0xFF3B82F6)
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Sync,
+                iconTint = Color(0xFF8B5CF6),
+                title = "Autonomous Background Sync",
+                subtitle = "Cloudflare Edge delta updates & version polling",
+                theme = theme,
+                trailingBadge = "ENABLED",
+                trailingBadgeColor = Color(0xFF8B5CF6)
+            )
+        }
+
+        // ================= 4. SUPPORT & COMMUNITY SECTION =================
+        StoreSettingsSection(title = "Support & Community") {
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Share,
+                iconTint = Color(0xFF8B5CF6),
+                title = "Refer Our Store",
+                subtitle = "Share download link & invite friends to open apps",
+                theme = theme,
+                onClick = { showReferDialog = true }
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.RateReview,
+                iconTint = Color(0xFFF59E0B),
+                title = "Send Feedback & Suggestions",
+                subtitle = "Report bugs, propose features & rate experience",
+                theme = theme,
+                onClick = { showFeedbackDialog = true }
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.HeadsetMic,
+                iconTint = Color(0xFF2563EB),
+                title = "Help & Troubleshooting",
+                subtitle = "FAQs, installation troubleshooting & diagnostic logs",
+                theme = theme,
+                onClick = { showHelpDialog = true }
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Description,
+                iconTint = Color(0xFF3B82F6),
+                title = "Terms of Use",
+                subtitle = "Ecosystem guidelines, distribution & license terms",
+                theme = theme,
+                onClick = { showLegalDialog = 0 }
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Policy,
+                iconTint = Color(0xFF10B981),
+                title = "Privacy Policy",
+                subtitle = "Zero telemetry, zero tracking & local data ownership",
+                theme = theme,
+                onClick = { showLegalDialog = 1 }
+            )
+        }
+
+        // ================= 5. ABOUT OUR STORE SECTION =================
+        StoreSettingsSection(title = "About Our Store") {
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Storefront,
+                iconTint = theme.accentColor,
+                title = "Our Store for Android",
+                subtitle = "v${com.connecto.store.BuildConfig.VERSION_NAME} (Build ${com.connecto.store.BuildConfig.VERSION_CODE})",
+                theme = theme,
+                trailingBadge = "LATEST",
+                trailingBadgeColor = theme.accentColor
+            )
+            HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+            StoreSettingsNavRow(
+                icon = Icons.Rounded.Cloud,
+                iconTint = Color(0xFF06B6D4),
+                title = "Ecosystem Network Endpoint",
+                subtitle = "connecto.fun / Cloudflare Edge D1",
+                theme = theme,
+                trailingBadge = "ONLINE",
+                trailingBadgeColor = Color(0xFF10B981)
+            )
+        }
+
+        // ================= 6. ACCOUNT & SESSION SECTION =================
+        if (!isGuest && currentUser != null) {
+            StoreSettingsSection(title = "Account & Session") {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp)
+                ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -3345,108 +3587,64 @@ fun ClassicLoginAccountView(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    // App Version & System Specs Status Card
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(theme.cardElevated)
-                            .border(1.dp, theme.cardBorder, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
-                    ) {
-                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                text = "Our Store Client",
-                                color = theme.textPrimary,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "v${com.connecto.store.BuildConfig.VERSION_NAME} (Build ${com.connecto.store.BuildConfig.VERSION_CODE})",
-                                color = theme.textDarkMuted,
-                                fontSize = 11.sp,
-                                style = TextStyle(fontFeatureSettings = "tnum"),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
                 }
             }
         } else {
-            val isGuestMode = currentUser?.username.equals("guest", ignoreCase = true)
-            if (isGuestMode) {
-                Box(
+            StoreSettingsSection(title = "Authentication & Access") {
+                var authTab by remember { mutableStateOf(0) }
+                var inputUser by remember { mutableStateOf("") }
+                var inputDisplay by remember { mutableStateOf("") }
+                var inputPass by remember { mutableStateOf("") }
+                var passVisibility by remember { mutableStateOf(false) }
+
+                val isAuthenticating = loginState is LoginUiState.Loading
+                val hasAuthError = loginState is LoginUiState.Error
+
+                val canSubmitForm = when (authTab) {
+                    0 -> inputUser.trim().isNotBlank() && inputPass.trim().isNotBlank()
+                    else -> inputUser.trim().length >= 3 && inputPass.trim().length >= 8
+                }
+
+                val formBtnState = when {
+                    isAuthenticating -> StoreButtonState.LOADING
+                    hasAuthError -> StoreButtonState.ERROR
+                    !canSubmitForm -> StoreButtonState.DISABLED
+                    else -> StoreButtonState.DEFAULT
+                }
+
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(theme.cardElevated)
-                        .border(1.dp, theme.accentColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                        .padding(14.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
+                    // SSO 1-Tap Quick Action
+                    StoreFiveStateButton(
+                        text = "CONTINUE WITH CONNECTO SSO",
+                        onClick = onLoginConnecto,
+                        modifier = Modifier.fillMaxWidth(),
+                        state = if (isAuthenticating) StoreButtonState.LOADING else StoreButtonState.DEFAULT,
+                        icon = Icons.Rounded.VerifiedUser,
+                        backgroundColor = Color(0xFF4F46E5),
+                        contentColor = Color.White
+                    )
+
                     Row(
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Explore,
-                            contentDescription = null,
-                            tint = theme.accentColor,
-                            modifier = Modifier.size(20.dp)
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = theme.dividerColor, thickness = 0.8.dp)
+                        Text(
+                            text = "OR SIGN IN WITH CREDENTIALS",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = theme.textDarkMuted,
+                            letterSpacing = 0.6.sp
                         )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Guest Explorer Active",
-                                color = theme.textPrimary,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.5.sp
-                            )
-                            Text(
-                                text = "Sign in to access your verified profile, background cloud sync, and developer packages.",
-                                color = theme.textMuted,
-                                fontSize = 11.sp
-                            )
-                        }
+                        HorizontalDivider(modifier = Modifier.weight(1f), color = theme.dividerColor, thickness = 0.8.dp)
                     }
-                }
-            }
 
-            var authTab by remember { mutableStateOf(0) }
-            var inputUser by remember { mutableStateOf("") }
-            var inputDisplay by remember { mutableStateOf("") }
-            var inputPass by remember { mutableStateOf("") }
-            var passVisibility by remember { mutableStateOf(false) }
-
-            val isAuthenticating = loginState is LoginUiState.Loading
-            val hasAuthError = loginState is LoginUiState.Error
-
-            val canSubmitForm = when (authTab) {
-                0 -> inputUser.trim().isNotBlank() && inputPass.trim().isNotBlank()
-                else -> inputUser.trim().length >= 3 && inputPass.trim().length >= 8
-            }
-
-            val formBtnState = when {
-                isAuthenticating -> StoreButtonState.LOADING
-                hasAuthError -> StoreButtonState.ERROR
-                !canSubmitForm -> StoreButtonState.DISABLED
-                else -> StoreButtonState.DEFAULT
-            }
-
-            // Authentication Card with 5-State Interactive Controls
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(theme.surface)
-                    .border(1.dp, theme.cardBorder, RoundedCornerShape(18.dp))
-                    .padding(20.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
                     // Segmented Tabs
                     Row(
                         modifier = Modifier
@@ -3661,25 +3859,14 @@ fun ClassicLoginAccountView(
                         backgroundColor = theme.accentColor,
                         contentColor = Color.White
                     )
-
-                    // SSO Quick Action
-                    StoreFiveStateButton(
-                        text = "CONTINUE WITH CONNECTO SSO",
-                        onClick = onLoginConnecto,
-                        modifier = Modifier.fillMaxWidth(),
-                        state = if (isAuthenticating) StoreButtonState.LOADING else StoreButtonState.DEFAULT,
-                        icon = Icons.Rounded.VerifiedUser,
-                        backgroundColor = Color(0xFF4F46E5),
-                        contentColor = Color.White
-                    )
                 }
             }
 
-            // Legal Footer for Logged-Out View
+            // Legal Footer Note for Guest View
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp),
+                    .padding(top = 4.dp, bottom = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -3700,11 +3887,7 @@ fun ClassicLoginAccountView(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showReferDialog = true }
                     )
-                    Text(
-                        text = "•",
-                        color = theme.textDarkMuted,
-                        fontSize = 12.sp
-                    )
+                    Text(text = "•", color = theme.textDarkMuted, fontSize = 12.sp)
                     Text(
                         text = "Help & Support",
                         color = theme.accentColor,
@@ -3712,11 +3895,7 @@ fun ClassicLoginAccountView(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showHelpDialog = true }
                     )
-                    Text(
-                        text = "•",
-                        color = theme.textDarkMuted,
-                        fontSize = 12.sp
-                    )
+                    Text(text = "•", color = theme.textDarkMuted, fontSize = 12.sp)
                     Text(
                         text = "Feedback",
                         color = theme.accentColor,
@@ -3724,11 +3903,7 @@ fun ClassicLoginAccountView(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showFeedbackDialog = true }
                     )
-                    Text(
-                        text = "•",
-                        color = theme.textDarkMuted,
-                        fontSize = 12.sp
-                    )
+                    Text(text = "•", color = theme.textDarkMuted, fontSize = 12.sp)
                     Text(
                         text = "Terms of Use",
                         color = theme.accentColor,
@@ -3736,11 +3911,7 @@ fun ClassicLoginAccountView(
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showLegalDialog = 0 }
                     )
-                    Text(
-                        text = "•",
-                        color = theme.textDarkMuted,
-                        fontSize = 12.sp
-                    )
+                    Text(text = "•", color = theme.textDarkMuted, fontSize = 12.sp)
                     Text(
                         text = "Privacy Policy",
                         color = theme.accentColor,
