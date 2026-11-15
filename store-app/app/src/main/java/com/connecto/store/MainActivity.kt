@@ -81,11 +81,38 @@ class MainActivity : FragmentActivity() {
         // Register internal receiver for PackageInstaller session completion
         val localFilter = IntentFilter("com.connecto.store.PACKAGE_INSTALLED").apply {
             addAction("com.connecto.store.PACKAGE_INSTALL_FAILED")
+            addAction("com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION")
         }
 
         localInstallReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                viewModel.refreshInstallStates()
+                val action = intent?.action
+                val pkg = intent?.getStringExtra("package_name")
+                val err = intent?.getStringExtra("error_message")
+                when (action) {
+                    "com.connecto.store.PACKAGE_INSTALL_FAILED" -> {
+                        viewModel.onInstallFailed(pkg, err)
+                    }
+                    "com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION" -> {
+                        val confirmIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent::class.java)
+                        } else {
+                            @Suppress("DEPRECATION")
+                            intent.getParcelableExtra(Intent.EXTRA_INTENT)
+                        }
+                        if (confirmIntent != null) {
+                            confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            try {
+                                startActivity(confirmIntent)
+                            } catch (e: Exception) {
+                                android.util.Log.e("OurStore", "Failed to launch confirm intent from MainActivity", e)
+                            }
+                        }
+                    }
+                    else -> {
+                        viewModel.refreshInstallStates(resetInstallingIfStillPending = true)
+                    }
+                }
             }
         }
 

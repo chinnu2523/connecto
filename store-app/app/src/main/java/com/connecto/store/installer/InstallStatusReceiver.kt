@@ -39,6 +39,14 @@ class InstallStatusReceiver : BroadcastReceiver() {
                     }
 
                     it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                    // Broadcast to foreground MainActivity to bypass Android 14+ background activity launch restrictions
+                    val notifyIntent = Intent("com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION").apply {
+                        putExtra("package_name", packageName)
+                        putExtra(Intent.EXTRA_INTENT, it)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(notifyIntent)
+
                     try {
                         val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                             android.app.ActivityOptions.makeBasic().apply {
@@ -55,7 +63,7 @@ class InstallStatusReceiver : BroadcastReceiver() {
                         try {
                             context.startActivity(it)
                         } catch (ex2: Exception) {
-                            Log.e("OurStore", "Standard start also failed", ex2)
+                            Log.e("OurStore", "Standard start also failed (delegated to MainActivity)", ex2)
                         }
                     }
                 }

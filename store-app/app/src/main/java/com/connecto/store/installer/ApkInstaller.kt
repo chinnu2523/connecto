@@ -253,10 +253,18 @@ object ApkInstaller {
         val targetPackage = packageName ?: archiveInfo.packageName
         Log.i(TAG, "Pre-flight verified valid APK: package=${archiveInfo.packageName}, versionCode=${archiveInfo.versionCode}, target=$targetPackage")
 
-        // Priority 1: On Android 12+ (API 31+), only attempt PackageInstaller Session IPC
-        // if Our Store is already the installer-of-record. If not, Android requires user interaction
-        // and strictly blocks background activity launches from BroadcastReceivers on Android 14+,
-        // so we invoke the system package installer intent directly from the active foreground activity.
+        // Priority 1: Self-Update of Our Store MUST ALWAYS use the Foreground System PackageInstaller Intent!
+        // Android prevents any running app from silently replacing itself via PackageInstaller session,
+        // and background activity prompts are strictly blocked on Android 14+ (BAL restrictions).
+        val isSelfUpdate = targetPackage == context.packageName
+        if (isSelfUpdate) {
+            Log.i(TAG, "Self-update of Our Store detected: launching system package installer intent directly from foreground")
+            installViaSystemIntent(context, apkFile)
+            return
+        }
+
+        // Priority 2: For other packages on Android 12+ (API 31+), only attempt PackageInstaller Session IPC
+        // if Our Store is already the installer-of-record.
         val isOurStoreInstaller = isInstallerOfRecord(context, targetPackage)
         if (targetPackage.isNotBlank() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && isOurStoreInstaller) {
             val sessionSuccess = installViaPackageInstaller(context, apkFile, targetPackage)
@@ -266,7 +274,7 @@ object ApkInstaller {
             }
         }
 
-        // Priority 2: Universal System PackageInstaller Intent (rock-solid for updates and initial installs)
+        // Priority 3: Universal System PackageInstaller Intent (rock-solid for updates and initial installs)
         Log.i(TAG, "Launching system package installer for $targetPackage at ${apkFile.name}")
         installViaSystemIntent(context, apkFile)
     }

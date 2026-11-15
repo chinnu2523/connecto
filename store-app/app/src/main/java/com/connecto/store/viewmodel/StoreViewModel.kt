@@ -447,7 +447,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun handleAppAction(context: Context, appState: AppUiState) {
-        if (appState.isDownloading || appState.isInstalling) {
+        if (appState.isDownloading) {
             return
         }
         if (appState.installState == StoreApp.InstallState.UP_TO_DATE) {
@@ -569,7 +569,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     fun downloadAndInstall(context: Context, appState: AppUiState) {
         val current = _uiState.value as? StoreUiState.Success ?: return
         val currentApp = current.apps.find { it.app.packageName == appState.app.packageName }
-        if (currentApp?.isDownloading == true || currentApp?.isInstalling == true) {
+        if (currentApp?.isDownloading == true) {
             return
         }
 
@@ -620,6 +620,17 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         activeDownloadJobs[app.packageName] = job
+    }
+
+    fun onInstallFailed(packageName: String?, errorMessage: String?) {
+        val target = packageName ?: return
+        updateAppState(target) {
+            it.copy(
+                isDownloading = false,
+                isInstalling = false,
+                error = errorMessage ?: "Installation failed. Tap to retry."
+            )
+        }
     }
 
     private fun showPermissionPrompt(appState: AppUiState) {
