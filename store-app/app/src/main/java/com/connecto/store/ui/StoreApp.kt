@@ -344,17 +344,13 @@ fun StoreApp(
                         } else {
                             // Catalog Browsing View with Header, Filter & Footer Navigation
                             Column(modifier = Modifier.fillMaxSize()) {
-                                // Executive Top Header
+                                // Executive Top Header (No Top Profile & No Top Theme buttons)
                                 ClassicTopHeader(
                                     searchQuery = searchQuery,
                                     onSearchChange = { searchQuery = it },
                                     onRefresh = { vm.loadCatalog() },
                                     onOpenSecurityDialog = { showSecurityDialog = true },
-                                    isDarkTheme = isDarkTheme,
-                                    onToggleTheme = onToggleTheme,
-                                    showSearch = selectedSection == StoreNavSection.OVERVIEW,
-                                    currentUser = currentUser,
-                                    onOpenAccount = { selectedSection = StoreNavSection.LOGIN }
+                                    showSearch = selectedSection == StoreNavSection.OVERVIEW
                                 )
 
                                 // Content Stage with Navigation Section Transition
@@ -434,7 +430,8 @@ fun StoreApp(
                                     onSelect = { selectedSection = it },
                                     updateCount = s.apps.count {
                                         it.installState == StoreApp.InstallState.UPDATE_AVAILABLE
-                                    }
+                                    },
+                                    currentUser = currentUser
                                 )
                             }
                         }
@@ -492,11 +489,7 @@ private fun ClassicTopHeader(
     onSearchChange: (String) -> Unit,
     onRefresh: () -> Unit,
     onOpenSecurityDialog: () -> Unit,
-    isDarkTheme: Boolean,
-    onToggleTheme: () -> Unit,
-    showSearch: Boolean = true,
-    currentUser: StoreUser? = null,
-    onOpenAccount: () -> Unit = {}
+    showSearch: Boolean = true
 ) {
     val theme = LocalStoreTheme.current
     val focusManager = LocalFocusManager.current
@@ -534,31 +527,6 @@ private fun ClassicTopHeader(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Theme Toggle Button with Spring Physics
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(theme.cardElevated)
-                        .border(1.dp, theme.cardBorder, CircleShape)
-                        .tactilePress(pressedScale = 0.88f) { onToggleTheme() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    val rotation by animateFloatAsState(
-                        targetValue = if (isDarkTheme) 0f else 180f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-                        label = "themeIconRotation"
-                    )
-                    Icon(
-                        imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                        contentDescription = "Toggle Appearance Theme",
-                        tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textPrimary,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .graphicsLayer { rotationZ = rotation }
-                    )
-                }
-
                 // Play Protect & Safety Status Button
                 Box(
                     modifier = Modifier
@@ -593,47 +561,6 @@ private fun ClassicTopHeader(
                         tint = theme.textPrimary,
                         modifier = Modifier.size(18.dp)
                     )
-                }
-
-                // Account / Profile Quick Access Avatar or Pill
-                val isGuest = currentUser == null || currentUser.username.equals("guest", ignoreCase = true)
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(if (isGuest) theme.cardElevated else theme.accentColor.copy(alpha = 0.15f))
-                        .border(
-                            1.dp,
-                            if (isGuest) theme.cardBorder else theme.accentColor,
-                            CircleShape
-                        )
-                        .tactilePress(pressedScale = 0.88f) { onOpenAccount() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isGuest || currentUser == null) {
-                        Icon(
-                            imageVector = Icons.Rounded.AccountCircle,
-                            contentDescription = "Sign In / Account",
-                            tint = theme.textMuted,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    } else {
-                        UserAvatarImage(
-                            avatarUrl = currentUser.avatarUrl,
-                            displayName = currentUser.displayName,
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape),
-                            fallback = {
-                                Text(
-                                    text = currentUser.displayName.take(1).uppercase(),
-                                    color = theme.accentColor,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp
-                                )
-                            }
-                        )
-                    }
                 }
             }
         }
@@ -695,7 +622,8 @@ private fun ClassicTopHeader(
 private fun ClassicBottomNavBar(
     selected: StoreNavSection,
     onSelect: (StoreNavSection) -> Unit,
-    updateCount: Int
+    updateCount: Int,
+    currentUser: StoreUser? = null
 ) {
     val theme = LocalStoreTheme.current
 
@@ -723,6 +651,7 @@ private fun ClassicBottomNavBar(
                         section = section,
                         isSelected = isSelected,
                         badgeCount = badgeCount,
+                        currentUser = currentUser,
                         onClick = { onSelect(section) }
                     )
                 }
@@ -736,6 +665,7 @@ private fun ClassicBottomNavTabItem(
     section: StoreNavSection,
     isSelected: Boolean,
     badgeCount: Int,
+    currentUser: StoreUser? = null,
     onClick: () -> Unit
 ) {
     val theme = LocalStoreTheme.current
@@ -783,12 +713,43 @@ private fun ClassicBottomNavTabItem(
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Box(contentAlignment = Alignment.TopEnd) {
-                Icon(
-                    imageVector = section.icon,
-                    contentDescription = section.label,
-                    tint = animatedContentColor,
-                    modifier = Modifier.size(24.dp)
-                )
+                if (section == StoreNavSection.LOGIN && currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
+                    UserAvatarImage(
+                        avatarUrl = currentUser.avatarUrl,
+                        displayName = currentUser.displayName,
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) theme.accentColor else theme.textDarkMuted.copy(alpha = 0.45f),
+                                shape = CircleShape
+                            ),
+                        fallback = {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(if (isSelected) theme.accentColor.copy(alpha = 0.25f) else theme.cardBorder),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = currentUser.displayName.take(1).uppercase(),
+                                    color = if (isSelected) theme.accentColor else theme.textSecondary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    )
+                } else {
+                    Icon(
+                        imageVector = section.icon,
+                        contentDescription = section.label,
+                        tint = animatedContentColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
 
                 if (badgeCount > 0) {
                     Box(
@@ -2594,6 +2555,195 @@ fun ConnectoLoginGateScreen(
     }
 }
 
+// ─── Our Store Tactile Theme Toggle Switch ────────────────────────────────────
+@Composable
+fun StoreThemeToggleRow(
+    isDarkTheme: Boolean,
+    onToggleTheme: () -> Unit,
+    theme: StoreThemeColors,
+    modifier: Modifier = Modifier
+) {
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val thumbOffset by animateDpAsState(
+        targetValue = if (isDarkTheme) 24.dp else 2.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "storeThemeThumbOffset"
+    )
+    val iconRotation by animateFloatAsState(
+        targetValue = if (isDarkTheme) 360f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "storeThemeRotation"
+    )
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(theme.surface)
+            .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
+            .clickable {
+                try {
+                    haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                } catch (_: Exception) {}
+                onToggleTheme()
+            }
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.weight(1f)
+            ) {
+                // Celestial Badge
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .graphicsLayer { rotationZ = iconRotation }
+                        .clip(CircleShape)
+                        .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFF1F5F9))
+                        .border(
+                            1.2.dp,
+                            if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.5f) else Color(0xFFCBD5E1),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isDarkTheme) "🌑" else "☀️",
+                        fontSize = 18.sp
+                    )
+                }
+
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = if (isDarkTheme) "Black Theme" else "White Theme",
+                            color = theme.textPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.5.sp
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(theme.accentColor.copy(alpha = 0.15f))
+                                .border(0.6.dp, theme.accentColor.copy(alpha = 0.35f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 1.5.dp)
+                        ) {
+                            Text(
+                                text = if (isDarkTheme) "OLED" else "LIGHT",
+                                color = theme.accentColor,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            )
+                        }
+                    }
+                    Text(
+                        text = if (isDarkTheme) "Pure 0-nit pitch black • Tap to switch" else "Clean daylight studio white • Tap to switch",
+                        color = theme.textMuted,
+                        fontSize = 11.5.sp
+                    )
+                }
+            }
+
+            // Custom Physical Switch Pill
+            Box(
+                modifier = Modifier
+                    .width(52.dp)
+                    .height(30.dp)
+                    .clip(CircleShape)
+                    .background(if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFE2E8F0))
+                    .border(1.dp, if (isDarkTheme) Color(0xFF334155) else Color(0xFFCBD5E1), CircleShape)
+                    .padding(2.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer { translationX = thumbOffset.toPx() }
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(if (isDarkTheme) Color(0xFF000000) else Color(0xFFFFFFFF))
+                        .border(0.8.dp, if (isDarkTheme) Color(0xFF475569) else Color(0xFFCBD5E1), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (isDarkTheme) "🌑" else "☀️",
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ─── Store Navigation Setting Row ─────────────────────────────────────────────
+@Composable
+fun StoreSettingsNavRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: Color,
+    title: String,
+    subtitle: String,
+    theme: StoreThemeColors,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconTint.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(19.dp)
+                )
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = title,
+                    color = theme.textPrimary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = subtitle,
+                    color = theme.textMuted,
+                    fontSize = 11.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = null,
+            tint = theme.textDarkMuted,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
 // ─── Classic Login & Account Screen ───────────────────────────────────────────
 @Composable
 fun ClassicLoginAccountView(
@@ -2611,6 +2761,7 @@ fun ClassicLoginAccountView(
 ) {
     val theme = LocalStoreTheme.current
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
+    var showHelpDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -2849,94 +3000,82 @@ fun ClassicLoginAccountView(
 
                     Spacer(modifier = Modifier.height(4.dp))
 
-                    // ─── Theme Preference & Mode Switcher Card ─────────────────────
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(theme.cardElevated)
-                            .border(1.dp, theme.cardBorder, RoundedCornerShape(14.dp))
-                            .padding(16.dp)
+                    // ─── Direct Black & White Theme Mode Toggle Row ────────────────
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                                // Dark Mode Option Box
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isDarkTheme) Color(0xFF000000) else theme.surface)
-                                        .border(
-                                            width = if (isDarkTheme) 2.dp else 1.dp,
-                                            color = if (isDarkTheme) Color(0xFF38BDF8) else theme.cardBorder,
-                                            shape = RoundedCornerShape(10.dp)
-                                        )
-                                        .tactilePress(pressedScale = 0.94f) {
-                                            if (!isDarkTheme) onToggleTheme()
-                                        }
-                                        .padding(vertical = 12.dp, horizontal = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.DarkMode,
-                                            contentDescription = null,
-                                            tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textDarkMuted,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            text = "OLED Noir",
-                                            color = if (isDarkTheme) Color.White else theme.textSecondary,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (isDarkTheme) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    }
-                                }
+                        Text(
+                            text = "APPEARANCE & THEME",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            color = theme.textMuted,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
 
-                                // Light Mode Option Box
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (!isDarkTheme) Color(0xFFF8FAFC) else theme.cardElevated)
-                                        .border(
-                                            width = if (!isDarkTheme) 2.dp else 1.dp,
-                                            color = if (!isDarkTheme) theme.accentColor else theme.cardBorder,
-                                            shape = RoundedCornerShape(10.dp)
-                                        )
-                                        .tactilePress(pressedScale = 0.94f) {
-                                            if (isDarkTheme) onToggleTheme()
-                                        }
-                                        .padding(vertical = 12.dp, horizontal = 10.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.LightMode,
-                                            contentDescription = null,
-                                            tint = if (!isDarkTheme) theme.accentColor else theme.textDarkMuted,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Text(
-                                            text = "Clean White",
-                                            color = if (!isDarkTheme) Color(0xFF0F172A) else theme.textMuted,
-                                            fontSize = 11.sp,
-                                            fontWeight = if (!isDarkTheme) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    }
-                                }
-                            }
+                        StoreThemeToggleRow(
+                            isDarkTheme = isDarkTheme,
+                            onToggleTheme = onToggleTheme,
+                            theme = theme
+                        )
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // ─── Help, Support & Legal Center ──────────────────────────────
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "SUPPORT & LEGAL",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.8.sp,
+                            color = theme.textMuted,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(theme.cardElevated)
+                                .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                StoreSettingsNavRow(
+                                    icon = Icons.Rounded.HeadsetMic,
+                                    iconTint = Color(0xFF2563EB),
+                                    title = "Help & Support",
+                                    subtitle = "FAQs, installation troubleshooting & direct contact",
+                                    theme = theme,
+                                    onClick = { showHelpDialog = true }
+                                )
+                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+                                StoreSettingsNavRow(
+                                    icon = Icons.Rounded.Description,
+                                    iconTint = Color(0xFF3B82F6),
+                                    title = "Terms of Use",
+                                    subtitle = "Ecosystem guidelines, distribution & license terms",
+                                    theme = theme,
+                                    onClick = { showLegalDialog = 0 }
+                                )
+                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
+                                StoreSettingsNavRow(
+                                    icon = Icons.Rounded.Security,
+                                    iconTint = Color(0xFF10B981),
+                                    title = "Privacy Policy",
+                                    subtitle = "Zero telemetry, zero tracking & local data ownership",
+                                    theme = theme,
+                                    onClick = { showLegalDialog = 1 }
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     // Logout Button
                     Box(
@@ -3316,8 +3455,20 @@ fun ClassicLoginAccountView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
+                        text = "Help & Support",
+                        color = theme.accentColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { showHelpDialog = true }
+                    )
+                    Text(
+                        text = "•",
+                        color = theme.textDarkMuted,
+                        fontSize = 12.sp
+                    )
+                    Text(
                         text = "Terms of Use",
-                        color = Color(0xFF6C5CE7),
+                        color = theme.accentColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showLegalDialog = 0 }
@@ -3329,7 +3480,7 @@ fun ClassicLoginAccountView(
                     )
                     Text(
                         text = "Privacy Policy",
-                        color = Color(0xFF6C5CE7),
+                        color = theme.accentColor,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showLegalDialog = 1 }
@@ -3343,6 +3494,12 @@ fun ClassicLoginAccountView(
         OurStoreLegalDialog(
             initialTab = showLegalDialog!!,
             onDismiss = { showLegalDialog = null }
+        )
+    }
+
+    if (showHelpDialog) {
+        OurStoreHelpSupportDialog(
+            onDismiss = { showHelpDialog = false }
         )
     }
 }

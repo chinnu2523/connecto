@@ -63,6 +63,8 @@ fun StoreLoginScreen(
     var displayName by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var showLegalDialog by remember { mutableStateOf<Int?>(null) }
+    var showHelpDialog by remember { mutableStateOf(false) }
 
     val isLoading = loginState is LoginUiState.Loading
     val isError = loginState is LoginUiState.Error
@@ -86,12 +88,12 @@ fun StoreLoginScreen(
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
-        // Top Bar: Theme Switcher
+        // Top Bar: Clean Brand Header (Theme Toggle managed directly in Account Tab)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
@@ -105,23 +107,6 @@ fun StoreLoginScreen(
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = 1.sp
-                )
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(theme.cardElevated)
-                    .border(1.dp, theme.cardBorder, CircleShape)
-                    .tactilePress(pressedScale = 0.88f) { onToggleTheme() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
-                    contentDescription = "Toggle Appearance Theme",
-                    tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textPrimary,
-                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -534,6 +519,74 @@ fun StoreLoginScreen(
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Footer Legal & Support Links
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Help & Support",
+                    color = theme.textMuted.copy(alpha = 0.75f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showHelpDialog = true }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+                Text(
+                    text = "•",
+                    color = theme.textMuted.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+                Text(
+                    text = "Terms of Use",
+                    color = theme.textMuted.copy(alpha = 0.75f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showLegalDialog = 0 }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+                Text(
+                    text = "•",
+                    color = theme.textMuted.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+                Text(
+                    text = "Privacy Policy",
+                    color = theme.textMuted.copy(alpha = 0.75f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showLegalDialog = 1 }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
         }
+    }
+
+    // Help & Support Dialog
+    if (showHelpDialog) {
+        OurStoreHelpSupportDialog(
+            onDismiss = { showHelpDialog = false }
+        )
+    }
+
+    // Legal Terms & Privacy Dialog
+    showLegalDialog?.let { initialTab ->
+        OurStoreLegalDialog(
+            initialTab = initialTab,
+            onAgree = { showLegalDialog = null },
+            onDismiss = { showLegalDialog = null }
+        )
     }
 }

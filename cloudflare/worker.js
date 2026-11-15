@@ -323,17 +323,18 @@ export default {
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.1.0/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.0-b39-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.1-b40-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.9.0");
-          res.headers.set("X-Connecto-Store-Build", "39");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.1");
+          res.headers.set("X-Connecto-Store-Build", "40");
           return res;
         }
 
@@ -345,7 +346,7 @@ export default {
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/1.9.0"
+                  "User-Agent": "Connecto-Cloud-Worker/1.9.1"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -371,8 +372,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.0");
-              downloadHeaders.set("X-Connecto-Store-Build", "39");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.1");
+              downloadHeaders.set("X-Connecto-Store-Build", "40");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -387,7 +388,7 @@ export default {
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.1.0/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -1830,22 +1831,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.0",
-        version_code: 39,
-        size_bytes: 18874368,
-        size_formatted: "18.0 MB",
+        version_name: "1.9.1",
+        version_code: 40,
+        size_bytes: 18477021,
+        size_formatted: "17.6 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "Standalone Authentication Architecture: Comprehensive Sign In & Account Registration with instant session onboarding",
-          "Universal 5-State Button System: Default, Hover/Pressed, Loading, Disabled, and Error states across all actions",
-          "Biometric Sensor Quick Unlock: High-security fingerprint and face authentication for instant login and download approvals",
-          "Pure Theme Optimization: Purged all orange hues in favor of Cobalt Noir & Pristine White aesthetics",
-          "Zero-Slop UI: Self-explanatory layout with tactile spring physics and high-contrast accessibility"
+          "Clean Minimal Header: Removed top profile avatar and top theme buttons for streamlined, uncluttered navigation",
+          "Bottom Navigation Avatar: Profile avatar integrated directly into bottom Account navigation tab with active user picture & dynamic accent ring",
+          "Tactile Black & White Theme Switch: Interactive OLED Noir & Pristine White theme toggle built right into Account tab",
+          "Help & Support Center: Direct interactive FAQs, diagnostics, and support contact channels for immediate assistance",
+          "Official Terms of Use & Privacy Policy: Added dedicated legal center in Account tab and Login screen",
+          "Profile Tab UI Overhaul: Executive account stats, grouped settings cards, and seamless session management"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T08:00:00Z"
+        updated_at: "2026-11-15T10:30:00Z"
       },
       {
         id: "connecto",
