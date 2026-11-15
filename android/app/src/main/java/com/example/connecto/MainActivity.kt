@@ -424,6 +424,10 @@ fun ConnectoApp(
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
     var isChannelDrawerOpen by remember { mutableStateOf(false) }
     var homeScrollToTopTrigger by remember { mutableStateOf(0) }
+    var messagesScrollToTopTrigger by remember { mutableStateOf(0) }
+    var channelScrollToTopTrigger by remember { mutableStateOf(0) }
+    var callsScrollToTopTrigger by remember { mutableStateOf(0) }
+    var profileScrollToTopTrigger by remember { mutableStateOf(0) }
     var channelScrollToBottomTrigger by remember { mutableStateOf(0) }
 
     // App-wide screen privacy & blackscreen protection for screenshot, screenshare, and screencast
@@ -849,8 +853,17 @@ fun ConnectoApp(
                                             if (selectedTab == ConnectoTab.HOME && currentTab == ConnectoTab.HOME) {
                                                 homeScrollToTopTrigger++
                                             }
+                                            if (selectedTab == ConnectoTab.MESSAGES && currentTab == ConnectoTab.MESSAGES) {
+                                                messagesScrollToTopTrigger++
+                                            }
                                             if (selectedTab == ConnectoTab.CHANNELS && currentTab == ConnectoTab.CHANNELS) {
-                                                channelScrollToBottomTrigger++
+                                                channelScrollToTopTrigger++
+                                            }
+                                            if (selectedTab == ConnectoTab.CALLS && currentTab == ConnectoTab.CALLS) {
+                                                callsScrollToTopTrigger++
+                                            }
+                                            if (selectedTab == ConnectoTab.PROFILE && currentTab == ConnectoTab.PROFILE) {
+                                                profileScrollToTopTrigger++
                                             }
                                             updateCurrentTab(selectedTab)
                                         },
@@ -914,7 +927,8 @@ fun ConnectoApp(
                                             targetChatUserOrChannel = MainActivity.pendingOpenChatTarget,
                                             onTargetChatHandled = {
                                                 MainActivity.pendingOpenChatTarget = null
-                                            }
+                                            },
+                                            scrollToTopTrigger = messagesScrollToTopTrigger
                                         )
                                     }
                                     ConnectoTab.CHANNELS -> {
@@ -926,6 +940,7 @@ fun ConnectoApp(
                                             unreadNotificationsCount = unreadNotifCount,
                                             onNavigateToCalls = { updateCurrentTab(ConnectoTab.CALLS) },
                                             onDrawerStateChanged = { isOpen -> isChannelDrawerOpen = isOpen },
+                                            scrollToTopTrigger = channelScrollToTopTrigger,
                                             scrollToBottomTrigger = channelScrollToBottomTrigger
                                         )
                                     }
@@ -934,7 +949,8 @@ fun ConnectoApp(
                                             currentUsername = authenticatedUsername,
                                             onOpenProfile = { updateCurrentTab(ConnectoTab.PROFILE) },
                                             onOpenNotifications = { isNotificationCenterOpen = true },
-                                            unreadNotificationsCount = unreadNotifCount
+                                            unreadNotificationsCount = unreadNotifCount,
+                                            scrollToTopTrigger = callsScrollToTopTrigger
                                         )
                                     }
                                     ConnectoTab.PROFILE -> {
@@ -949,6 +965,7 @@ fun ConnectoApp(
                                             onLockApp = { isBiometricOverlayActive = true },
                                             onOpenNotifications = { isNotificationCenterOpen = true },
                                             unreadNotificationsCount = unreadNotifCount,
+                                            scrollToTopTrigger = profileScrollToTopTrigger,
                                             onSignOut = {
                                                 performCompleteSignOut(context, authenticatedUsername)
                                                 flowState = AppFlowState.AUTH_HOME

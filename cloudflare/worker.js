@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.2",
-        version_name: "v5.2.2",
-        version_code: 138,
-        build: 138,
-        sha256: "e824e1f0ab89e05d0e4d68ef2c344f9e7e8983896af5b110583711fe443847ef",
+        version: "5.2.3",
+        version_name: "v5.2.3",
+        version_code: 139,
+        build: 139,
+        sha256: "2510a5935c46fba9b0661f68f71889c2f5ca273845d0ec5e4726a9037180fb70",
         filename: "connecto-fun.apk",
-        size_bytes: 38039591,
+        size_bytes: 38045464,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -1881,14 +1881,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.1",
-        version_code: 50,
-        size_bytes: 18928693,
+        version_name: "2.0.2",
+        version_code: 51,
+        size_bytes: 18928695,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "App-Wide Tap-To-Top Navigation: Tapping active bottom bar tab button (Store, Updates, Account) smoothly snaps any scrolled list back to the top with leap acceleration",
           "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
           "Real-Time Edge Broadcast Mesh: Real-time WebSocket connection to edge server pushes app releases and updates instantly with 0ms latency",
           "Foreground Real-Time Update Watchdog: Instant revalidation on resume and tab switch with 30s background re-check",
@@ -1915,14 +1916,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.2",
-        version_code: 138,
-        size_bytes: 38039591,
+        version_name: "5.2.3",
+        version_code: 139,
+        size_bytes: 38045464,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "App-Wide Tap-To-Top Navigation: Tapping any active bottom bar tab button (Home, Messages, Channels, Calls, Profile) or top header bar smoothly scrolls back to the top with multi-item leap acceleration",
           "Scroll-to-Top Refresh Protection: Requires user to be settled at the top before downward drag triggers refresh; normal flings and upward scrolling never auto-refresh",
           "Dual-Segmented Black/White Theme Toggle: Tactile squircle pill toggle in Profile Settings with vector icons and dynamic elevation",
           "Channel Workspace Navigation Bar: Elevated top header with interactive workspace switcher capsule, chevron rotation, in-channel search with live message filter & tabular match count, pinned message quick-jump, and 3-dots channel options",
@@ -7104,13 +7106,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.2",
-      version_name: "v5.2.2",
-      version_code: 138,
-      build: 138,
-      sha256: "e824e1f0ab89e05d0e4d68ef2c344f9e7e8983896af5b110583711fe443847ef",
+      version: "5.2.3",
+      version_name: "v5.2.3",
+      version_code: 139,
+      build: 139,
+      sha256: "2510a5935c46fba9b0661f68f71889c2f5ca273845d0ec5e4726a9037180fb70",
       filename: "connecto-fun.apk",
-      size_bytes: 38039591,
+      size_bytes: 38045464,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7123,6 +7125,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.2.3",
+          date: "Nov 15, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v5.2.3 & Our Store v2.0.2: App-Wide Tap-To-Top Navigation",
+          summary: "Enables instant smooth scroll-to-top whenever a user taps the active bottom bar tab button or top header bar from any scrolled position across all tabs: Home, Messages, Channels, Calls, and Profile in Connecto, and Store, Updates, and Account in Our Store.",
+          highlights: [
+            "App-Wide Bottom Bar Tap-To-Top: Tapping the active tab button in Home, Messages, Channels, Calls, or Profile smoothly scrolls back to the top.",
+            "Multi-Item Leap Acceleration: Intelligently leaps down to the top 15 items first if far down the list before smoothly finishing at index 0.",
+            "Our Store Ecosystem Parity: Tapping Store, Updates, or Account tabs when active smoothly scrolls their respective views to top.",
+            "Top Header Tap-To-Top: Tapping the standardized top header bars in Home, Messages, Calls, and Profile also snaps smoothly to the top.",
+            "Android Native App v5.2.3 (Build 139 • 36.3 MB): SHA-256 2510a5935c46fba9b0661f68f71889c2f5ca273845d0ec5e4726a9037180fb70 • MD5 200a3f0f8e6c5313c69bace7a05492e7."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.2.2",
           date: "Nov 15, 2026",
@@ -8320,19 +8338,19 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.1</span>")
-            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.1 (Build 50) • Standalone Client")
-            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.1 • 18.1 MB)")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.2</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.2 (Build 51) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.2 • 18.1 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v2.0.1)")
-            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.1")
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.2)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.2")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.2")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.2")
-            .replace(/Build 1[0-9][0-9]/g, "Build 138")
-            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 138")
-            .replace(/\(b1[0-9][0-9]\)/g, "(b138)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.3")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.3")
+            .replace(/Build 1[0-9][0-9]/g, "Build 139")
+            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 139")
+            .replace(/\(b1[0-9][0-9]\)/g, "(b139)");
           responseBody = patched;
         } catch (_) {}
       }

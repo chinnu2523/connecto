@@ -195,6 +195,7 @@ fun ChannelsWorkspaceScreen(
     unreadNotificationsCount: Int = 0,
     onNavigateToCalls: (() -> Unit)? = null,
     onDrawerStateChanged: ((Boolean) -> Unit)? = null,
+    scrollToTopTrigger: Int = 0,
     scrollToBottomTrigger: Int = 0,
     modifier: Modifier = Modifier
 ) {
@@ -450,6 +451,22 @@ fun ChannelsWorkspaceScreen(
         if (messages.isNotEmpty() && !hasScrolledToBottomOnEntry) {
             hasScrolledToBottomOnEntry = true
             try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+        }
+    }
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0 && messages.isNotEmpty()) {
+            try {
+                val isAtTop = listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+                if (!isAtTop) {
+                    if (listState.firstVisibleItemIndex > 15) {
+                        listState.scrollToItem(15)
+                    }
+                    listState.animateScrollToItem(0)
+                } else {
+                    listState.animateScrollToItem(messages.size)
+                }
+            } catch (_: Exception) {}
         }
     }
 

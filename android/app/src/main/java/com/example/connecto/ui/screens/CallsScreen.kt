@@ -273,11 +273,24 @@ fun CallsScreen(
     onOpenProfile: () -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
+    scrollToTopTrigger: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
+    val callListState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    androidx.compose.runtime.LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            try {
+                if (callListState.firstVisibleItemIndex > 15) {
+                    callListState.scrollToItem(15)
+                }
+                callListState.animateScrollToItem(0)
+            } catch (_: Exception) {}
+        }
+    }
 
     var isInActiveCall by remember { mutableStateOf(false) }
     var activeCallTitle by remember { mutableStateOf("1:1 Voice Call") }
@@ -587,42 +600,60 @@ fun CallsScreen(
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
-            // Top Header (Profile button removed, Group Voice Call button enabled)
-            ConnectoTopHeader(
-                title = "CALLS",
-                subtitle = "Call History & Voice Hub",
-                userInitial = userInitial,
-                onAddFriendClick = null,
-                onVoiceGroupClick = null,
-                showProfileButton = false,
-                onAvatarClick = {},
-                onNotificationClick = null,
-                unreadNotificationsCount = 0,
-                customAction = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Brush.linearGradient(gradientColors))
-                            .clickable { showCreateVoiceGroupDialog = true }
-                            .padding(horizontal = 12.dp, vertical = 7.dp)
+            // Top Header (Click to scroll to top)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.GroupAdd,
-                            contentDescription = "Group Voice Call",
-                            tint = contentOnGradient,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Group Call",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = contentOnGradient
-                        )
+                        coroutineScope.launch {
+                            try {
+                                if (callListState.firstVisibleItemIndex > 15) {
+                                    callListState.scrollToItem(15)
+                                }
+                                callListState.animateScrollToItem(0)
+                            } catch (_: Exception) {}
+                        }
                     }
-                }
-            )
+            ) {
+                ConnectoTopHeader(
+                    title = "CALLS",
+                    subtitle = "Call History & Voice Hub",
+                    userInitial = userInitial,
+                    onAddFriendClick = null,
+                    onVoiceGroupClick = null,
+                    showProfileButton = false,
+                    onAvatarClick = {},
+                    onNotificationClick = null,
+                    unreadNotificationsCount = 0,
+                    customAction = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(gradientColors))
+                                .clickable { showCreateVoiceGroupDialog = true }
+                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.GroupAdd,
+                                contentDescription = "Group Voice Call",
+                                tint = contentOnGradient,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Group Call",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = contentOnGradient
+                            )
+                        }
+                    }
+                )
+            }
 
             // Call History Search Bar
             Box(
@@ -729,6 +760,7 @@ fun CallsScreen(
 
             // Call Logs List
             LazyColumn(
+                state = callListState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()

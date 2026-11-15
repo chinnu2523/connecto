@@ -337,6 +337,7 @@ fun ProfileScreen(
     onLockApp: () -> Unit = {},
     onOpenNotifications: (() -> Unit)? = null,
     unreadNotificationsCount: Int = 0,
+    scrollToTopTrigger: Int = 0,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -344,6 +345,8 @@ fun ProfileScreen(
     val activity = remember(context) { context.findFragmentActivity() }
     val haptic = LocalHapticFeedback.current
     val prefs = remember { context.getSharedPreferences("connecto_user_profile_prefs", Context.MODE_PRIVATE) }
+    val profileListState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val subpageListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
     // Global Screen Security & Black Screen state
     val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
@@ -643,6 +646,24 @@ fun ProfileScreen(
     // Active dedicated sub-page (null = main profile menu, non-null = dedicated sub-screen)
     var activeSubPage by rememberSaveable { mutableStateOf<ProfileSubPage?>(null) }
     var previousSubPage by rememberSaveable { mutableStateOf<ProfileSubPage?>(null) }
+
+    androidx.compose.runtime.LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            try {
+                if (activeSubPage != null) {
+                    if (subpageListState.firstVisibleItemIndex > 15) {
+                        subpageListState.scrollToItem(15)
+                    }
+                    subpageListState.animateScrollToItem(0)
+                } else {
+                    if (profileListState.firstVisibleItemIndex > 15) {
+                        profileListState.scrollToItem(15)
+                    }
+                    profileListState.animateScrollToItem(0)
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     // Notification settings states
     var hideNotificationContent by remember {
@@ -1112,21 +1133,37 @@ fun ProfileScreen(
             if (currentSubPage == null) {
                 // ========== 1. MAIN PROFILE OVERVIEW SCREEN ==========
                 Column(modifier = Modifier.fillMaxSize()) {
-                    // ========== SHARED TOP HEADER ==========
-                    ConnectoTopHeader(
-                        title = "Settings",
-                        subtitle = if (stealthModeEnabled) "Stealth Mode Active" else "@$username",
-                        userInitial = userInitial,
-                        avatarUrl = profilePhotoUri,
-                        isStealthModeOn = stealthModeEnabled,
-                        isOnline = isUserOnline,
-                        showProfileButton = false
-                    )
-
-                    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+                    // ========== SHARED TOP HEADER (Click to scroll to top) ==========
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                coroutineScope.launch {
+                                    try {
+                                        if (profileListState.firstVisibleItemIndex > 15) {
+                                            profileListState.scrollToItem(15)
+                                        }
+                                        profileListState.animateScrollToItem(0)
+                                    } catch (_: Exception) {}
+                                }
+                            }
+                    ) {
+                        ConnectoTopHeader(
+                            title = "Settings",
+                            subtitle = if (stealthModeEnabled) "Stealth Mode Active" else "@$username",
+                            userInitial = userInitial,
+                            avatarUrl = profilePhotoUri,
+                            isStealthModeOn = stealthModeEnabled,
+                            isOnline = isUserOnline,
+                            showProfileButton = false
+                        )
+                    }
 
                     LazyColumn(
-                        state = listState,
+                        state = profileListState,
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
@@ -1857,8 +1894,6 @@ fun ProfileScreen(
                             }
                         }
                     )
-
-                    val subpageListState = androidx.compose.foundation.lazy.rememberLazyListState()
 
                     LazyColumn(
                         state = subpageListState,

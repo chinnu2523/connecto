@@ -217,6 +217,7 @@ fun StoreApp(
     val context = LocalContext.current
     var selectedSection by remember { mutableStateOf(StoreNavSection.OVERVIEW) }
     var catalogScrollToTopTrigger by remember { mutableStateOf(0) }
+    var accountScrollToTopTrigger by remember { mutableStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     var selectedPackageName by remember { mutableStateOf<String?>(null) }
@@ -414,7 +415,8 @@ fun StoreApp(
                                                 onRegisterCredentials = { u, p, d, e -> vm.registerWithCredentials(u, p, d, e) },
                                                 onLoginConnecto = { vm.loginWithConnecto(context) },
                                                 onLogout = { vm.logout() },
-                                                onClearLoginError = { vm.clearLoginError() }
+                                                onClearLoginError = { vm.clearLoginError() },
+                                                scrollToTopTrigger = accountScrollToTopTrigger
                                             )
                                         } else {
                                             ClassicCatalogBody(
@@ -439,8 +441,12 @@ fun StoreApp(
                                 ClassicBottomNavBar(
                                     selected = selectedSection,
                                     onSelect = { section ->
-                                        if (section == StoreNavSection.OVERVIEW && selectedSection == StoreNavSection.OVERVIEW) {
-                                            catalogScrollToTopTrigger++
+                                        if (section == selectedSection) {
+                                            if (section == StoreNavSection.OVERVIEW || section == StoreNavSection.UPDATES) {
+                                                catalogScrollToTopTrigger++
+                                            } else if (section == StoreNavSection.LOGIN) {
+                                                accountScrollToTopTrigger++
+                                            }
                                         }
                                         if (section == StoreNavSection.UPDATES || section == StoreNavSection.OVERVIEW) {
                                             vm.loadCatalog(silently = true)
@@ -2958,19 +2964,29 @@ fun ClassicLoginAccountView(
     onRegisterCredentials: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     onLoginConnecto: () -> Unit,
     onLogout: () -> Unit,
-    onClearLoginError: () -> Unit
+    onClearLoginError: () -> Unit,
+    scrollToTopTrigger: Int = 0
 ) {
     val theme = LocalStoreTheme.current
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
     var showReferDialog by remember { mutableStateOf(false) }
+    val accountScrollState = rememberScrollState()
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            try {
+                accountScrollState.animateScrollTo(0)
+            } catch (_: Exception) {}
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(theme.background)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(accountScrollState)
             .padding(horizontal = 20.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(20.dp)

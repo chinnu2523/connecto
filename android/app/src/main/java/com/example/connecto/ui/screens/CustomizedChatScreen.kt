@@ -625,6 +625,7 @@ fun CustomizedChatScreen(
     unreadNotificationsCount: Int = 0,
     targetChatUserOrChannel: String? = null,
     onTargetChatHandled: (() -> Unit)? = null,
+    scrollToTopTrigger: Int = 0,
     modifier: Modifier = Modifier
 ) {
     var selectedFriend by remember { mutableStateOf<FriendItem?>(null) }
@@ -860,6 +861,25 @@ fun CustomizedChatScreen(
     }
     val listState = remember(currentChatKey) {
         LazyListState(firstVisibleItemIndex = initialScrollIndex)
+    }
+    val friendsListState = rememberLazyListState()
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            try {
+                if (selectedFriend != null) {
+                    if (listState.firstVisibleItemIndex > 15) {
+                        listState.scrollToItem(15)
+                    }
+                    listState.animateScrollToItem(0)
+                } else {
+                    if (friendsListState.firstVisibleItemIndex > 15) {
+                        friendsListState.scrollToItem(15)
+                    }
+                    friendsListState.animateScrollToItem(0)
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     // Friend Profile Preview Lightbox & Per-Chat Preferences
@@ -4687,40 +4707,58 @@ fun CustomizedChatScreen(
                         )
                 )
             } else {
-                ConnectoTopHeader(
-                    title = "DIRECT MESSAGES",
-                    subtitle = "Chat with friends & members",
-                    userInitial = userInitial,
-                    onVoiceGroupClick = null,
-                    onAddFriendClick = null,
-                    pendingFriendRequestsCount = 0,
-                    showProfileButton = false,
-                    onAvatarClick = {},
-                    customAction = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(gradientColors))
-                                .clickable { showCreateGroupChatDialog = true }
-                                .padding(horizontal = 12.dp, vertical = 7.dp)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.GroupAdd,
-                                contentDescription = "Create Group Chat",
-                                tint = contentOnGradient,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Group Chat",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = contentOnGradient
-                            )
+                            coroutineScope.launch {
+                                try {
+                                    if (friendsListState.firstVisibleItemIndex > 15) {
+                                        friendsListState.scrollToItem(15)
+                                    }
+                                    friendsListState.animateScrollToItem(0)
+                                } catch (_: Exception) {}
+                            }
                         }
-                    }
-                )
+                ) {
+                    ConnectoTopHeader(
+                        title = "DIRECT MESSAGES",
+                        subtitle = "Chat with friends & members",
+                        userInitial = userInitial,
+                        onVoiceGroupClick = null,
+                        onAddFriendClick = null,
+                        pendingFriendRequestsCount = 0,
+                        showProfileButton = false,
+                        onAvatarClick = {},
+                        customAction = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Brush.linearGradient(gradientColors))
+                                    .clickable { showCreateGroupChatDialog = true }
+                                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.GroupAdd,
+                                    contentDescription = "Create Group Chat",
+                                    tint = contentOnGradient,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Group Chat",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = contentOnGradient
+                                )
+                            }
+                        }
+                    )
+                }
             }
 
             val currentScreenState = when {
@@ -4748,6 +4786,7 @@ fun CustomizedChatScreen(
                     // ================= 1. FRIENDS LIST SCREEN =================
                     DisableSelection {
                     LazyColumn(
+                        state = friendsListState,
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(horizontal = 16.dp),
