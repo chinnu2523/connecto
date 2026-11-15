@@ -173,7 +173,7 @@ fun LiquidGlassTransparencyBar(
                     text = "${(displayValue * 100).toInt()}%",
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
+                    style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
                     color = Color(0xFFE0F2FE)
                 )
             }

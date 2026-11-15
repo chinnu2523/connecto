@@ -43,6 +43,7 @@ import kotlinx.coroutines.withContext
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import com.connecto.store.ui.components.StoreDragToRefresh
 import androidx.compose.ui.text.font.FontWeight
@@ -1108,10 +1109,10 @@ private fun ClassicEcosystemSpotlightCard(
                     }
 
                     Text(
-                        text = "v1.8.0 • LINEAR CRAFT",
+                        text = "CURATED RELEASE",
                         color = theme.textMuted,
                         fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -1235,7 +1236,7 @@ private fun ClassicAppCard(
                         text = app.sizeFormatted,
                         color = theme.textDarkMuted,
                         fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
                         fontWeight = FontWeight.SemiBold
                     )
                     if (appState.userRating > 0) {
@@ -1243,6 +1244,7 @@ private fun ClassicAppCard(
                             text = "• ★ ${appState.userRating}",
                             color = Color(0xFFF59E0B),
                             fontSize = 11.sp,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -1305,6 +1307,7 @@ private fun ClassicAppCard(
                     text = actionLabel,
                     color = actionFg,
                     fontSize = 11.5.sp,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.5.sp
                 )
@@ -1445,8 +1448,8 @@ private fun ClassicAppDetailView(
                                 text = app.sizeFormatted,
                                 color = theme.textPrimary,
                                 fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
+                                style = TextStyle(fontFeatureSettings = "tnum"),
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
@@ -1554,7 +1557,8 @@ private fun ClassicAppDetailView(
                             if (appState.isInstalling) "Please wait" else "${appState.downloadProgress}%",
                             color = theme.textMuted,
                             fontSize = 12.sp,
-                            fontFamily = FontFamily.Monospace
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                     LinearProgressIndicator(
@@ -1942,7 +1946,7 @@ private fun TechSpecRow(label: String, value: String) {
             text = value,
             color = theme.textPrimary,
             fontSize = 11.sp,
-            fontFamily = FontFamily.Monospace,
+            style = TextStyle(fontFeatureSettings = "tnum"),
             fontWeight = FontWeight.SemiBold
         )
     }
@@ -1979,7 +1983,7 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
                     color = theme.textPrimary,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace
+                    style = TextStyle(fontFeatureSettings = "tnum")
                 )
             }
 
@@ -1990,7 +1994,8 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
                         "v${appState.installedVersionName}",
                         color = theme.textMuted,
                         fontSize = 12.sp,
-                        fontFamily = FontFamily.Monospace
+                        fontWeight = FontWeight.SemiBold,
+                        style = TextStyle(fontFeatureSettings = "tnum")
                     )
                 }
             }
@@ -2105,7 +2110,7 @@ private fun ClassicFooterInfo() {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text("OUR STORE • NATIVE PACKAGE HUB", color = theme.textDarkMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-        Text("Verified Cloudflare Anycast Delivery • targetSdk 37", color = theme.textDarkMuted, fontSize = 9.5.sp, fontFamily = FontFamily.Monospace)
+        Text("Verified Cloudflare Anycast Delivery • targetSdk 37", color = theme.textDarkMuted, fontSize = 9.5.sp, fontWeight = FontWeight.Normal)
     }
 }
 
@@ -3023,7 +3028,8 @@ fun ClassicLoginAccountView(
                                     text = if (storeSelfUpdate.isInstalling) "Please wait" else "${storeSelfUpdate.downloadProgress}%",
                                     color = theme.textMuted,
                                     fontSize = 11.5.sp,
-                                    fontFamily = FontFamily.Monospace
+                                    style = TextStyle(fontFeatureSettings = "tnum"),
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                             LinearProgressIndicator(
@@ -3341,7 +3347,8 @@ fun ClassicLoginAccountView(
                                 text = "v${com.connecto.store.BuildConfig.VERSION_NAME} (Build ${com.connecto.store.BuildConfig.VERSION_CODE})",
                                 color = theme.textDarkMuted,
                                 fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
+                                style = TextStyle(fontFeatureSettings = "tnum"),
+                                fontWeight = FontWeight.Medium
                             )
                         }
                     }

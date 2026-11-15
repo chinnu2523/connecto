@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.1.6",
-        version_name: "v5.1.6",
-        version_code: 132,
-        build: 132,
-        sha256: "62afc24e3f1d30961104bf46a1e46d36bf70c1079f8c73eb21315fbc82001d4e",
+        version: "5.2.0",
+        version_name: "v5.2.0",
+        version_code: 136,
+        build: 136,
+        sha256: "ed43918238d076bf3db369fe85c98e43be8cb0fd7436b29274bf9751d9099232",
         filename: "connecto-fun.apk",
-        size_bytes: 38035239,
+        size_bytes: 38031062,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -1881,9 +1881,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.9",
-        version_code: 48,
-        size_bytes: 18928691,
+        version_name: "2.0.0",
+        version_code: 49,
+        size_bytes: 18928679,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
@@ -1914,9 +1914,9 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.1.6",
-        version_code: 132,
-        size_bytes: 38035239,
+        version_name: "5.2.0",
+        version_code: 136,
+        size_bytes: 38031062,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
@@ -7101,13 +7101,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.1.6",
-      version_name: "v5.1.6",
-      version_code: 132,
-      build: 132,
-      sha256: "62afc24e3f1d30961104bf46a1e46d36bf70c1079f8c73eb21315fbc82001d4e",
+      version: "5.2.0",
+      version_name: "v5.2.0",
+      version_code: 136,
+      build: 136,
+      sha256: "ed43918238d076bf3db369fe85c98e43be8cb0fd7436b29274bf9751d9099232",
       filename: "connecto-fun.apk",
-      size_bytes: 38035239,
+      size_bytes: 38031062,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -8286,19 +8286,19 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.9</span>")
-            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.9 (Build 48) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.9 • 18.2 MB)")
-            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[6789]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.9.9)")
-            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.9")
+            .replace(/v[12]\.[0-9]+\.[0-9]+<\/span>/g, "v2.0.0</span>")
+            .replace(/v[12]\.[0-9]+\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v2.0.0 (Build 49) • Standalone Client")
+            .replace(/Download Our Store APK \(v[12]\.[0-9]+\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v2.0.0 • 18.1 MB)")
+            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v[12]\.[0-9]+\.[0-9]+\)/g,
+                     "Official Verified Store Release • Package: com.connecto.store (v2.0.0)")
+            .replace(/Autonomous Package Manager • v[12]\.[0-9]+\.[0-9]+/g, "Autonomous Package Manager • v2.0.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.6")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.6")
-            .replace(/Build 12[0-9]|Build 13[0-9]/g, "Build 132")
-            .replace(/BUILD 12[0-9]|BUILD 13[0-9]/g, "BUILD 132")
-            .replace(/\(b12[0-9]\)|\(b13[0-9]\)/g, "(b132)");
+                     '<span class="android-spec-val" style="color:#38bdf8;">18.1 MB</span>')
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.2.0")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.2.0")
+            .replace(/Build 1[0-9][0-9]/g, "Build 136")
+            .replace(/BUILD 1[0-9][0-9]/g, "BUILD 136")
+            .replace(/\(b1[0-9][0-9]\)/g, "(b136)");
           responseBody = patched;
         } catch (_) {}
       }

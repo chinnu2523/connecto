@@ -76,10 +76,11 @@ data class ConnectoTypography(
         letterSpacing = 0.3.sp
     ),
     val tabularNumbers: TextStyle = TextStyle(
-        fontFamily = FontFamily.Monospace,
+        fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
-        lineHeight = 16.sp
+        lineHeight = 16.sp,
+        fontFeatureSettings = "tnum"
     ),
     val codeMono: TextStyle = TextStyle(
         fontFamily = FontFamily.Monospace,

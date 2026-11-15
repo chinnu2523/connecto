@@ -162,11 +162,11 @@ fun StoreFiveStateButton(
                         strokeWidth = 2.dp
                     )
                     Text(
-                        text = "PLEASE WAIT…",
+                        text = "Please wait…",
                         color = fg,
                         fontSize = fontSize,
                         fontWeight = fontWeight,
-                        letterSpacing = 0.5.sp
+                        letterSpacing = 0.2.sp
                     )
                 }
             }

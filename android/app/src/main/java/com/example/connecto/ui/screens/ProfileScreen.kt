@@ -1650,9 +1650,9 @@ fun ProfileScreen(
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
-                                                text = "“${bioInput.trim()}”",
+                                                text = bioInput.trim(),
                                                 fontSize = 13.sp,
-                                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                                fontWeight = androidx.compose.ui.text.font.FontWeight.Normal,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                                                 lineHeight = 19.sp

@@ -1167,7 +1167,7 @@ fun HomeChatScreen(
                                                     Spacer(modifier = Modifier.width(8.dp))
                                                     Text(
                                                         text = convo.timestamp,
-                                                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                                        style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
                                                         fontSize = 11.5.sp,
                                                         color = colors.textSecondary
                                                     )
@@ -1608,11 +1608,11 @@ private fun GlobalSearchDialog(
                                     color = colors.textPrimary,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Text(
-                                    text = "ACTION",
-                                    fontSize = 10.sp,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    color = colors.textSecondary
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = colors.textSecondary.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
@@ -1658,11 +1658,11 @@ private fun GlobalSearchDialog(
                                     color = colors.textPrimary,
                                     modifier = Modifier.weight(1f)
                                 )
-                                Text(
-                                    text = "ENTER",
-                                    fontSize = 10.sp,
-                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                                    color = colors.textSecondary
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = null,
+                                    tint = colors.textSecondary.copy(alpha = 0.6f),
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
