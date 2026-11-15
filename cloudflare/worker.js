@@ -327,14 +327,14 @@ export default {
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.1-b40-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.2-b41-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.9.1");
-          res.headers.set("X-Connecto-Store-Build", "40");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.2");
+          res.headers.set("X-Connecto-Store-Build", "41");
           return res;
         }
 
@@ -372,8 +372,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.1");
-              downloadHeaders.set("X-Connecto-Store-Build", "40");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.2");
+              downloadHeaders.set("X-Connecto-Store-Build", "41");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1831,23 +1831,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.1",
-        version_code: 40,
-        size_bytes: 18477021,
+        version_name: "1.9.2",
+        version_code: 41,
+        size_bytes: 18493401,
         size_formatted: "17.6 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "Clean Minimal Header: Removed top profile avatar and top theme buttons for streamlined, uncluttered navigation",
-          "Bottom Navigation Avatar: Profile avatar integrated directly into bottom Account navigation tab with active user picture & dynamic accent ring",
-          "Tactile Black & White Theme Switch: Interactive OLED Noir & Pristine White theme toggle built right into Account tab",
-          "Help & Support Center: Direct interactive FAQs, diagnostics, and support contact channels for immediate assistance",
-          "Official Terms of Use & Privacy Policy: Added dedicated legal center in Account tab and Login screen",
-          "Profile Tab UI Overhaul: Executive account stats, grouped settings cards, and seamless session management"
+          "Optimistic Zero-Blank Hydration: Stale-While-Revalidate disk caching provides instantaneous cold starts with 0ms blank screens",
+          "Non-Blocking Background Sync: Real-time top edge progress shimmer and continuous refresh while keeping catalog interactive",
+          "0ms Instant Download Feedback & Cancellation: Action buttons transition immediately to active progress with instant cancelation",
+          "Optimistic App Bookmarking: 0ms favorite toggle with persistent storage and dedicated 'Saved' category filter",
+          "Interactive 5-Star Ratings: 0ms local rating state with community feedback on app details",
+          "Optimistic Social Actions: Instant 0ms friend request accept/decline with automatic network rollback in Connecto"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T10:30:00Z"
+        updated_at: "2026-11-15T10:50:00Z"
       },
       {
         id: "connecto",

@@ -18,7 +18,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
 
 data class AppUiState(
     val app: StoreApp,
@@ -27,7 +31,9 @@ data class AppUiState(
     val isDownloading: Boolean = false,
     val isInstalling: Boolean = false,
     val downloadProgress: Int = 0,
-    val error: String? = null
+    val error: String? = null,
+    val isBookmarked: Boolean = false,
+    val userRating: Int = 0
 )
 
 sealed class StoreUiState {
@@ -36,7 +42,9 @@ sealed class StoreUiState {
         val apps: List<AppUiState>,
         val lastRefreshed: String = "",
         val permissionPromptApp: AppUiState? = null,
-        val storeSelfUpdate: AppUiState? = null
+        val storeSelfUpdate: AppUiState? = null,
+        val isRefreshing: Boolean = false,
+        val bookmarkedAppIds: Set<String> = emptySet()
     ) : StoreUiState()
     data class Error(val message: String) : StoreUiState()
 }
@@ -75,12 +83,32 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
     // Complete unfiltered catalog from network/fallback
     private var allRawApps: List<StoreApp> = emptyList()
 
+    // Persistent Caching & Wishlist Preferences
+    private val catalogPrefs by lazy {
+        getApplication<Application>().getSharedPreferences("our_store_catalog_cache", Context.MODE_PRIVATE)
+    }
+    private val wishlistPrefs by lazy {
+        getApplication<Application>().getSharedPreferences("our_store_wishlist_prefs", Context.MODE_PRIVATE)
+    }
+    private val ratingPrefs by lazy {
+        getApplication<Application>().getSharedPreferences("our_store_ratings_prefs", Context.MODE_PRIVATE)
+    }
+
+    // Active download coroutine tracking for 0ms instantaneous cancelation
+    private val activeDownloadJobs = ConcurrentHashMap<String, Job>()
+
     // Track downloaded file awaiting unknown app sources permission toggle
     private var pendingInstallFile: File? = null
     private var pendingPackageName: String? = null
 
     init {
-        loadCatalog()
+        // 1. Optimistic 0ms Cold Start Hydration (Stale-While-Revalidate pattern)
+        val cached = loadCatalogFromDisk()
+        allRawApps = if (cached.isNotEmpty()) cached else buildFallbackCatalog()
+        publishFilteredCatalog(isRefreshing = true)
+
+        // 2. Non-blocking background revalidation
+        loadCatalog(silently = true)
         syncSsoProfileIfAvailable()
         startPeriodicUpdateWatcher()
     }
@@ -147,21 +175,28 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun loadCatalog() {
+    fun loadCatalog(silently: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = StoreUiState.Loading
+            if (!silently && allRawApps.isEmpty()) {
+                _uiState.value = StoreUiState.Loading
+            } else {
+                publishFilteredCatalog(isRefreshing = true)
+            }
             try {
                 val user = _currentUser.value
                 var apps = withContext(Dispatchers.IO) { StoreApiClient.fetchApps(user?.token, user?.username) }
                 if (apps.isEmpty()) {
-                    apps = buildFallbackCatalog()
+                    apps = if (allRawApps.isNotEmpty()) allRawApps else buildFallbackCatalog()
                 }
                 allRawApps = apps
-                publishFilteredCatalog()
+                saveCatalogToDisk(apps)
+                publishFilteredCatalog(isRefreshing = false)
             } catch (e: Exception) {
-                // Fallback to hardcoded catalog if network fails
-                allRawApps = buildFallbackCatalog()
-                publishFilteredCatalog()
+                // Fallback to cached/hardcoded catalog if network fails, keeping UI intact
+                if (allRawApps.isEmpty()) {
+                    allRawApps = buildFallbackCatalog()
+                }
+                publishFilteredCatalog(isRefreshing = false)
             }
         }
     }
@@ -171,7 +206,7 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
      * - Admin: ALL applications (including JARVIS AI)
      * - Member / Guest / Unauthenticated: Excludes JARVIS AI
      */
-    fun publishFilteredCatalog() {
+    fun publishFilteredCatalog(isRefreshing: Boolean = false) {
         val ctx = getApplication<Application>()
         if (allRawApps.isEmpty()) {
             allRawApps = buildFallbackCatalog()
@@ -188,12 +223,15 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        val uiApps = catalogApps.map { resolveInstallState(ctx, it) }
+        val savedSet = wishlistPrefs.getStringSet("saved_apps", emptySet()) ?: emptySet()
+        val uiApps = catalogApps.map { resolveInstallState(ctx, it, savedSet) }
         val selfUpdate = uiApps.find { (it.app.packageName == "com.connecto.store" || it.app.id == "ourstore") && it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
         _uiState.value = StoreUiState.Success(
             apps = uiApps,
             lastRefreshed = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault()).format(java.util.Date()),
-            storeSelfUpdate = selfUpdate
+            storeSelfUpdate = selfUpdate,
+            isRefreshing = isRefreshing,
+            bookmarkedAppIds = savedSet
         )
         StoreNotificationHelper.checkAndNotifyUpdates(ctx, uiApps)
     }
@@ -464,6 +502,47 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         ApkInstaller.uninstallPackage(context, appState.app.packageName)
     }
 
+    fun cancelDownload(packageName: String) {
+        activeDownloadJobs[packageName]?.cancel()
+        activeDownloadJobs.remove(packageName)
+        updateAppState(packageName) {
+            it.copy(isDownloading = false, isInstalling = false, downloadProgress = 0, error = null)
+        }
+    }
+
+    fun toggleBookmark(appId: String) {
+        val set = wishlistPrefs.getStringSet("saved_apps", emptySet())?.toMutableSet() ?: mutableSetOf()
+        val willBeBookmarked = !set.contains(appId)
+        if (willBeBookmarked) {
+            set.add(appId)
+        } else {
+            set.remove(appId)
+        }
+        wishlistPrefs.edit().putStringSet("saved_apps", set).apply()
+
+        // 0ms Optimistic UI State update
+        val current = _uiState.value as? StoreUiState.Success ?: return
+        val updatedApps = current.apps.map {
+            if (it.app.id == appId) it.copy(isBookmarked = willBeBookmarked) else it
+        }
+        _uiState.value = current.copy(
+            apps = updatedApps,
+            bookmarkedAppIds = set
+        )
+    }
+
+    fun rateApp(appId: String, stars: Int) {
+        val cleanStars = stars.coerceIn(1, 5)
+        ratingPrefs.edit().putInt("rating_$appId", cleanStars).apply()
+
+        // 0ms Optimistic UI State update
+        val current = _uiState.value as? StoreUiState.Success ?: return
+        val updatedApps = current.apps.map {
+            if (it.app.id == appId) it.copy(userRating = cleanStars) else it
+        }
+        _uiState.value = current.copy(apps = updatedApps)
+    }
+
     fun downloadAndInstall(context: Context, appState: AppUiState) {
         val current = _uiState.value as? StoreUiState.Success ?: return
         val currentApp = current.apps.find { it.app.packageName == appState.app.packageName }
@@ -471,43 +550,53 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
 
-        viewModelScope.launch {
-            val ctx = getApplication<Application>()
-            val app = appState.app
+        val app = appState.app
+        val ctx = getApplication<Application>()
 
-            // Mark as downloading
-            updateAppState(app.packageName) {
-                it.copy(isDownloading = true, isInstalling = false, downloadProgress = 0, error = null)
-            }
+        // 0ms Optimistic State Flip before entering background worker
+        updateAppState(app.packageName) {
+            it.copy(isDownloading = true, isInstalling = false, downloadProgress = 0, error = null)
+        }
 
-            val fileName = "${app.id}-${app.versionName}.apk"
-            val file = ApkInstaller.downloadApk(ctx, app.downloadUrl, fileName) { progress ->
-                updateAppState(app.packageName) { it.copy(downloadProgress = progress) }
-            }
-
-            if (file != null) {
-                updateAppState(app.packageName) {
-                    it.copy(isDownloading = false, isInstalling = true, downloadProgress = 100)
+        val job = viewModelScope.launch {
+            try {
+                val fileName = "${app.id}-${app.versionName}.apk"
+                val file = ApkInstaller.downloadApk(ctx, app.downloadUrl, fileName) { progress ->
+                    updateAppState(app.packageName) { it.copy(downloadProgress = progress) }
                 }
 
-                // Check install permission before launching installer
-                if (!ApkInstaller.canRequestPackageInstalls(ctx)) {
-                    pendingInstallFile = file
-                    pendingPackageName = app.packageName
-                    showPermissionPrompt(appState)
+                if (file != null) {
+                    updateAppState(app.packageName) {
+                        it.copy(isDownloading = false, isInstalling = true, downloadProgress = 100)
+                    }
+
+                    // Check install permission before launching installer
+                    if (!ApkInstaller.canRequestPackageInstalls(ctx)) {
+                        pendingInstallFile = file
+                        pendingPackageName = app.packageName
+                        showPermissionPrompt(appState)
+                    } else {
+                        ApkInstaller.installApk(context, file, app.packageName)
+                    }
                 } else {
-                    ApkInstaller.installApk(context, file, app.packageName)
+                    updateAppState(app.packageName) {
+                        it.copy(
+                            isDownloading = false,
+                            isInstalling = false,
+                            error = "Download could not be completed. Tap to retry."
+                        )
+                    }
                 }
-            } else {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Cancelled by user in 0ms
                 updateAppState(app.packageName) {
-                    it.copy(
-                        isDownloading = false,
-                        isInstalling = false,
-                        error = "Download could not be completed. Please tap to retry."
-                    )
+                    it.copy(isDownloading = false, isInstalling = false, downloadProgress = 0, error = null)
                 }
+            } finally {
+                activeDownloadJobs.remove(app.packageName)
             }
         }
+        activeDownloadJobs[app.packageName] = job
     }
 
     private fun showPermissionPrompt(appState: AppUiState) {
@@ -577,14 +666,87 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         StoreNotificationHelper.checkAndNotifyUpdates(ctx, current.apps, forceNotify = force)
     }
 
-    private fun resolveInstallState(ctx: Context, app: StoreApp): AppUiState {
+    private fun resolveInstallState(ctx: Context, app: StoreApp, savedSet: Set<String>? = null): AppUiState {
         val installedCode = ApkInstaller.getInstalledVersionCode(ctx, app.packageName)
         val (installState, installedVersionName) = when {
             installedCode < 0 -> StoreApp.InstallState.NOT_INSTALLED to null
             installedCode < app.versionCode -> StoreApp.InstallState.UPDATE_AVAILABLE to getVersionName(ctx, app.packageName)
             else -> StoreApp.InstallState.UP_TO_DATE to getVersionName(ctx, app.packageName)
         }
-        return AppUiState(app, installState, installedVersionName)
+        val isSaved = savedSet?.contains(app.id) ?: wishlistPrefs.getStringSet("saved_apps", emptySet())?.contains(app.id) ?: false
+        val rating = ratingPrefs.getInt("rating_${app.id}", 0)
+        return AppUiState(
+            app = app,
+            installState = installState,
+            installedVersionName = installedVersionName,
+            isBookmarked = isSaved,
+            userRating = rating
+        )
+    }
+
+    private fun saveCatalogToDisk(apps: List<StoreApp>) {
+        try {
+            val arr = JSONArray()
+            apps.forEach { app ->
+                val obj = JSONObject().apply {
+                    put("id", app.id)
+                    put("package_name", app.packageName)
+                    put("name", app.name)
+                    put("badge", app.badge)
+                    put("tagline", app.tagline)
+                    put("description", app.description)
+                    put("category", app.category)
+                    put("version_name", app.versionName)
+                    put("version_code", app.versionCode)
+                    put("size_formatted", app.sizeFormatted)
+                    put("download_url", app.downloadUrl)
+                    put("accent_color", app.accentColor)
+                    put("changelog", JSONArray(app.changelog))
+                    put("is_essential", app.isEssential)
+                    put("updated_at", app.updatedAt)
+                }
+                arr.put(obj)
+            }
+            catalogPrefs.edit().putString("cached_raw_apps", arr.toString()).apply()
+        } catch (_: Exception) {}
+    }
+
+    private fun loadCatalogFromDisk(): List<StoreApp> {
+        val str = catalogPrefs.getString("cached_raw_apps", null) ?: return emptyList()
+        return try {
+            val arr = JSONArray(str)
+            val apps = mutableListOf<StoreApp>()
+            for (i in 0 until arr.length()) {
+                val o = arr.getJSONObject(i)
+                val cl = mutableListOf<String>()
+                val clArr = o.optJSONArray("changelog")
+                if (clArr != null) {
+                    for (j in 0 until clArr.length()) cl.add(clArr.getString(j))
+                }
+                apps.add(
+                    StoreApp(
+                        id = o.optString("id"),
+                        packageName = o.optString("package_name"),
+                        name = o.optString("name"),
+                        badge = o.optString("badge"),
+                        tagline = o.optString("tagline"),
+                        description = o.optString("description"),
+                        category = o.optString("category"),
+                        versionName = o.optString("version_name"),
+                        versionCode = o.optInt("version_code", 0),
+                        sizeFormatted = o.optString("size_formatted"),
+                        downloadUrl = o.optString("download_url"),
+                        accentColor = o.optString("accent_color", "#2563EB"),
+                        changelog = cl,
+                        isEssential = o.optBoolean("is_essential", false),
+                        updatedAt = o.optString("updated_at")
+                    )
+                )
+            }
+            apps
+        } catch (_: Exception) {
+            emptyList()
+        }
     }
 
     private fun getVersionName(ctx: Context, packageName: String): String? {

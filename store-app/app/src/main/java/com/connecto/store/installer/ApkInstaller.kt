@@ -11,7 +11,9 @@ import android.provider.Settings
 import android.util.Log
 import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.coroutineContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -181,6 +183,7 @@ object ApkInstaller {
                     var bytesRead: Int
                     var lastReported = 0
                     while (input.read(buffer).also { bytesRead = it } != -1) {
+                        coroutineContext.ensureActive()
                         output.write(buffer, 0, bytesRead)
                         downloadedBytes += bytesRead
                         if (totalBytes > 0) {
@@ -211,8 +214,13 @@ object ApkInstaller {
             } else {
                 null
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            Log.i(TAG, "APK download cancelled by user: $fileName")
+            if (destFile.exists()) destFile.delete()
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "Exception during APK download", e)
+            if (destFile.exists()) destFile.delete()
             null
         }
     }

@@ -339,7 +339,10 @@ fun StoreApp(
                                 appState = activeDetailApp,
                                 onBack = { selectedPackageName = null },
                                 onAction = { vm.handleAppAction(context, activeDetailApp) },
-                                onUninstall = { vm.uninstallApp(context, activeDetailApp) }
+                                onUninstall = { vm.uninstallApp(context, activeDetailApp) },
+                                onCancelDownload = { vm.cancelDownload(activeDetailApp.app.packageName) },
+                                onToggleBookmark = { vm.toggleBookmark(activeDetailApp.app.id) },
+                                onRateApp = { stars -> vm.rateApp(activeDetailApp.app.id, stars) }
                             )
                         } else {
                             // Catalog Browsing View with Header, Filter & Footer Navigation
@@ -350,7 +353,8 @@ fun StoreApp(
                                     onSearchChange = { searchQuery = it },
                                     onRefresh = { vm.loadCatalog() },
                                     onOpenSecurityDialog = { showSecurityDialog = true },
-                                    showSearch = selectedSection == StoreNavSection.OVERVIEW
+                                    showSearch = selectedSection == StoreNavSection.OVERVIEW,
+                                    isRefreshing = s.isRefreshing
                                 )
 
                                 // Content Stage with Navigation Section Transition
@@ -367,6 +371,7 @@ fun StoreApp(
                                                 appState.app.packageName.contains(searchQuery, ignoreCase = true)
 
                                             val matchesCategory = (selectedSection != StoreNavSection.OVERVIEW) || selectedCategory == "All" ||
+                                                (selectedCategory == "Saved" && appState.isBookmarked) ||
                                                 appState.app.category.equals(selectedCategory, ignoreCase = true)
 
                                             val matchesSection = when (selectedSection) {
@@ -417,6 +422,8 @@ fun StoreApp(
                                                 onSelectCategory = { selectedCategory = it },
                                                 onAppClick = { selectedPackageName = it.app.packageName },
                                                 onAppAction = { appState -> vm.handleAppAction(context, appState) },
+                                                onCancelDownload = { appState -> vm.cancelDownload(appState.app.packageName) },
+                                                onToggleBookmark = { appState -> vm.toggleBookmark(appState.app.id) },
                                                 onUpdateAll = { vm.updateAll(context) },
                                                 isUpdatesTab = currentSection == StoreNavSection.UPDATES
                                             )
@@ -489,7 +496,8 @@ private fun ClassicTopHeader(
     onSearchChange: (String) -> Unit,
     onRefresh: () -> Unit,
     onOpenSecurityDialog: () -> Unit,
-    showSearch: Boolean = true
+    showSearch: Boolean = true,
+    isRefreshing: Boolean = false
 ) {
     val theme = LocalStoreTheme.current
     val focusManager = LocalFocusManager.current
@@ -545,21 +553,36 @@ private fun ClassicTopHeader(
                     )
                 }
 
-                // Refresh Button
+                // Refresh Button with continuous rotation when syncing
+                val infiniteTransition = rememberInfiniteTransition(label = "refreshSpinner")
+                val spinAngle by infiniteTransition.animateFloat(
+                    initialValue = 0f,
+                    targetValue = 360f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(900, easing = LinearEasing),
+                        repeatMode = RepeatMode.Restart
+                    ),
+                    label = "spinAngle"
+                )
+
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(CircleShape)
                         .background(theme.cardElevated)
-                        .border(1.dp, theme.cardBorder, CircleShape)
+                        .border(1.dp, if (isRefreshing) theme.accentColor else theme.cardBorder, CircleShape)
                         .tactilePress(pressedScale = 0.88f) { onRefresh() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.Refresh,
                         contentDescription = "Refresh Catalog",
-                        tint = theme.textPrimary,
-                        modifier = Modifier.size(18.dp)
+                        tint = if (isRefreshing) theme.accentColor else theme.textPrimary,
+                        modifier = Modifier
+                            .size(18.dp)
+                            .graphicsLayer {
+                                if (isRefreshing) rotationZ = spinAngle
+                            }
                     )
                 }
             }
@@ -612,6 +635,18 @@ private fun ClassicTopHeader(
                 ),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() })
+            )
+        }
+
+        // Sleek 2.5dp Edge Sync Shimmer when updating in the background
+        if (isRefreshing) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.5.dp)
+                    .clip(RoundedCornerShape(1.dp)),
+                color = theme.accentColor,
+                trackColor = Color.Transparent
             )
         }
     }
@@ -789,12 +824,14 @@ private fun ClassicCatalogBody(
     onSelectCategory: (String) -> Unit,
     onAppClick: (AppUiState) -> Unit,
     onAppAction: (AppUiState) -> Unit,
+    onCancelDownload: (AppUiState) -> Unit,
+    onToggleBookmark: (AppUiState) -> Unit,
     onUpdateAll: () -> Unit,
     isUpdatesTab: Boolean
 ) {
     val theme = LocalStoreTheme.current
     val categories = remember(state.apps) {
-        listOf("All") + state.apps.map { it.app.category }.distinct()
+        listOf("All", "Saved") + state.apps.map { it.app.category }.filter { it != "Saved" && it != "All" }.distinct()
     }
     val updateCount = state.apps.count { it.installState == StoreApp.InstallState.UPDATE_AVAILABLE }
 
@@ -927,7 +964,9 @@ private fun ClassicCatalogBody(
                 ClassicAppCard(
                     appState = appState,
                     onClick = { onAppClick(appState) },
-                    onActionClick = { onAppAction(appState) }
+                    onActionClick = { onAppAction(appState) },
+                    onCancelDownload = { onCancelDownload(appState) },
+                    onToggleBookmark = { onToggleBookmark(appState) }
                 )
             }
         }
@@ -966,12 +1005,25 @@ private fun ClassicCategoryPills(
                     .tactilePress(pressedScale = 0.94f) { onSelect(category) }
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
-                Text(
-                    text = category,
-                    color = if (isSelected) theme.background else theme.textMuted,
-                    fontSize = 12.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    if (category == "Saved") {
+                        Icon(
+                            imageVector = Icons.Rounded.Bookmark,
+                            contentDescription = null,
+                            tint = if (isSelected) theme.background else theme.textMuted,
+                            modifier = Modifier.size(13.dp)
+                        )
+                    }
+                    Text(
+                        text = category,
+                        color = if (isSelected) theme.background else theme.textMuted,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
             }
         }
     }
@@ -1119,7 +1171,9 @@ private fun ClassicEcosystemSpotlightCard(
 private fun ClassicAppCard(
     appState: AppUiState,
     onClick: () -> Unit,
-    onActionClick: () -> Unit
+    onActionClick: () -> Unit,
+    onCancelDownload: () -> Unit = {},
+    onToggleBookmark: () -> Unit = {}
 ) {
     val theme = LocalStoreTheme.current
     val app = appState.app
@@ -1175,12 +1229,43 @@ private fun ClassicAppCard(
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Text(
-                    text = app.sizeFormatted,
-                    color = theme.textDarkMuted,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.SemiBold
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = app.sizeFormatted,
+                        color = theme.textDarkMuted,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (appState.userRating > 0) {
+                        Text(
+                            text = "• ★ ${appState.userRating}",
+                            color = Color(0xFFF59E0B),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            // Bookmark Heart / Ribbon Action
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(if (appState.isBookmarked) theme.cardElevated else Color.Transparent)
+                    .border(1.dp, if (appState.isBookmarked) theme.accentColor else Color.Transparent, CircleShape)
+                    .tactilePress(pressedScale = 0.85f) { onToggleBookmark() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (appState.isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                    contentDescription = "Bookmark",
+                    tint = if (appState.isBookmarked) theme.accentColor else theme.textDarkMuted,
+                    modifier = Modifier.size(17.dp)
                 )
             }
 
@@ -1188,7 +1273,7 @@ private fun ClassicAppCard(
             val (actionLabel, actionBg, actionFg) = when {
                 appState.error != null -> Triple("RETRY", DangerRed, Color.White)
                 appState.isInstalling -> Triple("INSTALLING…", theme.cardBorder, theme.textPrimary)
-                appState.isDownloading -> Triple("${appState.downloadProgress}%", theme.cardBorder, theme.textPrimary)
+                appState.isDownloading -> Triple("${appState.downloadProgress}% ✕", theme.cardBorder, theme.textPrimary)
                 appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple("GET", theme.cardElevated, theme.textPrimary)
                 appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple("UPDATE", ElectricBlueUpdate, Color.White)
                 else -> Triple("OPEN", theme.cardElevated, theme.textPrimary)
@@ -1209,17 +1294,21 @@ private fun ClassicAppCard(
                     )
                     .tactilePress(
                         pressedScale = 0.90f,
-                        onClick = if (!appState.isDownloading && !appState.isInstalling) onActionClick else null
+                        onClick = when {
+                            appState.isDownloading -> onCancelDownload
+                            appState.isInstalling -> null
+                            else -> onActionClick
+                        }
                     )
-                    .padding(horizontal = 16.dp, vertical = 7.dp),
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = actionLabel,
                     color = actionFg,
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 0.6.sp
+                    letterSpacing = 0.5.sp
                 )
             }
         }
@@ -1232,7 +1321,10 @@ private fun ClassicAppDetailView(
     appState: AppUiState,
     onBack: () -> Unit,
     onAction: () -> Unit,
-    onUninstall: () -> Unit
+    onUninstall: () -> Unit,
+    onCancelDownload: () -> Unit = {},
+    onToggleBookmark: () -> Unit = {},
+    onRateApp: (Int) -> Unit = {}
 ) {
     val theme = LocalStoreTheme.current
     val app = appState.app
@@ -1244,7 +1336,7 @@ private fun ClassicAppDetailView(
             .background(theme.background)
             .statusBarsPadding()
     ) {
-        // Top Back Navigation Bar
+        // Top Back Navigation Bar with Bookmark Action
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1279,6 +1371,23 @@ private fun ClassicAppDetailView(
                     fontWeight = FontWeight.Bold,
                     fontSize = 17.sp,
                     letterSpacing = (-0.3).sp
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(theme.cardElevated)
+                    .border(1.dp, if (appState.isBookmarked) theme.accentColor else theme.cardBorder, CircleShape)
+                    .tactilePress(pressedScale = 0.88f) { onToggleBookmark() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (appState.isBookmarked) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                    contentDescription = "Bookmark",
+                    tint = if (appState.isBookmarked) theme.accentColor else theme.textPrimary,
+                    modifier = Modifier.size(19.dp)
                 )
             }
         }
@@ -1362,6 +1471,69 @@ private fun ClassicAppDetailView(
 
             // Specs Row (Version, Device Version, Size Pill, Status)
             ClassicVersionSpecRow(appState = appState)
+
+            // Interactive Community & User Rating (0ms Optimistic local updates)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(theme.surface)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "RATINGS & REVIEWS",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        color = theme.textMuted
+                    )
+                    if (appState.userRating > 0) {
+                        Text(
+                            text = "Your Rating: ★ ${appState.userRating}/5",
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFF59E0B)
+                        )
+                    } else {
+                        Text(
+                            text = "Tap a star to rate",
+                            fontSize = 11.sp,
+                            color = theme.textDarkMuted
+                        )
+                    }
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    (1..5).forEach { starIndex ->
+                        val isFilled = starIndex <= appState.userRating
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 6.dp)
+                                .clip(CircleShape)
+                                .tactilePress(pressedScale = 0.82f) { onRateApp(starIndex) }
+                                .padding(6.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isFilled) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                                contentDescription = "$starIndex Stars",
+                                tint = if (isFilled) Color(0xFFF59E0B) else theme.textDarkMuted,
+                                modifier = Modifier.size(30.dp)
+                            )
+                        }
+                    }
+                }
+            }
 
             // Progress Bar if Downloading or Installing with Shimmer Sweep
             AnimatedVisibility(visible = appState.isDownloading || appState.isInstalling) {
@@ -1489,6 +1661,27 @@ private fun ClassicAppDetailView(
                                     letterSpacing = 0.5.sp
                                 )
                             }
+                        }
+                    }
+                }
+
+                // Dedicated 0ms Optimistic Cancel Button when Downloading
+                if (appState.isDownloading) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(theme.cardElevated)
+                            .border(1.dp, DangerRedBorder, RoundedCornerShape(12.dp))
+                            .tactilePress(pressedScale = 0.90f) { onCancelDownload() }
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(Icons.Rounded.Close, contentDescription = null, tint = DangerRed, modifier = Modifier.size(16.dp))
+                            Text("CANCEL", color = DangerRed, fontSize = 12.sp, fontWeight = FontWeight.Black)
                         }
                     }
                 }

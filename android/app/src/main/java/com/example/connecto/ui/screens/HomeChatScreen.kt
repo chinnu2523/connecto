@@ -997,23 +997,53 @@ fun HomeChatScreen(
                                 FriendRequestCard(
                                     request = req,
                                     onAccept = {
+                                        // 0ms Optimistic UI removal & friend addition
+                                        val prevRequests = friendRequests
+                                        val prevFriends = allFriends
+                                        val newFriend = FriendshipDto(
+                                            id = "friend_${req.senderUsername}_${System.currentTimeMillis()}",
+                                            userId = currentUsername,
+                                            friendId = req.senderUsername,
+                                            friendUsername = req.senderUsername,
+                                            friendDisplayName = req.senderDisplayName.ifBlank { req.senderUsername },
+                                            friendAvatarUrl = req.senderAvatarUrl,
+                                            status = "accepted",
+                                            isOnline = true,
+                                            unreadCount = 0
+                                        )
+                                        friendRequests = friendRequests.filter { it.id != req.id }
+                                        allFriends = allFriends + newFriend
                                         coroutineScope.launch {
-                                            ConnectoApiClient.acceptFriendRequest(
+                                            val res = ConnectoApiClient.acceptFriendRequest(
                                                 senderUsername = req.senderUsername,
                                                 requestId = req.id,
                                                 myUsernameOverride = currentUsername
                                             )
-                                            refreshDashboard()
+                                            if (res.isFailure) {
+                                                friendRequests = prevRequests
+                                                allFriends = prevFriends
+                                                android.widget.Toast.makeText(context, "Could not accept request. Reverted.", android.widget.Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                refreshDashboard()
+                                            }
                                         }
                                     },
                                     onDecline = {
+                                        // 0ms Optimistic UI removal
+                                        val prevRequests = friendRequests
+                                        friendRequests = friendRequests.filter { it.id != req.id }
                                         coroutineScope.launch {
-                                            ConnectoApiClient.declineFriendRequest(
+                                            val res = ConnectoApiClient.declineFriendRequest(
                                                 senderUsername = req.senderUsername,
                                                 requestId = req.id,
                                                 myUsernameOverride = currentUsername
                                             )
-                                            refreshDashboard()
+                                            if (res.isFailure) {
+                                                friendRequests = prevRequests
+                                                android.widget.Toast.makeText(context, "Could not decline request. Reverted.", android.widget.Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                refreshDashboard()
+                                            }
                                         }
                                     }
                                 )
