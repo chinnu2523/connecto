@@ -838,8 +838,9 @@
       background: conic-gradient(from 0deg, transparent 0deg, var(--chakra-cyan, #00e5ff) 45deg, var(--accent-secondary, #7c5cfc) 90deg, transparent 135deg);
       animation: magicBeamSpin 6s linear infinite;
     }
-    html[data-theme="parchment"] .magic-border-beam::after {
-      background: conic-gradient(from 0deg, transparent 0deg, #c2410c 45deg, #141312 90deg, transparent 135deg);
+    html[data-theme="parchment"] .magic-border-beam::after,
+    html[data-theme="light"] .magic-border-beam::after {
+      background: conic-gradient(from 0deg, transparent 0deg, #0284c7 45deg, #0f172a 90deg, transparent 135deg);
     }
     @keyframes magicBeamSpin {
       from { transform: rotate(0deg); }
@@ -864,14 +865,15 @@
       align-items: center;
       gap: 5px;
     }
-    html[data-theme="parchment"] .animated-shiny-text {
+    html[data-theme="parchment"] .animated-shiny-text,
+    html[data-theme="light"] .animated-shiny-text {
       background: linear-gradient(
         110deg,
-        #78716c 0%,
-        #141312 45%,
-        #c2410c 50%,
-        #141312 55%,
-        #78716c 100%
+        #64748b 0%,
+        #0f172a 45%,
+        #0284c7 50%,
+        #0f172a 55%,
+        #64748b 100%
       );
       background-size: 250% 100%;
       -webkit-background-clip: text;
@@ -2795,7 +2797,7 @@
     html[data-theme="parchment"] .ecosystem-feature-chip,
     html[data-theme="parchment"] .android-release-device-chip {
       color: #44403c !important;
-      background: #faf7f0 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
 
@@ -2812,7 +2814,7 @@
 
     /* 10. Interactive Chat Mockup (Light Theme High Contrast & Visibility) */
     html[data-theme="parchment"] .mock-win-header {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
     html[data-theme="parchment"] .mock-win-title {
@@ -2820,7 +2822,7 @@
       font-weight: 700 !important;
     }
     html[data-theme="parchment"] .mock-sidebar {
-      background: #faf7f0 !important;
+      background: #f8fafc !important;
       border-right: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
     html[data-theme="parchment"] .mock-server-badge {
@@ -2841,7 +2843,7 @@
       font-weight: 700 !important;
     }
     html[data-theme="parchment"] .mock-voice-capsule {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.14) !important;
       color: #0f172a !important;
     }
@@ -2857,16 +2859,16 @@
     }
     html[data-theme="parchment"] .mock-text {
       color: #1c1917 !important;
-      background: #faf7f0 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
     html[data-theme="parchment"] .mock-avatar {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.15) !important;
       box-shadow: 0 1px 3px rgba(44, 40, 37, 0.08) !important;
     }
     html[data-theme="parchment"] .mock-rx-chip {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.15) !important;
       color: #44403c !important;
     }
@@ -2889,7 +2891,7 @@
 
     /* 11. Profile Bar & User Name Display in Light Theme */
     html[data-theme="parchment"] .user-profile-bar {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .username-text,
@@ -2924,7 +2926,7 @@
 
     html[data-theme="parchment"] .faq-q-icon {
       color: #0f172a !important;
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
     }
     html[data-theme="parchment"] .faq-q-chevron {
@@ -2961,11 +2963,11 @@
     }
 
     html[data-theme="parchment"] .android-specs-row {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
     }
     html[data-theme="parchment"] .android-security-note {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
     }
 
@@ -2987,7 +2989,7 @@
       box-shadow: 0 1px 2px rgba(44, 40, 37, 0.04) !important;
     }
     html[data-theme="parchment"] .filter-chip:hover {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-color: #0f172a !important;
       color: #0f172a !important;
     }
@@ -3006,7 +3008,7 @@
     }
 
     html[data-theme="parchment"] .landing-footer {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
 
@@ -3024,7 +3026,7 @@
 
     /* Left Guilds Navigation */
     html[data-theme="parchment"] .guilds-nav {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-right: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .guild-icon {
@@ -3052,7 +3054,7 @@
       border-right: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .server-header {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       color: #0f172a !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.12) !important;
     }
@@ -3116,7 +3118,7 @@
 
     /* User Profile Bar */
     html[data-theme="parchment"] .user-profile-bar {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .username-text,
@@ -3152,7 +3154,7 @@
       color: #78716c !important;
     }
     html[data-theme="parchment"] .sidebar-apk-icon-box {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-color: rgba(68, 64, 60, 0.2) !important;
       color: #0f172a !important;
     }
@@ -3279,7 +3281,7 @@
       color: #57534e !important;
     }
     html[data-theme="parchment"] .channel-chip-btn:hover {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       color: #0f172a !important;
     }
     html[data-theme="parchment"] .channel-chip-btn.active {
@@ -3421,7 +3423,7 @@
       color: #ffffff !important;
     }
     html[data-theme="parchment"] .connecto-message-card:not(.mine):nth-child(even) {
-      background: #f7f3ea !important;
+      background: #f8fafc !important;
       border-color: rgba(68, 64, 60, 0.22) !important;
     }
     html[data-theme="parchment"] .msg-card-author {
@@ -3441,7 +3443,7 @@
       color: #0f172a !important;
     }
     html[data-theme="parchment"] .connecto-message-card .msg-rx-chip {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
       color: #0f172a !important;
     }
@@ -3459,7 +3461,7 @@
       border-left-color: #0f172a !important;
     }
     html[data-theme="parchment"] .code-block-container {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border: 1px solid rgba(68, 64, 60, 0.16) !important;
       box-shadow: 0 2px 8px rgba(68, 64, 60, 0.06) !important;
     }
@@ -3476,7 +3478,7 @@
       color: #0f172a !important;
     }
     html[data-theme="parchment"] .hljs-pre {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       color: #0f172a !important;
     }
     html[data-theme="parchment"] .hljs-pre code {
@@ -3556,8 +3558,9 @@
       background: rgba(68, 64, 60, 0.08) !important;
       color: #0f172a !important;
     }
-    html[data-theme="parchment"] .msg-act-icon.bookmarked {
-      color: #d97706 !important;
+    html[data-theme="parchment"] .msg-act-icon.bookmarked,
+    html[data-theme="light"] .msg-act-icon.bookmarked {
+      color: #0284c7 !important;
     }
 
     /* Interactive Polls in Light Theme */
@@ -3638,7 +3641,7 @@
       box-shadow: -10px 0 35px rgba(68, 64, 60, 0.15) !important;
     }
     html[data-theme="parchment"] .thread-root-card {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .thread-root-author {
@@ -3681,7 +3684,7 @@
       box-shadow: 0 1px 3px rgba(44, 40, 37, 0.06) !important;
     }
     html[data-theme="parchment"] .nav-user-pill:hover {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-color: #0f172a !important;
     }
     html[data-theme="parchment"] .nav-user-name {
@@ -3714,29 +3717,34 @@
       color: #0f172a !important;
       box-shadow: 0 1px 3px rgba(44, 40, 37, 0.06) !important;
     }
-    html[data-theme="parchment"] .nav-theme-toggle-btn:hover {
-      background: #f5f1e8 !important;
+    html[data-theme="parchment"] .nav-theme-toggle-btn:hover,
+    html[data-theme="light"] .nav-theme-toggle-btn:hover {
+      background: #f1f5f9 !important;
       border-color: #0f172a !important;
       color: #0f172a !important;
     }
-    html[data-theme="parchment"] .public-beta-banner {
-      background: #fef3c7 !important;
-      color: #78350f !important;
-      border-bottom: 1px solid #fcd34d !important;
-    }
-    html[data-theme="parchment"] .public-beta-banner a {
+    html[data-theme="parchment"] .public-beta-banner,
+    html[data-theme="light"] .public-beta-banner {
+      background: #f0f9ff !important;
       color: #0369a1 !important;
-      font-weight: 800 !important;
+      border-bottom: 1px solid #bae6fd !important;
+    }
+    html[data-theme="parchment"] .public-beta-banner a,
+    html[data-theme="light"] .public-beta-banner a {
+      color: #0369a1 !important;
+      font-weight: 700 !important;
       text-decoration: underline !important;
     }
-    html[data-theme="parchment"] .nav-live-pill {
-      background: #fef3c7 !important;
-      border-color: #d97706 !important;
-      color: #78350f !important;
+    html[data-theme="parchment"] .nav-live-pill,
+    html[data-theme="light"] .nav-live-pill {
+      background: #ecfdf5 !important;
+      border-color: #10b981 !important;
+      color: #065f46 !important;
     }
-    html[data-theme="parchment"] .nav-live-pill span {
-      color: #78350f !important;
-      font-weight: 700 !important;
+    html[data-theme="parchment"] .nav-live-pill span,
+    html[data-theme="light"] .nav-live-pill span {
+      color: #065f46 !important;
+      font-weight: 600 !important;
     }
 
     /* Chat Input Area */
@@ -3958,10 +3966,11 @@
       color: #dc2626 !important;
       border: 1px solid rgba(239, 68, 68, 0.25) !important;
     }
-    html[data-theme="parchment"] .rank-jonin {
-      background: rgba(245, 158, 11, 0.12) !important;
-      color: #d97706 !important;
-      border: 1px solid rgba(245, 158, 11, 0.25) !important;
+    html[data-theme="parchment"] .rank-jonin,
+    html[data-theme="light"] .rank-jonin {
+      background: rgba(2, 132, 199, 0.12) !important;
+      color: #0284c7 !important;
+      border: 1px solid rgba(2, 132, 199, 0.25) !important;
     }
     html[data-theme="parchment"] .rank-chunin {
       background: rgba(8, 145, 178, 0.12) !important;
@@ -4151,7 +4160,7 @@
       box-shadow: 0 24px 70px rgba(40, 35, 30, 0.18) !important;
     }
     html[data-theme="parchment"] .profile-studio-header {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .profile-studio-title,
@@ -4176,7 +4185,7 @@
       background: rgba(68, 64, 60, 0.16) !important;
     }
     html[data-theme="parchment"] .profile-studio-sidebar {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-right: 1px solid rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .profile-side-user-card {
@@ -4373,7 +4382,7 @@
 
     /* Studio Footer & Action Buttons in Parchment */
     html[data-theme="parchment"] .profile-studio-footer {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-top: 1px solid rgba(68, 64, 60, 0.16) !important;
     }
     html[data-theme="parchment"] .mobile-settings-signout-btn {
@@ -4418,7 +4427,7 @@
       background: #292524 !important;
     }
     html[data-theme="parchment"] .active-call-bar {
-      background: #f5f1e8 !important;
+      background: #f8fafc !important;
       border-bottom: 1px solid rgba(22, 101, 52, 0.3) !important;
       color: #0f172a !important;
     }
@@ -9945,13 +9954,13 @@
       width: fit-content;
     }
 
-    /* Kinetic Text Shimmer */
+    /* Solid High-Contrast Headline (Unslop Pass 2 & 5) */
     .shimmer-title {
-      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 40%, var(--accent-secondary) 75%, var(--accent) 100%);
-      background-size: 200% auto;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: textGleam 6s linear infinite;
+      color: var(--text-header, #ffffff);
+      background: none;
+      -webkit-background-clip: unset;
+      -webkit-text-fill-color: initial;
+      animation: none;
     }
     @keyframes textGleam {
       0% { background-position: 0% 50%; }
@@ -10921,100 +10930,124 @@
       justify-content: center;
     }
 
-    /* ==================== DUAL THEME: PARCHMENT LIGHT MODE ==================== */
-    html[data-theme="parchment"] #authModal {
-      background: rgba(245, 241, 235, 0.85) !important;
+    /* ==================== DUAL THEME: LIGHT & PARCHMENT MODE ==================== */
+    html[data-theme="parchment"] #authModal,
+    html[data-theme="light"] #authModal {
+      background: rgba(15, 23, 42, 0.55) !important;
+      backdrop-filter: blur(8px) !important;
     }
-    html[data-theme="parchment"] #authModal .modal-box-scroll {
+    html[data-theme="parchment"] #authModal .modal-box-scroll,
+    html[data-theme="light"] #authModal .modal-box-scroll {
       background: #ffffff !important;
-      border: 1px solid rgba(68, 64, 60, 0.16) !important;
-      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03),
-                  0 24px 60px -12px rgba(68, 64, 60, 0.2),
-                  0 8px 24px -4px rgba(68, 64, 60, 0.08) !important;
+      border: 1px solid rgba(226, 232, 240, 0.95) !important;
+      box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.15),
+                  0 8px 20px -4px rgba(15, 23, 42, 0.08) !important;
     }
-    html[data-theme="parchment"] .auth-brand-name {
+    html[data-theme="parchment"] .auth-brand-name,
+    html[data-theme="light"] .auth-brand-name {
       color: #0f172a !important;
     }
-    html[data-theme="parchment"] .auth-brand-logo-wrap {
+    html[data-theme="parchment"] .auth-brand-logo-wrap,
+    html[data-theme="light"] .auth-brand-logo-wrap {
       background: #ffffff !important;
-      border-color: rgba(68, 64, 60, 0.16) !important;
-      box-shadow: 0 4px 12px rgba(68, 64, 60, 0.1) !important;
+      border-color: rgba(226, 232, 240, 0.95) !important;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
     }
-    html[data-theme="parchment"] .auth-brand-tag {
-      background: rgba(15, 23, 42, 0.1) !important;
-      border-color: rgba(15, 23, 42, 0.25) !important;
+    html[data-theme="parchment"] .auth-brand-tag,
+    html[data-theme="light"] .auth-brand-tag {
+      background: rgba(2, 132, 199, 0.08) !important;
+      border-color: rgba(2, 132, 199, 0.25) !important;
       color: #0284c7 !important;
     }
-    html[data-theme="parchment"] .auth-modal-close-btn {
-      border-color: rgba(68, 64, 60, 0.15);
-      background: rgba(68, 64, 60, 0.06);
-      color: #78716c;
+    html[data-theme="parchment"] .auth-modal-close-btn,
+    html[data-theme="light"] .auth-modal-close-btn {
+      border-color: rgba(226, 232, 240, 0.95);
+      background: #f8fafc;
+      color: #64748b;
     }
-    html[data-theme="parchment"] .auth-modal-close-btn:hover {
-      background: rgba(68, 64, 60, 0.14);
-      color: #141312;
-      border-color: rgba(68, 64, 60, 0.25);
+    html[data-theme="parchment"] .auth-modal-close-btn:hover,
+    html[data-theme="light"] .auth-modal-close-btn:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #cbd5e1;
     }
-    html[data-theme="parchment"] .auth-brand-badge {
-      background: rgba(15, 23, 42, 0.08);
-      border-color: rgba(15, 23, 42, 0.22);
+    html[data-theme="parchment"] .auth-brand-badge,
+    html[data-theme="light"] .auth-brand-badge {
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.25);
       color: #0284c7;
     }
-    html[data-theme="parchment"] .auth-modal-title {
+    html[data-theme="parchment"] .auth-modal-title,
+    html[data-theme="light"] .auth-modal-title {
       color: #0f172a !important;
     }
-    html[data-theme="parchment"] .auth-modal-subtitle {
+    html[data-theme="parchment"] .auth-modal-subtitle,
+    html[data-theme="light"] .auth-modal-subtitle {
       color: #64748b !important;
     }
-    html[data-theme="parchment"] .auth-segmented-nav {
-      background: #f1ede6 !important;
-      border-color: rgba(68, 64, 60, 0.12) !important;
-      box-shadow: inset 0 1px 3px rgba(68, 64, 60, 0.1) !important;
+    html[data-theme="parchment"] .auth-segmented-nav,
+    html[data-theme="light"] .auth-segmented-nav {
+      background: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.05) !important;
     }
-    html[data-theme="parchment"] .auth-segmented-slider {
+    html[data-theme="parchment"] .auth-segmented-slider,
+    html[data-theme="light"] .auth-segmented-slider {
       background: #ffffff !important;
-      box-shadow: 0 2px 8px rgba(68, 64, 60, 0.16) !important;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.10) !important;
     }
-    html[data-theme="parchment"] .auth-tab-btn {
-      color: #78716c !important;
+    html[data-theme="parchment"] .auth-tab-btn,
+    html[data-theme="light"] .auth-tab-btn {
+      color: #64748b !important;
     }
-    html[data-theme="parchment"] .auth-tab-btn:hover {
+    html[data-theme="parchment"] .auth-tab-btn:hover,
+    html[data-theme="light"] .auth-tab-btn:hover {
       color: #0f172a !important;
     }
-    html[data-theme="parchment"] .auth-tab-btn.active {
+    html[data-theme="parchment"] .auth-tab-btn.active,
+    html[data-theme="light"] .auth-tab-btn.active {
       color: #0284c7 !important;
     }
-    html[data-theme="parchment"] .auth-modal-footer {
-      color: #78716c !important;
+    html[data-theme="parchment"] .auth-modal-footer,
+    html[data-theme="light"] .auth-modal-footer {
+      color: #64748b !important;
     }
-    html[data-theme="parchment"] .auth-footer-link {
+    html[data-theme="parchment"] .auth-footer-link,
+    html[data-theme="light"] .auth-footer-link {
       color: #0284c7 !important;
     }
-    html[data-theme="parchment"] .auth-footer-link:hover {
-      color: #c2410c !important;
+    html[data-theme="parchment"] .auth-footer-link:hover,
+    html[data-theme="light"] .auth-footer-link:hover {
+      color: #0369a1 !important;
     }
-    html[data-theme="parchment"] .auth-remember-wrap {
-      color: #57534e !important;
+    html[data-theme="parchment"] .auth-remember-wrap,
+    html[data-theme="light"] .auth-remember-wrap {
+      color: #334155 !important;
     }
-    html[data-theme="parchment"] .auth-remember-wrap input[type="checkbox"] {
+    html[data-theme="parchment"] .auth-remember-wrap input[type="checkbox"],
+    html[data-theme="light"] .auth-remember-wrap input[type="checkbox"] {
       accent-color: #0f172a !important;
     }
-    html[data-theme="parchment"] .otp-digit-input {
-      background: #fbf9f6 !important;
-      border-color: rgba(68, 64, 60, 0.2) !important;
+    html[data-theme="parchment"] .otp-digit-input,
+    html[data-theme="light"] .otp-digit-input {
+      background: #f8fafc !important;
+      border-color: #cbd5e1 !important;
       color: #0f172a !important;
     }
-    html[data-theme="parchment"] .otp-digit-input:focus {
-      border-color: #0f172a !important;
-      box-shadow: 0 0 16px rgba(15, 23, 42, 0.3) !important;
+    html[data-theme="parchment"] .otp-digit-input:focus,
+    html[data-theme="light"] .otp-digit-input:focus {
+      border-color: #0284c7 !important;
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
       background: #ffffff !important;
     }
-    html[data-theme="parchment"] .otp-digit-input.filled {
-      border-color: #16a34a !important;
-      color: #15803d !important;
+    html[data-theme="parchment"] .otp-digit-input.filled,
+    html[data-theme="light"] .otp-digit-input.filled {
+      border-color: #10b981 !important;
+      color: #065f46 !important;
     }
-    html[data-theme="parchment"] .form-group label {
-      color: #57534e !important;
+    html[data-theme="parchment"] .form-group label,
+    html[data-theme="light"] .form-group label {
+      color: #334155 !important;
     }
     html[data-theme="parchment"] .auth-input-wrap {
       background: #ffffff !important;
@@ -11066,14 +11099,14 @@
       color: #0f172a !important;
     }
     html[data-theme="parchment"] .password-strength-wrap {
-      background: #f7f3ea !important;
+      background: #f8fafc !important;
       border-color: rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .strength-segment {
       background: rgba(68, 64, 60, 0.14) !important;
     }
     html[data-theme="parchment"] .pwd-hint {
-      background: #ede8df !important;
+      background: #f1f5f9 !important;
       border-color: rgba(68, 64, 60, 0.12) !important;
       color: #78716c !important;
     }
@@ -14045,20 +14078,14 @@
       text-shadow: 0 1px 2px rgba(0,0,0,0.8);
     }
 
-    /* Chakra Shimmer Headline */
+    /* Chakra Headline (Clean Solid Type) */
     .chakra-shimmer-text {
-      background: linear-gradient(135deg, #a29bfe 0%, #00cec9 45%, #fdcb6e 80%, #a29bfe 100%);
-      background-size: 250% auto;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: chakraTextShimmer 4s ease-in-out infinite alternate;
+      color: var(--text-header, inherit);
+      background: none;
+      -webkit-background-clip: unset;
+      -webkit-text-fill-color: initial;
       display: inline-block;
-      font-weight: 900;
-    }
-    @keyframes chakraTextShimmer {
-      0% { background-position: 0% 50%; filter: drop-shadow(0 0 10px rgba(108, 92, 231, 0.45)); }
-      50% { background-position: 100% 50%; filter: drop-shadow(0 0 14px rgba(0, 206, 201, 0.55)); }
-      100% { background-position: 0% 50%; filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.45)); }
+      font-weight: 700;
     }
 
     /* Hero Badges & Buttons */
@@ -19545,7 +19572,7 @@ html[data-theme="ivory"] .mobile-nav-toggle {
 html[data-theme="parchment"] .mobile-nav-toggle:hover,
 html[data-theme="light"] .mobile-nav-toggle:hover,
 html[data-theme="ivory"] .mobile-nav-toggle:hover {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   border-color: #0f172a !important;
 }
 
@@ -19574,7 +19601,7 @@ html[data-theme="parchment"] .mobile-drawer-head,
 html[data-theme="light"] .mobile-drawer-head,
 html[data-theme="ivory"] .mobile-drawer-head {
   border-bottom: 1px solid rgba(68, 64, 60, 0.14) !important;
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
 }
 
 html[data-theme="parchment"] .mobile-drawer-close,
@@ -19631,7 +19658,7 @@ html[data-theme="ivory"] .mobile-drawer-link {
 html[data-theme="parchment"] .mobile-drawer-link:hover,
 html[data-theme="light"] .mobile-drawer-link:hover,
 html[data-theme="ivory"] .mobile-drawer-link:hover {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   border-color: rgba(68, 64, 60, 0.25) !important;
 }
 
@@ -19657,7 +19684,7 @@ html[data-theme="parchment"] .mobile-drawer-foot,
 html[data-theme="light"] .mobile-drawer-foot,
 html[data-theme="ivory"] .mobile-drawer-foot {
   border-top: 1px solid rgba(68, 64, 60, 0.14) !important;
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   color: #78716c !important;
 }
 
@@ -23423,161 +23450,197 @@ html[data-theme="parchment"] .connecto-grace-banner .grace-desc {
   background: rgba(0, 0, 0, 0.1) !important;
 }
 
-/* 2. VOICE LOUNGE PARCHMENT PERFECTION */
-html[data-theme="parchment"] .voice-lounge-header {
+/* 2. VOICE LOUNGE LIGHT & PARCHMENT PERFECTION */
+html[data-theme="parchment"] .voice-lounge-header,
+html[data-theme="light"] .voice-lounge-header {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.16) !important;
-  box-shadow: 0 4px 20px rgba(68, 64, 60, 0.06) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05) !important;
 }
-html[data-theme="parchment"] .voice-lounge-title {
+html[data-theme="parchment"] .voice-lounge-title,
+html[data-theme="light"] .voice-lounge-title {
   color: #0f172a !important;
 }
-html[data-theme="parchment"] .voice-lounge-desc {
-  color: #78716c !important;
+html[data-theme="parchment"] .voice-lounge-desc,
+html[data-theme="light"] .voice-lounge-desc {
+  color: #64748b !important;
 }
-html[data-theme="parchment"] .btn-create-room-promax {
+html[data-theme="parchment"] .btn-create-room-promax,
+html[data-theme="light"] .btn-create-room-promax {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
   color: #ffffff !important;
   border: 1px solid #0f172a !important;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28) !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
 }
-html[data-theme="parchment"] .btn-create-room-promax:hover {
+html[data-theme="parchment"] .btn-create-room-promax:hover,
+html[data-theme="light"] .btn-create-room-promax:hover {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-  border-color: #c2410c !important;
+  border-color: #0284c7 !important;
   transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35) !important;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.25) !important;
 }
-html[data-theme="parchment"] .voice-room-card {
+html[data-theme="parchment"] .voice-room-card,
+html[data-theme="light"] .voice-room-card {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.18) !important;
-  box-shadow: 0 4px 18px rgba(68, 64, 60, 0.06) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04) !important;
 }
-html[data-theme="parchment"] .voice-room-card:hover {
-  border-color: #0f172a !important;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16) !important;
+html[data-theme="parchment"] .voice-room-card:hover,
+html[data-theme="light"] .voice-room-card:hover {
+  border-color: #0284c7 !important;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1) !important;
 }
-html[data-theme="parchment"] .voice-room-title {
+html[data-theme="parchment"] .voice-room-title,
+html[data-theme="light"] .voice-room-title {
   color: #0f172a !important;
 }
-html[data-theme="parchment"] .voice-room-creator {
-  color: #78716c !important;
+html[data-theme="parchment"] .voice-room-creator,
+html[data-theme="light"] .voice-room-creator {
+  color: #64748b !important;
 }
-html[data-theme="parchment"] .voice-room-icon-squircle {
+html[data-theme="parchment"] .voice-room-icon-squircle,
+html[data-theme="light"] .voice-room-icon-squircle {
   background: #f8fafc !important;
-  border: 1px solid rgba(15, 23, 42, 0.25) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
   color: #0284c7 !important;
 }
-html[data-theme="parchment"] .voice-participant-chip {
-  background: #ede8df !important;
+html[data-theme="parchment"] .voice-participant-chip,
+html[data-theme="light"] .voice-participant-chip {
+  background: #f1f5f9 !important;
   color: #0f172a !important;
-  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
 }
-html[data-theme="parchment"] .voice-room-topic-badge {
-  background: #f5f0e6 !important;
-  color: #44403c !important;
-  border: 1px solid rgba(68, 64, 60, 0.16) !important;
+html[data-theme="parchment"] .voice-room-topic-badge,
+html[data-theme="light"] .voice-room-topic-badge {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
 }
-html[data-theme="parchment"] .btn-voice-join {
+html[data-theme="parchment"] .btn-voice-join,
+html[data-theme="light"] .btn-voice-join {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
   color: #ffffff !important;
   border: 1px solid #0f172a !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.2) !important;
 }
-html[data-theme="parchment"] .active-room-stage {
+html[data-theme="parchment"] .active-room-stage,
+html[data-theme="light"] .active-room-stage {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.18) !important;
-  box-shadow: 0 8px 30px rgba(68, 64, 60, 0.08) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06) !important;
 }
-html[data-theme="parchment"] .stage-room-name {
+html[data-theme="parchment"] .stage-room-name,
+html[data-theme="light"] .stage-room-name {
   color: #0f172a !important;
 }
-html[data-theme="parchment"] .stage-controls-dock {
-  background: #f7f3ea !important;
-  border: 1px solid rgba(68, 64, 60, 0.2) !important;
-  box-shadow: 0 8px 24px rgba(68, 64, 60, 0.12) !important;
+html[data-theme="parchment"] .stage-controls-dock,
+html[data-theme="light"] .stage-controls-dock {
+  background: #f8fafc !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
 }
-html[data-theme="parchment"] .dock-btn-outline {
+html[data-theme="parchment"] .dock-btn-outline,
+html[data-theme="light"] .dock-btn-outline {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.22) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
   color: #0f172a !important;
 }
 
-/* 3. LEARNING HUB / CYBER ACADEMY PARCHMENT PERFECTION */
-html[data-theme="parchment"] .w3-workspace {
+/* 3. LEARNING HUB / CYBER ACADEMY LIGHT & PARCHMENT PERFECTION */
+html[data-theme="parchment"] .w3-workspace,
+html[data-theme="light"] .w3-workspace {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.18) !important;
-  box-shadow: 0 4px 20px rgba(68, 64, 60, 0.06) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05) !important;
 }
-html[data-theme="parchment"] .w3-sidebar {
+html[data-theme="parchment"] .w3-sidebar,
+html[data-theme="light"] .w3-sidebar {
   background: #f8fafc !important;
-  border-right: 1px solid rgba(68, 64, 60, 0.16) !important;
+  border-right: 1px solid rgba(226, 232, 240, 0.95) !important;
 }
-html[data-theme="parchment"] .w3-content-area {
+html[data-theme="parchment"] .w3-content-area,
+html[data-theme="light"] .w3-content-area {
   background: #ffffff !important;
 }
-html[data-theme="parchment"] .w3-lesson-nav-item {
-  color: #44403c !important;
+html[data-theme="parchment"] .w3-lesson-nav-item,
+html[data-theme="light"] .w3-lesson-nav-item {
+  color: #334155 !important;
 }
-html[data-theme="parchment"] .w3-lesson-nav-item:hover {
-  background: #f8fafc !important;
+html[data-theme="parchment"] .w3-lesson-nav-item:hover,
+html[data-theme="light"] .w3-lesson-nav-item:hover {
+  background: #f1f5f9 !important;
   color: #0284c7 !important;
 }
-html[data-theme="parchment"] .w3-lesson-nav-item.active {
-  background: #ffedd5 !important;
-  color: #c2410c !important;
-  font-weight: 800 !important;
-  border-left: 3px solid #0f172a !important;
+html[data-theme="parchment"] .w3-lesson-nav-item.active,
+html[data-theme="light"] .w3-lesson-nav-item.active {
+  background: #f0f9ff !important;
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+  border-left: 3px solid #0284c7 !important;
 }
-html[data-theme="parchment"] .academy-track-tabs {
-  background: #ede8df !important;
-  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+html[data-theme="parchment"] .academy-track-tabs,
+html[data-theme="light"] .academy-track-tabs {
+  background: #f1f5f9 !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
 }
-html[data-theme="parchment"] .academy-track-btn {
-  color: #78716c !important;
+html[data-theme="parchment"] .academy-track-btn,
+html[data-theme="light"] .academy-track-btn {
+  color: #64748b !important;
   background: transparent !important;
   border: none !important;
 }
-html[data-theme="parchment"] .academy-track-btn.active {
+html[data-theme="parchment"] .academy-track-btn.active,
+html[data-theme="light"] .academy-track-btn.active {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.28) !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.2) !important;
 }
-html[data-theme="parchment"] .academy-mastery-card {
-  background: #f7f3ea !important;
-  border: 1px solid rgba(68, 64, 60, 0.18) !important;
+html[data-theme="parchment"] .academy-mastery-card,
+html[data-theme="light"] .academy-mastery-card {
+  background: #f8fafc !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
 }
-html[data-theme="parchment"] .academy-mastery-rank {
+html[data-theme="parchment"] .academy-mastery-rank,
+html[data-theme="light"] .academy-mastery-rank {
   color: #0284c7 !important;
-  background: #f8fafc !important;
-  border: 1px solid rgba(15, 23, 42, 0.28) !important;
+  background: #f0f9ff !important;
+  border: 1px solid rgba(2, 132, 199, 0.25) !important;
 }
-html[data-theme="parchment"] .quiz-container-box {
+html[data-theme="parchment"] .quiz-container-box,
+html[data-theme="light"] .quiz-container-box {
   background: #f8fafc !important;
-  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
 }
-html[data-theme="parchment"] .quiz-choice-option {
+html[data-theme="parchment"] .quiz-choice-option,
+html[data-theme="light"] .quiz-choice-option {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
   color: #0f172a !important;
 }
-html[data-theme="parchment"] .quiz-choice-option:hover {
+html[data-theme="parchment"] .quiz-choice-option:hover,
+html[data-theme="light"] .quiz-choice-option:hover {
   background: #f8fafc !important;
-  border-color: #0f172a !important;
+  border-color: #0284c7 !important;
   color: #0284c7 !important;
 }
-html[data-theme="parchment"] .quiz-choice-option.selected {
-  background: #ffedd5 !important;
-  border-color: #0f172a !important;
-  color: #c2410c !important;
+html[data-theme="parchment"] .quiz-choice-option.selected,
+html[data-theme="light"] .quiz-choice-option.selected {
+  background: #f0f9ff !important;
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
 }
 html[data-theme="parchment"] #w3TrackTitle,
-html[data-theme="parchment"] #w3LessonTitle {
+html[data-theme="parchment"] #w3LessonTitle,
+html[data-theme="light"] #w3TrackTitle,
+html[data-theme="light"] #w3LessonTitle {
   color: #0f172a !important;
 }
-html[data-theme="parchment"] #w3LessonBody pre {
-  background: #f7f3ea !important;
-  border: 1px solid rgba(68, 64, 60, 0.2) !important;
+html[data-theme="parchment"] #w3LessonBody pre,
+html[data-theme="light"] #w3LessonBody pre {
+  background: #f8fafc !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
   color: #0369a1 !important;
+}
 }
 
 /* 4. HELP & SUPPORT AI CHAT & SETTINGS MODAL PARCHMENT PERFECTION */
@@ -23587,7 +23650,7 @@ html[data-theme="parchment"] .web-support-chat-container {
 }
 html[data-theme="parchment"] #webSupportChatMessages,
 html[data-theme="parchment"] #modalSupportChatMessages {
-  background: #f7f3ea !important;
+  background: #f8fafc !important;
 }
 html[data-theme="parchment"] .web-ai-bot-bubble {
   background: #ffffff !important;
@@ -23610,7 +23673,7 @@ html[data-theme="parchment"] .quick-chip-btn:hover {
   color: #065f46 !important;
 }
 html[data-theme="parchment"] #webSupportQuickChips {
-  background: #ede8df !important;
+  background: #f1f5f9 !important;
   border-top: 1px solid rgba(68, 64, 60, 0.15) !important;
 }
 html[data-theme="parchment"] #webSupportChatInput,
@@ -23675,7 +23738,7 @@ html[data-theme="parchment"] .search-result-card {
   color: #0f172a !important;
 }
 html[data-theme="parchment"] .search-result-card:hover {
-  background: #f7f3ea !important;
+  background: #f8fafc !important;
   border-color: #0f172a !important;
 }
 html[data-theme="parchment"] #searchEmptyPlaceholder div[style*="color:#fff"] {
@@ -23689,7 +23752,7 @@ html[data-theme="parchment"] #authModal .modal-box-scroll {
   box-shadow: 0 24px 60px rgba(68, 64, 60, 0.18) !important;
 }
 html[data-theme="parchment"] .auth-segmented-nav {
-  background: #ede8df !important;
+  background: #f1f5f9 !important;
   border: 1px solid rgba(68, 64, 60, 0.2) !important;
   box-shadow: inset 0 2px 4px rgba(68, 64, 60, 0.08) !important;
 }
@@ -23759,7 +23822,7 @@ html[data-theme="parchment"] .connecto-vault-card {
   position: relative !important;
 }
 html[data-theme="parchment"] .vault-modal-close-icon {
-  background: #ede8df !important;
+  background: #f1f5f9 !important;
   border: 1px solid rgba(68, 64, 60, 0.2) !important;
   color: #0f172a !important;
 }
@@ -23768,7 +23831,7 @@ html[data-theme="parchment"] .vault-modal-close-icon:hover {
   color: #000000 !important;
 }
 html[data-theme="parchment"] .connecto-vault-badge {
-  background: #ede8df !important;
+  background: #f1f5f9 !important;
   border-color: rgba(68, 64, 60, 0.2) !important;
   color: #0f172a !important;
 }
@@ -23779,7 +23842,7 @@ html[data-theme="parchment"] .connecto-vault-user {
   color: #78716c !important;
 }
 html[data-theme="parchment"] .connecto-vault-status-pill {
-  background: #ede8df !important;
+  background: #f1f5f9 !important;
   border-color: rgba(68, 64, 60, 0.2) !important;
   color: #0f172a !important;
 }
@@ -23864,7 +23927,7 @@ html[data-theme="parchment"] .welcome-icon-box {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: #f5f1e8;
+  background: #f8fafc;
   border: 1.5px solid #141312;
   display: flex;
   align-items: center;
@@ -24344,12 +24407,12 @@ html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-theirs .dm-bubble-tim
   color: #78716c !important;
 }
 html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-theirs .msg-quoted-reply {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   border-left: 3px solid #6366f1 !important;
   color: #44403c !important;
 }
 html[data-theme="parchment"] .personal-dm-bubble.dm-bubble-theirs .msg-rx-chip {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   border: 1px solid rgba(68, 64, 60, 0.16) !important;
   color: #0f172a !important;
 }
@@ -24368,7 +24431,7 @@ html[data-theme="parchment"] .dm-act-icon {
   color: #0f172a !important;
 }
 html[data-theme="parchment"] .dm-act-icon:hover {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
 }
 
 /* ==================== DESKTOP SPACE COMPACTION: HOME TAB & CHAT SECTION (DESKTOP ONLY) ==================== */
@@ -24880,7 +24943,7 @@ html[data-theme="light"] #chatChannelSwitcherRow {
 
 html[data-theme="parchment"] .channel-chip-btn,
 html[data-theme="light"] .channel-chip-btn {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   color: #57534e !important;
   border: 1px solid rgba(68, 64, 60, 0.16) !important;
 }
@@ -24983,7 +25046,7 @@ html[data-theme="light"] .header-search-dropdown-header {
 html[data-theme="parchment"] .header-search-tab,
 html[data-theme="light"] .header-search-tab {
   color: #57534e !important;
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
 }
 
 html[data-theme="parchment"] .header-search-tab.active,
@@ -25052,7 +25115,7 @@ html[data-theme="light"] .nav-actions-cluster {
 
 html[data-theme="parchment"] .nav-theme-toggle-btn,
 html[data-theme="light"] .nav-theme-toggle-btn {
-  background: #f5f1e8 !important;
+  background: #f8fafc !important;
   border: 1px solid rgba(68, 64, 60, 0.20) !important;
   color: #0f172a !important;
   box-shadow: 0 1px 4px rgba(44, 40, 37, 0.04) !important;
@@ -26054,34 +26117,42 @@ html[data-theme="parchment"] .connecto-action-pill:hover {
   transform: translateY(-2px) scale(1.04) !important;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22) !important;
 }
-html[data-theme="parchment"] .connecto-section-title {
-  color: #78716c !important;
+html[data-theme="parchment"] .connecto-section-title,
+html[data-theme="light"] .connecto-section-title {
+  color: #64748b !important;
 }
-html[data-theme="parchment"] .connecto-section-link {
+html[data-theme="parchment"] .connecto-section-link,
+html[data-theme="light"] .connecto-section-link {
   color: #0284c7 !important;
 }
-html[data-theme="parchment"] .connecto-section-link:hover {
-  color: #c2410c !important;
+html[data-theme="parchment"] .connecto-section-link:hover,
+html[data-theme="light"] .connecto-section-link:hover {
+  color: #0369a1 !important;
 }
-html[data-theme="parchment"] .connecto-channel-card {
+html[data-theme="parchment"] .connecto-channel-card,
+html[data-theme="light"] .connecto-channel-card {
   background: #ffffff !important;
-  border: 1px solid rgba(68, 64, 60, 0.14) !important;
-  box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
 }
-html[data-theme="parchment"] .connecto-channel-card:hover {
-  background: #fffaf0 !important;
-  border-color: #0f172a !important;
+html[data-theme="parchment"] .connecto-channel-card:hover,
+html[data-theme="light"] .connecto-channel-card:hover {
+  background: #f8fafc !important;
+  border-color: #0284c7 !important;
   transform: translateX(4px) !important;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
 }
-html[data-theme="parchment"] .connecto-channel-hash {
+html[data-theme="parchment"] .connecto-channel-hash,
+html[data-theme="light"] .connecto-channel-hash {
   color: #0284c7 !important;
 }
-html[data-theme="parchment"] .connecto-channel-name {
+html[data-theme="parchment"] .connecto-channel-name,
+html[data-theme="light"] .connecto-channel-name {
   color: #0f172a !important;
 }
-html[data-theme="parchment"] .connecto-channel-desc {
-  color: #78716c !important;
+html[data-theme="parchment"] .connecto-channel-desc,
+html[data-theme="light"] .connecto-channel-desc {
+  color: #64748b !important;
 }
 
 /* Noir (Dark) */
@@ -26187,7 +26258,7 @@ html[data-theme="parchment"] .friend-row {
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
 html[data-theme="parchment"] .friend-row:hover {
-  background: #fffaf0 !important;
+  background: #f8fafc !important;
   border-color: #0f172a !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.14) !important;
@@ -26336,7 +26407,7 @@ html[data-theme="parchment"] .connecto-dm-card {
   box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
 }
 html[data-theme="parchment"] .connecto-dm-card:hover {
-  background: #fffaf0 !important;
+  background: #f8fafc !important;
   border-color: #0f172a !important;
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.15) !important;
@@ -26448,7 +26519,7 @@ html[data-theme="parchment"] .connecto-call-card {
   box-shadow: 0 2px 8px rgba(68, 64, 60, 0.04) !important;
 }
 html[data-theme="parchment"] .connecto-call-card:hover {
-  background: #fffaf0 !important;
+  background: #f8fafc !important;
   border-color: #0f172a !important;
 }
 html[data-theme="parchment"] .connecto-call-avatar {
@@ -27117,10 +27188,10 @@ html[data-theme="dark"] #saveProfileBtn {
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:3px;">
-        <button class="btn-icon" id="userProfileThemeBtn" onclick="toggleEditorialTheme(event)" title="Toggle Theme (Light / Dark)" style="font-size:13px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; cursor:pointer;" aria-label="Toggle Theme">🌓</button>
-        <button class="btn-icon" id="userCustomStatusBtn" onclick="openCustomStatusModal()" title="Set Custom Status" style="font-size:12px;">⚡</button>
-        <button class="btn-icon" id="userProfileBarBtn" onclick="handleUserProfileBarClick()" title="Sign In / Account">⚙️</button>
-        <button class="btn-icon user-signout-btn" id="userSignoutBtn" onclick="handleLogout()" title="Sign Out" style="color:#ef4444 !important; font-size:12px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); cursor:pointer;">🚪</button>
+        <button class="btn-icon" id="userProfileThemeBtn" onclick="toggleEditorialTheme(event)" title="Toggle Theme (Light / Dark)" style="font-size:13px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; cursor:pointer;" aria-label="Toggle Theme"><i data-lucide="sun-moon" class="lucide-xs"></i></button>
+        <button class="btn-icon" id="userCustomStatusBtn" onclick="openCustomStatusModal()" title="Set Custom Status" style="font-size:12px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px;"><i data-lucide="zap" class="lucide-xs"></i></button>
+        <button class="btn-icon" id="userProfileBarBtn" onclick="handleUserProfileBarClick()" title="Sign In / Account" style="font-size:12px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px;"><i data-lucide="settings" class="lucide-xs"></i></button>
+        <button class="btn-icon user-signout-btn" id="userSignoutBtn" onclick="handleLogout()" title="Sign Out" style="color:#ef4444 !important; font-size:12px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:6px; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); cursor:pointer;"><i data-lucide="log-out" class="lucide-xs"></i></button>
       </div>
     </div>
   </div>
@@ -27923,7 +27994,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
           <!-- Tab 4: Security Labs -->
           <div class="stat-item stat-tab-card magic-spotlight-card" onclick="switchMainView('learning'); setTimeout(() => loadTrackWorkspace('soc'), 80);" role="button" tabindex="0" title="Practice in Hands-On Security & Protocol Labs (SOC, SIEM, Packet Forensics, Incident Response)" style="--stat-accent: #f59e0b; --stat-glow: rgba(245, 158, 11, 0.35);">
-            <div class="stat-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+            <div class="stat-top-accent" style="background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
             <div class="stat-logo-wrap">
               <div class="stat-logo-badge" style="background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.3); color: #f59e0b;">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -28604,7 +28675,7 @@ html[data-theme="dark"] #saveProfileBtn {
 
             <!-- Portal 3: Learning Hub & Interactive Labs -->
             <div class="ecosystem-card disc-item interactive-tilt-card scroll-reveal-3d stagger-3d-3" data-cat="academy" data-title="learning hub protocol networking security labs" style="--card-accent: #f59e0b; --card-glow: rgba(245, 158, 11, 0.35);">
-              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+              <div class="ecosystem-top-accent" style="background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
               <div class="ecosystem-card-top">
                 <div class="card-product-demo">
       <div class="cpd-header"><span class="cpd-dot lab"></span><span class="cpd-title">Interactive Terminal • Lab 04</span></div>
@@ -28818,7 +28889,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 5: PLATFORM ARCHITECTURE & DEFENSE SPOTLIGHT -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="archSection">
           <div class="section-header-standard">
-            <h2 class="section-title shimmer-title">High-Performance Stack & Cryptographic Defense</h2>
+            <h2 class="section-title">High-Performance Stack &amp; Cryptographic Defense</h2>
             <p class="section-sub">Built with modern asynchronous Python, edge Anycast distribution, and multi-layered cryptographic protocols.</p>
           </div>
 
@@ -28838,7 +28909,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="arch-node-status" style="color: #ff7675; background: rgba(255, 118, 117, 0.12); border-color: rgba(255, 118, 117, 0.25);">Global Anycast</div>
             </div>
             <div class="arch-node scroll-reveal-3d interactive-tilt-card stagger-3d-3" style="--node-accent: #f59e0b; --node-glow: rgba(245, 158, 11, 0.35);">
-              <div class="arch-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+              <div class="arch-top-accent" style="background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
               <div class="feat-product-snippet"><span class="fps-tag">FastAPI Node</span><div class="fps-line">Python Asyncio &bull; Zero-Copy WebSocket Bus</div></div>
               <strong style="color:var(--text-header); font-size:14px; font-family:var(--font-display);">FastAPI Async Core</strong>
               <span style="font-size:12px; color:var(--text-muted); line-height:1.5;">Python Uvicorn Engine • Asyncio Non-blocking Loop • High-Throughput I/O</span>
@@ -28902,7 +28973,7 @@ html[data-theme="dark"] #saveProfileBtn {
             </div>
 
             <div class="usecase-card interactive-tilt-card scroll-reveal-3d" style="--track-accent: #f59e0b; --track-glow: rgba(245, 158, 11, 0.35);">
-              <div class="usecase-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+              <div class="usecase-top-accent" style="background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
               <div class="track-product-demo"><span class="tpd-tag">Crypto Engine</span><div class="tpd-out">AES-256-GCM cipher envelope generated</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
               <h3 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security &amp; Encryption</h3>
@@ -28947,7 +29018,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 9: FAQ ACCORDION -->
         <div class="bento-section-wrap scroll-reveal-3d spatial-3d-section" id="faqSection">
           <div class="section-header-standard">
-            <h2 class="section-title shimmer-title">Frequently Asked Questions</h2>
+            <h2 class="section-title">Frequently Asked Questions</h2>
             <p class="section-sub">Everything you need to know about setting up groups, voice rooms, and learning tracks.</p>
           </div>
 
@@ -29017,7 +29088,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- SECTION 10: QUICKSTART GUIDE, TESTIMONIAL & FINAL CTA -->
         <div class="how-section-diagonal scroll-reveal-3d spatial-3d-section" id="howItWorksSection">
           <div class="section-header-standard">
-            <h2 class="section-title shimmer-title">How to Get Started in 3 Steps</h2>
+            <h2 class="section-title">How to Get Started in 3 Steps</h2>
             <p class="section-sub">Three simple steps to join the Connecto community.</p>
           </div>
           <div class="steps-grid">
@@ -29042,7 +29113,7 @@ html[data-theme="dark"] #saveProfileBtn {
             </div>
 
             <div class="step-card-custom interactive-tilt-card scroll-reveal-3d stagger-3d-3" style="--step-accent: #f59e0b; --step-glow: rgba(245, 158, 11, 0.35);">
-              <div class="step-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
+              <div class="step-top-accent" style="background: linear-gradient(90deg, #0284c7, #38bdf8);"></div>
               <div>
                 <div class="step-product-preview"><span class="spp-step">STEP 3</span><div class="spp-box">Security &rarr; Hardware Biometric Vault Sealed</div></div>
                 <h3 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h3>
@@ -29162,22 +29233,22 @@ html[data-theme="dark"] #saveProfileBtn {
             <span>#</span> <span>Channels</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="switchMainView('calls')">
-            <span>📞</span> <span>Calls</span>
+            <i data-lucide="phone" class="lucide-xs"></i> <span>Calls</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="switchMainView('voice')">
-            <span>🔊</span> <span>Voice Lounge</span>
+            <i data-lucide="volume-2" class="lucide-xs"></i> <span>Voice Lounge</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="switchMainView('learning')">
-            <span>🌱</span> <span>Learning</span>
+            <i data-lucide="graduation-cap" class="lucide-xs"></i> <span>Learning</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="switchMainView('friends')">
-            <span>👥</span> <span>Friends</span>
+            <i data-lucide="users" class="lucide-xs"></i> <span>Friends</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="openSettingsModal()">
-            <span>👤</span> <span>Profile</span>
+            <i data-lucide="user" class="lucide-xs"></i> <span>Profile</span>
           </button>
           <button type="button" class="connecto-action-pill" onclick="openAddFriendModal()">
-            <span>+</span> <span>Add Friend</span>
+            <i data-lucide="user-plus" class="lucide-xs"></i> <span>Add Friend</span>
           </button>
         </div>
 
@@ -29224,7 +29295,7 @@ html[data-theme="dark"] #saveProfileBtn {
         </div>
         <div class="connecto-channel-list">
           <div class="connecto-channel-card" onclick="switchMainView('voice');">
-            <div class="connecto-channel-hash" style="color:var(--green, #22c55e);">🔊</div>
+            <div class="connecto-channel-hash" style="color:var(--green, #22c55e);"><i data-lucide="volume-2" class="lucide-sm"></i></div>
             <div class="connecto-channel-info">
               <div class="connecto-channel-name">Tactical War Room • WebRTC Mesh</div>
               <div class="connecto-channel-desc">Ultra-low latency Opus audio • Direct encrypted room</div>
@@ -29251,12 +29322,12 @@ html[data-theme="dark"] #saveProfileBtn {
     <div class="view-panel" id="friendsView">
       <div style="padding:var(--space-6); max-width:1100px; margin:0 auto; width:100%;">
         <div class="friends-header">
-          <button class="friends-tab-btn active" id="fTabAll" onclick="switchFriendsSubTab('all')">👥 All Friends</button>
+          <button class="friends-tab-btn active" id="fTabAll" onclick="switchFriendsSubTab('all')"><i data-lucide="users" class="lucide-xs" style="margin-right:6px;"></i> All Friends</button>
           <button class="friends-tab-btn" id="fTabPending" onclick="switchFriendsSubTab('pending')">
-            <span>✉️ Pending</span>
+            <span><i data-lucide="mail" class="lucide-xs" style="margin-right:6px;"></i> Pending</span>
             <span class="notif-badge" id="pendingBadge" style="display:none; position:static; margin-left:6px;">0</span>
           </button>
-          <button class="friends-tab-btn" id="fTabAdd" onclick="switchFriendsSubTab('add')" style="color:var(--chakra-cyan);">➕ Add Friend</button>
+          <button class="friends-tab-btn" id="fTabAdd" onclick="switchFriendsSubTab('add')" style="color:var(--chakra-cyan);"><i data-lucide="user-plus" class="lucide-xs" style="margin-right:6px;"></i> Add Friend</button>
         </div>
         <div id="friendsListContainer"></div>
       </div>
@@ -29419,19 +29490,19 @@ html[data-theme="dark"] #saveProfileBtn {
       <div class="voice-lounge-header">
         <div>
           <div class="voice-lounge-title">
-            <span>🔊</span>
+            <i data-lucide="volume-2" class="lucide-sm" style="margin-right:6px;"></i>
             <span>Voice Lounge</span>
-            <span class="stage-telemetry-badge" style="font-size:11.5px; padding:3px 10px;">⚡ WebRTC Mesh Live</span>
+            <span class="stage-telemetry-badge" style="font-size:11.5px; padding:3px 10px; display:inline-flex; align-items:center;"><span class="pulse-emerald-dot" style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%; margin-right:6px;"></span> WebRTC Mesh</span>
           </div>
           <p class="voice-lounge-desc">Connect directly with friends and community members with ultra-low latency voice audio.</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn-create-room-promax" onclick="openCreateVoiceRoomModal()">
-            <span>➕</span>
+            <i data-lucide="plus" class="lucide-xs"></i>
             <span>Create Room</span>
           </button>
           <button class="btn-create-room-promax" style="background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)); border:1px solid var(--border-color);" onclick="openJoinWithCodeModal()">
-            <span>🔑</span>
+            <i data-lucide="key" class="lucide-xs"></i>
             <span>Join with Code</span>
           </button>
         </div>
@@ -29444,17 +29515,17 @@ html[data-theme="dark"] #saveProfileBtn {
       <div class="active-room-stage" id="activeRoomStage" style="display:none;">
         <div class="stage-header">
           <div class="stage-title-wrap">
-            <span style="font-size:28px;" id="stageRoomIcon">⛩️</span>
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:8px; background:rgba(2,132,199,0.12); color:#0284c7;" id="stageRoomIcon"><i data-lucide="radio" class="lucide-sm"></i></span>
             <div>
-              <div class="stage-room-name" id="stageRoomName">⛩️ Tactical War Room</div>
+              <div class="stage-room-name" id="stageRoomName">Tactical War Room</div>
               <div style="font-size:12.5px; color:var(--text-muted);" id="stageRoomTopic">Strategic briefing & group audio</div>
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <button class="dock-btn dock-btn-accent" style="padding:6px 14px; font-size:12px;" onclick="openInviteVoiceFriendsModal()">👥 Summon Friends</button>
-            <span class="stage-telemetry-badge">⚡ Ultra-low latency Opus Audio</span>
+            <button class="dock-btn dock-btn-accent" style="padding:6px 14px; font-size:12px;" onclick="openInviteVoiceFriendsModal()"><i data-lucide="user-plus" class="lucide-xs" style="margin-right:6px;"></i> Invite Friends</button>
+            <span class="stage-telemetry-badge"><span style="color:#10b981; margin-right:4px;">●</span> Opus 48kHz Audio</span>
             <span class="call-timer" id="stageDurationTimer">00:00</span>
-            <button class="dock-btn dock-btn-danger" style="padding:7px 16px; font-size:12px;" onclick="leaveActiveVoiceRoom()">🔴 Leave Room</button>
+            <button class="dock-btn dock-btn-danger" style="padding:7px 16px; font-size:12px;" onclick="leaveActiveVoiceRoom()"><i data-lucide="phone-off" class="lucide-xs" style="margin-right:6px;"></i> Leave Room</button>
           </div>
         </div>
 
@@ -29751,7 +29822,7 @@ html[data-theme="dark"] #saveProfileBtn {
     <div class="modal-box-scroll border-beam-card" style="width:440px; border-radius:20px; position:relative;" onclick="event.stopPropagation()">
       <div class="border-beam"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <h3 class="modal-title shimmer-title" style="font-size:18px; font-weight:700;">Create Group Voice Room</h3>
+        <h3 class="modal-title" style="font-size:18px; font-weight:600;">Create Group Voice Room</h3>
         <button class="btn-icon" onclick="closeCreateVoiceRoomModal()">✕</button>
       </div>
       <div style="display:flex; flex-direction:column; gap:14px;">
@@ -29788,7 +29859,7 @@ html[data-theme="dark"] #saveProfileBtn {
       <div class="border-beam"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
         <div>
-          <h3 class="modal-title shimmer-title" style="font-size:18px; font-weight:900;">👥 Summon Allies to Voice Room</h3>
+          <h3 class="modal-title" style="font-size:17px; font-weight:600; display:flex; align-items:center; gap:8px;"><i data-lucide="users" class="lucide-sm"></i> Invite Friends to Voice Room</h3>
           <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" id="inviteModalRoomName">Target: Tactical War Room</p>
         </div>
         <button class="btn-icon" onclick="closeInviteVoiceFriendsModal()">✕</button>
@@ -30398,7 +30469,7 @@ html[data-theme="dark"] #saveProfileBtn {
                 <div class="theme-selection-card" id="themeCardParchment" onclick="setHomepageTheme('parchment')" style="padding:18px; border-radius:16px; border:2px solid rgba(68,64,60,0.2); background:#fbf8f2; color:#141312; cursor:pointer; display:flex; flex-direction:column; gap:10px; transition:all 0.2s cubic-bezier(0.16,1,0.3,1); position:relative;">
                   <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
                     <div style="display:flex; align-items:center; gap:12px;">
-                      <span style="width:34px; height:34px; border-radius:50%; background:#f5f1e8; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:16px;">☀️</span>
+                      <span style="width:34px; height:34px; border-radius:50%; background:#f8fafc; border:2px solid #141312; display:inline-flex; align-items:center; justify-content:center; font-size:16px;">☀️</span>
                       <div>
                         <div style="font-weight:800; font-size:15px; color:#141312;">Ivory Paper (Light)</div>
                         <div style="font-size:11.5px; color:#78716c;">Archival daylight parchment</div>
