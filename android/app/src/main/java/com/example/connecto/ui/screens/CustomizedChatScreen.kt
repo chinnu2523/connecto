@@ -363,16 +363,16 @@ val AVAILABLE_CHAT_THEMES = listOf(
     ChatThemeOption(
         id = "default",
         name = "Pure Monochrome",
-        subtitle = "Editorial Noir / Parchment contrast",
+        subtitle = "Editorial Noir / Crisp White contrast",
         primaryColor = Color(0xFFFAFAFA),
         secondaryColor = Color(0xFFA1A1AA),
-        ownBubbleBgLight = Color(0xFF141312),
+        ownBubbleBgLight = Color(0xFF0F172A),
         ownBubbleBgDark = Color(0xFFFFFFFF),
         ownBubbleTextLight = Color(0xFFFFFFFF),
         ownBubbleTextDark = Color(0xFF000000),
         friendBubbleBgLight = Color(0xFFFFFFFF),
         friendBubbleBgDark = Color(0xFF18181B),
-        friendBubbleTextLight = Color(0xFF141312),
+        friendBubbleTextLight = Color(0xFF0F172A),
         friendBubbleTextDark = Color(0xFFFFFFFF)
     ),
     ChatThemeOption(
@@ -421,34 +421,34 @@ val AVAILABLE_CHAT_THEMES = listOf(
         friendBubbleTextDark = Color(0xFFD1FAE5)
     ),
     ChatThemeOption(
-        id = "sunset",
-        name = "Solar Sunset",
-        subtitle = "Vibrant coral & warm amber horizon",
-        primaryColor = Color(0xFFF97316),
-        secondaryColor = Color(0xFFF43F5E),
-        ownBubbleBgLight = Color(0xFFEA580C),
-        ownBubbleBgDark = Color(0xFFC2410C),
+        id = "royal_indigo",
+        name = "Royal Indigo",
+        subtitle = "Deep majestic indigo & sapphire stream",
+        primaryColor = Color(0xFF4F46E5),
+        secondaryColor = Color(0xFF6366F1),
+        ownBubbleBgLight = Color(0xFF4338CA),
+        ownBubbleBgDark = Color(0xFF3730A3),
         ownBubbleTextLight = Color(0xFFFFFFFF),
         ownBubbleTextDark = Color(0xFFFFFFFF),
-        friendBubbleBgLight = Color(0xFFFFF7ED),
-        friendBubbleBgDark = Color(0xFF29150B),
-        friendBubbleTextLight = Color(0xFF9A3412),
-        friendBubbleTextDark = Color(0xFFFFEDD5)
+        friendBubbleBgLight = Color(0xFFEEF2FF),
+        friendBubbleBgDark = Color(0xFF1E1B4B),
+        friendBubbleTextLight = Color(0xFF312E81),
+        friendBubbleTextDark = Color(0xFFE0E7FF)
     ),
     ChatThemeOption(
-        id = "terracotta",
-        name = "Warm Terracotta",
-        subtitle = "Earthy rust & cream editorial aesthetic",
-        primaryColor = Color(0xFFCF603B),
-        secondaryColor = Color(0xFFE07A5F),
-        ownBubbleBgLight = Color(0xFFCF603B),
-        ownBubbleBgDark = Color(0xFFC85A32),
+        id = "nordic_slate",
+        name = "Nordic Slate",
+        subtitle = "Clean minimalist architectural slate",
+        primaryColor = Color(0xFF334155),
+        secondaryColor = Color(0xFF64748B),
+        ownBubbleBgLight = Color(0xFF1E293B),
+        ownBubbleBgDark = Color(0xFF334155),
         ownBubbleTextLight = Color(0xFFFFFFFF),
         ownBubbleTextDark = Color(0xFFFFFFFF),
-        friendBubbleBgLight = Color(0xFFFDFBF7),
-        friendBubbleBgDark = Color(0xFF1C1917),
-        friendBubbleTextLight = Color(0xFF292524),
-        friendBubbleTextDark = Color(0xFFF5F5F4)
+        friendBubbleBgLight = Color(0xFFF1F5F9),
+        friendBubbleBgDark = Color(0xFF0F172A),
+        friendBubbleTextLight = Color(0xFF0F172A),
+        friendBubbleTextDark = Color(0xFFF8FAFC)
     ),
     ChatThemeOption(
         id = "liquid_glass",
@@ -480,7 +480,7 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
         id = "default",
         name = "Default Clean",
         subtitle = "Subtle theme background",
-        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF5F1E8))),
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFF8FAFC))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF141312), Color(0xFF1C1A17)))
     ),
     ChatWallpaperOption(
@@ -527,10 +527,10 @@ val AVAILABLE_CHAT_WALLPAPERS = listOf(
     ),
     ChatWallpaperOption(
         id = "parchment_warm",
-        name = "Archival Paper",
-        subtitle = "Warm vintage ivory grain",
-        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFBF8F2), Color(0xFFF3EDE2))),
-        darkBrush = Brush.verticalGradient(listOf(Color(0xFF292524), Color(0xFF1C1917)))
+        name = "Pure Paper White",
+        subtitle = "Pristine architectural canvas",
+        lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFF1F5F9))),
+        darkBrush = Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A)))
     )
 )
 
@@ -3564,7 +3564,7 @@ fun CustomizedChatScreen(
         )
     }
 
-    // Chat Wallpaper Size, Position & Legibility Customizer Dialog
+    // Chat Wallpaper Size, Position, Presets & Legibility Customizer Dialog
     if (showWallpaperCustomizerDialog) {
         WallpaperCustomizerDialog(
             wallpaperId = chatWallpaperId,
@@ -3572,6 +3572,41 @@ fun CustomizedChatScreen(
             initialTransform = wallpaperTransform,
             isDarkTheme = !isLight,
             onDismissRequest = { showWallpaperCustomizerDialog = false },
+            onPickCustomPhoto = {
+                wallpaperPickerLauncher.launch("image/*")
+            },
+            onApply = { newWpId, newCustomUri, newTransform, isGlobal ->
+                val friend = selectedFriend
+                if (friend != null && friend.isGroup) {
+                    val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+                    if (!friend.isUserAdmin(effUser)) {
+                        Toast.makeText(context, "Only group admins can change the group wallpaper", Toast.LENGTH_SHORT).show()
+                        showWallpaperCustomizerDialog = false
+                        return@WallpaperCustomizerDialog
+                    }
+                }
+                chatWallpaperId = newWpId
+                customWallpaperUri = newCustomUri
+                wallpaperTransform = newTransform
+
+                val targetFriend = if (isGlobal) null else friend
+                WallpaperResolver.saveWallpaper(
+                    friend = targetFriend,
+                    myUsername = myUsername,
+                    prefs = friendPrefs,
+                    wallpaperId = newWpId,
+                    customUri = newCustomUri
+                )
+                WallpaperResolver.saveTransform(
+                    friend = targetFriend,
+                    myUsername = myUsername,
+                    prefs = friendPrefs,
+                    transform = newTransform
+                )
+                val msg = if (isGlobal) "Wallpaper applied to all chats!" else "Wallpaper updated for this chat!"
+                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                showWallpaperCustomizerDialog = false
+            },
             onSave = { newTransform ->
                 val friend = selectedFriend
                 if (friend != null && friend.isGroup) {

@@ -22,20 +22,20 @@ val StitchRim = DarkConnectoColors.border               // Crisp 1dp Border (#22
 val StitchRimSubtle = DarkConnectoColors.borderSubtle   // Subtle Border (#16161C)
 val StitchRimHover = Color(0xFF2E2E38)                  // Hover Border
 
-// Light Edition: Ivory Paper (Parchment)
-val ParchmentCanvas = LightConnectoColors.background       // Ivory Paper (#FBF8F2)
+// Light Edition: Pure White (Optimized Clean White)
+val ParchmentCanvas = LightConnectoColors.background       // Pure White Canvas (#F8FAFC)
 val ParchmentSurface = LightConnectoColors.surface         // Crisp White (#FFFFFF)
-val ParchmentSurfaceVariant = LightConnectoColors.surfaceVariant // Level 1 Warm Surface (#F5F1E8)
-val ParchmentElevated = LightConnectoColors.primaryContainer    // Level 2 Warm Surface (#EBE6DC)
-val ParchmentBorder = LightConnectoColors.border           // Archival Border (#E7E2D8)
-val ParchmentBorderSubtle = LightConnectoColors.borderSubtle // Subtle Border (#F0ECE4)
-val ParchmentTextPrimary = LightConnectoColors.textPrimary  // Sumi Ink (#141312)
-val ParchmentTextSecondary = LightConnectoColors.textSecondary // Warm Secondary (#44403C)
-val ParchmentTextMuted = LightConnectoColors.textDisabled   // Archival Muted (#78716C)
-val ParchmentAccent = LightConnectoColors.primary           // Sumi Ink Accent (#141312)
-val ParchmentCyan = LightConnectoColors.info                // Cyan Accent (#0891B2)
+val ParchmentSurfaceVariant = LightConnectoColors.surfaceVariant // Level 1 Crisp Surface (#F1F5F9)
+val ParchmentElevated = LightConnectoColors.primaryContainer    // Level 2 Crisp Surface (#E2E8F0)
+val ParchmentBorder = LightConnectoColors.border           // Clean Slate Border (#E2E8F0)
+val ParchmentBorderSubtle = LightConnectoColors.borderSubtle // Subtle Border (#F1F5F9)
+val ParchmentTextPrimary = LightConnectoColors.textPrimary  // Deep Charcoal Slate (#0F172A)
+val ParchmentTextSecondary = LightConnectoColors.textSecondary // Slate 600 Secondary (#475569)
+val ParchmentTextMuted = LightConnectoColors.textDisabled   // Slate 400 Muted (#94A3B8)
+val ParchmentAccent = LightConnectoColors.primary           // Crisp High-Contrast Accent (#0F172A)
+val ParchmentCyan = LightConnectoColors.info                // Sky Azure (#0284C7)
 val ParchmentEmerald = LightConnectoColors.success          // Emerald (#10B981)
-val ParchmentGold = LightConnectoColors.warning             // Amber (#D97706)
+val ParchmentGold = LightConnectoColors.warning             // Amber Alert (#D97706)
 val ParchmentDanger = LightConnectoColors.error             // Crimson (#DC2626)
 
 // Standard Semantic Aliases
@@ -55,7 +55,7 @@ val TextDisabledColor = DarkConnectoColors.textDisabled
 
 // Accent Gradients (Subtle & Restrained)
 val DarkAccentGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFA1A1AA))
-val LightAccentGradientColors = listOf(Color(0xFF141312), Color(0xFF292524))
+val LightAccentGradientColors = listOf(Color(0xFF0F172A), Color(0xFF334155))
 
 val AccentGradientColors = DarkAccentGradientColors
 val AccentGradient = Brush.linearGradient(AccentGradientColors)

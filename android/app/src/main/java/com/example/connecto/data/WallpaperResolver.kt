@@ -304,6 +304,49 @@ object WallpaperResolver {
             editor.apply()
         } catch (_: Exception) {}
     }
+
+    /**
+     * Persists chosen wallpaper (preset ID or custom photo URI) across modern scoped and legacy keys.
+     */
+    fun saveWallpaper(
+        friend: FriendItem?,
+        myUsername: String,
+        prefs: SharedPreferences,
+        wallpaperId: String,
+        customUri: String? = null
+    ) {
+        val userPrefix = myUsername.trim().removePrefix("@").lowercase()
+        val chatKey = if (friend != null) getCanonicalChatId(friend, userPrefix) else "global"
+        val friendId = friend?.id?.trim() ?: ""
+        val cleanHandle = friend?.handle?.trim()?.removePrefix("@")?.lowercase() ?: ""
+
+        val targets = linkedSetOf<String>()
+        if (chatKey.isNotBlank()) targets.add(chatKey)
+        if (friendId.isNotBlank()) targets.add(friendId)
+        if (cleanHandle.isNotBlank()) targets.add(cleanHandle)
+        if (targets.isEmpty()) targets.add("global")
+
+        try {
+            val editor = prefs.edit()
+            for (id in targets) {
+                if (userPrefix.isNotBlank()) {
+                    editor.putString("${userPrefix}_chat_wallpaper_$id", wallpaperId)
+                    if (wallpaperId == "custom" && !customUri.isNullOrBlank()) {
+                        editor.putString("${userPrefix}_chat_wallpaper_custom_$id", customUri)
+                    } else {
+                        editor.remove("${userPrefix}_chat_wallpaper_custom_$id")
+                    }
+                }
+                editor.putString("chat_wallpaper_$id", wallpaperId)
+                if (wallpaperId == "custom" && !customUri.isNullOrBlank()) {
+                    editor.putString("chat_wallpaper_custom_$id", customUri)
+                } else {
+                    editor.remove("chat_wallpaper_custom_$id")
+                }
+            }
+            editor.apply()
+        } catch (_: Exception) {}
+    }
 }
 
 /**

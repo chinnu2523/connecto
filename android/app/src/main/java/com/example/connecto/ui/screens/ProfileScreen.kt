@@ -4226,8 +4226,8 @@ fun ProfileScreen(
                                                         onClick = { groupToConfirmLeave = groupItem },
                                                         shape = RoundedCornerShape(10.dp),
                                                         colors = ButtonDefaults.buttonColors(
-                                                            containerColor = Color(0xFFF97316).copy(alpha = 0.15f),
-                                                            contentColor = Color(0xFFF97316)
+                                                            containerColor = Color(0xFFEF4444).copy(alpha = 0.15f),
+                                                            contentColor = Color(0xFFEF4444)
                                                         ),
                                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                                                         modifier = Modifier.height(34.dp)
@@ -4235,7 +4235,7 @@ fun ProfileScreen(
                                                         Icon(
                                                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                                                             contentDescription = "Exit Group",
-                                                            tint = Color(0xFFF97316),
+                                                            tint = Color(0xFFEF4444),
                                                             modifier = Modifier.size(15.dp)
                                                         )
                                                         Spacer(modifier = Modifier.width(4.dp))
@@ -4243,7 +4243,7 @@ fun ProfileScreen(
                                                             text = "Exit",
                                                             fontSize = 11.sp,
                                                             fontWeight = FontWeight.Bold,
-                                                            color = Color(0xFFF97316)
+                                                            color = Color(0xFFEF4444)
                                                         )
                                                     }
                                                 }
@@ -5679,7 +5679,7 @@ fun ProfileScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                         contentDescription = null,
-                        tint = Color(0xFFF97316),
+                        tint = Color(0xFFDC2626),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -5731,7 +5731,7 @@ fun ProfileScreen(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
                     shape = RoundedCornerShape(10.dp),
                     enabled = !isLeavingProfileGroup
                 ) {

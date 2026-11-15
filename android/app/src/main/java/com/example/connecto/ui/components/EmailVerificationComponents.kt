@@ -74,7 +74,7 @@ fun EmailGracePeriodBanner(
                 Brush.horizontalGradient(
                     listOf(
                         Color(0xFFEAB308).copy(alpha = 0.22f),
-                        Color(0xFFF97316).copy(alpha = 0.28f)
+                        Color(0xFFCA8A04).copy(alpha = 0.25f)
                     )
                 )
             )

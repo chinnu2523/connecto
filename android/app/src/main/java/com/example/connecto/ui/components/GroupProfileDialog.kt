@@ -880,8 +880,8 @@ fun FullScreenGroupProfileDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(16.dp))
-                                        .background(Color(0xFFF97316).copy(alpha = 0.10f))
-                                        .border(1.dp, Color(0xFFF97316).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+                                        .background(Color(0xFFEF4444).copy(alpha = 0.10f))
+                                        .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f), RoundedCornerShape(16.dp))
                                         .clickable { showLeaveGroupConfirm = true }
                                         .padding(horizontal = 16.dp, vertical = 14.dp),
                                     contentAlignment = Alignment.Center
@@ -893,7 +893,7 @@ fun FullScreenGroupProfileDialog(
                                         Icon(
                                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                                             contentDescription = "Exit Group",
-                                            tint = Color(0xFFF97316),
+                                            tint = Color(0xFFEF4444),
                                             modifier = Modifier.size(20.dp)
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
@@ -901,7 +901,7 @@ fun FullScreenGroupProfileDialog(
                                             text = "Exit Group",
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color(0xFFF97316),
+                                            color = Color(0xFFEF4444),
                                             letterSpacing = 0.3.sp
                                         )
                                     }
@@ -996,7 +996,7 @@ fun FullScreenGroupProfileDialog(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                         contentDescription = null,
-                        tint = Color(0xFFF97316),
+                        tint = Color(0xFFDC2626),
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -1029,7 +1029,7 @@ fun FullScreenGroupProfileDialog(
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF97316)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
                     shape = RoundedCornerShape(10.dp),
                     enabled = !isLeavingGroup
                 ) {

@@ -179,7 +179,7 @@ fun getAvatarGradient(name: String): Brush {
         listOf(Color(0xFFEC4899), Color(0xFF8B5CF6)), // Pink to Purple
         listOf(Color(0xFF8B5CF6), Color(0xFFD946EF)), // Purple to Fuchsia
         listOf(Color(0xFF14B8A6), Color(0xFF0284C7)), // Teal to Sky
-        listOf(Color(0xFFF97316), Color(0xFFE11D48)), // Orange to Rose
+        listOf(Color(0xFF64748B), Color(0xFF334155)), // Slate to Charcoal
         listOf(Color(0xFF0EA5E9), Color(0xFF6366F1))  // Sky to Indigo
     )
     val hash = kotlin.math.abs(name.trim().lowercase().hashCode())
