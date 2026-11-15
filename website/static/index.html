@@ -999,15 +999,16 @@
       background-image: radial-gradient(rgba(20, 19, 18, 0.09) 1.2px, transparent 1.2px);
     }
 
-    /* 6. Magic UI Luxury Floating Glass Dock */
+    /* 6. Magic UI Luxury Floating Glass Dock (REMOVED: onscreen bottom buttons) */
     .magic-dock-container {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
       position: fixed;
       bottom: 24px;
       left: 50%;
       transform: translateX(-50%) translateZ(0);
-      z-index: 99990;
-      pointer-events: auto;
-      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: -1;
     }
     html[data-active-view="chat"] .magic-dock-container,
     html[data-active-view="voice"] .magic-dock-container {
@@ -12609,16 +12610,16 @@
       }
     }
 
+    .floating-support-pill {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     @media (max-width: 600px) {
       .floating-support-pill {
-        bottom: 74px !important;
-        right: 14px !important;
-        padding: 0 !important;
-        width: 48px !important;
-        height: 48px !important;
-        border-radius: 16px !important;
-        justify-content: center !important;
-        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45) !important;
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
       }
       .floating-support-pill .support-pill-text,
       .floating-support-pill .support-pill-badge {
@@ -17305,22 +17306,11 @@
   color: #94A3B8 !important;
 }
 
-/* Mobile Bottom Dock (5-Tab Architecture) - strictly hidden until user logs in and enters app */
+/* Mobile Bottom Dock (REMOVED: onscreen bottom buttons) */
 .connecto-mobile-dock {
   display: none !important;
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: 64px !important;
-  background: var(--bg-card, #0A0C13) !important;
-  border-top: 1px solid var(--card-border, rgba(255, 255, 255, 0.08)) !important;
-  z-index: 9999 !important;
-  justify-content: space-around !important;
-  align-items: center !important;
-  padding: 0 8px !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 .mobile-dock-btn {
   display: flex !important;
@@ -18461,25 +18451,11 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       color: #000000;
     }
 
-    /* 4. Cookie / Privacy Transparency Consent Banner */
+    /* 4. Cookie / Privacy Transparency Consent Banner (REMOVED: onscreen bottom buttons/bars) */
     .cookie-consent-bar {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 99998;
-      background: rgba(18, 18, 22, 0.96);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-      border-radius: 14px;
-      padding: 12px 22px;
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      max-width: 92vw;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      animation: slideUpConsent 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
     }
     @keyframes slideUpConsent {
       from { opacity: 0; transform: translate(-50%, 20px); }
@@ -22129,56 +22105,27 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
   .cyber-stage-header-pill { padding: 6px 8px !important; }
 }
 
-/* 3. Stitch MCP Floating Mobile Island Dock */
+/* 3. Stitch MCP Floating Mobile Island Dock (REMOVED: onscreen bottom buttons) */
 .connecto-mobile-dock {
-  position: fixed !important;
-  bottom: 12px !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: calc(100% - 24px) !important;
-  max-width: 390px !important;
-  background: rgba(18, 20, 29, 0.94) !important;
-  backdrop-filter: blur(24px) !important;
-  -webkit-backdrop-filter: blur(24px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  border-radius: 9999px !important;
-  padding: 6px 8px !important;
-  display: none;
-  align-items: center !important;
-  justify-content: space-around !important;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(124, 92, 252, 0.15) !important;
-  z-index: 1000 !important;
-  user-select: none !important;
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 @media (max-width: 768px) {
-  .connecto-mobile-dock {
-    display: none !important;
-  }
+  .connecto-mobile-dock,
   body.in-app-view .connecto-mobile-dock {
-    display: flex !important;
-    position: fixed !important;
-    bottom: 12px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    width: min(calc(100% - 24px), 440px) !important;
-    height: 60px !important;
-    background: var(--bg-card, rgba(10, 14, 26, 0.92)) !important;
-    backdrop-filter: blur(24px) -webkit-backdrop-filter: blur(24px) !important;
-    border: 1px solid var(--card-border, rgba(255, 255, 255, 0.12)) !important;
-    border-radius: 9999px !important;
-    padding: 4px 8px !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(124, 92, 252, 0.15) !important;
-    z-index: 9999 !important;
-    pointer-events: auto !important;
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
   body.in-app-view {
-    padding-bottom: 78px !important;
+    padding-bottom: 0 !important;
   }
   body.mobile-in-chat {
     padding-bottom: 0 !important;
   }
   .input-area {
-    margin-bottom: 72px !important;
+    margin-bottom: 0 !important;
     padding-bottom: 4px !important;
   }
   .stitch-input-row, .chat-input-row, .connecto-enhanced-input-row {
@@ -22187,7 +22134,7 @@ button:active, .btn:active, .guild-icon:active, .channel-item:active, .mobile-do
     padding-bottom: 0 !important;
   }
   .messages-area, .messages {
-    padding-bottom: 92px !important;
+    padding-bottom: 24px !important;
   }
 }
 .mobile-dock-btn {
@@ -31036,12 +30983,15 @@ html[data-theme="dark"] #saveProfileBtn {
 
   <!-- ==================== HELP & SUPPORT MODALS & STYLES ==================== -->
   <style id="support-help-center-styles">
-    /* Floating Support Trigger */
+    /* Floating Support Trigger (REMOVED: onscreen bottom buttons) */
     .floating-support-pill {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
       position: fixed;
       bottom: 24px;
       right: 24px;
-      z-index: 99999;
+      z-index: -1;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -31397,13 +31347,7 @@ html[data-theme="dark"] #saveProfileBtn {
     }
   </style>
 
-  <!-- Floating Customer Support AI Launcher -->
-  <div id="floatingSupportAiTrigger" class="floating-support-pill" onclick="openCustomerSupportAiModal()" title="24/7 AI Customer Support" aria-label="Open 24/7 AI Customer Support">
-    <div class="support-pill-pulse"></div>
-    <i data-lucide="bot" class="lucide-sm" style="display:inline-flex;"></i>
-    <span class="support-pill-text">AI Support</span>
-    <span class="support-pill-badge">24/7</span>
-  </div>
+  <!-- Floating Customer Support AI Launcher (REMOVED: onscreen bottom buttons) -->
 
   <!-- 1. Dedicated Full AI Customer Support Chat Modal -->
   <div class="modal-overlay" id="customerSupportAiModal" style="display:none;" onclick="closeCustomerSupportAiModal(event)">
@@ -47240,45 +47184,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
 <!-- END BUG FIX #3 -->
 
 
-<!-- ============================================================ -->
-<!-- STITCH MCP: Connecto SOTA 5-Tab Navigation Dock               -->
-<!-- ============================================================ -->
-<nav class="connecto-mobile-dock" id="connectoMobileDock" aria-label="Mobile Navigation">
-  <button class="mobile-dock-btn" id="dock-home-btn" onclick="switchMainView('home');" title="Home">
-    <div class="dock-btn-icon-wrap">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    </div>
-    <span class="dock-btn-label">Home</span>
-  </button>
-
-  <button class="mobile-dock-btn" id="dock-messages-btn" onclick="switchMainView('messages');" title="Messages">
-    <div class="dock-btn-icon-wrap">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    </div>
-    <span class="dock-btn-label">Messages</span>
-  </button>
-
-  <button class="mobile-dock-btn active" id="dock-chat-btn" onclick="handleDockChannelsClick();" title="Channels">
-    <div class="dock-btn-icon-wrap">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
-    </div>
-    <span class="dock-btn-label">Channels</span>
-  </button>
-
-  <button class="mobile-dock-btn" id="dock-calls-btn" onclick="switchMainView('calls');" title="Calls">
-    <div class="dock-btn-icon-wrap">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-6-6 19.8 19.8 0 0 1-3.12-8.69 2 2 0 0 1 2-2.18h3a2 2 0 0 1 2 1.72 12.81 12.81 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L9.08 9.08"/></svg>
-    </div>
-    <span class="dock-btn-label">Calls</span>
-  </button>
-
-  <button class="mobile-dock-btn" id="dock-profile-btn" onclick="openSettingsModal()" title="Profile">
-    <div class="dock-btn-icon-wrap">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </div>
-    <span class="dock-btn-label">Profile</span>
-  </button>
-</nav>
+<!-- STITCH MCP: Connecto SOTA 5-Tab Navigation Dock (REMOVED: onscreen bottom buttons) -->
 
 <script>
 // Synchronize Mobile Island Dock active button with main app view
@@ -48390,48 +48296,7 @@ function hangupVoiceLounge() {
   })();
   </script>
 
-  <!-- MAGIC UI LUXURY FLOATING GLASS DOCK (STITCH & MAGICUI CONNECTOR ENGINE) -->
-  <aside class="magic-dock-container" id="magicFloatingDock" aria-label="Quick Action Dock">
-    <div class="magic-dock-glass">
-      <button class="magic-dock-item active" data-dock-view="hero" onclick="switchMainView('hero')" title="Explore Connecto" aria-label="Explore Connecto">
-        <span class="magic-dock-icon"><i data-lucide="sparkles"></i></span>
-        <span class="magic-dock-tooltip">Explore</span>
-      </button>
-      <button class="magic-dock-item" data-dock-view="home" onclick="switchMainView('home')" title="Home Dashboard" aria-label="Home Dashboard">
-        <span class="magic-dock-icon"><i data-lucide="home"></i></span>
-        <span class="magic-dock-tooltip">Dashboard</span>
-      </button>
-      <button class="magic-dock-item" data-dock-view="chat" onclick="switchMainView('chat')" title="Live Community Chat" aria-label="Live Community Chat">
-        <span class="magic-dock-icon"><i data-lucide="message-square"></i></span>
-        <span class="magic-dock-tooltip">Live Chat</span>
-      </button>
-      <button class="magic-dock-item" data-dock-view="voice" onclick="switchMainView('voice')" title="Spatial Voice Lounges" aria-label="Spatial Voice Lounges">
-        <span class="magic-dock-icon"><i data-lucide="radio"></i></span>
-        <span class="magic-dock-tooltip">Spatial Voice</span>
-      </button>
-      <div class="magic-dock-divider" aria-hidden="true"></div>
-      <button class="magic-dock-item magic-dock-store-item" onclick="scrollToHeroSection('ourStoreSection')" title="Our Store APKs" aria-label="APK Our Store">
-        <span class="magic-dock-icon"><i data-lucide="shopping-bag"></i></span>
-        <span class="magic-dock-badge">APK</span>
-        <span class="magic-dock-tooltip">Our Store</span>
-      </button>
-      <button class="magic-dock-item" data-dock-view="learning" onclick="switchMainView('learning')" title="SOC Security Labs" aria-label="SOC Security Labs">
-        <span class="magic-dock-icon"><i data-lucide="shield"></i></span>
-        <span class="magic-dock-tooltip">SOC Labs</span>
-      </button>
-      <div class="magic-dock-divider" aria-hidden="true"></div>
-      <button class="magic-dock-item magic-dock-theme-item" id="magicDockThemeBtn" onclick="toggleEditorialTheme(event)" title="Toggle Theme" aria-label="Toggle Theme">
-        <span class="magic-dock-icon" id="magicDockThemeIcon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="theme-icon-svg"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-        </span>
-        <span class="magic-dock-tooltip">Switch Theme</span>
-      </button>
-      <button class="magic-dock-item" onclick="openSettingsModal()" title="Preferences & Account" aria-label="Preferences">
-        <span class="magic-dock-icon"><i data-lucide="settings"></i></span>
-        <span class="magic-dock-tooltip">Settings</span>
-      </button>
-    </div>
-  </aside>
+  <!-- MAGIC UI LUXURY FLOATING GLASS DOCK (REMOVED: onscreen bottom buttons) -->
   <!-- ==================== ANTI-SLOP COMPONENT: COMMAND PALETTE (⌘K) ==================== -->
   <div class="cmdk-overlay" id="cmdkOverlay" onclick="handleCmdkBackdropClick(event)" aria-modal="true" role="dialog" aria-label="Command Palette">
     <div class="cmdk-modal" id="cmdkModal" onclick="event.stopPropagation()">
@@ -48502,13 +48367,7 @@ function hangupVoiceLounge() {
     </div>
   </div>
 
-  <!-- ==================== PRIVACY / LOCAL STORAGE CONSENT BANNER ==================== -->
-  <div class="cookie-consent-bar" id="cookieConsentBanner" style="display:none;" role="region" aria-label="Privacy and Cookie Notice">
-    <div class="cookie-consent-text">
-      <strong>Zero-Tracking Privacy:</strong> Connecto uses local storage solely for cryptographic keys, theme preferences, and session persistence. Review our <a href="/privacy.html" style="text-decoration:underline;color:inherit;font-weight:600;">Privacy Policy</a>.
-    </div>
-    <button class="cookie-consent-btn" onclick="acceptCookieConsent()">Got it</button>
-  </div>
+  <!-- ==================== PRIVACY / LOCAL STORAGE CONSENT BANNER (REMOVED: onscreen bottom buttons/bars) ==================== -->
 
   <!-- COMMAND PALETTE & CONSENT LOGIC -->
   <script>
@@ -48616,12 +48475,7 @@ function hangupVoiceLounge() {
     };
 
     try {
-      if (!localStorage.getItem('connecto_cookie_consent_v1')) {
-        setTimeout(() => {
-          const banner = document.getElementById('cookieConsentBanner');
-          if (banner) banner.style.display = 'flex';
-        }, 1200);
-      }
+      localStorage.setItem('connecto_cookie_consent_v1', 'accepted');
     } catch (_) {}
 
     // 3. Useful Animated Feedback for Buttons (Unslop #20)
