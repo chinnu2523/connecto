@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Mail
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PersonSearch
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -572,6 +573,45 @@ fun AddFriendDialog(
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             textAlign = TextAlign.Center
                                         )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(12.dp),
+                                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                                            modifier = Modifier.pressScaleEffect(
+                                                onClick = {
+                                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+                                                        val refUrl = if (effUser.isNotBlank()) "https://connecto.fun/download?ref=$effUser" else "https://connecto.fun/download"
+                                                        putExtra(
+                                                            Intent.EXTRA_TEXT,
+                                                            "Hey! Join me on Connecto - the fast, privacy-focused messenger. Add me as @$effUser!\nDownload now: $refUrl"
+                                                        )
+                                                    }
+                                                    context.startActivity(Intent.createChooser(shareIntent, "Invite friend to Connecto"))
+                                                }
+                                            )
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Share,
+                                                    contentDescription = "Invite friend",
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Text(
+                                                    text = "Invite to Connecto",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             } else {

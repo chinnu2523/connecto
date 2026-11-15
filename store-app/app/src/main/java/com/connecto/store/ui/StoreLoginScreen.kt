@@ -66,6 +66,7 @@ fun StoreLoginScreen(
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
+    var showReferDialog by remember { mutableStateOf(false) }
 
     val isLoading = loginState is LoginUiState.Loading
     val isError = loginState is LoginUiState.Error
@@ -530,6 +531,22 @@ fun StoreLoginScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
+                    text = "Refer",
+                    color = theme.textMuted.copy(alpha = 0.75f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showReferDialog = true }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                )
+                Text(
+                    text = "•",
+                    color = theme.textMuted.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+                Text(
                     text = "Help & Support",
                     color = theme.textMuted.copy(alpha = 0.75f),
                     fontSize = 11.sp,
@@ -602,6 +619,13 @@ fun StoreLoginScreen(
     if (showFeedbackDialog) {
         OurStoreFeedbackDialog(
             onDismiss = { showFeedbackDialog = false }
+        )
+    }
+
+    // Refer Our Store Dialog
+    if (showReferDialog) {
+        OurStoreReferDialog(
+            onDismiss = { showReferDialog = false }
         )
     }
 

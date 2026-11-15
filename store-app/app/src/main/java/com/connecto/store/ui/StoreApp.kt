@@ -2950,6 +2950,7 @@ fun ClassicLoginAccountView(
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
     var showFeedbackDialog by remember { mutableStateOf(false) }
+    var showReferDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -3233,6 +3234,15 @@ fun ClassicLoginAccountView(
                                 .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
+                                StoreSettingsNavRow(
+                                    icon = Icons.Rounded.Share,
+                                    iconTint = Color(0xFF8B5CF6),
+                                    title = "Refer Our Store",
+                                    subtitle = "Share download link & spread independent open apps",
+                                    theme = theme,
+                                    onClick = { showReferDialog = true }
+                                )
+                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
                                 StoreSettingsNavRow(
                                     icon = Icons.Rounded.RateReview,
                                     iconTint = Color(0xFFF59E0B),
@@ -3652,6 +3662,18 @@ fun ClassicLoginAccountView(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
+                        text = "Refer",
+                        color = theme.accentColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { showReferDialog = true }
+                    )
+                    Text(
+                        text = "•",
+                        color = theme.textDarkMuted,
+                        fontSize = 12.sp
+                    )
+                    Text(
                         text = "Help & Support",
                         color = theme.accentColor,
                         fontSize = 12.sp,
@@ -3715,6 +3737,12 @@ fun ClassicLoginAccountView(
     if (showFeedbackDialog) {
         OurStoreFeedbackDialog(
             onDismiss = { showFeedbackDialog = false }
+        )
+    }
+
+    if (showReferDialog) {
+        OurStoreReferDialog(
+            onDismiss = { showReferDialog = false }
         )
     }
 }

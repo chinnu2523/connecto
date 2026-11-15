@@ -235,6 +235,24 @@ fun OurStoreHelpSupportDialog(
                             1 -> {
                                 // Contact Us Section
                                 ContactCard(
+                                    icon = Icons.Rounded.Share,
+                                    title = "Refer & Share Our Store",
+                                    subtitle = "https://connecto.fun/downloads/our-store.apk",
+                                    actionLabel = "Share Link",
+                                    theme = theme,
+                                    onAction = {
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(
+                                                Intent.EXTRA_TEXT,
+                                                "Download Our Store - the independent, verified Android App Store with zero trackers: https://connecto.fun/downloads/our-store.apk"
+                                            )
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Share Our Store via"))
+                                    }
+                                )
+
+                                ContactCard(
                                     icon = Icons.Rounded.RateReview,
                                     title = "Send Product Feedback",
                                     subtitle = "feedback@connecto.fun",

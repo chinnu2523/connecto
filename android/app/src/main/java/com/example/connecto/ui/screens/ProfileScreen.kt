@@ -43,9 +43,11 @@ import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.AlertDialog
 import com.example.connecto.ui.components.CustomerSupportAiDialog
 import com.example.connecto.ui.components.ConnectoFeedbackDialog
+import com.example.connecto.ui.components.ConnectoReferDialog
 import com.example.connecto.ui.components.PrivacyPolicyDialog
 import com.example.connecto.ui.components.TermsOfServiceDialog
 import androidx.compose.material.icons.filled.RateReview
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Description
@@ -459,6 +461,7 @@ fun ProfileScreen(
 
     var showCustomerSupportAiDialog by rememberSaveable { mutableStateOf(false) }
     var showFeedbackDialog by rememberSaveable { mutableStateOf(false) }
+    var showReferDialog by rememberSaveable { mutableStateOf(false) }
     var showPrivacyPolicyDialog by rememberSaveable { mutableStateOf(false) }
     var showTermsOfServiceDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -1773,6 +1776,13 @@ fun ProfileScreen(
                             title = "Help Center",
                             showChevron = true,
                             onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.Share,
+                            title = "Invite Friends & Refer",
+                            showChevron = true,
+                            onClick = { showReferDialog = true }
                         )
                         ConnectoSettingsDivider()
                         ConnectoSettingsRow(
@@ -5116,6 +5126,70 @@ fun ProfileScreen(
                                             )
                                         }
                                     }
+
+                                    // Invite Friends & Refer Card
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                RoundedCornerShape(16.dp)
+                                            )
+                                            .clickable { showReferDialog = true }
+                                            .padding(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFF8B5CF6).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Share,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF8B5CF6),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Column {
+                                                    Text(
+                                                        text = "Invite Friends & Refer",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Share personal invite link & spread encrypted messaging",
+                                                        fontSize = 11.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
@@ -6224,6 +6298,13 @@ fun ProfileScreen(
         ConnectoFeedbackDialog(
             username = username,
             onDismiss = { showFeedbackDialog = false }
+        )
+    }
+
+    if (showReferDialog) {
+        ConnectoReferDialog(
+            username = username,
+            onDismiss = { showReferDialog = false }
         )
     }
 
