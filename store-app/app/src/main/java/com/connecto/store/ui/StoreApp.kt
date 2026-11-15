@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.rememberScrollState
@@ -214,6 +215,7 @@ fun StoreApp(
     val isVerifyingAuth by vm.isVerifyingAuth.collectAsState()
     val context = LocalContext.current
     var selectedSection by remember { mutableStateOf(StoreNavSection.OVERVIEW) }
+    var catalogScrollToTopTrigger by remember { mutableStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
     var selectedPackageName by remember { mutableStateOf<String?>(null) }
@@ -427,7 +429,8 @@ fun StoreApp(
                                                 onToggleBookmark = { appState -> vm.toggleBookmark(appState.app.id) },
                                                 onUpdateAll = { vm.updateAll(context) },
                                                 onRefresh = { vm.loadCatalog(silently = true) },
-                                                isUpdatesTab = currentSection == StoreNavSection.UPDATES
+                                                isUpdatesTab = currentSection == StoreNavSection.UPDATES,
+                                                scrollToTopTrigger = catalogScrollToTopTrigger
                                             )
                                         }
                                     }
@@ -436,7 +439,12 @@ fun StoreApp(
                                 // Interactive Modern Footer Navigation Bar
                                 ClassicBottomNavBar(
                                     selected = selectedSection,
-                                    onSelect = { selectedSection = it },
+                                    onSelect = { section ->
+                                        if (section == StoreNavSection.OVERVIEW && selectedSection == StoreNavSection.OVERVIEW) {
+                                            catalogScrollToTopTrigger++
+                                        }
+                                        selectedSection = section
+                                    },
                                     updateCount = s.apps.count {
                                         it.installState == StoreApp.InstallState.UPDATE_AVAILABLE
                                     },
@@ -830,9 +838,23 @@ private fun ClassicCatalogBody(
     onToggleBookmark: (AppUiState) -> Unit,
     onUpdateAll: () -> Unit,
     onRefresh: () -> Unit = {},
-    isUpdatesTab: Boolean
+    isUpdatesTab: Boolean,
+    scrollToTopTrigger: Int = 0
 ) {
     val theme = LocalStoreTheme.current
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            try {
+                if (listState.firstVisibleItemIndex > 15) {
+                    listState.scrollToItem(15)
+                }
+                listState.animateScrollToItem(0)
+            } catch (_: Exception) {}
+        }
+    }
+
     val categories = remember(state.apps) {
         listOf("All", "Saved") + state.apps.map { it.app.category }.filter { it != "Saved" && it != "All" }.distinct()
     }
@@ -844,6 +866,7 @@ private fun ClassicCatalogBody(
         modifier = Modifier.fillMaxSize()
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)

@@ -423,6 +423,7 @@ fun ConnectoApp(
     var hasUnreadChats by remember { mutableStateOf(false) }
     var isNotificationCenterOpen by remember { mutableStateOf(false) }
     var isChannelDrawerOpen by remember { mutableStateOf(false) }
+    var homeScrollToTopTrigger by remember { mutableStateOf(0) }
 
     // App-wide screen privacy & blackscreen protection for screenshot, screenshare, and screencast
     val isScreenSecurityActive by com.example.connecto.security.ScreenSecurityManager.isSecurityEnabledState.collectAsState()
@@ -856,6 +857,9 @@ fun ConnectoApp(
                                     ConnectoBottomBar(
                                         currentTab = currentTab,
                                         onTabSelected = { selectedTab ->
+                                            if (selectedTab == ConnectoTab.HOME && currentTab == ConnectoTab.HOME) {
+                                                homeScrollToTopTrigger++
+                                            }
                                             updateCurrentTab(selectedTab)
                                         },
                                         hasUnreadChats = hasUnreadChats,
@@ -899,7 +903,8 @@ fun ConnectoApp(
                                                 selectedChannelForWorkspace = channelName
                                                 prefs.edit().putString("last_active_channel", channelName).apply()
                                                 updateCurrentTab(ConnectoTab.CHANNELS)
-                                            }
+                                            },
+                                            scrollToTopTrigger = homeScrollToTopTrigger
                                         )
                                     }
                                     ConnectoTab.MESSAGES -> {

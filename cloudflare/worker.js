@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.1.2",
-        version_name: "v5.1.2",
-        version_code: 128,
-        build: 128,
-        sha256: "33b424ee2dd7ca47bc69d99cafde08fbcb0b9390403f247376877103800a891b",
+        version: "5.1.3",
+        version_name: "v5.1.3",
+        version_code: 129,
+        build: 129,
+        sha256: "89ce06e5f93b21693871c96119d2961fae84f55df6de1d9fb77965cbdaff8c88",
         filename: "connecto-fun.apk",
-        size_bytes: 37968086,
+        size_bytes: 37968142,
         size_display: "36.2 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -213,6 +213,7 @@ Sitemap: https://connecto.fun/sitemap.xml
         download_url: "/download/apk",
         direct_download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         features: [
+          "Home Tab Tap-To-Top: Tapping the Home bottom bar tab button or top header smoothly scrolls the dashboard LazyColumn back to top with intelligent leap acceleration.",
           "Tactile Drag-To-Refresh: Custom physics overscroll with damped pull, release-to-refresh spring return, haptic tick feedback, and non-blocking background refresh for conversation dashboard.",
           "9 Custom Signature Ratio Themes: High-contrast 60-30-10 palettes (Moss & Emerald, Mint & Vivid Red, Fiery Lime, Mocha Electric, Butter & Ink, Olive Bubblegum, Charcoal Crimson, Lemon Lavender, Mocha Gold) integrated natively in Profile appearance.",
           "Sanitized Error Experience: Clean friendly system prompts replace technical exceptions and raw outputs.",
@@ -361,14 +362,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.4-b43-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.5-b44-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.9.4");
-          res.headers.set("X-Connecto-Store-Build", "43");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.5");
+          res.headers.set("X-Connecto-Store-Build", "44");
           return res;
         }
 
@@ -406,8 +407,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.4");
-              downloadHeaders.set("X-Connecto-Store-Build", "43");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.5");
+              downloadHeaders.set("X-Connecto-Store-Build", "44");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -511,14 +512,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.2-b128-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.3-b129-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.1.2");
-          res.headers.set("X-Connecto-Build", "128");
+          res.headers.set("X-Connecto-Version", "v5.1.3");
+          res.headers.set("X-Connecto-Build", "129");
           return res;
         }
 
@@ -554,8 +555,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.1.2");
-              downloadHeaders.set("X-Connecto-Build", "128");
+              downloadHeaders.set("X-Connecto-Version", "v5.1.3");
+              downloadHeaders.set("X-Connecto-Build", "129");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1865,14 +1866,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.4",
-        version_code: 43,
-        size_bytes: 18493394,
+        version_name: "1.9.5",
+        version_code: 44,
+        size_bytes: 18493402,
         size_formatted: "18.2 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Store Tab Tap-To-Top: Tapping the active Store tab button smoothly scrolls the catalog LazyColumn back to the top with leap acceleration",
           "Tactile Drag-To-Refresh: Custom nested scroll overscroll with spring physics return, haptic feedback, and non-blocking catalog reload",
           "Unslop Visual System: Refined typography, eliminated filler embellishments, and unified high-contrast dark/light design system",
           "Tabular Numerals & Anti-Jitter: Monospace and tabular numbers applied to telemetry and metrics to avoid reflow",
@@ -1883,7 +1885,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "Optimistic App Bookmarking: 0ms favorite toggle with persistent storage and dedicated 'Saved' category filter"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T11:45:00Z"
+        updated_at: "2026-11-15T12:05:00Z"
       },
       {
         id: "connecto",
@@ -1893,14 +1895,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.1.2",
-        version_code: 128,
-        size_bytes: 37968086,
+        version_name: "5.1.3",
+        version_code: 129,
+        size_bytes: 37968142,
         size_formatted: "36.2 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Home Tab Tap-To-Top: Tapping the Home bottom bar tab button or top header smoothly scrolls the dashboard LazyColumn back to top with intelligent leap acceleration",
           "Tactile Drag-To-Refresh: Custom physics overscroll with damped pull, release-to-refresh spring return, haptic tick feedback, and non-blocking background refresh",
           "Anti-Slop Command Palette & Quick Search: Integrated ⌘K quick action palette for instant channel navigation, AI support, and legal documents",
           "Tabular Numbers & Reflow Protection: Monospace tabular numerals for timestamps, call durations, and badge metrics",
@@ -1911,7 +1914,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
           "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T11:50:00Z"
+        updated_at: "2026-11-15T12:10:00Z"
       },
       {
         id: "jarvis",
@@ -7068,13 +7071,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.1.2",
-      version_name: "v5.1.2",
-      version_code: 128,
-      build: 128,
-      sha256: "33b424ee2dd7ca47bc69d99cafde08fbcb0b9390403f247376877103800a891b",
+      version: "5.1.3",
+      version_name: "v5.1.3",
+      version_code: 129,
+      build: 129,
+      sha256: "89ce06e5f93b21693871c96119d2961fae84f55df6de1d9fb77965cbdaff8c88",
       filename: "connecto-fun.apk",
-      size_bytes: 37968086,
+      size_bytes: 37968142,
       size_display: "36.2 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -7087,6 +7090,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.1.3",
+          date: "Nov 15, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v5.1.3: Home Tab & Store Tab Tap-To-Top Navigation",
+          summary: "Connecto v5.1.3 enables smooth instant scroll-to-top when tapping the Home bottom bar tab button or top header from any scrolled position, featuring intelligent multi-item leap acceleration in Connecto and Our Store.",
+          highlights: [
+            "Home Tab Tap-To-Top: Tapping the Home tab button or top header from anywhere down the list smoothly scrolls all the way back to the top.",
+            "Our Store Tap-To-Top: Tapping the Store tab button in the bottom navigation bar returns smoothly to the top of the app catalog.",
+            "Multi-Item Leap Acceleration: Long lists fast-leap down to the top 15 items first before completing the smooth animateScrollToItem.",
+            "Android Native App v5.1.3 (Build 129 • 36.2 MB): SHA-256 89ce06e5f93b21693871c96119d2961fae84f55df6de1d9fb77965cbdaff8c88."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v5.1.2",
           date: "Nov 15, 2026",
@@ -8238,19 +8256,19 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.4</span>")
-            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.4 (Build 43) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.4 • 18.2 MB)")
+            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.5</span>")
+            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.5 (Build 44) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.5 • 18.2 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[6789]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.9.4)")
-            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.4")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.9.5)")
+            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.5")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.2")
-            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.2")
-            .replace(/Build 12[0-8]/g, "Build 128")
-            .replace(/BUILD 12[0-8]/g, "BUILD 128")
-            .replace(/\(b12[0-8]\)/g, "(b128)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.3")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.3")
+            .replace(/Build 12[0-9]/g, "Build 129")
+            .replace(/BUILD 12[0-9]/g, "BUILD 129")
+            .replace(/\(b12[0-9]\)/g, "(b129)");
           responseBody = patched;
         } catch (_) {}
       }

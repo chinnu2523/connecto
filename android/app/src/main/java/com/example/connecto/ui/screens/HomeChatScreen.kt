@@ -193,11 +193,24 @@ fun HomeChatScreen(
     onNavigateToCalls: () -> Unit = {},
     onOpenNotifications: () -> Unit = {},
     unreadNotificationsCount: Int = 0,
-    onNavigateToChannel: ((String) -> Unit)? = null
+    onNavigateToChannel: ((String) -> Unit)? = null,
+    scrollToTopTrigger: Int = 0
 ) {
     val context = LocalContext.current
     val colors = LocalConnectoColors.current
     val coroutineScope = rememberCoroutineScope()
+    val dashboardListState = androidx.compose.foundation.lazy.rememberLazyListState()
+
+    androidx.compose.runtime.LaunchedEffect(scrollToTopTrigger) {
+        if (scrollToTopTrigger > 0) {
+            try {
+                if (dashboardListState.firstVisibleItemIndex > 15) {
+                    dashboardListState.scrollToItem(15)
+                }
+                dashboardListState.animateScrollToItem(0)
+            } catch (_: Exception) {}
+        }
+    }
 
     // State holdings
     val gradientColors = getDynamicAccentGradientColors()
@@ -775,19 +788,37 @@ fun HomeChatScreen(
             )
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // 1. Standardized Top Header with Status (Profile avatar removed as requested)
-            ConnectoTopHeader(
-                title = "Connecto",
-                subtitle = "Dashboard",
-                userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
-                pendingFriendRequestsCount = friendRequests.size,
-                onAddFriendClick = { isAddFriendOpen = true },
-                onMenuClick = null,
-                onVoiceGroupClick = null,
-                showProfileButton = false,
-                onAvatarClick = {},
-                customAction = null
-            )
+            // 1. Standardized Top Header with Status (Profile avatar removed as requested; tap header to scroll to top)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        coroutineScope.launch {
+                            try {
+                                if (dashboardListState.firstVisibleItemIndex > 15) {
+                                    dashboardListState.scrollToItem(15)
+                                }
+                                dashboardListState.animateScrollToItem(0)
+                            } catch (_: Exception) {}
+                        }
+                    }
+            ) {
+                ConnectoTopHeader(
+                    title = "Connecto",
+                    subtitle = "Dashboard",
+                    userInitial = currentUsername.firstOrNull()?.uppercase() ?: "C",
+                    pendingFriendRequestsCount = friendRequests.size,
+                    onAddFriendClick = { isAddFriendOpen = true },
+                    onMenuClick = null,
+                    onVoiceGroupClick = null,
+                    showProfileButton = false,
+                    onAvatarClick = {},
+                    customAction = null
+                )
+            }
 
             // Scrollable Dashboard Content with Tactile Drag-To-Refresh
             com.example.connecto.ui.components.ConnectoDragToRefresh(
@@ -808,6 +839,7 @@ fun HomeChatScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
+                    state = dashboardListState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
