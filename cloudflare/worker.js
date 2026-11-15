@@ -362,14 +362,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.5-b44-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.6-b45-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.9.5");
-          res.headers.set("X-Connecto-Store-Build", "44");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.6");
+          res.headers.set("X-Connecto-Store-Build", "45");
           return res;
         }
 
@@ -407,8 +407,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.5");
-              downloadHeaders.set("X-Connecto-Store-Build", "44");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.6");
+              downloadHeaders.set("X-Connecto-Store-Build", "45");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1866,26 +1866,26 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.9.5",
-        version_code: 44,
-        size_bytes: 18493402,
+        version_name: "1.9.6",
+        version_code: 45,
+        size_bytes: 18493389,
         size_formatted: "18.2 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Optimized Bottom Navigation UI: Balanced 1f touch distribution, single-layer spring physics, and haptic feedback on tab select",
+          "Clean Anti-Slop Header: Removed redundant top Play Protect and refresh buttons for a distraction-free executive experience",
           "Store Tab Tap-To-Top: Tapping the active Store tab button smoothly scrolls the catalog LazyColumn back to the top with leap acceleration",
           "Tactile Drag-To-Refresh: Custom nested scroll overscroll with spring physics return, haptic feedback, and non-blocking catalog reload",
           "Unslop Visual System: Refined typography, eliminated filler embellishments, and unified high-contrast dark/light design system",
-          "Tabular Numerals & Anti-Jitter: Monospace and tabular numbers applied to telemetry and metrics to avoid reflow",
+          "Tabular Numerals & Anti-Jitter: Monospace and tabular numbers applied to telemetry and badges to prevent reflow",
           "5-State Interactive Tactile Feedback: Micro-interaction springs on buttons with instant confirmation and rollback handling",
           "Optimistic Zero-Blank Hydration: Stale-While-Revalidate disk caching provides instantaneous cold starts with 0ms blank screens",
-          "Non-Blocking Background Sync: Real-time top edge progress shimmer and continuous refresh while keeping catalog interactive",
-          "0ms Instant Download Feedback & Cancellation: Action buttons transition immediately to active progress with instant cancelation",
-          "Optimistic App Bookmarking: 0ms favorite toggle with persistent storage and dedicated 'Saved' category filter"
+          "Non-Blocking Background Sync: Real-time top edge progress shimmer and continuous refresh while keeping catalog interactive"
         ],
         is_essential: true,
-        updated_at: "2026-11-15T12:05:00Z"
+        updated_at: "2026-11-15T12:25:00Z"
       },
       {
         id: "connecto",
@@ -8256,12 +8256,12 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.5</span>")
-            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.5 (Build 44) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.5 • 18.2 MB)")
+            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.6</span>")
+            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.6 (Build 45) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.6 • 18.2 MB)")
             .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[6789]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.9.5)")
-            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.5")
+                     "Official Verified Store Release • Package: com.connecto.store (v1.9.6)")
+            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.6")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.2 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.3")

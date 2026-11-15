@@ -350,12 +350,10 @@ fun StoreApp(
                         } else {
                             // Catalog Browsing View with Header, Filter & Footer Navigation
                             Column(modifier = Modifier.fillMaxSize()) {
-                                // Executive Top Header (No Top Profile & No Top Theme buttons)
+                                // Executive Top Header (No Top Profile, Refresh, or Security buttons)
                                 ClassicTopHeader(
                                     searchQuery = searchQuery,
                                     onSearchChange = { searchQuery = it },
-                                    onRefresh = { vm.loadCatalog() },
-                                    onOpenSecurityDialog = { showSecurityDialog = true },
                                     showSearch = selectedSection == StoreNavSection.OVERVIEW,
                                     isRefreshing = s.isRefreshing
                                 )
@@ -504,8 +502,6 @@ fun StoreApp(
 private fun ClassicTopHeader(
     searchQuery: String,
     onSearchChange: (String) -> Unit,
-    onRefresh: () -> Unit,
-    onOpenSecurityDialog: () -> Unit,
     showSearch: Boolean = true,
     isRefreshing: Boolean = false
 ) {
@@ -523,7 +519,7 @@ private fun ClassicTopHeader(
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.Start
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -539,62 +535,6 @@ private fun ClassicTopHeader(
                     fontSize = 18.sp,
                     letterSpacing = 0.5.sp
                 )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Play Protect & Safety Status Button
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(theme.cardElevated)
-                        .border(1.dp, EmeraldStatus.copy(alpha = 0.45f), CircleShape)
-                        .tactilePress(pressedScale = 0.88f) { onOpenSecurityDialog() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Security,
-                        contentDescription = "Play Protect & Safety Status",
-                        tint = EmeraldStatus,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-
-                // Refresh Button with continuous rotation when syncing
-                val infiniteTransition = rememberInfiniteTransition(label = "refreshSpinner")
-                val spinAngle by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 360f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(900, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart
-                    ),
-                    label = "spinAngle"
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(theme.cardElevated)
-                        .border(1.dp, if (isRefreshing) theme.accentColor else theme.cardBorder, CircleShape)
-                        .tactilePress(pressedScale = 0.88f) { onRefresh() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Refresh,
-                        contentDescription = "Refresh Catalog",
-                        tint = if (isRefreshing) theme.accentColor else theme.textPrimary,
-                        modifier = Modifier
-                            .size(18.dp)
-                            .graphicsLayer {
-                                if (isRefreshing) rotationZ = spinAngle
-                            }
-                    )
-                }
             }
         }
 
@@ -662,7 +602,7 @@ private fun ClassicTopHeader(
     }
 }
 
-// ─── Footer Bottom Navigation Bar with Spring Animations ──────────────────────
+// ─── Footer Bottom Navigation Bar with Optimized UI & High Performance ────────
 @Composable
 private fun ClassicBottomNavBar(
     selected: StoreNavSection,
@@ -671,6 +611,7 @@ private fun ClassicBottomNavBar(
     currentUser: StoreUser? = null
 ) {
     val theme = LocalStoreTheme.current
+    val sections = remember { StoreNavSection.values() }
 
     Surface(
         modifier = Modifier
@@ -684,11 +625,11 @@ private fun ClassicBottomNavBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StoreNavSection.values().forEach { section ->
+                sections.forEach { section ->
                     val isSelected = selected == section
                     val badgeCount = if (section == StoreNavSection.UPDATES) updateCount else 0
 
@@ -697,7 +638,8 @@ private fun ClassicBottomNavBar(
                         isSelected = isSelected,
                         badgeCount = badgeCount,
                         currentUser = currentUser,
-                        onClick = { onSelect(section) }
+                        onClick = { onSelect(section) },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -711,46 +653,62 @@ private fun ClassicBottomNavTabItem(
     isSelected: Boolean,
     badgeCount: Int,
     currentUser: StoreUser? = null,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val theme = LocalStoreTheme.current
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
 
+    val targetScale = if (isPressed) 0.94f else if (isSelected) 1.02f else 1.0f
     val animatedScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1.0f,
+        targetValue = targetScale,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+            stiffness = Spring.StiffnessMediumLow
         ),
-        label = "tabScale"
+        label = "navTabScale"
     )
 
     val animatedContainerColor by animateColorAsState(
         targetValue = if (isSelected) (if (theme.isDark) theme.cardElevated else Color(0xFFF1F5F9)) else Color.Transparent,
-        animationSpec = tween(durationMillis = 220),
-        label = "tabBg"
+        animationSpec = tween(durationMillis = 200),
+        label = "navTabBg"
+    )
+
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isSelected) theme.borderHighlight else Color.Transparent,
+        animationSpec = tween(durationMillis = 200),
+        label = "navTabBorder"
     )
 
     val animatedContentColor by animateColorAsState(
         targetValue = if (isSelected) theme.accentColor else theme.textDarkMuted,
-        animationSpec = tween(durationMillis = 200),
-        label = "tabFg"
+        animationSpec = tween(durationMillis = 180),
+        label = "navTabFg"
     )
 
+    val tabShape = remember { RoundedCornerShape(14.dp) }
+
     Box(
-        modifier = Modifier
+        modifier = modifier
+            .padding(horizontal = 4.dp)
             .graphicsLayer {
                 scaleX = animatedScale
                 scaleY = animatedScale
             }
-            .clip(RoundedCornerShape(14.dp))
+            .clip(tabShape)
             .background(animatedContainerColor)
-            .border(
-                1.dp,
-                if (isSelected) theme.borderHighlight else Color.Transparent,
-                RoundedCornerShape(14.dp)
-            )
-            .tactilePress(pressedScale = 0.92f) { onClick() }
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .border(1.dp, animatedBorderColor, tabShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -808,7 +766,10 @@ private fun ClassicBottomNavTabItem(
                             text = "$badgeCount",
                             color = Color.White,
                             fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Black
+                            fontWeight = FontWeight.Black,
+                            style = LocalTextStyle.current.copy(
+                                fontFeatureSettings = "tnum"
+                            )
                         )
                     }
                 }
@@ -819,7 +780,8 @@ private fun ClassicBottomNavTabItem(
                 color = animatedContentColor,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 11.sp,
-                letterSpacing = 0.3.sp
+                letterSpacing = 0.3.sp,
+                maxLines = 1
             )
         }
     }
