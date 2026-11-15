@@ -44,6 +44,8 @@ import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.GroupAdd
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.RateReview
+import com.example.connecto.ui.components.ConnectoFeedbackDialog
 import com.example.connecto.ui.components.CreateGroupChatDialog
 import com.example.connecto.ui.components.CreateVoiceGroupDialog
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -240,6 +242,7 @@ fun HomeChatScreen(
     var isSearchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     var showSupportAiDialog by remember { mutableStateOf(false) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
     var showPrivacyDialog by remember { mutableStateOf(false) }
     var showTermsDialog by remember { mutableStateOf(false) }
     var isRefreshing by remember { mutableStateOf(false) }
@@ -1362,6 +1365,10 @@ fun HomeChatScreen(
                     isSearchOpen = false
                     showSupportAiDialog = true
                 },
+                onOpenFeedback = {
+                    isSearchOpen = false
+                    showFeedbackDialog = true
+                },
                 onOpenPrivacy = {
                     isSearchOpen = false
                     showPrivacyDialog = true
@@ -1384,6 +1391,13 @@ fun HomeChatScreen(
             com.example.connecto.ui.components.CustomerSupportAiDialog(
                 username = currentUsername,
                 onDismiss = { showSupportAiDialog = false }
+            )
+        }
+
+        if (showFeedbackDialog) {
+            com.example.connecto.ui.components.ConnectoFeedbackDialog(
+                username = currentUsername,
+                onDismiss = { showFeedbackDialog = false }
             )
         }
 
@@ -1544,6 +1558,7 @@ private fun GlobalSearchDialog(
     onSelectPerson: (String) -> Unit,
     onSelectChannel: (String) -> Unit,
     onOpenSupport: () -> Unit = {},
+    onOpenFeedback: () -> Unit = {},
     onOpenPrivacy: () -> Unit = {},
     onOpenTerms: () -> Unit = {},
     onCheckUpdates: () -> Unit = {}
@@ -1621,6 +1636,7 @@ private fun GlobalSearchDialog(
                     // Quick Actions Section
                     val quickActions = listOf(
                         Triple("24/7 AI Customer Support", Icons.Default.Star, onOpenSupport),
+                        Triple("Send Feedback & Suggestions", Icons.Default.RateReview, onOpenFeedback),
                         Triple("Privacy Policy & Security", Icons.Default.Star, onOpenPrivacy),
                         Triple("Terms of Service", Icons.AutoMirrored.Filled.Chat, onOpenTerms),
                         Triple("Check for App Updates", Icons.Default.Check, onCheckUpdates)

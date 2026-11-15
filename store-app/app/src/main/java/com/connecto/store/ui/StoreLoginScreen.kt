@@ -65,6 +65,7 @@ fun StoreLoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
 
     val isLoading = loginState is LoginUiState.Loading
     val isError = loginState is LoginUiState.Error
@@ -536,13 +537,29 @@ fun StoreLoginScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { showHelpDialog = true }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 )
                 Text(
                     text = "•",
                     color = theme.textMuted.copy(alpha = 0.4f),
                     fontSize = 11.sp,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 2.dp)
+                )
+                Text(
+                    text = "Feedback",
+                    color = theme.textMuted.copy(alpha = 0.75f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .clickable { showFeedbackDialog = true }
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                )
+                Text(
+                    text = "•",
+                    color = theme.textMuted.copy(alpha = 0.4f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
                 Text(
                     text = "Terms of Use",
@@ -552,13 +569,13 @@ fun StoreLoginScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { showLegalDialog = 0 }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 )
                 Text(
                     text = "•",
                     color = theme.textMuted.copy(alpha = 0.4f),
                     fontSize = 11.sp,
-                    modifier = Modifier.padding(horizontal = 4.dp)
+                    modifier = Modifier.padding(horizontal = 2.dp)
                 )
                 Text(
                     text = "Privacy Policy",
@@ -568,7 +585,7 @@ fun StoreLoginScreen(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
                         .clickable { showLegalDialog = 1 }
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
                 )
             }
         }
@@ -578,6 +595,13 @@ fun StoreLoginScreen(
     if (showHelpDialog) {
         OurStoreHelpSupportDialog(
             onDismiss = { showHelpDialog = false }
+        )
+    }
+
+    // Feedback & Suggestions Dialog
+    if (showFeedbackDialog) {
+        OurStoreFeedbackDialog(
+            onDismiss = { showFeedbackDialog = false }
         )
     }
 

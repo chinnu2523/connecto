@@ -42,8 +42,10 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Security
 import androidx.compose.material3.AlertDialog
 import com.example.connecto.ui.components.CustomerSupportAiDialog
+import com.example.connecto.ui.components.ConnectoFeedbackDialog
 import com.example.connecto.ui.components.PrivacyPolicyDialog
 import com.example.connecto.ui.components.TermsOfServiceDialog
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Policy
 import androidx.compose.material.icons.filled.Description
@@ -456,6 +458,7 @@ fun ProfileScreen(
     var deleteAccountErrorMessage by rememberSaveable { mutableStateOf<String?>(null) }
 
     var showCustomerSupportAiDialog by rememberSaveable { mutableStateOf(false) }
+    var showFeedbackDialog by rememberSaveable { mutableStateOf(false) }
     var showPrivacyPolicyDialog by rememberSaveable { mutableStateOf(false) }
     var showTermsOfServiceDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -1770,6 +1773,13 @@ fun ProfileScreen(
                             title = "Help Center",
                             showChevron = true,
                             onClick = { activeSubPage = ProfileSubPage.HELP_SUPPORT }
+                        )
+                        ConnectoSettingsDivider()
+                        ConnectoSettingsRow(
+                            icon = Icons.Default.RateReview,
+                            title = "Send Feedback",
+                            showChevron = true,
+                            onClick = { showFeedbackDialog = true }
                         )
                         ConnectoSettingsDivider()
                         ConnectoSettingsRow(
@@ -5042,6 +5052,70 @@ fun ProfileScreen(
                                             }
                                         }
                                     }
+
+                                    // Send Feedback Card
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .background(
+                                                if (hasCoverPhoto) Color.Black.copy(alpha = 0.35f)
+                                                else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                1.dp,
+                                                if (hasCoverPhoto) Color.White.copy(alpha = 0.2f)
+                                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                                                RoundedCornerShape(16.dp)
+                                            )
+                                            .clickable { showFeedbackDialog = true }
+                                            .padding(14.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(10.dp))
+                                                        .background(Color(0xFFF59E0B).copy(alpha = 0.15f)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.RateReview,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFFF59E0B),
+                                                        modifier = Modifier.size(20.dp)
+                                                    )
+                                                }
+                                                Column {
+                                                    Text(
+                                                        text = "Send Feedback & Ideas",
+                                                        fontSize = 14.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                    Text(
+                                                        text = "Rate experience, request features & suggest changes",
+                                                        fontSize = 11.5.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
 
@@ -6143,6 +6217,13 @@ fun ProfileScreen(
     if (showTermsOfServiceDialog) {
         TermsOfServiceDialog(
             onDismiss = { showTermsOfServiceDialog = false }
+        )
+    }
+
+    if (showFeedbackDialog) {
+        ConnectoFeedbackDialog(
+            username = username,
+            onDismiss = { showFeedbackDialog = false }
         )
     }
 

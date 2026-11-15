@@ -2949,6 +2949,7 @@ fun ClassicLoginAccountView(
     val theme = LocalStoreTheme.current
     var showLegalDialog by remember { mutableStateOf<Int?>(null) }
     var showHelpDialog by remember { mutableStateOf(false) }
+    var showFeedbackDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -3232,6 +3233,15 @@ fun ClassicLoginAccountView(
                                 .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
+                                StoreSettingsNavRow(
+                                    icon = Icons.Rounded.RateReview,
+                                    iconTint = Color(0xFFF59E0B),
+                                    title = "Send Feedback",
+                                    subtitle = "Share suggestions, report bugs & rate experience",
+                                    theme = theme,
+                                    onClick = { showFeedbackDialog = true }
+                                )
+                                HorizontalDivider(color = theme.dividerColor, thickness = 0.8.dp, modifier = Modifier.padding(start = 66.dp))
                                 StoreSettingsNavRow(
                                     icon = Icons.Rounded.HeadsetMic,
                                     iconTint = Color(0xFF2563EB),
@@ -3638,7 +3648,7 @@ fun ClassicLoginAccountView(
                     textAlign = TextAlign.Center
                 )
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
@@ -3647,6 +3657,18 @@ fun ClassicLoginAccountView(
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable { showHelpDialog = true }
+                    )
+                    Text(
+                        text = "•",
+                        color = theme.textDarkMuted,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = "Feedback",
+                        color = theme.accentColor,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { showFeedbackDialog = true }
                     )
                     Text(
                         text = "•",
@@ -3687,6 +3709,12 @@ fun ClassicLoginAccountView(
     if (showHelpDialog) {
         OurStoreHelpSupportDialog(
             onDismiss = { showHelpDialog = false }
+        )
+    }
+
+    if (showFeedbackDialog) {
+        OurStoreFeedbackDialog(
+            onDismiss = { showFeedbackDialog = false }
         )
     }
 }

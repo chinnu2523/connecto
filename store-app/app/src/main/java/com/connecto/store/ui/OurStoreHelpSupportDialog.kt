@@ -235,6 +235,26 @@ fun OurStoreHelpSupportDialog(
                             1 -> {
                                 // Contact Us Section
                                 ContactCard(
+                                    icon = Icons.Rounded.RateReview,
+                                    title = "Send Product Feedback",
+                                    subtitle = "feedback@connecto.fun",
+                                    actionLabel = "Send Feedback",
+                                    theme = theme,
+                                    onAction = {
+                                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                                            data = Uri.parse("mailto:feedback@connecto.fun?subject=Our%20Store%20Product%20Feedback")
+                                        }
+                                        try {
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                            clipboard.setPrimaryClip(ClipData.newPlainText("Feedback Email", "feedback@connecto.fun"))
+                                            Toast.makeText(context, "Copied feedback@connecto.fun", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                )
+
+                                ContactCard(
                                     icon = Icons.Rounded.Email,
                                     title = "Official Support Email",
                                     subtitle = "support@connecto.fun",
