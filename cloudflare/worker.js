@@ -254,17 +254,17 @@ export default {
     ) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.31/our-store.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.8.1-b38-v4631.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v1.9.0-b39-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v1.8.1");
-          res.headers.set("X-Connecto-Store-Build", "38");
+          res.headers.set("X-Connecto-Store-Version", "v1.9.0");
+          res.headers.set("X-Connecto-Store-Build", "39");
           return res;
         }
 
@@ -276,7 +276,7 @@ export default {
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/1.8.1"
+                  "User-Agent": "Connecto-Cloud-Worker/1.9.0"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -302,8 +302,8 @@ export default {
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v1.8.1");
-              downloadHeaders.set("X-Connecto-Store-Build", "38");
+              downloadHeaders.set("X-Connecto-Store-Version", "v1.9.0");
+              downloadHeaders.set("X-Connecto-Store-Build", "39");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -318,7 +318,7 @@ export default {
       } catch (err) {
         console.error("Store download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v4.6.31/our-store.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.0.0/our-store.apk", 302);
     }
 
     // 3a-4. Cloudflare Edge Gateway for JARVIS AI APK
@@ -404,11 +404,10 @@ export default {
       try {
         const canonicalApkUrls = [
           "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/app-release.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v4.6.34/connecto-fun.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/app-release.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.0.0-b125-bin.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.0.0-b125-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
@@ -427,7 +426,7 @@ export default {
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/4.6.34"
+                  "User-Agent": "Connecto-Cloud-Worker/5.0.0"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
