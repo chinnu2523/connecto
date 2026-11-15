@@ -1,6 +1,7 @@
 package com.example.connecto.ui.designsystem
 
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -304,6 +305,188 @@ fun ConnectoSettingsRow(
                 tint = if (colors.isDark) Color(0xFF64748B) else Color(0xFF94A3B8),
                 modifier = Modifier.size(17.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun ConnectoThemeToggleRow(
+    isDarkTheme: Boolean,
+    onToggleTheme: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalConnectoColors.current
+    val haptic = LocalHapticFeedback.current
+
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+
+    val rowScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.982f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "themeRowScale"
+    )
+
+    val rowBgColor = if (isPressed) {
+        if (colors.isDark) Color.White.copy(alpha = 0.06f) else Color.Black.copy(alpha = 0.04f)
+    } else {
+        Color.Transparent
+    }
+
+    // Animated 360 degree rotation and bounce for theme icon
+    val themeIconRotation by animateFloatAsState(
+        targetValue = if (isDarkTheme) 360f else 0f,
+        animationSpec = spring(stiffness = Spring.StiffnessLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "themeIconRotation"
+    )
+    val themeIconScale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1.0f,
+        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "themeIconScale"
+    )
+
+    // Smooth spring slider offset for the toggle switch thumb (2.dp when light, 24.dp when dark)
+    val thumbOffset by animateDpAsState(
+        targetValue = if (isDarkTheme) 24.dp else 2.dp,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow, dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "themeThumbOffset"
+    )
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .graphicsLayer {
+                scaleX = rowScale
+                scaleY = rowScale
+            }
+            .background(rowBgColor)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                try {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                } catch (_: Exception) {}
+                onToggleTheme(!isDarkTheme)
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Leading Animated Icon (Moon/Sun)
+        Box(
+            modifier = Modifier
+                .size(34.dp)
+                .graphicsLayer {
+                    rotationZ = themeIconRotation
+                    scaleX = themeIconScale
+                    scaleY = themeIconScale
+                }
+                .clip(CircleShape)
+                .background(
+                    if (isDarkTheme) Color(0xFF000000) else Color(0xFFF1F5F9)
+                )
+                .border(
+                    width = 1.2.dp,
+                    color = if (isDarkTheme) Color(0xFF38BDF8).copy(alpha = 0.45f) else Color(0xFFCBD5E1),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (isDarkTheme) "🌑" else "☀️",
+                fontSize = 17.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        // Title and Subtitle with Live Active Badge
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (isDarkTheme) "Black Theme" else "White Theme",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(colors.primary.copy(alpha = if (isDarkTheme) 0.15f else 0.10f))
+                        .border(
+                            0.6.dp,
+                            colors.primary.copy(alpha = if (isDarkTheme) 0.35f else 0.25f),
+                            RoundedCornerShape(6.dp)
+                        )
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = if (isDarkTheme) "OLED" else "LIGHT",
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = colors.primary
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = if (isDarkTheme) "Pure 0-nit black • Tap to switch to White" else "Crisp studio white • Tap to switch to Black",
+                fontSize = 12.sp,
+                color = colors.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        // Custom Tactile Switch Pill
+        Box(
+            modifier = Modifier
+                .width(52.dp)
+                .height(30.dp)
+                .clip(CircleShape)
+                .background(
+                    if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFE2E8F0)
+                )
+                .border(
+                    width = 1.dp,
+                    color = if (isDarkTheme) Color(0xFF334155) else Color(0xFFCBD5E1),
+                    shape = CircleShape
+                )
+                .padding(2.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .graphicsLayer {
+                        translationX = thumbOffset.toPx()
+                    }
+                    .size(24.dp)
+                    .shadow(elevation = 3.dp, shape = CircleShape)
+                    .clip(CircleShape)
+                    .background(
+                        if (isDarkTheme) Color(0xFF000000) else Color(0xFFFFFFFF)
+                    )
+                    .border(
+                        0.8.dp,
+                        if (isDarkTheme) Color(0xFF475569) else Color(0xFFE2E8F0),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isDarkTheme) "🌑" else "☀️",
+                    fontSize = 11.sp
+                )
+            }
         }
     }
 }

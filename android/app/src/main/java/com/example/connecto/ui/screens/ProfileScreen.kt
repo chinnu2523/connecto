@@ -52,6 +52,7 @@ import com.example.connecto.ui.designsystem.ConnectoAvatar
 import com.example.connecto.ui.designsystem.ConnectoSettingsSection
 import com.example.connecto.ui.designsystem.ConnectoSettingsCard
 import com.example.connecto.ui.designsystem.ConnectoSettingsRow
+import com.example.connecto.ui.designsystem.ConnectoThemeToggleRow
 import com.example.connecto.ui.designsystem.ConnectoSettingsDivider
 import com.example.connecto.ui.designsystem.ConnectoSettingsActionCard
 import com.example.connecto.ui.designsystem.ConnectoModalBottomSheet
@@ -1727,12 +1728,13 @@ fun ProfileScreen(
                             onClick = { /* Default app language is English */ }
                         )
                         ConnectoSettingsDivider()
-                        ConnectoSettingsRow(
-                            icon = Icons.Default.Tune,
-                            title = "Appearance",
-                            value = if (currentThemeMode.isDark) "Black" else "White",
-                            showChevron = true,
-                            onClick = { activeSubPage = ProfileSubPage.APPEARANCE_THEME }
+                        ConnectoThemeToggleRow(
+                            isDarkTheme = currentThemeMode.isDark,
+                            onToggleTheme = { isDark ->
+                                val newMode = if (isDark) com.example.connecto.ui.designsystem.ThemeMode.NOIR else com.example.connecto.ui.designsystem.ThemeMode.PARCHMENT
+                                onSelectThemeMode(newMode)
+                                onToggleTheme(isDark)
+                            }
                         )
                         ConnectoSettingsDivider()
                         ConnectoSettingsRow(

@@ -169,14 +169,11 @@ fun CustomerSupportAiDialog(
                 "• **Session Management:** View all currently logged-in devices in Profile -> **Session Management** and terminate unrecognized sessions with one tap!"
             }
             q.contains("theme") || q.contains("color") || q.contains("dark") || q.contains("light") || q.contains("oled") -> {
-                "🎨 **Display Themes & Liquid Glass:**\n\n" +
-                "Connecto features five custom themes built with 120fps hardware acceleration:\n" +
-                "• **Noir:** Pure 0-Nit OLED Black for ultimate battery savings and sleek luxury.\n" +
-                "• **Liquid Glass:** Refractive glass borders with subtle floating luminescence.\n" +
-                "• **Midnight:** Deep navy slate twilight tones.\n" +
-                "• **Emerald:** Tactical dark matrix styling.\n" +
-                "• **Parchment:** Warm archival ivory grain for comfortable daylight reading.\n\n" +
-                "Switch anytime in Profile -> **Appearance & Display Theme**!"
+                "🎨 **Dual Theme System (Black OLED & White Studio):**\n\n" +
+                "Connecto features two bespoke themes with 120fps hardware acceleration:\n" +
+                "• **Black Theme (Noir):** Pure 0-Nit OLED Black for maximum battery savings and high-contrast night readability.\n" +
+                "• **White Theme (Parchment):** Crisp, pristine daylight studio white engineered for effortless daytime clarity.\n\n" +
+                "Switch anytime instantly using the **Theme Mode Toggle** in your Profile preferences!"
             }
             q.contains("terms") || q.contains("policy") || q.contains("legal") -> {
                 "📜 **Privacy Policy & Terms of Service:**\n\n" +
