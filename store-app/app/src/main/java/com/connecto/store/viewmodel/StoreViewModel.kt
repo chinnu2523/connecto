@@ -624,20 +624,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Autonomous package installer, background updater & security vault",
             description = "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
             category = "Services",
-            versionName = "1.7.9",
-            versionCode = 36,
-            sizeFormatted = "17.2 MB",
+            versionName = "1.9.0",
+            versionCode = 39,
+            sizeFormatted = "18.0 MB",
             downloadUrl = "https://connecto.fun/downloads/our-store.apk",
-            accentColor = "#FFFFFF",
+            accentColor = "#2563EB",
             changelog = listOf(
-                "App Detail Reload Loop Fix: Stabilized AnimatedContent targetState on package identifier",
-                "Update Concurrency Guard: Eliminated duplicate download coroutines and progress races",
-                "Instant Guest Installs: Removed impossible password prompt for free app downloads",
-                "OLED Account UI: Refined Guest Mode account representation and badge indicators",
-                "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
+                "Standalone Authentication Architecture: Comprehensive Sign In & Account Registration with instant session onboarding",
+                "Universal 5-State Button System: Default, Hover/Pressed, Loading, Disabled, and Error states across all actions",
+                "Biometric Sensor Quick Unlock: High-security fingerprint and face authentication for instant login and download approvals",
+                "Pure Theme Optimization: Purged all orange hues in favor of Cobalt Noir & Pristine White aesthetics",
+                "Zero-Slop UI: Self-explanatory layout with tactile spring physics and high-contrast accessibility"
             ),
             isEssential = true,
-            updatedAt = "2026-11-10T11:00:00Z"
+            updatedAt = "2026-11-15T08:00:00Z"
         ),
         StoreApp(
             id = "connecto",
@@ -647,20 +647,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
             tagline = "Private encrypted messaging, calls & workspaces",
             description = "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
             category = "Communication",
-            versionName = "4.6.27",
-            versionCode = 116,
-            sizeFormatted = "36.1 MB",
+            versionName = "5.1.0",
+            versionCode = 126,
+            sizeFormatted = "36.2 MB",
             downloadUrl = "https://connecto.fun/downloads/connecto-fun.apk",
             accentColor = "#2563EB",
             changelog = listOf(
-                "Local Timezone Message Timestamps: Full UTC-to-local timezone conversion resolving Indian Standard Time (IST) offset",
-                "Deep ANC & Background Noise Suppression: -18.4dB noise floor suppression during silence with zero speech amplification distortion",
-                "Full-Bandwidth HD Voice: Expanded vocal bandwidth (140Hz-7900Hz) restoring vocal warmth, consonants and intelligibility",
-                "Call Rapid Redial Stability: Hardened Android 14 ForegroundService lifecycle and non-blocking AudioRecord lifecycle",
-                "Sub-30ms Real-Time Voice Sync: Zero-wait non-blocking playback queue eliminating delay accumulation"
+                "Chat Wallpaper Customizer UI: Real-time custom wallpaper gallery, interactive touch pan, zoom, blur, opacity & luminance calibration",
+                "Pure White Theme System: Eliminated all harsh orange tints in favor of clean cobalt noir accents and optimized high-contrast white layout",
+                "Self-Explanatory Zero-Slop Architecture: Completely eliminated verbose text descriptions in favor of clear intuitive iconography and tactile affordances",
+                "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations",
+                "Optimistic UI Architecture: 0ms instant feedback on chat messages, reactions, pins, and background synchronization"
             ),
             isEssential = true,
-            updatedAt = "2026-11-09T23:00:00Z"
+            updatedAt = "2026-11-15T08:30:00Z"
         ),
         StoreApp(
             id = "jarvis",

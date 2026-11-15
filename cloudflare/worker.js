@@ -166,13 +166,13 @@ export default {
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.0.0",
-        version_name: "v5.0.0",
-        version_code: 125,
-        build: 125,
+        version: "5.1.0",
+        version_name: "v5.1.0",
+        version_code: 126,
+        build: 126,
         sha256: "7b3a35ae993a17d0e5a5a52dad9061b4f1b321948225a7eab1131d94961010b3",
         filename: "connecto-fun.apk",
-        size_bytes: 37912392,
+        size_bytes: 37940276,
         size_display: "36.2 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -403,18 +403,18 @@ export default {
     )) {
       try {
         const canonicalApkUrls = [
-          "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/app-release.apk"
+          "https://github.com/chinnu2523/connecto/releases/download/v5.1.0/connecto-fun.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.0.0-b125-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.1.0-b126-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.0.0");
-          res.headers.set("X-Connecto-Build", "125");
+          res.headers.set("X-Connecto-Version", "v5.1.0");
+          res.headers.set("X-Connecto-Build", "126");
           return res;
         }
 
@@ -426,7 +426,7 @@ export default {
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.0.0"
+                  "User-Agent": "Connecto-Cloud-Worker/5.1.0"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -450,8 +450,8 @@ export default {
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.0.0");
-              downloadHeaders.set("X-Connecto-Build", "125");
+              downloadHeaders.set("X-Connecto-Version", "v5.1.0");
+              downloadHeaders.set("X-Connecto-Build", "126");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -466,7 +466,7 @@ export default {
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.0.0/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.1.0/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -1786,23 +1786,23 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.0.0",
-        version_code: 125,
-        size_bytes: 37912392,
+        version_name: "5.1.0",
+        version_code: 126,
+        size_bytes: 37940276,
         size_formatted: "36.2 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "Executive In-Place Error System: Contextual inline validation and inline error banners on Auth screens matching modern UI patterns",
-          "Dual Theme Engine: Pure OLED pitch black and pure white paper theme switch with fluid circular ripple and spring morph transition",
-          "Optimistic UI Architecture: 0ms zero-latency message reactions, pinning, editing, and friend requests with background synchronization",
-          "Tactile 5-State Button Architecture: Standardized Default, Hover, Loading, Disabled, and Error interaction states across all surfaces",
-          "Zero Vibe-Coding Tells Elimination: Instant 0ms tap feedback, skeleton shimmer loaders, pre-cached instant screen hydration, and offline network queueing",
+          "Chat Wallpaper Customizer UI: Real-time custom wallpaper gallery, interactive touch pan, zoom, blur, opacity & luminance calibration",
+          "Pure White Theme System: Eliminated all harsh orange tints in favor of clean cobalt noir accents and optimized high-contrast white layout",
+          "Self-Explanatory Zero-Slop Architecture: Completely eliminated verbose text descriptions in favor of clear intuitive iconography and tactile affordances",
+          "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations",
+          "Optimistic UI Architecture: 0ms instant feedback on chat messages, reactions, pins, and background synchronization",
           "Security & Crypto Vault: Multi-layer edge HMAC token signing, PBKDF2 credential derivation, KeyStore AES-GCM encryption, and FLAG_SECURE protection"
         ],
         is_essential: true,
-        updated_at: "2026-11-14T20:30:00Z"
+        updated_at: "2026-11-15T08:30:00Z"
       },
       {
         id: "jarvis",
@@ -6959,13 +6959,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.0.0",
-      version_name: "v5.0.0",
-      version_code: 125,
-      build: 125,
+      version: "5.1.0",
+      version_name: "v5.1.0",
+      version_code: 126,
+      build: 126,
       sha256: "7b3a35ae993a17d0e5a5a52dad9061b4f1b321948225a7eab1131d94961010b3",
       filename: "connecto-fun.apk",
-      size_bytes: 37912392,
+      size_bytes: 37940276,
       size_display: "36.2 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -6978,6 +6978,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       releases: [
+        {
+          version: "v5.1.0",
+          date: "Nov 15, 2026",
+          category: "feature",
+          tag: "Latest Release",
+          title: "Connecto v5.1.0: Chat Wallpaper Customizer UI & Pure White Theme Optimization",
+          summary: "Connecto v5.1.0 introduces the complete in-app Chat Wallpaper Customizer UI with real-time gallery previews, custom photo pan/zoom, opacity, blur, and luminance tuning. Eliminates all harsh orange hues in favor of clean cobalt noir accents and an optimized high-contrast pure white layout with 120fps fluid physics.",
+          highlights: [
+            "Chat Wallpaper Customizer UI: Real-time custom wallpaper gallery, interactive touch pan, zoom, blur, opacity & luminance calibration.",
+            "Pure White Theme Optimization: Replaced all harsh orange tones with Cobalt Noir and optimized pure white background contrast.",
+            "Zero-Slop Self-Explanatory UI: Clean tactile affordances with zero explanatory clutter and intuitive iconography.",
+            "120fps Gesture Responsiveness: Non-blocking deferred preview gestures, hardware accelerated rendering, and ultra-smooth spring animations.",
+            "Android Native App v5.1.0 (Build 126 • 36.2 MB • Multi-Scheme Signed): Official Verified APK Release."
+          ],
+          author: "Connecto Core & Mobile Engineering"
+        },
         {
           version: "v4.6.24",
           date: "Nov 09, 2026",
@@ -8106,11 +8122,11 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
             .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
                      '<span class="android-spec-val" style="color:#38bdf8;">18.0 MB</span>')
-            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.0.0")
-            .replace(/v5\.0\.[0-9]+/g, "v5.0.0")
-            .replace(/Build 12[0-5]/g, "Build 125")
-            .replace(/BUILD 12[0-5]/g, "BUILD 125")
-            .replace(/\(b12[0-5]\)/g, "(b125)");
+            .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.1.0")
+            .replace(/v5\.[0-9]+\.[0-9]+/g, "v5.1.0")
+            .replace(/Build 12[0-6]/g, "Build 126")
+            .replace(/BUILD 12[0-6]/g, "BUILD 126")
+            .replace(/\(b12[0-6]\)/g, "(b126)");
           responseBody = patched;
         } catch (_) {}
       }
