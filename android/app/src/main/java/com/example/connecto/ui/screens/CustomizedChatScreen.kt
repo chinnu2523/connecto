@@ -478,57 +478,57 @@ data class ChatWallpaperOption(
 val AVAILABLE_CHAT_WALLPAPERS = listOf(
     ChatWallpaperOption(
         id = "default",
-        name = "Default Clean",
-        subtitle = "Subtle theme background",
+        name = "Default",
+        subtitle = "Clean theme canvas",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFF8FAFC))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF141312), Color(0xFF1C1A17)))
     ),
     ChatWallpaperOption(
         id = "glass_mesh",
-        name = "Prism Glass Aurora",
-        subtitle = "Translucent crystal canvas with floating luminous orbs",
+        name = "Prism Glass",
+        subtitle = "Aurora crystal glow",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F2FE), Color(0xFFF1F5F9))),
         darkBrush = Brush.radialGradient(listOf(Color(0xFF1E3A8A), Color(0xFF0F172A)))
     ),
     ChatWallpaperOption(
         id = "liquid_water",
-        name = "Liquid Aqua Droplets",
-        subtitle = "Fluid oceanic ripples with water glass refraction",
+        name = "Aqua Ripples",
+        subtitle = "Oceanic fluid reflection",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFE0F7FA), Color(0xFFF0FDF4))),
         darkBrush = Brush.radialGradient(listOf(Color(0xFF0369A1), Color(0xFF082F49)))
     ),
     ChatWallpaperOption(
         id = "oled",
         name = "True 0-Nit OLED",
-        subtitle = "Pitch black battery-saver luxury",
+        subtitle = "Pitch black luxury",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFFAFAFA))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF000000), Color(0xFF000000)))
     ),
     ChatWallpaperOption(
         id = "mesh_dark",
         name = "Cosmic Mesh",
-        subtitle = "Deep nebula slate with violet aura",
+        subtitle = "Nebula violet slate",
         lightBrush = Brush.radialGradient(listOf(Color(0xFFEDE9FE), Color(0xFFF1F5F9))),
         darkBrush = Brush.radialGradient(listOf(Color(0xFF581C87), Color(0xFF1E1B4B)))
     ),
     ChatWallpaperOption(
         id = "indigo_flow",
         name = "Indigo Gradient",
-        subtitle = "Soft twilight sky gradient",
+        subtitle = "Soft twilight stream",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFEEF2FF), Color(0xFFE0E7FF))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF3730A3), Color(0xFF1E1B4B)))
     ),
     ChatWallpaperOption(
         id = "emerald_glow",
         name = "Emerald Matrix",
-        subtitle = "Deep tactical aurora matrix",
+        subtitle = "Tactical aurora matrix",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFECFDF5), Color(0xFFD1FAE5))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF065F46), Color(0xFF022C22)))
     ),
     ChatWallpaperOption(
         id = "parchment_warm",
-        name = "Pure Paper White",
-        subtitle = "Pristine architectural canvas",
+        name = "Pure White",
+        subtitle = "Architectural white canvas",
         lightBrush = Brush.verticalGradient(listOf(Color(0xFFFFFFFF), Color(0xFFF1F5F9))),
         darkBrush = Brush.verticalGradient(listOf(Color(0xFF1E293B), Color(0xFF0F172A)))
     )
@@ -3324,19 +3324,12 @@ fun CustomizedChatScreen(
                                                 }
                                             }
                                             Spacer(modifier = Modifier.width(12.dp))
-                                            Column {
-                                                Text(
-                                                    text = "Custom Photo Wallpaper",
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = if (!customWallpaperUri.isNullOrBlank()) "Photo active for this chat" else "Pick custom photo from gallery",
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                            Text(
+                                                text = "Custom Photo",
+                                                fontSize = 13.5.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
                                         }
 
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -3476,19 +3469,12 @@ fun CustomizedChatScreen(
                                                             .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.6f), RoundedCornerShape(6.dp))
                                                     )
                                                     Spacer(modifier = Modifier.width(12.dp))
-                                                    Column {
-                                                        Text(
-                                                            text = wallpaper.name,
-                                                            fontSize = 13.sp,
-                                                            fontWeight = FontWeight.Bold,
-                                                            color = MaterialTheme.colorScheme.onSurface
-                                                        )
-                                                        Text(
-                                                            text = wallpaper.subtitle,
-                                                            fontSize = 11.sp,
-                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                        )
-                                                    }
+                                                    Text(
+                                                        text = wallpaper.name,
+                                                        fontSize = 13.5.sp,
+                                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
                                                 }
 
                                                 if (isSelected) {
@@ -5789,6 +5775,7 @@ fun CustomizedChatScreen(
                                 }
                             } else {
                                 DisableSelection {
+                                val deduplicatedMessages = remember(friendMessages) { friendMessages.distinctBy { it.id } }
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier
@@ -5813,7 +5800,7 @@ fun CustomizedChatScreen(
                                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                                             ) {
                                                 Text(
-                                                    text = "🔒 End-to-End AES-256-GCM Encrypted Chat Session",
+                                                    text = "🔒 End-to-End Encrypted",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -5823,8 +5810,9 @@ fun CustomizedChatScreen(
                                     }
 
                                     itemsIndexed(
-                                        friendMessages.distinctBy { it.id },
-                                        key = { _, msg -> msg.id }
+                                        deduplicatedMessages,
+                                        key = { _, msg -> msg.id },
+                                        contentType = { _, msg -> if (msg.isMe) "own" else "friend" }
                                     ) { _, msg ->
                                         var dragOffsetX by remember(msg.id) { mutableStateOf(0f) }
                                         val animatedDragOffset by animateFloatAsState(

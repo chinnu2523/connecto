@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,14 +29,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AspectRatio
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.OpenWith
-import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Wallpaper
@@ -62,6 +61,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -76,11 +78,11 @@ import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.connecto.data.WallpaperTransform
 import com.example.connecto.ui.screens.AVAILABLE_CHAT_WALLPAPERS
+import com.example.connecto.ui.screens.ChatWallpaperOption
 
 /**
- * Full-Featured Interactive Chat Wallpaper Customizer Sheet/Dialog.
- * Allows users to choose presets, pick custom gallery photos, and customize
- * scale, pan offsets, legibility dimming, and frosted blur with real-time gesture feedback.
+ * High-performance, clean, self-evident Chat Wallpaper Customizer Sheet/Dialog.
+ * Optimized with deferred draw passes (120 FPS gesture tracking) and zero UI clutter.
  */
 @Composable
 fun WallpaperCustomizerDialog(
@@ -93,11 +95,9 @@ fun WallpaperCustomizerDialog(
     onApply: ((newWallpaperId: String, newCustomUri: String?, newTransform: WallpaperTransform, isGlobal: Boolean) -> Unit)? = null,
     onSave: ((WallpaperTransform) -> Unit)? = null
 ) {
-    // Current working wallpaper selection
     var selectedWallpaperId by remember { mutableStateOf(wallpaperId) }
     var selectedCustomUri by remember(customWallpaperUri) { mutableStateOf(customWallpaperUri) }
 
-    // Active transform values
     var scale by remember { mutableFloatStateOf(initialTransform.scale) }
     var offsetX by remember { mutableFloatStateOf(initialTransform.offsetX) }
     var offsetY by remember { mutableFloatStateOf(initialTransform.offsetY) }
@@ -105,7 +105,6 @@ fun WallpaperCustomizerDialog(
     var dim by remember { mutableFloatStateOf(initialTransform.dim) }
     var blur by remember { mutableFloatStateOf(initialTransform.blur) }
 
-    // Active navigation tab (0: Presets, 1: Custom Photo, 2: Adjust & Blur)
     var activeTab by remember {
         mutableIntStateOf(if (wallpaperId == "custom" && !customWallpaperUri.isNullOrBlank()) 1 else 0)
     }
@@ -114,11 +113,13 @@ fun WallpaperCustomizerDialog(
         AVAILABLE_CHAT_WALLPAPERS.find { it.id == selectedWallpaperId } ?: AVAILABLE_CHAT_WALLPAPERS.first()
     }
 
-    val contentScale = when (mode) {
-        "fit" -> ContentScale.Fit
-        "fill_bounds" -> ContentScale.FillBounds
-        "inside" -> ContentScale.Inside
-        else -> ContentScale.Crop
+    val contentScale = remember(mode) {
+        when (mode) {
+            "fit" -> ContentScale.Fit
+            "fill_bounds" -> ContentScale.FillBounds
+            "inside" -> ContentScale.Inside
+            else -> ContentScale.Crop
+        }
     }
 
     Dialog(
@@ -143,8 +144,8 @@ fun WallpaperCustomizerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -159,20 +160,13 @@ fun WallpaperCustomizerDialog(
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Column {
-                                Text(
-                                    text = "Chat Wallpaper",
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = "Presets, custom photo & atmospheric layout",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Wallpaper",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
 
                         TextButton(
@@ -210,203 +204,54 @@ fun WallpaperCustomizerDialog(
                         .weight(1f)
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    // ================= 1. INTERACTIVE LIVE PREVIEW BOX =================
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(5.dp))
-                                Text(
-                                    text = "LIVE INTERACTIVE PREVIEW",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    letterSpacing = 0.8.sp
-                                )
-                            }
-                            Text(
-                                text = "Pinch to zoom • Drag to pan",
-                                fontSize = 10.5.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    // ================= 1. LIVE PREVIEW VIEWPORT =================
+                    WallpaperLivePreview(
+                        selectedWallpaperId = selectedWallpaperId,
+                        selectedCustomUri = selectedCustomUri,
+                        presetWallpaper = presetWallpaper,
+                        contentScale = contentScale,
+                        scaleProvider = { scale },
+                        offsetXProvider = { offsetX },
+                        offsetYProvider = { offsetY },
+                        dimProvider = { dim },
+                        blurProvider = { blur },
+                        isDarkTheme = isDarkTheme,
+                        onGestureTransform = { pan, zoom ->
+                            scale = (scale * zoom).coerceIn(0.5f, 3.0f)
+                            offsetX += pan.x
+                            offsetY += pan.y
                         }
+                    )
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(220.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f), RoundedCornerShape(20.dp))
-                                .background(if (isDarkTheme) Color.Black else Color(0xFFF8FAFC))
-                        ) {
-                            // Wallpaper Layer with Graphics Transformation & Gestures
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clipToBounds()
-                                    .pointerInput(Unit) {
-                                        detectTransformGestures { _, pan, zoom, _ ->
-                                            scale = (scale * zoom).coerceIn(0.5f, 3.0f)
-                                            offsetX += pan.x
-                                            offsetY += pan.y
-                                        }
-                                    }
-                            ) {
-                                if (selectedWallpaperId == "custom" && !selectedCustomUri.isNullOrBlank()) {
-                                    AsyncImage(
-                                        model = Uri.parse(selectedCustomUri),
-                                        contentDescription = "Custom Wallpaper",
-                                        contentScale = contentScale,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                scaleX = scale
-                                                scaleY = scale
-                                                translationX = offsetX
-                                                translationY = offsetY
-                                            }
-                                            .then(
-                                                if (blur > 0f) Modifier.blur(blur.dp) else Modifier
-                                            )
-                                    )
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .graphicsLayer {
-                                                scaleX = scale
-                                                scaleY = scale
-                                                translationX = offsetX
-                                                translationY = offsetY
-                                            }
-                                            .background(
-                                                if (!isDarkTheme) presetWallpaper.lightBrush else presetWallpaper.darkBrush
-                                            )
-                                    )
-                                }
-
-                                // Scrim Overlay for Legibility
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(
-                                            if (!isDarkTheme) Color.White.copy(alpha = dim * 0.85f)
-                                            else Color.Black.copy(alpha = dim)
-                                        )
-                                )
-                            }
-
-                            // Mock Chat Bubbles Overlay
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(14.dp),
-                                verticalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                // Incoming message bubble (Friend)
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (isDarkTheme) Color(0xFF1E293B).copy(alpha = 0.95f)
-                                            else Color.White.copy(alpha = 0.96f)
-                                        )
-                                        .border(
-                                            1.dp,
-                                            if (isDarkTheme) Color(0xFF334155).copy(alpha = 0.6f)
-                                            else Color(0xFFE2E8F0),
-                                            RoundedCornerShape(14.dp)
-                                        )
-                                        .padding(horizontal = 12.dp, vertical = 7.dp)
-                                ) {
-                                    Text(
-                                        text = "How does this wallpaper look? ✨",
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (isDarkTheme) Color(0xFFF8FAFC) else Color(0xFF0F172A)
-                                    )
-                                }
-
-                                // Outgoing message bubble (Self)
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.End)
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (isDarkTheme) Color.White
-                                            else Color(0xFF0F172A)
-                                        )
-                                        .padding(horizontal = 12.dp, vertical = 7.dp)
-                                ) {
-                                    Text(
-                                        text = "The atmosphere & layout are perfect! 🚀",
-                                        fontSize = 11.5.sp,
-                                        color = if (isDarkTheme) Color(0xFF0F172A) else Color.White,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                            }
-
-                            // Gesture Hint Floating Pill
-                            Box(
-                                modifier = Modifier
-                                    .align(Alignment.BottomCenter)
-                                    .padding(bottom = 8.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isDarkTheme) Color.Black.copy(alpha = 0.75f)
-                                        else Color(0xFF0F172A).copy(alpha = 0.82f)
-                                    )
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "Zoom: ${(scale * 100).toInt()}% • Pos: (${offsetX.toInt()}px, ${offsetY.toInt()}px) • Dim: ${(dim * 100).toInt()}%",
-                                    fontSize = 9.5.sp,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-                    }
-
-                    // ================= 2. SEGMENTED CATEGORY TABS =================
+                    // ================= 2. SEGMENTED TABS =================
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.65f))
-                            .padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f))
+                            .padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp)
                     ) {
                         val tabs = listOf(
                             Triple(0, "Presets", Icons.Default.Wallpaper),
-                            Triple(1, "Custom Photo", Icons.Default.AddPhotoAlternate),
-                            Triple(2, "Adjust & Blur", Icons.Default.Tune)
+                            Triple(1, "Photos", Icons.Default.AddPhotoAlternate),
+                            Triple(2, "Adjust", Icons.Default.Tune)
                         )
                         tabs.forEach { (index, label, icon) ->
                             val isSelected = activeTab == index
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(9.dp))
                                     .background(
                                         if (isSelected) MaterialTheme.colorScheme.surface
                                         else Color.Transparent
                                     )
                                     .clickable { activeTab = index }
-                                    .padding(vertical = 8.dp),
+                                    .padding(vertical = 7.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(
@@ -422,7 +267,7 @@ fun WallpaperCustomizerDialog(
                                     Spacer(modifier = Modifier.width(5.dp))
                                     Text(
                                         text = label,
-                                        fontSize = 11.5.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -434,89 +279,74 @@ fun WallpaperCustomizerDialog(
                     // ================= TAB 0: PRESET WALLPAPERS =================
                     if (activeTab == 0) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AVAILABLE_CHAT_WALLPAPERS.forEach { wallpaper ->
-                                val isSelected = selectedWallpaperId == wallpaper.id
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
-                                        )
-                                        .border(
-                                            width = if (isSelected) 2.dp else 1.dp,
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                                            shape = RoundedCornerShape(14.dp)
-                                        )
-                                        .clickable {
-                                            selectedWallpaperId = wallpaper.id
-                                            selectedCustomUri = null
-                                        }
-                                        .padding(10.dp)
+                            AVAILABLE_CHAT_WALLPAPERS.chunked(2).forEach { rowPair ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            // Wallpaper Preview Thumbnail
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(width = 48.dp, height = 36.dp)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(if (!isDarkTheme) wallpaper.lightBrush else wallpaper.darkBrush)
-                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(8.dp)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                if (isSelected) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Check,
-                                                        contentDescription = "Active",
-                                                        tint = if (isDarkTheme) Color.White else Color(0xFF0F172A),
-                                                        modifier = Modifier.size(16.dp)
-                                                    )
+                                    rowPair.forEach { wallpaper ->
+                                        val isSelected = selectedWallpaperId == wallpaper.id
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                )
+                                                .border(
+                                                    width = if (isSelected) 2.dp else 1.dp,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.20f),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                )
+                                                .clickable {
+                                                    selectedWallpaperId = wallpaper.id
+                                                    selectedCustomUri = null
                                                 }
-                                            }
+                                                .padding(6.dp)
+                                        ) {
+                                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(58.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(if (!isDarkTheme) wallpaper.lightBrush else wallpaper.darkBrush)
+                                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(8.dp)),
+                                                    contentAlignment = Alignment.TopEnd
+                                                ) {
+                                                    if (isSelected) {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .padding(4.dp)
+                                                                .size(18.dp)
+                                                                .clip(CircleShape)
+                                                                .background(MaterialTheme.colorScheme.primary),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Icon(
+                                                                imageVector = Icons.Default.Check,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.onPrimary,
+                                                                modifier = Modifier.size(12.dp)
+                                                            )
+                                                        }
+                                                    }
+                                                }
 
-                                            Spacer(modifier = Modifier.width(12.dp))
-
-                                            Column {
                                                 Text(
                                                     text = wallpaper.name,
-                                                    fontSize = 13.sp,
-                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = wallpaper.subtitle,
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = MaterialTheme.colorScheme.onSurface,
                                                     maxLines = 1,
                                                     overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }
-
-                                        if (isSelected) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.primary)
-                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                                            ) {
-                                                Text(
-                                                    text = "ACTIVE",
-                                                    fontSize = 9.sp,
-                                                    fontWeight = FontWeight.ExtraBold,
-                                                    color = MaterialTheme.colorScheme.onPrimary
-                                                )
-                                            }
-                                        }
+                                    }
+                                    if (rowPair.size == 1) {
+                                        Spacer(modifier = Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -525,18 +355,16 @@ fun WallpaperCustomizerDialog(
 
                     // ================= TAB 1: CUSTOM GALLERY PHOTO =================
                     if (activeTab == 1) {
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            // Hero Card to Pick Photo
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Select Photo Button
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        onPickCustomPhoto()
-                                    }
-                                    .padding(16.dp)
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                                    .clickable { onPickCustomPhoto() }
+                                    .padding(14.dp)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -549,45 +377,35 @@ fun WallpaperCustomizerDialog(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(46.dp)
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
-                                                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(12.dp)),
+                                                .size(40.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Default.AddPhotoAlternate,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.size(24.dp)
+                                                modifier = Modifier.size(20.dp)
                                             )
                                         }
-
-                                        Spacer(modifier = Modifier.width(14.dp))
-
-                                        Column {
-                                            Text(
-                                                text = "Select from Gallery",
-                                                fontSize = 14.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Text(
-                                                text = "Pick any high-res wallpaper or photo",
-                                                fontSize = 11.5.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Choose Photo",
+                                            fontSize = 13.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
 
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(8.dp))
                                             .background(MaterialTheme.colorScheme.primary)
-                                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
                                         Text(
-                                            text = "Browse",
+                                            text = "Select",
                                             fontSize = 11.5.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onPrimary
@@ -596,15 +414,15 @@ fun WallpaperCustomizerDialog(
                                 }
                             }
 
-                            // Active Photo Card if Selected
+                            // Active Photo Preview Card
                             if (!selectedCustomUri.isNullOrBlank()) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(16.dp))
+                                        .clip(RoundedCornerShape(14.dp))
                                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.10f))
-                                        .border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp))
-                                        .padding(14.dp)
+                                        .border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
+                                        .padding(10.dp)
                                 ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
@@ -617,53 +435,39 @@ fun WallpaperCustomizerDialog(
                                         ) {
                                             AsyncImage(
                                                 model = Uri.parse(selectedCustomUri),
-                                                contentDescription = "Active Custom Photo",
+                                                contentDescription = null,
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
-                                                    .size(width = 52.dp, height = 40.dp)
+                                                    .size(width = 46.dp, height = 36.dp)
                                                     .clip(RoundedCornerShape(8.dp))
-                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
                                             )
-
-                                            Spacer(modifier = Modifier.width(12.dp))
-
-                                            Column {
-                                                Text(
-                                                    text = "Custom Photo Active",
-                                                    fontSize = 13.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = MaterialTheme.colorScheme.onSurface
-                                                )
-                                                Text(
-                                                    text = "Pinch or adjust position below",
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Text(
+                                                text = "Active Photo",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
                                         }
 
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(30.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFFDC2626).copy(alpha = 0.15f))
+                                                .clickable {
+                                                    selectedCustomUri = null
+                                                    selectedWallpaperId = "default"
+                                                },
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color(0xFFDC2626).copy(alpha = 0.15f))
-                                                    .clickable {
-                                                        selectedCustomUri = null
-                                                        selectedWallpaperId = "default"
-                                                    },
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Delete,
-                                                    contentDescription = "Delete Photo",
-                                                    tint = Color(0xFFEF4444),
-                                                    modifier = Modifier.size(16.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "Delete Photo",
+                                                tint = Color(0xFFEF4444),
+                                                modifier = Modifier.size(15.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -673,123 +477,103 @@ fun WallpaperCustomizerDialog(
 
                     // ================= TAB 2: ADJUST & BLUR =================
                     if (activeTab == 2 || activeTab == 1) {
-                        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                            // SCALING & FIT MODE
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.AspectRatio,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "SCALING & FIT MODE",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        letterSpacing = 0.8.sp
-                                    )
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Fit Mode Selector
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    "crop" to "Fill",
+                                    "fit" to "Fit",
+                                    "fill_bounds" to "Stretch",
+                                    "inside" to "Center"
+                                ).forEach { (mKey, mLabel) ->
+                                    val isSelected = mode == mKey
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
+                                            )
+                                            .clickable { mode = mKey }
+                                            .padding(vertical = 7.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = mLabel,
+                                            fontSize = 11.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                 }
+                            }
 
+                            // Dimming Scrim Slider
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    val modes = listOf(
-                                        "crop" to "Fill (Crop)",
-                                        "fit" to "Fit",
-                                        "fill_bounds" to "Stretch",
-                                        "inside" to "Original"
-                                    )
-                                    modes.forEach { (mKey, mLabel) ->
-                                        val isSelected = mode == mKey
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                                )
-                                                .clickable { mode = mKey }
-                                                .padding(vertical = 7.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = mLabel,
-                                                fontSize = 11.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                            )
-                                        }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Opacity,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = "Dim", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                                     }
+                                    Text(text = "${(dim * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
+                                Slider(
+                                    value = dim,
+                                    onValueChange = { dim = it },
+                                    valueRange = 0.0f..0.85f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = MaterialTheme.colorScheme.primary,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
                             }
 
-                            // LEGIBILITY: DIMMING & FROSTED BLUR
-                            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.Opacity,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "LEGIBILITY & FROSTED BLUR",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        letterSpacing = 0.8.sp
-                                    )
-                                }
-
-                                // Dimming Scrim Slider
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(text = "Legibility Dimming", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "${(dim * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                    }
-                                    Slider(
-                                        value = dim,
-                                        onValueChange = { dim = it },
-                                        valueRange = 0.0f..0.85f,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = MaterialTheme.colorScheme.primary,
-                                            activeTrackColor = MaterialTheme.colorScheme.primary
+                            // Frosted Glass Blur Slider
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Tune,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp)
                                         )
-                                    )
-                                }
-
-                                // Frosted Glass Blur Slider
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(text = "Frosted Glass Blur", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "${blur.toInt()} dp", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(text = "Blur", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                                     }
-                                    Slider(
-                                        value = blur,
-                                        onValueChange = { blur = it },
-                                        valueRange = 0f..20f,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = MaterialTheme.colorScheme.primary,
-                                            activeTrackColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    )
+                                    Text(text = "${blur.toInt()} dp", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
+                                Slider(
+                                    value = blur,
+                                    onValueChange = { blur = it },
+                                    valueRange = 0f..20f,
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = MaterialTheme.colorScheme.primary,
+                                        activeTrackColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
                             }
 
-                            // ZOOM / SIZE SLIDER
-                            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            // Zoom Slider
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -800,25 +584,13 @@ fun WallpaperCustomizerDialog(
                                             imageVector = Icons.Default.ZoomIn,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(15.dp)
+                                            modifier = Modifier.size(14.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "ZOOM / SIZE",
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary,
-                                            letterSpacing = 0.8.sp
-                                        )
+                                        Text(text = "Zoom", fontSize = 11.5.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                                     }
-                                    Text(
-                                        text = "${(scale * 100).toInt()}%",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                    Text(text = "${(scale * 100).toInt()}%", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
-
                                 Slider(
                                     value = scale,
                                     onValueChange = { scale = it },
@@ -828,28 +600,26 @@ fun WallpaperCustomizerDialog(
                                         activeTrackColor = MaterialTheme.colorScheme.primary
                                     )
                                 )
-
-                                // Quick Zoom Buttons
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
-                                    listOf(0.75f to "75%", 1.0f to "100%", 1.25f to "125%", 1.5f to "150%", 2.0f to "200%").forEach { (sVal, sLabel) ->
+                                    listOf(0.75f to "75%", 1.0f to "100%", 1.5f to "150%", 2.0f to "200%").forEach { (sVal, sLabel) ->
                                         Box(
                                             modifier = Modifier
                                                 .weight(1f)
-                                                .clip(RoundedCornerShape(8.dp))
+                                                .clip(RoundedCornerShape(6.dp))
                                                 .background(
-                                                    if (kotlin.math.abs(scale - sVal) < 0.05f) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                                    if (kotlin.math.abs(scale - sVal) < 0.05f) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f)
                                                 )
                                                 .clickable { scale = sVal }
-                                                .padding(vertical = 5.dp),
+                                                .padding(vertical = 4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(
                                                 text = sLabel,
-                                                fontSize = 10.5.sp,
+                                                fontSize = 10.sp,
                                                 fontWeight = FontWeight.Medium,
                                                 color = if (kotlin.math.abs(scale - sVal) < 0.05f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -858,114 +628,40 @@ fun WallpaperCustomizerDialog(
                                 }
                             }
 
-                            // POSITION & PAN OFFSETS
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.OpenWith,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "POSITION & PAN OFFSETS",
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        letterSpacing = 0.8.sp
-                                    )
-                                }
-
-                                // Vertical (Y) Offset
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(text = "Vertical Alignment (Y)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "${offsetY.toInt()} px", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                    }
-                                    Slider(
-                                        value = offsetY,
-                                        onValueChange = { offsetY = it },
-                                        valueRange = -300f..300f,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = MaterialTheme.colorScheme.primary,
-                                            activeTrackColor = MaterialTheme.colorScheme.primary
-                                        )
-                                    )
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        listOf(-150f to "Top", 0f to "Center Y", 150f to "Bottom").forEach { (yVal, yLabel) ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(
-                                                        if (kotlin.math.abs(offsetY - yVal) < 5f) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                                    )
-                                                    .clickable { offsetY = yVal }
-                                                    .padding(vertical = 5.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = yLabel,
-                                                    fontSize = 10.5.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = if (kotlin.math.abs(offsetY - yVal) < 5f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                            // Pan Alignment Quick Buttons
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    Triple(0f, 0f, "Center"),
+                                    Triple(0f, -150f, "Top"),
+                                    Triple(0f, 150f, "Bottom"),
+                                    Triple(-120f, 0f, "Left"),
+                                    Triple(120f, 0f, "Right")
+                                ).forEach { (px, py, pLabel) ->
+                                    val isMatch = kotlin.math.abs(offsetX - px) < 5f && kotlin.math.abs(offsetY - py) < 5f
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isMatch) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                                                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.30f)
+                                            )
+                                            .clickable {
+                                                offsetX = px
+                                                offsetY = py
                                             }
-                                        }
-                                    }
-                                }
-
-                                // Horizontal (X) Offset
-                                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(text = "Horizontal Alignment (X)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                                        Text(text = "${offsetX.toInt()} px", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                    }
-                                    Slider(
-                                        value = offsetX,
-                                        onValueChange = { offsetX = it },
-                                        valueRange = -300f..300f,
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = MaterialTheme.colorScheme.primary,
-                                            activeTrackColor = MaterialTheme.colorScheme.primary
+                                        Text(
+                                            text = pLabel,
+                                            fontSize = 10.5.sp,
+                                            fontWeight = if (isMatch) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isMatch) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    )
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                    ) {
-                                        listOf(-120f to "Left", 0f to "Center X", 120f to "Right").forEach { (xVal, xLabel) ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .weight(1f)
-                                                    .clip(RoundedCornerShape(8.dp))
-                                                    .background(
-                                                        if (kotlin.math.abs(offsetX - xVal) < 5f) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                                    )
-                                                    .clickable { offsetX = xVal }
-                                                    .padding(vertical = 5.dp),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = xLabel,
-                                                    fontSize = 10.5.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = if (kotlin.math.abs(offsetX - xVal) < 5f) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
-                                        }
                                     }
                                 }
                             }
@@ -978,26 +674,26 @@ fun WallpaperCustomizerDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surface)
-                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.20f))
                         .padding(horizontal = 14.dp, vertical = 10.dp)
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             Button(
                                 onClick = onDismissRequest,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                    .height(42.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                     contentColor = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             ) {
-                                Text(text = "Cancel", fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
+                                Text(text = "Cancel", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                             }
 
                             Button(
@@ -1016,8 +712,8 @@ fun WallpaperCustomizerDialog(
                                 },
                                 modifier = Modifier
                                     .weight(1.5f)
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(12.dp),
+                                    .height(42.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 colors = ButtonDefaults.buttonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
@@ -1030,14 +726,13 @@ fun WallpaperCustomizerDialog(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = "Apply to This Chat",
+                                    text = "Apply",
                                     fontSize = 12.5.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         }
 
-                        // Set as Default for All Chats option
                         TextButton(
                             onClick = {
                                 val updated = WallpaperTransform(
@@ -1054,17 +749,154 @@ fun WallpaperCustomizerDialog(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(36.dp)
+                                .height(32.dp)
                         ) {
                             Text(
-                                text = "Set as Default for All Chats",
-                                fontSize = 11.5.sp,
+                                text = "Set for all chats",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Isolated live wallpaper preview viewport.
+ * Uses deferred lambdas to avoid recomposing the parent dialog during gesture pan/zoom.
+ */
+@Composable
+private fun WallpaperLivePreview(
+    selectedWallpaperId: String,
+    selectedCustomUri: String?,
+    presetWallpaper: ChatWallpaperOption,
+    contentScale: ContentScale,
+    scaleProvider: () -> Float,
+    offsetXProvider: () -> Float,
+    offsetYProvider: () -> Float,
+    dimProvider: () -> Float,
+    blurProvider: () -> Float,
+    isDarkTheme: Boolean,
+    onGestureTransform: (pan: Offset, zoom: Float) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .background(if (isDarkTheme) Color.Black else Color(0xFFF8FAFC))
+    ) {
+        // Wallpaper Layer with deferred graphicsLayer
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clipToBounds()
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, _ ->
+                        onGestureTransform(pan, zoom)
+                    }
+                }
+        ) {
+            if (selectedWallpaperId == "custom" && !selectedCustomUri.isNullOrBlank()) {
+                val currentBlur = blurProvider()
+                AsyncImage(
+                    model = Uri.parse(selectedCustomUri),
+                    contentDescription = null,
+                    contentScale = contentScale,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = scaleProvider()
+                            scaleY = scaleProvider()
+                            translationX = offsetXProvider()
+                            translationY = offsetYProvider()
+                        }
+                        .then(
+                            if (currentBlur > 0f) Modifier.blur(currentBlur.dp) else Modifier
+                        )
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = scaleProvider()
+                            scaleY = scaleProvider()
+                            translationX = offsetXProvider()
+                            translationY = offsetYProvider()
+                        }
+                        .background(
+                            if (!isDarkTheme) presetWallpaper.lightBrush else presetWallpaper.darkBrush
+                        )
+                )
+            }
+
+            // Scrim Overlay
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithContent {
+                        drawContent()
+                        val currentDim = dimProvider()
+                        val scrimColor = if (!isDarkTheme) Color.White.copy(alpha = currentDim * 0.85f)
+                        else Color.Black.copy(alpha = currentDim)
+                        drawRect(scrimColor)
+                    }
+            )
+        }
+
+        // Mock Chat Bubbles Overlay
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isDarkTheme) Color(0xFF1E293B).copy(alpha = 0.95f)
+                        else Color.White.copy(alpha = 0.96f)
+                    )
+                    .border(
+                        1.dp,
+                        if (isDarkTheme) Color(0xFF334155).copy(alpha = 0.6f)
+                        else Color(0xFFE2E8F0),
+                        RoundedCornerShape(12.dp)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "Hello! Looks great ✨",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = if (isDarkTheme) Color(0xFFF8FAFC) else Color(0xFF0F172A)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.End)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (isDarkTheme) Color.White
+                        else Color(0xFF0F172A)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = "Clean & responsive 🚀",
+                    fontSize = 11.sp,
+                    color = if (isDarkTheme) Color(0xFF0F172A) else Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
