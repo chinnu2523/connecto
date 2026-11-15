@@ -11,6 +11,7 @@ import java.net.URL
 object StoreApiClient {
     private const val CATALOG_URL = "https://connecto.fun/api/v1/store/apps"
     private const val LOGIN_URL = "https://connecto.fun/api/auth/login"
+    private const val REGISTER_URL = "https://connecto.fun/api/auth/register"
     private const val PROFILE_URL = "https://connecto.fun/api/v1/users/profile"
     private const val CONSENT_URL = "https://connecto.fun/api/v1/store/consent"
 
@@ -129,6 +130,78 @@ object StoreApiClient {
                     displayName = displayName,
                     avatarUrl = avatarUrl,
                     role = role,
+                    token = token,
+                    isConnectoSso = false
+                )
+            )
+        } catch (e: Exception) {
+            Result.failure(e)
+        } finally {
+            conn.disconnect()
+        }
+    }
+
+    fun register(
+        username: String,
+        password: String,
+        displayName: String = "",
+        email: String = ""
+    ): Result<StoreUser> {
+        val cleanUser = username.trim().lowercase()
+        val cleanPass = password.trim()
+        val cleanDisplay = displayName.trim().ifBlank { cleanUser }
+        val cleanEmail = email.trim().lowercase().ifBlank { "${cleanUser}@connecto.fun" }
+
+        val conn = try {
+            URL(REGISTER_URL).openConnection() as HttpURLConnection
+        } catch (e: Exception) {
+            return Result.failure(e)
+        }
+
+        return try {
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.setRequestProperty("Accept", "application/json")
+            conn.doOutput = true
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 15_000
+
+            val body = JSONObject().apply {
+                put("username", cleanUser)
+                put("password", cleanPass)
+                put("display_name", cleanDisplay)
+                put("email", cleanEmail)
+            }
+
+            conn.outputStream.bufferedWriter().use { it.write(body.toString()) }
+            val code = conn.responseCode
+            val responseText = if (code in 200..299) {
+                conn.inputStream.bufferedReader().readText()
+            } else {
+                conn.errorStream?.bufferedReader()?.readText() ?: ""
+            }
+
+            if (code !in 200..299) {
+                val errObj = try { JSONObject(responseText) } catch (_: Exception) { null }
+                val msg = errObj?.optString("detail")?.takeIf { it.isNotBlank() }
+                    ?: errObj?.optString("error")?.takeIf { it.isNotBlank() }
+                    ?: "Registration failed (HTTP $code)"
+                return Result.failure(Exception(msg))
+            }
+
+            val json = JSONObject(responseText)
+            val userObj = json.optJSONObject("user") ?: return Result.failure(Exception("Invalid server response"))
+            val resUser = userObj.optString("username", cleanUser)
+            val resDisplay = userObj.optString("display_name", cleanDisplay)
+            val resAvatar = userObj.optString("avatar_url", "")
+            val token = json.optString("token", "")
+
+            Result.success(
+                StoreUser(
+                    username = resUser,
+                    displayName = resDisplay,
+                    avatarUrl = resAvatar,
+                    role = StoreRole.MEMBER,
                     token = token,
                     isConnectoSso = false
                 )

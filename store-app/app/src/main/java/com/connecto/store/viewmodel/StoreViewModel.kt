@@ -225,6 +225,54 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun registerWithCredentials(username: String, pass: String, displayName: String = "", email: String = "") {
+        val cleanUser = username.trim().lowercase()
+        val cleanPass = pass.trim()
+        val cleanDisplay = displayName.trim().ifBlank { cleanUser }
+        val cleanEmail = email.trim().lowercase().ifBlank { "${cleanUser}@connecto.fun" }
+
+        if (cleanUser.length < 3) {
+            _loginState.value = LoginUiState.Error("Username must be at least 3 characters.")
+            return
+        }
+        if (cleanPass.length < 8) {
+            _loginState.value = LoginUiState.Error("Password must be at least 8 characters.")
+            return
+        }
+
+        viewModelScope.launch {
+            _loginState.value = LoginUiState.Loading
+            val result = withContext(Dispatchers.IO) {
+                StoreApiClient.register(cleanUser, cleanPass, cleanDisplay, cleanEmail)
+            }
+            if (result.isSuccess) {
+                val user = result.getOrThrow()
+                sessionManager.saveUser(user)
+                _currentUser.value = user
+                _loginState.value = LoginUiState.Success("Account created successfully as @${user.username}")
+                publishFilteredCatalog()
+                loadCatalog()
+            } else {
+                val msg = result.exceptionOrNull()?.message ?: "Registration failed."
+                _loginState.value = LoginUiState.Error(msg)
+            }
+        }
+    }
+
+    fun continueAsGuest() {
+        val guest = StoreUser(
+            username = "guest",
+            displayName = "Guest Explorer",
+            avatarUrl = "",
+            role = StoreRole.GUEST,
+            token = "",
+            isConnectoSso = false
+        )
+        _currentUser.value = guest
+        _loginState.value = LoginUiState.Idle
+        publishFilteredCatalog()
+    }
+
     fun hasUserAgreedLegal(username: String): Boolean {
         val ctx = getApplication<Application>()
         val prefs = ctx.getSharedPreferences("store_legal_consent_prefs", Context.MODE_PRIVATE)

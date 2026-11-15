@@ -60,6 +60,8 @@ import com.connecto.store.viewmodel.AppUiState
 import com.connecto.store.viewmodel.LoginUiState
 import com.connecto.store.viewmodel.StoreUiState
 import com.connecto.store.viewmodel.StoreViewModel
+import com.connecto.store.ui.components.StoreButtonState
+import com.connecto.store.ui.components.StoreFiveStateButton
 
 // ─── Pitch-Black Luxury OLED & Clean White Theme Palette ─────────────────────
 data class StoreThemeColors(
@@ -180,8 +182,9 @@ private val TextMutedSilver = Color(0xFF9CA3AF)
 private val TextDarkMuted = Color(0xFF6B7280)
 private val EmeraldStatus = Color(0xFF10B981)
 private val EmeraldStatusBg = Color(0xFF06281E)
-private val AmberUpdate = Color(0xFFF59E0B)
-private val AmberUpdateBg = Color(0xFF2B1D04)
+private val ElectricBlueUpdate = Color(0xFF2563EB)
+private val ElectricBlueUpdateLight = Color(0xFF3B82F6)
+private val ElectricBlueUpdateBg = Color(0xFF0F172A)
 private val DangerRed = Color(0xFFEF4444)
 private val DangerRedBg = Color(0xFF2E1010)
 private val DangerRedBorder = Color(0xFF7F1D1D)
@@ -257,12 +260,28 @@ fun StoreApp(
             is StoreUiState.Error   -> ClassicErrorState(s.message, onRetry = { vm.loadCatalog() })
             is StoreUiState.Success -> {
                 if (currentUser == null) {
-                    // Strictly unauthenticated gate: show NOTHING except the Login with Connecto screen
-                    ConnectoLoginGateScreen(
+                    StoreLoginScreen(
                         loginState = loginState,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = onToggleTheme,
+                        onLoginCredentials = { u, p -> vm.loginWithCredentials(u, p) },
+                        onRegisterCredentials = { u, p, d, e -> vm.registerWithCredentials(u, p, d, e) },
                         onLoginConnecto = { vm.loginWithConnecto(context) },
+                        onContinueAsGuest = { vm.continueAsGuest() },
+                        onBiometricLogin = {
+                            val activity = context as? androidx.fragment.app.FragmentActivity
+                            if (activity != null) {
+                                com.connecto.store.auth.StoreBiometricHelper.promptBiometric(
+                                    activity = activity,
+                                    title = "Unlock Our Store",
+                                    subtitle = "Touch sensor to sign in",
+                                    onSuccess = { vm.continueAsGuest() },
+                                    onError = { /* ignored */ },
+                                    onNegativeButton = {}
+                                )
+                            }
+                        },
+                        isBiometricAvailable = com.connecto.store.auth.StoreBiometricHelper.isBiometricAvailable(context),
                         onClearLoginError = { vm.clearLoginError() }
                     )
                 } else {
@@ -333,7 +352,9 @@ fun StoreApp(
                                     onOpenSecurityDialog = { showSecurityDialog = true },
                                     isDarkTheme = isDarkTheme,
                                     onToggleTheme = onToggleTheme,
-                                    showSearch = selectedSection == StoreNavSection.OVERVIEW
+                                    showSearch = selectedSection == StoreNavSection.OVERVIEW,
+                                    currentUser = currentUser,
+                                    onOpenAccount = { selectedSection = StoreNavSection.LOGIN }
                                 )
 
                                 // Content Stage with Navigation Section Transition
@@ -387,6 +408,7 @@ fun StoreApp(
                                                 onToggleTheme = onToggleTheme,
                                                 onUpdateOurStore = { s.storeSelfUpdate?.let { vm.downloadAndInstall(context, it) } },
                                                 onLoginCredentials = { u, p -> vm.loginWithCredentials(u, p) },
+                                                onRegisterCredentials = { u, p, d, e -> vm.registerWithCredentials(u, p, d, e) },
                                                 onLoginConnecto = { vm.loginWithConnecto(context) },
                                                 onLogout = { vm.logout() },
                                                 onClearLoginError = { vm.clearLoginError() }
@@ -472,7 +494,9 @@ private fun ClassicTopHeader(
     onOpenSecurityDialog: () -> Unit,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
-    showSearch: Boolean = true
+    showSearch: Boolean = true,
+    currentUser: StoreUser? = null,
+    onOpenAccount: () -> Unit = {}
 ) {
     val theme = LocalStoreTheme.current
     val focusManager = LocalFocusManager.current
@@ -528,7 +552,7 @@ private fun ClassicTopHeader(
                     Icon(
                         imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
                         contentDescription = "Toggle Appearance Theme",
-                        tint = if (isDarkTheme) AmberUpdate else theme.textPrimary,
+                        tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textPrimary,
                         modifier = Modifier
                             .size(18.dp)
                             .graphicsLayer { rotationZ = rotation }
@@ -569,6 +593,47 @@ private fun ClassicTopHeader(
                         tint = theme.textPrimary,
                         modifier = Modifier.size(18.dp)
                     )
+                }
+
+                // Account / Profile Quick Access Avatar or Pill
+                val isGuest = currentUser == null || currentUser.username.equals("guest", ignoreCase = true)
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(if (isGuest) theme.cardElevated else theme.accentColor.copy(alpha = 0.15f))
+                        .border(
+                            1.dp,
+                            if (isGuest) theme.cardBorder else theme.accentColor,
+                            CircleShape
+                        )
+                        .tactilePress(pressedScale = 0.88f) { onOpenAccount() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isGuest || currentUser == null) {
+                        Icon(
+                            imageVector = Icons.Rounded.AccountCircle,
+                            contentDescription = "Sign In / Account",
+                            tint = theme.textMuted,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else {
+                        UserAvatarImage(
+                            avatarUrl = currentUser.avatarUrl,
+                            displayName = currentUser.displayName,
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape),
+                            fallback = {
+                                Text(
+                                    text = currentUser.displayName.take(1).uppercase(),
+                                    color = theme.accentColor,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 13.sp
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -730,12 +795,12 @@ private fun ClassicBottomNavTabItem(
                         modifier = Modifier
                             .offset(x = 6.dp, y = (-4).dp)
                             .clip(CircleShape)
-                            .background(AmberUpdate)
+                            .background(ElectricBlueUpdateLight)
                             .padding(horizontal = 4.5.dp, vertical = 1.dp)
                     ) {
                         Text(
                             text = "$badgeCount",
-                            color = Color.Black,
+                            color = Color.White,
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -807,11 +872,11 @@ private fun ClassicCatalogBody(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(if (updateCount > 0) AmberUpdate else EmeraldStatus)
+                                .background(if (updateCount > 0) ElectricBlueUpdateLight else EmeraldStatus)
                         )
                         Text(
                             text = if (updateCount > 0) "$updateCount update${if (updateCount > 1) "s" else ""} ready" else "All apps up to date",
-                            color = if (updateCount > 0) AmberUpdate else EmeraldStatus,
+                            color = if (updateCount > 0) ElectricBlueUpdateLight else EmeraldStatus,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -1160,10 +1225,11 @@ private fun ClassicAppCard(
 
             // Single App Store Style Tactile Action Button
             val (actionLabel, actionBg, actionFg) = when {
+                appState.error != null -> Triple("RETRY", DangerRed, Color.White)
                 appState.isInstalling -> Triple("INSTALLING…", theme.cardBorder, theme.textPrimary)
                 appState.isDownloading -> Triple("${appState.downloadProgress}%", theme.cardBorder, theme.textPrimary)
                 appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple("GET", theme.cardElevated, theme.textPrimary)
-                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple("UPDATE", AmberUpdate, Color.Black)
+                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple("UPDATE", ElectricBlueUpdate, Color.White)
                 else -> Triple("OPEN", theme.cardElevated, theme.textPrimary)
             }
 
@@ -1173,7 +1239,11 @@ private fun ClassicAppCard(
                     .background(actionBg)
                     .border(
                         1.dp,
-                        if (appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE) AmberUpdate else theme.borderHighlight,
+                        when {
+                            appState.error != null -> DangerRedBorder
+                            appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> ElectricBlueUpdate
+                            else -> theme.borderHighlight
+                        },
                         RoundedCornerShape(20.dp)
                     )
                     .tactilePress(
@@ -1384,7 +1454,7 @@ private fun ClassicAppDetailView(
                             when {
                                 appState.isDownloading || appState.isInstalling -> theme.cardBorder
                                 appState.installState == StoreApp.InstallState.NOT_INSTALLED -> theme.textPrimary
-                                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> AmberUpdate
+                                appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> ElectricBlueUpdate
                                 else -> theme.textPrimary
                             }
                         )
@@ -1432,12 +1502,12 @@ private fun ClassicAppDetailView(
                                 Icon(
                                     imageVector = Icons.Rounded.SystemUpdate,
                                     contentDescription = null,
-                                    tint = Color.Black,
+                                    tint = Color.White,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
                                     text = "UPDATE (v${app.versionName})",
-                                    color = Color.Black,
+                                    color = Color.White,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 13.sp,
                                     letterSpacing = 0.5.sp
@@ -1733,7 +1803,7 @@ private fun ClassicVersionSpecRow(appState: AppUiState) {
     val (statusBg, statusFg, statusText) = when {
         appState.isInstalling -> Triple(theme.cardElevated, theme.textPrimary, "INSTALLING")
         appState.installState == StoreApp.InstallState.NOT_INSTALLED -> Triple(theme.cardElevated, theme.textMuted, "NOT INSTALLED")
-        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple(AmberUpdateBg, AmberUpdate, "UPDATE AVAILABLE")
+        appState.installState == StoreApp.InstallState.UPDATE_AVAILABLE -> Triple(ElectricBlueUpdateBg, ElectricBlueUpdateLight, "UPDATE AVAILABLE")
         else -> Triple(EmeraldStatusBg, EmeraldStatus, "UP TO DATE ✓")
     }
 
@@ -2366,7 +2436,7 @@ fun ConnectoLoginGateScreen(
             Icon(
                 imageVector = if (isDarkTheme) Icons.Rounded.LightMode else Icons.Rounded.DarkMode,
                 contentDescription = "Toggle Appearance Theme",
-                tint = if (isDarkTheme) AmberUpdate else theme.textPrimary,
+                tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textPrimary,
                 modifier = Modifier.size(18.dp)
             )
         }
@@ -2534,6 +2604,7 @@ fun ClassicLoginAccountView(
     onToggleTheme: () -> Unit,
     onUpdateOurStore: () -> Unit = {},
     onLoginCredentials: (String, String) -> Unit,
+    onRegisterCredentials: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     onLoginConnecto: () -> Unit,
     onLogout: () -> Unit,
     onClearLoginError: () -> Unit
@@ -2557,7 +2628,7 @@ fun ClassicLoginAccountView(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
                     .background(theme.surface)
-                    .border(1.dp, AmberUpdate.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                    .border(1.dp, ElectricBlueUpdate.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
                     .padding(18.dp)
             ) {
                 Column(
@@ -2572,11 +2643,11 @@ fun ClassicLoginAccountView(
                             modifier = Modifier
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(AmberUpdate)
+                                .background(ElectricBlueUpdateLight)
                         )
                         Text(
                             text = "Update available (v${storeSelfUpdate.app.versionName})",
-                            color = AmberUpdate,
+                            color = ElectricBlueUpdateLight,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -2623,7 +2694,7 @@ fun ClassicLoginAccountView(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(AmberUpdate)
+                                .background(ElectricBlueUpdate)
                                 .tactilePress(pressedScale = 0.94f) { onUpdateOurStore() }
                                 .padding(vertical = 11.dp),
                             contentAlignment = Alignment.Center
@@ -2635,12 +2706,12 @@ fun ClassicLoginAccountView(
                                 Icon(
                                     imageVector = Icons.Rounded.SystemUpdate,
                                     contentDescription = null,
-                                    tint = Color.Black,
+                                    tint = Color.White,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
                                     text = "UPDATE OUR STORE NOW",
-                                    color = Color.Black,
+                                    color = Color.White,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 12.sp,
                                     letterSpacing = 0.5.sp
@@ -2652,7 +2723,7 @@ fun ClassicLoginAccountView(
             }
         }
 
-        if (currentUser != null) {
+        if (currentUser != null && !currentUser.username.equals("guest", ignoreCase = true)) {
             // Logged In Account Dashboard
             Box(
                 modifier = Modifier
@@ -2799,7 +2870,7 @@ fun ClassicLoginAccountView(
                                         .background(if (isDarkTheme) Color(0xFF000000) else theme.surface)
                                         .border(
                                             width = if (isDarkTheme) 2.dp else 1.dp,
-                                            color = if (isDarkTheme) AmberUpdate else theme.cardBorder,
+                                            color = if (isDarkTheme) Color(0xFF38BDF8) else theme.cardBorder,
                                             shape = RoundedCornerShape(10.dp)
                                         )
                                         .tactilePress(pressedScale = 0.94f) {
@@ -2815,7 +2886,7 @@ fun ClassicLoginAccountView(
                                         Icon(
                                             imageVector = Icons.Rounded.DarkMode,
                                             contentDescription = null,
-                                            tint = if (isDarkTheme) AmberUpdate else theme.textDarkMuted,
+                                            tint = if (isDarkTheme) Color(0xFF38BDF8) else theme.textDarkMuted,
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Text(
@@ -2927,152 +2998,302 @@ fun ClassicLoginAccountView(
                 }
             }
         } else {
-            // Logged Out Connecto SSO View
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "Welcome to Our Store",
-                    color = theme.textPrimary,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Black
-                )
-                Text(
-                    text = "Sign in to access your curated applications and personalized tools.",
-                    color = theme.textMuted,
-                    fontSize = 12.5.sp,
-                    textAlign = TextAlign.Center,
-                    lineHeight = 17.sp
-                )
-            }
-
-            // Error banner if any
-            if (loginState is LoginUiState.Error) {
+            val isGuestMode = currentUser?.username.equals("guest", ignoreCase = true)
+            if (isGuestMode) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(DangerRedBg)
-                        .border(1.dp, DangerRedBorder, RoundedCornerShape(10.dp))
-                        .padding(12.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(theme.cardElevated)
+                        .border(1.dp, theme.accentColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                        .padding(14.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.ErrorOutline,
+                            imageVector = Icons.Rounded.Explore,
                             contentDescription = null,
-                            tint = DangerRed,
+                            tint = theme.accentColor,
                             modifier = Modifier.size(20.dp)
                         )
-                        Text(
-                            text = loginState.message,
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.Rounded.Close,
-                            contentDescription = "Dismiss",
-                            tint = theme.textMuted,
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clickable { onClearLoginError() }
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Guest Explorer Active",
+                                color = theme.textPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.5.sp
+                            )
+                            Text(
+                                text = "Sign in to access your verified profile, background cloud sync, and developer packages.",
+                                color = theme.textMuted,
+                                fontSize = 11.sp
+                            )
+                        }
                     }
                 }
             }
 
-            // Connecto SSO Card
-            val isLoading = loginState is LoginUiState.Loading
+            var authTab by remember { mutableStateOf(0) }
+            var inputUser by remember { mutableStateOf("") }
+            var inputDisplay by remember { mutableStateOf("") }
+            var inputPass by remember { mutableStateOf("") }
+            var passVisibility by remember { mutableStateOf(false) }
+
+            val isAuthenticating = loginState is LoginUiState.Loading
+            val hasAuthError = loginState is LoginUiState.Error
+
+            val canSubmitForm = when (authTab) {
+                0 -> inputUser.trim().isNotBlank() && inputPass.trim().isNotBlank()
+                else -> inputUser.trim().length >= 3 && inputPass.trim().length >= 8
+            }
+
+            val formBtnState = when {
+                isAuthenticating -> StoreButtonState.LOADING
+                hasAuthError -> StoreButtonState.ERROR
+                !canSubmitForm -> StoreButtonState.DISABLED
+                else -> StoreButtonState.DEFAULT
+            }
+
+            // Authentication Card with 5-State Interactive Controls
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(theme.surface)
-                    .border(1.dp, theme.cardBorder, RoundedCornerShape(16.dp))
-                    .padding(24.dp)
+                    .border(1.dp, theme.cardBorder, RoundedCornerShape(18.dp))
+                    .padding(20.dp)
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF6C5CE7).copy(alpha = 0.15f))
-                            .border(1.5.dp, Color(0xFF6C5CE7).copy(alpha = 0.5f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Fingerprint,
-                            contentDescription = null,
-                            tint = Color(0xFFA29BFE),
-                            modifier = Modifier.size(36.dp)
-                        )
-                    }
-
-                    Text(
-                        text = "Connecto Single Sign-On",
-                        color = theme.textPrimary,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "Sign in directly with your Connecto profile on this device.",
-                        color = theme.textMuted,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 16.sp
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Box(
+                    // Segmented Tabs
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isLoading) Color(0xFF4A3E9E) else Color(0xFF6C5CE7))
-                            .tactilePress(
-                                pressedScale = 0.95f,
-                                onClick = if (!isLoading) onLoginConnecto else null
-                            )
-                            .padding(vertical = 14.dp),
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(theme.cardElevated)
+                            .border(1.dp, theme.cardBorder, RoundedCornerShape(10.dp))
+                            .padding(3.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (authTab == 0) theme.surface else Color.Transparent)
+                                .then(if (authTab == 0) Modifier.border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp)) else Modifier)
+                                .clickable {
+                                    authTab = 0
+                                    onClearLoginError()
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "SIGN IN",
+                                color = if (authTab == 0) theme.textPrimary else theme.textDarkMuted,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
                             )
-                        } else {
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (authTab == 1) theme.surface else Color.Transparent)
+                                .then(if (authTab == 1) Modifier.border(1.dp, theme.cardBorder, RoundedCornerShape(8.dp)) else Modifier)
+                                .clickable {
+                                    authTab = 1
+                                    onClearLoginError()
+                                }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "CREATE ACCOUNT",
+                                color = if (authTab == 1) theme.textPrimary else theme.textDarkMuted,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
+
+                    // Error Alert Banner
+                    if (loginState is LoginUiState.Error) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(DangerRedBg)
+                                .border(1.dp, DangerRedBorder, RoundedCornerShape(10.dp))
+                                .padding(12.dp)
+                        ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Rounded.Login,
+                                    imageVector = Icons.Rounded.ErrorOutline,
                                     contentDescription = null,
-                                    tint = Color.White,
+                                    tint = DangerRed,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Text(
-                                    text = "LOGIN WITH CONNECTO",
+                                    text = loginState.message,
                                     color = Color.White,
-                                    fontWeight = FontWeight.Black,
-                                    fontSize = 13.sp,
-                                    letterSpacing = 0.5.sp
+                                    fontSize = 11.5.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Dismiss",
+                                    tint = theme.textMuted,
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clickable { onClearLoginError() }
                                 )
                             }
                         }
                     }
+
+                    // Input 1: Username
+                    OutlinedTextField(
+                        value = inputUser,
+                        onValueChange = {
+                            inputUser = it
+                            if (hasAuthError) onClearLoginError()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Username or Email", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Person,
+                                contentDescription = null,
+                                tint = theme.textMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = theme.textPrimary,
+                            unfocusedTextColor = theme.textPrimary,
+                            focusedBorderColor = theme.accentColor,
+                            unfocusedBorderColor = theme.cardBorder,
+                            focusedContainerColor = theme.cardElevated,
+                            unfocusedContainerColor = theme.cardElevated,
+                            focusedLabelColor = theme.accentColor,
+                            unfocusedLabelColor = theme.textMuted
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    // Input 2: Display Name (Create Account only)
+                    if (authTab == 1) {
+                        OutlinedTextField(
+                            value = inputDisplay,
+                            onValueChange = { inputDisplay = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("Display Name", fontSize = 12.sp) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Rounded.Badge,
+                                    contentDescription = null,
+                                    tint = theme.textMuted,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = theme.textPrimary,
+                                unfocusedTextColor = theme.textPrimary,
+                                focusedBorderColor = theme.accentColor,
+                                unfocusedBorderColor = theme.cardBorder,
+                                focusedContainerColor = theme.cardElevated,
+                                unfocusedContainerColor = theme.cardElevated,
+                                focusedLabelColor = theme.accentColor,
+                                unfocusedLabelColor = theme.textMuted
+                            ),
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+
+                    // Input 3: Password
+                    OutlinedTextField(
+                        value = inputPass,
+                        onValueChange = {
+                            inputPass = it
+                            if (hasAuthError) onClearLoginError()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(if (authTab == 1) "Password (min 8 chars)" else "Password", fontSize = 12.sp) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = null,
+                                tint = theme.textMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            IconButton(onClick = { passVisibility = !passVisibility }) {
+                                Icon(
+                                    imageVector = if (passVisibility) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                    contentDescription = null,
+                                    tint = theme.textMuted,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        },
+                        visualTransformation = if (passVisibility) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = theme.textPrimary,
+                            unfocusedTextColor = theme.textPrimary,
+                            focusedBorderColor = theme.accentColor,
+                            unfocusedBorderColor = theme.cardBorder,
+                            focusedContainerColor = theme.cardElevated,
+                            unfocusedContainerColor = theme.cardElevated,
+                            focusedLabelColor = theme.accentColor,
+                            unfocusedLabelColor = theme.textMuted
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(2.dp))
+
+                    // Primary 5-State Submit Button
+                    StoreFiveStateButton(
+                        text = if (authTab == 0) "SIGN IN TO STORE" else "CREATE ACCOUNT",
+                        onClick = {
+                            if (authTab == 0) {
+                                onLoginCredentials(inputUser, inputPass)
+                            } else {
+                                onRegisterCredentials(inputUser, inputPass, inputDisplay, "")
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        state = formBtnState,
+                        icon = if (authTab == 0) Icons.AutoMirrored.Rounded.Login else Icons.Rounded.PersonAdd,
+                        backgroundColor = theme.accentColor,
+                        contentColor = Color.White
+                    )
+
+                    // SSO Quick Action
+                    StoreFiveStateButton(
+                        text = "CONTINUE WITH CONNECTO SSO",
+                        onClick = onLoginConnecto,
+                        modifier = Modifier.fillMaxWidth(),
+                        state = if (isAuthenticating) StoreButtonState.LOADING else StoreButtonState.DEFAULT,
+                        icon = Icons.Rounded.VerifiedUser,
+                        backgroundColor = Color(0xFF4F46E5),
+                        contentColor = Color.White
+                    )
                 }
             }
 

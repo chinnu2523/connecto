@@ -1762,22 +1762,22 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "1.8.1",
-        version_code: 38,
-        size_bytes: 18347750,
-        size_formatted: "17.5 MB",
+        version_name: "1.9.0",
+        version_code: 39,
+        size_bytes: 18874368,
+        size_formatted: "18.0 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
-        accent_color: "#FFFFFF",
+        accent_color: "#2563EB",
         changelog: [
-          "Authentic Application Icons: Real branded icons for Connecto, PDF Studio, JARVIS AI, and Our Store across catalog and detail views",
-          "Minimalist Clean Sections: Removed noisy headlines and category label badges for distraction-free browsing",
-          "Linear Precision Design System: High-tactile micro-interactions, refined hair-line borders, and zero-slop layout",
-          "Instant Guest Installs: Frictionless 1-tap package installation with zero credential roadblocks",
-          "Dual Luxury Themes: Pitch-Black OLED Noir & Ivory Clean White dynamic UI"
+          "Standalone Authentication Architecture: Comprehensive Sign In & Account Registration with instant session onboarding",
+          "Universal 5-State Button System: Default, Hover/Pressed, Loading, Disabled, and Error states across all actions",
+          "Biometric Sensor Quick Unlock: High-security fingerprint and face authentication for instant login and download approvals",
+          "Pure Theme Optimization: Purged all orange hues in favor of Cobalt Noir & Pristine White aesthetics",
+          "Zero-Slop UI: Self-explanatory layout with tactile spring physics and high-contrast accessibility"
         ],
         is_essential: true,
-        updated_at: "2026-11-10T17:10:00Z"
+        updated_at: "2026-11-15T08:00:00Z"
       },
       {
         id: "connecto",
@@ -1871,7 +1871,7 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
     return jsonResponse({
       status: "success",
       store_name: "Our Store",
-      store_version: "1.8.1",
+      store_version: "1.9.0",
       total_apps: appsToReturn.length,
       is_admin: isAdmin,
       apps: appsToReturn
@@ -8099,14 +8099,14 @@ async function handlePagesEdgeFallback(request, url, host, env, ctx) {
         try {
           const rawHtml = await pagesResponse.text();
           const patched = rawHtml
-            .replace(/v1\.[678]\.[0-9]+<\/span>/g, "v1.8.1</span>")
-            .replace(/v1\.[678]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.8.1 (Build 38) • Standalone Client")
-            .replace(/Download Our Store APK \(v1\.[678]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.8.1 • 17.5 MB)")
-            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[678]\.[0-9]+\)/g,
-                     "Official Verified Store Release • Package: com.connecto.store (v1.8.1)")
-            .replace(/Autonomous Package Manager • v1\.[678]\.[0-9]+/g, "Autonomous Package Manager • v1.8.1")
+            .replace(/v1\.[6789]\.[0-9]+<\/span>/g, "v1.9.0</span>")
+            .replace(/v1\.[6789]\.[0-9]+ \(Build \d+\) • Standalone Client/g, "v1.9.0 (Build 39) • Standalone Client")
+            .replace(/Download Our Store APK \(v1\.[6789]\.[0-9]+ • \d+\.\d+ MB\)/g, "Download Our Store APK (v1.9.0 • 18.0 MB)")
+            .replace(/Official Verified Store Release • Package: com\.connecto\.store \(v1\.[6789]\.[0-9]+\)/g,
+                     "Official Verified Store Release • Package: com.connecto.store (v1.9.0)")
+            .replace(/Autonomous Package Manager • v1\.[6789]\.[0-9]+/g, "Autonomous Package Manager • v1.9.0")
             .replace(/<span class="android-spec-val" style="color:#38bdf8;">\d+\.\d+ MB<\/span>/g,
-                     '<span class="android-spec-val" style="color:#38bdf8;">17.5 MB</span>')
+                     '<span class="android-spec-val" style="color:#38bdf8;">18.0 MB</span>')
             .replace(/v4\.[0-9]+\.[0-9]+/g, "v5.0.0")
             .replace(/v5\.0\.[0-9]+/g, "v5.0.0")
             .replace(/Build 12[0-5]/g, "Build 125")
