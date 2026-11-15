@@ -225,7 +225,8 @@
 </script>
 
   <!-- Lucide Icons Vector Library (Deferred for instant HTML streaming) -->
-  <script async src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.460.0/umd/lucide.min.js" onload="if(window.ensureLucideIcons)window.ensureLucideIcons();else if(window.lucide)lucide.createIcons();"></script>
+  <script async src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js" onload="if(window.ensureLucideIcons)window.ensureLucideIcons();else if(window.lucide)lucide.createIcons();"></script>
+  <link rel="ard" type="application/json" href="/.well-known/ard.json">
 
   <style>
     /* Lucide SVG Icon Alignment & Sizing */
@@ -3720,11 +3721,22 @@
     }
     html[data-theme="parchment"] .public-beta-banner {
       background: #fef3c7 !important;
-      color: #92400e !important;
+      color: #78350f !important;
       border-bottom: 1px solid #fcd34d !important;
     }
     html[data-theme="parchment"] .public-beta-banner a {
-      color: #0284c7 !important;
+      color: #0369a1 !important;
+      font-weight: 800 !important;
+      text-decoration: underline !important;
+    }
+    html[data-theme="parchment"] .nav-live-pill {
+      background: #fef3c7 !important;
+      border-color: #d97706 !important;
+      color: #78350f !important;
+    }
+    html[data-theme="parchment"] .nav-live-pill span {
+      color: #78350f !important;
+      font-weight: 700 !important;
     }
 
     /* Chat Input Area */
@@ -17811,7 +17823,15 @@ body:not(.light-mode) .connecto-secondary-btn:hover {
       font-family: var(--font-body) !important;
       font-style: normal !important;
       font-weight: 700 !important;
-      color: #FAFAFA !important;
+      color: var(--text-header, #FAFAFA) !important;
+    }
+    html[data-theme="parchment"] .hero-official-title em {
+      color: #0f172a !important;
+      text-shadow: none !important;
+    }
+    html[data-theme="parchment"] .hero-official-title .hero-editorial-sub {
+      color: #334155 !important;
+      text-shadow: none !important;
     }
 
     /* Remove glow and neon halos across all elements */
@@ -27650,25 +27670,25 @@ html[data-theme="dark"] #saveProfileBtn {
 
           <div class="nav-links-track" id="navLinksTrack">
             <div class="nav-sliding-pill" id="navSlidingPill"></div>
-            <a class="landing-link" id="navLinkHome" onclick="switchMainView('home')" style="cursor:pointer;"><i data-lucide="home" class="lucide-sm"></i>Home</a>
-            <a class="landing-link" id="navLinkAbout" onclick="scrollToHeroSection('ecosystemSection')">Features</a>
+            <a class="landing-link" id="navLinkHome" href="#homeView" onclick="switchMainView('home')" style="cursor:pointer;"><i data-lucide="home" class="lucide-sm"></i>Home</a>
+            <a class="landing-link" id="navLinkAbout" href="#ecosystemSection" onclick="scrollToHeroSection('ecosystemSection')">Features</a>
             <a class="landing-link" id="navLinkFeatures" href="/architecture">Architecture</a>
-            <a class="landing-link" id="navLinkLearning" onclick="switchMainView('learning')">Learning Hub</a>
-            <a class="landing-link" id="navLinkCommunity" onclick="handleNavCommunityClick()">Community</a>
+            <a class="landing-link" id="navLinkLearning" href="#academyRoadmapSection" onclick="switchMainView('learning')">Learning Hub</a>
+            <a class="landing-link" id="navLinkCommunity" href="#heroView" onclick="handleNavCommunityClick()">Community</a>
             <a class="landing-link nav-apk-highlight-pill" href="/download/apk" download="connecto-fun.apk" title="Download Connecto for Android (v5.1.0 Live • 36.1 MB)">
               <i data-lucide="smartphone" class="lucide-sm"></i>
               <span>Android APK</span>
               <span class="nav-apk-version-chip"><span class="pulse-emerald-dot"></span><span class="apk-version-val">v5.1.0</span></span>
             </a>
-            <a class="landing-link" onclick="scrollToHeroSection('ourStoreSection')" style="cursor:pointer;" title="Our Store • Dedicated App Hub">
+            <a class="landing-link" href="#ourStoreSection" onclick="scrollToHeroSection('ourStoreSection')" style="cursor:pointer;" title="Our Store • Dedicated App Hub">
               <i data-lucide="shopping-bag" class="lucide-sm"></i>
               <span>Our Store</span>
-              <span class="nav-apk-version-chip" style="background:rgba(59,130,246,0.2); border-color:rgba(59,130,246,0.4); color:#60a5fa;"><span class="pulse-emerald-dot" style="background:#3b82f6;"></span><span>v1.8.1</span></span>
+              <span class="nav-apk-version-chip" style="background:rgba(59,130,246,0.2); border-color:rgba(59,130,246,0.4); color:#60a5fa;"><span class="pulse-emerald-dot" style="background:#3b82f6;"></span><span>v1.9.0</span></span>
             </a>
           </div>
 
           <div class="nav-actions-cluster" id="navActionsCluster" style="display:flex; align-items:center; gap:8px;">
-            <button class="nav-ai-support-btn" id="navAiSupportBtn" onclick="openCustomerSupportAiModal()" title="24/7 AI Customer Support" aria-label="Open AI Customer Support">
+            <button class="nav-ai-support-btn" id="navAiSupportBtn" onclick="openCustomerSupportAiModal()" title="24/7 AI Customer Support" aria-label="AI Support">
               <span class="ai-sparkle-dot"></span>
               <i data-lucide="bot" class="lucide-xs"></i>
               <span>AI Support</span>
@@ -28869,7 +28889,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div class="track-product-demo"><span class="tpd-tag">Lab Console</span><div class="tpd-out">GET /api/v1/health &bull; 200 OK (0.2ms)</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(0, 206, 201, 0.15); color: #00cec9; border-color: rgba(0, 206, 201, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 1</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Web Foundations</h4>
+              <h3 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Web Foundations</h3>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">HTTP/1.1 vs HTTP/2 vs HTTP/3, headers, status codes, RESTful methods, and request-response lifecycles.</p>
             </div>
 
@@ -28877,7 +28897,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #10b981, #059669);"></div>
               <div class="track-product-demo"><span class="tpd-tag">Stream Bus</span><div class="tpd-out">WSS: Binary frame stream connected</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 2</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Real-Time Streams</h4>
+              <h3 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Real-Time Streams</h3>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">WebSocket TCP upgrades, framing protocols, WebRTC SDP offer/answer handshakes, and ICE candidate negotiation.</p>
             </div>
 
@@ -28885,7 +28905,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div class="track-product-demo"><span class="tpd-tag">Crypto Engine</span><div class="tpd-out">AES-256-GCM cipher envelope generated</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 3</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security &amp; Encryption</h4>
+              <h3 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Security &amp; Encryption</h3>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">Symmetric AES-256 vs Asymmetric RSA, TLS 1.3 handshake verification, and DTLS-SRTP audio security.</p>
             </div>
 
@@ -28893,7 +28913,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="usecase-top-accent" style="background: linear-gradient(90deg, #a855f7, #7c3aed);"></div>
               <div class="track-product-demo"><span class="tpd-tag">Edge Runtime</span><div class="tpd-out">Anycast node active across 300+ PoPs</div></div>
               <div><span class="rank-pill-badge" style="background: rgba(168, 85, 247, 0.15); color: #a855f7; border-color: rgba(168, 85, 247, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Level 4</span></div>
-              <h4 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Distributed Edge Architecture</h4>
+              <h3 style="color:var(--text-header); font-family:var(--font-display); font-size:16px; font-weight:800; margin-top:6px; margin-bottom:6px;">Distributed Edge Architecture</h3>
               <p style="font-size:12.5px; color:var(--text-muted); line-height:1.55;">High-concurrency asyncio architecture, event streams, and zero-trust edge infrastructure.</p>
             </div>
           </div>
@@ -29005,7 +29025,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="step-top-accent" style="background: linear-gradient(90deg, #00F5A0, #00cec9);"></div>
               <div>
                 <div class="step-product-preview"><span class="spp-step">STEP 1</span><div class="spp-box">Auth &rarr; Enter username &ldquo;alex&rdquo; &bull; Join squad</div></div>
-                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Connect with Friends</h4>
+                <h3 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Connect with Friends</h3>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Sign up with your username in seconds. Join existing friend circles via invite code or create your own custom encrypted space.</p>
               </div>
               <div class="step-pill-chip" style="color: #10b981; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.3);"><i data-lucide="user-plus" class="lucide-sm"></i> Instant Auth</div>
@@ -29015,7 +29035,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="step-top-accent" style="background: linear-gradient(90deg, #00cec9, #0984e3);"></div>
               <div>
                 <div class="step-product-preview"><span class="spp-step">STEP 2</span><div class="spp-box">Channel &rarr; #general: &ldquo;Voice lounge open&rdquo; [Join]</div></div>
-                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Coordinate in Real-Time</h4>
+                <h3 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Coordinate in Real-Time</h3>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Chat across text channels, summon squad mates with @mentions, and hop into clear, low-latency WebRTC voice rooms.</p>
               </div>
               <div class="step-pill-chip" style="color: #00cec9; background: rgba(0, 206, 201, 0.12); border-color: rgba(0, 206, 201, 0.3);"><i data-lucide="message-square" class="lucide-sm"></i> Low-Latency WebSockets</div>
@@ -29025,7 +29045,7 @@ html[data-theme="dark"] #saveProfileBtn {
               <div class="step-top-accent" style="background: linear-gradient(90deg, #f59e0b, #d97706);"></div>
               <div>
                 <div class="step-product-preview"><span class="spp-step">STEP 3</span><div class="spp-box">Security &rarr; Hardware Biometric Vault Sealed</div></div>
-                <h4 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h4>
+                <h3 style="color:var(--text-header); margin-bottom:8px; font-family:var(--font-display); font-size:17px; font-weight:800;">Master the Learning Hub</h3>
                 <p style="font-size:13.5px; color:var(--text-muted); line-height:1.6;">Learn HTTP protocols, WebSockets, WebRTC mesh &amp; cryptography in interactive lessons. Level up your skills with hands-on practice.</p>
               </div>
               <div class="step-pill-chip" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12); border-color: rgba(245, 158, 11, 0.3);"><i data-lucide="award" class="lucide-sm"></i> Skill Progression</div>
@@ -29050,31 +29070,31 @@ html[data-theme="dark"] #saveProfileBtn {
               <p style="font-size:13px; color:var(--text-muted); line-height:1.5; max-width:280px;">The real-time communication & security learning platform for friends and developers.</p>
             </div>
             <div class="footer-col">
-              <h5>Product</h5>
+              <h3 class="footer-col-title" style="font-size:14px; font-weight:800; color:var(--text-header); margin-bottom:12px; letter-spacing:0.02em;">Product</h3>
               <ul>
                 <li><a href="/download/apk" download="connecto-fun.apk" style="color:#10b981; font-weight:700;"><i data-lucide="smartphone" class="lucide-sm" style="margin-right:6px;"></i> Android APK (<span class="apk-version-val">v5.1.0</span> Live)</a></li>
                 <li><a href="/architecture"><i data-lucide="cpu" class="lucide-sm" style="margin-right:6px;"></i> Architecture Deep-Dive</a></li>
                 <li><a href="/status" target="_blank"><i data-lucide="activity" class="lucide-sm" style="color:var(--green); margin-right:6px;"></i> Live Status Page</a></li>
-                <li><a onclick="switchMainView('learning')"><i data-lucide="graduation-cap" class="lucide-sm" style="margin-right:6px;"></i> Learning Academy</a></li>
-                <li><a onclick="switchMainView('chat')"><i data-lucide="message-square" class="lucide-sm" style="margin-right:6px;"></i> Community Chat</a></li>
-                <li><a onclick="openAuthModal('register')"><i data-lucide="gift" class="lucide-sm" style="margin-right:6px;"></i> Free Access</a></li>
+                <li><a href="#academyRoadmapSection" onclick="switchMainView('learning')"><i data-lucide="graduation-cap" class="lucide-sm" style="margin-right:6px;"></i> Learning Academy</a></li>
+                <li><a href="#heroView" onclick="switchMainView('chat')"><i data-lucide="message-square" class="lucide-sm" style="margin-right:6px;"></i> Community Chat</a></li>
+                <li><a href="/login" onclick="openAuthModal('register')"><i data-lucide="gift" class="lucide-sm" style="margin-right:6px;"></i> Free Access</a></li>
               </ul>
             </div>
             <div class="footer-col">
-              <h5>Ecosystem</h5>
+              <h3 class="footer-col-title" style="font-size:14px; font-weight:800; color:var(--text-header); margin-bottom:12px; letter-spacing:0.02em;">Ecosystem</h3>
               <ul>
-                <li><a onclick="scrollToHeroSection('ecosystemSection')"><i data-lucide="layers" class="lucide-sm" style="margin-right:6px;"></i> Platform Ecosystem</a></li>
+                <li><a href="#ecosystemSection" onclick="scrollToHeroSection('ecosystemSection')"><i data-lucide="layers" class="lucide-sm" style="margin-right:6px;"></i> Platform Ecosystem</a></li>
                 <li><a href="/changelog" target="_blank"><i data-lucide="file-text" class="lucide-sm" style="margin-right:6px;"></i> Platform Changelog</a></li>
-                <li><a onclick="switchMainView('home')" style="cursor:pointer;"><i data-lucide="home" class="lucide-sm" style="margin-right:6px;"></i> Connecto Home Dashboard</a></li>
-                <li><a onclick="scrollToHeroSection('faqSection')"><i data-lucide="help-circle" class="lucide-sm" style="margin-right:6px;"></i> Platform FAQ</a></li>
-                <li><a onclick="openCustomerSupportAiModal()" style="cursor:pointer;"><i data-lucide="headphones" class="lucide-sm" style="margin-right:6px;"></i> Customer Support (24/7 AI)</a></li>
+                <li><a href="#homeView" onclick="switchMainView('home')" style="cursor:pointer;"><i data-lucide="home" class="lucide-sm" style="margin-right:6px;"></i> Connecto Home Dashboard</a></li>
+                <li><a href="#faqSection" onclick="scrollToHeroSection('faqSection')"><i data-lucide="help-circle" class="lucide-sm" style="margin-right:6px;"></i> Platform FAQ</a></li>
+                <li><a href="#contact" onclick="openCustomerSupportAiModal()" style="cursor:pointer;"><i data-lucide="headphones" class="lucide-sm" style="margin-right:6px;"></i> Customer Support (24/7 AI)</a></li>
               </ul>
             </div>
             <div class="footer-col">
-              <h5>Security & Legal</h5>
+              <h3 class="footer-col-title" style="font-size:14px; font-weight:800; color:var(--text-header); margin-bottom:12px; letter-spacing:0.02em;">Security &amp; Legal</h3>
               <ul>
-                <li><a onclick="openPrivacyPolicyModal()" style="cursor:pointer;"><i data-lucide="lock" class="lucide-sm" style="margin-right:6px;"></i> Privacy Policy</a></li>
-                <li><a onclick="openTermsOfServiceModal()" style="cursor:pointer;"><i data-lucide="shield" class="lucide-sm" style="margin-right:6px;"></i> Terms of Service</a></li>
+                <li><a href="/privacy" onclick="openPrivacyPolicyModal()" style="cursor:pointer;"><i data-lucide="lock" class="lucide-sm" style="margin-right:6px;"></i> Privacy Policy</a></li>
+                <li><a href="/terms" onclick="openTermsOfServiceModal()" style="cursor:pointer;"><i data-lucide="shield" class="lucide-sm" style="margin-right:6px;"></i> Terms of Service</a></li>
                 <li><a href="/architecture"><i data-lucide="shield-check" class="lucide-sm" style="margin-right:6px;"></i> Security Standards</a></li>
               </ul>
             </div>
@@ -29164,7 +29184,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- Workspace Channels Section -->
         <div class="connecto-section-header">
           <div class="connecto-section-title">Workspace Channels</div>
-          <a class="connecto-section-link" onclick="switchMainView('chat')">View All</a>
+          <a class="connecto-section-link" href="#chatView" onclick="switchMainView('chat')">View All</a>
         </div>
         <div class="connecto-channel-list">
           <div class="connecto-channel-card" onclick="selectChannel('general'); switchMainView('chat');">
@@ -29200,7 +29220,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <!-- Active Voice Lounges Section -->
         <div class="connecto-section-header" style="margin-top:24px;">
           <div class="connecto-section-title">Active Voice Lounges</div>
-          <a class="connecto-section-link" onclick="switchMainView('voice')">Open Lounge</a>
+          <a class="connecto-section-link" href="#voiceView" onclick="switchMainView('voice')">Open Lounge</a>
         </div>
         <div class="connecto-channel-list">
           <div class="connecto-channel-card" onclick="switchMainView('voice');">
@@ -29217,12 +29237,12 @@ html[data-theme="dark"] #saveProfileBtn {
         <div class="connecto-section-header" style="margin-top:24px;">
           <div class="connecto-section-title">Direct Messages (Favourites)</div>
           <div style="display:flex; align-items:center; gap:12px;">
-            <a class="connecto-section-link" id="homeFavEditBtn" style="display:none; color:var(--primary, #3b82f6); cursor:pointer;" onclick="openFavouritesModal()">Edit (0/5)</a>
-            <a class="connecto-section-link" onclick="switchMainView('messages')" style="cursor:pointer;">Open Chat</a>
+            <a class="connecto-section-link" id="homeFavEditBtn" href="#homeView" style="display:none; color:var(--primary, #3b82f6); cursor:pointer;" onclick="openFavouritesModal()">Edit (0/5)</a>
+            <a class="connecto-section-link" href="#dmListView" onclick="switchMainView('messages')" style="cursor:pointer;">Open Chat</a>
           </div>
         </div>
         <div class="connecto-dm-list" id="homeDmList">
-          <div style="text-align:center; padding:24px 16px; color:#64748b; font-size:12.5px;">No direct messages yet. <a onclick="openAddFriendModal()" style="color:#0284c7; cursor:pointer; font-weight:700; text-decoration:underline; margin-left:4px;">Add friends</a> to start chatting!</div>
+          <div style="text-align:center; padding:24px 16px; color:#64748b; font-size:12.5px;">No direct messages yet. <a href="#friendsView" onclick="openAddFriendModal()" style="color:#0284c7; cursor:pointer; font-weight:700; text-decoration:underline; margin-left:4px;">Add friends</a> to start chatting!</div>
         </div>
       </div>
     </div>
@@ -29552,7 +29572,7 @@ html[data-theme="dark"] #saveProfileBtn {
         <div class="mobile-drawer-label">Platform Navigation</div>
 
         <!-- Tactile Navigation Bento Links with Squircle Badges -->
-        <a class="mobile-drawer-link" onclick="switchMainView('hero'); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#heroView" onclick="switchMainView('hero'); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#00F5A0; background:rgba(0, 245, 160, 0.12); border-color:rgba(0, 245, 160, 0.25);">
             <i data-lucide="home" class="lucide-sm"></i>
           </span>
@@ -29563,7 +29583,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="scrollToHeroSection('ourStoreSection'); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#ourStoreSection" onclick="scrollToHeroSection('ourStoreSection'); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#38bdf8; background:rgba(56, 189, 248, 0.12); border-color:rgba(56, 189, 248, 0.25);">
             <i data-lucide="shopping-bag" class="lucide-sm"></i>
           </span>
@@ -29574,7 +29594,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="scrollToHeroSection('ecosystemSection'); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#ecosystemSection" onclick="scrollToHeroSection('ecosystemSection'); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#00cec9; background:rgba(0, 206, 201, 0.12); border-color:rgba(0, 206, 201, 0.25);">
             <i data-lucide="compass" class="lucide-sm"></i>
           </span>
@@ -29585,7 +29605,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="switchMainView('learning'); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#academyRoadmapSection" onclick="switchMainView('learning'); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#f59e0b; background:rgba(245, 158, 11, 0.12); border-color:rgba(245, 158, 11, 0.25);">
             <i data-lucide="graduation-cap" class="lucide-sm"></i>
           </span>
@@ -29596,7 +29616,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="handleNavCommunityClick(); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#chatView" onclick="handleNavCommunityClick(); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#a855f7; background:rgba(168, 85, 247, 0.12); border-color:rgba(168, 85, 247, 0.25);">
             <i data-lucide="message-square" class="lucide-sm"></i>
           </span>
@@ -29607,7 +29627,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="scrollToHeroSection('archSection'); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#archSection" onclick="scrollToHeroSection('archSection'); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#ff7675; background:rgba(255, 118, 117, 0.12); border-color:rgba(255, 118, 117, 0.25);">
             <i data-lucide="shield" class="lucide-sm"></i>
           </span>
@@ -29618,7 +29638,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <span class="drawer-link-arrow"><i data-lucide="chevron-right" class="lucide-xs"></i></span>
         </a>
 
-        <a class="mobile-drawer-link" onclick="openCustomerSupportAiModal(); closeMobileNavMenu();">
+        <a class="mobile-drawer-link" href="#aiSupportModal" onclick="openCustomerSupportAiModal(); closeMobileNavMenu();">
           <span class="mobile-drawer-icon" style="color:#10b981; background:rgba(16, 185, 129, 0.12); border-color:rgba(16, 185, 129, 0.25);">
             <i data-lucide="bot" class="lucide-sm"></i>
           </span>
@@ -31841,7 +31861,7 @@ html[data-theme="dark"] #saveProfileBtn {
           <label style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:12.5px; color:var(--text-normal); line-height:1.45; text-transform:none; font-weight:500;">
             <input type="checkbox" id="signUpTermsCheckbox" style="margin-top:2px; width:17px; height:17px; accent-color:var(--chakra-cyan, #06b6d4); cursor:pointer; flex-shrink:0;" required>
             <span>
-              I agree to the <a href="javascript:void(0)" onclick="openTermsModal()" style="color:var(--chakra-cyan); font-weight:700; text-decoration:underline;">Terms of Service</a> and <a href="javascript:void(0)" onclick="openPrivacyModal()" style="color:var(--chakra-cyan); font-weight:700; text-decoration:underline;">Privacy Policy</a>, and I certify that I am at least 18 years of age. <span style="color:var(--red);">*</span>
+              I agree to the <a href="/terms" onclick="event.preventDefault(); openTermsModal()" style="color:var(--chakra-cyan); font-weight:700; text-decoration:underline;">Terms of Service</a> and <a href="/privacy" onclick="event.preventDefault(); openPrivacyModal()" style="color:var(--chakra-cyan); font-weight:700; text-decoration:underline;">Privacy Policy</a>, and I certify that I am at least 18 years of age. <span style="color:var(--red);">*</span>
             </span>
           </label>
         </div>
@@ -42655,26 +42675,27 @@ function selectSettingsAvatar(emoji, el) {
     }
 
     function handleOtpPaste(event) {
-      event.preventDefault();
-      const pasteData = (event.clipboardData || window.clipboardData).getData('text').trim().replace(/[^0-9]/g, '');
+      const pasteData = ((event.clipboardData || window.clipboardData)?.getData('text') || '').trim().replace(/[^0-9]/g, '');
       if (!pasteData) return;
       
       const inputs = document.querySelectorAll('#otpInputsGrid .otp-digit-input');
       const digits = pasteData.slice(0, 6).split('');
       
-      digits.forEach((d, i) => {
-        if (inputs[i]) {
-          inputs[i].value = d;
-          inputs[i].classList.add('filled');
+      setTimeout(() => {
+        digits.forEach((d, i) => {
+          if (inputs[i]) {
+            inputs[i].value = d;
+            inputs[i].classList.add('filled');
+          }
+        });
+        
+        if (digits.length >= 6) {
+          inputs[5].focus();
+          handleTwoFactorSubmit();
+        } else if (inputs[digits.length]) {
+          inputs[digits.length].focus();
         }
-      });
-      
-      if (digits.length >= 6) {
-        inputs[5].focus();
-        handleTwoFactorSubmit();
-      } else if (inputs[digits.length]) {
-        inputs[digits.length].focus();
-      }
+      }, 10);
     }
 
     function startOtpResendCountdown(seconds = 60) {
@@ -46287,15 +46308,6 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
         if (typeof loadDMSidebar === 'function') loadDMSidebar();
         if (typeof loadMembersRoster === 'function') loadMembersRoster();
         if (typeof loadCallLogs === 'function') loadCallLogs();
-      } catch (err) {
-        console.error('[UNFRIEND_ROLLBACK]', err);
-        cachedFriendsList = prevFriends;
-        if (typeof loadFriends === 'function') loadFriends();
-        if (typeof loadDMSidebar === 'function') loadDMSidebar();
-        if (typeof showNotificationToast === 'function') {
-          showNotificationToast('Action Failed', 'Could not sync unfriend with server. Restoring friend...');
-        }
-      }
 
         // 5. If currently in personal chat with this user, wipe messages container
         if (currentMode === 'dm' && currentDMTarget && currentDMTarget.toLowerCase() === target.toLowerCase()) {
@@ -46312,11 +46324,12 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
           updateDMHeaderFriendStatus(target);
         }
       } catch (err) {
-        console.error('[UNFRIEND_ERROR]', err);
-        if (typeof showToast === 'function') {
-          showToast(err.message || 'Error removing friend. Please try again.', 'error');
-        } else {
-          alert(err.message || 'Error removing friend.');
+        console.error('[UNFRIEND_ROLLBACK]', err);
+        cachedFriendsList = prevFriends;
+        if (typeof loadFriends === 'function') loadFriends();
+        if (typeof loadDMSidebar === 'function') loadDMSidebar();
+        if (typeof showNotificationToast === 'function') {
+          showNotificationToast('Action Failed', 'Could not sync unfriend with server. Restoring friend...');
         }
       } finally {
         if (btn) {
@@ -47994,7 +48007,7 @@ function hangupVoiceLounge() {
         <span class="magic-dock-tooltip">Spatial Voice</span>
       </button>
       <div class="magic-dock-divider" aria-hidden="true"></div>
-      <button class="magic-dock-item magic-dock-store-item" onclick="scrollToHeroSection('ourStoreSection')" title="Our Store APKs" aria-label="Our Store APKs">
+      <button class="magic-dock-item magic-dock-store-item" onclick="scrollToHeroSection('ourStoreSection')" title="Our Store APKs" aria-label="APK Our Store">
         <span class="magic-dock-icon"><i data-lucide="shopping-bag"></i></span>
         <span class="magic-dock-badge">APK</span>
         <span class="magic-dock-tooltip">Our Store</span>

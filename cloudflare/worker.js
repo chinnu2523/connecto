@@ -232,6 +232,75 @@ export default {
 
     const cleanPath = url.pathname.toLowerCase().replace(/\/+$/, "") || "/";
 
+    // 3a-1. Agentic Resource Discovery (ARD) and LLMs.txt
+    if (cleanPath === "/llms.txt") {
+      return new Response(`# Connecto
+
+> Real-time communication and decentralized intelligence platform featuring end-to-end encrypted messaging, studio voice lounges, and an autonomous package store.
+
+## Documentation & Features
+- [Architecture](https://connecto.fun/architecture): Real-time WebRTC, WebSockets, and Cloudflare Edge Worker architecture.
+- [Changelog](https://connecto.fun/changelog): Detailed release history across Android, web, and backend services.
+- [Security Labs](https://connecto.fun/#academyRoadmapSection): Interactive protocol forensics, SIEM, and cryptography learning modules.
+- [Our Store](https://connecto.fun/#ourStoreSection): Decentralized Android app store client and auto-updater.
+- [Status Page](https://connecto.fun/status): Live uptime, latency, and edge CDN telemetry.
+- [Terms & Scope](https://connecto.fun/terms): Platform scope, privacy, and public beta testing agreements.
+- [Privacy Policy](https://connecto.fun/privacy): Zero-knowledge encryption, data protection, and storage policy.
+`, {
+        headers: {
+          "Content-Type": "text/markdown; charset=utf-8",
+          "Cache-Control": "public, max-age=86400, s-maxage=86400",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    if (cleanPath === "/.well-known/ard.json") {
+      return jsonResponse({
+        "name": "Connecto",
+        "version": "1.0.0",
+        "description": "Real-time communication and security learning platform featuring E2EE messaging, mesh voice lounges, and Our Store client ecosystem.",
+        "entries": [
+          {
+            "identifier": "urn:air:connecto.fun:api:store",
+            "displayName": "Connecto Store API",
+            "type": "application/json",
+            "url": "https://connecto.fun/api/v1/store/apps",
+            "description": "App ecosystem and package store API for downloading Connecto clients.",
+            "representativeQueries": [
+              "connecto apk download",
+              "connecto our store packages",
+              "latest android client download"
+            ]
+          },
+          {
+            "identifier": "urn:air:connecto.fun:api:version",
+            "displayName": "Connecto Version Specifications",
+            "type": "application/json",
+            "url": "https://connecto.fun/api/app/version",
+            "description": "Latest release versions and cryptographic SHA-256 signatures for automatic updates.",
+            "representativeQueries": [
+              "connecto latest version",
+              "connecto sha256 checksum",
+              "connecto app update check"
+            ]
+          },
+          {
+            "identifier": "urn:air:connecto.fun:docs:llms",
+            "displayName": "Connecto LLMs Documentation",
+            "type": "text/markdown; profile=\"urn:air:agent-skills\"",
+            "url": "https://connecto.fun/llms.txt",
+            "description": "System architecture, API specifications, and security model for LLMs and AI agents.",
+            "representativeQueries": [
+              "connecto llms spec",
+              "connecto api documentation",
+              "connecto security architecture"
+            ]
+          }
+        ]
+      });
+    }
+
     // 3a-2. Redirect /store, /store.html, /appstore directly to the Our Store section on connecto.fun
     if (cleanPath === "/store" || cleanPath === "/store/" || cleanPath === "/store.html" || cleanPath === "/appstore") {
       return Response.redirect("https://connecto.fun/#ourStoreSection", 301);

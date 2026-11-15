@@ -1,0 +1,43 @@
+{
+  "name": "Connecto",
+  "version": "1.0.0",
+  "description": "Real-time communication and security learning platform featuring E2EE messaging, mesh voice lounges, and Our Store client ecosystem.",
+  "entries": [
+    {
+      "identifier": "urn:air:connecto.fun:api:store",
+      "displayName": "Connecto Store API",
+      "type": "application/json",
+      "url": "https://connecto.fun/api/v1/store/apps",
+      "description": "App ecosystem and package store API for downloading Connecto clients.",
+      "representativeQueries": [
+        "connecto apk download",
+        "connecto our store packages",
+        "latest android client download"
+      ]
+    },
+    {
+      "identifier": "urn:air:connecto.fun:api:version",
+      "displayName": "Connecto Version Specifications",
+      "type": "application/json",
+      "url": "https://connecto.fun/api/app/version",
+      "description": "Latest release versions and cryptographic SHA-256 signatures for automatic updates.",
+      "representativeQueries": [
+        "connecto latest version",
+        "connecto sha256 checksum",
+        "connecto app update check"
+      ]
+    },
+    {
+      "identifier": "urn:air:connecto.fun:docs:llms",
+      "displayName": "Connecto LLMs Documentation",
+      "type": "text/markdown; profile=\"urn:air:agent-skills\"",
+      "url": "https://connecto.fun/llms.txt",
+      "description": "System architecture, API specifications, and security model for LLMs and AI agents.",
+      "representativeQueries": [
+        "connecto llms spec",
+        "connecto api documentation",
+        "connecto security architecture"
+      ]
+    }
+  ]
+}

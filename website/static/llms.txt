@@ -1,0 +1,12 @@
+# Connecto
+
+> Real-time communication and decentralized intelligence platform featuring end-to-end encrypted messaging, studio voice lounges, and an autonomous package store.
+
+## Documentation & Features
+- [Architecture](https://connecto.fun/architecture): Real-time WebRTC, WebSockets, and Cloudflare Edge Worker architecture.
+- [Changelog](https://connecto.fun/changelog): Detailed release history across Android, web, and backend services.
+- [Security Labs](https://connecto.fun/#academyRoadmapSection): Interactive protocol forensics, SIEM, and cryptography learning modules.
+- [Our Store](https://connecto.fun/#ourStoreSection): Decentralized Android app store client and auto-updater.
+- [Status Page](https://connecto.fun/status): Live uptime, latency, and edge CDN telemetry.
+- [Terms & Scope](https://connecto.fun/terms): Platform scope, privacy, and public beta testing agreements.
+- [Privacy Policy](https://connecto.fun/privacy): Zero-knowledge encryption, data protection, and storage policy.
