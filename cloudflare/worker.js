@@ -364,14 +364,15 @@ Sitemap: https://connecto.fun/sitemap.xml
       try {
         const canonicalApkUrls = [
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk",
-          "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.7/app-release.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v2.0.6/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.5/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.4/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.3/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.7-b56-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.7-b56-v2-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
