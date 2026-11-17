@@ -156,7 +156,7 @@ fun AuthHomeScreen(
     val gradientColors = getDynamicAccentGradientColors()
     val contentOnGradient = getContentColorOnAccentGradient()
 
-    var isSignUp by remember { mutableStateOf(true) }
+    var isSignUp by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -447,7 +447,7 @@ fun AuthHomeScreen(
                     ) {
                         val pillWidth = maxWidth / 2
                         val indicatorOffset by animateDpAsState(
-                            targetValue = if (isSignUp) 0.dp else pillWidth,
+                            targetValue = if (!isSignUp) 0.dp else pillWidth,
                             animationSpec = spring(
                                 dampingRatio = 0.82f,
                                 stiffness = Spring.StiffnessMediumLow
@@ -465,45 +465,8 @@ fun AuthHomeScreen(
                                 .background(Brush.horizontalGradient(gradientColors))
                         )
 
-                        // Tab Buttons
+                        // Tab Buttons (SIGN IN on left, SIGN UP on right)
                         Row(modifier = Modifier.fillMaxSize()) {
-                            // SIGN UP TAB
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .clickable {
-                                        if (!isSignUp) {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            isSignUp = true
-                                            errorMessage = null
-                                            forceShowValidationErrors = false
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.PersonAdd,
-                                        contentDescription = null,
-                                        tint = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = "SIGN UP",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        letterSpacing = 0.6.sp
-                                    )
-                                }
-                            }
-
                             // SIGN IN TAB
                             Box(
                                 modifier = Modifier
@@ -536,6 +499,43 @@ fun AuthHomeScreen(
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = if (!isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        letterSpacing = 0.6.sp
+                                    )
+                                }
+                            }
+
+                            // SIGN UP TAB
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        if (!isSignUp) {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            isSignUp = true
+                                            errorMessage = null
+                                            forceShowValidationErrors = false
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.PersonAdd,
+                                        contentDescription = null,
+                                        tint = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "SIGN UP",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSignUp) contentOnGradient else MaterialTheme.colorScheme.onSurfaceVariant,
                                         letterSpacing = 0.6.sp
                                     )
                                 }
@@ -618,11 +618,11 @@ fun AuthHomeScreen(
                 targetState = isSignUp,
                 transitionSpec = {
                     if (targetState) {
-                        (slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
-                            .togetherWith(slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
-                    } else {
                         (slideInHorizontally(initialOffsetX = { it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
                             .togetherWith(slideOutHorizontally(targetOffsetX = { -it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
+                    } else {
+                        (slideInHorizontally(initialOffsetX = { -it / 3 }, animationSpec = tween(260)) + fadeIn(tween(260)))
+                            .togetherWith(slideOutHorizontally(targetOffsetX = { it / 3 }, animationSpec = tween(220)) + fadeOut(tween(220)))
                     }
                 },
                 label = "authFormAnimatedContent"
@@ -1367,7 +1367,76 @@ fun AuthHomeScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // ===== BOTTOM AUTH MODE TOGGLE CTA =====
+            if (!isSignUp) {
+                // Shown on Sign In: Prominently invites user to create an account
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Don't have an account? ",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                    Text(
+                        text = "Create an account",
+                        color = gradientColors.first(),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                isSignUp = true
+                                errorMessage = null
+                                forceShowValidationErrors = false
+                            }
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                    )
+                }
+            } else {
+                // Shown on Sign Up: Prominently invites user to sign in
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Already have an account? ",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Normal
+                    )
+                    Text(
+                        text = "Sign In",
+                        color = gradientColors.first(),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = TextDecoration.Underline,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .clickable {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                isSignUp = false
+                                errorMessage = null
+                                forceShowValidationErrors = false
+                            }
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             // ===== FEATURE CHIPS =====
             Row(

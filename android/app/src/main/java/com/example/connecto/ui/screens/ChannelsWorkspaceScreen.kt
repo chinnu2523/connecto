@@ -233,6 +233,12 @@ fun ChannelsWorkspaceScreen(
     val activeChip = defaultChannels.find { it.id.equals(selectedChannelId, ignoreCase = true) || it.name.equals(selectedChannelId, ignoreCase = true) }
         ?: defaultChannels[0]
 
+    val isGuest = remember(currentUsername) {
+        currentUsername.trim().lowercase().removePrefix("@") == "guest" ||
+        (ConnectoApiClient.currentUsername?.trim()?.lowercase()?.removePrefix("@") == "guest") ||
+        ConnectoApiClient.sessionToken == "guest_token_sandbox"
+    }
+
     val cleanSelectedChannel = remember(selectedChannelId) {
         selectedChannelId.trim().lowercase().removePrefix("#")
     }
@@ -242,20 +248,24 @@ fun ChannelsWorkspaceScreen(
     }
 
     // Seed cached messages synchronously so LazyColumn never starts at index 0 (welcome banner / oldest messages)
-    val initialCached = remember(cleanSelectedChannel) {
-        try {
-            val cached = dbHelper.getMessagesForChannel(cleanSelectedChannel, limit = 100)
-            android.util.Log.e("ChannelsDebug", "initialCached for '$cleanSelectedChannel': rawCached=${cached.size}")
-            if (cached.isNotEmpty()) {
-                val res = cached.distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
-                android.util.Log.e("ChannelsDebug", "initialCached for '$cleanSelectedChannel': distinctCount=${res.size}, first=${res.firstOrNull()?.id}, last=${res.lastOrNull()?.id}")
-                res
-            } else {
+    val initialCached = remember(cleanSelectedChannel, isGuest) {
+        if (isGuest) {
+            getGuestChannelMockMessages(cleanSelectedChannel)
+        } else {
+            try {
+                val cached = dbHelper.getMessagesForChannel(cleanSelectedChannel, limit = 100)
+                android.util.Log.e("ChannelsDebug", "initialCached for '$cleanSelectedChannel': rawCached=${cached.size}")
+                if (cached.isNotEmpty()) {
+                    val res = cached.distinctBy { it.id }.filterNot { deletedForMeSet.contains(it.id) }
+                    android.util.Log.e("ChannelsDebug", "initialCached for '$cleanSelectedChannel': distinctCount=${res.size}, first=${res.firstOrNull()?.id}, last=${res.lastOrNull()?.id}")
+                    res
+                } else {
+                    emptyList()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("ChannelsDebug", "initialCached exception: ${e.message}", e)
                 emptyList()
             }
-        } catch (e: Exception) {
-            android.util.Log.e("ChannelsDebug", "initialCached exception: ${e.message}", e)
-            emptyList()
         }
     }
 
@@ -264,7 +274,7 @@ fun ChannelsWorkspaceScreen(
         mutableStateListOf<MessageDto>().apply { addAll(initialCached) }
     }
     var isLoadingMessages by remember(cleanSelectedChannel) {
-        mutableStateOf(initialCached.isEmpty())
+        mutableStateOf(if (isGuest) false else initialCached.isEmpty())
     }
     var typedMessage by remember { mutableStateOf("") }
     var isSending by remember { mutableStateOf(false) }
@@ -274,21 +284,25 @@ fun ChannelsWorkspaceScreen(
     var replyingTo by remember { mutableStateOf<MessageDto?>(null) }
 
     // Seed pinned message from cached preferences synchronously
-    val initialPinnedMessage = remember(cleanSelectedChannel) {
-        val cachedPinId = sharedPrefs.getString("pinned_msg_ch_$cleanSelectedChannel", null)
-        val cachedPinContent = sharedPrefs.getString("pinned_content_ch_$cleanSelectedChannel", null)
-        val cachedPinAuthor = sharedPrefs.getString("pinned_author_ch_$cleanSelectedChannel", null)
-        if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
-            PinnedMessageDto(
-                messageId = cachedPinId,
-                channelId = cleanSelectedChannel,
-                authorName = cachedPinAuthor ?: "Pinned",
-                content = cachedPinContent,
-                pinnedBy = "",
-                pinnedAt = ""
-            )
+    val initialPinnedMessage = remember(cleanSelectedChannel, isGuest) {
+        if (isGuest) {
+            getGuestPinnedMessage(cleanSelectedChannel)
         } else {
-            null
+            val cachedPinId = sharedPrefs.getString("pinned_msg_ch_$cleanSelectedChannel", null)
+            val cachedPinContent = sharedPrefs.getString("pinned_content_ch_$cleanSelectedChannel", null)
+            val cachedPinAuthor = sharedPrefs.getString("pinned_author_ch_$cleanSelectedChannel", null)
+            if (!cachedPinId.isNullOrBlank() && !cachedPinContent.isNullOrBlank()) {
+                PinnedMessageDto(
+                    messageId = cachedPinId,
+                    channelId = cleanSelectedChannel,
+                    authorName = cachedPinAuthor ?: "Pinned",
+                    content = cachedPinContent,
+                    pinnedBy = "",
+                    pinnedAt = ""
+                )
+            } else {
+                null
+            }
         }
     }
     var pinnedMessageForChannel by remember(cleanSelectedChannel) {
@@ -479,9 +493,20 @@ fun ChannelsWorkspaceScreen(
     }
 
     // 1. Instant Cache-First Loading + Background Network Sync
-    LaunchedEffect(selectedChannelId) {
+    LaunchedEffect(selectedChannelId, isGuest) {
         val cleanCh = cleanSelectedChannel
         sharedPrefs.edit().putString("last_active_channel", cleanCh).apply()
+
+        if (isGuest) {
+            isLoadingMessages = false
+            val mockMessages = getGuestChannelMockMessages(cleanCh)
+            messages.clear()
+            messages.addAll(mockMessages)
+            pinnedMessageForChannel = getGuestPinnedMessage(cleanCh)
+            try { listState.scrollToItem(messages.size) } catch (_: Exception) {}
+            return@LaunchedEffect
+        }
+
         VoiceCallManager.subscribeChannel(cleanCh)
 
         val currentDeletedSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
@@ -585,8 +610,9 @@ fun ChannelsWorkspaceScreen(
         }
     }
 
-    // 2. Real-time WebSocket Message Bus Listener
-    LaunchedEffect(selectedChannelId) {
+    // 2. Real-time WebSocket Message Bus Listener (Bypassed for Guest users)
+    LaunchedEffect(selectedChannelId, isGuest) {
+        if (isGuest) return@LaunchedEffect
         val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
         VoiceCallManager.incomingChannelMessages.collect { incoming ->
             val deletedForMeSet = sharedPrefs.getStringSet("deleted_for_me_$currentUsername", emptySet())
@@ -609,15 +635,17 @@ fun ChannelsWorkspaceScreen(
         }
     }
 
-    // Real-time listener for deleted messages broadcast over WebSocket
-    LaunchedEffect(Unit) {
+    // Real-time listener for deleted messages broadcast over WebSocket (Bypassed for Guest users)
+    LaunchedEffect(isGuest) {
+        if (isGuest) return@LaunchedEffect
         VoiceCallManager.deletedMessageIds.collect { deletedId ->
             messages.removeAll { it.id == deletedId }
         }
     }
 
-    // Real-time listener for edited messages broadcast over WebSocket
-    LaunchedEffect(Unit) {
+    // Real-time listener for edited messages broadcast over WebSocket (Bypassed for Guest users)
+    LaunchedEffect(isGuest) {
+        if (isGuest) return@LaunchedEffect
         VoiceCallManager.editedMessages.collect { evt ->
             val index = messages.indexOfFirst { it.id == evt.messageId }
             if (index != -1) {
@@ -627,7 +655,8 @@ fun ChannelsWorkspaceScreen(
     }
 
     var channelTypingUser by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(activeChip.id) {
+    LaunchedEffect(activeChip.id, isGuest) {
+        if (isGuest) return@LaunchedEffect
         channelTypingUser = null
         val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
         val cleanName = activeChip.name.trim().lowercase()
@@ -652,8 +681,9 @@ fun ChannelsWorkspaceScreen(
         }
     }
 
-    // Broadcast current user's typing activity in channel, suppressed if Stealth Mode is ON
-    LaunchedEffect(typedMessage, activeChip.id) {
+    // Broadcast current user's typing activity in channel, suppressed if Stealth Mode is ON or Guest
+    LaunchedEffect(typedMessage, activeChip.id, isGuest) {
+        if (isGuest) return@LaunchedEffect
         val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
         if (cleanCh.isNotEmpty()) {
             val isStealth = ConnectoApiClient.isStealthMode || context.getSharedPreferences("connecto_profile", android.content.Context.MODE_PRIVATE).getBoolean("stealth_mode_${currentUsername}", false)
@@ -673,6 +703,56 @@ fun ChannelsWorkspaceScreen(
     fun handleSendMessage() {
         val text = typedMessage.trim()
         if (text.isEmpty() || isSending) return
+
+        if (isGuest) {
+            val cleanCh = selectedChannelId.trim().lowercase().removePrefix("#")
+            val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US).format(Date())
+            val activeReply = replyingTo
+            val guestMsg = MessageDto(
+                id = "guest_${UUID.randomUUID()}",
+                channelId = cleanCh,
+                authorId = "guest",
+                authorName = "Guest Explorer",
+                authorAvatar = "sparkles",
+                content = text,
+                createdAt = nowIso,
+                type = "text",
+                replyToId = activeReply?.id,
+                replyToContent = activeReply?.content,
+                replyToAuthor = activeReply?.authorName?.ifBlank { activeReply?.authorId }
+            )
+            typedMessage = ""
+            replyingTo = null
+            focusManager.clearFocus()
+            showEmojiPicker = false
+            messages.add(guestMsg)
+            coroutineScope.launch {
+                try { listState.animateScrollToItem(messages.size) } catch (_: Exception) {}
+                delay(1200)
+                val replies = listOf(
+                    "Great message! Create a free account anytime to chat with real squads and join live voice rooms! 🚀",
+                    "Welcome to Connecto! The guest preview lets you test all channels and visual themes.",
+                    "Hey Guest Explorer! Join the community by signing up from the Sign In page! 🎮",
+                    "Great to have you here! Check out the different tabs: Messages, Calls, and Profile."
+                )
+                val replyMsg = MessageDto(
+                    id = "mock_${UUID.randomUUID()}",
+                    channelId = cleanCh,
+                    authorId = "ConnectoGuide",
+                    authorName = "Connecto Guide",
+                    authorAvatar = "robot",
+                    content = replies.random(),
+                    createdAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US).format(Date()),
+                    type = "text",
+                    replyToId = guestMsg.id,
+                    replyToContent = guestMsg.content,
+                    replyToAuthor = guestMsg.authorName
+                )
+                messages.add(replyMsg)
+                try { listState.animateScrollToItem(messages.size) } catch (_: Exception) {}
+            }
+            return
+        }
 
         if (editingMessage != null) {
             val editTarget = editingMessage!!
@@ -951,6 +1031,11 @@ fun ChannelsWorkspaceScreen(
                                         },
                                         onClick = {
                                             showMoreOptionsMenu = false
+                                            if (isGuest) {
+                                                selectedMessageForAction = null
+                                                Toast.makeText(context, "Sign in to pin messages for other users", Toast.LENGTH_SHORT).show()
+                                                return@DropdownMenuItem
+                                            }
                                             val cleanCh = activeChip.id.trim().lowercase().removePrefix("#")
                                             if (isPinned) {
                                                 pinnedMessageForChannel = null
@@ -1615,6 +1700,39 @@ fun ChannelsWorkspaceScreen(
                 }
 
 
+
+                // ================= GUEST PREVIEW BANNER =================
+                if (isGuest) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 3.dp),
+                        color = colors.surfaceVariant.copy(alpha = 0.55f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, colors.primary.copy(alpha = 0.2f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = colors.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Guest Explorer — Showing simulated community feed",
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = colors.textSecondary
+                            )
+                        }
+                    }
+                }
 
                 // ================= PINNED MESSAGE BANNER =================
                 AnimatedVisibility(
@@ -3347,6 +3465,285 @@ private fun ChannelTypingIndicator(
                 .clip(CircleShape)
                 .background(bubbleBg)
                 .border(1.dp, borderColor, CircleShape)
+        )
+    }
+}
+
+// ================= GUEST RANDOM / MOCK MESSAGES GENERATOR =================
+
+private fun getGuestChannelMockMessages(channelId: String): List<MessageDto> {
+    val clean = channelId.trim().lowercase().removePrefix("#")
+    val baseTime = System.currentTimeMillis()
+    fun timeAgo(minutesAgo: Long): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS", Locale.US)
+        return sdf.format(Date(baseTime - minutesAgo * 60 * 1000))
+    }
+
+    return when (clean) {
+        "general" -> listOf(
+            MessageDto(
+                id = "guest_mock_gen_1",
+                channelId = "general",
+                authorId = "ConnectoBot",
+                authorName = "Connecto Bot",
+                authorAvatar = "robot",
+                content = "👋 Welcome to Connecto! You're currently exploring in Guest Mode. Experience the fast UI, themes, and community channels freely!",
+                createdAt = timeAgo(45),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_gen_2",
+                channelId = "general",
+                authorId = "ApexStriker",
+                authorName = "Apex Striker",
+                authorAvatar = "gamer",
+                content = "Anyone looking for a 4th squad member for Bermuda Rush tonight? Let's get some Booyahs! 🔥",
+                createdAt = timeAgo(28),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_gen_3",
+                channelId = "general",
+                authorId = "PixelQueen",
+                authorName = "Pixel Queen",
+                authorAvatar = "sparkles",
+                content = "The new UI animations and dark theme are super responsive! Love the search bar in the messages tab ✨",
+                createdAt = timeAgo(15),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_gen_4",
+                channelId = "general",
+                authorId = "GhostSniper",
+                authorName = "Ghost Sniper",
+                authorAvatar = "ninja",
+                content = "Tip for guests: You can sign up with a full account to unlock WebRTC voice calls and squad channels! 🚀",
+                createdAt = timeAgo(6),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_gen_5",
+                channelId = "general",
+                authorId = "NovaGamer",
+                authorName = "Nova Gamer",
+                authorAvatar = "star",
+                content = "GGs to everyone in the practice matches earlier! Let's run it back tomorrow 🎮",
+                createdAt = timeAgo(2),
+                type = "text"
+            )
+        )
+        "announcements" -> listOf(
+            MessageDto(
+                id = "guest_mock_ann_1",
+                channelId = "announcements",
+                authorId = "ConnectoTeam",
+                authorName = "Connecto Team",
+                authorAvatar = "shield",
+                content = "🚀 Connecto v5.2.9 is officially rolled out! Featuring ultra-fast channel rendering, guest privacy isolation, and enhanced UI animations.",
+                createdAt = timeAgo(120),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_ann_2",
+                channelId = "announcements",
+                authorId = "SystemBot",
+                authorName = "System Sentinel",
+                authorAvatar = "robot",
+                content = "⚡ Global edge servers reporting 100% operational status with <15ms average latency.",
+                createdAt = timeAgo(60),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_ann_3",
+                channelId = "announcements",
+                authorId = "SecurityLead",
+                authorName = "Security Team",
+                authorAvatar = "lock",
+                content = "🔒 End-to-end Keystore encryption & biometric Face/Fingerprint auth are active for all registered accounts.",
+                createdAt = timeAgo(10),
+                type = "text"
+            )
+        )
+        "gaming" -> listOf(
+            MessageDto(
+                id = "guest_mock_gam_1",
+                channelId = "gaming",
+                authorId = "Valkyrie",
+                authorName = "Valkyrie",
+                authorAvatar = "fire",
+                content = "What sensitivity settings is everyone running on Free Fire MAX this season? Testing out a high-DPI claw setup.",
+                createdAt = timeAgo(50),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_gam_2",
+                channelId = "gaming",
+                authorId = "BulletMaster",
+                authorName = "Bullet Master",
+                authorAvatar = "target",
+                content = "General: 96, Red Dot: 85, 2x: 80. Keeps the recoil drag headshots super consistent! 🎯",
+                createdAt = timeAgo(32),
+                type = "text",
+                replyToId = "guest_mock_gam_1",
+                replyToContent = "What sensitivity settings is everyone running on Free Fire MAX this season?",
+                replyToAuthor = "Valkyrie"
+            ),
+            MessageDto(
+                id = "guest_mock_gam_3",
+                channelId = "gaming",
+                authorId = "NeonClutch",
+                authorName = "Neon Clutch",
+                authorAvatar = "controller",
+                content = "Clutched a 1v3 in Kalahari ruins! Check out the clips channel for the replay 🔥",
+                createdAt = timeAgo(12),
+                type = "text"
+            )
+        )
+        "tournaments" -> listOf(
+            MessageDto(
+                id = "guest_mock_tourn_1",
+                channelId = "tournaments",
+                authorId = "ArenaMaster",
+                authorName = "Arena Master",
+                authorAvatar = "trophy",
+                content = "🏆 Connecto Weekly Esports Showdown starts this Saturday! 32 squads, 6 rounds, 50,000 Diamonds prize pool.",
+                createdAt = timeAgo(90),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_tourn_2",
+                channelId = "tournaments",
+                authorId = "CaptainBlitz",
+                authorName = "Captain Blitz",
+                authorAvatar = "lightning",
+                content = "Squad 'Phantom Elite' is checked in and ready. Good luck to all teams in the qualifiers! ⚡",
+                createdAt = timeAgo(40),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_tourn_3",
+                channelId = "tournaments",
+                authorId = "RefereeBot",
+                authorName = "FairPlay Referee",
+                authorAvatar = "robot",
+                content = "📢 Reminder: Emulators & custom script overlays are prohibited. Clean matches only!",
+                createdAt = timeAgo(15),
+                type = "text"
+            )
+        )
+        "clips" -> listOf(
+            MessageDto(
+                id = "guest_mock_clip_1",
+                channelId = "clips",
+                authorId = "ShadowClutch",
+                authorName = "Shadow Clutch",
+                authorAvatar = "skull",
+                content = "🎯 Insane 200m AWM no-scope through smoke on Factory roof! Highlight clip of the week.",
+                createdAt = timeAgo(75),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_clip_2",
+                channelId = "clips",
+                authorId = "GlowRider",
+                authorName = "Glow Rider",
+                authorAvatar = "car",
+                content = "Full squad vehicle wipe with landmine setup at Bimasakti Strip 😂 Watch your roads!",
+                createdAt = timeAgo(30),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_clip_3",
+                channelId = "clips",
+                authorId = "ClipReviewer",
+                authorName = "Clip Reviewer",
+                authorAvatar = "star",
+                content = "Drop your clips here with timestamps to be featured in the weekly community montage! 🎬",
+                createdAt = timeAgo(8),
+                type = "text"
+            )
+        )
+        "voice-lounge" -> listOf(
+            MessageDto(
+                id = "guest_mock_vl_1",
+                channelId = "voice-lounge",
+                authorId = "AudioHost",
+                authorName = "Audio Host",
+                authorAvatar = "headphones",
+                content = "🎙️ Welcome to Voice Lounge! Low-latency WebRTC spatial rooms are open for all squads.",
+                createdAt = timeAgo(60),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_vl_2",
+                channelId = "voice-lounge",
+                authorId = "ChillVibes",
+                authorName = "Chill Vibes",
+                authorAvatar = "music",
+                content = "Hanging out in Lounge 1 listening to lo-fi beats between tournament scrims 🎧",
+                createdAt = timeAgo(25),
+                type = "text"
+            ),
+            MessageDto(
+                id = "guest_mock_vl_3",
+                channelId = "voice-lounge",
+                authorId = "SoundTech",
+                authorName = "Sound Tech",
+                authorAvatar = "robot",
+                content = "Noise suppression and mic gain calibration tests complete. Audio quality 10/10! 🔊",
+                createdAt = timeAgo(5),
+                type = "text"
+            )
+        )
+        else -> listOf(
+            MessageDto(
+                id = "guest_mock_def_1",
+                channelId = clean,
+                authorId = "ConnectoBot",
+                authorName = "Connecto Bot",
+                authorAvatar = "robot",
+                content = "Welcome to #$clean! You are previewing sample messages in Guest Mode.",
+                createdAt = timeAgo(10),
+                type = "text"
+            )
+        )
+    }
+}
+
+private fun getGuestPinnedMessage(channelId: String): PinnedMessageDto {
+    val clean = channelId.trim().lowercase().removePrefix("#")
+    return when (clean) {
+        "general" -> PinnedMessageDto(
+            messageId = "pin_guest_gen",
+            channelId = "general",
+            authorName = "Connecto Team",
+            content = "📌 Welcome to Connecto! Keep discussions respectful & fun. Sign up for a full account to unlock voice calls & real-time chat.",
+            pinnedBy = "admin",
+            pinnedAt = "Recent"
+        )
+        "announcements" -> PinnedMessageDto(
+            messageId = "pin_guest_ann",
+            channelId = "announcements",
+            authorName = "Connecto Team",
+            content = "📌 Connecto Platform v5.2.9: 100% cloud uptime, instant edge updates, and verified guest privacy.",
+            pinnedBy = "admin",
+            pinnedAt = "Recent"
+        )
+        "tournaments" -> PinnedMessageDto(
+            messageId = "pin_guest_tourn",
+            channelId = "tournaments",
+            authorName = "Arena Master",
+            content = "📌 Official Tournament Rules: Fair play, registered squads, no third-party modifiers.",
+            pinnedBy = "admin",
+            pinnedAt = "Recent"
+        )
+        else -> PinnedMessageDto(
+            messageId = "pin_guest_def",
+            channelId = clean,
+            authorName = "Connecto Guide",
+            content = "📌 Guest Preview Mode: Sample channel feed for #$clean. Sign in to chat live with players.",
+            pinnedBy = "admin",
+            pinnedAt = "Recent"
         )
     }
 }

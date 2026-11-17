@@ -617,6 +617,7 @@ fun ConnectoApp(
             // Listen to real-time incoming messages across tabs
             VoiceCallManager.incomingChannelMessages.collect { incoming ->
                 val myU = authenticatedUsername.trim().removePrefix("@").lowercase()
+                if (myU == "guest") return@collect
                 val authorU = incoming.authorId.trim().removePrefix("@").lowercase()
                 if (authorU.isNotBlank() && authorU != myU) {
                     hasUnreadChats = true
