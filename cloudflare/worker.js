@@ -199,13 +199,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.2.5",
-        version_name: "v5.2.5",
-        version_code: 141,
-        build: 141,
-        sha256: "6ff0761a84ebcecdbb8b0cb8aa9163708ae507e9061cb1f46ca13c60bb14a682",
+        version: "5.2.6",
+        version_name: "v5.2.6",
+        version_code: 142,
+        build: 142,
+        sha256: "23eb4645f8710b4c1aa4612013b31ef075be794c5f6050d6dcbb5f8e36889b6b",
         filename: "connecto-fun.apk",
-        size_bytes: 38059906,
+        size_bytes: 38059913,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -363,6 +363,8 @@ Sitemap: https://connecto.fun/sitemap.xml
     ) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/our-store.apk",
+          "https://github.com/chinnu2523/connecto/releases/download/v2.1.0/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/our-store.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.9/app-release.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v2.0.8/our-store.apk",
@@ -376,14 +378,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.3/our-store.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.0.9-b58-v2-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/our-store-v2.1.0-b59-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Store-Version", "v2.0.9");
-          res.headers.set("X-Connecto-Store-Build", "58");
+          res.headers.set("X-Connecto-Store-Version", "v2.1.0");
+          res.headers.set("X-Connecto-Store-Build", "59");
           return res;
         }
 
@@ -421,8 +423,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
               downloadHeaders.set("X-Connecto-Package", "com.connecto.store");
               downloadHeaders.set("X-Connecto-App", "Our Store");
-              downloadHeaders.set("X-Connecto-Store-Version", "v2.0.9");
-              downloadHeaders.set("X-Connecto-Store-Build", "58");
+              downloadHeaders.set("X-Connecto-Store-Version", "v2.1.0");
+              downloadHeaders.set("X-Connecto-Store-Build", "59");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -511,7 +513,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       cleanPath.includes("pdf-studio") && cleanPath.endsWith(".apk")
     ) {
       try {
-        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.6/pdf-studio.apk", {
+        const pdfResp = await fetch("https://github.com/chinnu2523/connecto/releases/download/v5.2.7/pdf-studio.apk", {
           redirect: "follow",
           headers: {
             "User-Agent": "Connecto-Cloud-Worker/1.1.0"
@@ -527,7 +529,7 @@ Sitemap: https://connecto.fun/sitemap.xml
           downloadHeaders.set("Access-Control-Allow-Origin", "*");
           downloadHeaders.set("X-Connecto-Package", "com.app.pdfstudio");
           downloadHeaders.set("X-Connecto-App", "PDF Studio");
-          downloadHeaders.set("X-Connecto-Version", "v1.5.2");
+          downloadHeaders.set("X-Connecto-Version", "v1.5.3");
           return new Response(pdfResp.body, {
             status: 200,
             headers: downloadHeaders
@@ -536,7 +538,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (err) {
         console.error("PDF Studio download fetch error:", err);
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.6/pdf-studio.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.2.7/pdf-studio.apk", 302);
     }
 
     // 3b. Cloudflare Global Edge CDN: Direct APK Download Gateway
@@ -550,6 +552,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.2.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.6/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.5/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.4/connecto-fun.apk",
@@ -558,14 +561,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.5-b141-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.2.6-b142-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.2.5");
-          res.headers.set("X-Connecto-Build", "141");
+          res.headers.set("X-Connecto-Version", "v5.2.6");
+          res.headers.set("X-Connecto-Build", "142");
           return res;
         }
 
@@ -577,7 +580,7 @@ Sitemap: https://connecto.fun/sitemap.xml
               const resp = await fetch(currentFetchUrl, {
                 redirect: "manual",
                 headers: {
-                  "User-Agent": "Connecto-Cloud-Worker/5.2.5"
+                  "User-Agent": "Connecto-Cloud-Worker/5.2.6"
                 }
               });
               if (resp.status >= 300 && resp.status < 400) {
@@ -601,8 +604,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.2.5");
-              downloadHeaders.set("X-Connecto-Build", "141");
+              downloadHeaders.set("X-Connecto-Version", "v5.2.6");
+              downloadHeaders.set("X-Connecto-Build", "142");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -1922,14 +1925,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Autonomous package installer, background updater & security vault",
         description: "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         category: "Services",
-        version_name: "2.0.9",
-        version_code: 58,
-        size_bytes: 18961457,
+        version_name: "2.1.0",
+        version_code: 59,
+        size_bytes: 18961460,
         size_formatted: "18.1 MB",
         download_url: "https://connecto.fun/downloads/our-store.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Zero Gradients & OLED Clean Architecture: Eliminated all artificial gradient borders, background blends, and gloss overlays in favor of high-contrast solid OLED tokens, clean surfaces, and smooth pulsating skeleton loaders; tactile spring press micro-interactions across all cards and action buttons",
           "Account Tab Clean UI & UX Redesign: User identity hero card with concentric status ring, verification pip, and 3-column telemetry metrics (Account Tier, SHA-256 Integrity, IPC Session engine)",
           "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated top micro-pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
           "Seamless Appearance & Display: Eliminated nested box redundancy, smooth rotating sun/moon squircle icon, and tactile sliding theme switcher pill",
@@ -1973,14 +1977,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.2.5",
-        version_code: 141,
-        size_bytes: 38059906,
+        version_name: "5.2.6",
+        version_code: 142,
+        size_bytes: 38059913,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
+          "Noise Reduction & Tactile Spring Physics: Refined clean interface, eliminated visual clutter across chat and channel views, and added tactile spring press micro-interactions with smooth transition physics",
           "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer displace scroll position or trigger phantom conversation clicks",
           "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated indicator pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
           "Fluid Screen Transitions & Navigation: Smooth elevation cross-fade transitions and spring animations across channels and chat view",
@@ -2042,14 +2047,15 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Full PDF editor & creative image editor with typography matching",
         description: "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         category: "Productivity",
-        version_name: "1.5.2",
-        version_code: 18,
-        size_bytes: 67492020,
+        version_name: "1.5.3",
+        version_code: 19,
+        size_bytes: 67475636,
         size_formatted: "64.4 MB",
         download_url: "https://connecto.fun/downloads/pdf-studio.apk",
         icon_url: "https://connecto.fun/static/pdf_studio_logo.png",
         accent_color: "#EF4444",
         changelog: [
+          "Clean 2x2 Quick Action Grid & Zero Gradients: Replaced oversized hero cards and marketing noise with a clean 2x2 action tile layout; tactile spring press scale micro-interactions; 100% solid gradient-free Material 3 color system",
           "Scan & Edit Text in Images: Exact pixel-matched font size, stroke weight, style, and color preservation",
           "Eliminated Auto-Refresh & Accidental Preview Trigger: Intentional drag threshold and pointer shield prevent accidental document openings",
           "Material 3 Unified Action Dock: Clean Extended FAB with quick actions menu replacing cluttered dual buttons",
@@ -7194,13 +7200,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.2.5",
-      version_name: "v5.2.5",
-      version_code: 141,
-      build: 141,
-      sha256: "6ff0761a84ebcecdbb8b0cb8aa9163708ae507e9061cb1f46ca13c60bb14a682",
+      version: "5.2.6",
+      version_name: "v5.2.6",
+      version_code: 142,
+      build: 142,
+      sha256: "23eb4645f8710b4c1aa4612013b31ef075be794c5f6050d6dcbb5f8e36889b6b",
       filename: "connecto-fun.apk",
-      size_bytes: 38059906,
+      size_bytes: 38059913,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

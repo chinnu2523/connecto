@@ -96,12 +96,7 @@ fun OurStoreReferDialog(
                     .clip(RoundedCornerShape(24.dp))
                     .border(
                         width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                (if (theme.isDark) Color.White else Color.Black).copy(alpha = 0.22f),
-                                (if (theme.isDark) Color.White else Color.Black).copy(alpha = 0.05f)
-                            )
-                        ),
+                        color = (if (theme.isDark) Color.White else Color.Black).copy(alpha = 0.12f),
                         shape = RoundedCornerShape(24.dp)
                     ),
                 shape = RoundedCornerShape(24.dp),
@@ -185,15 +180,7 @@ fun OurStoreReferDialog(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        colors = if (theme.isDark) {
-                                            listOf(Color(0xFF1E1B4B), Color(0xFF0F172A))
-                                        } else {
-                                            listOf(Color(0xFFEEF2FF), Color(0xFFF8FAFC))
-                                        }
-                                    )
-                                )
+                                .background(if (theme.isDark) Color(0xFF13151D) else Color(0xFFF3F4F6))
                                 .border(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.3f), RoundedCornerShape(16.dp))
                                 .padding(18.dp)
                         ) {

@@ -89,12 +89,7 @@ fun OurStoreFeedbackDialog(
                     .clip(RoundedCornerShape(24.dp))
                     .border(
                         width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                (if (theme.isDark) Color.White else Color.Black).copy(alpha = 0.22f),
-                                (if (theme.isDark) Color.White else Color.Black).copy(alpha = 0.05f)
-                            )
-                        ),
+                        color = (if (theme.isDark) Color.White else Color.Black).copy(alpha = 0.12f),
                         shape = RoundedCornerShape(24.dp)
                     ),
                 shape = RoundedCornerShape(24.dp),

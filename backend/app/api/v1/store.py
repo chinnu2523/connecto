@@ -25,14 +25,15 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Autonomous package installer, background updater & security vault",
         "description": "Official app ecosystem client for Android. Features native 1-tap package installation via Android PackageInstaller session IPC, background app auto-updating, cryptographic SHA-256 validation, and pure OLED classic black UI.",
         "category": "Services",
-        "version_name": "2.0.9",
-        "version_code": 58,
-        "size_bytes": 18961457,
+        "version_name": "2.1.0",
+        "version_code": 59,
+        "size_bytes": 18961460,
         "size_formatted": "18.1 MB",
         "download_url": "https://connecto.fun/downloads/our-store.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Zero Gradients & OLED Clean Architecture: Eliminated all artificial gradient borders, background blends, and gloss overlays in favor of high-contrast solid OLED tokens, clean surfaces, and smooth pulsating skeleton loaders; tactile spring press micro-interactions across all cards and action buttons",
             "Account Tab Clean UI & UX Redesign: User identity hero card with concentric status ring, verification pip, and 3-column telemetry metrics (Account Tier, SHA-256 Integrity, IPC Session engine)",
             "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated top micro-pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
             "Seamless Appearance & Display: Eliminated nested box redundancy, smooth rotating sun/moon squircle icon, and tactile sliding theme switcher pill",
@@ -43,7 +44,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Unslop Visual Design Polish: Stripped AI emoji slop, unified 4px spatial grid, and streamlined badge typography across catalog and detail views"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-17T10:55:00Z"
+        "updated_at": "2026-11-17T15:40:00Z"
     },
     {
         "id": "connecto",
@@ -53,21 +54,22 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "5.2.5",
-        "version_code": 141,
-        "size_bytes": 38059906,
+        "version_name": "5.2.6",
+        "version_code": 142,
+        "size_bytes": 38059913,
         "size_formatted": "36.3 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Noise Reduction & Tactile Spring Physics: Refined clean interface, eliminated visual clutter across chat and channel views, and added tactile spring press micro-interactions with smooth transition physics",
             "Eliminated Auto-Refresh & Accidental Preview Trigger: Silent background revalidations no longer displace scroll position or trigger phantom conversation clicks",
             "Modern Architectural Bottom Navigation Dock: Precision sliding spring pill dock with illuminated indicator pip, paired filled/active and outlined/inactive vector icons, tactile spring press, and haptic feedback",
             "Fluid Screen Transitions & Navigation: Smooth elevation cross-fade transitions and spring animations across channels and chat view",
             "Unslop UI & Typography Polish: Stripped clutter, tuned typography, and unified high-contrast OLED styling"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-17T11:35:00Z"
+        "updated_at": "2026-11-17T15:40:00Z"
     },
     {
         "id": "jarvis",
@@ -101,14 +103,15 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Full PDF editor & creative image editor with typography matching",
         "description": "Professional PDF & Image editor for Android. Smooth pinch-to-zoom & pan, font-matching PDF text editing, and full-featured Creative Image Editor Studio with drawing brush, authentic text annotations, vector shapes, whiteout eraser, crop framing, tone filters, and direct export to PDF or image.",
         "category": "Productivity",
-        "version_name": "1.5.2",
-        "version_code": 18,
-        "size_bytes": 67492020,
+        "version_name": "1.5.3",
+        "version_code": 19,
+        "size_bytes": 67475636,
         "size_formatted": "64.4 MB",
         "download_url": "https://connecto.fun/downloads/pdf-studio.apk",
         "icon_url": "https://connecto.fun/static/pdf_studio_logo.png",
         "accent_color": "#EF4444",
         "changelog": [
+            "Clean 2x2 Quick Action Grid & Zero Gradients: Replaced oversized hero cards and marketing noise with a clean 2x2 action tile layout; tactile spring press scale micro-interactions; 100% solid gradient-free Material 3 color system",
             "Scan & Edit Text in Images: Exact pixel-matched font size, stroke weight, style, and color preservation",
             "Eliminated Auto-Refresh & Accidental Preview Trigger: Intentional drag threshold and pointer shield prevent accidental document openings",
             "Material 3 Unified Action Dock: Clean Extended FAB with quick actions menu replacing cluttered dual buttons",

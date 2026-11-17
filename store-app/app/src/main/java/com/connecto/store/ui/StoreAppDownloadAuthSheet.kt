@@ -149,12 +149,7 @@ fun StoreAppDownloadAuthSheet(
                     .clip(RoundedCornerShape(24.dp))
                     .border(
                         width = 1.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF38BDF8).copy(alpha = 0.45f),
-                                Color(0xFF2563EB).copy(alpha = 0.20f)
-                            )
-                        ),
+                        color = Color(0xFF2563EB).copy(alpha = 0.35f),
                         shape = RoundedCornerShape(24.dp)
                     ),
                 shape = RoundedCornerShape(24.dp),

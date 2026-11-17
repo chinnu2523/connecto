@@ -666,14 +666,7 @@ private fun ClassicBottomNavBar(
             .fillMaxWidth()
             .navigationBarsPadding()
             .height(68.dp)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        theme.surface.copy(alpha = 0.98f),
-                        theme.navBarBackground
-                    )
-                )
-            )
+            .background(theme.navBarBackground)
     ) {
         val totalWidth = maxWidth
         val tabCount = sections.size
@@ -1150,35 +1143,13 @@ private fun ClassicEcosystemSpotlightCard(
         colors = CardDefaults.cardColors(containerColor = theme.surface),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color(0xFF2563EB).copy(alpha = 0.7f),
-                    Color(0xFF38BDF8).copy(alpha = 0.5f),
-                    Color(0xFF6366F1).copy(alpha = 0.4f)
-                )
-            )
+            color = theme.borderHighlight
         )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    brush = if (isDark) {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0xFF0F172A),
-                                Color(0xFF060913)
-                            )
-                        )
-                    } else {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0xFFF8FAFC),
-                                Color(0xFFEDF2F7)
-                            )
-                        )
-                    }
-                )
+                .background(theme.surface)
                 .padding(20.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1997,20 +1968,6 @@ private fun PhoneMockupCard(
                 contentScale = ContentScale.Crop
             )
 
-            // Gloss & Frame gradient overlay at bottom
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.85f)
-                            )
-                        )
-                    )
-            )
 
             // Subtle Simulated Camera Notch
             Box(
@@ -2213,20 +2170,6 @@ private fun ScreenshotLightboxDialog(
                                         contentScale = ContentScale.Crop
                                     )
 
-                                    // Gradient overlay at bottom
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .background(
-                                                Brush.verticalGradient(
-                                                    colors = listOf(
-                                                        Color.Transparent,
-                                                        Color.Transparent,
-                                                        Color.Black.copy(alpha = 0.85f)
-                                                    )
-                                                )
-                                            )
-                                    )
 
                                     // Camera notch simulation
                                     Box(
@@ -2558,38 +2501,27 @@ private fun ClassicFooterInfo() {
 
 // ─── Loading & Error Views ────────────────────────────────────────────────────
 @Composable
-fun storeShimmerBrush(): Brush {
-    val theme = LocalStoreTheme.current
-    val transition = rememberInfiniteTransition(label = "storeShimmerTransition")
-    val translateAnim by transition.animateFloat(
-        initialValue = -600f,
-        targetValue = 1400f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1350, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "storeShimmerTranslate"
-    )
-
-    val baseColor = if (theme.isDark) Color(0xFF141418) else Color(0xFFE2E8F0)
-    val highlightColor = if (theme.isDark) Color(0xFF282832) else Color(0xFFF1F5F9)
-
-    return Brush.linearGradient(
-        colors = listOf(baseColor, highlightColor, baseColor),
-        start = Offset(translateAnim, 0f),
-        end = Offset(translateAnim + 600f, 350f)
-    )
-}
-
-@Composable
 fun StoreSkeletonBox(
     modifier: Modifier = Modifier,
     shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(8.dp)
 ) {
+    val theme = LocalStoreTheme.current
+    val infiniteTransition = rememberInfiniteTransition(label = "storePulseTransition")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.45f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 850, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "storePulseAlpha"
+    )
+    val baseColor = if (theme.isDark) Color(0xFF202026) else Color(0xFFE2E8F0)
+
     Box(
         modifier = modifier
             .clip(shape)
-            .background(storeShimmerBrush())
+            .background(baseColor.copy(alpha = alpha))
     )
 }
 
