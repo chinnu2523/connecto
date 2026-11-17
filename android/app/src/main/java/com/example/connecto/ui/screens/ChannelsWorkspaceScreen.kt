@@ -213,10 +213,9 @@ fun ChannelsWorkspaceScreen(
     val dbHelper = remember { ConnectoDatabaseHelper.getInstance(context) }
     val sharedPrefs = remember { context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE) }
 
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val isDrawerActive = drawerState.isOpen || drawerState.isAnimationRunning
-    LaunchedEffect(isDrawerActive) {
-        onDrawerStateChanged?.invoke(isDrawerActive)
+    var isDrawerOpen by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(isDrawerOpen) {
+        onDrawerStateChanged?.invoke(isDrawerOpen)
     }
 
     val savedChannelId = remember { sharedPrefs.getString("last_active_channel", initialChannelId) ?: initialChannelId }
@@ -326,21 +325,8 @@ fun ChannelsWorkspaceScreen(
         mutableStateOf(sharedPrefs.getBoolean("muted_ch_$cleanSelectedChannel", false))
     }
 
-    val channelRowState = rememberLazyListState()
-    val activeChipIndex = remember(cleanSelectedChannel) {
-        defaultChannels.indexOfFirst {
-            it.id.equals(cleanSelectedChannel, ignoreCase = true) || it.name.equals(cleanSelectedChannel, ignoreCase = true)
-        }.coerceAtLeast(0)
-    }
-
-    LaunchedEffect(activeChipIndex) {
-        try {
-            channelRowState.animateScrollToItem((activeChipIndex - 1).coerceAtLeast(0))
-        } catch (_: Exception) {}
-    }
-
     val chevronRotation by animateFloatAsState(
-        targetValue = if (drawerState.isOpen || drawerState.targetValue == DrawerValue.Open) 180f else 0f,
+        targetValue = if (isDrawerOpen) 180f else 0f,
         animationSpec = tween(durationMillis = 280, easing = EaseInOutCubic),
         label = "drawerChevron"
     )
@@ -358,8 +344,8 @@ fun ChannelsWorkspaceScreen(
         }
     }
 
-    BackHandler(enabled = drawerState.isOpen) {
-        coroutineScope.launch { drawerState.close() }
+    BackHandler(enabled = isDrawerOpen) {
+        isDrawerOpen = false
     }
 
     BackHandler(enabled = selectedMessageForAction != null) {
@@ -918,17 +904,16 @@ fun ChannelsWorkspaceScreen(
     }
 
     ChannelNavigationDrawer(
-        drawerState = drawerState,
+        isOpen = isDrawerOpen,
         selectedChannelId = selectedChannelId,
         onChannelSelected = { newCh ->
             selectedChannelId = newCh
         },
         onCloseDrawer = {
-            coroutineScope.launch { drawerState.close() }
+            isDrawerOpen = false
         },
         currentUsername = currentUsername,
-        onProfileClick = onOpenProfile,
-        gesturesEnabled = false
+        onProfileClick = onOpenProfile
     ) {
         Box(
             modifier = modifier
@@ -1141,9 +1126,7 @@ fun ChannelsWorkspaceScreen(
                                     modifier = Modifier
                                         .pressScaleEffect(
                                             onClick = {
-                                                coroutineScope.launch {
-                                                    if (drawerState.isClosed) drawerState.open() else drawerState.close()
-                                                }
+                                                isDrawerOpen = !isDrawerOpen
                                             },
                                             targetScale = 0.95f
                                         )
@@ -1496,99 +1479,7 @@ fun ChannelsWorkspaceScreen(
                                 }
                             }
 
-                            // Row 3: Horizontal Channel Segmented Navigation Bar
-                            LazyRow(
-                                state = channelRowState,
-                                modifier = Modifier.fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(defaultChannels, key = { it.id }) { channelItem ->
-                                    val isSelected = channelItem.id.equals(cleanSelectedChannel, ignoreCase = true) ||
-                                                     channelItem.name.equals(cleanSelectedChannel, ignoreCase = true)
-
-                                    val pillBg = if (isSelected) {
-                                        if (colors.isDark) Color(0xFF1F2230) else colors.primary.copy(alpha = 0.14f)
-                                    } else {
-                                        if (colors.isDark) Color(0xFF111319).copy(alpha = 0.7f) else Color(0xFFF3F4F8)
-                                    }
-
-                                    val pillBorder = if (isSelected) {
-                                        colors.primary.copy(alpha = 0.85f)
-                                    } else {
-                                        colors.borderSubtle.copy(alpha = 0.45f)
-                                    }
-
-                                    val pillContentColor = if (isSelected) {
-                                        if (colors.isDark) Color.White else colors.primary
-                                    } else {
-                                        colors.textSecondary
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .pressScaleEffect(
-                                                onClick = {
-                                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                                    selectedChannelId = channelItem.id
-                                                    sharedPrefs.edit().putString("last_active_channel", channelItem.id).apply()
-                                                    if (isChannelSearchOpen) {
-                                                        channelSearchQuery = ""
-                                                        isChannelSearchOpen = false
-                                                    }
-                                                },
-                                                targetScale = 0.94f
-                                            )
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(pillBg)
-                                            .border(
-                                                width = if (isSelected) 1.2.dp else 0.5.dp,
-                                                color = pillBorder,
-                                                shape = RoundedCornerShape(10.dp)
-                                            )
-                                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = channelItem.icon,
-                                                contentDescription = null,
-                                                tint = pillContentColor,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(5.dp))
-                                            Text(
-                                                text = "#${channelItem.name}",
-                                                fontSize = 12.5.sp,
-                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                                color = pillContentColor
-                                            )
-                                            if (channelItem.id == "voice-lounge" && isSelected) {
-                                                Spacer(modifier = Modifier.width(5.dp))
-                                                VoiceLoungeWaveBars(
-                                                    color = OnlineGreen,
-                                                    barWidth = 1.5.dp,
-                                                    spacing = 1.dp,
-                                                    scale = 0.7f,
-                                                    modifier = Modifier.height(10.dp)
-                                                )
-                                            } else if (channelItem.id == "announcements") {
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(5.dp)
-                                                        .clip(CircleShape)
-                                                        .background(colors.primary)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Microscopic Hairline Divider
+                            // Microscopic Hairline Divider separating top header from messages
                             ConnectoDivider(
                                 thickness = 0.5.dp,
                                 color = colors.borderSubtle.copy(alpha = 0.6f)

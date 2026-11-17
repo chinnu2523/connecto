@@ -66,14 +66,17 @@ APPS_CATALOG: List[Dict[str, Any]] = [
         "tagline": "Private encrypted messaging, calls & workspaces",
         "description": "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         "category": "Communication",
-        "version_name": "5.3.7",
-        "version_code": 151,
-        "size_bytes": 38077912,
+        "version_name": "5.3.8",
+        "version_code": 152,
+        "size_bytes": 38070048,
         "size_formatted": "36.3 MB",
         "download_url": "https://connecto.fun/downloads/connecto-fun.apk",
         "icon_url": "https://connecto.fun/static/favicon.svg",
         "accent_color": "#2563EB",
         "changelog": [
+            "Channel Tab Clean Architecture: Removed redundant top #general and #announcements horizontal pill row for a streamlined, clutter-free messaging canvas",
+            "Fluid EaseInOutCubic Navigation Drawer: Re-engineered channel drawer with cubic bezier transitions, backdrop scaling depth, and instant 0ms tap-outside dismiss on empty space",
+            "Minimalist Workspace Navigation: Removed Workspace Hub preview card and bottom profile/settings bar from drawer in favor of clean channel typography and instant switching",
             "Zero-Latency Re-Login Engine: Eliminates 15-30s re-authentication latency by preserving encrypted SQLite message cache and read states on sign out, enabling instantaneous 0ms session recovery when logging back in",
             "Chat Pre-Warming & 0ms Instant Load: Preloads and decrypts top conversations into in-memory cache the moment the Message tab is mounted, rendering direct chats and group conversations immediately with zero loading spinner on tap",
             "Background Active Conversation Sync: Silently synchronizes latest messages in the background without blocking the UI or connection pool",
@@ -83,7 +86,7 @@ APPS_CATALOG: List[Dict[str, Any]] = [
             "Ease-In & Ease-Out Curve Animations & Transitions: Fluid cubic bezier EaseInOutCubic, EaseInCubic, and EaseOutCubic motion curves implemented across bottom bar indicator, tab navigation, auth form flipping, expandable search bars, and chat view transitions"
         ],
         "is_essential": True,
-        "updated_at": "2026-11-18T00:05:00Z"
+        "updated_at": "2026-11-18T00:48:00Z"
     },
     {
         "id": "jarvis",
