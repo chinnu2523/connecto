@@ -5298,7 +5298,6 @@ fun CustomizedChatScreen(
 
                                             Box(
                                                 modifier = Modifier
-                                                    .breathingPulse(minScale = 0.94f, maxScale = 1.06f)
                                                     .size(60.dp)
                                                     .clip(CircleShape)
                                                     .background(Brush.linearGradient(gradientColors)),
@@ -5898,12 +5897,7 @@ fun CustomizedChatScreen(
                     "DIRECT_CHAT" -> {
                         // ================= 2. DIRECT CHAT STREAM WITH IME RESIZE =================
                     val canScrollDown by remember {
-                        derivedStateOf {
-                            listState.canScrollForward || (
-                                listState.layoutInfo.totalItemsCount > 0 &&
-                                (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) < listState.layoutInfo.totalItemsCount - 1
-                            )
-                        }
+                        derivedStateOf { listState.canScrollForward }
                     }
 
                     Box(
@@ -7210,41 +7204,6 @@ fun CustomChatBubble(
     var showReactionPill by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
 
-    var isBubblePressed by remember { mutableStateOf(false) }
-    val bubbleScale by animateFloatAsState(
-        targetValue = if (isBubblePressed) 0.98f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
-        label = "bubbleScale"
-    )
-
-    val isIncoming = !message.isMe
-    var hasAppeared by remember(message.id) { mutableStateOf(true) }
-    LaunchedEffect(message.id) {
-        hasAppeared = true
-    }
-
-    val incomingScale by animateFloatAsState(
-        targetValue = if (hasAppeared) 1.0f else 0.82f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "incomingScale"
-    )
-    val incomingAlpha by animateFloatAsState(
-        targetValue = if (hasAppeared) 1.0f else 0.0f,
-        animationSpec = tween(280, easing = FastOutSlowInEasing),
-        label = "incomingAlpha"
-    )
-    val incomingTranslateY by animateFloatAsState(
-        targetValue = if (hasAppeared) 0f else 14f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "incomingTranslateY"
-    )
-
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start,
@@ -7304,17 +7263,11 @@ fun CustomChatBubble(
             val effectiveOwnText = ownText
 
             val bubbleModifier = if (isGlassTheme || isLiquidGlassTheme) {
-                Modifier
-                    .graphicsLayer {
-                        scaleX = bubbleScale
-                        scaleY = bubbleScale
-                    }
-                    .glassBubble(
-                        isMe = message.isMe,
-                        shape = bubbleShape,
-                        isPressed = isBubblePressed,
-                        isLiquid = isLiquidGlassTheme
-                    )
+                Modifier.glassBubble(
+                    isMe = message.isMe,
+                    shape = bubbleShape,
+                    isLiquid = isLiquidGlassTheme
+                )
             } else {
                 val bgBrush = remember(message.isMe, isWhiteBubble, effectiveOwnBg, friendBg) {
                     if (message.isMe) {
@@ -7370,22 +7323,10 @@ fun CustomChatBubble(
                 }
 
                 Modifier
-                    .graphicsLayer {
-                        scaleX = if (isIncoming) incomingScale else bubbleScale
-                        scaleY = if (isIncoming) incomingScale else bubbleScale
-                        alpha = if (isIncoming) incomingAlpha else 1.0f
-                        translationY = if (isIncoming) incomingTranslateY else 0f
-                    }
-                    .shadow(
-                        elevation = if (message.isMe) 2.dp else 1.dp,
-                        shape = bubbleShape,
-                        spotColor = if (message.isMe && !isWhiteBubble) effectiveOwnBg.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.25f),
-                        ambientColor = Color.Black.copy(alpha = 0.30f)
-                    )
                     .clip(bubbleShape)
                     .background(bgBrush)
                     .border(
-                        width = 1.dp,
+                        width = 0.8.dp,
                         brush = borderBrush,
                         shape = bubbleShape
                     )

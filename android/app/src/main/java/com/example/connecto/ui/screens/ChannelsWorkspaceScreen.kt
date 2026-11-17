@@ -2496,34 +2496,6 @@ private fun ChannelMessageCard(
         trimmed.startsWith("http") && (trimmed.endsWith(".jpg") || trimmed.endsWith(".png") || trimmed.endsWith(".jpeg") || trimmed.endsWith(".webp") || trimmed.endsWith(".gif"))
     }
 
-    val isIncoming = !isMe
-    var hasAppeared by remember(message.id) { mutableStateOf(false) }
-    LaunchedEffect(message.id) {
-        hasAppeared = true
-    }
-
-    val incomingScale by animateFloatAsState(
-        targetValue = if (hasAppeared) 1.0f else 0.82f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "chIncomingScale"
-    )
-    val incomingAlpha by animateFloatAsState(
-        targetValue = if (hasAppeared) 1.0f else 0.0f,
-        animationSpec = tween(280, easing = FastOutSlowInEasing),
-        label = "chIncomingAlpha"
-    )
-    val incomingTranslateY by animateFloatAsState(
-        targetValue = if (hasAppeared) 0f else 14f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMediumLow
-        ),
-        label = "chIncomingTranslateY"
-    )
-
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
@@ -2647,22 +2619,10 @@ private fun ChannelMessageCard(
                     }
 
                     Modifier
-                        .graphicsLayer {
-                            scaleX = if (isIncoming) incomingScale else 1.0f
-                            scaleY = if (isIncoming) incomingScale else 1.0f
-                            alpha = if (isIncoming) incomingAlpha else 1.0f
-                            translationY = if (isIncoming) incomingTranslateY else 0f
-                        }
-                        .shadow(
-                            elevation = if (isMe) 2.dp else 1.dp,
-                            shape = bubbleShape,
-                            spotColor = if (isMe && !isWhiteBubble) ownBubbleBg.copy(alpha = 0.35f) else Color.Black.copy(alpha = 0.25f),
-                            ambientColor = Color.Black.copy(alpha = 0.30f)
-                        )
                         .clip(bubbleShape)
                         .background(bgBrush)
                         .border(
-                            width = 1.dp,
+                            width = 0.8.dp,
                             brush = borderBrush,
                             shape = bubbleShape
                         )

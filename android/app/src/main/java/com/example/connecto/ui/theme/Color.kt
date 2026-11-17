@@ -53,8 +53,8 @@ val TextPrimaryColor = DarkConnectoColors.textPrimary
 val TextSecondaryColor = DarkConnectoColors.textSecondary
 val TextDisabledColor = DarkConnectoColors.textDisabled
 
-// Accent Gradients (Subtle & Restrained)
-val DarkAccentGradientColors = listOf(Color(0xFFFFFFFF), Color(0xFFA1A1AA))
+// Accent Gradients (Stitch Obsidian Electric Indigo & Parchment Slate)
+val DarkAccentGradientColors = listOf(Color(0xFF6366F1), Color(0xFF4F46E5))
 val LightAccentGradientColors = listOf(Color(0xFF0F172A), Color(0xFF334155))
 
 val AccentGradientColors = DarkAccentGradientColors

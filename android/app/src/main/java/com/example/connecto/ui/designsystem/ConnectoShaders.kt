@@ -84,6 +84,11 @@ fun Modifier.connectoAmbientShader(
     themeMode: ThemeMode = ThemeMode.LIQUID_GLASS,
     intensity: Float = 1.0f
 ): Modifier = composed {
+    val colors = LocalConnectoColors.current
+    if (themeMode == ThemeMode.NOIR || intensity <= 0f) {
+        return@composed this.background(colors.background)
+    }
+
     val infiniteTransition = rememberInfiniteTransition(label = "ambientShaderClock")
     val time by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -95,7 +100,6 @@ fun Modifier.connectoAmbientShader(
         label = "shaderTime"
     )
 
-    val colors = LocalConnectoColors.current
     val isDark = colors.isDark
 
     // Curated volumetric palette tuned for Dark Luxury & Liquid Glass

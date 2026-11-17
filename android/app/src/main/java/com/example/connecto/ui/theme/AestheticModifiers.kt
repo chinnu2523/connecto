@@ -661,121 +661,119 @@ fun Modifier.glassBubble(
     val colors = ConnectoTheme.colors
     val isDark = colors.isDark
 
-    val bgBrush = when {
-        isLiquid -> {
-            val alpha = colors.glassAlpha
-            if (isMe) {
-                Brush.linearGradient(
-                    colors = listOf(
-                        colors.primary.copy(alpha = (0.80f + alpha * 0.15f).coerceIn(0.75f, 0.95f)),
-                        Color(
-                            red = (colors.primary.red * 0.82f).coerceIn(0f, 1f),
-                            green = (colors.primary.green * 0.82f).coerceIn(0f, 1f),
-                            blue = (colors.primary.blue * 0.92f).coerceIn(0f, 1f),
-                            alpha = (0.70f + alpha * 0.15f).coerceIn(0.65f, 0.90f)
+    val bgBrush = remember(isLiquid, isMe, isDark, colors.primary, colors.surfaceVariant, colors.glassAlpha) {
+        when {
+            isLiquid -> {
+                val alpha = colors.glassAlpha
+                if (isMe) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            colors.primary.copy(alpha = (0.80f + alpha * 0.15f).coerceIn(0.75f, 0.95f)),
+                            Color(
+                                red = (colors.primary.red * 0.82f).coerceIn(0f, 1f),
+                                green = (colors.primary.green * 0.82f).coerceIn(0f, 1f),
+                                blue = (colors.primary.blue * 0.92f).coerceIn(0f, 1f),
+                                alpha = (0.70f + alpha * 0.15f).coerceIn(0.65f, 0.90f)
+                            )
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(260f, 260f)
+                    )
+                } else if (alpha <= 0.005f) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.06f),
+                            Color.Transparent
                         )
-                    ),
-                    start = Offset.Zero,
-                    end = Offset(260f, 260f)
-                )
-            } else if (alpha <= 0.005f) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.06f),
-                        Color.Transparent
                     )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        if (isDark) Color(0xFF1E2235).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
-                        else colors.surfaceVariant.copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f)),
-                        if (isDark) Color(0xFF141724).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
-                        else colors.surfaceVariant.copy(alpha = (0.60f + alpha * 0.20f).coerceIn(0.50f, 0.85f))
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            if (isDark) Color(0xFF1E2235).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
+                            else colors.surfaceVariant.copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f)),
+                            if (isDark) Color(0xFF141724).copy(alpha = (0.75f + alpha * 0.20f).coerceIn(0.60f, 0.95f))
+                            else colors.surfaceVariant.copy(alpha = (0.60f + alpha * 0.20f).coerceIn(0.50f, 0.85f))
+                        )
                     )
-                )
+                }
             }
-        }
-        else -> {
-            if (isMe) {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        colors.primary.copy(alpha = 0.85f),
-                        colors.primary.copy(alpha = 0.65f)
+            else -> {
+                if (isMe) {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            colors.primary.copy(alpha = 0.85f),
+                            colors.primary.copy(alpha = 0.65f)
+                        )
                     )
-                )
-            } else {
-                Brush.verticalGradient(
-                    colors = listOf(
-                        colors.surfaceVariant.copy(alpha = 0.85f),
-                        colors.surface.copy(alpha = 0.65f)
+                } else {
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            colors.surfaceVariant.copy(alpha = 0.85f),
+                            colors.surface.copy(alpha = 0.65f)
+                        )
                     )
-                )
+                }
             }
         }
     }
 
-    val borderBrush = when {
-        isLiquid -> {
-            if (isMe) {
+    val borderBrush = remember(isLiquid, isMe, isDark, colors.primary, colors.border, colors.borderSubtle, colors.glassAlpha) {
+        when {
+            isLiquid -> {
+                if (isMe) {
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.55f),
+                            colors.primary.copy(alpha = 0.60f),
+                            Color.Transparent
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(240f, 240f)
+                    )
+                } else {
+                    val alpha = colors.glassAlpha
+                    val rimAlpha = if (alpha <= 0.005f) 0.65f else (0.75f - alpha * 0.20f).coerceIn(0.35f, 0.85f)
+                    Brush.linearGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = rimAlpha),
+                            Color.White.copy(alpha = rimAlpha * 0.40f),
+                            Color.White.copy(alpha = rimAlpha * 0.15f)
+                        ),
+                        start = Offset.Zero,
+                        end = Offset(240f, 240f)
+                    )
+                }
+            }
+            isMe -> {
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.55f),
+                        Color.White.copy(alpha = 0.85f),
                         colors.primary.copy(alpha = 0.60f),
-                        Color.Transparent
-                    ),
-                    start = Offset.Zero,
-                    end = Offset(240f, 240f)
-                )
-            } else {
-                val alpha = colors.glassAlpha
-                val rimAlpha = if (alpha <= 0.005f) 0.65f else (0.75f - alpha * 0.20f).coerceIn(0.35f, 0.85f)
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = rimAlpha),
-                        Color.White.copy(alpha = rimAlpha * 0.40f),
-                        Color.White.copy(alpha = rimAlpha * 0.15f)
+                        colors.primary.copy(alpha = 0.15f)
                     ),
                     start = Offset.Zero,
                     end = Offset(240f, 240f)
                 )
             }
-        }
-        isMe -> {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = 0.85f),
-                    colors.primary.copy(alpha = 0.60f),
-                    colors.primary.copy(alpha = 0.15f)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
-        }
-        else -> {
-            Brush.linearGradient(
-                colors = listOf(
-                    Color.White.copy(alpha = if (isDark) 0.60f else 0.75f),
-                    colors.border.copy(alpha = 0.45f),
-                    colors.borderSubtle.copy(alpha = 0.12f)
-                ),
-                start = Offset.Zero,
-                end = Offset(240f, 240f)
-            )
+            else -> {
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = if (isDark) 0.60f else 0.75f),
+                        colors.border.copy(alpha = 0.45f),
+                        colors.borderSubtle.copy(alpha = 0.12f)
+                    ),
+                    start = Offset.Zero,
+                    end = Offset(240f, 240f)
+                )
+            }
         }
     }
 
     return this
-        .shadow(
-            elevation = if (isLiquid) 1.dp else 4.dp,
-            shape = shape,
-            ambientColor = Color.Black.copy(alpha = if (isLiquid) 0.05f else if (isDark) 0.35f else 0.08f),
-            spotColor = if (isLiquid) Color.Transparent else if (isMe) colors.primary.copy(alpha = 0.25f) else Color.Transparent
-        )
         .clip(shape)
         .background(bgBrush)
         .border(
-            width = if (isPressed) 1.5.dp else 1.dp,
+            width = if (isPressed) 1.5.dp else 0.8.dp,
             brush = borderBrush,
             shape = shape
         )
