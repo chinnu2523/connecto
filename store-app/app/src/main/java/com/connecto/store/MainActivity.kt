@@ -105,8 +105,10 @@ class MainActivity : FragmentActivity() {
                             confirmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             try {
                                 startActivity(confirmIntent)
+                                StoreNotificationHelper.cancelInstallPending(this@MainActivity, pkg ?: "")
                             } catch (e: Exception) {
                                 android.util.Log.e("OurStore", "Failed to launch confirm intent from MainActivity", e)
+                                viewModel.onInstallFailed(pkg, "Failed to launch installer dialog: ${e.message}")
                             }
                         }
                     }

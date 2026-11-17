@@ -315,9 +315,10 @@ object ApkInstaller {
                     setInstallReason(PackageManager.INSTALL_REASON_USER)
                 }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    // Direct Play Store-like installation: do not require user action for updates!
+                    // Direct Play Store-like installation: require user action ONLY if Our Store is not yet installer-of-record
                     val isAlreadyInstalled = getInstalledVersionCode(context, packageName) >= 0
-                    if (isAlreadyInstalled) {
+                    val isInstaller = isInstallerOfRecord(context, packageName)
+                    if (isAlreadyInstalled && isInstaller) {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
                     } else {
                         setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_REQUIRED)
@@ -360,7 +361,7 @@ object ApkInstaller {
         }
     }
 
-    private suspend fun installViaSystemIntent(context: Context, apkFile: File): Boolean = withContext(Dispatchers.Main) {
+    suspend fun installViaSystemIntent(context: Context, apkFile: File): Boolean = withContext(Dispatchers.Main) {
         try {
             apkFile.setReadable(true, false)
 

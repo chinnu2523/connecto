@@ -141,6 +141,53 @@ object StoreNotificationHelper {
         }
     }
 
+    /**
+     * Posts a high-priority heads-up notification when PackageInstaller requires user confirmation,
+     * ensuring the user can complete the update even if Our Store was sent to the background.
+     */
+    fun notifyInstallPending(context: Context, packageName: String, confirmIntent: Intent) {
+        initNotificationChannel(context)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                return
+            }
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            ("pending_$packageName").hashCode(),
+            confirmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        )
+
+        val appName = if (packageName.contains("connecto")) "Connecto" else packageName
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.stat_sys_download_done)
+            .setContentTitle("$appName Update Ready")
+            .setContentText("Tap to complete the update installation.")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setAutoCancel(true)
+            .setContentIntent(pendingIntent)
+            .build()
+
+        try {
+            NotificationManagerCompat.from(context).notify(("pending_$packageName").hashCode(), notification)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to post install pending notification for $packageName", e)
+        }
+    }
+
+    /**
+     * Cancels the install pending notification once user completes or aborts installation.
+     */
+    fun cancelInstallPending(context: Context, packageName: String) {
+        try {
+            NotificationManagerCompat.from(context).cancel(("pending_$packageName").hashCode())
+        } catch (_: Exception) {}
+    }
+
     fun clearNotifiedVersion(context: Context, packageName: String) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             .edit()

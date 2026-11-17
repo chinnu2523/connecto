@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageInstaller
 import android.os.Build
 import android.util.Log
+import com.connecto.store.notifications.StoreNotificationHelper
 
 class InstallStatusReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -22,24 +23,17 @@ class InstallStatusReceiver : BroadcastReceiver() {
                     intent.getParcelableExtra(Intent.EXTRA_INTENT)
                 }
                 confirmIntent?.let {
-                    // Security verification: Validate target component is system package installer across Android OEMs
-                    val targetPkg = (it.component?.packageName ?: it.`package`)?.lowercase()
-                    val isTrustedInstaller = targetPkg == null ||
-                        targetPkg.contains("packageinstaller") ||
-                        targetPkg.contains("android") ||
-                        targetPkg.contains("oplus") ||
-                        targetPkg.contains("coloros") ||
-                        targetPkg.contains("miui") ||
-                        targetPkg.contains("samsung") ||
-                        targetPkg.contains("huawei") ||
-                        targetPkg.contains("transsion")
-                    if (!isTrustedInstaller) {
-                        Log.w("OurStore", "Security warning: rejected untrusted confirmIntent targeting: $targetPkg")
-                        return
-                    }
-
                     it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                    var launchedDirectly = false
+
+                    // 1. Mandatory dispatch to MainActivity: Foreground Activity ALWAYS has permission to show system dialog
+                    val notifyIntent = Intent("com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION").apply {
+                        putExtra("package_name", packageName)
+                        putExtra(Intent.EXTRA_INTENT, it)
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(notifyIntent)
+
+                    // 2. Direct activity launch attempt with BAL allowance (best effort for OEM systems)
                     try {
                         val options = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                             android.app.ActivityOptions.makeBasic().apply {
@@ -51,24 +45,17 @@ class InstallStatusReceiver : BroadcastReceiver() {
                             null
                         }
                         context.startActivity(it, options)
-                        launchedDirectly = true
                     } catch (e: Exception) {
-                        Log.w("OurStore", "Direct activity start failed from receiver, delegating to MainActivity", e)
+                        Log.d("OurStore", "Direct activity start from receiver not permitted: ${e.message}")
                     }
 
-                    // Only notify MainActivity if direct launch was blocked by system BAL restrictions
-                    if (!launchedDirectly) {
-                        val notifyIntent = Intent("com.connecto.store.PACKAGE_INSTALL_PENDING_ACTION").apply {
-                            putExtra("package_name", packageName)
-                            putExtra(Intent.EXTRA_INTENT, it)
-                            setPackage(context.packageName)
-                        }
-                        context.sendBroadcast(notifyIntent)
-                    }
+                    // 3. High-priority notification so user can tap to install even if Our Store was minimized
+                    StoreNotificationHelper.notifyInstallPending(context, packageName, it)
                 }
             }
             PackageInstaller.STATUS_SUCCESS -> {
                 Log.i("OurStore", "Package $packageName successfully installed via PackageInstaller!")
+                StoreNotificationHelper.cancelInstallPending(context, packageName)
                 val broadcast = Intent("com.connecto.store.PACKAGE_INSTALLED").apply {
                     putExtra("package_name", packageName)
                     setPackage(context.packageName)
@@ -78,6 +65,7 @@ class InstallStatusReceiver : BroadcastReceiver() {
             else -> {
                 val message = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
                 Log.e("OurStore", "PackageInstaller failed with status: $status message: $message")
+                StoreNotificationHelper.cancelInstallPending(context, packageName)
                 val isCancelled = status == PackageInstaller.STATUS_FAILURE_ABORTED ||
                     status == PackageInstaller.STATUS_FAILURE_INVALID ||
                     message?.contains("abort", ignoreCase = true) == true ||

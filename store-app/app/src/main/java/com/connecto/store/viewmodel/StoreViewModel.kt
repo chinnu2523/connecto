@@ -617,6 +617,15 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(isDownloading = false, isInstalling = true, downloadProgress = 100)
                     }
 
+                    // Launch watchdog timer to auto-clear stuck isInstalling if OS never reports status
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(45_000L)
+                        val s = (_uiState.value as? StoreUiState.Success)?.apps?.find { it.app.packageName == app.packageName }
+                        if (s?.isInstalling == true) {
+                            refreshInstallStates(resetInstallingIfStillPending = true)
+                        }
+                    }
+
                     // Check install permission before launching installer
                     if (!ApkInstaller.canRequestPackageInstalls(ctx)) {
                         pendingInstallFile = file
@@ -657,6 +666,20 @@ class StoreViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onInstallFailed(packageName: String?, errorMessage: String?, isCancelled: Boolean = false) {
         val target = packageName ?: return
+        if (!isCancelled) {
+            // Check if cached APK exists to attempt seamless system intent fallback
+            val cachedFile = File(getApplication<Application>().cacheDir, "apks").listFiles()
+                ?.firstOrNull { it.name.startsWith(target) || it.name.contains(target) || (target == "com.connecto.app" && it.name.startsWith("connecto")) }
+            if (cachedFile != null && cachedFile.exists() && cachedFile.length() > 0) {
+                android.util.Log.i("OurStore", "PackageInstaller session failed for $target; launching system installer intent fallback")
+                viewModelScope.launch {
+                    val fallbackSuccess = ApkInstaller.installViaSystemIntent(getApplication(), cachedFile)
+                    if (fallbackSuccess) {
+                        return@launch
+                    }
+                }
+            }
+        }
         updateAppState(target) {
             it.copy(
                 isDownloading = false,
