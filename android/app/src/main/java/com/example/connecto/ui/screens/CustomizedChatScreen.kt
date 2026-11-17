@@ -767,6 +767,8 @@ fun CustomizedChatScreen(
     var friendMessages by remember {
         mutableStateOf<List<CustomMessageItem>>(emptyList())
     }
+    // High-performance chat pre-warming in-memory cache: maps chat canonical ID & item ID to preloaded messages
+    val preloadedChatMessages = remember { mutableStateMapOf<String, List<CustomMessageItem>>() }
     var pinnedMessageForChat by remember { mutableStateOf<PinnedMessageDto?>(null) }
     var messageForAction by remember { mutableStateOf<CustomMessageItem?>(null) }
     var showMessageActionDialog by remember { mutableStateOf(false) }
@@ -1334,6 +1336,72 @@ fun CustomizedChatScreen(
         notifyUnreadChanged()
     }
 
+    // Chat Pre-Warming Engine (Step 1): Preload local SQLite messages for all conversations
+    // into memory as soon as friends and groups are available, guaranteeing 0ms chat loading
+    LaunchedEffect(friendsList.size, userGroupsList.size) {
+        if (friendsList.isNotEmpty() || userGroupsList.isNotEmpty()) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val targets = (userGroupsList + friendsList).take(25)
+                for (item in targets) {
+                    val cKey = getCanonicalChatId(item)
+                    if (!preloadedChatMessages.containsKey(cKey)) {
+                        val local = loadLocalMessagesForFriend(item)
+                        if (local.isNotEmpty()) {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                preloadedChatMessages[cKey] = local
+                                preloadedChatMessages[item.id] = local
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Chat Pre-Warming Engine (Step 2): Pre-fetch latest messages from backend in background
+    // for active chats so cache is fresh before user even opens any conversation
+    LaunchedEffect(friendsList.size, userGroupsList.size) {
+        val effUser = if (currentUsername.isNotBlank()) currentUsername else (ConnectoApiClient.currentUsername ?: "")
+        val isGuestUser = effUser.trim().lowercase().removePrefix("@") == "guest"
+        if (effUser.isNotBlank() && !isGuestUser && (friendsList.isNotEmpty() || userGroupsList.isNotEmpty())) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                val myClean = effUser.trim().lowercase().removePrefix("@")
+                val activeChats = (userGroupsList + friendsList)
+                    .filter { it.lastMessageTimestamp > 0L || it.unreadCount > 0 }
+                    .take(6)
+                for (chat in activeChats) {
+                    try {
+                        val cleanTarget = chat.handle.removePrefix("@")
+                        val canonicalName = if (chat.isGroup) chat.id else "dm-${minOf(myClean, cleanTarget.lowercase())}-${maxOf(myClean, cleanTarget.lowercase())}"
+                        val storedDmId = if (!chat.isGroup) dbHelper.getDmChannelId(canonicalName) else null
+                        val targetChannelId = if (chat.isGroup) chat.id else (storedDmId ?: canonicalName)
+                        val res = if (chat.isGroup) {
+                            ConnectoApiClient.getMessages(channelId = chat.id)
+                        } else {
+                            ConnectoApiClient.getMessages(channelId = targetChannelId, friendUsername = cleanTarget)
+                        }
+                        if (res.isSuccess) {
+                            val dtoList = res.getOrThrow()
+                            if (dtoList.isNotEmpty()) {
+                                dbHelper.saveMessages(if (chat.isGroup) chat.id else canonicalName, dtoList)
+                                val freshMapped = loadLocalMessagesForFriend(chat)
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                                    val cKey = getCanonicalChatId(chat)
+                                    preloadedChatMessages[cKey] = freshMapped
+                                    preloadedChatMessages[chat.id] = freshMapped
+                                    if (selectedFriend?.id == chat.id) {
+                                        friendMessages = freshMapped
+                                        isLoadingMessages = false
+                                    }
+                                }
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+        }
+    }
+
     var pending1on1Friend by remember { mutableStateOf<FriendItem?>(null) }
     var pendingGroupVoiceCallTarget by remember { mutableStateOf<FriendItem?>(null) }
     var pendingVoiceGroupCallInfo by remember { mutableStateOf<Pair<String, List<FriendshipDto>>?>(null) }
@@ -1826,6 +1894,11 @@ fun CustomizedChatScreen(
                 friendMessages = friendMessages.toMutableList().also { list ->
                     list[idx] = list[idx].copy(content = editEv.newContent)
                 }
+                selectedFriend?.let { sf ->
+                    val cKey = getCanonicalChatId(sf)
+                    preloadedChatMessages[cKey] = friendMessages
+                    preloadedChatMessages[sf.id] = friendMessages
+                }
             }
         }
     }
@@ -2132,6 +2205,11 @@ fun CustomizedChatScreen(
                 // Reconcile and deduplicate:
                 val resultList = (baseList + newItem)
                 friendMessages = deduplicateCustomMessages(resultList)
+                selectedFriend?.let { sf ->
+                    val cKey = getCanonicalChatId(sf)
+                    preloadedChatMessages[cKey] = friendMessages
+                    preloadedChatMessages[sf.id] = friendMessages
+                }
                 coroutineScope.launch {
                     try { listState.animateScrollToItem(friendMessages.size) } catch (_: Exception) {}
                 }
@@ -2331,6 +2409,11 @@ fun CustomizedChatScreen(
     LaunchedEffect(Unit) {
         VoiceCallManager.deletedMessageIds.collect { delId ->
             friendMessages = friendMessages.filterNot { it.id == delId }
+            selectedFriend?.let { sf ->
+                val cKey = getCanonicalChatId(sf)
+                preloadedChatMessages[cKey] = friendMessages
+                preloadedChatMessages[sf.id] = friendMessages
+            }
         }
     }
 
@@ -2362,14 +2445,26 @@ fun CustomizedChatScreen(
                 } else null
             }
 
-            // Always reload messages for this friend from local cache to prevent displaying messages from previous chats
-            val resolvedCached = withContext(Dispatchers.IO) {
-                loadLocalMessagesForFriend(friend)
-            }
-            friendMessages = resolvedCached
-            isLoadingMessages = false
-            if (resolvedCached.isNotEmpty()) {
-                try { listState.scrollToItem(resolvedCached.size) } catch (_: Exception) {}
+            // 0ms INSTANT LOAD: Check preloaded memory cache first
+            val cKey = getCanonicalChatId(friend)
+            val prewarmed = preloadedChatMessages[cKey] ?: preloadedChatMessages[friend.id]
+            if (!prewarmed.isNullOrEmpty()) {
+                friendMessages = prewarmed
+                isLoadingMessages = false
+                try { listState.scrollToItem(prewarmed.size) } catch (_: Exception) {}
+            } else {
+                val resolvedCached = withContext(Dispatchers.IO) {
+                    loadLocalMessagesForFriend(friend)
+                }
+                friendMessages = resolvedCached
+                if (resolvedCached.isNotEmpty()) {
+                    preloadedChatMessages[cKey] = resolvedCached
+                    preloadedChatMessages[friend.id] = resolvedCached
+                }
+                isLoadingMessages = false
+                if (resolvedCached.isNotEmpty()) {
+                    try { listState.scrollToItem(resolvedCached.size) } catch (_: Exception) {}
+                }
             }
 
             if (storedDmId != null && !friend.isGroup && !storedDmId.startsWith("grp-") && !storedDmId.startsWith("grp_") && !storedDmId.startsWith("group-")) {
@@ -2649,6 +2744,9 @@ fun CustomizedChatScreen(
                                     val isAtBottom = lastVisible >= (friendMessages.size - 2).coerceAtLeast(0)
                                     val hasNewItems = merged.size > friendMessages.size
                                     friendMessages = merged
+                                    val chk = getCanonicalChatId(friend)
+                                    preloadedChatMessages[chk] = merged
+                                    preloadedChatMessages[friend.id] = merged
                                     if (isAtBottom && hasNewItems) {
                                         coroutineScope.launch {
                                             try { listState.scrollToItem(merged.size) } catch (_: Exception) {}
@@ -5312,16 +5410,26 @@ fun CustomizedChatScreen(
                                 } else if (friend.isGroup) {
                                     friend.id
                                 } else null
-                                friendMessages = emptyList()
+                                val chKey = getCanonicalChatId(friend)
+                                val prewarmed = preloadedChatMessages[chKey] ?: preloadedChatMessages[friend.id]
+                                if (!prewarmed.isNullOrEmpty()) {
+                                    friendMessages = prewarmed
+                                    isLoadingMessages = false
+                                } else {
+                                    friendMessages = emptyList()
+                                    isLoadingMessages = true
+                                }
                                 typedMessage = messageDrafts[friend.id] ?: ""
                                 selectedFriend = friend
                                 onDirectChatStateChanged(true)
                                 markFriendChatAsReadLocallyAndRemotely(friend)
 
                                 coroutineScope.launch(Dispatchers.IO) {
-                                    val initialMsgs = loadLocalMessagesForFriend(friend)
+                                    val initialMsgs = if (prewarmed.isNullOrEmpty()) loadLocalMessagesForFriend(friend) else prewarmed
                                     withContext(Dispatchers.Main) {
                                         friendMessages = initialMsgs
+                                        preloadedChatMessages[chKey] = initialMsgs
+                                        preloadedChatMessages[friend.id] = initialMsgs
                                         isLoadingMessages = false
                                         try { listState.scrollToItem(initialMsgs.size) } catch (_: Exception) {}
                                     }

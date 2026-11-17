@@ -441,6 +441,18 @@ object ConnectoApiClient {
     var cachedFriends: List<FriendshipDto> = emptyList()
 
     @Volatile
+    var lastFriendsCacheTime: Long = 0L
+
+    @Volatile
+    var lastFriendsCacheUser: String? = null
+
+    @Volatile
+    var cachedGroups: List<GroupDto> = emptyList()
+
+    @Volatile
+    var lastGroupsCacheTime: Long = 0L
+
+    @Volatile
     var isStealthMode: Boolean = false
 
     private val _isStealthModeState = MutableStateFlow<Boolean>(false)
@@ -1125,7 +1137,9 @@ object ConnectoApiClient {
                     body = body.toString(),
                     token = null
                 )
-                if (!response.isSuccess) {
+                val err = response.exceptionOrNull()
+                val is404 = err?.message?.contains("404") == true
+                if (!response.isSuccess && is404) {
                     response = executeRequest(
                         endpoint = "/api/login",
                         method = "POST",
@@ -1133,7 +1147,7 @@ object ConnectoApiClient {
                         token = null
                     )
                 }
-                if (!response.isSuccess) {
+                if (!response.isSuccess && is404) {
                     response = executeRequest(
                         endpoint = "/api/v1/auth/login",
                         method = "POST",
@@ -1146,8 +1160,7 @@ object ConnectoApiClient {
 
             var response = attemptLogin()
 
-            // Retry once after 2s if all endpoints failed with a network/IO error
-            // (handles Cloudflare Worker cold-start DOWN state window)
+            // Retry once after 1s if endpoints failed with a network/IO error (cold-start recovery)
             if (!response.isSuccess) {
                 val ex = response.exceptionOrNull()
                 val isNetworkError = ex is IOException ||
@@ -1156,9 +1169,14 @@ object ConnectoApiClient {
                     ex?.message?.contains("connect", ignoreCase = true) == true ||
                     ex?.message?.contains("timeout", ignoreCase = true) == true ||
                     ex?.message?.contains("Network", ignoreCase = true) == true
-                if (isNetworkError) {
-                    android.util.Log.w("ConnectoSync", "Login: network error on first attempt, retrying in 2s — ${ex?.message}")
-                    kotlinx.coroutines.delay(2000L)
+                val isExplicitAuthFail = ex?.message?.contains("password", ignoreCase = true) == true ||
+                    ex?.message?.contains("credential", ignoreCase = true) == true ||
+                    ex?.message?.contains("user", ignoreCase = true) == true ||
+                    ex?.message?.contains("invalid", ignoreCase = true) == true ||
+                    ex?.message?.contains("blocked", ignoreCase = true) == true
+                if (isNetworkError && !isExplicitAuthFail) {
+                    android.util.Log.w("ConnectoSync", "Login: network error on first attempt, retrying in 1s — ${ex?.message}")
+                    kotlinx.coroutines.delay(1000L)
                     response = attemptLogin()
                 }
             }
@@ -1882,8 +1900,12 @@ object ConnectoApiClient {
         }
     }
 
-    suspend fun getUserGroups(token: String? = null): Result<List<GroupDto>> = withContext(Dispatchers.IO) {
+    suspend fun getUserGroups(token: String? = null, forceRefresh: Boolean = false): Result<List<GroupDto>> = withContext(Dispatchers.IO) {
         try {
+            val now = System.currentTimeMillis()
+            if (!forceRefresh && cachedGroups.isNotEmpty() && (now - lastGroupsCacheTime) < 3500L) {
+                return@withContext Result.success(cachedGroups)
+            }
             var response = executeRequest(
                 endpoint = "/api/groups",
                 method = "GET",
@@ -1981,6 +2003,8 @@ object ConnectoApiClient {
                         )
                     }
                 }
+                cachedGroups = list
+                lastGroupsCacheTime = System.currentTimeMillis()
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch groups"))
@@ -3318,9 +3342,13 @@ object ConnectoApiClient {
         }
     }
 
-    suspend fun getFriends(token: String? = null, username: String? = null): Result<List<FriendshipDto>> = withContext(Dispatchers.IO) {
+    suspend fun getFriends(token: String? = null, username: String? = null, forceRefresh: Boolean = false): Result<List<FriendshipDto>> = withContext(Dispatchers.IO) {
         try {
             val myUsername = (username ?: currentUsername ?: "guest").trim().lowercase().removePrefix("@")
+            val now = System.currentTimeMillis()
+            if (!forceRefresh && myUsername == lastFriendsCacheUser && cachedFriends.isNotEmpty() && (now - lastFriendsCacheTime) < 3500L) {
+                return@withContext Result.success(cachedFriends)
+            }
 
             var response = executeRequest(
                 endpoint = "/api/friends?username=$myUsername",
@@ -3427,6 +3455,8 @@ object ConnectoApiClient {
                     }
                 }
                 cachedFriends = list
+                lastFriendsCacheTime = System.currentTimeMillis()
+                lastFriendsCacheUser = myUsername
                 Result.success(list)
             } else {
                 Result.failure(response.exceptionOrNull() ?: Exception("Failed to fetch friends"))

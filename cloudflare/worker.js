@@ -204,13 +204,13 @@ Sitemap: https://connecto.fun/sitemap.xml
         status: "success",
         app_name: "Connecto",
         package_name: "com.connecto.app",
-        version: "5.3.6",
-        version_name: "v5.3.6",
-        version_code: 150,
-        build: 150,
-        sha256: "7c94fd3f39c4cbe28520d681a0daf4aaa2b159d482d08eeb8cec37c6d1b11e51",
+        version: "5.3.7",
+        version_name: "v5.3.7",
+        version_code: 151,
+        build: 151,
+        sha256: "402983fb91c81516a6b24304aa03116f74909e48a1bc306c141b33e5dd679697",
         filename: "connecto-fun.apk",
-        size_bytes: 38072009,
+        size_bytes: 38077912,
         size_display: "36.3 MB",
         min_android: "Android 7.0 (API 24)",
         target_android: "Android 16+ (API 37 / HyperOS Verified)",
@@ -611,6 +611,7 @@ Sitemap: https://connecto.fun/sitemap.xml
     )) {
       try {
         const canonicalApkUrls = [
+          "https://github.com/chinnu2523/connecto/releases/download/v5.3.7/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.6/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.5/connecto-fun.apk",
           "https://github.com/chinnu2523/connecto/releases/download/v5.3.4/connecto-fun.apk",
@@ -628,14 +629,14 @@ Sitemap: https://connecto.fun/sitemap.xml
           "https://github.com/chinnu2523/connecto/releases/download/v5.2.0/connecto-fun.apk"
         ];
         const cache = caches.default;
-        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.6-b150-prod.apk", { method: "GET" });
+        const cacheKey = new Request("https://connecto.fun/downloads/connecto-fun-v5.3.7-b151-prod.apk", { method: "GET" });
         let cachedResp = await cache.match(cacheKey);
         if (cachedResp) {
           const res = new Response(cachedResp.body, cachedResp);
           res.headers.set("CF-Cache-Status", "HIT");
           res.headers.set("X-Connecto-CDN", "Cloudflare-Edge-Global-Cache");
-          res.headers.set("X-Connecto-Version", "v5.3.6");
-          res.headers.set("X-Connecto-Build", "150");
+          res.headers.set("X-Connecto-Version", "v5.3.7");
+          res.headers.set("X-Connecto-Build", "151");
           return res;
         }
 
@@ -671,8 +672,8 @@ Sitemap: https://connecto.fun/sitemap.xml
               if (cl) downloadHeaders.set("Content-Length", cl);
               downloadHeaders.set("Cache-Control", "public, max-age=604800, s-maxage=604800, immutable");
               downloadHeaders.set("Access-Control-Allow-Origin", "*");
-              downloadHeaders.set("X-Connecto-Version", "v5.3.6");
-              downloadHeaders.set("X-Connecto-Build", "150");
+              downloadHeaders.set("X-Connecto-Version", "v5.3.7");
+              downloadHeaders.set("X-Connecto-Build", "151");
               downloadHeaders.set("X-Connecto-CDN", "Cloudflare-Edge-Accelerated");
 
               const responseToReturn = new Response(upstreamResp.body, {
@@ -687,7 +688,7 @@ Sitemap: https://connecto.fun/sitemap.xml
       } catch (e) {
         // Fallback below
       }
-      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.6/connecto-fun.apk", 302);
+      return Response.redirect("https://github.com/chinnu2523/connecto/releases/download/v5.3.7/connecto-fun.apk", 302);
     }
 
     // 3c. Cloudflare Global Edge CDN: Static Asset Acceleration (Images, CSS, JS, Fonts)
@@ -2049,25 +2050,21 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
         tagline: "Private encrypted messaging, calls & workspaces",
         description: "Ultra-secure end-to-end encrypted direct messaging, crystal-clear voice/video calls, custom workspace channels, and offline data sync.",
         category: "Communication",
-        version_name: "5.3.6",
-        version_code: 150,
-        size_bytes: 38072009,
+        version_name: "5.3.7",
+        version_code: 151,
+        size_bytes: 38077912,
         size_formatted: "36.3 MB",
         download_url: "https://connecto.fun/downloads/connecto-fun.apk",
         icon_url: "https://connecto.fun/static/favicon.svg",
         accent_color: "#2563EB",
         changelog: [
-          "UI/UX High-Performance Optimization: Eliminated main-thread cryptographic operations (PBKDF2/SHA-256) by implementing an in-memory concurrent decrypted preview cache, making conversation list scrolling butter-smooth at 120fps",
-          "Eliminated Continuous 120fps Idle Redraws: De-scoped infinite transition animations from root composables and canvas mesh modifiers, preventing continuous full-screen GPU redraws on idle and drastically boosting battery and frame stability",
-          "Instantaneous Tab Navigation: Optimized HorizontalPager with pre-warmed viewport pages (beyondViewportPageCount = 1), eliminating cold screen inflation jank when switching between Home, Messages, and Channels",
-          "Optimized Chat Bubble & Swipe Rendering: Pre-allocated gradient brushes and switched swipe-to-reply spring physics to lambda-based offset calculations (Modifier.offset { IntOffset(...) }), bypassing unnecessary recomposition passes",
-          "Lightweight Quick Actions: Replaced nested LazyRow with a lightweight horizontal scroll row, eliminating nested gesture coordination overhead",
-          "Real-Time Unread Message Count Badges: Real-time side number badge on conversation list items dynamically displaying unseen messages count, synchronizing instantly as chats are viewed or new messages arrive",
-          "Bottom Navigation Unseen Messages Counter: Bottom Messages tab button accurately reflects the total sum of unseen messages across all chats with real-time sync, immediately decrementing and clearing when conversations are opened",
-          "E2E Message Seen State Persistence: Unread status synchronizes across local SQLite and SharedPreferences for instantaneous, offline-ready UI loading without flicker",
-          "Removed Friend Request Button: Removed the redundant Add Friend / Friend Request button from the Message tab top header for a cleaner, decluttered conversation interface",
-          "Simple Small Search Button: Replaced the static full-length search bar with an elegant compact 36dp circular search button in the top action header that expands on demand with smooth animations",
-          "Default Sign In & Dedicated 'Create an Account' Bottom CTA: App launches directly into Sign In; smooth transition to Sign Up only when tapping 'Don't have an account? Create an account'",
+          "Zero-Latency Re-Login Engine: Eliminates 15-30s re-authentication latency by preserving encrypted SQLite message cache and read states on sign out, enabling instantaneous 0ms session recovery when logging back in",
+          "Chat Pre-Warming & 0ms Instant Load: Preloads and decrypts top conversations into in-memory cache the moment the Message tab is mounted, rendering direct chats and group conversations immediately with zero loading spinner on tap",
+          "Background Active Conversation Sync: Silently synchronizes latest messages in the background without blocking the UI or connection pool",
+          "Intelligent Multi-User Isolation: Automatically cleans previous user SQLite cache only when a different user account logs in, safeguarding cross-account privacy while providing 0ms load for returning users",
+          "Request Coalescing & Fast-Fail Auth: Slashes redundant parallel network trips on startup and stops auth fallback cascades for instant login feedback",
+          "Blueprint 02 Liquid Bulge Tab Bar: Organic gooey dome (h 30, R 30) with specular rim stroke, fluid ease-in-out squish & stretch travel physics, and active tab icon elevating directly into the liquid dome apex",
+          "Ease-In & Ease-Out Curve Animations & Transitions: Fluid cubic bezier EaseInOutCubic, EaseInCubic, and EaseOutCubic motion curves implemented across bottom bar indicator, tab navigation, auth form flipping, expandable search bars, and chat view transitions",
           "Guest Channels Isolation & Simulated Mock Feeds: Complete privacy shield preventing real-time production messages from leaking into Guest mode; curated, lively community mock messages for all channels with interactive auto-replies",
           "Enhanced Navigation Bottom Bar: Illuminated active micro-pip indicators, dynamic unread message count badges, and zero-jank 120fps optimized rendering across Home, Messages, Channels, Calls, and Profile tabs",
           "Instantaneous Non-Adjacent Tab Switching: Multi-tab navigation jumps directly to the target page via scrollToPage, completely bypassing intermediate screen composition, layout, and image decoding",
@@ -7293,13 +7290,13 @@ async function handleCloudApiRequestInternal(request, url, env, ctx) {
       status: "success",
       app_name: "Connecto",
       package_name: "com.connecto.app",
-      version: "5.3.6",
-      version_name: "v5.3.6",
-      version_code: 150,
-      build: 150,
-      sha256: "7c94fd3f39c4cbe28520d681a0daf4aaa2b159d482d08eeb8cec37c6d1b11e51",
+      version: "5.3.7",
+      version_name: "v5.3.7",
+      version_code: 151,
+      build: 151,
+      sha256: "402983fb91c81516a6b24304aa03116f74909e48a1bc306c141b33e5dd679697",
       filename: "connecto-fun.apk",
-      size_bytes: 38072009,
+      size_bytes: 38077912,
       size_display: "36.3 MB",
       min_android: "Android 7.0 (API 24)",
       target_android: "Android 16+ (API 37 / HyperOS Verified)",

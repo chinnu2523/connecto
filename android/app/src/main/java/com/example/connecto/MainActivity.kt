@@ -249,31 +249,41 @@ class MainActivity : FragmentActivity() {
     }
 }
 
-fun performCompleteSignOut(context: Context, userToSignOut: String?) {
+fun performCompleteSignOut(context: Context, userToSignOut: String?, isAccountDeletion: Boolean = false) {
+    val normUser = userToSignOut?.trim()?.lowercase()?.removePrefix("@")
     kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
         try {
             com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
-            if (!userToSignOut.isNullOrBlank()) {
-                com.example.connecto.network.ConnectoApiClient.setPresenceOffline(userToSignOut)
+            if (!normUser.isNullOrBlank()) {
+                com.example.connecto.network.ConnectoApiClient.setPresenceOffline(normUser)
             }
         } catch (_: Exception) {}
     }
-    // Clear ALL persistent data — no leftover state from previous account
+    // Stop background service and disconnect voice
     com.example.connecto.notifications.ConnectoRealtimeService.stopService(context)
     com.example.connecto.voice.VoiceCallManager.disconnectWebSocket()
-    val prefsList = listOf(
-        "connecto_session_prefs",
-        "connecto_secure_session_prefs",
-        "connecto_user_profile_prefs",
-        "connecto_chat_read_prefs",
-        "connecto_friend_prefs",
-        "connecto_notifications_prefs",
-        "connecto_notification_prefs",
-        "connecto_profile"
-    )
-    for (name in prefsList) {
-        context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().apply()
+
+    // Sign out session state while preserving persistent cache for instantaneous re-login
+    val sessionPrefs = context.getSharedPreferences("connecto_session_prefs", Context.MODE_PRIVATE)
+    sessionPrefs.edit()
+        .putBoolean("is_logged_in", false)
+        .remove("token")
+        .apply()
+
+    try {
+        val secPrefs = com.example.connecto.security.SecureStorageManager.getEncryptedPrefs(context)
+        secPrefs.edit()
+            .putBoolean("is_logged_in", false)
+            .remove("token")
+            .apply()
+    } catch (_: Exception) {}
+
+    // Store last signed-out user so re-login by the same user retains local SQLite cache for 0ms startup
+    val metaPrefs = context.getSharedPreferences("connecto_auth_meta", Context.MODE_PRIVATE)
+    if (!normUser.isNullOrBlank()) {
+        metaPrefs.edit().putString("last_signed_out_user", normUser).apply()
     }
+
     // Reset all in-memory ApiClient state
     com.example.connecto.network.ConnectoApiClient.sessionToken = null
     com.example.connecto.network.ConnectoApiClient.sessionCookie = null
@@ -283,11 +293,28 @@ fun performCompleteSignOut(context: Context, userToSignOut: String?) {
     com.example.connecto.network.ConnectoApiClient.currentUserDisplayName = null
     com.example.connecto.network.ConnectoApiClient.activeTypingUser = null
     com.example.connecto.network.ConnectoApiClient.channelCache.clear()
-    // Clear local SQLite cache on sign out to guarantee zero cross-account message/channel collision
-    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-        try {
-            com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).clearAllCache()
-        } catch (_: Exception) {}
+
+    // Clear local SQLite cache and user preferences ONLY on explicit account deletion
+    if (isAccountDeletion) {
+        val prefsList = listOf(
+            "connecto_session_prefs",
+            "connecto_secure_session_prefs",
+            "connecto_user_profile_prefs",
+            "connecto_chat_read_prefs",
+            "connecto_friend_prefs",
+            "connecto_notifications_prefs",
+            "connecto_notification_prefs",
+            "connecto_profile",
+            "connecto_auth_meta"
+        )
+        for (name in prefsList) {
+            context.getSharedPreferences(name, Context.MODE_PRIVATE).edit().clear().apply()
+        }
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).clearAllCache()
+            } catch (_: Exception) {}
+        }
     }
 }
 
@@ -555,9 +582,14 @@ fun ConnectoApp(
                     displayName = displayName
                 )
                 com.example.connecto.notifications.ConnectoRealtimeService.startService(context)
-                com.example.connecto.network.ConnectoApiClient.getProfile(authenticatedUsername)
+                // Run non-critical initial profile & logs in background without blocking startup
                 kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                    com.example.connecto.network.ConnectoApiClient.getCallLogs(authenticatedUsername)
+                    try {
+                        com.example.connecto.network.ConnectoApiClient.getProfile(authenticatedUsername)
+                    } catch (_: Exception) {}
+                    try {
+                        com.example.connecto.network.ConnectoApiClient.getCallLogs(authenticatedUsername)
+                    } catch (_: Exception) {}
                 }
             } catch (e: Exception) {
                 // Ignore network error on startup
@@ -789,6 +821,32 @@ fun ConnectoApp(
                     // HOMEPAGE WITH SIGN UP & SIGN IN ONLY (NO OTHER TABS SHOWN)
                     AuthHomeScreen(
                         onAuthSuccess = { username ->
+                            // Check if same or different user is signing in
+                            val metaPrefs = context.getSharedPreferences("connecto_auth_meta", Context.MODE_PRIVATE)
+                            val lastUser = metaPrefs.getString("last_signed_out_user", null)
+                            val currentNormUser = username.trim().lowercase().removePrefix("@")
+
+                            // Privacy guard: Only purge local SQLite cache if a DIFFERENT user logs in
+                            if (lastUser != null && lastUser.isNotBlank() && lastUser != currentNormUser) {
+                                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                                    try {
+                                        com.example.connecto.data.ConnectoDatabaseHelper.getInstance(context).clearAllCache()
+                                    } catch (_: Exception) {}
+                                }
+                                val userPrefsToPurge = listOf(
+                                    "connecto_user_profile_prefs",
+                                    "connecto_chat_read_prefs",
+                                    "connecto_friend_prefs",
+                                    "connecto_notifications_prefs",
+                                    "connecto_notification_prefs",
+                                    "connecto_profile"
+                                )
+                                for (pName in userPrefsToPurge) {
+                                    context.getSharedPreferences(pName, Context.MODE_PRIVATE).edit().clear().apply()
+                                }
+                            }
+                            metaPrefs.edit().putString("last_signed_out_user", currentNormUser).apply()
+
                             // Persist user session across both SharedPreferences and SecureStorageManager
                             val tokenVal = com.example.connecto.network.ConnectoApiClient.sessionToken
                                 ?: if (username == "guest") "guest_token_sandbox" else null
@@ -1015,7 +1073,7 @@ fun ConnectoApp(
                                                 flowState = AppFlowState.AUTH_HOME
                                             },
                                             onDeleteAccount = {
-                                                performCompleteSignOut(context, authenticatedUsername)
+                                                performCompleteSignOut(context, authenticatedUsername, isAccountDeletion = true)
                                                 flowState = AppFlowState.AUTH_HOME
                                                 android.widget.Toast.makeText(
                                                     context,
