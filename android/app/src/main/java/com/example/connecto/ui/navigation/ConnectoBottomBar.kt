@@ -489,27 +489,33 @@ fun ConnectoBottomBar(
                     // Tactile micro-compression on tap (0.92x spring)
                     val buttonPressScale by animateFloatAsState(
                         targetValue = if (isPressed) 0.92f else 1.0f,
-                        animationSpec = spring(stiffness = 800f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                        animationSpec = spring(stiffness = 850f, dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "buttonPressScale"
                     )
 
                     // Smooth icon elevation & bounce on selection into Liquid Bulge
                     val iconScale by animateFloatAsState(
-                        targetValue = if (isSelected) 1.15f else 1.0f,
+                        targetValue = if (isSelected) 1.16f else 1.0f,
                         animationSpec = spring(
-                            stiffness = 650f,
+                            stiffness = 700f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
                         ),
                         label = "tabIconScale"
                     )
 
                     val iconOffsetY by animateDpAsState(
-                        targetValue = if (isSelected) (-5.dp) else 0.dp,
+                        targetValue = if (isSelected) (-4.dp) else 0.dp,
                         animationSpec = spring(
-                            stiffness = 650f,
+                            stiffness = 700f,
                             dampingRatio = Spring.DampingRatioMediumBouncy
                         ),
                         label = "tabIconOffsetY"
+                    )
+
+                    val pipWidth by animateDpAsState(
+                        targetValue = if (isSelected) 18.dp else 0.dp,
+                        animationSpec = spring(stiffness = 850f, dampingRatio = 0.82f),
+                        label = "tabPipWidth"
                     )
 
                     val iconPrimary = if (isPureBlack) Color.White else colors.primary
@@ -517,7 +523,7 @@ fun ConnectoBottomBar(
 
                     val textColor by animateColorAsState(
                         targetValue = if (isSelected) iconPrimary else colors.textSecondary,
-                        animationSpec = spring(stiffness = 650f, dampingRatio = 0.85f),
+                        animationSpec = spring(stiffness = 700f, dampingRatio = 0.85f),
                         label = "tabTextColor"
                     )
 
@@ -546,10 +552,38 @@ fun ConnectoBottomBar(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
+                            // Top illuminated micro-pip for active tab
+                            Box(
+                                modifier = Modifier
+                                    .width(22.dp)
+                                    .height(3.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (pipWidth > 0.dp) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(pipWidth)
+                                            .height(2.5.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                Brush.horizontalGradient(
+                                                    listOf(
+                                                        iconPrimary.copy(alpha = 0.35f),
+                                                        Color.White,
+                                                        iconPrimary.copy(alpha = 0.35f)
+                                                    )
+                                                )
+                                            )
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(1.dp))
+
                             Box(
                                 modifier = Modifier
                                     .width(52.dp)
-                                    .height(34.dp),
+                                    .height(32.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Box(
@@ -572,7 +606,7 @@ fun ConnectoBottomBar(
                                         modifier = Modifier.size(23.dp)
                                     )
 
-                                    // Subtle Unread / Active Badges
+                                    // Dynamic Unread & Active Status Badges
                                     if (tab == ConnectoTab.CALLS && isCallActive) {
                                         Box(
                                             modifier = Modifier
@@ -581,14 +615,34 @@ fun ConnectoBottomBar(
                                                 .background(colors.success)
                                                 .border(1.5.dp, colors.surface, CircleShape)
                                         )
-                                    } else if (tab == ConnectoTab.MESSAGES && hasUnreadChats) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(7.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.primary)
-                                                .border(1.5.dp, colors.surface, CircleShape)
-                                        )
+                                    } else if (tab == ConnectoTab.MESSAGES && (hasUnreadChats || unreadMessagesCount > 0)) {
+                                        if (unreadMessagesCount > 0) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .offset(x = 8.dp, y = (-4).dp)
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(iconPrimary)
+                                                    .border(1.2.dp, colors.surface, RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 4.dp, vertical = 0.5.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = if (unreadMessagesCount > 99) "99+" else unreadMessagesCount.toString(),
+                                                    color = if (isPureBlack) Color.Black else Color.White,
+                                                    fontSize = 8.5.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    lineHeight = 10.sp
+                                                )
+                                            }
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(7.dp)
+                                                    .clip(CircleShape)
+                                                    .background(iconPrimary)
+                                                    .border(1.5.dp, colors.surface, CircleShape)
+                                            )
+                                        }
                                     } else if (tab == ConnectoTab.CALLS && hasUnreadCalls) {
                                         Box(
                                             modifier = Modifier
@@ -606,13 +660,13 @@ fun ConnectoBottomBar(
                             Text(
                                 text = tab.title,
                                 color = textColor,
-                                fontSize = 10.5.sp,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                letterSpacing = 0.2.sp,
+                                fontSize = if (isSelected) 10.5.sp else 10.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                letterSpacing = if (isSelected) 0.3.sp else 0.15.sp,
                                 maxLines = 1
                             )
 
-                            Spacer(modifier = Modifier.height(3.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                         }
                     }
                 }

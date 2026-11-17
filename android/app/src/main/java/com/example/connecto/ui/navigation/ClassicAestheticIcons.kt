@@ -57,17 +57,6 @@ fun ClassicAestheticTabIcon(
     userInitial: String = "U",
     modifier: Modifier = Modifier
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "classicAestheticAura")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 0.95f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseAlpha"
-    )
-
     Box(
         modifier = modifier.size(24.dp),
         contentAlignment = Alignment.Center
@@ -333,7 +322,7 @@ fun ClassicAestheticTabIcon(
                     )
 
                     // Concentric acoustic wave arcs
-                    val waveColor = if (isSelected) Color.White.copy(alpha = pulseAlpha) else inactiveColor.copy(alpha = 0.65f)
+                    val waveColor = if (isSelected) Color.White.copy(alpha = 0.92f) else inactiveColor.copy(alpha = 0.65f)
                     drawArc(
                         color = waveColor,
                         startAngle = -72f,

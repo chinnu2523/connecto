@@ -106,6 +106,17 @@ fun MessagesScreen(
         )
     }
 
+    val displayedConversations = remember(conversations, searchQuery) {
+        if (searchQuery.isBlank()) conversations
+        else {
+            val q = searchQuery.trim()
+            conversations.filter {
+                it.name.contains(q, ignoreCase = true) ||
+                it.lastMessage.contains(q, ignoreCase = true)
+            }
+        }
+    }
+
     // Dismiss shimmer after short delay
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(900)
@@ -152,6 +163,18 @@ fun MessagesScreen(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Search messages or signals...", color = TextSecondaryDark, fontSize = 14.sp) },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear",
+                                        tint = TextSecondaryDark,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color.Transparent,
                             unfocusedBorderColor = Color.Transparent,
@@ -239,7 +262,7 @@ fun MessagesScreen(
                         ShimmerConversationItem()
                     }
                 } else {
-                    itemsIndexed(conversations) { index, chat ->
+                    itemsIndexed(displayedConversations) { index, chat ->
                         StaggeredReveal(index = index) {
                             Box(
                                 modifier = Modifier

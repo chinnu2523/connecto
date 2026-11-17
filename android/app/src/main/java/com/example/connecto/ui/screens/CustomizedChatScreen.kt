@@ -1734,8 +1734,14 @@ fun CustomizedChatScreen(
                     .thenBy { it.name.lowercase() }
             )
             if (friendSearchQuery.isBlank()) sortedList
-            else sortedList.filter {
-                it.name.contains(friendSearchQuery, ignoreCase = true) || it.handle.contains(friendSearchQuery, ignoreCase = true)
+            else {
+                val q = friendSearchQuery.trim()
+                sortedList.filter {
+                    it.name.contains(q, ignoreCase = true) ||
+                    it.handle.contains(q, ignoreCase = true) ||
+                    it.lastMessage.contains(q, ignoreCase = true) ||
+                    it.bio.contains(q, ignoreCase = true)
+                }
             }
         }
     }
@@ -1765,9 +1771,8 @@ fun CustomizedChatScreen(
         showMoreOptionsMenu = false
     }
 
-    // Intercept back button when search is open in friends list
-    BackHandler(enabled = isSearchOpen && selectedFriend == null && !isFriendProfileOpen) {
-        isSearchOpen = false
+    // Intercept back button when search query is entered in friends list
+    BackHandler(enabled = friendSearchQuery.isNotEmpty() && selectedFriend == null && !isFriendProfileOpen) {
         friendSearchQuery = ""
     }
 
@@ -4761,227 +4766,239 @@ fun CustomizedChatScreen(
                         )
                 )
             } else {
-                if (isSearchOpen) {
-                    val jellyScale by animateFloatAsState(
-                        targetValue = 1f,
-                        animationSpec = spring(
-                            dampingRatio = 0.52f, // Bouncy jelly pop overshoot!
-                            stiffness = 320f
-                        ),
-                        label = "searchJellyScale"
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 8.dp)
-                            .graphicsLayer {
-                                scaleX = jellyScale
-                                scaleY = jellyScale
-                            }
-                            .height(50.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(
-                                1.5.dp,
-                                Brush.horizontalGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                        Color.White.copy(alpha = 0.45f),
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                    )
-                                ),
-                                RoundedCornerShape(16.dp)
-                            )
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxSize()
+                // Header with tap-to-top, title, subtitle & quick actions
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                            indication = null
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search Active",
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            BasicTextField(
-                                value = friendSearchQuery,
-                                onValueChange = { friendSearchQuery = it },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(searchFocusRequester),
-                                textStyle = TextStyle(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    fontSize = 14.5.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                singleLine = true,
-                                decorationBox = { inner ->
-                                    if (friendSearchQuery.isEmpty()) {
-                                        Text(
-                                            text = "Search friends by name or @username...",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                                            fontSize = 13.5.sp
-                                        )
+                            coroutineScope.launch {
+                                try {
+                                    if (friendsListState.firstVisibleItemIndex > 15) {
+                                        friendsListState.scrollToItem(15)
                                     }
-                                    inner()
-                                }
-                            )
-
-                            if (friendSearchQuery.isNotEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-                                        .clickable {
-                                            friendSearchQuery = ""
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear search",
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
+                                    friendsListState.animateScrollToItem(0)
+                                } catch (_: Exception) {}
                             }
-
-                            // Close Button with sleek animated pill
+                        }
+                ) {
+                    ConnectoTopHeader(
+                        title = "DIRECT MESSAGES",
+                        subtitle = if (friendSearchQuery.isNotBlank()) {
+                            "${filteredFriends.size} conversation${if (filteredFriends.size != 1) "s" else ""} found"
+                        } else {
+                            "Chat with friends & members"
+                        },
+                        userInitial = userInitial,
+                        onVoiceGroupClick = null,
+                        onAddFriendClick = null,
+                        pendingFriendRequestsCount = 0,
+                        showProfileButton = false,
+                        onAvatarClick = {},
+                        customAction = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Add Friend Action Button
+                                val addFriendInteraction = remember { MutableInteractionSource() }
+                                val isAddPressed by addFriendInteraction.collectIsPressedAsState()
+                                val addScale by animateFloatAsState(
+                                    targetValue = if (isAddPressed) 0.90f else 1.0f,
+                                    animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
+                                    label = "addFriendBtnScale"
+                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .graphicsLayer {
+                                            scaleX = addScale
+                                            scaleY = addScale
+                                        }
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                                        .clickable(
+                                            interactionSource = addFriendInteraction,
+                                            indication = null
+                                        ) {
+                                            showAddFriendDialog = true
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PersonAdd,
+                                        contentDescription = "Add Friend",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Add Friend",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                // Group Chat Button
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(Brush.linearGradient(gradientColors))
+                                        .clickable { showCreateGroupChatDialog = true }
+                                        .padding(horizontal = 11.dp, vertical = 7.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.GroupAdd,
+                                        contentDescription = "Create Group Chat",
+                                        tint = contentOnGradient,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        text = "Group",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = contentOnGradient
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+
+                // Dedicated High-Performance Top Search Bar UI
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 8.dp)
+                ) {
+                    val isQueryActive = friendSearchQuery.isNotEmpty()
+                    val searchBorderBrush = if (isQueryActive) {
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.primary,
+                                Color.White.copy(alpha = 0.6f),
+                                MaterialTheme.colorScheme.primary
+                            )
+                        )
+                    } else {
+                        Brush.horizontalGradient(
+                            listOf(
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                            )
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f))
+                            .border(
+                                width = if (isQueryActive) 1.5.dp else 1.dp,
+                                brush = searchBorderBrush,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search Conversations",
+                            tint = if (isQueryActive) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            modifier = Modifier.size(19.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        BasicTextField(
+                            value = friendSearchQuery,
+                            onValueChange = { friendSearchQuery = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .focusRequester(searchFocusRequester),
+                            textStyle = TextStyle(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            singleLine = true,
+                            decorationBox = { innerTextField ->
+                                if (friendSearchQuery.isEmpty()) {
+                                    Text(
+                                        text = "Search messages, friends or @username...",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.60f),
+                                        fontSize = 13.5.sp
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        )
+
+                        if (isQueryActive) {
+                            // Match Count Capsule
+                            Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
-                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 7.dp, vertical = 2.5.dp)
+                            ) {
+                                Text(
+                                    text = "${filteredFriends.size}",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            // Clear Button
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.85f))
+                                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), CircleShape)
                                     .clickable {
-                                        isSearchOpen = false
                                         friendSearchQuery = ""
-                                    }
-                                    .padding(horizontal = 9.dp, vertical = 5.dp)
+                                    },
+                                contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Close search",
+                                    contentDescription = "Clear search",
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "Close",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    modifier = Modifier.size(13.dp)
                                 )
                             }
                         }
                     }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(
-                                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                coroutineScope.launch {
-                                    try {
-                                        if (friendsListState.firstVisibleItemIndex > 15) {
-                                            friendsListState.scrollToItem(15)
-                                        }
-                                        friendsListState.animateScrollToItem(0)
-                                    } catch (_: Exception) {}
-                                }
-                            }
-                    ) {
-                        ConnectoTopHeader(
-                            title = "DIRECT MESSAGES",
-                            subtitle = "Chat with friends & members",
-                            userInitial = userInitial,
-                            onVoiceGroupClick = null,
-                            onAddFriendClick = null,
-                            pendingFriendRequestsCount = 0,
-                            showProfileButton = false,
-                            onAvatarClick = {},
-                            customAction = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Animated Search Button
-                                    val searchInteraction = remember { MutableInteractionSource() }
-                                    val isSearchPressed by searchInteraction.collectIsPressedAsState()
-                                    val searchScale by animateFloatAsState(
-                                        targetValue = if (isSearchPressed) 0.90f else 1.0f,
-                                        animationSpec = spring(stiffness = 500f, dampingRatio = Spring.DampingRatioMediumBouncy),
-                                        label = "searchBtnScale"
-                                    )
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .graphicsLayer {
-                                                scaleX = searchScale
-                                                scaleY = searchScale
-                                            }
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
-                                            .clickable(
-                                                interactionSource = searchInteraction,
-                                                indication = null
-                                            ) {
-                                                isSearchOpen = true
-                                            }
-                                            .padding(horizontal = 11.dp, vertical = 7.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Search,
-                                            contentDescription = "Search Friends",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = "Search",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-
-                                    // Group Chat Button
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(Brush.linearGradient(gradientColors))
-                                            .clickable { showCreateGroupChatDialog = true }
-                                            .padding(horizontal = 11.dp, vertical = 7.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.GroupAdd,
-                                            contentDescription = "Create Group Chat",
-                                            tint = contentOnGradient,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text(
-                                            text = "Group Chat",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = contentOnGradient
-                                        )
-                                    }
-                                }
-                            }
-                        )
-                    }
                 }
+
+                // Subtle specular divider line separating TopBar & Search from the conversations list
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                    Color.White.copy(alpha = 0.15f),
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
             }
 
             val currentScreenState = when {
